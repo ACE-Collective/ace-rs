@@ -13,6 +13,20 @@
           },
           "summary": "Email Address FQDN: example.com",
           "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
@@ -28,6 +42,20 @@
             "domain": "example.com"
           },
           "summary": "Email Address FQDN: example.com",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
           "tags": {}
         }
       },
@@ -79,6 +107,13 @@
           "summary": "File Type Analysis: ASCII text (text/plain)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "url_extraction": {
           "details": {
             "urls": [
@@ -91,6 +126,13 @@
             }
           },
           "summary": "URL Extraction Analysis (example.com)",
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
           "tags": {}
         }
       },
@@ -142,6 +184,13 @@
           "summary": "File Type Analysis: ASCII text, with no line terminators (text/plain)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "url_extraction": {
           "details": {
             "urls": [
@@ -154,6 +203,13 @@
             }
           },
           "summary": "URL Extraction Analysis (example.com)",
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
           "tags": {}
         }
       },
@@ -194,6 +250,13 @@
           "summary": "File Type Analysis: PDF document, version 1.7, Unicode text, UTF-8 text, with very long lines (843) (application/pdf)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "url_extraction": {
           "details": {
             "urls": [],
@@ -201,9 +264,98 @@
           },
           "summary": null,
           "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
+    },
+    "file:4e6185b5d95fce4a3e78efb7701e4c5aa6c9b6ef5ca48479e2696973269446e5": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {
+        "pdf_analyzer": true
+      },
+      "paths": {
+        "encrypted_object_streams.pdf.gs.pdf": {
+          "type=document.pdf": true,
+          "type=document.pdf.rendered": true
+        }
+      },
+      "redirection": "file:5d1750d419cbc04c7bd652b4e13aa041f0fe64aeadb9f2b53b7c3a47b38a0efe",
+      "relationships": {
+        "extracted_from file:5d1750d419cbc04c7bd652b4e13aa041f0fe64aeadb9f2b53b7c3a47b38a0efe": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": true,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/pdf",
+            "type": "PDF document, version 1.7, 1 page(s)"
+          },
+          "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "pdftotext": {
+          "details": {
+            "output_path": "a62e2fd14228e52df1262da33959d78073459ba41543704cb44bb5c0a12867a5",
+            "stderr": "",
+            "stdout": ""
+          },
+          "summary": "PDF Text Analysis",
+          "tags": {}
+        },
+        "qrcode": {
+          "details": {
+            "extracted_text": null,
+            "inverted": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {
+        "pdf": true
+      }
     },
     "file:5d1750d419cbc04c7bd652b4e13aa041f0fe64aeadb9f2b53b7c3a47b38a0efe": {
       "detections": {},
@@ -224,8 +376,8 @@
               "ExifTool:ExifToolVersion": 13.25,
               "ExifTool:Warning": "[minor] Decryption is very slow for encryption V5.6 or higher",
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:10 11:36:44+00:00",
-              "File:FileInodeChangeDate": "2026:11:10 11:36:44+00:00",
+              "File:FileAccessDate": "2026:11:11 00:53:30+00:00",
+              "File:FileInodeChangeDate": "2026:11:11 00:53:30+00:00",
               "File:FileModifyDate": "2026:11:07 04:47:50+00:00",
               "File:FileName": "encrypted_object_streams.pdf",
               "File:FilePermissions": 100644,
@@ -274,6 +426,13 @@
           "summary": "File Type Analysis: PDF document, version 1.7 (application/pdf) (pdf document)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "pdf_analyzer": {
           "details": {
             "encryption": {
@@ -312,6 +471,13 @@
           "details": {
             "extracted_text": null,
             "inverted": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}
@@ -368,6 +534,20 @@
           },
           "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
           "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {
@@ -421,6 +601,13 @@
           "summary": "File Type Analysis: ASCII text, with no line terminators (text/plain)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "url_extraction": {
           "details": {
             "urls": [
@@ -433,6 +620,13 @@
             }
           },
           "summary": "URL Extraction Analysis (example.com)",
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
           "tags": {}
         }
       },
@@ -484,6 +678,13 @@
           "summary": "File Type Analysis: ASCII text, with no line terminators (text/plain)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "url_extraction": {
           "details": {
             "urls": [
@@ -496,6 +697,13 @@
             }
           },
           "summary": "URL Extraction Analysis (example.com)",
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
           "tags": {}
         }
       },
@@ -536,6 +744,13 @@
           "summary": "File Type Analysis: data (application/octet-stream)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "url_extraction": {
           "details": {
             "urls": [
@@ -553,6 +768,46 @@
           },
           "summary": "URL Extraction Analysis (example.com)",
           "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:9c8b37252c95c8787a82cf8e25934fed40bc8d2f5c4af170f3be7ba2cfeede62": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "encrypted_object_streams.pdf.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:5d1750d419cbc04c7bd652b4e13aa041f0fe64aeadb9f2b53b7c3a47b38a0efe": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
@@ -568,9 +823,9 @@
           "type=document.pdf.text": true
         }
       },
-      "redirection": "file:ded4ebc57775c9db6aa1e592f3bba061e9c423d12a3e0cc6b33298e558efa819",
+      "redirection": "file:4e6185b5d95fce4a3e78efb7701e4c5aa6c9b6ef5ca48479e2696973269446e5",
       "relationships": {
-        "extracted_from file:ded4ebc57775c9db6aa1e592f3bba061e9c423d12a3e0cc6b33298e558efa819": true
+        "extracted_from file:4e6185b5d95fce4a3e78efb7701e4c5aa6c9b6ef5ca48479e2696973269446e5": true
       },
       "results": {
         "file_type": {
@@ -591,95 +846,23 @@
           },
           "summary": "File Type Analysis: ASCII text (text/plain)",
           "tags": {}
-        }
-      },
-      "tags": {}
-    },
-    "file:be2460f60f4b8b6fd2497723158dd98f9ffc746957960b067914ee444a5b8504": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "encrypted_object_streams.pdf.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:5d1750d419cbc04c7bd652b4e13aa041f0fe64aeadb9f2b53b7c3a47b38a0efe": true
-      },
-      "results": {},
-      "tags": {}
-    },
-    "file:ded4ebc57775c9db6aa1e592f3bba061e9c423d12a3e0cc6b33298e558efa819": {
-      "detections": {},
-      "directives": {
-        "extract_urls": true
-      },
-      "excluded_analysis": {
-        "pdf_analyzer": true
-      },
-      "paths": {
-        "encrypted_object_streams.pdf.gs.pdf": {
-          "type=document.pdf": true,
-          "type=document.pdf.rendered": true
-        }
-      },
-      "redirection": "file:5d1750d419cbc04c7bd652b4e13aa041f0fe64aeadb9f2b53b7c3a47b38a0efe",
-      "relationships": {
-        "extracted_from file:5d1750d419cbc04c7bd652b4e13aa041f0fe64aeadb9f2b53b7c3a47b38a0efe": true
-      },
-      "results": {
-        "file_type": {
-          "details": {
-            "is_email_file": false,
-            "is_jar_file": false,
-            "is_lnk_file": false,
-            "is_office_document": false,
-            "is_office_ext": false,
-            "is_ole_file": false,
-            "is_pdf_file": true,
-            "is_pe_file": false,
-            "is_rtf_file": false,
-            "is_x509": false,
-            "is_zip_file": false,
-            "mime": "application/pdf",
-            "type": "PDF document, version 1.7, 1 page(s)"
-          },
-          "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
-          "tags": {}
         },
-        "pdftotext": {
+        "observable_detection": {
           "details": {
-            "output_path": "a62e2fd14228e52df1262da33959d78073459ba41543704cb44bb5c0a12867a5",
-            "stderr": "",
-            "stdout": ""
-          },
-          "summary": "PDF Text Analysis",
-          "tags": {}
-        },
-        "qrcode": {
-          "details": {
-            "extracted_text": null,
-            "inverted": false
+            "for_detection": false
           },
           "summary": null,
           "tags": {}
         },
-        "url_extraction": {
+        "user_defined_tagging": {
           "details": {
-            "urls": [],
-            "urls_grouped_by_domain": {}
+            "tags_added": []
           },
           "summary": null,
           "tags": {}
         }
       },
-      "tags": {
-        "pdf": true
-      }
+      "tags": {}
     },
     "file:ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977": {
       "detections": {},
@@ -715,6 +898,20 @@
           },
           "summary": "File Type Analysis: very short file (no magic) (application/octet-stream)",
           "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
@@ -742,6 +939,13 @@
             "wildcard_dns": false
           },
           "summary": "DNS Analysis: ip addresses (192.0.2.10, 192.0.2.2) mx (backup.example.com, mail.example.com)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
           "tags": {}
         },
         "proxy_domain_splunk": {
@@ -933,6 +1137,13 @@
             "whois_raw_text": null
           },
           "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {
@@ -951,6 +1162,20 @@
           },
           "summary": null,
           "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
@@ -962,7 +1187,22 @@
       "relationships": {
         "is_hash_of file:778680bd6222c6efb604412bcfc74402e3b85d8f4f7d15cdc9f1605f9d8b18ec": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "md5:4d1072cb32d653b47e2a972530fc2796": {
@@ -972,7 +1212,22 @@
       "relationships": {
         "is_hash_of file:5e218abd0373a6f262027d8f572b2920b83da0d9dc620a68022448d41dd1081e": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "md5:8e1d4c4d1463d31bed335eef87659435": {
@@ -982,7 +1237,22 @@
       "relationships": {
         "is_hash_of file:5d1750d419cbc04c7bd652b4e13aa041f0fe64aeadb9f2b53b7c3a47b38a0efe": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "md5:9b8a0645b2986360f8c754f540391eac": {
@@ -992,7 +1262,22 @@
       "relationships": {
         "is_hash_of file:5df376b08211dd1a5554b644464d317d37d4f8c8993b5cff9456da8a03822e51": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "md5:ad1db51941c466d7d81b9f958a693d89": {
@@ -1002,7 +1287,22 @@
       "relationships": {
         "is_hash_of file:2b827014b27d850fa53f2250136dbb00258e9ce0ddbddab8bf6fad2126ed88f4": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "md5:ce25156000e338c219f73eda2bd1e46f": {
@@ -1012,7 +1312,22 @@
       "relationships": {
         "is_hash_of file:0b420e15805f62e150c409fc16c012d93a7a6077b46e2acb89f6a67448f42925": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:0b420e15805f62e150c409fc16c012d93a7a6077b46e2acb89f6a67448f42925": {
@@ -1022,7 +1337,22 @@
       "relationships": {
         "is_hash_of file:0b420e15805f62e150c409fc16c012d93a7a6077b46e2acb89f6a67448f42925": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:2b827014b27d850fa53f2250136dbb00258e9ce0ddbddab8bf6fad2126ed88f4": {
@@ -1032,7 +1362,22 @@
       "relationships": {
         "is_hash_of file:2b827014b27d850fa53f2250136dbb00258e9ce0ddbddab8bf6fad2126ed88f4": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:5d1750d419cbc04c7bd652b4e13aa041f0fe64aeadb9f2b53b7c3a47b38a0efe": {
@@ -1042,7 +1387,22 @@
       "relationships": {
         "is_hash_of file:5d1750d419cbc04c7bd652b4e13aa041f0fe64aeadb9f2b53b7c3a47b38a0efe": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:5df376b08211dd1a5554b644464d317d37d4f8c8993b5cff9456da8a03822e51": {
@@ -1052,7 +1412,22 @@
       "relationships": {
         "is_hash_of file:5df376b08211dd1a5554b644464d317d37d4f8c8993b5cff9456da8a03822e51": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:5e218abd0373a6f262027d8f572b2920b83da0d9dc620a68022448d41dd1081e": {
@@ -1062,7 +1437,22 @@
       "relationships": {
         "is_hash_of file:5e218abd0373a6f262027d8f572b2920b83da0d9dc620a68022448d41dd1081e": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:778680bd6222c6efb604412bcfc74402e3b85d8f4f7d15cdc9f1605f9d8b18ec": {
@@ -1072,7 +1462,22 @@
       "relationships": {
         "is_hash_of file:778680bd6222c6efb604412bcfc74402e3b85d8f4f7d15cdc9f1605f9d8b18ec": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "uri_path:/encrypted-annotation": {
@@ -1080,7 +1485,22 @@
       "directives": {},
       "excluded_analysis": {},
       "relationships": {},
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "uri_path:/form-field-payload/https://example.com/form-field-payload/https://example.com/form-field-payload": {
@@ -1088,7 +1508,22 @@
       "directives": {},
       "excluded_analysis": {},
       "relationships": {},
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "uri_path:/in-a-stream": {
@@ -1096,7 +1531,22 @@
       "directives": {},
       "excluded_analysis": {},
       "relationships": {},
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "uri_path:/in-a-string": {
@@ -1104,7 +1554,22 @@
       "directives": {},
       "excluded_analysis": {},
       "relationships": {},
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "url:https://example.com/encrypted-annotation": {
@@ -1113,6 +1578,13 @@
       "excluded_analysis": {},
       "relationships": {},
       "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "parse_url": {
           "details": {
             "fragment": "",
@@ -1132,6 +1604,13 @@
           },
           "summary": null,
           "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
@@ -1142,6 +1621,13 @@
       "excluded_analysis": {},
       "relationships": {},
       "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "parse_url": {
           "details": {
             "fragment": "",
@@ -1161,6 +1647,13 @@
           },
           "summary": null,
           "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
@@ -1171,6 +1664,13 @@
       "excluded_analysis": {},
       "relationships": {},
       "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "parse_url": {
           "details": {
             "fragment": "",
@@ -1190,6 +1690,13 @@
           },
           "summary": null,
           "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
@@ -1200,6 +1707,13 @@
       "excluded_analysis": {},
       "relationships": {},
       "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "parse_url": {
           "details": {
             "fragment": "",
@@ -1216,6 +1730,13 @@
           "details": {
             "extracted_url": "https://example.com/in-a-string",
             "protection_type": "unprotected"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}

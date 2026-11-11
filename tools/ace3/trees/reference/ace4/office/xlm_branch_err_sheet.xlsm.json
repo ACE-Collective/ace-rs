@@ -33,8 +33,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:10 11:30:49+00:00",
-              "File:FileInodeChangeDate": "2026:11:10 11:30:49+00:00",
+              "File:FileAccessDate": "2026:11:11 00:46:02+00:00",
+              "File:FileInodeChangeDate": "2026:11:11 00:46:02+00:00",
               "File:FileModifyDate": "2026:11:07 14:35:12+00:00",
               "File:FileName": "xlm_branch_err_sheet.xlsm",
               "File:FilePermissions": 100644,
@@ -85,11 +85,25 @@
           "summary": "File Type Analysis: Microsoft Excel 2007+ (application/vnd.openxmlformats-officedocument.spreadsheetml.sheet) (ms office document) (zip archive)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "olevba_v1_2": {
           "details": {
             "keyword_summary": {},
             "macros": [],
             "type": "OpenXML"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}
@@ -135,6 +149,20 @@
           },
           "summary": "File Type Analysis: ASCII text (text/plain)",
           "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
@@ -172,10 +200,24 @@
           "summary": "File Type Analysis: XML 1.0 document, ASCII text (text/xml)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "url_extraction": {
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}
@@ -218,26 +260,22 @@
           },
           "summary": "File Type Analysis: ASCII text (text/plain)",
           "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
-      "tags": {}
-    },
-    "file:775b2b6c753166c1ae642b329a22441bfdb13b7b569115fcd8fa7874c85dc137": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "xlm_branch_err_sheet.xlsm.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:568c5dcab0a3bb4f02025fc002e5367e19df5a645ffcd3a789b78115f195a72c": true
-      },
-      "results": {},
       "tags": {}
     },
     "file:7c370d9536d7d0d6a0f7cd7f9826692acd93e4fb05ba46f7b630b879740343d3": {
@@ -266,6 +304,20 @@
             "type": "ASCII text"
           },
           "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
           "tags": {}
         }
       },
@@ -304,10 +356,24 @@
           "summary": "File Type Analysis: XML 1.0 document, ASCII text (text/xml)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "url_extraction": {
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}
@@ -349,6 +415,20 @@
           },
           "summary": "File Type Analysis: ASCII text (text/plain)",
           "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
@@ -386,10 +466,24 @@
           "summary": "File Type Analysis: XML 1.0 document, ASCII text (text/xml)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "url_extraction": {
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}
@@ -437,10 +531,57 @@
           "summary": "File Type Analysis: ASCII text (text/plain)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "url_extraction": {
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:d7cd83243bc75a1a44cbee96589a5e75b49e6dcc1a5fbc2ba28dc5a2bee3f80a": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "xlm_branch_err_sheet.xlsm.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:568c5dcab0a3bb4f02025fc002e5367e19df5a645ffcd3a789b78115f195a72c": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}
@@ -481,10 +622,24 @@
           "summary": "File Type Analysis: XML 1.0 document, ASCII text (text/xml)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "url_extraction": {
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}
@@ -532,10 +687,24 @@
           "summary": "File Type Analysis: ASCII text (text/plain)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "url_extraction": {
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}
@@ -576,10 +745,24 @@
           "summary": "File Type Analysis: XML 1.0 document, ASCII text (text/xml)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "url_extraction": {
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}
@@ -601,7 +784,22 @@
       "relationships": {
         "is_hash_of file:568c5dcab0a3bb4f02025fc002e5367e19df5a645ffcd3a789b78115f195a72c": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:568c5dcab0a3bb4f02025fc002e5367e19df5a645ffcd3a789b78115f195a72c": {
@@ -611,7 +809,22 @@
       "relationships": {
         "is_hash_of file:568c5dcab0a3bb4f02025fc002e5367e19df5a645ffcd3a789b78115f195a72c": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     }
   }

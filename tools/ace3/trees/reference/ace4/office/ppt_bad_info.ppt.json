@@ -18,8 +18,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:10 11:27:14+00:00",
-              "File:FileInodeChangeDate": "2026:11:10 11:27:14+00:00",
+              "File:FileAccessDate": "2026:11:11 00:42:42+00:00",
+              "File:FileInodeChangeDate": "2026:11:11 00:42:42+00:00",
               "File:FileModifyDate": "2026:11:07 15:11:53+00:00",
               "File:FileName": "ppt_bad_info.ppt",
               "File:FilePermissions": 100644,
@@ -63,6 +63,13 @@
           "summary": "File Type Analysis: Composite Document File V2 Document, Cannot read section info (application/x-ole-storage) (ms office document) (ole compound file)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "officeparser3": {
           "details": {
             "extracted_files": [
@@ -78,6 +85,13 @@
             "keyword_summary": {},
             "macros": [],
             "type": "OLE"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}
@@ -128,10 +142,24 @@
           "summary": "File Type Analysis: data (application/octet-stream)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "url_extraction": {
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}
@@ -179,6 +207,13 @@
           "summary": "File Type Analysis: data (application/octet-stream)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "url_extraction": {
           "details": {
             "urls": [],
@@ -186,11 +221,18 @@
           },
           "summary": null,
           "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
     },
-    "file:ece56dacf247fe2b3927ca4869ac6108cfe9ec4aab1365d7bcadcac872b9e5c2": {
+    "file:feb11766cd51580b34dee3b402e484b4edc0512ded6ae4b552cacee20328b08d": {
       "detections": {},
       "directives": {},
       "excluded_analysis": {
@@ -205,7 +247,22 @@
       "relationships": {
         "extracted_from file:1015c2bf2724c015bbb5e6f9296fa1f861a370dd2f1ea32d6e29a26cbcefa651": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "md5:abaffdc1282a743e3555f864d1f491eb": {
@@ -215,7 +272,22 @@
       "relationships": {
         "is_hash_of file:1015c2bf2724c015bbb5e6f9296fa1f861a370dd2f1ea32d6e29a26cbcefa651": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:1015c2bf2724c015bbb5e6f9296fa1f861a370dd2f1ea32d6e29a26cbcefa651": {
@@ -225,7 +297,22 @@
       "relationships": {
         "is_hash_of file:1015c2bf2724c015bbb5e6f9296fa1f861a370dd2f1ea32d6e29a26cbcefa651": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     }
   }

@@ -1,0 +1,37 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "ObservableDetectionAnalysis",
+      "details": {
+        "for_detection": false
+      },
+      "detections": [],
+      "module_path": "saq.modules.observable_detection:ObservableDetectionAnalysis",
+      "observables": [],
+      "summary": null,
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "url flagged.example, with fixtures/tag/detections.json",
+    "meta_tags": [],
+    "observable": {
+      "type": "url",
+      "value": "flagged.example"
+    }
+  },
+  "module": "observable_detection",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "relationships": [],
+    "tags": [],
+    "type": "url",
+    "value": "flagged.example"
+  }
+}

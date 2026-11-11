@@ -1,7 +1,7 @@
 {
   "form": 1,
   "observables": {
-    "file:1e6493d311496f33be79a411522714650f5827f300baa006bbf1c16e59ff2b8b": {
+    "file:0d282a74e107187f3a821d7356a9e41399b1d2cd224f8fa8e6046fabb22995ba": {
       "detections": {},
       "directives": {},
       "excluded_analysis": {
@@ -16,7 +16,22 @@
       "relationships": {
         "extracted_from file:c6ee85326699c77abf5c526b69ed897b1ca2f8248f3d51d51bbd8f0b5bc1be2a": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "file:478aab4a65f75c7f7ea702b52ef9cf447b465e8583dd7d7547d02a9be46ed0a7": {
@@ -65,12 +80,26 @@
           "summary": "File Type Analysis: Rich Text Format data, version 1, ANSI (text/rtf) (ms office document) (rtf document)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "rtfole": {
           "details": {
             "extracted_files": [],
             "return_code": 1,
             "stderr": "Traceback (most recent call last):\n  File \"/venv/bin/rtfobj\", line 6, in <module>\n    sys.exit(main())\n             ~~~~^^\n  File \"/venv/lib/python3.14/site-packages/oletools/rtfobj.py\", line 1079, in main\n    process_file(container, filename, data, output_dir=options.output_dir,\n    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n                 save_object=options.save_object)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/venv/lib/python3.14/site-packages/oletools/rtfobj.py\", line 877, in process_file\n    rtfp.parse()\n    ~~~~~~~~~~^^\n  File \"/venv/lib/python3.14/site-packages/oletools/rtfobj.py\", line 473, in parse\n    self._bin(m, param)\n    ~~~~~~~~~^^^^^^^^^^\n  File \"/venv/lib/python3.14/site-packages/oletools/rtfobj.py\", line 598, in _bin\n    if ord(self.data[self.index:self.index + 1]) == ord(' '):\n       ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nTypeError: ord() expected a character, but string of length 0 found\n",
             "stdout": "rtfobj 0.60.1 on Python 3.14.10 - http://decalage.info/python/oletools\nTHIS IS WORK IN PROGRESS - Check updates regularly!\nPlease report any issue at https://github.com/decalage2/oletools/issues\n\n===============================================================================\nFile: 'bin_at_end.rtf.nowhitespace' - size: 359 bytes\n---+----------+---------------------------------------------------------------\nid |index     |OLE Object                                                     \n---+----------+---------------------------------------------------------------\n"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}
@@ -104,8 +133,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:10 11:42:18+00:00",
-              "File:FileInodeChangeDate": "2026:11:10 11:42:18+00:00",
+              "File:FileAccessDate": "2026:11:11 00:59:11+00:00",
+              "File:FileInodeChangeDate": "2026:11:11 00:59:11+00:00",
               "File:FileModifyDate": "2026:11:07 00:31:29+00:00",
               "File:FileName": "bin_at_end.rtf",
               "File:FilePermissions": 100644,
@@ -155,12 +184,26 @@
           "summary": "NoWhiteSpaceAnalysis: Ignore Whitespace Characters (7 removed)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "rtfole": {
           "details": {
             "extracted_files": [],
             "return_code": 1,
             "stderr": "Traceback (most recent call last):\n  File \"/venv/bin/rtfobj\", line 6, in <module>\n    sys.exit(main())\n             ~~~~^^\n  File \"/venv/lib/python3.14/site-packages/oletools/rtfobj.py\", line 1079, in main\n    process_file(container, filename, data, output_dir=options.output_dir,\n    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n                 save_object=options.save_object)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/venv/lib/python3.14/site-packages/oletools/rtfobj.py\", line 877, in process_file\n    rtfp.parse()\n    ~~~~~~~~~~^^\n  File \"/venv/lib/python3.14/site-packages/oletools/rtfobj.py\", line 473, in parse\n    self._bin(m, param)\n    ~~~~~~~~~^^^^^^^^^^\n  File \"/venv/lib/python3.14/site-packages/oletools/rtfobj.py\", line 598, in _bin\n    if ord(self.data[self.index:self.index + 1]) == ord(' '):\n       ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nTypeError: ord() expected a character, but string of length 0 found\n",
             "stdout": "rtfobj 0.60.1 on Python 3.14.10 - http://decalage.info/python/oletools\nTHIS IS WORK IN PROGRESS - Check updates regularly!\nPlease report any issue at https://github.com/decalage2/oletools/issues\n\n===============================================================================\nFile: 'bin_at_end.rtf' - size: 366 bytes\n---+----------+---------------------------------------------------------------\nid |index     |OLE Object                                                     \n---+----------+---------------------------------------------------------------\n"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}
@@ -178,7 +221,22 @@
       "relationships": {
         "is_hash_of file:c6ee85326699c77abf5c526b69ed897b1ca2f8248f3d51d51bbd8f0b5bc1be2a": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "md5:a1720d77f2136eea293fd02cf741c559": {
@@ -188,7 +246,22 @@
       "relationships": {
         "is_hash_of file:478aab4a65f75c7f7ea702b52ef9cf447b465e8583dd7d7547d02a9be46ed0a7": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:478aab4a65f75c7f7ea702b52ef9cf447b465e8583dd7d7547d02a9be46ed0a7": {
@@ -198,7 +271,22 @@
       "relationships": {
         "is_hash_of file:478aab4a65f75c7f7ea702b52ef9cf447b465e8583dd7d7547d02a9be46ed0a7": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:c6ee85326699c77abf5c526b69ed897b1ca2f8248f3d51d51bbd8f0b5bc1be2a": {
@@ -208,7 +296,22 @@
       "relationships": {
         "is_hash_of file:c6ee85326699c77abf5c526b69ed897b1ca2f8248f3d51d51bbd8f0b5bc1be2a": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     }
   }

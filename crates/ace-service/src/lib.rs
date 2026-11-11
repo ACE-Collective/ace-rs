@@ -38,6 +38,9 @@
 //! `commands` starts and cancels the commands analysts run from the GUI (5.12), ace3's `cli` router, and
 //! reads them with their output. A pool runs each, contained, until its deadline.
 //!
+//! `detection` keeps the observables ACE detects wherever they appear, entries of 5.14's
+//! `observable_detection` list, for 5.6's `detection` router and 5.11's admin page (7.6).
+//!
 //! `detection_points` lists every alert's detections for 5.6's `detection_points` router.
 //!
 //! `yara_qa` reads the rules in QA mode and what they matched for 5.6's `yara_qa` router, audits a download
@@ -82,6 +85,7 @@ mod alerts;
 mod auth;
 mod commands;
 mod crashes;
+mod detection;
 mod detection_points;
 mod email_archive;
 mod events;
@@ -133,6 +137,12 @@ pub use commands::{
     parse_command,
 };
 pub use crashes::{Crash, CrashDetail, CrashFilter, CrashInput, CrashPage, MAX_CRASHES_PAGE};
+pub use detection::{
+    DEFAULT_DETECTION_LIFETIME_DAYS, DEFAULT_DETECTION_PAGE_SIZE, DETECTION_LIST,
+    DETECTION_PAGE_SIZES, Detection, DetectionExpiry, DetectionFilter, DetectionPage,
+    DetectionStatus, DetectionTypes, NEVER_EXPIRING_TYPES, NewDetection, clamp_detection_page_size,
+    default_detection_expiry, detection_identity, detection_search_pattern,
+};
 pub use detection_points::{
     DetectionPoint, DetectionPointFilter, DetectionPointPage, MAX_DETECTIONS_PAGE,
 };
@@ -165,10 +175,11 @@ pub use observables::{
 };
 pub use permission::{
     ADMIN_READ, ALERT_CREATE, ALERT_READ, ALERT_WRITE, BUCKET_GC, BUCKET_VERIFY, CATALOG,
-    CLI_EXECUTE, CRASH_READ, CatalogEntry, EMAIL_ARCHIVE_MAINTAIN, EMAIL_READ, EVENT_READ,
-    EVENT_WRITE, Effect, HUNT_READ, HUNT_WRITE, InvalidPermission, LIST_READ, LIST_WRITE,
-    NRD_REFRESH, OBSERVABLE_READ, OBSERVABLE_WRITE, PermissionName, PermissionPattern,
-    SIGNATURE_DOWNLOAD, SIGNATURE_QA_PURGE, SIGNATURE_READ, USER_READ, USER_SELF, USER_WRITE,
+    CLI_EXECUTE, CRASH_READ, CatalogEntry, DETECTION_READ, DETECTION_WRITE, EMAIL_ARCHIVE_MAINTAIN,
+    EMAIL_READ, EVENT_READ, EVENT_WRITE, Effect, HUNT_READ, HUNT_WRITE, InvalidPermission,
+    LIST_READ, LIST_WRITE, NRD_REFRESH, OBSERVABLE_READ, OBSERVABLE_WRITE, PermissionName,
+    PermissionPattern, SIGNATURE_DOWNLOAD, SIGNATURE_QA_PURGE, SIGNATURE_READ, USER_READ,
+    USER_SELF, USER_WRITE,
 };
 pub use preferences::{
     AlertSectionsPreference, MANAGE_COLUMNS, MAX_ALERT_SECTIONS, ManageColumn,

@@ -259,6 +259,11 @@ pub const EMAIL_READ: PermissionName = PermissionName::known("email", "read");
 /// `scheduler:email_archive_partitions` holds it.
 pub const EMAIL_ARCHIVE_MAINTAIN: PermissionName =
     PermissionName::known("email_archive", "maintain");
+/// List the observables ACE detects wherever they appear, and the types they're of: ace3's
+/// `detection:read`.
+pub const DETECTION_READ: PermissionName = PermissionName::known("detection", "read");
+/// Add and remove the observables ACE detects, and set when each expires: ace3's `detection:write`.
+pub const DETECTION_WRITE: PermissionName = PermissionName::known("detection", "write");
 /// Read events, their alerts, malware and threat types, and export them: ace3's `event:read`.
 pub const EVENT_READ: PermissionName = PermissionName::known("event", "read");
 /// Change events, and the threat types and malware's threats they record: ace3's `event:write`.
@@ -345,6 +350,16 @@ pub static CATALOG: &[CatalogEntry] = &[
     CatalogEntry {
         name: CRASH_READ,
         description: "List failed tasks and download them; the archive holds the file the module failed on.",
+    },
+    CatalogEntry {
+        name: DETECTION_READ,
+        description: "List the observables ACE detects in every alert, with their expiry and context.",
+    },
+    CatalogEntry {
+        name: DETECTION_WRITE,
+        description: "Add and remove the observables ACE detects, and set when each expires. A detection \
+                      applies to the next task that checks an observable: every alert holding it gets a \
+                      detection point.",
     },
     CatalogEntry {
         name: EMAIL_ARCHIVE_MAINTAIN,

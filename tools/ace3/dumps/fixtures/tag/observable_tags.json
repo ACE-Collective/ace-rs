@@ -1,0 +1,12 @@
+{
+  "about": "The tags ace3's database maps to observables, which tools/ace3/dumps/run_module.py --observable-tags gives user_defined_tagging (PLAN.md 7.6), and ace4's analysis.observable_tags holds in its tests.",
+  "tags": [
+    {"type": "fqdn", "value": "tagged.example", "tag": "phish_infra"},
+    {"type": "fqdn", "value": "tagged.example", "tag": "watchlist"},
+    {"type": "fqdn", "value": "tagged.example", "tag": "phish_infra2"},
+    {"type": "email_address", "value": "ceo@corp.example", "tag": "executive"},
+    {"type": "ipv4", "value": "203.0.113.9", "tag": "scanner"},
+    {"type": "url", "value": "http://tagged.example/", "tag": "phish_infra"},
+    {"type": "file", "value": "76f3b3e668343641d138e1121f7be54778c87bf38fe98f27723be8be971ff8e3", "tag": "known_keylog"}
+  ]
+}

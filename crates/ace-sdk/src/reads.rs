@@ -412,6 +412,40 @@ pub struct ArchivedUrlCountAnswer {
     pub count: i64,
 }
 
+/// `observable-tags`: the tags analysts mapped to the task's own observable, by its type and the
+/// sha256 of its value (`user_defined_tagging`).
+pub struct ObservableTags;
+
+impl ReadKind for ObservableTags {
+    const READ: Read = Read {
+        name: "observable-tags",
+    };
+    type Request = ObservableTagsRequest;
+    type Answer = ObservableTagsAnswer;
+}
+
+/// The subject of an `observable-tags` read: only the task's own observable, which None names.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ObservableTagsRequest {
+    #[serde(default)]
+    pub subject: Option<ObservableRef>,
+}
+
+/// The answer to an `observable-tags` read.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ObservableTagsAnswer {
+    /// The tags, in the order they were mapped, at most `MAX_OBSERVABLE_TAGS`.
+    pub tags: Vec<String>,
+    /// The observable had more tags than the answer holds.
+    #[serde(default)]
+    pub truncated: bool,
+}
+
+/// The most tags an `observable-tags` answer holds.
+pub const MAX_OBSERVABLE_TAGS: usize = 1000;
+
 /// Every read a module can declare, by name.
 pub const ALL: &[Read] = &[
     SnortSignature::READ,
@@ -422,6 +456,7 @@ pub const ALL: &[Read] = &[
     ArchivedEmail::READ,
     DecryptedArchive::READ,
     ArchivedUrlCount::READ,
+    ObservableTags::READ,
 ];
 
 /// The reads that put a file in the task's root, which a result may add without uploading it.

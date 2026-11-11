@@ -53,6 +53,20 @@
           },
           "summary": "File Type Analysis: RAR archive data, v5 (application/vnd.rar)",
           "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
@@ -105,6 +119,20 @@
           "summary": "File Type Analysis: ASCII text, with very long lines (65446) (text/plain)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        },
         "vbscript_analyzer": {
           "details": {
             "largest_hex_string": 11,
@@ -124,7 +152,22 @@
       "relationships": {
         "is_hash_of file:e11d7a01a9434846e71a574fd3e17d1d4eee1d360deccb8d07dca26af9d2b72a": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "md5:85bd4041550985b75afcc333025c600f": {
@@ -134,7 +177,22 @@
       "relationships": {
         "is_hash_of file:249bf2b232d17cc031423f125dfd1c8a9888a6ff3d686a0c04dc315f4a9517b9": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:249bf2b232d17cc031423f125dfd1c8a9888a6ff3d686a0c04dc315f4a9517b9": {
@@ -144,7 +202,22 @@
       "relationships": {
         "is_hash_of file:249bf2b232d17cc031423f125dfd1c8a9888a6ff3d686a0c04dc315f4a9517b9": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:e11d7a01a9434846e71a574fd3e17d1d4eee1d360deccb8d07dca26af9d2b72a": {
@@ -154,7 +227,22 @@
       "relationships": {
         "is_hash_of file:e11d7a01a9434846e71a574fd3e17d1d4eee1d360deccb8d07dca26af9d2b72a": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     }
   }

@@ -13,6 +13,20 @@
           },
           "summary": "Email Address FQDN: example.com",
           "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
@@ -28,6 +42,53 @@
             "domain": "example.com"
           },
           "summary": "Email Address FQDN: example.com",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:24c4505658cf3ead4ed70a1b869f9e0320954fffeb704be50a4ffa3886e4498f": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "demo.odt.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:8495d37825dab8744f7d2c8049fc6b70b1777b9184f0abe69ce314795480ce39": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
           "tags": {}
         }
       },
@@ -66,10 +127,24 @@
           "summary": "File Type Analysis: XML 1.0 document, ASCII text, with very long lines (1011) (text/xml)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "url_extraction": {
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}
@@ -117,10 +192,24 @@
           "summary": "File Type Analysis: XML 1.0 document, ASCII text, with very long lines (10804) (text/xml)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "url_extraction": {
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}
@@ -161,6 +250,20 @@
             "type": "ASCII text"
           },
           "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
           "tags": {}
         }
       },
@@ -205,6 +308,20 @@
           },
           "summary": "File Type Analysis: ASCII text, with no line terminators (text/plain)",
           "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
@@ -242,10 +359,24 @@
           "summary": "File Type Analysis: XML 1.0 document, ASCII text (text/xml)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "url_extraction": {
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}
@@ -286,6 +417,20 @@
             "type": "ASCII text, with no line terminators"
           },
           "summary": "File Type Analysis: ASCII text, with no line terminators (text/plain)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
           "tags": {}
         }
       },
@@ -330,8 +475,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:10 11:09:50+00:00",
-              "File:FileInodeChangeDate": "2026:11:10 11:09:50+00:00",
+              "File:FileAccessDate": "2026:11:11 00:26:52+00:00",
+              "File:FileInodeChangeDate": "2026:11:11 00:26:52+00:00",
               "File:FileModifyDate": "2026:11:06 19:20:07+00:00",
               "File:FileName": "demo.odt",
               "File:FilePermissions": 100644,
@@ -389,11 +534,25 @@
           "summary": "File Type Analysis: OpenDocument Text (application/vnd.oasis.opendocument.text) (ms office document) (zip archive)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "olevba_v1_2": {
           "details": {
             "keyword_summary": {},
             "macros": [],
             "type": "OpenXML"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}
@@ -403,24 +562,6 @@
         "microsoft_office": true,
         "zip": true
       }
-    },
-    "file:8b6a2d22d6313df723e8e80e71758ae24c6ea1379fc9d20353573945eec0b1b4": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "demo.odt.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:8495d37825dab8744f7d2c8049fc6b70b1777b9184f0abe69ce314795480ce39": true
-      },
-      "results": {},
-      "tags": {}
     },
     "file:8fbddec35c26494c0b123a5900c32e1cbb8de7e6e5f5e235dd9bc6b470170d3f": {
       "detections": {},
@@ -455,10 +596,24 @@
           "summary": "File Type Analysis: XML 1.0 document, ASCII text, with very long lines (3257) (text/xml)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "url_extraction": {
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}
@@ -500,6 +655,20 @@
           },
           "summary": "File Type Analysis: ASCII text, with very long lines (315), with no line terminators (text/plain)",
           "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
@@ -537,6 +706,13 @@
           "summary": "File Type Analysis: XML 1.0 document, ASCII text (text/xml)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "url_extraction": {
           "details": {
             "urls": [
@@ -553,6 +729,13 @@
             }
           },
           "summary": "URL Extraction Analysis (192.168.0.138, openoffice.org)",
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
           "tags": {}
         },
         "xml_plain_text_analyzer": {
@@ -598,6 +781,13 @@
           "summary": "File Type Analysis: XML 1.0 document, ASCII text (text/xml)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "url_extraction": {
           "details": {
             "urls": [
@@ -610,6 +800,13 @@
             }
           },
           "summary": "URL Extraction Analysis (openoffice.org)",
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
           "tags": {}
         },
         "xml_plain_text_analyzer": {
@@ -655,10 +852,24 @@
           "summary": "File Type Analysis: PNG image data, 198 x 256, 8-bit/color RGB, non-interlaced (image/png)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "qrcode": {
           "details": {
             "extracted_text": null,
             "inverted": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}
@@ -695,6 +906,20 @@
             "type": "XML 1.0 document, ASCII text"
           },
           "summary": "File Type Analysis: XML 1.0 document, ASCII text (text/xml)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
           "tags": {}
         },
         "xml_plain_text_analyzer": {
@@ -734,6 +959,20 @@
           },
           "summary": "File Type Analysis: ASCII text (text/plain)",
           "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
@@ -771,10 +1010,24 @@
           "summary": "File Type Analysis: XML 1.0 document, ASCII text, with very long lines (8500) (text/xml)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "url_extraction": {
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}
@@ -816,6 +1069,20 @@
           },
           "summary": "File Type Analysis: ASCII text (text/plain)",
           "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
@@ -851,6 +1118,20 @@
             "type": "empty"
           },
           "summary": "File Type Analysis: empty (inode/x-empty)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
           "tags": {}
         }
       },
@@ -889,6 +1170,13 @@
           "summary": "File Type Analysis: XML 1.0 document, ASCII text (text/xml)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "url_extraction": {
           "details": {
             "urls": [
@@ -901,6 +1189,13 @@
             }
           },
           "summary": "URL Extraction Analysis (openoffice.org)",
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
           "tags": {}
         },
         "xml_plain_text_analyzer": {
@@ -941,6 +1236,20 @@
           },
           "summary": "File Type Analysis: ASCII text (text/plain)",
           "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
@@ -968,6 +1277,13 @@
             "wildcard_dns": false
           },
           "summary": "DNS Analysis: ip addresses (192.0.2.10, 192.0.2.2) mx (backup.example.com, mail.example.com)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
           "tags": {}
         },
         "proxy_domain_splunk": {
@@ -1159,6 +1475,13 @@
             "whois_raw_text": null
           },
           "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
@@ -1180,6 +1503,13 @@
             "wildcard_dns": null
           },
           "summary": "DNS Analysis: does not exist (nxdomain)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
           "tags": {}
         },
         "proxy_domain_splunk": {
@@ -1242,6 +1572,13 @@
             "whois_raw_text": null
           },
           "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {
@@ -1257,6 +1594,20 @@
         "network_identifier": {
           "details": {
             "identified_networks": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}
@@ -1276,6 +1627,20 @@
           },
           "summary": null,
           "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {
@@ -1289,7 +1654,22 @@
       "relationships": {
         "is_hash_of file:714dbe370b0a7063669217d91b287566fe8babbc8599b629b24476ff81b83593": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "md5:2b8205c7ab16752cf63ec437ba12011a": {
@@ -1299,7 +1679,22 @@
       "relationships": {
         "is_hash_of file:8495d37825dab8744f7d2c8049fc6b70b1777b9184f0abe69ce314795480ce39": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:714dbe370b0a7063669217d91b287566fe8babbc8599b629b24476ff81b83593": {
@@ -1309,7 +1704,22 @@
       "relationships": {
         "is_hash_of file:714dbe370b0a7063669217d91b287566fe8babbc8599b629b24476ff81b83593": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:8495d37825dab8744f7d2c8049fc6b70b1777b9184f0abe69ce314795480ce39": {
@@ -1319,7 +1729,22 @@
       "relationships": {
         "is_hash_of file:8495d37825dab8744f7d2c8049fc6b70b1777b9184f0abe69ce314795480ce39": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "uri_path:/2000/library": {
@@ -1327,7 +1752,22 @@
       "directives": {},
       "excluded_analysis": {},
       "relationships": {},
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "uri_path:/2000/script": {
@@ -1335,7 +1775,22 @@
       "directives": {},
       "excluded_analysis": {},
       "relationships": {},
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "uri_path:/tnczG37zU": {
@@ -1343,7 +1798,22 @@
       "directives": {},
       "excluded_analysis": {},
       "relationships": {},
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "url:http://192.168.0.138:8080/tnczG37zU": {
@@ -1352,6 +1822,13 @@
       "excluded_analysis": {},
       "relationships": {},
       "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "parse_url": {
           "details": {
             "fragment": "",
@@ -1371,6 +1848,13 @@
           },
           "summary": null,
           "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
@@ -1381,6 +1865,13 @@
       "excluded_analysis": {},
       "relationships": {},
       "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "parse_url": {
           "details": {
             "fragment": "",
@@ -1400,6 +1891,13 @@
           },
           "summary": null,
           "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
@@ -1410,6 +1908,13 @@
       "excluded_analysis": {},
       "relationships": {},
       "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "parse_url": {
           "details": {
             "fragment": "",
@@ -1426,6 +1931,13 @@
           "details": {
             "extracted_url": "http://openoffice.org/2000/script",
             "protection_type": "unprotected"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}

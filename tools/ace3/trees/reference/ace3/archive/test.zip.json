@@ -54,11 +54,25 @@
           "summary": "File Type Analysis: Zip archive data, made by v3.1, extract using at least v2.0, last modified Dec 25 2006 06:29:14, uncompressed size 23405, method=deflate (application/zip) (zip archive)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "olevba_v1_2": {
           "details": {
             "keyword_summary": {},
             "macros": [],
             "type": "OpenXML"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}
@@ -114,6 +128,20 @@
           },
           "summary": "File Type Analysis: ASCII text, with very long lines (23405), with no line terminators (text/plain)",
           "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
@@ -125,7 +153,22 @@
       "relationships": {
         "is_hash_of file:2e981fb20ec03bb5bf767e61069d4ceca975dabb333a958d45df74bbe6bf1bcb": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "md5:87a043956a9e40449f0a60fb97e9a149": {
@@ -135,7 +178,22 @@
       "relationships": {
         "is_hash_of file:1f0e8019d2bc4dadef1395af870b509adf4e8a226dee0fb7716cc5d8c3a4d147": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:1f0e8019d2bc4dadef1395af870b509adf4e8a226dee0fb7716cc5d8c3a4d147": {
@@ -145,7 +203,22 @@
       "relationships": {
         "is_hash_of file:1f0e8019d2bc4dadef1395af870b509adf4e8a226dee0fb7716cc5d8c3a4d147": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:2e981fb20ec03bb5bf767e61069d4ceca975dabb333a958d45df74bbe6bf1bcb": {
@@ -155,7 +228,22 @@
       "relationships": {
         "is_hash_of file:2e981fb20ec03bb5bf767e61069d4ceca975dabb333a958d45df74bbe6bf1bcb": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     }
   }

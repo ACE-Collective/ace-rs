@@ -1,6 +1,39 @@
 {
   "form": 1,
   "observables": {
+    "file:640ac42e34a8ab0696c7a7e3154bec2d5aad01c95f3d820b8306a41d64e68e32": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "plain.rtf.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:dc0f6712c412938417a842065b9ed22080fa453a088ed6696b77f10db5cf0682": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:702775ffcea7b3164a54f33358f8215a0b0e32795e3b8ad46eab75b74cf5ec6d": {
       "detections": {},
       "directives": {},
@@ -47,6 +80,13 @@
           "summary": "File Type Analysis: Rich Text Format data, version 1, ANSI (text/rtf) (ms office document) (rtf document)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "rtfole": {
           "details": {
             "extracted_files": [],
@@ -56,30 +96,19 @@
           },
           "summary": null,
           "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {
         "microsoft_office": true,
         "rtf": true
       }
-    },
-    "file:899e3d38e6aeede4ce974e2453899474d723348b63f0af6afe576e96e122dd29": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "plain.rtf.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:dc0f6712c412938417a842065b9ed22080fa453a088ed6696b77f10db5cf0682": true
-      },
-      "results": {},
-      "tags": {}
     },
     "file:dc0f6712c412938417a842065b9ed22080fa453a088ed6696b77f10db5cf0682": {
       "detections": {},
@@ -104,8 +133,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:10 11:45:05+00:00",
-              "File:FileInodeChangeDate": "2026:11:10 11:45:05+00:00",
+              "File:FileAccessDate": "2026:11:11 01:02:08+00:00",
+              "File:FileInodeChangeDate": "2026:11:11 01:02:08+00:00",
               "File:FileModifyDate": "2026:11:06 20:12:38+00:00",
               "File:FileName": "plain.rtf",
               "File:FilePermissions": 100644,
@@ -155,12 +184,26 @@
           "summary": "NoWhiteSpaceAnalysis: Ignore Whitespace Characters (6 removed)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "rtfole": {
           "details": {
             "extracted_files": [],
             "return_code": 0,
             "stderr": "",
             "stdout": "rtfobj 0.60.1 on Python 3.14.10 - http://decalage.info/python/oletools\nTHIS IS WORK IN PROGRESS - Check updates regularly!\nPlease report any issue at https://github.com/decalage2/oletools/issues\n\n===============================================================================\nFile: 'plain.rtf' - size: 63 bytes\n---+----------+---------------------------------------------------------------\nid |index     |OLE Object                                                     \n---+----------+---------------------------------------------------------------\n"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}
@@ -178,7 +221,22 @@
       "relationships": {
         "is_hash_of file:dc0f6712c412938417a842065b9ed22080fa453a088ed6696b77f10db5cf0682": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "md5:ee4795a63c49b801a8f2585da117ded2": {
@@ -188,7 +246,22 @@
       "relationships": {
         "is_hash_of file:702775ffcea7b3164a54f33358f8215a0b0e32795e3b8ad46eab75b74cf5ec6d": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:702775ffcea7b3164a54f33358f8215a0b0e32795e3b8ad46eab75b74cf5ec6d": {
@@ -198,7 +271,22 @@
       "relationships": {
         "is_hash_of file:702775ffcea7b3164a54f33358f8215a0b0e32795e3b8ad46eab75b74cf5ec6d": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:dc0f6712c412938417a842065b9ed22080fa453a088ed6696b77f10db5cf0682": {
@@ -208,7 +296,22 @@
       "relationships": {
         "is_hash_of file:dc0f6712c412938417a842065b9ed22080fa453a088ed6696b77f10db5cf0682": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     }
   }

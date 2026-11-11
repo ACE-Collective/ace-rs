@@ -50,11 +50,25 @@
           "summary": "File Type Analysis: OLE 2 Compound Document, v3.62, SecID 0x3, Mini FAT start sector 0x2 (application/octet-stream) (ms office document) (ole compound file)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "olevba_v1_2": {
           "details": {
             "keyword_summary": {},
             "macros": [],
             "type": null
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}
@@ -73,7 +87,22 @@
       "relationships": {
         "is_hash_of file:011ceac3c01a40b8857ecd483b0f6a15af10516c887c9961633c3e6cb4a6b448": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:011ceac3c01a40b8857ecd483b0f6a15af10516c887c9961633c3e6cb4a6b448": {
@@ -83,7 +112,22 @@
       "relationships": {
         "is_hash_of file:011ceac3c01a40b8857ecd483b0f6a15af10516c887c9961633c3e6cb4a6b448": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     }
   }

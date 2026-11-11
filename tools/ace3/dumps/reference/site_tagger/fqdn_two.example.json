@@ -1,0 +1,46 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "SiteTagAnalysis",
+      "details": {
+        "tags_added": [
+          "first",
+          "second",
+          "second",
+          "third"
+        ]
+      },
+      "detections": [],
+      "module_path": "saq.modules.tag:SiteTagAnalysis",
+      "observables": [],
+      "summary": "Site Tags: first, second, second, third",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fqdn two.example, with fixtures/tag/site_tags.csv",
+    "meta_tags": [],
+    "observable": {
+      "type": "fqdn",
+      "value": "two.example"
+    }
+  },
+  "module": "site_tagger",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "relationships": [],
+    "tags": [
+      "first",
+      "second",
+      "third"
+    ],
+    "type": "fqdn",
+    "value": "two.example"
+  }
+}

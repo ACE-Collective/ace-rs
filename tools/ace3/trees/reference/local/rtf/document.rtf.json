@@ -24,8 +24,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:10 11:45:02+00:00",
-              "File:FileInodeChangeDate": "2026:11:10 11:45:02+00:00",
+              "File:FileAccessDate": "2026:11:11 01:02:06+00:00",
+              "File:FileInodeChangeDate": "2026:11:11 01:02:06+00:00",
               "File:FileModifyDate": "2026:11:06 20:12:38+00:00",
               "File:FileName": "document.rtf",
               "File:FilePermissions": 100644,
@@ -75,6 +75,13 @@
           "summary": "NoWhiteSpaceAnalysis: Ignore Whitespace Characters (6 removed)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "rtfole": {
           "details": {
             "extracted_files": [
@@ -85,6 +92,13 @@
             "stdout": "rtfobj 0.60.1 on Python 3.14.10 - http://decalage.info/python/oletools\nTHIS IS WORK IN PROGRESS - Check updates regularly!\nPlease report any issue at https://github.com/decalage2/oletools/issues\n\n===============================================================================\nFile: 'document.rtf' - size: 399 bytes\n---+----------+---------------------------------------------------------------\nid |index     |OLE Object                                                     \n---+----------+---------------------------------------------------------------\n0  |00000047h |format_id: 2 (Embedded)                                        \n   |          |class name: b'Package'                                         \n   |          |data size: 130                                                 \n   |          |OLE Package object:                                            \n   |          |Filename: 'payload.exe'                                        \n   |          |Source path: 'C:\\\\tmp\\\\payload.exe'                            \n   |          |Temp path = 'C:\\\\tmp\\\\payload.exe'                             \n   |          |MD5 = '7eee65bdd94bad1115362808f3ddc287'                       \n   |          |EXECUTABLE FILE                                                \n   |          |File Type: Windows PE Executable or DLL                        \n---+----------+---------------------------------------------------------------\nSaving file from OLE Package in object #0:\n  Filename = 'payload.exe'\n  Source path = 'C:\\\\tmp\\\\payload.exe'\n  Temp path = 'C:\\\\tmp\\\\payload.exe'\n  saving to file document.rtf.rtfobj/document.rtf_payload.exe\n  md5 7eee65bdd94bad1115362808f3ddc287\n"
           },
           "summary": "RTF OLE Object Analysis: extracted document.rtf.rtfobj/document.rtf_payload.exe",
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
           "tags": {}
         }
       },
@@ -146,12 +160,59 @@
           },
           "summary": "File Type Analysis: Non-ISO extended-ASCII text, with no line terminators (text/plain) (portable executable)",
           "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {
         "executable": true,
         "extracted_rtf": true
       }
+    },
+    "file:3c120047c6fd4f62dcbbd658c0731487667e1742918ed0aafbe4b255312f65bb": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "document.rtf.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:19aeb8172f8d0703224212c1eb31f7b9abde38ac115450b27bec4661b90c5ce5": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
     },
     "file:50e6726cbb27c568996dde36fb90e75436df0bf6e25eab209c1de237b13de042": {
       "detections": {},
@@ -199,6 +260,13 @@
           "summary": "File Type Analysis: Rich Text Format data, version 1, ANSI (text/rtf) (ms office document) (rtf document)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "rtfole": {
           "details": {
             "extracted_files": [
@@ -210,30 +278,19 @@
           },
           "summary": "RTF OLE Object Analysis: extracted document.rtf.nowhitespace.rtfobj/document.rtf.nowhitespace_object_00000061.raw",
           "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {
         "microsoft_office": true,
         "rtf": true
       }
-    },
-    "file:c1d98a5118406fee8487c1ffe0bdbbcf5fe18420ebc6ce986eb7135ea5c123f2": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "document.rtf.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:19aeb8172f8d0703224212c1eb31f7b9abde38ac115450b27bec4661b90c5ce5": true
-      },
-      "results": {},
-      "tags": {}
     },
     "file:e617e646246a8a981b6b8a536e6d1273c84cbf2120ccba66f776f8e1201df969": {
       "detections": {},
@@ -281,6 +338,20 @@
           },
           "summary": "File Type Analysis: data (application/octet-stream)",
           "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {
@@ -294,7 +365,22 @@
       "relationships": {
         "is_hash_of file:50e6726cbb27c568996dde36fb90e75436df0bf6e25eab209c1de237b13de042": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "md5:4e5b612ccefb5b525d5500e6f1b52036": {
@@ -304,7 +390,22 @@
       "relationships": {
         "is_hash_of file:19aeb8172f8d0703224212c1eb31f7b9abde38ac115450b27bec4661b90c5ce5": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "md5:7eee65bdd94bad1115362808f3ddc287": {
@@ -314,7 +415,22 @@
       "relationships": {
         "is_hash_of file:2bf0a9bb0aa6a233db45d8fb3b638beb0122581a392e3d6351c8e4b733a3b932": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "md5:a4b997e560b0dbf8268b826851b141a0": {
@@ -324,7 +440,22 @@
       "relationships": {
         "is_hash_of file:e617e646246a8a981b6b8a536e6d1273c84cbf2120ccba66f776f8e1201df969": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:19aeb8172f8d0703224212c1eb31f7b9abde38ac115450b27bec4661b90c5ce5": {
@@ -334,7 +465,22 @@
       "relationships": {
         "is_hash_of file:19aeb8172f8d0703224212c1eb31f7b9abde38ac115450b27bec4661b90c5ce5": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:2bf0a9bb0aa6a233db45d8fb3b638beb0122581a392e3d6351c8e4b733a3b932": {
@@ -344,7 +490,22 @@
       "relationships": {
         "is_hash_of file:2bf0a9bb0aa6a233db45d8fb3b638beb0122581a392e3d6351c8e4b733a3b932": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:50e6726cbb27c568996dde36fb90e75436df0bf6e25eab209c1de237b13de042": {
@@ -354,7 +515,22 @@
       "relationships": {
         "is_hash_of file:50e6726cbb27c568996dde36fb90e75436df0bf6e25eab209c1de237b13de042": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:e617e646246a8a981b6b8a536e6d1273c84cbf2120ccba66f776f8e1201df969": {
@@ -364,7 +540,22 @@
       "relationships": {
         "is_hash_of file:e617e646246a8a981b6b8a536e6d1273c84cbf2120ccba66f776f8e1201df969": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     }
   }

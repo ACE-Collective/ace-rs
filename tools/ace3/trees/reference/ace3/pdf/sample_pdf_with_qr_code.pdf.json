@@ -13,6 +13,20 @@
           },
           "summary": "Email Address FQDN: example.com",
           "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
@@ -29,77 +43,23 @@
           },
           "summary": "Email Address FQDN: example.com",
           "tags": {}
-        }
-      },
-      "tags": {}
-    },
-    "file:4a6085f902c40a4554345b39c36089cce023e1d99127a79342e156eedf33084c": {
-      "detections": {},
-      "directives": {
-        "extract_urls": true
-      },
-      "excluded_analysis": {
-        "pdf_analyzer": true
-      },
-      "paths": {
-        "sample_pdf_with_qr_code.pdf.gs.pdf": {
-          "type=document.pdf": true,
-          "type=document.pdf.rendered": true
-        }
-      },
-      "redirection": "file:4efb0032a6de86d9c0dabc0d2814533aac30811ee40e433d26092eaf988ca110",
-      "relationships": {
-        "extracted_from file:4efb0032a6de86d9c0dabc0d2814533aac30811ee40e433d26092eaf988ca110": true
-      },
-      "results": {
-        "file_type": {
+        },
+        "observable_detection": {
           "details": {
-            "is_email_file": false,
-            "is_jar_file": false,
-            "is_lnk_file": false,
-            "is_office_document": false,
-            "is_office_ext": false,
-            "is_ole_file": false,
-            "is_pdf_file": true,
-            "is_pe_file": false,
-            "is_rtf_file": false,
-            "is_x509": false,
-            "is_zip_file": false,
-            "mime": "application/pdf",
-            "type": "PDF document, version 1.7, 3 page(s)"
+            "for_detection": false
           },
-          "summary": "File Type Analysis: PDF document, version 1.7, 3 page(s) (application/pdf) (pdf document)",
+          "summary": null,
           "tags": {}
         },
-        "pdftotext": {
+        "user_defined_tagging": {
           "details": {
-            "output_path": "b60b35c50f42e1caee28c50671a46ea7afe8316ee78036e70adaf43ee8ba212d",
-            "stderr": "",
-            "stdout": ""
-          },
-          "summary": "PDF Text Analysis",
-          "tags": {}
-        },
-        "qrcode": {
-          "details": {
-            "extracted_text": "https://sever.emmetcrcs.org/#",
-            "inverted": false
-          },
-          "summary": "QR Code Analysis: https://sever.emmetcrcs.org/#",
-          "tags": {}
-        },
-        "url_extraction": {
-          "details": {
-            "urls": [],
-            "urls_grouped_by_domain": {}
+            "tags_added": []
           },
           "summary": null,
           "tags": {}
         }
       },
-      "tags": {
-        "pdf": true
-      }
+      "tags": {}
     },
     "file:4efb0032a6de86d9c0dabc0d2814533aac30811ee40e433d26092eaf988ca110": {
       "detections": {},
@@ -119,8 +79,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:10 11:11:10+00:00",
-              "File:FileInodeChangeDate": "2026:11:10 11:11:10+00:00",
+              "File:FileAccessDate": "2026:11:11 00:28:38+00:00",
+              "File:FileInodeChangeDate": "2026:11:11 00:28:38+00:00",
               "File:FileModifyDate": "2026:11:06 19:20:07+00:00",
               "File:FileName": "sample_pdf_with_qr_code.pdf",
               "File:FilePermissions": 100644,
@@ -173,6 +133,13 @@
           "summary": "File Type Analysis: PDF document, version 1.4, 3 page(s) (application/pdf) (pdf document)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "pdf_analyzer": {
           "details": {},
           "summary": null,
@@ -193,6 +160,13 @@
             "inverted": false
           },
           "summary": "QR Code Analysis: https://sever.emmetcrcs.org/#",
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
           "tags": {}
         }
       },
@@ -234,6 +208,20 @@
           },
           "summary": "File Type Analysis: Unicode text, UTF-8 text (text/plain)",
           "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
@@ -256,8 +244,8 @@
         }
       },
       "relationships": {
-        "extracted_from file:4a6085f902c40a4554345b39c36089cce023e1d99127a79342e156eedf33084c": true,
-        "extracted_from file:4efb0032a6de86d9c0dabc0d2814533aac30811ee40e433d26092eaf988ca110": true
+        "extracted_from file:4efb0032a6de86d9c0dabc0d2814533aac30811ee40e433d26092eaf988ca110": true,
+        "extracted_from file:81bae7bb6a0cf5328221500f0687e3e02816bfbb7d297b09204c14fe8f8bf031": true
       },
       "results": {
         "file_type": {
@@ -279,6 +267,13 @@
           "summary": "File Type Analysis: ASCII text (text/plain)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "url_extraction": {
           "details": {
             "urls": [
@@ -292,10 +287,99 @@
           },
           "summary": "URL Extraction Analysis (sever.emmetcrcs.org)",
           "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {
         "qr-code": true
+      }
+    },
+    "file:81bae7bb6a0cf5328221500f0687e3e02816bfbb7d297b09204c14fe8f8bf031": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {
+        "pdf_analyzer": true
+      },
+      "paths": {
+        "sample_pdf_with_qr_code.pdf.gs.pdf": {
+          "type=document.pdf": true,
+          "type=document.pdf.rendered": true
+        }
+      },
+      "redirection": "file:4efb0032a6de86d9c0dabc0d2814533aac30811ee40e433d26092eaf988ca110",
+      "relationships": {
+        "extracted_from file:4efb0032a6de86d9c0dabc0d2814533aac30811ee40e433d26092eaf988ca110": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": true,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/pdf",
+            "type": "PDF document, version 1.7, 3 page(s)"
+          },
+          "summary": "File Type Analysis: PDF document, version 1.7, 3 page(s) (application/pdf) (pdf document)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "pdftotext": {
+          "details": {
+            "output_path": "b60b35c50f42e1caee28c50671a46ea7afe8316ee78036e70adaf43ee8ba212d",
+            "stderr": "",
+            "stdout": ""
+          },
+          "summary": "PDF Text Analysis",
+          "tags": {}
+        },
+        "qrcode": {
+          "details": {
+            "extracted_text": "https://sever.emmetcrcs.org/#",
+            "inverted": false
+          },
+          "summary": "QR Code Analysis: https://sever.emmetcrcs.org/#",
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {
+        "pdf": true
       }
     },
     "file:ae7dec46f1c87e4933cfe679984bd9b0ebc6d690df8dad2d41fe78a955a037c9": {
@@ -333,10 +417,24 @@
           "summary": "File Type Analysis: data (application/octet-stream)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "url_extraction": {
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}
@@ -355,9 +453,9 @@
           "type=document.pdf.text": true
         }
       },
-      "redirection": "file:4a6085f902c40a4554345b39c36089cce023e1d99127a79342e156eedf33084c",
+      "redirection": "file:81bae7bb6a0cf5328221500f0687e3e02816bfbb7d297b09204c14fe8f8bf031",
       "relationships": {
-        "extracted_from file:4a6085f902c40a4554345b39c36089cce023e1d99127a79342e156eedf33084c": true
+        "extracted_from file:81bae7bb6a0cf5328221500f0687e3e02816bfbb7d297b09204c14fe8f8bf031": true
       },
       "results": {
         "file_type": {
@@ -378,11 +476,25 @@
           },
           "summary": "File Type Analysis: Unicode text, UTF-8 text (text/plain)",
           "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
     },
-    "file:e0c16e37c819d9629b223376be1dd437c73bae9e30362c44406ba2bd3536af11": {
+    "file:c0d8bea70800d8249ebfb70b42e2492931f835f9f70fbc5213c58dff48fcf507": {
       "detections": {},
       "directives": {},
       "excluded_analysis": {
@@ -397,7 +509,22 @@
       "relationships": {
         "extracted_from file:4efb0032a6de86d9c0dabc0d2814533aac30811ee40e433d26092eaf988ca110": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "fqdn:example.com": {
@@ -423,6 +550,13 @@
             "wildcard_dns": false
           },
           "summary": "DNS Analysis: ip addresses (192.0.2.10, 192.0.2.2) mx (backup.example.com, mail.example.com)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
           "tags": {}
         },
         "proxy_domain_splunk": {
@@ -614,6 +748,13 @@
             "whois_raw_text": null
           },
           "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
@@ -635,6 +776,13 @@
             "wildcard_dns": null
           },
           "summary": "DNS Analysis: does not exist (nxdomain)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
           "tags": {}
         },
         "proxy_domain_splunk": {
@@ -697,6 +845,13 @@
             "whois_raw_text": null
           },
           "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {
@@ -715,6 +870,20 @@
           },
           "summary": null,
           "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
@@ -726,7 +895,22 @@
       "relationships": {
         "is_hash_of file:4efb0032a6de86d9c0dabc0d2814533aac30811ee40e433d26092eaf988ca110": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:4efb0032a6de86d9c0dabc0d2814533aac30811ee40e433d26092eaf988ca110": {
@@ -736,7 +920,22 @@
       "relationships": {
         "is_hash_of file:4efb0032a6de86d9c0dabc0d2814533aac30811ee40e433d26092eaf988ca110": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "uri_path:/": {
@@ -744,7 +943,22 @@
       "directives": {},
       "excluded_analysis": {},
       "relationships": {},
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "url:https://sever.emmetcrcs.org/#": {
@@ -755,6 +969,13 @@
       "excluded_analysis": {},
       "relationships": {},
       "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "parse_url": {
           "details": {
             "fragment": "",
@@ -771,6 +992,13 @@
           "details": {
             "extracted_url": "https://sever.emmetcrcs.org/#",
             "protection_type": "unprotected"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}

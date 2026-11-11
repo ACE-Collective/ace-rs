@@ -46,6 +46,20 @@
           },
           "summary": "File Type Analysis: Bourne-Again shell script, ASCII text executable (text/x-shellscript)",
           "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {
@@ -116,11 +130,25 @@
           "summary": "File Type Analysis: Zip archive data, at least v2.0 to extract, compression method=deflate (application/zip) (zip archive)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "olevba_v1_2": {
           "details": {
             "keyword_summary": {},
             "macros": [],
             "type": "OpenXML"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}
@@ -160,6 +188,20 @@
             "type": "XML 1.0 document, ASCII text"
           },
           "summary": "File Type Analysis: XML 1.0 document, ASCII text (text/xml)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
           "tags": {}
         }
       },
@@ -226,11 +268,25 @@
           "summary": "File Type Analysis: Zip archive data, at least v2.0 to extract, compression method=deflate (application/zip) (zip archive)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "olevba_v1_2": {
           "details": {
             "keyword_summary": {},
             "macros": [],
             "type": "OpenXML"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}
@@ -249,7 +305,22 @@
       "relationships": {
         "is_hash_of file:dd7f4122628896e3e5d64e0a1eb5a76762cb981cc85ab9f1bb4f862303a127e7": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "md5:20207db9742360683bafa0e7a462ce7c": {
@@ -259,7 +330,22 @@
       "relationships": {
         "is_hash_of file:4a580e3c6256c7714e5e18bd4021c9dc0568f2d9f146d3ef7ef288910b291a78": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "md5:6af18278b54d8deae7ae826dbaa852ea": {
@@ -269,7 +355,22 @@
       "relationships": {
         "is_hash_of file:00965029417194e4836e4450aa9316c306ef365dd9cb02ece2aaed8123a5e1c4": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:00965029417194e4836e4450aa9316c306ef365dd9cb02ece2aaed8123a5e1c4": {
@@ -279,7 +380,22 @@
       "relationships": {
         "is_hash_of file:00965029417194e4836e4450aa9316c306ef365dd9cb02ece2aaed8123a5e1c4": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:4a580e3c6256c7714e5e18bd4021c9dc0568f2d9f146d3ef7ef288910b291a78": {
@@ -289,7 +405,22 @@
       "relationships": {
         "is_hash_of file:4a580e3c6256c7714e5e18bd4021c9dc0568f2d9f146d3ef7ef288910b291a78": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:dd7f4122628896e3e5d64e0a1eb5a76762cb981cc85ab9f1bb4f862303a127e7": {
@@ -299,7 +430,22 @@
       "relationships": {
         "is_hash_of file:dd7f4122628896e3e5d64e0a1eb5a76762cb981cc85ab9f1bb4f862303a127e7": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     }
   }

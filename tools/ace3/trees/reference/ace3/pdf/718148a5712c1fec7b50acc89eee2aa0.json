@@ -13,6 +13,20 @@
           },
           "summary": "Email Address FQDN: example.com",
           "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
@@ -28,6 +42,20 @@
             "domain": "example.com"
           },
           "summary": "Email Address FQDN: example.com",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
           "tags": {}
         }
       },
@@ -66,10 +94,24 @@
           "summary": "File Type Analysis: XML 1.0 document, ASCII text, with CRLF line terminators (text/xml)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "url_extraction": {
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}
@@ -127,6 +169,13 @@
           "summary": "File Type Analysis: ASCII text, with CRLF line terminators (text/plain)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "url_extraction": {
           "details": {
             "urls": [
@@ -139,6 +188,13 @@
             }
           },
           "summary": "URL Extraction Analysis (web365metrics.com)",
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
           "tags": {}
         }
       },
@@ -184,6 +240,20 @@
           },
           "summary": "File Type Analysis: ASCII text, with CRLF line terminators (text/plain)",
           "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
@@ -220,10 +290,24 @@
           "summary": "File Type Analysis: PNG image data, 24 x 24, 8-bit/color RGBA, non-interlaced (image/png)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "qrcode": {
           "details": {
             "extracted_text": null,
             "inverted": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}
@@ -264,10 +348,24 @@
           "summary": "File Type Analysis: XML 1.0 document, ASCII text, with CRLF line terminators (text/xml)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "url_extraction": {
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}
@@ -314,10 +412,24 @@
           "summary": "File Type Analysis: PNG image data, 1688 x 3, 8-bit/color RGBA, non-interlaced (image/png)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "qrcode": {
           "details": {
             "extracted_text": null,
             "inverted": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}
@@ -358,6 +470,20 @@
             "type": "ASCII text"
           },
           "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
           "tags": {}
         }
       },
@@ -405,6 +531,13 @@
           "summary": "File Type Analysis: data (application/octet-stream)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "url_extraction": {
           "details": {
             "urls": [],
@@ -412,9 +545,107 @@
           },
           "summary": null,
           "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
+    },
+    "file:3ffe6cc2e901fc8e810b7b37b21daf40b1b7e7147f365bb9697da338503b6706": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {
+        "pdf_analyzer": true
+      },
+      "paths": {
+        "718148a5712c1fec7b50acc89eee2aa0.gs.pdf": {
+          "type=document.pdf": true,
+          "type=document.pdf.rendered": true
+        }
+      },
+      "redirection": "file:5b677d297fb862c2d223973697479ee53a91d03073b14556f421b3d74f136b9d",
+      "relationships": {
+        "extracted_from file:5b677d297fb862c2d223973697479ee53a91d03073b14556f421b3d74f136b9d": true
+      },
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "3852b7e99475a642524a99dc21be5524",
+            "sha1": "d15034740616d821b066d5c353299e8341bc651b",
+            "sha256": "3ffe6cc2e901fc8e810b7b37b21daf40b1b7e7147f365bb9697da338503b6706"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": true,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/pdf",
+            "type": "PDF document, version 1.7, 1 page(s)"
+          },
+          "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "pdftotext": {
+          "details": {
+            "output_path": "ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977",
+            "stderr": "",
+            "stdout": ""
+          },
+          "summary": "PDF Text Analysis",
+          "tags": {}
+        },
+        "qrcode": {
+          "details": {
+            "extracted_text": null,
+            "inverted": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {
+        "pdf": true
+      }
     },
     "file:40e4e77b31bb3aa16458f2f0adbcbd8cc3308e7a2b1285733602b53f15675164": {
       "detections": {},
@@ -448,6 +679,13 @@
           "summary": "File Type Analysis: PNG image data, 24 x 24, 8-bit/color RGBA, non-interlaced (image/png)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "qrcode": {
           "details": {
             "extracted_text": null,
@@ -455,26 +693,15 @@
           },
           "summary": null,
           "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
-      "tags": {}
-    },
-    "file:4554b1249ee49cd6c68bf874bea6ff4a90addc9b955a47435b1b602093bd528e": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "718148a5712c1fec7b50acc89eee2aa0.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:5b677d297fb862c2d223973697479ee53a91d03073b14556f421b3d74f136b9d": true
-      },
-      "results": {},
       "tags": {}
     },
     "file:580e14734c48fd7239b88bdaf8546866c401d9580b05b82e7efc3906c7d1f248": {
@@ -509,10 +736,24 @@
           "summary": "File Type Analysis: PNG image data, 32 x 32, 8-bit/color RGBA, non-interlaced (image/png)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "qrcode": {
           "details": {
             "extracted_text": null,
             "inverted": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}
@@ -539,8 +780,8 @@
               "ExifTool:ExifToolVersion": 13.25,
               "ExifTool:Warning": "Invalid xref table",
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:10 11:10:36+00:00",
-              "File:FileInodeChangeDate": "2026:11:10 11:10:36+00:00",
+              "File:FileAccessDate": "2026:11:11 00:28:03+00:00",
+              "File:FileInodeChangeDate": "2026:11:11 00:28:03+00:00",
               "File:FileModifyDate": "2026:11:06 19:20:07+00:00",
               "File:FileName": "718148a5712c1fec7b50acc89eee2aa0",
               "File:FilePermissions": 100644,
@@ -607,6 +848,13 @@
           "summary": "Hidden MIME Analysis: extracted <root>/files/718148a5712c1fec7b50acc89eee2aa0.mime/extracted-0, <root>/files/718148a5712c1fec7b50acc89eee2aa0.mime/extracted-1, <root>/files/718148a5712c1fec7b50acc89eee2aa0.mime/extracted-2, <root>/files/718148a5712c1fec7b50acc89eee2aa0.mime/extracted-3, <root>/files/718148a5712c1fec7b50acc89eee2aa0.mime/extracted-4, <root>/files/718148a5712c1fec7b50acc89eee2aa0.mime/extracted-5, <root>/files/718148a5712c1fec7b50acc89eee2aa0.mime/extracted-6, <root>/files/718148a5712c1fec7b50acc89eee2aa0.mime/extracted-7, <root>/files/718148a5712c1fec7b50acc89eee2aa0.mime/extracted-8, <root>/files/718148a5712c1fec7b50acc89eee2aa0.mime/extracted-9, <root>/files/718148a5712c1fec7b50acc89eee2aa0.mime/extracted-10, <root>/files/718148a5712c1fec7b50acc89eee2aa0.mime/extracted-11, <root>/files/718148a5712c1fec7b50acc89eee2aa0.mime/extracted-12, <root>/files/718148a5712c1fec7b50acc89eee2aa0.mime/extracted-13",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "pdf_analyzer": {
           "details": {},
           "summary": null,
@@ -625,6 +873,13 @@
           "details": {
             "extracted_text": null,
             "inverted": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}
@@ -660,6 +915,36 @@
           "summary": "Archive Analysis: extracted 5 of 5 files: ([Content_Types].xml, theme/theme/theme1.xml, theme/theme/themeManager.xml, theme/theme/_rels/themeManager.xml.rels, _rels/.rels)",
           "tags": {}
         },
+        "exif": {
+          "details": {
+            "error": null,
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files/718148a5712c1fec7b50acc89eee2aa0.mime",
+              "File:FileAccessDate": "2026:11:11 00:28:04+00:00",
+              "File:FileInodeChangeDate": "2026:11:11 00:28:04+00:00",
+              "File:FileModifyDate": "2026:11:11 00:28:04+00:00",
+              "File:FileName": "extracted-1",
+              "File:FilePermissions": 100666,
+              "File:FileSize": 3339,
+              "File:FileType": "ZIP",
+              "File:FileTypeExtension": "ZIP",
+              "File:MIMEType": "application/zip",
+              "SourceFile": "<root>/files/718148a5712c1fec7b50acc89eee2aa0.mime/extracted-1",
+              "ZIP:ZipBitFlag": 6,
+              "ZIP:ZipCRC": 3205488361,
+              "ZIP:ZipCompressedSize": 255,
+              "ZIP:ZipCompression": 8,
+              "ZIP:ZipFileName": "[Content_Types].xml",
+              "ZIP:ZipModifyDate": "1980:01:01 00:00:00",
+              "ZIP:ZipRequiredVersion": 20,
+              "ZIP:ZipUncompressedSize": 540
+            },
+            "output_dir": "<root>/files/718148a5712c1fec7b50acc89eee2aa0.mime/extracted-1.exif"
+          },
+          "summary": "Exiftool Analysis: ZipRequiredVersion=20, ZipBitFlag=6, ZipCompression=8, ZipModifyDate=1980:01:01 00:00:00, ZipCRC=3205488361, ZipCompressedSize=255, ZipUncompressedSize=540, ZipFileName=[Content_Types].xml",
+          "tags": {}
+        },
         "file_hash_analyzer": {
           "details": {
             "md5": "53c6716ac9eb1dd1bb3309ff2bd91696",
@@ -688,11 +973,25 @@
           "summary": "File Type Analysis: Microsoft OOXML (application/octet-stream) (ms office document) (zip archive)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "olevba_v1_2": {
           "details": {
             "keyword_summary": {},
             "macros": [],
             "type": "OpenXML"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}
@@ -731,6 +1030,20 @@
             "type": "XML 1.0 document, ASCII text, with CRLF line terminators"
           },
           "summary": "File Type Analysis: XML 1.0 document, ASCII text, with CRLF line terminators (text/xml)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
           "tags": {}
         }
       },
@@ -776,6 +1089,13 @@
           "summary": "File Type Analysis: data (application/octet-stream)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "url_extraction": {
           "details": {
             "urls": [
@@ -790,6 +1110,46 @@
             }
           },
           "summary": "URL Extraction Analysis (web365metrics.com)",
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:6b65bb98d09f07866dd180701f29d26f39c03d5e8ccc1202403e3fe769679882": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "718148a5712c1fec7b50acc89eee2aa0.mime/extracted-1.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:65a1e83a2c052e128fa1e4bc2d0365b8bb2533945c14a10ae532aec371134a3d": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
           "tags": {}
         }
       },
@@ -828,10 +1188,24 @@
           "summary": "File Type Analysis: XML 1.0 document, ASCII text, with very long lines (483), with CRLF line terminators (text/xml)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "url_extraction": {
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}
@@ -879,10 +1253,24 @@
           "summary": "File Type Analysis: XML 1.0 document, Unicode text, UTF-8 text, with very long lines (8280), with CRLF line terminators (text/xml)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "url_extraction": {
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}
@@ -929,10 +1317,24 @@
           "summary": "File Type Analysis: PNG image data, 33 x 33, 8-bit/color RGBA, non-interlaced (image/png)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "qrcode": {
           "details": {
             "extracted_text": null,
             "inverted": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}
@@ -972,10 +1374,24 @@
           "summary": "File Type Analysis: JPEG image data, JFIF standard 1.01, resolution (DPI), density 120x120, segment length 16, baseline, precision 8, 211x124, components 3 (image/jpeg)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "qrcode": {
           "details": {
             "extracted_text": null,
             "inverted": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}
@@ -1015,10 +1431,24 @@
           "summary": "File Type Analysis: PNG image data, 1688 x 3, 8-bit/color RGBA, non-interlaced (image/png)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "qrcode": {
           "details": {
             "extracted_text": null,
             "inverted": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}
@@ -1058,10 +1488,24 @@
           "summary": "File Type Analysis: JPEG image data, JFIF standard 1.01, resolution (DPI), density 120x120, segment length 16, baseline, precision 8, 211x124, components 3 (image/jpeg)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "qrcode": {
           "details": {
             "extracted_text": null,
             "inverted": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}
@@ -1069,82 +1513,38 @@
       },
       "tags": {}
     },
-    "file:c7304ae3b73276ff15605da30e1303ab121ed77ee6207985abc84f773c35eaeb": {
+    "file:bf6409cc1f91ad090a0f79d1a9322391999cf57b27915426215db97dbda4eaee": {
       "detections": {},
-      "directives": {
-        "extract_urls": true
-      },
+      "directives": {},
       "excluded_analysis": {
-        "pdf_analyzer": true
+        "file_hash_analyzer": true,
+        "file_type": true
       },
       "paths": {
-        "718148a5712c1fec7b50acc89eee2aa0.gs.pdf": {
-          "type=document.pdf": true,
-          "type=document.pdf.rendered": true
+        "718148a5712c1fec7b50acc89eee2aa0.exif/exiftool.out": {
+          "type=metadata.exif": true
         }
       },
-      "redirection": "file:5b677d297fb862c2d223973697479ee53a91d03073b14556f421b3d74f136b9d",
       "relationships": {
         "extracted_from file:5b677d297fb862c2d223973697479ee53a91d03073b14556f421b3d74f136b9d": true
       },
       "results": {
-        "file_hash_analyzer": {
+        "observable_detection": {
           "details": {
-            "md5": "901c3ff98d98ad39c8211bc1856ba2fd",
-            "sha1": "0515da72ff2dc87f2f8e08d0a1201a6ce97568ac",
-            "sha256": "c7304ae3b73276ff15605da30e1303ab121ed77ee6207985abc84f773c35eaeb"
+            "for_detection": false
           },
           "summary": null,
           "tags": {}
         },
-        "file_type": {
+        "user_defined_tagging": {
           "details": {
-            "is_email_file": false,
-            "is_jar_file": false,
-            "is_lnk_file": false,
-            "is_office_document": false,
-            "is_office_ext": false,
-            "is_ole_file": false,
-            "is_pdf_file": true,
-            "is_pe_file": false,
-            "is_rtf_file": false,
-            "is_x509": false,
-            "is_zip_file": false,
-            "mime": "application/pdf",
-            "type": "PDF document, version 1.7, 1 page(s)"
-          },
-          "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
-          "tags": {}
-        },
-        "pdftotext": {
-          "details": {
-            "output_path": "ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977",
-            "stderr": "",
-            "stdout": ""
-          },
-          "summary": "PDF Text Analysis",
-          "tags": {}
-        },
-        "qrcode": {
-          "details": {
-            "extracted_text": null,
-            "inverted": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "url_extraction": {
-          "details": {
-            "urls": [],
-            "urls_grouped_by_domain": {}
+            "tags_added": []
           },
           "summary": null,
           "tags": {}
         }
       },
-      "tags": {
-        "pdf": true
-      }
+      "tags": {}
     },
     "file:ce49436dec0282ca0c2acb2966441b42d2620cd614f363ac0b43420dfdd687ed": {
       "detections": {},
@@ -1186,10 +1586,24 @@
           "summary": "File Type Analysis: data (application/octet-stream)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "url_extraction": {
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}
@@ -1250,6 +1664,20 @@
           },
           "summary": null,
           "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
@@ -1287,10 +1715,24 @@
           "summary": "File Type Analysis: XML 1.0 document, ASCII text, with CRLF line terminators (text/xml)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "url_extraction": {
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}
@@ -1337,6 +1779,13 @@
           "summary": "File Type Analysis: PNG image data, 786 x 134, 8-bit/color RGBA, non-interlaced (image/png)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "qrcode": {
           "details": {
             "extracted_text": null,
@@ -1344,26 +1793,15 @@
           },
           "summary": null,
           "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
-      "tags": {}
-    },
-    "file:d3175fa3a3bd1f496175df85faafe12e2216d854cfd79658d0d39922ece95b3a": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "718148a5712c1fec7b50acc89eee2aa0.mime/extracted-12.activemime.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:d82f411152bcc9fdb41523528e5139cf3367650871462debbc17f2ac654d0b06": true
-      },
-      "results": {},
       "tags": {}
     },
     "file:d82f411152bcc9fdb41523528e5139cf3367650871462debbc17f2ac654d0b06": {
@@ -1387,9 +1825,9 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files/718148a5712c1fec7b50acc89eee2aa0.mime",
-              "File:FileAccessDate": "2026:11:10 11:10:41+00:00",
-              "File:FileInodeChangeDate": "2026:11:10 11:10:41+00:00",
-              "File:FileModifyDate": "2026:11:10 11:10:41+00:00",
+              "File:FileAccessDate": "2026:11:11 00:28:08+00:00",
+              "File:FileInodeChangeDate": "2026:11:11 00:28:08+00:00",
+              "File:FileModifyDate": "2026:11:11 00:28:08+00:00",
               "File:FileName": "extracted-12.activemime",
               "File:FilePermissions": 100666,
               "File:FileSize": 9728,
@@ -1431,6 +1869,13 @@
           "summary": "File Type Analysis: Composite Document File V2 Document, Cannot read section info (application/x-ole-storage) (ms office document) (ole compound file)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "officeparser3": {
           "details": {
             "extracted_files": [
@@ -1465,6 +1910,13 @@
             "type": "OLE"
           },
           "summary": "OLEVBA Analysis: (1 macro files) (OLE) | autoexec=1, suspicious=1, ioc=1, hex string=1",
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
           "tags": {}
         }
       },
@@ -1515,10 +1967,24 @@
           "summary": "File Type Analysis: ASCII text, with CRLF line terminators (text/plain)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "url_extraction": {
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}
@@ -1561,6 +2027,13 @@
           "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s), Unicode text, UTF-8 text, with very long lines (363), with CRLF, LF line terminators (application/pdf)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "url_extraction": {
           "details": {
             "urls": [
@@ -1573,6 +2046,13 @@
             }
           },
           "summary": "URL Extraction Analysis (microsoft.com)",
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
           "tags": {}
         }
       },
@@ -1589,9 +2069,9 @@
           "type=document.pdf.text": true
         }
       },
-      "redirection": "file:c7304ae3b73276ff15605da30e1303ab121ed77ee6207985abc84f773c35eaeb",
+      "redirection": "file:3ffe6cc2e901fc8e810b7b37b21daf40b1b7e7147f365bb9697da338503b6706",
       "relationships": {
-        "extracted_from file:c7304ae3b73276ff15605da30e1303ab121ed77ee6207985abc84f773c35eaeb": true
+        "extracted_from file:3ffe6cc2e901fc8e810b7b37b21daf40b1b7e7147f365bb9697da338503b6706": true
       },
       "results": {
         "file_type": {
@@ -1611,6 +2091,20 @@
             "type": "very short file (no magic)"
           },
           "summary": "File Type Analysis: very short file (no magic) (application/octet-stream)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
           "tags": {}
         }
       },
@@ -1661,6 +2155,53 @@
           },
           "summary": "File Type Analysis: data (application/octet-stream)",
           "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:fb92bef4204af76c4e04691dbbb3edb6dfd3a1fa11d7c26b31a4b57c52a1a5fe": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "718148a5712c1fec7b50acc89eee2aa0.mime/extracted-12.activemime.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:d82f411152bcc9fdb41523528e5139cf3367650871462debbc17f2ac654d0b06": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
@@ -1705,10 +2246,24 @@
           "summary": "File Type Analysis: data (application/octet-stream)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "url_extraction": {
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}
@@ -1739,6 +2294,13 @@
             "wildcard_dns": false
           },
           "summary": "DNS Analysis: ip addresses (192.0.2.10, 192.0.2.2) mx (backup.example.com, mail.example.com)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
           "tags": {}
         },
         "proxy_domain_splunk": {
@@ -1930,6 +2492,13 @@
             "whois_raw_text": null
           },
           "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
@@ -1951,6 +2520,13 @@
             "wildcard_dns": null
           },
           "summary": "DNS Analysis: does not exist (nxdomain)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
           "tags": {}
         },
         "proxy_domain_splunk": {
@@ -2013,6 +2589,13 @@
             "whois_raw_text": null
           },
           "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {
@@ -2036,6 +2619,13 @@
             "wildcard_dns": null
           },
           "summary": "DNS Analysis: does not exist (nxdomain)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
           "tags": {}
         },
         "proxy_domain_splunk": {
@@ -2098,6 +2688,13 @@
             "whois_raw_text": null
           },
           "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {
@@ -2116,6 +2713,20 @@
           },
           "summary": null,
           "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
@@ -2127,7 +2738,47 @@
       "relationships": {
         "is_hash_of file:ce801838416da318a8a2f1e16d2314414427862bcfb473afda44f0217ec7fa2f": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "md5:3852b7e99475a642524a99dc21be5524": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:3ffe6cc2e901fc8e810b7b37b21daf40b1b7e7147f365bb9697da338503b6706": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "md5:53c6716ac9eb1dd1bb3309ff2bd91696": {
@@ -2137,7 +2788,22 @@
       "relationships": {
         "is_hash_of file:65a1e83a2c052e128fa1e4bc2d0365b8bb2533945c14a10ae532aec371134a3d": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "md5:718148a5712c1fec7b50acc89eee2aa0": {
@@ -2147,7 +2813,22 @@
       "relationships": {
         "is_hash_of file:5b677d297fb862c2d223973697479ee53a91d03073b14556f421b3d74f136b9d": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "md5:787ce2e28b0066455283cbf27e698bd0": {
@@ -2157,17 +2838,22 @@
       "relationships": {
         "is_hash_of file:0bea86356ad057bdaa7a53e13e47c264ca5e923fb6f7048e46a7a3860742e64f": true
       },
-      "results": {},
-      "tags": {}
-    },
-    "md5:901c3ff98d98ad39c8211bc1856ba2fd": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {},
-      "relationships": {
-        "is_hash_of file:c7304ae3b73276ff15605da30e1303ab121ed77ee6207985abc84f773c35eaeb": true
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
       },
-      "results": {},
       "tags": {}
     },
     "md5:b7058bb238c86174be5f0b43b382d7a0": {
@@ -2177,7 +2863,22 @@
       "relationships": {
         "is_hash_of file:d82f411152bcc9fdb41523528e5139cf3367650871462debbc17f2ac654d0b06": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "md5:b863857f6f83ffb5d1b3ca0cbb4c1960": {
@@ -2187,7 +2888,22 @@
       "relationships": {
         "is_hash_of file:f350d2f7839fe85fb477a02dab68d545a50772314e61113052f082685106f0a2": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:0bea86356ad057bdaa7a53e13e47c264ca5e923fb6f7048e46a7a3860742e64f": {
@@ -2197,7 +2913,47 @@
       "relationships": {
         "is_hash_of file:0bea86356ad057bdaa7a53e13e47c264ca5e923fb6f7048e46a7a3860742e64f": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "sha256:3ffe6cc2e901fc8e810b7b37b21daf40b1b7e7147f365bb9697da338503b6706": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:3ffe6cc2e901fc8e810b7b37b21daf40b1b7e7147f365bb9697da338503b6706": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:5b677d297fb862c2d223973697479ee53a91d03073b14556f421b3d74f136b9d": {
@@ -2207,7 +2963,22 @@
       "relationships": {
         "is_hash_of file:5b677d297fb862c2d223973697479ee53a91d03073b14556f421b3d74f136b9d": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:65a1e83a2c052e128fa1e4bc2d0365b8bb2533945c14a10ae532aec371134a3d": {
@@ -2217,17 +2988,22 @@
       "relationships": {
         "is_hash_of file:65a1e83a2c052e128fa1e4bc2d0365b8bb2533945c14a10ae532aec371134a3d": true
       },
-      "results": {},
-      "tags": {}
-    },
-    "sha256:c7304ae3b73276ff15605da30e1303ab121ed77ee6207985abc84f773c35eaeb": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {},
-      "relationships": {
-        "is_hash_of file:c7304ae3b73276ff15605da30e1303ab121ed77ee6207985abc84f773c35eaeb": true
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
       },
-      "results": {},
       "tags": {}
     },
     "sha256:ce801838416da318a8a2f1e16d2314414427862bcfb473afda44f0217ec7fa2f": {
@@ -2237,7 +3013,22 @@
       "relationships": {
         "is_hash_of file:ce801838416da318a8a2f1e16d2314414427862bcfb473afda44f0217ec7fa2f": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:d82f411152bcc9fdb41523528e5139cf3367650871462debbc17f2ac654d0b06": {
@@ -2247,7 +3038,22 @@
       "relationships": {
         "is_hash_of file:d82f411152bcc9fdb41523528e5139cf3367650871462debbc17f2ac654d0b06": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:f350d2f7839fe85fb477a02dab68d545a50772314e61113052f082685106f0a2": {
@@ -2257,7 +3063,22 @@
       "relationships": {
         "is_hash_of file:f350d2f7839fe85fb477a02dab68d545a50772314e61113052f082685106f0a2": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "uri_path:/files/69fbd341bcf4f734fd47f72710021ae6839/plugin.msi": {
@@ -2265,7 +3086,22 @@
       "directives": {},
       "excluded_analysis": {},
       "relationships": {},
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "uri_path:/files/69fbd341bcf4f734fd47f72710021ae6839/plugin.msi'": {
@@ -2273,7 +3109,22 @@
       "directives": {},
       "excluded_analysis": {},
       "relationships": {},
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "url:https://microsoft.com": {
@@ -2282,6 +3133,13 @@
       "excluded_analysis": {},
       "relationships": {},
       "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "parse_url": {
           "details": {
             "fragment": "",
@@ -2301,6 +3159,13 @@
           },
           "summary": null,
           "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
@@ -2311,6 +3176,13 @@
       "excluded_analysis": {},
       "relationships": {},
       "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "parse_url": {
           "details": {
             "fragment": "",
@@ -2330,6 +3202,13 @@
           },
           "summary": null,
           "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
@@ -2340,6 +3219,13 @@
       "excluded_analysis": {},
       "relationships": {},
       "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "parse_url": {
           "details": {
             "fragment": "",
@@ -2356,6 +3242,13 @@
           "details": {
             "extracted_url": "https://web365metrics.com/files/69fbd341bcf4f734fd47f72710021ae6839/plugin.msi'",
             "protection_type": "unprotected"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}

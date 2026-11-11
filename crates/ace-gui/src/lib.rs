@@ -38,6 +38,8 @@
 //! - `cli`: Administration's CLI (5.12), ace3's `admin/cli.html`: the form that starts an `ace` command a
 //!   parser pool runs contained, the history of runs, a run's page that polls for its output while it
 //!   runs, and its cancel, over the `commands` service.
+//! - `detection`: Administration's Observables page (7.6), ace3's `admin/detection.html`: the observables
+//!   ACE detects, filtered and paged, added, given an expiry and removed, over the `detection` service.
 //! - `signatures`: the signatures area under `signature:read` (5.11's signatures area), ace3's
 //!   `signatures/hub.html` and `yara_qa.html`: the YARA QA rules, their versions and kept files, the
 //!   links to the API's downloads, and purges with a confirm page, over the `yara_qa` service. The base
@@ -68,6 +70,7 @@ pub mod analysis;
 mod assets;
 mod auth;
 pub mod cli;
+pub mod detection;
 pub mod events;
 mod headers;
 pub mod list;
@@ -231,6 +234,15 @@ impl Gui {
                 post(preferences::set_alert_section),
             )
             .route("/admin", get(admin::hub))
+            .route(
+                "/admin/detection",
+                get(detection::page).post(detection::add),
+            )
+            .route(
+                "/admin/detection/{id}/expiration",
+                post(detection::set_expiration),
+            )
+            .route("/admin/detection/{id}/delete", post(detection::delete))
             .route("/admin/cli", get(cli::console).post(cli::start))
             .route("/admin/cli/{id}", get(cli::run_page))
             .route("/admin/cli/{id}/output", get(cli::output))

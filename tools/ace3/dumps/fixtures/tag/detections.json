@@ -1,0 +1,9 @@
+{
+  "about": "The observables enabled for detection, the Redis cache tools/ace3/dumps/run_module.py --detections gives observable_detection (PLAN.md 7.6), and ace4's observable_detection list holds in its tests.",
+  "detections": [
+    {"type": "fqdn", "value": "flagged.example"},
+    {"type": "url", "value": "http://flagged.example/landing"},
+    {"type": "ipv4", "value": "203.0.113.66"},
+    {"type": "file", "value": "76f3b3e668343641d138e1121f7be54778c87bf38fe98f27723be8be971ff8e3"}
+  ]
+}

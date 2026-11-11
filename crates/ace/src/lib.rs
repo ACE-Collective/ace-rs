@@ -12,7 +12,7 @@ use ace_app::{App, LookupPool, ParserPool};
 /// its copy without whitespace), the encrypted attachment modules (zip, RAR and PDF, with the carrying
 /// email's candidate passwords), the modules that walk an email's tree (its lure URL, a mailbox alert's
 /// root, and a macro or a URL from a new sender), the packet capture modules that read
-/// pcap_analyzer's index (DNS, TLS, HTTP and files) and the TLS key log module, with the YARA module on the core's current ruleset (2.26), and the commands analysts
+/// pcap_analyzer's index (DNS, TLS, HTTP and files), the TLS key log module and the site tagger, with the YARA module on the core's current ruleset (2.26), and the commands analysts
 /// start from the GUI (5.12).
 pub fn parser_pool() -> ParserPool {
     ParserPool::new("parsers")
@@ -68,6 +68,7 @@ pub fn parser_pool() -> ParserPool {
         .module::<ace_mod_pcap::PcapHttp>()
         .module::<ace_mod_pcap::PcapFiles>()
         .module::<ace_mod_pcap::TlsKeylogAnalyzer>()
+        .module::<ace_mod_tag::SiteTagger>()
         .yara_rulesets::<ace_mod_yara::YaraScanner>(ace_mod_yara::check_ruleset)
         .commands()
 }
@@ -100,8 +101,9 @@ pub fn sandbox_pool() -> ParserPool {
 
 /// The network pool: the RDAP, DNS, snort signature, conversation frequency, email logger, email
 /// thread, newly registered domains, user (LDAP), Splunk and Splunk clicker detection modules, the
-/// one that follows 1drv.ms links for the protected URL module, and the four on the email archive
-/// (its archiver, the archived email opener, the URL pivot and the Message-ID analyzer).
+/// one that follows 1drv.ms links for the protected URL module, the four on the email archive
+/// (its archiver, the archived email opener, the URL pivot and the Message-ID analyzer), and the
+/// two that read what analysts flagged and tagged (observable detection and user defined tagging).
 pub fn lookup_pool() -> LookupPool {
     LookupPool::new("lookups")
         .module::<ace_mod_rdap::RdapAnalyzer>()
@@ -119,6 +121,8 @@ pub fn lookup_pool() -> LookupPool {
         .module::<ace_mod_emailarchive::EncryptedArchiveAnalyzer>()
         .module::<ace_mod_emailarchive::UrlEmailPivotAnalyzer>()
         .module::<ace_mod_emailarchive::MessageIdAnalyzer>()
+        .module::<ace_mod_tag::ObservableDetection>()
+        .module::<ace_mod_tag::UserDefinedTagging>()
 }
 
 /// The open-source binaries' list: the three pools, no observable types beyond ace3's, ace3's

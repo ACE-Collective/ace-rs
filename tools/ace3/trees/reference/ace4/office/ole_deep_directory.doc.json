@@ -449,6 +449,7 @@
         "ole_deep_directory.doc.officeparser/stream_496_0.dat": {},
         "ole_deep_directory.doc.officeparser/stream_497_0.dat": {},
         "ole_deep_directory.doc.officeparser/stream_498_0.dat": {},
+        "ole_deep_directory.doc.officeparser/stream_499_0.dat": {},
         "ole_deep_directory.doc.officeparser/stream_49_0.dat": {},
         "ole_deep_directory.doc.officeparser/stream_4_0.dat": {},
         "ole_deep_directory.doc.officeparser/stream_50_0.dat": {},
@@ -538,6 +539,13 @@
           "summary": "File Type Analysis: very short file (no magic) (application/octet-stream)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "url_extraction": {
           "details": {
             "urls": [],
@@ -545,26 +553,15 @@
           },
           "summary": null,
           "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
-      "tags": {}
-    },
-    "file:981814189450c8f0cd3adfb9cb11cad8da8012ca2dec5d9babae57e385e23ed1": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "ole_deep_directory.doc.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:d398d2b59b94270cf3fbd62f954f627f5d9c54e0d09dbfbb76369f4e29e1f377": true
-      },
-      "results": {},
       "tags": {}
     },
     "file:d398d2b59b94270cf3fbd62f954f627f5d9c54e0d09dbfbb76369f4e29e1f377": {
@@ -586,8 +583,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:10 11:20:08+00:00",
-              "File:FileInodeChangeDate": "2026:11:10 11:20:08+00:00",
+              "File:FileAccessDate": "2026:11:11 00:38:34+00:00",
+              "File:FileInodeChangeDate": "2026:11:11 00:38:34+00:00",
               "File:FileModifyDate": "2026:11:07 15:11:53+00:00",
               "File:FileName": "ole_deep_directory.doc",
               "File:FilePermissions": 100644,
@@ -628,6 +625,13 @@
             "type": "Composite Document File V2 Document, Cannot read section info"
           },
           "summary": "File Type Analysis: Composite Document File V2 Document, Cannot read section info (application/x-ole-storage) (ms office document) (ole compound file)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
           "tags": {}
         },
         "officeparser3": {
@@ -1130,10 +1134,11 @@
               "stream_495_0.dat",
               "stream_496_0.dat",
               "stream_497_0.dat",
-              "stream_498_0.dat"
+              "stream_498_0.dat",
+              "stream_499_0.dat"
             ]
           },
-          "summary": "OfficeParser3 Analysis: extracted 498 files",
+          "summary": "OfficeParser3 Analysis: extracted 499 files",
           "tags": {}
         },
         "olevba_v1_2": {
@@ -1141,6 +1146,13 @@
             "keyword_summary": {},
             "macros": [],
             "type": null
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}
@@ -1159,7 +1171,22 @@
       "relationships": {
         "is_hash_of file:d398d2b59b94270cf3fbd62f954f627f5d9c54e0d09dbfbb76369f4e29e1f377": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:d398d2b59b94270cf3fbd62f954f627f5d9c54e0d09dbfbb76369f4e29e1f377": {
@@ -1169,7 +1196,22 @@
       "relationships": {
         "is_hash_of file:d398d2b59b94270cf3fbd62f954f627f5d9c54e0d09dbfbb76369f4e29e1f377": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     }
   }

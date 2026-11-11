@@ -69,13 +69,20 @@ const TEST_LIST: ListSpec = ListSpec {
     typed: false,
 };
 
-/// A module that reads the list. No mode names it, so a test queues its tasks itself.
+/// The list 7.6's `observable_detection` module reads, which the `detection` router keeps.
+const DETECTION_SPEC: ListSpec = ListSpec {
+    name: "observable_detection",
+    description: "the observables ACE detects",
+    typed: true,
+};
+
+/// A module that reads the lists. No mode names it, so a test queues its tasks itself.
 struct ListReader;
 
 impl Module for ListReader {
     const NAME: &'static str = "test_list_reader";
     const INPUTS: &'static [ObservableKind] = &[ObservableKind::Fqdn];
-    const LISTS: &'static [ListSpec] = &[TEST_LIST];
+    const LISTS: &'static [ListSpec] = &[TEST_LIST, DETECTION_SPEC];
     type Output = StubOutput;
     type Settings = ();
 
@@ -127,6 +134,18 @@ async fn stack() -> Stack {
 
 /// A stack whose email archive has `archive`'s key and retention.
 async fn stack_with(archive: ace_core::email_archive::ArchiveConfig) -> Stack {
+    stack_of(
+        archive,
+        Catalog::new(vec![
+            Manifest::lookup::<Rdap>(),
+            Manifest::lookup::<ListReader>(),
+        ]),
+    )
+    .await
+}
+
+/// A stack whose modules are `catalog`'s.
+async fn stack_of(archive: ace_core::email_archive::ArchiveConfig, catalog: Catalog) -> Stack {
     let test_db = TestDb::new().await;
     let cache = tempfile::tempdir().expect("a cache directory");
     let store = Store::new(
@@ -134,13 +153,7 @@ async fn stack_with(archive: ace_core::email_archive::ArchiveConfig) -> Stack {
         NodeCache::new(cache.path(), 1 << 30).expect("a cache"),
     );
     let bucket = Bucket::new(test_db.db().clone(), store, BucketSettings::default());
-    let orchestrator = Orchestrator::new(
-        Catalog::new(vec![
-            Manifest::lookup::<Rdap>(),
-            Manifest::lookup::<ListReader>(),
-        ]),
-        Modes::ace3(),
-    );
+    let orchestrator = Orchestrator::new(catalog, Modes::ace3());
     let service = Service::new(test_db.db().clone(), orchestrator.clone());
     let config = ace_api::WebConfig {
         max_json_bytes: MAX_JSON,
@@ -442,6 +455,10 @@ const LISTS: &str = "/api/lists/v1/lists";
 const LIST_ONE: &str = "/api/lists/v1/lists/{list}";
 const ENTRIES: &str = "/api/lists/v1/lists/{list}/entries";
 const ENTRY: &str = "/api/lists/v1/lists/{list}/entries/{id}";
+const OBSERVED: &str = "/api/observables/v1/detections";
+const OBSERVED_TYPES: &str = "/api/observables/v1/detections/types";
+const OBSERVED_ONE: &str = "/api/observables/v1/detections/{id}";
+const OBSERVED_EXPIRY: &str = "/api/observables/v1/detections/{id}/expiration";
 const HUNTS: &str = "/api/hunts/v1/hunts";
 const HUNT: &str = "/api/hunts/v1/hunts/{uuid}";
 const SUPPRESSIONS: &str = "/api/hunts/v1/hunts/{uuid}/suppressions";
@@ -475,6 +492,8 @@ fn fill(route: &str, id: Uuid, observable: i64) -> String {
         || route.starts_with("/api/yara-qa/")
         || route.starts_with("/api/cli/")
         || route == COMMENT
+        || route == OBSERVED_ONE
+        || route == OBSERVED_EXPIRY
     {
         return route
             .replace("{id}", &observable.to_string())
@@ -544,6 +563,8 @@ fn good_body(route: &str) -> Send {
         THREATS => Send::Json(json!({"malware_id": 1, "threat_type_id": 1})),
         COMMANDS => Send::Json(json!({"command": "--help"})),
         ENTRIES | ENTRY => Send::Json(json!({"match": "exact", "value": "refused"})),
+        OBSERVED => Send::Json(json!({"type": "fqdn", "value": "refused.example"})),
+        OBSERVED_EXPIRY => Send::Json(json!({"expires_on": null})),
         VALIDATE => Send::Json(json!({"compiled_hunt": {"target": "x.yaml", "assets": []}})),
         _ => Send::Nothing,
     }
@@ -570,7 +591,7 @@ async fn refuses_without_a_credential_or_a_permission(
         .map(|(method, route, _)| (method, route))
         .filter(|route| !public.contains(route))
         .collect();
-    assert_eq!(routes.len(), 93, "{routes:?}");
+    assert_eq!(routes.len(), 98, "{routes:?}");
     for (method, route) in routes {
         let method: Method = method.to_uppercase().parse().expect("a method");
         let path = fill(&route, id, file);
@@ -3899,6 +3920,7 @@ async fn every_documented_status_is_tested() {
     saved_filters(&mut client).await;
     events(&mut client).await;
     lists_router(&mut client).await;
+    detection_router(&mut client).await;
     hunts_router(&mut client).await;
     pings(&mut client, &token).await;
 
@@ -5520,10 +5542,16 @@ async fn lists_router(client: &mut Client<'_>) {
         .await;
     assert_eq!(
         listed,
-        json!({"lists": [{
-            "name": "test_whitelist", "description": "a list for the tests", "typed": false,
-            "entries": 0,
-        }]})
+        json!({"lists": [
+            {
+                "name": "observable_detection", "description": "the observables ACE detects",
+                "typed": true, "entries": 0,
+            },
+            {
+                "name": "test_whitelist", "description": "a list for the tests", "typed": false,
+                "entries": 0,
+            },
+        ]})
     );
 
     let hostile = "<script>alert(1)</script>@evil.example";
@@ -5736,6 +5764,313 @@ async fn lists_router(client: &mut Client<'_>) {
     assert_eq!(remaining["entries"], json!([second]));
 }
 
+/// ace3's `detection` router (PLAN.md 7.6): the observables ACE detects, as entries of the
+/// `observable_detection` list, listed and filtered as ace3 does, added with ace3's default lifetime,
+/// removed, and given an expiry, each write audited and naming its actor. A value comes back as stored.
+async fn detection_router(client: &mut Client<'_>) {
+    use Method as M;
+    use StatusCode as S;
+    let json = Send::Json;
+    let stack = client.stack;
+    let (_, editors) = session_of(stack, "detector", &["detection:read", "detection:write"]).await;
+    let e = Some(editors.as_str());
+    let reader = key(stack, &["detection:read"]).await;
+    let r = Some(reader.as_str());
+    let list_reader = key(stack, &["list:read"]).await;
+    let one = |id: &Value| OBSERVED_ONE.replace("{id}", &id.to_string().replace('"', ""));
+    let expiry = |id: &Value| OBSERVED_EXPIRY.replace("{id}", &id.to_string().replace('"', ""));
+    let rows = audit_count(stack).await;
+
+    let hostile = "<script>alert(1)</script>.evil.example";
+    let added = client
+        .json(
+            M::POST,
+            OBSERVED,
+            OBSERVED,
+            e,
+            json(json!({"type": "fqdn", "value": hostile})),
+            S::CREATED,
+        )
+        .await;
+    assert_eq!(added["value"], hostile, "as it was sent");
+    assert_eq!(added["type"], "fqdn");
+    assert_eq!(added["detection_context"], "manually added by detector");
+    assert!(added["expires_on"].is_string(), "ace3's 90 days: {added}");
+    assert_eq!(added["expired"], false);
+    assert_eq!(added["comments"], json!([]));
+    let (actor, action): (Value, String) =
+        sqlx::query_as("SELECT actor::jsonb, action FROM service.audit ORDER BY id DESC LIMIT 1")
+            .fetch_one(stack.test_db.db().pool())
+            .await
+            .expect("reads");
+    assert_eq!(action, "create_detection");
+    assert_eq!(actor["name"], "detector", "the audit row names the actor");
+    let forever = client
+        .json(
+            M::POST,
+            OBSERVED,
+            OBSERVED,
+            e,
+            json(json!({
+                "type": "ipv4", "value": "192.0.2.1", "expires_on": null,
+                "detection_context": "from the phish of the day",
+            })),
+            S::CREATED,
+        )
+        .await;
+    assert_eq!(forever["expires_on"], Value::Null, "null never expires");
+    assert_eq!(audit_count(stack).await, rows + 2);
+
+    // what it won't take
+    for (body, status) in [
+        (
+            json!({"type": "no_such_type", "value": "x"}),
+            S::BAD_REQUEST,
+        ),
+        (
+            json!({"type": "file", "value": "not a sha256"}),
+            S::BAD_REQUEST,
+        ),
+        (json!({"type": "fqdn", "value": ""}), S::BAD_REQUEST),
+        (
+            json!({"type": "fqdn", "value": "x.example", "batch_id": "b"}),
+            S::BAD_REQUEST,
+        ),
+        (
+            json!({"type": "fqdn", "value": "x.example", "expires_on": "2001-01-01T00:00:00Z"}),
+            S::BAD_REQUEST,
+        ),
+        (json!({"type": "fqdn", "value": hostile}), S::CONFLICT),
+    ] {
+        client
+            .json(M::POST, OBSERVED, OBSERVED, e, json(body), status)
+            .await;
+    }
+    let response = client
+        .call(M::POST, OBSERVED, OBSERVED, e, too_large())
+        .await;
+    assert_eq!(response.status(), S::PAYLOAD_TOO_LARGE);
+    let refused = client
+        .json(
+            M::POST,
+            OBSERVED,
+            OBSERVED,
+            r,
+            json(json!({"type": "fqdn", "value": "x.example"})),
+            S::FORBIDDEN,
+        )
+        .await;
+    assert_eq!(refused["error"], "this needs detection:write");
+    assert_eq!(
+        audit_count(stack).await,
+        rows + 2,
+        "nothing refused has a row"
+    );
+
+    // the listing: a page, filters, and the types
+    let page = client
+        .json(M::GET, OBSERVED, OBSERVED, r, Send::Nothing, S::OK)
+        .await;
+    assert_eq!(page["total"], 2);
+    assert_eq!(
+        (
+            page["page"].clone(),
+            page["page_size"].clone(),
+            page["total_pages"].clone()
+        ),
+        (json!(1), json!(50), json!(1))
+    );
+    assert_eq!(
+        page["items"],
+        json!([added.clone(), forever.clone()]),
+        "by type, then value"
+    );
+    let searched = client
+        .json(
+            M::GET,
+            OBSERVED,
+            &format!("{OBSERVED}?search=*.EVIL.example&type=fqdn&status=all&page=3&page_size=25"),
+            r,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(searched["items"], json!([added.clone()]));
+    assert_eq!(
+        (searched["page"].clone(), searched["page_size"].clone()),
+        (json!(1), json!(25))
+    );
+    let expired = client
+        .json(
+            M::GET,
+            OBSERVED,
+            &format!("{OBSERVED}?status=expired"),
+            r,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(expired["total"], 0);
+    client
+        .json(
+            M::GET,
+            OBSERVED,
+            &format!("{OBSERVED}?status=dormant"),
+            r,
+            Send::Nothing,
+            S::BAD_REQUEST,
+        )
+        .await;
+    let types = client
+        .json(
+            M::GET,
+            OBSERVED_TYPES,
+            OBSERVED_TYPES,
+            r,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(types["present"], json!(["fqdn", "ipv4"]));
+    assert!(
+        types["all"]
+            .as_array()
+            .is_some_and(|all| all.contains(&json!("file")))
+    );
+
+    // each is an entry of the list the module reads, exact and with case
+    let list = client
+        .json(
+            M::GET,
+            LIST_ONE,
+            &LIST_ONE.replace("{list}", "observable_detection"),
+            Some(list_reader.as_str()),
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(list["entries"][0]["match"], "exact");
+    assert_eq!(list["entries"][0]["ignore_case"], false);
+    assert_eq!(list["entries"][0]["note"], "manually added by detector");
+
+    // an expiry
+    let id = &forever["id"];
+    let set = client
+        .json(
+            M::PATCH,
+            OBSERVED_EXPIRY,
+            &expiry(id),
+            e,
+            json(json!({"expires_on": "2999-01-01T00:00:00Z"})),
+            S::OK,
+        )
+        .await;
+    assert_eq!(set["expires_on"], "2999-01-01T00:00:00Z");
+    assert_eq!(audit_count(stack).await, rows + 3);
+    for (path, body, status) in [
+        (
+            expiry(id),
+            json!({"expires_on": "2001-01-01T00:00:00Z"}),
+            S::BAD_REQUEST,
+        ),
+        (expiry(id), json!({"expires": null}), S::BAD_REQUEST),
+        (
+            expiry(&json!("abc")),
+            json!({"expires_on": null}),
+            S::BAD_REQUEST,
+        ),
+        (
+            expiry(&json!(i64::MAX)),
+            json!({"expires_on": null}),
+            S::NOT_FOUND,
+        ),
+    ] {
+        client
+            .json(M::PATCH, OBSERVED_EXPIRY, &path, e, json(body), status)
+            .await;
+    }
+    let response = client
+        .call(M::PATCH, OBSERVED_EXPIRY, &expiry(id), e, too_large())
+        .await;
+    assert_eq!(response.status(), S::PAYLOAD_TOO_LARGE);
+
+    // and removing one
+    let response = client
+        .call(M::DELETE, OBSERVED_ONE, &one(id), e, Send::Nothing)
+        .await;
+    assert_eq!(response.status(), S::NO_CONTENT);
+    assert_eq!(audit_count(stack).await, rows + 4);
+    client
+        .json(
+            M::DELETE,
+            OBSERVED_ONE,
+            &one(id),
+            e,
+            Send::Nothing,
+            S::NOT_FOUND,
+        )
+        .await;
+    client
+        .json(
+            M::DELETE,
+            OBSERVED_ONE,
+            &one(&json!("abc")),
+            e,
+            Send::Nothing,
+            S::BAD_REQUEST,
+        )
+        .await;
+    let remaining = client
+        .json(M::GET, OBSERVED, OBSERVED, r, Send::Nothing, S::OK)
+        .await;
+    assert_eq!(remaining["items"], json!([added]));
+    let response = client
+        .call(
+            M::DELETE,
+            OBSERVED_ONE,
+            &one(&added["id"]),
+            e,
+            Send::Nothing,
+        )
+        .await;
+    assert_eq!(response.status(), S::NO_CONTENT);
+
+    // a server whose modules don't read the list has no detections
+    let bare = stack_of(
+        ace_core::email_archive::ArchiveConfig::default(),
+        Catalog::new(vec![Manifest::lookup::<Rdap>()]),
+    )
+    .await;
+    let mut other = Client::new(&bare);
+    let admin = key(&bare, &["detection:read", "detection:write"]).await;
+    let a = Some(admin.as_str());
+    other
+        .json(M::GET, OBSERVED, OBSERVED, a, Send::Nothing, S::NOT_FOUND)
+        .await;
+    other
+        .json(
+            M::GET,
+            OBSERVED_TYPES,
+            OBSERVED_TYPES,
+            a,
+            Send::Nothing,
+            S::NOT_FOUND,
+        )
+        .await;
+    other
+        .json(
+            M::POST,
+            OBSERVED,
+            OBSERVED,
+            a,
+            json(json!({"type": "fqdn", "value": "x.example"})),
+            S::NOT_FOUND,
+        )
+        .await;
+    let seen = other.seen;
+    client.seen.extend(seen);
+}
+
 const LIST_POOL_TOKEN: &str = "list-pool-token";
 
 /// The core's lease API on a listener of its own, with a pool that runs the list reader.
@@ -5789,10 +6124,13 @@ async fn lease_list(stack: &Stack, http: &reqwest::Client, url: &str, root: Uuid
     let task: ace_sdk::wire::LeasedTask = response.json().await.expect("a task");
     assert_eq!(
         task.lists.len(),
-        1,
-        "the task carries the list its module reads"
+        2,
+        "the task carries the lists its module reads"
     );
-    task.lists.into_iter().next().expect("the list")
+    task.lists
+        .into_iter()
+        .find(|list| list.name == TEST_LIST.name)
+        .expect("the list")
 }
 
 /// PLAN.md 5.14's Done check: an edit through the API applies to the next task leased, with nothing

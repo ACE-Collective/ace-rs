@@ -9796,6 +9796,78 @@
     },
     {
       "ace3_commit": "f72f8946",
+      "analysis": "ObservableDetectionAnalysis",
+      "dump": "observable_detection/ace3/pcap/sslkeylog.txt.json",
+      "input": "ace3/pcap/sslkeylog.txt, with fixtures/tag/detections.json",
+      "module": "observable_detection",
+      "observables_added": 0,
+      "summary": "Observable Detection Analysis: enabled for detection"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "ObservableDetectionAnalysis",
+      "dump": "observable_detection/fqdn_FLAGGED.example.upper.json",
+      "input": "fqdn FLAGGED.example, with fixtures/tag/detections.json",
+      "module": "observable_detection",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "ObservableDetectionAnalysis",
+      "dump": "observable_detection/fqdn_flagged.example.json",
+      "input": "fqdn flagged.example, with fixtures/tag/detections.json",
+      "module": "observable_detection",
+      "observables_added": 0,
+      "summary": "Observable Detection Analysis: enabled for detection"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "ObservableDetectionAnalysis",
+      "dump": "observable_detection/fqdn_other.example.json",
+      "input": "fqdn other.example, with fixtures/tag/detections.json",
+      "module": "observable_detection",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "ObservableDetectionAnalysis",
+      "dump": "observable_detection/ip_203.0.113.66.json",
+      "input": "ip 203.0.113.66, with fixtures/tag/detections.json",
+      "module": "observable_detection",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "ObservableDetectionAnalysis",
+      "dump": "observable_detection/ipv4_203.0.113.66.json",
+      "input": "ipv4 203.0.113.66, with fixtures/tag/detections.json",
+      "module": "observable_detection",
+      "observables_added": 0,
+      "summary": "Observable Detection Analysis: enabled for detection"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "ObservableDetectionAnalysis",
+      "dump": "observable_detection/url_flagged.example.json",
+      "input": "url flagged.example, with fixtures/tag/detections.json",
+      "module": "observable_detection",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "ObservableDetectionAnalysis",
+      "dump": "observable_detection/url_http:__flagged.example_landing.json",
+      "input": "url http://flagged.example/landing, with fixtures/tag/detections.json",
+      "module": "observable_detection",
+      "observables_added": 0,
+      "summary": "Observable Detection Analysis: enabled for detection"
+    },
+    {
+      "ace3_commit": "f72f8946",
       "analysis": "OCRAnalysis",
       "dump": "ocr/images/blank.png.json",
       "input": "fixtures/images/blank.png",
@@ -14773,6 +14845,159 @@
     },
     {
       "ace3_commit": "f72f8946",
+      "analysis": "SiteTagAnalysis",
+      "dump": "site_tagger/ace3/pcap/sslkeylog.txt.json",
+      "input": "ace3/pcap/sslkeylog.txt, with fixtures/tag/site_tags.csv",
+      "module": "site_tagger",
+      "observables_added": 0,
+      "summary": "Site Tags: known,keylog"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "SiteTagAnalysis",
+      "dump": "site_tagger/email_address_Admin@corp.example.upper.json",
+      "input": "email_address Admin@corp.example, with fixtures/tag/site_tags.csv",
+      "module": "site_tagger",
+      "observables_added": 0,
+      "summary": "Site Tags: admin_mailbox"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "SiteTagAnalysis",
+      "dump": "site_tagger/fqdn_Exact.Example.upper.json",
+      "input": "fqdn Exact.Example, with fixtures/tag/site_tags.csv",
+      "module": "site_tagger",
+      "observables_added": 0,
+      "summary": "Site Tags: exact"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "SiteTagAnalysis",
+      "dump": "site_tagger/fqdn_a.b.CORP.example.upper.json",
+      "input": "fqdn a.b.CORP.example, with fixtures/tag/site_tags.csv",
+      "module": "site_tagger",
+      "observables_added": 0,
+      "summary": "Site Tags: corp, internal"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "SiteTagAnalysis",
+      "dump": "site_tagger/fqdn_case.EXAMPLE.upper.json",
+      "input": "fqdn case.EXAMPLE, with fixtures/tag/site_tags.csv",
+      "module": "site_tagger",
+      "observables_added": 0,
+      "summary": "Site Tags: case_blind"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "site_tagger/fqdn_exact.example.json",
+      "input": "fqdn exact.example, with fixtures/tag/site_tags.csv",
+      "module": "site_tagger",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "site_tagger/fqdn_notcorp.example.json",
+      "input": "fqdn notcorp.example, with fixtures/tag/site_tags.csv",
+      "module": "site_tagger",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "SiteTagAnalysis",
+      "dump": "site_tagger/fqdn_two.example.json",
+      "input": "fqdn two.example, with fixtures/tag/site_tags.csv",
+      "module": "site_tagger",
+      "observables_added": 0,
+      "summary": "Site Tags: first, second, second, third"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "SiteTagAnalysis",
+      "dump": "site_tagger/ip_10.1.2.3.json",
+      "input": "ip 10.1.2.3, with fixtures/tag/site_tags.csv",
+      "module": "site_tagger",
+      "observables_added": 0,
+      "summary": "Site Tags: internal_net"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "SiteTagAnalysis",
+      "dump": "site_tagger/ipv4_10.0.0.1.json",
+      "input": "ipv4 10.0.0.1, with fixtures/tag/site_tags.csv",
+      "module": "site_tagger",
+      "observables_added": 0,
+      "summary": "Site Tags: internal_net"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "SiteTagAnalysis",
+      "dump": "site_tagger/ipv4_10.1.2.3.json",
+      "input": "ipv4 10.1.2.3, with fixtures/tag/site_tags.csv",
+      "module": "site_tagger",
+      "observables_added": 0,
+      "summary": "Site Tags: internal_net"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "SiteTagAnalysis",
+      "dump": "site_tagger/ipv4_192.168.1.7.json",
+      "input": "ipv4 192.168.1.7, with fixtures/tag/site_tags.csv",
+      "module": "site_tagger",
+      "observables_added": 0,
+      "summary": "Site Tags: lan"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "SiteTagAnalysis",
+      "dump": "site_tagger/url_corp.example.json",
+      "input": "url corp.example, with fixtures/tag/site_tags.csv",
+      "module": "site_tagger",
+      "observables_added": 0,
+      "summary": "Site Tags: corp, internal"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "SiteTagAnalysis",
+      "dump": "site_tagger/url_http:__a.example_path.json",
+      "input": "url http://a.example/path, with fixtures/tag/site_tags.csv",
+      "module": "site_tagger",
+      "observables_added": 0,
+      "summary": "Site Tags: glob"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "site_tagger/url_http:__a.example_xpath.json",
+      "input": "url http://a.example/xpath, with fixtures/tag/site_tags.csv",
+      "module": "site_tagger",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "SiteTagAnalysis",
+      "dump": "site_tagger/url_http:__shout.example_.json",
+      "input": "url http://shout.example/, with fixtures/tag/site_tags.csv",
+      "module": "site_tagger",
+      "observables_added": 0,
+      "summary": "Site Tags: shout"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "site_tagger/user_nobody.json",
+      "input": "user nobody, with fixtures/tag/site_tags.csv",
+      "module": "site_tagger",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
       "analysis": "SnortSignatureAnalysis_v1",
       "dump": "snort_signature_analysis_v1/snort_sig_1:9000001:3.json",
       "input": "snort_sig 1:9000001:3, against fixtures/snort/snort.rules",
@@ -15517,6 +15742,78 @@
       "module": "user_analyzer",
       "observables_added": 0,
       "summary": "Caf\\xe9 \\xff - None - None - None"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "UserDefinedTaggingAnalysis",
+      "dump": "user_defined_tagging/ace3/pcap/sslkeylog.txt.json",
+      "input": "ace3/pcap/sslkeylog.txt, with fixtures/tag/observable_tags.json",
+      "module": "user_defined_tagging",
+      "observables_added": 0,
+      "summary": "User Defined Tagging: added 1 tags"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "UserDefinedTaggingAnalysis",
+      "dump": "user_defined_tagging/email_address_ceo@corp.example.json",
+      "input": "email_address ceo@corp.example, with fixtures/tag/observable_tags.json",
+      "module": "user_defined_tagging",
+      "observables_added": 0,
+      "summary": "User Defined Tagging: added 1 tags"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "UserDefinedTaggingAnalysis",
+      "dump": "user_defined_tagging/fqdn_TAGGED.example.upper.json",
+      "input": "fqdn TAGGED.example, with fixtures/tag/observable_tags.json",
+      "module": "user_defined_tagging",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "UserDefinedTaggingAnalysis",
+      "dump": "user_defined_tagging/fqdn_tagged.example.json",
+      "input": "fqdn tagged.example, with fixtures/tag/observable_tags.json",
+      "module": "user_defined_tagging",
+      "observables_added": 0,
+      "summary": "User Defined Tagging: added 3 tags"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "UserDefinedTaggingAnalysis",
+      "dump": "user_defined_tagging/fqdn_untagged.example.json",
+      "input": "fqdn untagged.example, with fixtures/tag/observable_tags.json",
+      "module": "user_defined_tagging",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "UserDefinedTaggingAnalysis",
+      "dump": "user_defined_tagging/ip_203.0.113.9.json",
+      "input": "ip 203.0.113.9, with fixtures/tag/observable_tags.json",
+      "module": "user_defined_tagging",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "UserDefinedTaggingAnalysis",
+      "dump": "user_defined_tagging/ipv4_203.0.113.9.json",
+      "input": "ipv4 203.0.113.9, with fixtures/tag/observable_tags.json",
+      "module": "user_defined_tagging",
+      "observables_added": 0,
+      "summary": "User Defined Tagging: added 1 tags"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "UserDefinedTaggingAnalysis",
+      "dump": "user_defined_tagging/url_http:__tagged.example_.json",
+      "input": "url http://tagged.example/, with fixtures/tag/observable_tags.json",
+      "module": "user_defined_tagging",
+      "observables_added": 0,
+      "summary": "User Defined Tagging: added 1 tags"
     },
     {
       "ace3_commit": "f72f8946",

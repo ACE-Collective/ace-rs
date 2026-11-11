@@ -13,6 +13,20 @@
           },
           "summary": "Email Address FQDN: example.com",
           "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
@@ -28,6 +42,20 @@
             "domain": "example.com"
           },
           "summary": "Email Address FQDN: example.com",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
           "tags": {}
         }
       },
@@ -76,6 +104,20 @@
             "type": "ASCII text, with no line terminators"
           },
           "summary": "File Type Analysis: ASCII text, with no line terminators (text/plain)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
           "tags": {}
         }
       },
@@ -157,6 +199,20 @@
           },
           "summary": "HTML JavaScript Extraction: 4 inline script(s), 2 external URL(s), 2 URI path(s), 3 event handler(s) (2 duplicate(s) skipped)",
           "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
@@ -204,6 +260,20 @@
             "type": "ASCII text, with no line terminators"
           },
           "summary": "File Type Analysis: ASCII text, with no line terminators (text/plain)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
           "tags": {}
         }
       },
@@ -253,6 +323,20 @@
           },
           "summary": "File Type Analysis: ASCII text, with no line terminators (text/plain)",
           "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
@@ -300,6 +384,20 @@
             "type": "ASCII text"
           },
           "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
           "tags": {}
         }
       },
@@ -349,6 +447,20 @@
           },
           "summary": "File Type Analysis: ASCII text, with no line terminators (text/plain)",
           "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
@@ -396,6 +508,20 @@
             "type": "ASCII text, with no line terminators"
           },
           "summary": "File Type Analysis: ASCII text, with no line terminators (text/plain)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
           "tags": {}
         }
       },
@@ -445,6 +571,20 @@
           },
           "summary": "File Type Analysis: ASCII text, with no line terminators (text/plain)",
           "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
@@ -466,6 +606,13 @@
             "wildcard_dns": null
           },
           "summary": "DNS Analysis: does not exist (nxdomain)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
           "tags": {}
         },
         "proxy_domain_splunk": {
@@ -657,6 +804,13 @@
             "whois_raw_text": null
           },
           "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {
@@ -686,6 +840,13 @@
             "wildcard_dns": false
           },
           "summary": "DNS Analysis: ip addresses (192.0.2.10, 192.0.2.2) mx (backup.example.com, mail.example.com)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
           "tags": {}
         },
         "proxy_domain_splunk": {
@@ -877,6 +1038,13 @@
             "whois_raw_text": null
           },
           "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
@@ -893,6 +1061,20 @@
           },
           "summary": null,
           "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
@@ -904,7 +1086,22 @@
       "relationships": {
         "is_hash_of file:08cd18e251cc4e0c44f325f38076ae8568a0421f451b7e1dd54acb1634dd8410": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "md5:310500155e339b1c0acd7a8f890139da": {
@@ -914,7 +1111,22 @@
       "relationships": {
         "is_hash_of file:49db13aefad48c0d8a569c59ff5cc0d51038afbecb4738df6269420a974170de": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "md5:3ec81a419e7ce350916b766ab44b89f3": {
@@ -924,7 +1136,22 @@
       "relationships": {
         "is_hash_of file:a31bfe5218c19f2fe76fbdac4fc1bd7341cce5c2ee8624f73540764d48d0eabc": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "md5:6195926ecfa341f0cb1ddaa5bad9c636": {
@@ -934,7 +1161,22 @@
       "relationships": {
         "is_hash_of file:2035a8f88ae48690b8b88a2f2a4287ab4c4187990a35387eb1e1bf7093962f7b": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "md5:6746fa3f81c86100893c33ca332685e5": {
@@ -944,7 +1186,22 @@
       "relationships": {
         "is_hash_of file:3e98d68fb8aba62096acae4f784c316b095b1c33d5f2dbf5eac2edd37210abab": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "md5:78354831dcbfc9e0a892f4d392246264": {
@@ -954,7 +1211,22 @@
       "relationships": {
         "is_hash_of file:f2dac8e86ea3054b9b5c95fcae9c3675bf0bd73c648f015d695a372de40df448": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "md5:a6cc6fe38acb36901ed8c62026adf493": {
@@ -964,7 +1236,22 @@
       "relationships": {
         "is_hash_of file:cd32f3aa2a2385872d6e82fa2c34399e7e3c50f0fbf72663711851205c36812b": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "md5:a723a1d463dbcafd5f9c3cee5c54189e": {
@@ -974,7 +1261,22 @@
       "relationships": {
         "is_hash_of file:7fadeacbfc5c8330e0c84f89385c19ef6711b6de48e036103f4767316af12be3": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:08cd18e251cc4e0c44f325f38076ae8568a0421f451b7e1dd54acb1634dd8410": {
@@ -984,7 +1286,22 @@
       "relationships": {
         "is_hash_of file:08cd18e251cc4e0c44f325f38076ae8568a0421f451b7e1dd54acb1634dd8410": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:2035a8f88ae48690b8b88a2f2a4287ab4c4187990a35387eb1e1bf7093962f7b": {
@@ -994,7 +1311,22 @@
       "relationships": {
         "is_hash_of file:2035a8f88ae48690b8b88a2f2a4287ab4c4187990a35387eb1e1bf7093962f7b": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:3e98d68fb8aba62096acae4f784c316b095b1c33d5f2dbf5eac2edd37210abab": {
@@ -1004,7 +1336,22 @@
       "relationships": {
         "is_hash_of file:3e98d68fb8aba62096acae4f784c316b095b1c33d5f2dbf5eac2edd37210abab": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:49db13aefad48c0d8a569c59ff5cc0d51038afbecb4738df6269420a974170de": {
@@ -1014,7 +1361,22 @@
       "relationships": {
         "is_hash_of file:49db13aefad48c0d8a569c59ff5cc0d51038afbecb4738df6269420a974170de": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:7fadeacbfc5c8330e0c84f89385c19ef6711b6de48e036103f4767316af12be3": {
@@ -1024,7 +1386,22 @@
       "relationships": {
         "is_hash_of file:7fadeacbfc5c8330e0c84f89385c19ef6711b6de48e036103f4767316af12be3": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:a31bfe5218c19f2fe76fbdac4fc1bd7341cce5c2ee8624f73540764d48d0eabc": {
@@ -1034,7 +1411,22 @@
       "relationships": {
         "is_hash_of file:a31bfe5218c19f2fe76fbdac4fc1bd7341cce5c2ee8624f73540764d48d0eabc": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:cd32f3aa2a2385872d6e82fa2c34399e7e3c50f0fbf72663711851205c36812b": {
@@ -1044,7 +1436,22 @@
       "relationships": {
         "is_hash_of file:cd32f3aa2a2385872d6e82fa2c34399e7e3c50f0fbf72663711851205c36812b": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:f2dac8e86ea3054b9b5c95fcae9c3675bf0bd73c648f015d695a372de40df448": {
@@ -1054,7 +1461,22 @@
       "relationships": {
         "is_hash_of file:f2dac8e86ea3054b9b5c95fcae9c3675bf0bd73c648f015d695a372de40df448": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "uri_path://cdn2.example.net/x.js": {
@@ -1064,7 +1486,22 @@
       "relationships": {
         "extracted_from file:2035a8f88ae48690b8b88a2f2a4287ab4c4187990a35387eb1e1bf7093962f7b": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "uri_path:/lib/jquery.min.js": {
@@ -1072,7 +1509,22 @@
       "directives": {},
       "excluded_analysis": {},
       "relationships": {},
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "uri_path:/static/app.js": {
@@ -1082,7 +1534,22 @@
       "relationships": {
         "extracted_from file:2035a8f88ae48690b8b88a2f2a4287ab4c4187990a35387eb1e1bf7093962f7b": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "url:https://cdn.example.com/lib/jquery.min.js": {
@@ -1093,6 +1560,13 @@
         "extracted_from file:2035a8f88ae48690b8b88a2f2a4287ab4c4187990a35387eb1e1bf7093962f7b": true
       },
       "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "parse_url": {
           "details": {
             "fragment": "",
@@ -1109,6 +1583,13 @@
           "details": {
             "extracted_url": "https://cdn.example.com/lib/jquery.min.js",
             "protection_type": "unprotected"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}

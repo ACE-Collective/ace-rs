@@ -1,0 +1,19 @@
+{
+  "analysis_type": "observable_detection_analysis",
+  "schema_version": 1,
+  "details": {
+    "for_detection": true
+  },
+  "summary": "Observable Detection Analysis: enabled for detection",
+  "analyzed": {
+    "tags": [
+      "detect_fqdn"
+    ],
+    "detections": [
+      {
+        "description": "Observable fqdn:flagged.example is enabled for detection",
+        "signature_uuid": "97a0bcb8-1bde-4cf0-8fa2-72d6343c6458"
+      }
+    ]
+  }
+}

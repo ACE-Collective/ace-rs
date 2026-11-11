@@ -220,6 +220,29 @@
 //!   such upload yet; it can call `Service::add_observable_comment`. The alert view's comments come with
 //!   it in 5.8, through `Service::alert_observable_comments`.
 //!
+//! ace3's `detection` router (PLAN.md 5.6, brought by 7.6), under ace3's `detection:read` and
+//! `detection:write` (`ace_service`'s `detection` docs). A detection is an entry of the
+//! `observable_detection` list, which that module reads on each task, so it applies with no export:
+//!
+//! | ace3 `/api/v2/detection` | here |
+//! |---|---|
+//! | `GET /?search=&observable_type=&status=&page=&page_size=` | `GET /api/observables/v1/detections?search=&type=&status=&page=&page_size=` |
+//! | `GET /types` | `GET /api/observables/v1/detections/types` |
+//! | `POST /`, `{type, value, expires_on?, detection_context?, batch_id?}` | `POST /api/observables/v1/detections`, `{type, value, expires_on?, detection_context?}`, audited |
+//! | `DELETE /{detection_id}` | `DELETE /api/observables/v1/detections/{id}`, audited |
+//! | `PATCH /{detection_id}/expiration`, `{expires_on}` | `PATCH /api/observables/v1/detections/{id}/expiration`, audited |
+//!
+//! What differs, or is left out, and why:
+//! - `batch_id` isn't taken: a list entry has no column for it and nothing in ace4 sends one. `fa_hits`
+//!   and `observable_id` come from ace3's index of every observable, which ace4 doesn't have; a
+//!   detection's comments are the observable's, by type and value.
+//! - A value is stored as given, a file's sha256 lowercased, where ace3 normalizes some types through
+//!   its observable classes. A status that isn't one is 400 where FastAPI answers 422, and a server whose
+//!   modules don't read the list answers 404.
+//! - A new expiry has to be in the future (400), as on every list; ace3 takes a past one. Remove a
+//!   detection to turn it off.
+//! - ace3's audit is a log line; here each write has an audit row, as a list entry's.
+//!
 //! ace3's `detection_points` router (PLAN.md 5.6), and its alerts router's list of one alert's, under
 //! `alert:read` as there (`ace_service`'s `detection_points` docs):
 //!
@@ -329,6 +352,7 @@ mod analysis;
 mod auth;
 mod cli;
 mod crashes;
+mod detection;
 mod detection_points;
 mod email;
 mod error;
@@ -524,6 +548,24 @@ impl Web {
                     .delete(observable_comments::delete)
                     .layer(json_limit),
             )
+            .route(
+                "/api/observables/v1/detections",
+                get(detection::list)
+                    .post(detection::create)
+                    .layer(json_limit),
+            )
+            .route(
+                "/api/observables/v1/detections/types",
+                get(detection::types),
+            )
+            .route(
+                "/api/observables/v1/detections/{id}",
+                delete(detection::delete),
+            )
+            .route(
+                "/api/observables/v1/detections/{id}/expiration",
+                patch(detection::set_expiration).layer(json_limit),
+            )
             .route("/api/hunts/v1/hunts", get(hunts::list))
             .route("/api/hunts/v1/hunts/{uuid}", get(hunts::one))
             .route(
@@ -708,6 +750,11 @@ impl Web {
         observable_comments::add,
         observable_comments::edit,
         observable_comments::delete,
+        detection::list,
+        detection::types,
+        detection::create,
+        detection::delete,
+        detection::set_expiration,
         hunts::list,
         hunts::one,
         hunts::suppressions,

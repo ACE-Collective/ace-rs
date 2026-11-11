@@ -440,6 +440,13 @@
           "summary": "File Type Analysis: very short file (no magic) (application/octet-stream)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "url_extraction": {
           "details": {
             "urls": [],
@@ -447,26 +454,15 @@
           },
           "summary": null,
           "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
-      "tags": {}
-    },
-    "file:5b2e28866954d009555cc7c10c0d4709f03ff8372329ffc32b4bcd9860aec26b": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "ole_wide_directory.doc.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:60ac6b02726e1b36f9d674f8982e80d61c6e05e155a2b89b8143e3e5efe78e47": true
-      },
-      "results": {},
       "tags": {}
     },
     "file:60ac6b02726e1b36f9d674f8982e80d61c6e05e155a2b89b8143e3e5efe78e47": {
@@ -486,8 +482,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:10 11:25:05+00:00",
-              "File:FileInodeChangeDate": "2026:11:10 11:25:05+00:00",
+              "File:FileAccessDate": "2026:11:11 00:41:43+00:00",
+              "File:FileInodeChangeDate": "2026:11:11 00:41:43+00:00",
               "File:FileModifyDate": "2026:11:07 15:11:53+00:00",
               "File:FileName": "ole_wide_directory.doc",
               "File:FilePermissions": 100644,
@@ -528,6 +524,13 @@
             "type": "Composite Document File V2 Document, Cannot read section info"
           },
           "summary": "File Type Analysis: Composite Document File V2 Document, Cannot read section info (application/x-ole-storage) (ms office document) (ole compound file)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
           "tags": {}
         },
         "officeparser3": {
@@ -946,12 +949,52 @@
           },
           "summary": null,
           "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {
         "microsoft_office": true,
         "ole": true
       }
+    },
+    "file:c81988cca26044c66c0bcbff2f8e5e14ad5794cc65037328b677a47d365bc247": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "ole_wide_directory.doc.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:60ac6b02726e1b36f9d674f8982e80d61c6e05e155a2b89b8143e3e5efe78e47": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
     },
     "md5:15e7566fa366530cd25b9b075d8315a3": {
       "detections": {},
@@ -960,7 +1003,22 @@
       "relationships": {
         "is_hash_of file:60ac6b02726e1b36f9d674f8982e80d61c6e05e155a2b89b8143e3e5efe78e47": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:60ac6b02726e1b36f9d674f8982e80d61c6e05e155a2b89b8143e3e5efe78e47": {
@@ -970,7 +1028,22 @@
       "relationships": {
         "is_hash_of file:60ac6b02726e1b36f9d674f8982e80d61c6e05e155a2b89b8143e3e5efe78e47": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     }
   }

@@ -46,6 +46,20 @@
           "summary": "File Type Analysis: ASCII text, with CRLF line terminators (text/plain)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        },
         "vbscript_analyzer": {
           "details": {
             "largest_hex_string": 64,
@@ -67,7 +81,22 @@
       "relationships": {
         "is_hash_of file:4f252104a2b247613586cf3613c4e6c25f1a74bdd956d8757e76d987c50dba93": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:4f252104a2b247613586cf3613c4e6c25f1a74bdd956d8757e76d987c50dba93": {
@@ -77,7 +106,22 @@
       "relationships": {
         "is_hash_of file:4f252104a2b247613586cf3613c4e6c25f1a74bdd956d8757e76d987c50dba93": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     }
   }

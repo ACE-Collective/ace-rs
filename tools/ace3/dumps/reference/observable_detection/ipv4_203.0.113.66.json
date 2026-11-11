@@ -1,0 +1,44 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "ObservableDetectionAnalysis",
+      "details": {
+        "for_detection": true
+      },
+      "detections": [],
+      "module_path": "saq.modules.observable_detection:ObservableDetectionAnalysis",
+      "observables": [],
+      "summary": "Observable Detection Analysis: enabled for detection",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ipv4 203.0.113.66, with fixtures/tag/detections.json",
+    "meta_tags": [],
+    "observable": {
+      "type": "ipv4",
+      "value": "203.0.113.66"
+    }
+  },
+  "module": "observable_detection",
+  "observable_after": {
+    "detections": [
+      {
+        "description": "Observable ipv4:203.0.113.66 is enabled for detection",
+        "details": null
+      }
+    ],
+    "directives": [],
+    "excluded_analysis": [],
+    "relationships": [],
+    "tags": [
+      "detect_ipv4"
+    ],
+    "type": "ipv4",
+    "value": "203.0.113.66"
+  }
+}

@@ -1,0 +1,16 @@
+fqdn,default,false,Exact.Example,exact
+fqdn,default,yes,CASE.example,case_blind
+url,glob,false,http://*.example/[!x]*,glob
+url,glob,TRUE,HTTP://SHOUT.*,shout
+email_address,regex, 1 ,^admin@,admin_mailbox
+ipv4|ip,cidr,false,10.0.0.0/8,internal_net
+ipv4,cidr,false,192.168.1.0/255.255.255.0,lan
+ipv4,cidr,false,10.0.0.1/8,host_bits
+fqdn|url,subdomain,false,corp.example,corp|internal
+fqdn,default,false,two.example,first|second
+fqdn,default,false,two.example,second|third
+fqdn,nonsense,false,two.example,bad_match_type
+fqdn,default,false,two.example
+fqdn,regex,false,(?<=x)y,lookbehind
+
+"file",default,false,"76f3b3e668343641d138e1121f7be54778c87bf38fe98f27723be8be971ff8e3","known,keylog"

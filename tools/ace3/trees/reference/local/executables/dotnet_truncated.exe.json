@@ -39,6 +39,20 @@
           },
           "summary": "File Type Analysis: data (application/octet-stream)",
           "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
@@ -103,6 +117,20 @@
           },
           "summary": "Ilspy Analysis: exit code 70: stderr: System.BadImageFormatException: Invalid metadata section span.\n   at System.Reflection.PortableExecutable.PEHeaders.CalculateMetadataLocation(Int64 peImageSize, Int32& start, Int32& size)\n   at System.Reflection.PortableExecutable.PEHeaders..ctor(Stream peStream, Int32 size, Boolean isLoadedImage)\n   at System.Reflection.PortableExecutable.PEReader.InitializePEHeaders()\n   at System.Reflection.PortableExecutable.PEReader.get_HasMetadata()\n   at ICSharpCode.Decompiler.Metadata.MetadataFile..ctor(MetadataFileKind kind, String fileName, PEReader reader, MetadataReaderOptions metadataOptions, MetadataStringDecoder utf8Decoder) in /_/ICSharpCode.Decompiler/Metadata/MetadataFile.cs:line 269\n   at ICSharpCode.Decompiler.Metadata.PEFile..ctor(String fileName, PEReader reader, MetadataReaderOptions metadataOptions, MetadataStringDecoder utf8Decoder) in /_/ICSharpCode.Decompiler/Metadata/PEFile.cs:line 49\n   at ICSharpCode.Decompiler.Metadata.PEFile..ctor(String fileName, PEStreamOptions streamOptions, MetadataReaderOptions metadataOptions, MetadataStringDecoder utf8Decoder) in /_/ICSharpCode.Decompiler/Metadata/PEFile.cs:line 39\n   at ICSharpCode.ILSpyCmd.ILSpyCmdProgram.ShowIL(String assemblyFileName, TextWriter output) in D:\\a\\ILSpy\\ILSpy\\ICSharpCode.ILSpyCmd\\IlspyCmdProgram.cs:line 620\n   at ICSharpCode.ILSpyCmd.ILSpyCmdProgram.<OnExecuteAsync>g__PerformPerFileAction|111_0(String fileName, <>c__DisplayClass111_0&, <>c__DisplayClass111_1&) in D:\\a\\ILSpy\\ILSpy\\ICSharpCode.ILSpyCmd\\IlspyCmdProgram.cs:line 348\n   at ICSharpCode.ILSpyCmd.ILSpyCmdProgram.OnExecuteAsync(CommandLineApplication app) in D:\\a\\ILSpy\\ILSpy\\ICSharpCode.ILSpyCmd\\IlspyCmdProgram.cs:line 299\n",
           "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {
@@ -147,6 +175,20 @@
           },
           "summary": "File Type Analysis: empty (inode/x-empty)",
           "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
@@ -158,7 +200,22 @@
       "relationships": {
         "is_hash_of file:d44f3bcdc7e3e317758486a55155b3ad4c70c322ea978742af65e682919bacc4": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "md5:f52b1deae1a5f02b749f8622b804e366": {
@@ -168,7 +225,22 @@
       "relationships": {
         "is_hash_of file:b061144df5366c6c9db2eae934bb87f70875df47d03b805d88b2c2bd3ae75cae": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:b061144df5366c6c9db2eae934bb87f70875df47d03b805d88b2c2bd3ae75cae": {
@@ -178,7 +250,22 @@
       "relationships": {
         "is_hash_of file:b061144df5366c6c9db2eae934bb87f70875df47d03b805d88b2c2bd3ae75cae": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:d44f3bcdc7e3e317758486a55155b3ad4c70c322ea978742af65e682919bacc4": {
@@ -188,7 +275,22 @@
       "relationships": {
         "is_hash_of file:d44f3bcdc7e3e317758486a55155b3ad4c70c322ea978742af65e682919bacc4": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     }
   }

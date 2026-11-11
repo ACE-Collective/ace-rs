@@ -19,6 +19,13 @@ modules:
   email_logger:
     settings:
       fluent_bit_logging_enabled: false
+  # tools/ace3/trees/site_tags.csv, the CSV make-trees gives ace3's site_tagger; tests/e2e/run checks
+  # that each of its lines is here
+  site_tagger:
+    settings:
+      csv: |
+        url,glob,false,http://192.0.2.1:8080/*,lab_url
+        fqdn,subdomain,false,pcap-http.example,pcap_lab
   splunk_api:
     instances:
       # in ace3's correlation group, so a root that becomes an alert runs it, as make-trees

@@ -18,8 +18,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:10 11:27:24+00:00",
-              "File:FileInodeChangeDate": "2026:11:10 11:27:24+00:00",
+              "File:FileAccessDate": "2026:11:11 00:42:53+00:00",
+              "File:FileInodeChangeDate": "2026:11:11 00:42:53+00:00",
               "File:FileModifyDate": "2026:11:07 15:11:53+00:00",
               "File:FileName": "slk.slk",
               "File:FilePermissions": 100644,
@@ -66,11 +66,25 @@
           "summary": "File Type Analysis: spreadsheet interchange document, created by Excel (application/x-sylk) (ms office document)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "olevba_v1_2": {
           "details": {
             "keyword_summary": {},
             "macros": [],
             "type": "SLK"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}
@@ -80,7 +94,7 @@
         "microsoft_office": true
       }
     },
-    "file:88ac7a8a8faf85beaa7f42a26c2e1259cc7ef91924ce373fb57d5a767eedfb7e": {
+    "file:4abf89a7862433333d764126c56c5add3f2c6c513e8b1f34db25a86bf9fb7383": {
       "detections": {},
       "directives": {},
       "excluded_analysis": {
@@ -95,7 +109,22 @@
       "relationships": {
         "extracted_from file:3f33a9afa5ba4d38cbbfa5b1947f80958ebb61a351b529aeb55e469f2c13903e": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "md5:56d1c7aeafde6cae96671457c373eee6": {
@@ -105,7 +134,22 @@
       "relationships": {
         "is_hash_of file:3f33a9afa5ba4d38cbbfa5b1947f80958ebb61a351b529aeb55e469f2c13903e": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:3f33a9afa5ba4d38cbbfa5b1947f80958ebb61a351b529aeb55e469f2c13903e": {
@@ -115,7 +159,22 @@
       "relationships": {
         "is_hash_of file:3f33a9afa5ba4d38cbbfa5b1947f80958ebb61a351b529aeb55e469f2c13903e": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     }
   }

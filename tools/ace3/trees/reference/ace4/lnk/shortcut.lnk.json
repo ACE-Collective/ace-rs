@@ -166,6 +166,20 @@
           },
           "summary": "LnkParse Analysis: target path: (C:\\Windows\\notepad.exe), command line arguments: (/c echo hi), icon location: (%SystemRoot%\\system32\\shell32.dll), working directory: (C:\\Windows)",
           "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {
@@ -201,6 +215,20 @@
           },
           "summary": "File Type Analysis: JSON text data (application/json)",
           "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
@@ -212,7 +240,22 @@
       "relationships": {
         "is_hash_of file:15e18daee0dd709c076438da99b29b9779f997583cd07a1c54a46663f32914da": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:15e18daee0dd709c076438da99b29b9779f997583cd07a1c54a46663f32914da": {
@@ -222,7 +265,22 @@
       "relationships": {
         "is_hash_of file:15e18daee0dd709c076438da99b29b9779f997583cd07a1c54a46663f32914da": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     }
   }

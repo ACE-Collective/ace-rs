@@ -1,0 +1,27 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT count(*) AS \"count!\" FROM lists.entries\n                           WHERE list = $1\n                             AND ($2::text IS NULL OR observable_type = $2)\n                             AND ($3::text IS NULL OR value ILIKE $3 ESCAPE '\\')\n                             AND CASE $4::text\n                                   WHEN 'active' THEN expires_at IS NULL OR expires_at > $5\n                                   WHEN 'expired' THEN expires_at <= $5\n                                   ELSE true END",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "count!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "5b39cb151e4431c180543d7c725ad8fa60b615f21d98f606ce45c14cd870ad00"
+}

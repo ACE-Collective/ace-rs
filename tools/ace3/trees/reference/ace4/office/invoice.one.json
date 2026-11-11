@@ -41,6 +41,20 @@
           },
           "summary": "File Type Analysis: DOS batch file, ASCII text, with CRLF line terminators (text/x-msdos-batch)",
           "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
@@ -89,6 +103,20 @@
           },
           "summary": "File Type Analysis: ASCII text, with no line terminators (text/plain)",
           "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
@@ -132,6 +160,13 @@
           "summary": "File Type Analysis: Microsoft OneNote (application/onenote)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "onenote_extraction": {
           "details": {
             "extracted_files": [
@@ -140,6 +175,13 @@
             ]
           },
           "summary": "OneNote File Analysis: extracted files e9b4ff075e05eb59b9ff8037003dbf17321d0eb75b9a56b738c6789fee69ee5b, 6ac60d7880f05e06a90757b7bce30951bb020b14f935509e6ef1af0c1e96b9d1",
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
           "tags": {}
         }
       },
@@ -205,6 +247,20 @@
           },
           "summary": "HTML JavaScript Extraction: 1 inline script(s)",
           "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
@@ -216,7 +272,22 @@
       "relationships": {
         "is_hash_of file:b332dfb36c066e2f7cfd78cbe5d82bf257003ab63e66d106cfc4b21bdf45a731": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "md5:15cb14752fcfc74a01b5c5156631362d": {
@@ -226,7 +297,22 @@
       "relationships": {
         "is_hash_of file:6ac60d7880f05e06a90757b7bce30951bb020b14f935509e6ef1af0c1e96b9d1": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "md5:383ecf8635a7aa746e13a3384383615f": {
@@ -236,7 +322,22 @@
       "relationships": {
         "is_hash_of file:e9b4ff075e05eb59b9ff8037003dbf17321d0eb75b9a56b738c6789fee69ee5b": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "md5:ac0860a2dae392ad13ab5407e432ac49": {
@@ -246,7 +347,22 @@
       "relationships": {
         "is_hash_of file:8cf6542ab41f3d900a93a99de2c245dee92f2adef222005e43561277a3e98647": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:6ac60d7880f05e06a90757b7bce30951bb020b14f935509e6ef1af0c1e96b9d1": {
@@ -256,7 +372,22 @@
       "relationships": {
         "is_hash_of file:6ac60d7880f05e06a90757b7bce30951bb020b14f935509e6ef1af0c1e96b9d1": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:8cf6542ab41f3d900a93a99de2c245dee92f2adef222005e43561277a3e98647": {
@@ -266,7 +397,22 @@
       "relationships": {
         "is_hash_of file:8cf6542ab41f3d900a93a99de2c245dee92f2adef222005e43561277a3e98647": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:b332dfb36c066e2f7cfd78cbe5d82bf257003ab63e66d106cfc4b21bdf45a731": {
@@ -276,7 +422,22 @@
       "relationships": {
         "is_hash_of file:b332dfb36c066e2f7cfd78cbe5d82bf257003ab63e66d106cfc4b21bdf45a731": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:e9b4ff075e05eb59b9ff8037003dbf17321d0eb75b9a56b738c6789fee69ee5b": {
@@ -286,7 +447,22 @@
       "relationships": {
         "is_hash_of file:e9b4ff075e05eb59b9ff8037003dbf17321d0eb75b9a56b738c6789fee69ee5b": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     }
   }

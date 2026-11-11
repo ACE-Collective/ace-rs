@@ -26,8 +26,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:10 11:42:57+00:00",
-              "File:FileInodeChangeDate": "2026:11:10 11:42:57+00:00",
+              "File:FileAccessDate": "2026:11:11 00:59:50+00:00",
+              "File:FileInodeChangeDate": "2026:11:11 00:59:50+00:00",
               "File:FileModifyDate": "2026:11:09 05:23:12+00:00",
               "File:FileName": "nul_byte.rtf",
               "File:FilePermissions": 100644,
@@ -77,12 +77,26 @@
           "summary": "NoWhiteSpaceAnalysis: Ignore Whitespace Characters (4 removed)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "rtfole": {
           "details": {
             "extracted_files": [],
             "return_code": 0,
             "stderr": "",
             "stdout": "rtfobj 0.60.1 on Python 3.14.10 - http://decalage.info/python/oletools\nTHIS IS WORK IN PROGRESS - Check updates regularly!\nPlease report any issue at https://github.com/decalage2/oletools/issues\n\n===============================================================================\nFile: 'nul_byte.rtf' - size: 70 bytes\n---+----------+---------------------------------------------------------------\nid |index     |OLE Object                                                     \n---+----------+---------------------------------------------------------------\n"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}
@@ -93,24 +107,6 @@
         "rtf": true,
         "unexpected_binary_data": true
       }
-    },
-    "file:5b64b9d6048c4385d54b1efcd7ca84f10248c611843c1c8f646172d4dcef5146": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "nul_byte.rtf.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:2fc8f016584d950c5288f79848b62356e4517fe8b0b33feb99a2a829f39e8fac": true
-      },
-      "results": {},
-      "tags": {}
     },
     "file:76fa2f41a069908de6738ee8af3de47cd0988e9c0ac300b695bcaface0c352b7": {
       "detections": {},
@@ -160,12 +156,26 @@
           "summary": "File Type Analysis: Rich Text Format data, version 1, ANSI (text/rtf) (ms office document) (rtf document)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "rtfole": {
           "details": {
             "extracted_files": [],
             "return_code": 0,
             "stderr": "",
             "stdout": "rtfobj 0.60.1 on Python 3.14.10 - http://decalage.info/python/oletools\nTHIS IS WORK IN PROGRESS - Check updates regularly!\nPlease report any issue at https://github.com/decalage2/oletools/issues\n\n===============================================================================\nFile: 'nul_byte.rtf.nowhitespace' - size: 66 bytes\n---+----------+---------------------------------------------------------------\nid |index     |OLE Object                                                     \n---+----------+---------------------------------------------------------------\n"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}
@@ -177,6 +187,39 @@
         "unexpected_binary_data": true
       }
     },
+    "file:ebf2df4c388932a9a875ff1d4fa9eaae4cb60325987ffd00ea43c3b8038f9548": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "nul_byte.rtf.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:2fc8f016584d950c5288f79848b62356e4517fe8b0b33feb99a2a829f39e8fac": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "md5:06eaf65e67014cc4e510a424926331eb": {
       "detections": {},
       "directives": {},
@@ -184,7 +227,22 @@
       "relationships": {
         "is_hash_of file:76fa2f41a069908de6738ee8af3de47cd0988e9c0ac300b695bcaface0c352b7": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "md5:6379c9bee990b72dab0e65449ab969c2": {
@@ -194,7 +252,22 @@
       "relationships": {
         "is_hash_of file:2fc8f016584d950c5288f79848b62356e4517fe8b0b33feb99a2a829f39e8fac": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:2fc8f016584d950c5288f79848b62356e4517fe8b0b33feb99a2a829f39e8fac": {
@@ -204,7 +277,22 @@
       "relationships": {
         "is_hash_of file:2fc8f016584d950c5288f79848b62356e4517fe8b0b33feb99a2a829f39e8fac": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:76fa2f41a069908de6738ee8af3de47cd0988e9c0ac300b695bcaface0c352b7": {
@@ -214,7 +302,22 @@
       "relationships": {
         "is_hash_of file:76fa2f41a069908de6738ee8af3de47cd0988e9c0ac300b695bcaface0c352b7": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     }
   }

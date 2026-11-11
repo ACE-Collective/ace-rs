@@ -50,11 +50,25 @@
           "summary": "File Type Analysis: Composite Document File V2 Document, Can't read directory (application/x-ole-storage) (ms office document) (ole compound file)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "olevba_v1_2": {
           "details": {
             "keyword_summary": {},
             "macros": [],
             "type": null
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}
@@ -73,7 +87,22 @@
       "relationships": {
         "is_hash_of file:aa918e32da49653769bdd4e94382fd2dfcb25a45bfab0a7f80233bde9af8087a": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:aa918e32da49653769bdd4e94382fd2dfcb25a45bfab0a7f80233bde9af8087a": {
@@ -83,7 +112,22 @@
       "relationships": {
         "is_hash_of file:aa918e32da49653769bdd4e94382fd2dfcb25a45bfab0a7f80233bde9af8087a": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     }
   }

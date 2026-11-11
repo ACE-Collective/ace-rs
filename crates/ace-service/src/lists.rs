@@ -246,7 +246,7 @@ impl NewListEntry {
 }
 
 /// The list `name` among the catalog's, or a 404.
-fn spec(catalog: &Catalog, name: &str) -> Result<ListSpec, ServiceError> {
+pub(crate) fn spec(catalog: &Catalog, name: &str) -> Result<ListSpec, ServiceError> {
     catalog
         .lists()
         .get(name)
@@ -283,7 +283,7 @@ async fn entries_of(conn: &mut PgConnection, list: &str) -> Result<Vec<ListEntry
     .collect()
 }
 
-async fn entry_row(
+pub(crate) async fn entry_row(
     conn: &mut PgConnection,
     list: &str,
     id: i64,
@@ -393,38 +393,7 @@ impl Service {
             .write(actor, "add_list_entry", &LIST_WRITE, &|tx| {
                 Box::pin(async move {
                     let spec = spec(catalog, name)?;
-                    let entry = entry.checked(&spec, now(tx.conn()).await?, None)?;
-                    lock_lists(tx.conn()).await?;
-                    let mut entries: Vec<Entry> = entries_of(tx.conn(), spec.name)
-                        .await?
-                        .iter()
-                        .map(ListEntry::as_sdk)
-                        .collect();
-                    entries.push(entry.as_sdk(0));
-                    check_list(&spec, &entries)?;
-                    let id = sqlx::query_scalar!(
-                        "INSERT INTO lists.entries
-                             (list, match, value, ignore_case, observable_type, note, expires_at,
-                              created_by, updated_by)
-                         VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $8::jsonb)
-                         RETURNING id",
-                        spec.name,
-                        entry.kind.as_str(),
-                        entry.value,
-                        entry.ignore_case,
-                        entry.observable_type,
-                        entry.note,
-                        entry.expires_at,
-                        Json(actor) as _,
-                    )
-                    .fetch_one(tx.conn())
-                    .await
-                    .map_err(duplicate)?;
-                    let added = entry_row(tx.conn(), spec.name, id).await?;
-                    let change = Change::added(
-                        Target::list_entry(id),
-                        &RecordedEntry::of(spec.name, &entry),
-                    )?;
+                    let (added, change) = add_entry(tx.conn(), actor, &spec, entry).await?;
                     Ok(Audited::changed(added, change))
                 })
             })
@@ -445,54 +414,12 @@ impl Service {
             .write(actor, "edit_list_entry", &LIST_WRITE, &|tx| {
                 Box::pin(async move {
                     let spec = spec(catalog, name)?;
-                    lock_lists(tx.conn()).await?;
-                    let current = entries_of(tx.conn(), spec.name).await?;
-                    let found = current
-                        .iter()
-                        .find(|e| e.id == id)
-                        .ok_or_else(|| no_entry(spec.name, id))?;
-                    let before = NewListEntry::of(found);
-                    // an expiry that passed may stay as it was
-                    let entry = entry.checked(&spec, now(tx.conn()).await?, before.expires_at)?;
-                    if entry == before {
-                        return Ok(Audited::unchanged(found.clone()));
-                    }
-                    let entries: Vec<Entry> = current
-                        .iter()
-                        .map(|e| {
-                            if e.id == id {
-                                entry.as_sdk(id)
-                            } else {
-                                e.as_sdk()
-                            }
-                        })
-                        .collect();
-                    check_list(&spec, &entries)?;
-                    sqlx::query!(
-                        "UPDATE lists.entries
-                         SET match = $3, value = $4, ignore_case = $5, observable_type = $6,
-                             note = $7, expires_at = $8, updated_by = $9::jsonb, updated_at = now()
-                         WHERE list = $1 AND id = $2",
-                        spec.name,
-                        id,
-                        entry.kind.as_str(),
-                        entry.value,
-                        entry.ignore_case,
-                        entry.observable_type,
-                        entry.note,
-                        entry.expires_at,
-                        Json(actor) as _,
-                    )
-                    .execute(tx.conn())
-                    .await
-                    .map_err(duplicate)?;
-                    let edited = entry_row(tx.conn(), spec.name, id).await?;
-                    let change = Change::updated(
-                        Target::list_entry(id),
-                        &RecordedEntry::of(spec.name, &before),
-                        &RecordedEntry::of(spec.name, &entry),
-                    )?;
-                    Ok(Audited::changed(edited, change))
+                    let edited =
+                        edit_entry(tx.conn(), actor, &spec, id, &|_| Ok(entry.clone())).await?;
+                    Ok(match edited {
+                        (entry, Some(change)) => Audited::changed(entry, change),
+                        (entry, None) => Audited::unchanged(entry),
+                    })
                 })
             })
             .await
@@ -510,25 +437,7 @@ impl Service {
             .write(actor, "delete_list_entry", &LIST_WRITE, &|tx| {
                 Box::pin(async move {
                     let spec = spec(catalog, name)?;
-                    lock_lists(tx.conn()).await?;
-                    let found = entry_row(tx.conn(), spec.name, id).await?;
-                    let created_by = sqlx::query_scalar!(
-                        r#"DELETE FROM lists.entries WHERE list = $1 AND id = $2
-                           RETURNING created_by AS "created_by!: Value""#,
-                        spec.name,
-                        id
-                    )
-                    .fetch_one(tx.conn())
-                    .await?;
-                    let before = NewListEntry::of(&found);
-                    let change = Change::removed(
-                        Target::list_entry(id),
-                        &RemovedEntry {
-                            entry: RecordedEntry::of(spec.name, &before),
-                            created_by: &created_by,
-                            created_at: found.created_at,
-                        },
-                    )?;
+                    let (_, change) = delete_entry(tx.conn(), &spec, id).await?;
                     Ok(Audited::changed((), change))
                 })
             })
@@ -536,8 +445,141 @@ impl Service {
     }
 }
 
+/// Adds `entry` to the end of `spec`'s list, in the caller's write: checked as a module will compile
+/// it, alone and with the list's others, with the lists locked. It returns the entry and its audit
+/// change. `add_list_entry` and the `detection` service's writes share it.
+pub(crate) async fn add_entry(
+    conn: &mut PgConnection,
+    actor: &Actor,
+    spec: &ListSpec,
+    entry: &NewListEntry,
+) -> Result<(ListEntry, Change), ServiceError> {
+    let entry = entry.checked(spec, now(conn).await?, None)?;
+    lock_lists(conn).await?;
+    let mut entries: Vec<Entry> = entries_of(conn, spec.name)
+        .await?
+        .iter()
+        .map(ListEntry::as_sdk)
+        .collect();
+    entries.push(entry.as_sdk(0));
+    check_list(spec, &entries)?;
+    let id = sqlx::query_scalar!(
+        "INSERT INTO lists.entries
+             (list, match, value, ignore_case, observable_type, note, expires_at,
+              created_by, updated_by)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $8::jsonb)
+         RETURNING id",
+        spec.name,
+        entry.kind.as_str(),
+        entry.value,
+        entry.ignore_case,
+        entry.observable_type,
+        entry.note,
+        entry.expires_at,
+        Json(actor) as _,
+    )
+    .fetch_one(&mut *conn)
+    .await
+    .map_err(duplicate)?;
+    let added = entry_row(conn, spec.name, id).await?;
+    let change = Change::added(
+        Target::list_entry(id),
+        &RecordedEntry::of(spec.name, &entry),
+    )?;
+    Ok((added, change))
+}
+
+/// Replaces what entry `id` of `spec`'s list holds with what `change` makes of it, in the caller's
+/// write, keeping its place: checked as `add_entry` checks, with the lists locked. It returns the entry
+/// and its audit change, which is None when nothing changed.
+pub(crate) async fn edit_entry(
+    conn: &mut PgConnection,
+    actor: &Actor,
+    spec: &ListSpec,
+    id: i64,
+    change: &(dyn Fn(&NewListEntry) -> Result<NewListEntry, ServiceError> + Sync),
+) -> Result<(ListEntry, Option<Change>), ServiceError> {
+    lock_lists(conn).await?;
+    let current = entries_of(conn, spec.name).await?;
+    let found = current
+        .iter()
+        .find(|e| e.id == id)
+        .ok_or_else(|| no_entry(spec.name, id))?;
+    let before = NewListEntry::of(found);
+    // an expiry that passed may stay as it was
+    let entry = change(&before)?.checked(spec, now(conn).await?, before.expires_at)?;
+    if entry == before {
+        return Ok((found.clone(), None));
+    }
+    let entries: Vec<Entry> = current
+        .iter()
+        .map(|e| {
+            if e.id == id {
+                entry.as_sdk(id)
+            } else {
+                e.as_sdk()
+            }
+        })
+        .collect();
+    check_list(spec, &entries)?;
+    sqlx::query!(
+        "UPDATE lists.entries
+         SET match = $3, value = $4, ignore_case = $5, observable_type = $6,
+             note = $7, expires_at = $8, updated_by = $9::jsonb, updated_at = now()
+         WHERE list = $1 AND id = $2",
+        spec.name,
+        id,
+        entry.kind.as_str(),
+        entry.value,
+        entry.ignore_case,
+        entry.observable_type,
+        entry.note,
+        entry.expires_at,
+        Json(actor) as _,
+    )
+    .execute(&mut *conn)
+    .await
+    .map_err(duplicate)?;
+    let edited = entry_row(conn, spec.name, id).await?;
+    let change = Change::updated(
+        Target::list_entry(id),
+        &RecordedEntry::of(spec.name, &before),
+        &RecordedEntry::of(spec.name, &entry),
+    )?;
+    Ok((edited, Some(change)))
+}
+
+/// Deletes entry `id` of `spec`'s list in the caller's write, with the lists locked. It returns the
+/// entry as it was and its audit change, which keeps the whole entry.
+pub(crate) async fn delete_entry(
+    conn: &mut PgConnection,
+    spec: &ListSpec,
+    id: i64,
+) -> Result<(ListEntry, Change), ServiceError> {
+    lock_lists(conn).await?;
+    let found = entry_row(conn, spec.name, id).await?;
+    let created_by = sqlx::query_scalar!(
+        r#"DELETE FROM lists.entries WHERE list = $1 AND id = $2
+           RETURNING created_by AS "created_by!: Value""#,
+        spec.name,
+        id
+    )
+    .fetch_one(&mut *conn)
+    .await?;
+    let before = NewListEntry::of(&found);
+    let change = Change::removed(
+        Target::list_entry(id),
+        &RemovedEntry {
+            entry: RecordedEntry::of(spec.name, &before),
+            created_by: &created_by,
+            created_at: found.created_at,
+        },
+    )?;
+    Ok((found, change))
+}
+
 /// The transaction's time, which every check of an expiry in one write uses.
-async fn now(conn: &mut PgConnection) -> Result<DateTime<Utc>, ServiceError> {
+pub(crate) async fn now(conn: &mut PgConnection) -> Result<DateTime<Utc>, ServiceError> {
     Ok(sqlx::query_scalar!(r#"SELECT now() AS "now!""#)
         .fetch_one(conn)
         .await?)

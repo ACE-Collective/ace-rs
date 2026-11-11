@@ -39,6 +39,20 @@
           },
           "summary": "File Type Analysis: GLS_BINARY_LSB_FIRST (application/octet-stream)",
           "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
@@ -101,6 +115,20 @@
           },
           "summary": "File Type Analysis: PE32+ executable for MS Windows 6.03 (console), x86-64, 7 sections (application/vnd.microsoft.portable-executable) (portable executable)",
           "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {
@@ -136,6 +164,20 @@
             "type": "XML 1.0 document, ASCII text, with CRLF line terminators"
           },
           "summary": "File Type Analysis: XML 1.0 document, ASCII text, with CRLF line terminators (text/xml)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
           "tags": {}
         }
       },
@@ -173,10 +215,24 @@
           "summary": "File Type Analysis: MS Windows icon resource - 1 icon, 16x16 (image/vnd.microsoft.icon)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "qrcode": {
           "details": {
             "extracted_text": null,
             "inverted": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}
@@ -222,6 +278,20 @@
           },
           "summary": "File Type Analysis: data (application/octet-stream)",
           "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
@@ -263,6 +333,20 @@
             "type": "data"
           },
           "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
           "tags": {}
         }
       },
@@ -306,6 +390,20 @@
           },
           "summary": "File Type Analysis: data (application/octet-stream)",
           "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
@@ -347,6 +445,20 @@
             "type": "data"
           },
           "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
           "tags": {}
         }
       },
@@ -408,6 +520,13 @@
           "summary": "File Type Analysis: PE32+ executable for MS Windows 6.03 (console), x86-64, 3 sections (application/vnd.microsoft.portable-executable) (portable executable)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "upx": {
           "details": {
             "error": null,
@@ -416,6 +535,13 @@
             "stdout": "                       Ultimate Packer for eXecutables\n                          Copyright (C) 1996 - 2024\nUPX 4.2.4       Markus Oberhumer, Laszlo Molnar & John Reiser    May 9th 2024\n\n        File size         Ratio      Format      Name\n   --------------------   ------   -----------   -----------\n    357376 <-    161280   45.13%    win64/pe     unpacked.exe\n\nUnpacked 1 file.\n"
           },
           "summary": "UPX Analysis: decompression success: cmd-upx.exe.upx.exe",
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
           "tags": {}
         }
       },
@@ -461,6 +587,20 @@
           },
           "summary": "File Type Analysis: data (application/octet-stream)",
           "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
@@ -502,6 +642,20 @@
             "type": "data"
           },
           "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
           "tags": {}
         }
       },
@@ -545,6 +699,20 @@
           },
           "summary": "File Type Analysis: data (application/octet-stream)",
           "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
@@ -587,6 +755,20 @@
           },
           "summary": "File Type Analysis: data (application/octet-stream)",
           "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
@@ -620,6 +802,20 @@
           },
           "summary": "File Type Analysis: empty (inode/x-empty)",
           "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
@@ -631,7 +827,22 @@
       "relationships": {
         "is_hash_of file:10e78055cf3650cdbdc0dabdf16145c38d1cd0c868961bbb86d17c9f79f2bd69": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "md5:29097ce8535b455f6c86357b76ec5a5b": {
@@ -641,7 +852,22 @@
       "relationships": {
         "is_hash_of file:80eef9447d42987fef04f6799dc52f6f16eb04a9e775f2f42ae54446ad887d18": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "md5:3dfe82067422bdc801055098cdafaa80": {
@@ -651,7 +877,22 @@
       "relationships": {
         "is_hash_of file:a57f2bf4469be19d5108330feed4dc5e79936f14d9b8bb049573e839eccdc448": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "md5:41a04f2bf3579f4b013bab1fad8096dc": {
@@ -661,7 +902,22 @@
       "relationships": {
         "is_hash_of file:7214c380aa616a38fae375b968f648176e8629b444e93980f7015fa61c1bad8e": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "md5:4b3572ac9b283eae55c7d99c9c347490": {
@@ -671,7 +927,22 @@
       "relationships": {
         "is_hash_of file:299bd79030ed0333464365362e37468e5403b4675e5c3dc069fc03801264bc7f": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "md5:57adc7da04f6008f211c9e59a7d1354f": {
@@ -681,7 +952,22 @@
       "relationships": {
         "is_hash_of file:6ef14d99a8e3186e88817f971e291fc96e3a44aaea6ff8ce0e889822f0a0be84": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "md5:87e516b6b9b1c1e6c382b8ee266454c7": {
@@ -691,7 +977,22 @@
       "relationships": {
         "is_hash_of file:b12a0892eaf336e1c4c05d397dbedf8d68ff19f594c8b7dfaa0eb5de38672cd8": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "md5:a072eac01d75a97336b10778ddbdae0b": {
@@ -701,7 +1002,22 @@
       "relationships": {
         "is_hash_of file:867acd05102650edb0e74652a59b340257df21484906dcf821df7117730975ad": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "md5:b6466719c9f53f13582e325859b2b8b3": {
@@ -711,7 +1027,22 @@
       "relationships": {
         "is_hash_of file:9077520febff0944ace6daba10d2d0fcdee2b4e94ecb41a821e840846d71a195": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "md5:e2f9eb6c7cded39f072b147ed3cddf56": {
@@ -721,7 +1052,22 @@
       "relationships": {
         "is_hash_of file:8594c4c9986145502cc8dc4ef65a3736e0e68a05da2534fa056df20533ca33aa": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "md5:f89f59475cfa389d1e846bbb75b4acd8": {
@@ -731,7 +1077,22 @@
       "relationships": {
         "is_hash_of file:b6fa3a73cc0e4d8aaacf41f96eb2fede007edbbc8f35e7253a3e2486055d34fc": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:10e78055cf3650cdbdc0dabdf16145c38d1cd0c868961bbb86d17c9f79f2bd69": {
@@ -741,7 +1102,22 @@
       "relationships": {
         "is_hash_of file:10e78055cf3650cdbdc0dabdf16145c38d1cd0c868961bbb86d17c9f79f2bd69": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:299bd79030ed0333464365362e37468e5403b4675e5c3dc069fc03801264bc7f": {
@@ -751,7 +1127,22 @@
       "relationships": {
         "is_hash_of file:299bd79030ed0333464365362e37468e5403b4675e5c3dc069fc03801264bc7f": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:6ef14d99a8e3186e88817f971e291fc96e3a44aaea6ff8ce0e889822f0a0be84": {
@@ -761,7 +1152,22 @@
       "relationships": {
         "is_hash_of file:6ef14d99a8e3186e88817f971e291fc96e3a44aaea6ff8ce0e889822f0a0be84": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:7214c380aa616a38fae375b968f648176e8629b444e93980f7015fa61c1bad8e": {
@@ -771,7 +1177,22 @@
       "relationships": {
         "is_hash_of file:7214c380aa616a38fae375b968f648176e8629b444e93980f7015fa61c1bad8e": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:80eef9447d42987fef04f6799dc52f6f16eb04a9e775f2f42ae54446ad887d18": {
@@ -781,7 +1202,22 @@
       "relationships": {
         "is_hash_of file:80eef9447d42987fef04f6799dc52f6f16eb04a9e775f2f42ae54446ad887d18": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:8594c4c9986145502cc8dc4ef65a3736e0e68a05da2534fa056df20533ca33aa": {
@@ -791,7 +1227,22 @@
       "relationships": {
         "is_hash_of file:8594c4c9986145502cc8dc4ef65a3736e0e68a05da2534fa056df20533ca33aa": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:867acd05102650edb0e74652a59b340257df21484906dcf821df7117730975ad": {
@@ -801,7 +1252,22 @@
       "relationships": {
         "is_hash_of file:867acd05102650edb0e74652a59b340257df21484906dcf821df7117730975ad": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:9077520febff0944ace6daba10d2d0fcdee2b4e94ecb41a821e840846d71a195": {
@@ -811,7 +1277,22 @@
       "relationships": {
         "is_hash_of file:9077520febff0944ace6daba10d2d0fcdee2b4e94ecb41a821e840846d71a195": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:a57f2bf4469be19d5108330feed4dc5e79936f14d9b8bb049573e839eccdc448": {
@@ -821,7 +1302,22 @@
       "relationships": {
         "is_hash_of file:a57f2bf4469be19d5108330feed4dc5e79936f14d9b8bb049573e839eccdc448": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:b12a0892eaf336e1c4c05d397dbedf8d68ff19f594c8b7dfaa0eb5de38672cd8": {
@@ -831,7 +1327,22 @@
       "relationships": {
         "is_hash_of file:b12a0892eaf336e1c4c05d397dbedf8d68ff19f594c8b7dfaa0eb5de38672cd8": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:b6fa3a73cc0e4d8aaacf41f96eb2fede007edbbc8f35e7253a3e2486055d34fc": {
@@ -841,7 +1352,22 @@
       "relationships": {
         "is_hash_of file:b6fa3a73cc0e4d8aaacf41f96eb2fede007edbbc8f35e7253a3e2486055d34fc": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     }
   }

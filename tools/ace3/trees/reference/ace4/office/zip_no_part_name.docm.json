@@ -43,6 +43,13 @@
           "summary": "File Type Analysis: ASCII text, with no line terminators (text/plain)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "url_extraction": {
           "details": {
             "urls": [],
@@ -50,11 +57,18 @@
           },
           "summary": null,
           "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
     },
-    "file:2e8d556db751a2a16443fa301b5026230be2b511105200b003a6f6bd2fc64d9f": {
+    "file:3c6c8801b2cc9193bbd60b0c75baa791b8d835ef4825334a3067a76c61a2c03e": {
       "detections": {},
       "directives": {},
       "excluded_analysis": {
@@ -69,7 +83,22 @@
       "relationships": {
         "extracted_from file:aa870e220274ab9616f844e51f7097f13098b5958d2549d36cb35e704232ee24": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "file:aa870e220274ab9616f844e51f7097f13098b5958d2549d36cb35e704232ee24": {
@@ -103,8 +132,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:10 11:33:42+00:00",
-              "File:FileInodeChangeDate": "2026:11:10 11:33:42+00:00",
+              "File:FileAccessDate": "2026:11:11 00:48:40+00:00",
+              "File:FileInodeChangeDate": "2026:11:11 00:48:40+00:00",
               "File:FileModifyDate": "2026:11:07 15:11:53+00:00",
               "File:FileName": "zip_no_part_name.docm",
               "File:FilePermissions": 100644,
@@ -155,11 +184,25 @@
           "summary": "File Type Analysis: Zip archive data, made by v2.0, extract using at least v2.0, last modified Jan 01 2026 00:00:00, uncompressed size 263, method=deflate (application/zip) (ms office document) (zip archive)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "olevba_v1_2": {
           "details": {
             "keyword_summary": {},
             "macros": [],
             "type": null
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}
@@ -204,10 +247,24 @@
           "summary": "File Type Analysis: XML 1.0 document, ASCII text, with no line terminators (text/xml)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "url_extraction": {
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}
@@ -229,7 +286,22 @@
       "relationships": {
         "is_hash_of file:aa870e220274ab9616f844e51f7097f13098b5958d2549d36cb35e704232ee24": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "md5:ab8aff4ee2a6a6ef46f8de2195cbc666": {
@@ -239,7 +311,22 @@
       "relationships": {
         "is_hash_of file:2216d9fff221a56e50e6fee2cefcc44b91fc4ceb916f94dcb00430d93b413e54": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:2216d9fff221a56e50e6fee2cefcc44b91fc4ceb916f94dcb00430d93b413e54": {
@@ -249,7 +336,22 @@
       "relationships": {
         "is_hash_of file:2216d9fff221a56e50e6fee2cefcc44b91fc4ceb916f94dcb00430d93b413e54": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:aa870e220274ab9616f844e51f7097f13098b5958d2549d36cb35e704232ee24": {
@@ -259,7 +361,22 @@
       "relationships": {
         "is_hash_of file:aa870e220274ab9616f844e51f7097f13098b5958d2549d36cb35e704232ee24": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     }
   }

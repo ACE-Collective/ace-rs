@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT DISTINCT observable_type AS \"observable_type!\" FROM lists.entries\n                           WHERE list = $1 AND observable_type IS NOT NULL\n                           ORDER BY 1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "observable_type!",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "lists.entries",
+            "name": "observable_type"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "94a165a0c90346d8afed11eb9b4d85239831844de81c0223d0c1ba1581b9e1c7"
+}

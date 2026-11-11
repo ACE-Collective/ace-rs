@@ -1,73 +1,38 @@
 {
   "form": 1,
   "observables": {
-    "file:1e537fe517e6f2a544bd2d49957b87ecb342e4c8d25b680b628b6704dfb79862": {
+    "file:097ca8123f57666320e797fad71a3e590573e2d255251e0d71fd293172c4a363": {
       "detections": {},
-      "directives": {
-        "extract_urls": true
-      },
+      "directives": {},
       "excluded_analysis": {
-        "pdf_analyzer": true
+        "file_hash_analyzer": true,
+        "file_type": true
       },
       "paths": {
-        "parser_nested_497.pdf.gs.pdf": {
-          "type=document.pdf": true,
-          "type=document.pdf.rendered": true
+        "parser_nested_497.pdf.exif/exiftool.out": {
+          "type=metadata.exif": true
         }
       },
-      "redirection": "file:4a867afcdb2ecce06175420c53606b9cf3c06cefab50e904333bdafa3dbb79b0",
       "relationships": {
         "extracted_from file:4a867afcdb2ecce06175420c53606b9cf3c06cefab50e904333bdafa3dbb79b0": true
       },
       "results": {
-        "file_type": {
+        "observable_detection": {
           "details": {
-            "is_email_file": false,
-            "is_jar_file": false,
-            "is_lnk_file": false,
-            "is_office_document": false,
-            "is_office_ext": false,
-            "is_ole_file": false,
-            "is_pdf_file": true,
-            "is_pe_file": false,
-            "is_rtf_file": false,
-            "is_x509": false,
-            "is_zip_file": false,
-            "mime": "application/pdf",
-            "type": "PDF document, version 1.7, 1 page(s)"
-          },
-          "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
-          "tags": {}
-        },
-        "pdftotext": {
-          "details": {
-            "output_path": "ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977",
-            "stderr": "",
-            "stdout": ""
-          },
-          "summary": "PDF Text Analysis",
-          "tags": {}
-        },
-        "qrcode": {
-          "details": {
-            "extracted_text": null,
-            "inverted": false
+            "for_detection": false
           },
           "summary": null,
           "tags": {}
         },
-        "url_extraction": {
+        "user_defined_tagging": {
           "details": {
-            "urls": [],
-            "urls_grouped_by_domain": {}
+            "tags_added": []
           },
           "summary": null,
           "tags": {}
         }
       },
-      "tags": {
-        "pdf": true
-      }
+      "tags": {}
     },
     "file:4a867afcdb2ecce06175420c53606b9cf3c06cefab50e904333bdafa3dbb79b0": {
       "detections": {},
@@ -88,8 +53,8 @@
               "ExifTool:ExifToolVersion": 13.25,
               "ExifTool:Warning": "Invalid xref table",
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:10 11:40:14+00:00",
-              "File:FileInodeChangeDate": "2026:11:10 11:40:14+00:00",
+              "File:FileAccessDate": "2026:11:11 00:57:05+00:00",
+              "File:FileInodeChangeDate": "2026:11:11 00:57:05+00:00",
               "File:FileModifyDate": "2026:11:07 04:47:50+00:00",
               "File:FileName": "parser_nested_497.pdf",
               "File:FilePermissions": 100644,
@@ -134,6 +99,13 @@
           "summary": "File Type Analysis: PDF document, version 1.7 (application/pdf) (pdf document)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "pdf_analyzer": {
           "details": {},
           "summary": null,
@@ -144,6 +116,13 @@
             "output_path": null,
             "stderr": "Syntax Error: Couldn't find trailer dictionary\nSyntax Error: Couldn't find trailer dictionary\nSyntax Error: Couldn't read xref table\n",
             "stdout": ""
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}
@@ -188,6 +167,13 @@
           "summary": "File Type Analysis: PDF document, version 1.7, ASCII text, with very long lines (3487) (application/pdf)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "url_extraction": {
           "details": {
             "urls": [],
@@ -195,26 +181,15 @@
           },
           "summary": null,
           "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
-      "tags": {}
-    },
-    "file:d3bf31c892cdf3b8c15bdb3eb903f1d12846c0a56cd95a1d88a997de297ddbd8": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "parser_nested_497.pdf.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:4a867afcdb2ecce06175420c53606b9cf3c06cefab50e904333bdafa3dbb79b0": true
-      },
-      "results": {},
       "tags": {}
     },
     "file:ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977": {
@@ -228,9 +203,9 @@
           "type=document.pdf.text": true
         }
       },
-      "redirection": "file:1e537fe517e6f2a544bd2d49957b87ecb342e4c8d25b680b628b6704dfb79862",
+      "redirection": "file:fa6cfbf009900834350abb2479d259f0e550ef71d89011df0628537c12707672",
       "relationships": {
-        "extracted_from file:1e537fe517e6f2a544bd2d49957b87ecb342e4c8d25b680b628b6704dfb79862": true
+        "extracted_from file:fa6cfbf009900834350abb2479d259f0e550ef71d89011df0628537c12707672": true
       },
       "results": {
         "file_type": {
@@ -251,9 +226,105 @@
           },
           "summary": "File Type Analysis: very short file (no magic) (application/octet-stream)",
           "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
+    },
+    "file:fa6cfbf009900834350abb2479d259f0e550ef71d89011df0628537c12707672": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {
+        "pdf_analyzer": true
+      },
+      "paths": {
+        "parser_nested_497.pdf.gs.pdf": {
+          "type=document.pdf": true,
+          "type=document.pdf.rendered": true
+        }
+      },
+      "redirection": "file:4a867afcdb2ecce06175420c53606b9cf3c06cefab50e904333bdafa3dbb79b0",
+      "relationships": {
+        "extracted_from file:4a867afcdb2ecce06175420c53606b9cf3c06cefab50e904333bdafa3dbb79b0": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": true,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/pdf",
+            "type": "PDF document, version 1.7, 1 page(s)"
+          },
+          "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "pdftotext": {
+          "details": {
+            "output_path": "ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977",
+            "stderr": "",
+            "stdout": ""
+          },
+          "summary": "PDF Text Analysis",
+          "tags": {}
+        },
+        "qrcode": {
+          "details": {
+            "extracted_text": null,
+            "inverted": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {
+        "pdf": true
+      }
     },
     "md5:b61fc93033e45bb55fd50cf1774dc0e1": {
       "detections": {},
@@ -262,7 +333,22 @@
       "relationships": {
         "is_hash_of file:4a867afcdb2ecce06175420c53606b9cf3c06cefab50e904333bdafa3dbb79b0": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:4a867afcdb2ecce06175420c53606b9cf3c06cefab50e904333bdafa3dbb79b0": {
@@ -272,7 +358,22 @@
       "relationships": {
         "is_hash_of file:4a867afcdb2ecce06175420c53606b9cf3c06cefab50e904333bdafa3dbb79b0": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     }
   }

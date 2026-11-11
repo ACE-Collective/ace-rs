@@ -68,21 +68,21 @@ pub struct ObservableComment {
     pub edited_at: Option<DateTime<Utc>>,
 }
 
-struct CommentRow {
-    id: i64,
-    kind: String,
-    value: String,
-    author_id: Uuid,
-    username: String,
-    display_name: Option<String>,
-    created_by: Value,
-    comment: String,
-    created_at: DateTime<Utc>,
-    edited_at: Option<DateTime<Utc>>,
+pub(crate) struct CommentRow {
+    pub(crate) id: i64,
+    pub(crate) kind: String,
+    pub(crate) value: String,
+    pub(crate) author_id: Uuid,
+    pub(crate) username: String,
+    pub(crate) display_name: Option<String>,
+    pub(crate) created_by: Value,
+    pub(crate) comment: String,
+    pub(crate) created_at: DateTime<Utc>,
+    pub(crate) edited_at: Option<DateTime<Utc>>,
 }
 
 impl CommentRow {
-    fn into_comment(self) -> Result<ObservableComment, ServiceError> {
+    pub(crate) fn into_comment(self) -> Result<ObservableComment, ServiceError> {
         let created_by = RecordedActor::from_row(Some(self.created_by))?
             .ok_or_else(|| ServiceError::from(ace_core::DbError::Decode("no actor".to_owned())))?;
         Ok(ObservableComment {

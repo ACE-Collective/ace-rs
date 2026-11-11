@@ -41,6 +41,20 @@
           },
           "summary": "File Type Analysis: JAR Manifest, ASCII text, with CRLF line terminators (text/plain)",
           "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
@@ -98,11 +112,25 @@
           "summary": "File Type Analysis: Zip archive data, made by v3.0 UNIX, extract using at least v2.0, last modified Jun 30 2021 10:13:32, uncompressed size 301, method=deflate (application/zip) (zip archive) (java archive)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "olevba_v1_2": {
           "details": {
             "keyword_summary": {},
             "macros": [],
             "type": "OpenXML"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}
@@ -120,7 +148,22 @@
       "relationships": {
         "is_hash_of file:074f5a6892903f7a2d3c7f9b646881a44eb4a8ce6e3b128bf543daf963f7b0c9": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "md5:f77577122e280e5dec3e11caf4f346a3": {
@@ -130,7 +173,22 @@
       "relationships": {
         "is_hash_of file:fbee0b3554a7617e94dcc22e7eb17198ff0c66f10476ee3de62b23c9db75b3ba": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:074f5a6892903f7a2d3c7f9b646881a44eb4a8ce6e3b128bf543daf963f7b0c9": {
@@ -140,7 +198,22 @@
       "relationships": {
         "is_hash_of file:074f5a6892903f7a2d3c7f9b646881a44eb4a8ce6e3b128bf543daf963f7b0c9": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:fbee0b3554a7617e94dcc22e7eb17198ff0c66f10476ee3de62b23c9db75b3ba": {
@@ -150,7 +223,22 @@
       "relationships": {
         "is_hash_of file:fbee0b3554a7617e94dcc22e7eb17198ff0c66f10476ee3de62b23c9db75b3ba": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     }
   }

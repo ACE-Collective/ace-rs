@@ -767,3 +767,36 @@ table.saved-filters .place {
   width: 100%;
   max-width: 40rem;
 }
+
+/* Administration's Observables (PLAN.md 7.6), ace3's admin/detection.html: its filters and new
+   detection as rows of fields, and a long value kept inside the table. */
+.detection .detection-filters,
+.detection .detection-add {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.5rem;
+  margin: 0.5rem 0;
+}
+
+.detection .detection-add #detection-add-value {
+  min-width: 22rem;
+}
+
+.detection table.detections {
+  table-layout: fixed;
+}
+
+.detection table.detections code {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.detection table.detections td p {
+  margin: 0 0 0.25rem;
+}
+
+.detection .pager a,
+.detection .pager span {
+  margin-right: 0.5rem;
+}

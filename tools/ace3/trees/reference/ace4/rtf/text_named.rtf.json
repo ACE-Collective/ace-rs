@@ -1,7 +1,7 @@
 {
   "form": 1,
   "observables": {
-    "file:500fe7a38ea8ccb54d8e404e7ea4b2ac179022ea72fa6c2e1d09fca55211040d": {
+    "file:1a391559ae579a56343b724da6b45a37c22d7b14c4c579526addd95c34bf0470": {
       "detections": {},
       "directives": {},
       "excluded_analysis": {
@@ -16,7 +16,22 @@
       "relationships": {
         "extracted_from file:5cc9cf9b25e852d4c4f29fee898f66ca3b087d819278f8aca0e0f0131f8e34ff": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "file:5cc9cf9b25e852d4c4f29fee898f66ca3b087d819278f8aca0e0f0131f8e34ff": {
@@ -36,8 +51,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:10 11:43:20+00:00",
-              "File:FileInodeChangeDate": "2026:11:10 11:43:20+00:00",
+              "File:FileAccessDate": "2026:11:11 01:00:11+00:00",
+              "File:FileInodeChangeDate": "2026:11:11 01:00:11+00:00",
               "File:FileModifyDate": "2026:11:07 00:31:29+00:00",
               "File:FileName": "text_named.rtf",
               "File:FilePermissions": 100644,
@@ -83,6 +98,20 @@
           },
           "summary": "File Type Analysis: ASCII text (text/plain) (ms office document)",
           "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {
@@ -96,7 +125,22 @@
       "relationships": {
         "is_hash_of file:5cc9cf9b25e852d4c4f29fee898f66ca3b087d819278f8aca0e0f0131f8e34ff": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:5cc9cf9b25e852d4c4f29fee898f66ca3b087d819278f8aca0e0f0131f8e34ff": {
@@ -106,7 +150,22 @@
       "relationships": {
         "is_hash_of file:5cc9cf9b25e852d4c4f29fee898f66ca3b087d819278f8aca0e0f0131f8e34ff": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     }
   }

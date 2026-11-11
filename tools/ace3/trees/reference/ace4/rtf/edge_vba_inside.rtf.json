@@ -41,6 +41,13 @@
           "summary": "File Type Analysis: data (application/octet-stream)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "url_extraction": {
           "details": {
             "urls": [],
@@ -48,26 +55,15 @@
           },
           "summary": null,
           "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
-      "tags": {}
-    },
-    "file:03fddba2443a5cae7eaab51fed6603eba8ef9aaf8fea360e6c10edd196d56864": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "edge_vba_inside.rtf.rtfobj/edge_vba_inside.rtf_object_00000020.doc.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:170b804293599496c29d816cfe408adc5a99e767eb930b0c0cf9e7db62436abe": true
-      },
-      "results": {},
       "tags": {}
     },
     "file:12f38cb4a227f1f4e8834440f7565e9ea65d7d432ec67d28a0e3f16096a12329": {
@@ -113,10 +109,24 @@
           "summary": "File Type Analysis: ASCII text, with very long lines (748), with CRLF line terminators (text/plain)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "url_extraction": {
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}
@@ -148,9 +158,9 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files/edge_vba_inside.rtf.rtfobj",
-              "File:FileAccessDate": "2026:11:10 11:42:48+00:00",
-              "File:FileInodeChangeDate": "2026:11:10 11:42:48+00:00",
-              "File:FileModifyDate": "2026:11:10 11:42:48+00:00",
+              "File:FileAccessDate": "2026:11:11 00:59:42+00:00",
+              "File:FileInodeChangeDate": "2026:11:11 00:59:42+00:00",
+              "File:FileModifyDate": "2026:11:11 00:59:42+00:00",
               "File:FileName": "edge_vba_inside.rtf_object_00000020.doc",
               "File:FilePermissions": 100666,
               "File:FileSize": 23552,
@@ -197,6 +207,13 @@
           "summary": "File Type Analysis: Composite Document File V2 Document, Cannot read section info (application/x-ole-storage) (ms office document) (ole compound file)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "officeparser3": {
           "details": {
             "extracted_files": [
@@ -237,6 +254,13 @@
             "line_count": 435
           },
           "summary": "PCode Analysis: decoded 435 lines",
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
           "tags": {}
         }
       },
@@ -287,10 +311,24 @@
           "summary": "File Type Analysis: ASCII text, with CRLF line terminators (text/plain)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "url_extraction": {
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}
@@ -322,8 +360,8 @@
               "ExifTool:ExifToolVersion": 13.25,
               "ExifTool:Warning": "Unspecified RTF encoding. Will assume Latin",
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:10 11:42:48+00:00",
-              "File:FileInodeChangeDate": "2026:11:10 11:42:48+00:00",
+              "File:FileAccessDate": "2026:11:11 00:59:41+00:00",
+              "File:FileInodeChangeDate": "2026:11:11 00:59:41+00:00",
               "File:FileModifyDate": "2026:11:07 15:11:53+00:00",
               "File:FileName": "edge_vba_inside.rtf",
               "File:FilePermissions": 100644,
@@ -373,6 +411,13 @@
           "summary": "NoWhiteSpaceAnalysis: Ignore Whitespace Characters (1 removed)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "rtfole": {
           "details": {
             "extracted_files": [
@@ -383,6 +428,13 @@
             "stdout": "rtfobj 0.60.1 on Python 3.14.10 - http://decalage.info/python/oletools\nTHIS IS WORK IN PROGRESS - Check updates regularly!\nPlease report any issue at https://github.com/decalage2/oletools/issues\n\n===============================================================================\nFile: 'edge_vba_inside.rtf' - size: 47224 bytes\n---+----------+---------------------------------------------------------------\nid |index     |OLE Object                                                     \n---+----------+---------------------------------------------------------------\n0  |00000020h |format_id: 2 (Embedded)                                        \n   |          |class name: b'Word.Document.8'                                 \n   |          |data size: 23552                                               \n   |          |MD5 = 'b78e53325f45a16ab719c392444f2983'                       \n   |          |CLSID:                                                         \n   |          |unknown CLSID (please report at                                \n   |          |https://github.com/decalage2/oletools/issues)                  \n---+----------+---------------------------------------------------------------\nSaving file embedded in OLE object #0:\n  format_id  = 2\n  class name = b'Word.Document.8'\n  data size  = 23552\n  saving to file edge_vba_inside.rtf.rtfobj/edge_vba_inside.rtf_object_00000020.doc\n  md5 b78e53325f45a16ab719c392444f2983\n"
           },
           "summary": "RTF OLE Object Analysis: extracted edge_vba_inside.rtf.rtfobj/edge_vba_inside.rtf_object_00000020.doc",
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
           "tags": {}
         }
       },
@@ -424,6 +476,20 @@
             "type": "ASCII text, with very long lines (748)"
           },
           "summary": "File Type Analysis: ASCII text, with very long lines (748) (text/plain)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
           "tags": {}
         }
       },
@@ -471,10 +537,24 @@
           "summary": "File Type Analysis: data (application/octet-stream)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "url_extraction": {
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}
@@ -522,10 +602,24 @@
           "summary": "File Type Analysis: data (application/octet-stream)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "url_extraction": {
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}
@@ -579,29 +673,25 @@
           },
           "summary": "File Type Analysis: data (application/octet-stream)",
           "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {
         "extracted_rtf": true
       }
-    },
-    "file:b5817243ea69d3644f3af2f402a5f559957fd22ce86d2c2a5cdf752d9b0f8a57": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "edge_vba_inside.rtf.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:2d2b2127b3e3b8cfc06d46ece6d346d15560246da69711231a5d719094f271c0": true
-      },
-      "results": {},
-      "tags": {}
     },
     "file:ce49436dec0282ca0c2acb2966441b42d2620cd614f363ac0b43420dfdd687ed": {
       "detections": {},
@@ -643,10 +733,90 @@
           "summary": "File Type Analysis: data (application/octet-stream)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "url_extraction": {
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:e44ba3198724a3a879f1901f4d4e7c7f2f5e77e8e91b86d9651505b53bd976ce": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "edge_vba_inside.rtf.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:2d2b2127b3e3b8cfc06d46ece6d346d15560246da69711231a5d719094f271c0": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:e47e748a51ee4de32c949ca75db4dc07ca0d0dcf0d8ee37b2439d6b072467b52": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "edge_vba_inside.rtf.rtfobj/edge_vba_inside.rtf_object_00000020.doc.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:170b804293599496c29d816cfe408adc5a99e767eb930b0c0cf9e7db62436abe": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}
@@ -700,6 +870,13 @@
           "summary": "File Type Analysis: Rich Text Format data, version 1 (text/rtf) (ms office document) (rtf document)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "rtfole": {
           "details": {
             "extracted_files": [
@@ -710,6 +887,13 @@
             "stdout": "rtfobj 0.60.1 on Python 3.14.10 - http://decalage.info/python/oletools\nTHIS IS WORK IN PROGRESS - Check updates regularly!\nPlease report any issue at https://github.com/decalage2/oletools/issues\n\n===============================================================================\nFile: 'edge_vba_inside.rtf.nowhitespace' - size: 47223 bytes\n---+----------+---------------------------------------------------------------\nid |index     |OLE Object                                                     \n---+----------+---------------------------------------------------------------\n0  |0000003Bh |Not a well-formed OLE object                                   \n---+----------+---------------------------------------------------------------\nSaving raw data in object #0:\n  saving object to file edge_vba_inside.rtf.nowhitespace.rtfobj/edge_vba_inside.rtf.nowhitespace_object_0000003B.raw\n  md5 a91c30aa1f93cd804331649a4c8f10d5\n"
           },
           "summary": "RTF OLE Object Analysis: extracted edge_vba_inside.rtf.nowhitespace.rtfobj/edge_vba_inside.rtf.nowhitespace_object_0000003B.raw",
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
           "tags": {}
         }
       },
@@ -748,6 +932,20 @@
           },
           "summary": "File Type Analysis: ASCII text, with very long lines (695) (text/plain)",
           "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
@@ -759,7 +957,22 @@
       "relationships": {
         "is_hash_of file:2d2b2127b3e3b8cfc06d46ece6d346d15560246da69711231a5d719094f271c0": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "md5:4f41daad76eb391b752ea4f9f51e4080": {
@@ -769,7 +982,22 @@
       "relationships": {
         "is_hash_of file:f445c093ac1d8ba1425d320dd0d81c5d3e22b54cd6f347073a61cc94fa4776bd": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "md5:a91c30aa1f93cd804331649a4c8f10d5": {
@@ -779,7 +1007,22 @@
       "relationships": {
         "is_hash_of file:b1889d851399857246f127e715dba99fbdd07893320af705130112a2de27c5ed": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "md5:b78e53325f45a16ab719c392444f2983": {
@@ -789,7 +1032,22 @@
       "relationships": {
         "is_hash_of file:170b804293599496c29d816cfe408adc5a99e767eb930b0c0cf9e7db62436abe": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:170b804293599496c29d816cfe408adc5a99e767eb930b0c0cf9e7db62436abe": {
@@ -799,7 +1057,22 @@
       "relationships": {
         "is_hash_of file:170b804293599496c29d816cfe408adc5a99e767eb930b0c0cf9e7db62436abe": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:2d2b2127b3e3b8cfc06d46ece6d346d15560246da69711231a5d719094f271c0": {
@@ -809,7 +1082,22 @@
       "relationships": {
         "is_hash_of file:2d2b2127b3e3b8cfc06d46ece6d346d15560246da69711231a5d719094f271c0": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:b1889d851399857246f127e715dba99fbdd07893320af705130112a2de27c5ed": {
@@ -819,7 +1107,22 @@
       "relationships": {
         "is_hash_of file:b1889d851399857246f127e715dba99fbdd07893320af705130112a2de27c5ed": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:f445c093ac1d8ba1425d320dd0d81c5d3e22b54cd6f347073a61cc94fa4776bd": {
@@ -829,7 +1132,22 @@
       "relationships": {
         "is_hash_of file:f445c093ac1d8ba1425d320dd0d81c5d3e22b54cd6f347073a61cc94fa4776bd": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     }
   }

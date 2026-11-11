@@ -1,0 +1,43 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "SiteTagAnalysis",
+      "details": {
+        "tags_added": [
+          "corp",
+          "internal"
+        ]
+      },
+      "detections": [],
+      "module_path": "saq.modules.tag:SiteTagAnalysis",
+      "observables": [],
+      "summary": "Site Tags: corp, internal",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "url corp.example, with fixtures/tag/site_tags.csv",
+    "meta_tags": [],
+    "observable": {
+      "type": "url",
+      "value": "corp.example"
+    }
+  },
+  "module": "site_tagger",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "relationships": [],
+    "tags": [
+      "corp",
+      "internal"
+    ],
+    "type": "url",
+    "value": "corp.example"
+  }
+}

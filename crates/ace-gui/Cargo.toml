@@ -38,6 +38,8 @@ uuid = "1.29.0"
 
 [dev-dependencies]
 ace-core = { path = "../ace-core", features = ["testing"] }
+# A module declaring the observable_detection list, for the Observables page's tests.
+ace-sdk = { path = "../ace-sdk" }
 # Bytes in a hostile result, written as ace-results writes them.
 base64 = "0.23.1"
 chrono = { version = "0.4.45", default-features = false, features = ["std"] }

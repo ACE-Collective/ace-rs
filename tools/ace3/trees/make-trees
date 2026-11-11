@@ -18,7 +18,13 @@ systems see the same world, as tests/e2e/run gives ace4:
   is kept in tools/ace3/trees/dns.json, which tests/e2e/run's responder replays to ace4;
 - the email archive is empty (run_module.py --email-archive-store), under the dumps' test-only key, as
   tests/e2e/run's stack starts with an empty archive. No sample has the archive directive, so the
-  archiver archives nothing, and none is a .gz.e.
+  archiver archives nothing, and none is a .gz.e;
+- the observables enabled for detection are tools/ace3/trees/detections.json (run_module.py
+  --detections), and the tags analysts mapped to observables tools/ace3/trees/observable_tags.json
+  (--observable-tags), as tests/e2e/run gives ace4's observable_detection list and
+  analysis.observable_tags the same before its comparison;
+- the site tagger reads tools/ace3/trees/site_tags.csv, the text tests/e2e/site/overlay.yaml gives
+  ace4's site_tagger.
 
     tools/ace3/trees/make-trees                     every sample
     tools/ace3/trees/make-trees ace4/email/e2e...   the samples named, by path under samples/
@@ -63,10 +69,13 @@ ENABLE = [
     "email_archiver", "encrypted_archive_analyzer", "url_email_pivot_analyzer", "message_id_analyzer_v2",
     "pdftotext", "exif", "qrcode", "ocr", "java_class_decompiler", "upx", "autoit", "de4dot", "ilspy",
     "dmg_analyzer", "cve_2021_30657_analyzer", "pcap_analyzer", "pcap_dns", "pcap_tls", "pcap_http", "pcap_files",
-    "pcap_tls_decryption", "tls_keylog",
+    "pcap_tls_decryption", "tls_keylog", "user_defined_tagging", "observable_detection", "site_tagger",
 ]
 BROCESS = HERE / "brocess.json"
 NRD = HERE / "nrd.json"
+DETECTIONS = HERE / "detections.json"
+OBSERVABLE_TAGS = HERE / "observable_tags.json"
+SITE_TAGS = HERE / "site_tags.csv"
 NRD_DB = f"{REMOTE}/trees-nrd.db"
 # the newly registered domains list of nrd.json, which ace3 reads from a SQLite file as its refresh
 # builds one; RDAP knows nothing of its domains, so a hit isn't verified
@@ -75,6 +84,8 @@ nrd:
   database_path: {NRD_DB}
 analysis_module_nrd_analyzer:
   max_registration_age_days: 0
+analysis_module_site_tagger:
+  csv_file: {REMOTE}/trees-site_tags.csv
 """
 DNS_RECORDING = HERE / "dns.json"
 RDAP_RECORDING = DUMPS / "reference" / "rdap_analyzer" / "fqdn_example.com.http"
@@ -152,6 +163,8 @@ def run(sample):
         "--brocess-store", f"{REMOTE}/trees-brocess.json",
         "--email-archive-store", f"{REMOTE}/fixtures/email_archive/empty.json",
         "--encryption-key", dumps.EMAIL_ARCHIVE_KEY,
+        "--detections", f"{REMOTE}/trees-detections.json",
+        "--observable-tags", f"{REMOTE}/trees-observable_tags.json",
     ]
     for tag in sample["meta_tags"]:
         command += ["--meta-tag", tag]
@@ -195,6 +208,9 @@ def main():
     copy_tree(RDAP_RECORDING, f"{REMOTE}/rdap")
     put(f"{REMOTE}/trees-brocess.json", BROCESS.read_bytes())
     put(f"{REMOTE}/trees-nrd.json", NRD.read_bytes())
+    put(f"{REMOTE}/trees-detections.json", DETECTIONS.read_bytes())
+    put(f"{REMOTE}/trees-observable_tags.json", OBSERVABLE_TAGS.read_bytes())
+    put(f"{REMOTE}/trees-site_tags.csv", SITE_TAGS.read_bytes())
     docker(
         "exec", CONTAINER, "/venv/bin/python3", "-I", "-c",
         "import json, sqlite3, sys; db = sqlite3.connect(sys.argv[2]); "

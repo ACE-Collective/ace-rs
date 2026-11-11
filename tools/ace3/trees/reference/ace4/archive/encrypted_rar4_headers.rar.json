@@ -40,6 +40,13 @@
           "summary": "File Type Analysis: RAR archive data, flags: EncryptedBlockHeader (application/vnd.rar)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "rar_encryption_analyzer": {
           "details": {
             "email": false,
@@ -50,6 +57,13 @@
             "word_list": []
           },
           "summary": "Rar Encryption Analysis: RarEncryptionAnalyzer could not crack password!",
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
           "tags": {}
         }
       },
@@ -64,7 +78,22 @@
       "relationships": {
         "is_hash_of file:2371efa0001bc82d64be39324705c799c24ba83087b9b13e481c180d2582de9b": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:2371efa0001bc82d64be39324705c799c24ba83087b9b13e481c180d2582de9b": {
@@ -74,7 +103,22 @@
       "relationships": {
         "is_hash_of file:2371efa0001bc82d64be39324705c799c24ba83087b9b13e481c180d2582de9b": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     }
   }

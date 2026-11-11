@@ -41,10 +41,24 @@
           "summary": "File Type Analysis: Applesoft BASIC program data, first line number 16 (application/octet-stream)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "url_extraction": {
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}
@@ -92,10 +106,24 @@
           "summary": "File Type Analysis: data (application/octet-stream)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "url_extraction": {
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}
@@ -143,10 +171,24 @@
           "summary": "File Type Analysis: data (application/octet-stream)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "url_extraction": {
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}
@@ -190,10 +232,24 @@
           "summary": "File Type Analysis: ASCII text (text/plain)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "url_extraction": {
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}
@@ -218,8 +274,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:10 11:18:36+00:00",
-              "File:FileInodeChangeDate": "2026:11:10 11:18:36+00:00",
+              "File:FileAccessDate": "2026:11:11 00:37:05+00:00",
+              "File:FileInodeChangeDate": "2026:11:11 00:37:05+00:00",
               "File:FileModifyDate": "2026:11:07 10:46:15+00:00",
               "File:FileName": "encrypted_xor_odd.xls",
               "File:FilePermissions": 100644,
@@ -297,6 +353,13 @@
           "summary": "MSOffice Encryption Analysis: office2john.py failed: encrypted_xor_odd.xls : XOR obfuscation detected, key : b'155a', hash : b'8ce1'\n",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "officeparser3": {
           "details": {
             "extracted_files": [
@@ -317,6 +380,13 @@
           "summary": null,
           "tags": {}
         },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        },
         "xlmdeobfuscator": {
           "details": {
             "cell_count": 0
@@ -333,7 +403,7 @@
         "xlm4:no_cells": true
       }
     },
-    "file:966f2c6c7965122e5b7c97f607bdab842a2c33df4735dc53042bcf71eb377d5e": {
+    "file:b48d6e339cd909bce74965901bdba6f55ac9c23e5762925b5bb5a0ef4387e910": {
       "detections": {},
       "directives": {},
       "excluded_analysis": {
@@ -348,7 +418,22 @@
       "relationships": {
         "extracted_from file:93c2cf0568f10152f37d3ebb83e6bc2b2ddd37cb515d2a08c1671f93dcff7b80": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "md5:5f3ed581cdcb63e20bcdc2a0cf56034f": {
@@ -358,7 +443,22 @@
       "relationships": {
         "is_hash_of file:93c2cf0568f10152f37d3ebb83e6bc2b2ddd37cb515d2a08c1671f93dcff7b80": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:93c2cf0568f10152f37d3ebb83e6bc2b2ddd37cb515d2a08c1671f93dcff7b80": {
@@ -368,7 +468,22 @@
       "relationships": {
         "is_hash_of file:93c2cf0568f10152f37d3ebb83e6bc2b2ddd37cb515d2a08c1671f93dcff7b80": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     }
   }

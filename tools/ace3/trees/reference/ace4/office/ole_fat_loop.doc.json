@@ -1,7 +1,7 @@
 {
   "form": 1,
   "observables": {
-    "file:4081efc858c5b01b838bee445328be5716cd56a8229d8f801f9e6a3713081d27": {
+    "file:36bf64af4f0467afb472b70c6fdceb4a8c1edaccf25922baea53a495be52f8df": {
       "detections": {},
       "directives": {},
       "excluded_analysis": {
@@ -16,7 +16,22 @@
       "relationships": {
         "extracted_from file:d1986a474dbd4f7e5013cfd251c001fba105130ddcf592a2ee53806283def922": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "file:d1986a474dbd4f7e5013cfd251c001fba105130ddcf592a2ee53806283def922": {
@@ -38,8 +53,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:10 11:22:58+00:00",
-              "File:FileInodeChangeDate": "2026:11:10 11:22:58+00:00",
+              "File:FileAccessDate": "2026:11:11 00:39:51+00:00",
+              "File:FileInodeChangeDate": "2026:11:11 00:39:51+00:00",
               "File:FileModifyDate": "2026:11:07 15:11:53+00:00",
               "File:FileName": "ole_fat_loop.doc",
               "File:FilePermissions": 100644,
@@ -82,6 +97,13 @@
           "summary": "File Type Analysis: Composite Document File V2 Document, Cannot read section info (application/x-ole-storage) (ms office document) (ole compound file)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "officeparser3": {
           "details": {
             "extracted_files": []
@@ -110,6 +132,13 @@
             "type": "OLE"
           },
           "summary": "OLEVBA Analysis: (1 macro files) (OLE) | autoexec=1, suspicious=1, ioc=1, hex string=1, base64 string=1",
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
           "tags": {}
         }
       },
@@ -154,6 +183,20 @@
           },
           "summary": "File Type Analysis: ASCII text, with overstriking (text/plain)",
           "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {
@@ -167,7 +210,22 @@
       "relationships": {
         "is_hash_of file:d1986a474dbd4f7e5013cfd251c001fba105130ddcf592a2ee53806283def922": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:d1986a474dbd4f7e5013cfd251c001fba105130ddcf592a2ee53806283def922": {
@@ -177,7 +235,22 @@
       "relationships": {
         "is_hash_of file:d1986a474dbd4f7e5013cfd251c001fba105130ddcf592a2ee53806283def922": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     }
   }

@@ -13,6 +13,20 @@
           },
           "summary": "Email Address FQDN: example.com",
           "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
@@ -29,6 +43,20 @@
           },
           "summary": "Email Address FQDN: example.com",
           "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
@@ -38,7 +66,22 @@
       "directives": {},
       "excluded_analysis": {},
       "relationships": {},
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "email_subject:Example": {
@@ -46,7 +89,22 @@
       "directives": {},
       "excluded_analysis": {},
       "relationships": {},
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "file:320b078ab9005f977ac6cda43c474b5ad613c6389668b7ebc7f38e3328f042ce": {
@@ -62,6 +120,7 @@
         "page.mht.extracted/file_3_js_inline_0_320b078a.js": {
           "type=document.html": true,
           "type=document.mhtml.part": true,
+          "type=email": true,
           "type=email.attachment": true,
           "type=script.javascript": true
         },
@@ -109,10 +168,24 @@
           "summary": "File Type Analysis: ASCII text, with no line terminators (text/plain)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "url_extraction": {
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}
@@ -131,6 +204,7 @@
         "page.mht.extracted/file_0": {
           "type=document.html": true,
           "type=document.mhtml.part": true,
+          "type=email": true,
           "type=email.attachment": true
         },
         "page.mht.unknown_text_html_000.html": {
@@ -191,6 +265,13 @@
           "summary": "HTML JavaScript Extraction: 1 inline script(s), 1 external URL(s), 1 event handler(s)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "url_extraction": {
           "details": {
             "urls": [
@@ -206,6 +287,13 @@
           },
           "summary": "URL Extraction Analysis (cdn.example.com, evil.example.com)",
           "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
@@ -220,6 +308,7 @@
       "paths": {
         "page.mht.extracted/file_2": {
           "type=document.mhtml.part": true,
+          "type=email": true,
           "type=email.attachment": true
         },
         "page.mht.unknown_text_css_000.css": {
@@ -256,10 +345,24 @@
           "summary": "File Type Analysis: ASCII text, with no line terminators (text/plain)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "url_extraction": {
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}
@@ -280,6 +383,7 @@
         "page.mht.extracted/file_0_js_event_onload_0_6b30fcf2.js": {
           "type=document.html": true,
           "type=document.mhtml.part": true,
+          "type=email": true,
           "type=email.attachment": true,
           "type=script.javascript": true
         },
@@ -327,10 +431,24 @@
           "summary": "File Type Analysis: ASCII text, with no line terminators (text/plain)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "url_extraction": {
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}
@@ -348,6 +466,7 @@
       "paths": {
         "page.mht.extracted/file_1": {
           "type=document.mhtml.part": true,
+          "type=email": true,
           "type=email.attachment": true,
           "type=image": true
         },
@@ -377,10 +496,24 @@
           "summary": "File Type Analysis: PNG image data, 1 x 1, 8-bit/color RGBA, non-interlaced (image/png)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "url_extraction": {
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}
@@ -640,6 +773,20 @@
           },
           "summary": "MHTML Analysis: 50e0640b44315641c34a09463dd53e2dc0f4e808446ffb4e2422646faa82ad30, 71fde3856a298a052c6edb5155638d8422114e55bf0e28374d90dea8be99ef6c, 5de625c36355cce7c1d5408826a0b21abfb49fb6c0e1f16c945a6f2aef38200c, a2eadc484439ef450f29b79678bf6434bcc36e1d3c647bda46b3e12371fcc76d",
           "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {
@@ -686,6 +833,20 @@
           },
           "summary": "File Type Analysis: data (application/octet-stream)",
           "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
@@ -701,6 +862,7 @@
         "page.mht.extracted/file_3": {
           "type=document.html": true,
           "type=document.mhtml.part": true,
+          "type=email": true,
           "type=email.attachment": true
         },
         "page.mht.unknown_application_xhtml+xml_000.xhtml": {
@@ -757,10 +919,24 @@
           "summary": "HTML JavaScript Extraction: 1 inline script(s), 1 URI path(s)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "url_extraction": {
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}
@@ -813,6 +989,20 @@
           },
           "summary": null,
           "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {
@@ -851,6 +1041,20 @@
           },
           "summary": "File Type Analysis: empty (inode/x-empty)",
           "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
@@ -868,6 +1072,7 @@
         "page.mht.extracted/file_0_js_inline_0_ebeac15c.js": {
           "type=document.html": true,
           "type=document.mhtml.part": true,
+          "type=email": true,
           "type=email.attachment": true,
           "type=script.javascript": true
         },
@@ -915,6 +1120,13 @@
           "summary": "File Type Analysis: ASCII text, with no line terminators (text/plain)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "url_extraction": {
           "details": {
             "urls": [
@@ -927,6 +1139,13 @@
             }
           },
           "summary": "URL Extraction Analysis (evil.example.com)",
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
           "tags": {}
         }
       },
@@ -949,6 +1168,13 @@
             "wildcard_dns": null
           },
           "summary": "DNS Analysis: does not exist (nxdomain)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
           "tags": {}
         },
         "proxy_domain_splunk": {
@@ -1140,6 +1366,13 @@
             "whois_raw_text": null
           },
           "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {
@@ -1163,6 +1396,13 @@
             "wildcard_dns": null
           },
           "summary": "DNS Analysis: does not exist (nxdomain)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
           "tags": {}
         },
         "proxy_domain_splunk": {
@@ -1354,6 +1594,13 @@
             "whois_raw_text": null
           },
           "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {
@@ -1383,6 +1630,13 @@
             "wildcard_dns": false
           },
           "summary": "DNS Analysis: ip addresses (192.0.2.10, 192.0.2.2) mx (backup.example.com, mail.example.com)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
           "tags": {}
         },
         "proxy_domain_splunk": {
@@ -1574,6 +1828,13 @@
             "whois_raw_text": null
           },
           "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
@@ -1590,6 +1851,20 @@
           },
           "summary": null,
           "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
@@ -1601,7 +1876,22 @@
       "relationships": {
         "is_hash_of file:82b0c08bc5e7c0ce7d4a4ffe0541aa14475f6e6ba233f77ced63705e54da8c3e": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "md5:48703d0a8bdc0f78076f94b35fc14675": {
@@ -1611,7 +1901,22 @@
       "relationships": {
         "is_hash_of file:ebeac15c3ada2b453a1f7c15e43a4470956038235d7d3c24025582c969c474a5": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "md5:78a635fd02e15d7b5714b60c9fdc4403": {
@@ -1621,7 +1926,22 @@
       "relationships": {
         "is_hash_of file:320b078ab9005f977ac6cda43c474b5ad613c6389668b7ebc7f38e3328f042ce": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "md5:796cbc19e9dda6b7ce4aa76c3d7cefff": {
@@ -1631,7 +1951,22 @@
       "relationships": {
         "is_hash_of file:a2eadc484439ef450f29b79678bf6434bcc36e1d3c647bda46b3e12371fcc76d": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "md5:8290871dc502349e092cca21b555fb14": {
@@ -1641,7 +1976,22 @@
       "relationships": {
         "is_hash_of file:50e0640b44315641c34a09463dd53e2dc0f4e808446ffb4e2422646faa82ad30": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "md5:f2b804d3e3bd61d76922a667f90e66d8": {
@@ -1651,7 +2001,22 @@
       "relationships": {
         "is_hash_of file:5de625c36355cce7c1d5408826a0b21abfb49fb6c0e1f16c945a6f2aef38200c": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "md5:fd735dbe90948efbe608fb9b1ff1877b": {
@@ -1661,7 +2026,22 @@
       "relationships": {
         "is_hash_of file:6b30fcf2d7532721ed5491af64222d9bfa5c3a47ef132fad98635aed2732b363": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:320b078ab9005f977ac6cda43c474b5ad613c6389668b7ebc7f38e3328f042ce": {
@@ -1671,7 +2051,22 @@
       "relationships": {
         "is_hash_of file:320b078ab9005f977ac6cda43c474b5ad613c6389668b7ebc7f38e3328f042ce": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:50e0640b44315641c34a09463dd53e2dc0f4e808446ffb4e2422646faa82ad30": {
@@ -1681,7 +2076,22 @@
       "relationships": {
         "is_hash_of file:50e0640b44315641c34a09463dd53e2dc0f4e808446ffb4e2422646faa82ad30": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:5de625c36355cce7c1d5408826a0b21abfb49fb6c0e1f16c945a6f2aef38200c": {
@@ -1691,7 +2101,22 @@
       "relationships": {
         "is_hash_of file:5de625c36355cce7c1d5408826a0b21abfb49fb6c0e1f16c945a6f2aef38200c": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:6b30fcf2d7532721ed5491af64222d9bfa5c3a47ef132fad98635aed2732b363": {
@@ -1701,7 +2126,22 @@
       "relationships": {
         "is_hash_of file:6b30fcf2d7532721ed5491af64222d9bfa5c3a47ef132fad98635aed2732b363": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:82b0c08bc5e7c0ce7d4a4ffe0541aa14475f6e6ba233f77ced63705e54da8c3e": {
@@ -1711,7 +2151,22 @@
       "relationships": {
         "is_hash_of file:82b0c08bc5e7c0ce7d4a4ffe0541aa14475f6e6ba233f77ced63705e54da8c3e": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:a2eadc484439ef450f29b79678bf6434bcc36e1d3c647bda46b3e12371fcc76d": {
@@ -1721,7 +2176,22 @@
       "relationships": {
         "is_hash_of file:a2eadc484439ef450f29b79678bf6434bcc36e1d3c647bda46b3e12371fcc76d": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:ebeac15c3ada2b453a1f7c15e43a4470956038235d7d3c24025582c969c474a5": {
@@ -1731,7 +2201,22 @@
       "relationships": {
         "is_hash_of file:ebeac15c3ada2b453a1f7c15e43a4470956038235d7d3c24025582c969c474a5": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "uri_path:/kit.js": {
@@ -1739,7 +2224,22 @@
       "directives": {},
       "excluded_analysis": {},
       "relationships": {},
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "uri_path:/landing": {
@@ -1747,7 +2247,22 @@
       "directives": {},
       "excluded_analysis": {},
       "relationships": {},
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "uri_path:/local.js": {
@@ -1758,7 +2273,22 @@
         "extracted_from file:75e61725d48f1b337ffd63f51a15e2e9e1d54a11f64e2fc7fd10e687f394d567": true,
         "extracted_from file:a2eadc484439ef450f29b79678bf6434bcc36e1d3c647bda46b3e12371fcc76d": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "url:https://cdn.example.com/kit.js": {
@@ -1772,6 +2302,13 @@
         "extracted_from file:75e61725d48f1b337ffd63f51a15e2e9e1d54a11f64e2fc7fd10e687f394d567": true
       },
       "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "parse_url": {
           "details": {
             "fragment": "",
@@ -1791,6 +2328,13 @@
           },
           "summary": null,
           "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
@@ -1801,6 +2345,13 @@
       "excluded_analysis": {},
       "relationships": {},
       "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "parse_url": {
           "details": {
             "fragment": "",
@@ -1817,6 +2368,13 @@
           "details": {
             "extracted_url": "https://evil.example.com/landing",
             "protection_type": "unprotected"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}

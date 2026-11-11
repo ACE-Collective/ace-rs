@@ -26,6 +26,10 @@
 //! every order both ways, with hostile values as data; ace3's share links and date ranges; the detection
 //! points' filters; saved filters, their owner and their audit rows; and `manage_columns`.
 //!
+//! PLAN.md 7.6's `detection`: the observables ACE detects are entries of the `observable_detection`
+//! list, listed, searched and paged as ace3 does, with ace3's default lifetimes, and audited as list
+//! writes are.
+//!
 //! PLAN.md 5.11's events (6c): the event list's filters checked, each filter and each order both ways
 //! through the keyset, the filters' choices, and an event's alerts with their state and tags.
 
@@ -48,9 +52,10 @@ use ace_sdk::lists::{ListSpec, MAX_ENTRIES};
 use ace_sdk::{Lookup, Manifest, Module, ModuleError, Outcome, TaskContext};
 use ace_service::{
     ALERT_WRITE, Actor, ApiKeyId, CATALOG, CampaignChoice, CommandState, Component, CrashFilter,
-    CrashInput, DetectionPointFilter, Effect, EventChoice, EventEdit, EventRef, EventTimes,
-    GroupId, GroupSuppressed, Holder, HuntRun, HuntState, HuntSubmission, HuntValidation,
-    ListEntry, LoadedHuntRow, MAX_CRASHES_PAGE, MIN_PASSWORD_CHARS, MalwareChoice, MatchKind,
+    CrashInput, DetectionExpiry, DetectionFilter, DetectionPage, DetectionPointFilter,
+    DetectionStatus, Effect, EventChoice, EventEdit, EventRef, EventTimes, GroupId,
+    GroupSuppressed, Holder, HuntRun, HuntState, HuntSubmission, HuntValidation, ListEntry,
+    LoadedHuntRow, MAX_CRASHES_PAGE, MIN_PASSWORD_CHARS, MalwareChoice, MatchKind, NewDetection,
     NewEvent, NewListEntry, NewSession, Password, PermissionName, PermissionPattern, PreferenceKey,
     PreferenceValue, Profile, QaPruned, QaPurge, QaRuleFilter, QaSort, QaStatus, RequestParts,
     SESSION_LIFETIME_SECONDS, Service, ServiceError, SessionCookie, SuppressionReason, Theme,
@@ -122,13 +127,20 @@ const TYPED_LIST: ListSpec = ListSpec {
     typed: true,
 };
 
-/// A module that reads the two lists. No mode names it, so it never runs.
+/// The list 7.6's `observable_detection` module reads, which the `detection` service keeps.
+const DETECTION_SPEC: ListSpec = ListSpec {
+    name: ace_service::DETECTION_LIST,
+    description: "the observables ACE detects",
+    typed: true,
+};
+
+/// A module that reads the lists. No mode names it, so it never runs.
 struct ListReader;
 
 impl Module for ListReader {
     const NAME: &'static str = "test_list_reader";
     const INPUTS: &'static [ObservableKind] = &[ObservableKind::Fqdn];
-    const LISTS: &'static [ListSpec] = &[TEST_LIST, TYPED_LIST];
+    const LISTS: &'static [ListSpec] = &[TEST_LIST, TYPED_LIST, DETECTION_SPEC];
     type Output = StubOutput;
     type Settings = ();
 
@@ -1538,6 +1550,9 @@ async fn every_write_function_has_an_audit_test() {
         add_list_entry_records_its_row(db).await,
         edit_list_entry_records_its_row(db).await,
         delete_list_entry_records_its_row(db).await,
+        create_detection_records_its_row(db).await,
+        delete_detection_records_its_row(db).await,
+        set_detection_expiration_records_its_row(db).await,
         sync_hunts_records_its_row(db).await,
         record_hunt_run_records_its_row(db).await,
         validate_hunt_records_its_row(db).await,
@@ -3252,6 +3267,10 @@ async fn every_write_fails_when_its_audit_fails() {
         )
         .await
         .expect("adds an entry");
+    let detected = service
+        .create_detection(&actor, &new_detection("fqdn", "before.example"))
+        .await
+        .expect("adds a detection");
     let archive = email_archive(&bucket, db);
     archived(&archive, b"an archived email", "<audit-fails@example.com>").await;
     let lists_before = list_rows(db).await;
@@ -3770,6 +3789,30 @@ async fn every_write_fails_when_its_audit_fails() {
             "delete_list_entry",
             service
                 .delete_list_entry(&actor, TEST_LIST.name, listed.id)
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
+        (
+            "create_detection",
+            service
+                .create_detection(&actor, &new_detection("fqdn", "after.example"))
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
+        (
+            "delete_detection",
+            service
+                .delete_detection(&actor, detected.id)
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
+        (
+            "set_detection_expiration",
+            service
+                .set_detection_expiration(&actor, detected.id, None)
                 .await
                 .map(|_| ())
                 .expect_err("refused"),
@@ -12520,6 +12563,416 @@ async fn delete_list_entry_records_its_row(db: &Db) -> String {
     row.action
 }
 
+fn new_detection(kind: &str, value: &str) -> NewDetection {
+    NewDetection {
+        observable_type: kind.to_owned(),
+        value: value.to_owned(),
+        expires: DetectionExpiry::Default,
+        context: None,
+    }
+}
+
+/// A detection's entry as its audit row records it.
+fn detection_entry(value: &str, expires_at: &Value, note: &str) -> Value {
+    json!({
+        "list": "observable_detection",
+        "match": "exact",
+        "value": value,
+        "ignore_case": false,
+        "observable_type": "fqdn",
+        "note": note,
+        "expires_at": expires_at,
+    })
+}
+
+async fn create_detection_records_its_row(db: &Db) -> String {
+    let actor = admin(db).await;
+    let service = service(db);
+    let (_, version) = list_rows(db).await;
+    let created = service
+        .create_detection(&actor, &new_detection("fqdn", "audited.example"))
+        .await
+        .expect("adds");
+    let row = last_audit(db).await;
+    let expires = row.after.as_ref().expect("an after")["expires_at"].clone();
+    assert!(
+        expires.is_string(),
+        "fqdn has ace3's default lifetime: {expires}"
+    );
+    assert_eq!(
+        row,
+        AuditRow {
+            actor: boss_json(),
+            action: "create_detection".to_owned(),
+            target: ("list_entry".to_owned(), created.id.to_string()),
+            before: None,
+            after: Some(detection_entry(
+                "audited.example",
+                &expires,
+                "manually added by alice"
+            )),
+            details: json!({}),
+        }
+    );
+    assert_eq!(
+        list_rows(db).await.1,
+        version + 1,
+        "the write raised the version"
+    );
+
+    // a refusal, a duplicate or a value that isn't one has no row
+    let rows = audit_rows(db).await.len();
+    let reader = UserId(Uuid::from_u128(0xD1));
+    grant(
+        db,
+        &Holder::User(reader),
+        "detection",
+        "read",
+        Effect::Allow,
+    )
+    .await;
+    let rows = rows + 1;
+    assert!(matches!(
+        service
+            .create_detection(&user(reader), &new_detection("fqdn", "x.example"))
+            .await,
+        Err(ServiceError::PermissionDenied { ref permission, .. })
+            if permission.to_string() == "detection:write"
+    ));
+    assert!(matches!(
+        service
+            .create_detection(&actor, &new_detection("fqdn", "audited.example"))
+            .await,
+        Err(ServiceError::Conflict(_))
+    ));
+    assert!(matches!(
+        service
+            .create_detection(&actor, &new_detection("file", "not a hash"))
+            .await,
+        Err(ServiceError::InvalidRequest(_))
+    ));
+    assert_eq!(audit_rows(db).await.len(), rows);
+    row.action
+}
+
+async fn delete_detection_records_its_row(db: &Db) -> String {
+    let actor = admin(db).await;
+    let service = service(db);
+    let created = service
+        .create_detection(
+            &actor,
+            &NewDetection {
+                expires: DetectionExpiry::Never,
+                context: Some("<b>doomed</b>".to_owned()),
+                ..new_detection("fqdn", "doomed.example")
+            },
+        )
+        .await
+        .expect("adds");
+    let removed = service
+        .delete_detection(&actor, created.id)
+        .await
+        .expect("deletes");
+    assert_eq!(removed.value, "doomed.example");
+    let row = last_audit(db).await;
+    let mut before = detection_entry("doomed.example", &Value::Null, "<b>doomed</b>");
+    before["created_by"] = boss_json();
+    before["created_at"] = row.before.as_ref().expect("a before")["created_at"].clone();
+    assert_eq!(
+        row,
+        AuditRow {
+            actor: boss_json(),
+            action: "delete_detection".to_owned(),
+            target: ("list_entry".to_owned(), created.id.to_string()),
+            before: Some(before),
+            after: None,
+            details: json!({}),
+        }
+    );
+    assert!(matches!(
+        service.delete_detection(&actor, created.id).await,
+        Err(ServiceError::NotFound(why)) if why == format!("no detection {}", created.id)
+    ));
+    row.action
+}
+
+async fn set_detection_expiration_records_its_row(db: &Db) -> String {
+    let actor = admin(db).await;
+    let service = service(db);
+    let created = service
+        .create_detection(&actor, &new_detection("fqdn", "expiring.example"))
+        .await
+        .expect("adds");
+    let edited = service
+        .set_detection_expiration(&actor, created.id, None)
+        .await
+        .expect("sets it");
+    assert_eq!(edited.expires_at, None);
+    let row = last_audit(db).await;
+    assert_eq!(row.action, "set_detection_expiration");
+    assert_eq!(
+        row.target,
+        ("list_entry".to_owned(), created.id.to_string())
+    );
+    let note = "manually added by alice";
+    assert_eq!(
+        (row.before.clone(), row.after.clone()),
+        (
+            Some(detection_entry(
+                "expiring.example",
+                &row.before.as_ref().expect("a before")["expires_at"],
+                note
+            )),
+            Some(detection_entry("expiring.example", &Value::Null, note)),
+        )
+    );
+
+    // the same again has no row; a past expiry and a missing detection are refused
+    let rows = audit_rows(db).await.len();
+    service
+        .set_detection_expiration(&actor, created.id, None)
+        .await
+        .expect("changes nothing");
+    assert!(matches!(
+        service
+            .set_detection_expiration(
+                &actor,
+                created.id,
+                Some(chrono::Utc::now() - chrono::Duration::days(1))
+            )
+            .await,
+        Err(ServiceError::InvalidRequest(_))
+    ));
+    assert!(matches!(
+        service
+            .set_detection_expiration(&actor, i64::MAX, None)
+            .await,
+        Err(ServiceError::NotFound(_))
+    ));
+    assert_eq!(audit_rows(db).await.len(), rows);
+    row.action
+}
+
+/// PLAN.md 7.6: the detection router's listing, as ace3's: search, type and status filters, ordered by
+/// type, value and id, paged and clamped, each with its comments; its types; ace3's default lifetimes;
+/// and a detection is an `observable_detection` list entry the list's readers see.
+#[tokio::test]
+async fn detections_list_search_and_page_as_ace3_s_do() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let service = service(db);
+    let actor = admin(db).await;
+    let sha = "AB".repeat(32);
+    for (kind, value) in [
+        ("fqdn", "evil.example.ru"),
+        ("fqdn", "100%_off.example"),
+        ("fqdn", "EVIL.example.com"),
+        ("ipv4", "192.0.2.1"),
+        ("file", sha.as_str()),
+        ("sha256", "cafe"),
+    ] {
+        service
+            .create_detection(&actor, &new_detection(kind, value))
+            .await
+            .unwrap_or_else(|e| panic!("{kind} {value}: {e}"));
+    }
+    let expired = service
+        .create_detection(&actor, &new_detection("fqdn", "expired.example"))
+        .await
+        .expect("adds");
+    sqlx::query("UPDATE lists.entries SET expires_at = now() - interval '1 day' WHERE id = $1")
+        .bind(expired.id)
+        .execute(db.pool())
+        .await
+        .expect("expires it");
+    service
+        .add_observable_comment(&actor, "ipv4", "192.0.2.1", "seen at the edge")
+        .await
+        .expect("comments");
+
+    let page = |filter: DetectionFilter| {
+        let service = &service;
+        let actor = &actor;
+        async move { service.detections(actor, &filter).await.expect("lists") }
+    };
+    let values = |page: &DetectionPage| -> Vec<String> {
+        page.items
+            .iter()
+            .map(|d| format!("{}:{}", d.observable_type, d.value))
+            .collect()
+    };
+    let all = page(DetectionFilter::default()).await;
+    assert_eq!(
+        values(&all),
+        [
+            format!("file:{}", sha.to_ascii_lowercase()),
+            "fqdn:100%_off.example".to_owned(),
+            "fqdn:EVIL.example.com".to_owned(),
+            "fqdn:evil.example.ru".to_owned(),
+            "ipv4:192.0.2.1".to_owned(),
+            "sha256:cafe".to_owned(),
+        ],
+        "ordered by type and value, a file's sha256 lowercased"
+    );
+    assert_eq!(all.total, 6, "the expired one isn't active");
+    let ipv4 = all
+        .items
+        .iter()
+        .find(|d| d.observable_type == "ipv4")
+        .expect("the ip");
+    assert_eq!(ipv4.comments.len(), 1);
+    assert_eq!(ipv4.comments[0].comment, "seen at the edge");
+    let file = all
+        .items
+        .iter()
+        .find(|d| d.observable_type == "file")
+        .expect("the file");
+    assert!(
+        file.expires_at.is_some(),
+        "ace3 lists only sha256 and md5 as never expiring"
+    );
+    let hash = all
+        .items
+        .iter()
+        .find(|d| d.observable_type == "sha256")
+        .expect("the hash");
+    assert_eq!(hash.expires_at, None, "a sha256 never expires by default");
+    let fqdn = all
+        .items
+        .iter()
+        .find(|d| d.value == "evil.example.ru")
+        .expect("the fqdn");
+    let lifetime = fqdn.expires_at.expect("an expiry") - fqdn.created_at;
+    assert!(
+        (lifetime - chrono::Duration::days(90)).num_seconds().abs() < 60,
+        "90 days: {lifetime}"
+    );
+
+    let search = |text: &str| DetectionFilter {
+        search: Some(text.to_owned()),
+        ..DetectionFilter::default()
+    };
+    assert_eq!(
+        values(&page(search("evil")).await),
+        ["fqdn:EVIL.example.com", "fqdn:evil.example.ru"],
+        "a substring, ignoring case"
+    );
+    assert_eq!(
+        values(&page(search("*.ru")).await),
+        ["fqdn:evil.example.ru"]
+    );
+    assert_eq!(
+        values(&page(search("evil.*")).await).len(),
+        2,
+        "anchored at the start"
+    );
+    assert_eq!(values(&page(search("*.ru*x")).await).len(), 0);
+    assert_eq!(
+        values(&page(search("100%_")).await),
+        ["fqdn:100%_off.example"]
+    );
+    assert_eq!(values(&page(search("0%")).await).len(), 1, "% is itself");
+    assert_eq!(values(&page(search("_")).await).len(), 1, "_ is itself");
+    let typed = page(DetectionFilter {
+        observable_type: Some("ipv4".to_owned()),
+        ..DetectionFilter::default()
+    })
+    .await;
+    assert_eq!(values(&typed), ["ipv4:192.0.2.1"]);
+    let gone = page(DetectionFilter {
+        status: DetectionStatus::Expired,
+        ..DetectionFilter::default()
+    })
+    .await;
+    assert_eq!(values(&gone), ["fqdn:expired.example"]);
+    assert!(gone.items[0].expired);
+    assert_eq!(
+        page(DetectionFilter {
+            status: DetectionStatus::All,
+            ..DetectionFilter::default()
+        })
+        .await
+        .total,
+        7
+    );
+
+    // a page past the last is the last; a page size ace3 doesn't offer is 50
+    let paged = page(DetectionFilter {
+        page: 99,
+        page_size: 25,
+        ..DetectionFilter::default()
+    })
+    .await;
+    assert_eq!(
+        (paged.page, paged.total_pages, paged.items.len()),
+        (1, 1, 6)
+    );
+    assert_eq!(paged.first_index(), 1);
+    assert_eq!(paged.last_index(), 6);
+    assert!(!paged.has_next() && !paged.has_prev());
+    assert_eq!(
+        page(DetectionFilter {
+            page_size: 7,
+            ..DetectionFilter::default()
+        })
+        .await
+        .page_size,
+        50
+    );
+    let empty = page(search("nothing matches this")).await;
+    assert_eq!((empty.total, empty.page, empty.first_index()), (0, 1, 0));
+
+    let types = service.detection_types(&actor).await.expect("types");
+    assert_eq!(types.present, ["file", "fqdn", "ipv4", "sha256"]);
+    assert!(types.all.contains(&"fqdn".to_owned()) && types.all.len() > types.present.len());
+
+    // each is an exact, case-sensitive entry of the list the module reads, with its context as its note
+    let list = service
+        .list(&actor, ace_service::DETECTION_LIST)
+        .await
+        .expect("the list");
+    let entry = list
+        .entries
+        .iter()
+        .find(|e| e.value == "evil.example.ru")
+        .expect("the entry");
+    assert_eq!(
+        (
+            entry.kind,
+            entry.ignore_case,
+            entry.observable_type.as_deref(),
+            entry.note.as_str()
+        ),
+        (
+            MatchKind::Exact,
+            false,
+            Some("fqdn"),
+            "manually added by alice"
+        )
+    );
+
+    // reading needs detection:read, and a binary whose modules don't read the list has none
+    let outsider = user(UserId(Uuid::from_u128(0xD2)));
+    assert!(matches!(
+        service.detections(&outsider, &DetectionFilter::default()).await,
+        Err(ServiceError::PermissionDenied { ref permission, .. })
+            if permission.to_string() == "detection:read"
+    ));
+    let bare = Service::new(
+        db.clone(),
+        Orchestrator::new(Catalog::new(vec![]), Modes::ace3()),
+    );
+    assert!(matches!(
+        bare.detections(&actor, &DetectionFilter::default()).await,
+        Err(ServiceError::NotFound(_))
+    ));
+    assert!(matches!(
+        bare.create_detection(&actor, &new_detection("fqdn", "x.example"))
+            .await,
+        Err(ServiceError::NotFound(_))
+    ));
+}
+
 /// What the service refuses, so a module never gets a list it can't compile: each entry's own checks,
 /// a duplicate, a typed list's type, an expiry that passed, and the whole list's count and patterns.
 #[tokio::test]
@@ -12667,7 +13120,14 @@ async fn a_list_takes_only_entries_a_module_can_compile() {
     // the list reads back in order, and the lists count their entries
     let summaries = service.lists(&actor).await.expect("lists");
     let names: Vec<(&str, i64)> = summaries.iter().map(|s| (s.spec.name, s.entries)).collect();
-    assert_eq!(names, [("test_typed_list", 1), ("test_whitelist", 1000)]);
+    assert_eq!(
+        names,
+        [
+            ("observable_detection", 0),
+            ("test_typed_list", 1),
+            ("test_whitelist", 1000)
+        ]
+    );
     let list = service.list(&actor, TEST_LIST.name).await.expect("reads");
     assert_eq!(list.entries.len(), 1000);
     assert_eq!(list.entries[0].value, "@partner.example");
@@ -13227,4 +13687,52 @@ async fn validate_hunt_records_its_row(db: &Db) -> String {
     ));
     assert!(!ran.load(std::sync::atomic::Ordering::SeqCst));
     row.action
+}
+
+// PLAN.md 7.6: the detection service's helpers, ace3's search pattern, lifetimes, page sizes and
+// value checks.
+
+#[test]
+fn a_detection_search_is_ace3_s_pattern() {
+    use ace_service::detection_search_pattern as search_pattern;
+    assert_eq!(search_pattern("evil"), "%evil%");
+    assert_eq!(search_pattern("100%_a\\b"), "%100\\%\\_a\\\\b%");
+    assert_eq!(search_pattern("*.ru"), "%.ru");
+    assert_eq!(search_pattern("evil.*"), "evil.%");
+}
+
+#[test]
+fn hashes_never_expire_by_default_and_the_rest_take_90_days() {
+    use ace_service::default_detection_expiry;
+    let now = chrono::Utc::now();
+    let kind = |name: &str| name.parse::<ace_results::ObservableKind>().expect("a type");
+    assert_eq!(default_detection_expiry(kind("sha256"), now), None);
+    assert_eq!(default_detection_expiry(kind("md5"), now), None);
+    assert_eq!(
+        default_detection_expiry(kind("fqdn"), now),
+        Some(now + chrono::Duration::days(90))
+    );
+}
+
+#[test]
+fn a_detection_page_size_is_one_ace3_offers() {
+    assert_eq!(ace_service::clamp_detection_page_size(100), 100);
+    assert_eq!(ace_service::clamp_detection_page_size(7), 50);
+}
+
+#[test]
+fn a_detection_value_is_checked_for_its_type() {
+    use ace_service::detection_identity as identity;
+    let sha = "AB".repeat(32);
+    assert_eq!(
+        identity("file", &format!(" {sha} ")).expect("a file").1,
+        sha.to_ascii_lowercase()
+    );
+    assert!(identity("file", "not a hash").is_err());
+    assert!(identity("no_such_type", "x").is_err());
+    assert!(identity("fqdn", "").is_err());
+    assert_eq!(
+        identity("fqdn", " Evil.example ").expect("an fqdn").1,
+        " Evil.example "
+    );
 }

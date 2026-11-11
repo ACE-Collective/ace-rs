@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "INSERT INTO lists.entries\n                             (list, match, value, ignore_case, observable_type, note, expires_at,\n                              created_by, updated_by)\n                         VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $8::jsonb)\n                         RETURNING id",
+  "query": "INSERT INTO lists.entries\n             (list, match, value, ignore_case, observable_type, note, expires_at,\n              created_by, updated_by)\n         VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $8::jsonb)\n         RETURNING id",
   "describe": {
     "columns": [
       {
@@ -31,5 +31,5 @@
       false
     ]
   },
-  "hash": "0aa615b9244c28501471634b75f6e15302ec1af7ab6143307cbe694acffa0ef1"
+  "hash": "90e3ebf41ceeeb5a69f1687596fe145c7ff2979a00304e48544b51030c2da9e5"
 }

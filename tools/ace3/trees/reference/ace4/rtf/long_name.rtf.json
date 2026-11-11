@@ -47,6 +47,20 @@
           },
           "summary": "File Type Analysis: data (application/octet-stream)",
           "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {
@@ -99,6 +113,20 @@
           },
           "summary": "File Type Analysis: ASCII text (text/plain)",
           "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {
@@ -128,8 +156,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:10 11:42:52+00:00",
-              "File:FileInodeChangeDate": "2026:11:10 11:42:52+00:00",
+              "File:FileAccessDate": "2026:11:11 00:59:45+00:00",
+              "File:FileInodeChangeDate": "2026:11:11 00:59:45+00:00",
               "File:FileModifyDate": "2026:11:07 00:31:29+00:00",
               "File:FileName": "long_name.rtf",
               "File:FilePermissions": 100644,
@@ -179,6 +207,13 @@
           "summary": "NoWhiteSpaceAnalysis: Ignore Whitespace Characters (13 removed)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "rtfole": {
           "details": {
             "extracted_files": [
@@ -189,6 +224,13 @@
             "stdout": "rtfobj 0.60.1 on Python 3.14.10 - http://decalage.info/python/oletools\nTHIS IS WORK IN PROGRESS - Check updates regularly!\nPlease report any issue at https://github.com/decalage2/oletools/issues\n\n===============================================================================\nFile: 'long_name.rtf' - size: 2544 bytes\n---+----------+---------------------------------------------------------------\nid |index     |OLE Object                                                     \n---+----------+---------------------------------------------------------------\n0  |00000032h |format_id: 2 (Embedded)                                        \n   |          |class name: b'Package'                                         \n   |          |data size: 85                                                  \n   |          |OLE Package object:                                            \n   |          |Filename: 'saved.txt'                                          \n   |          |Source path: 'C:\\\\tmp\\\\saved.txt'                              \n   |          |Temp path = 'C:\\\\tmp\\\\saved.txt'                               \n   |          |MD5 = '4889d9d80452cebb86d26dfeec561591'                       \n   |          |File Type: Unknown file type                                   \n---+----------+---------------------------------------------------------------\n1  |0000013Bh |format_id: 2 (Embedded)                                        \n   |          |class name: b'Package'                                         \n   |          |data size: 960                                                 \n   |          |OLE Package object:                                            \n   |          |Filename: 'éééééééééééééééééééééééééééééééééééééééééééééééééééé\n   |          |ééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé\n   |          |ééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé\n   |          |ééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé\n   |          |ééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé.exe\n   |          |'                                                              \n   |          |Source path: 'C:\\\\tmp\\\\éééééééééééééééééééééééééééééééééééééééé\n   |          |ééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé\n   |          |ééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé\n   |          |ééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé\n   |          |ééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé\n   |          |éééééééé.exe'                                                  \n   |          |Temp path = 'C:\\\\tmp\\\\ééééééééééééééééééééééééééééééééééééééééé\n   |          |ééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé\n   |          |ééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé\n   |          |ééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé\n   |          |ééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé\n   |          |ééééééé.exe'                                                   \n   |          |MD5 = '142600f3b4ad76e159ed6e824b1b5ed2'                       \n   |          |EXECUTABLE FILE                                                \n   |          |File Type: Unknown file type                                   \n---+----------+---------------------------------------------------------------\n2  |0000091Ah |format_id: 2 (Embedded)                                        \n   |          |class name: b'Package'                                         \n   |          |data size: 72                                                  \n   |          |OLE Package object:                                            \n   |          |Filename: 'after.txt'                                          \n   |          |Source path: 'C:\\\\tmp\\\\after.txt'                              \n   |          |Temp path = 'C:\\\\tmp\\\\after.txt'                               \n   |          |MD5 = '1c77cffbcea05c36baf62dd26897d043'                       \n   |          |File Type: Unknown file type                                   \n---+----------+---------------------------------------------------------------\nSaving file from OLE Package in object #0:\n  Filename = 'saved.txt'\n  Source path = 'C:\\\\tmp\\\\saved.txt'\n  Temp path = 'C:\\\\tmp\\\\saved.txt'\n  saving to file long_name.rtf.rtfobj/long_name.rtf_saved.txt\n  md5 4889d9d80452cebb86d26dfeec561591\nSaving file from OLE Package in object #1:\n  Filename = 'éééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé.exe'\n  Source path = 'C:\\\\tmp\\\\éééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé.exe'\n  Temp path = 'C:\\\\tmp\\\\éééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé.exe'\n  saving to file long_name.rtf.rtfobj/long_name.rtf_éééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé\n  md5 142600f3b4ad76e159ed6e824b1b5ed2\n"
           },
           "summary": "RTF OLE Object Analysis: extracted long_name.rtf.rtfobj/long_name.rtf_saved.txt",
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
           "tags": {}
         }
       },
@@ -243,6 +285,20 @@
           },
           "summary": "File Type Analysis: data (application/octet-stream)",
           "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {
@@ -295,11 +351,58 @@
           },
           "summary": "File Type Analysis: data (application/octet-stream)",
           "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {
         "extracted_rtf": true
       }
+    },
+    "file:656fd3022271b7495ec9c6285e9639d784f746a15235d5ca8fc7f807289109d6": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "long_name.rtf.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:425846d005aa14f4e2bbd18ddbe33c1c80f5be23786538abac31c636b8c525d7": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
     },
     "file:7c500e23be69787d97c511e9b5879c8a93bd62ca08b31c43e18232e1fe4c98ca": {
       "detections": {},
@@ -347,6 +450,13 @@
           "summary": "File Type Analysis: Rich Text Format data, version 1, ANSI (text/rtf) (ms office document) (rtf document)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "rtfole": {
           "details": {
             "extracted_files": [
@@ -360,30 +470,19 @@
           },
           "summary": "RTF OLE Object Analysis: extracted long_name.rtf.nowhitespace.rtfobj/long_name.rtf.nowhitespace_object_0000004D.raw, long_name.rtf.nowhitespace.rtfobj/long_name.rtf.nowhitespace_object_00000153.raw, long_name.rtf.nowhitespace.rtfobj/long_name.rtf.nowhitespace_object_0000092F.raw",
           "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {
         "microsoft_office": true,
         "rtf": true
       }
-    },
-    "file:cd85f7062c1927eb51b87cf2abb0a1aa94b00f4f5619816dc388a5a2cb83a43b": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "long_name.rtf.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:425846d005aa14f4e2bbd18ddbe33c1c80f5be23786538abac31c636b8c525d7": true
-      },
-      "results": {},
-      "tags": {}
     },
     "md5:10849b3ea036f28072ecc165ab1c8cb3": {
       "detections": {},
@@ -392,7 +491,22 @@
       "relationships": {
         "is_hash_of file:18c5411db405f46da4f9d84467f7027acc9ca5b35623df18617fa1f45f020cfa": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "md5:4889d9d80452cebb86d26dfeec561591": {
@@ -402,7 +516,22 @@
       "relationships": {
         "is_hash_of file:3e430806b02d978f91b74f2ba41fcde60c00abd92df776a287efe2dda5826260": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "md5:4b5482f7a19e9bd62754abef6b536073": {
@@ -412,7 +541,22 @@
       "relationships": {
         "is_hash_of file:5e83f51a248e92cb6dcb934465c6f19677b5311cbce4b269b9b308ea0a0fda05": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "md5:6c6196cbb84c0056cd7e2d10861c7a3b": {
@@ -422,7 +566,22 @@
       "relationships": {
         "is_hash_of file:6396aa3a020ef2913e67910037a6f31ea577e262697329d659ca69017ea380da": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "md5:71766145fd03d0654377e2998069efb6": {
@@ -432,7 +591,22 @@
       "relationships": {
         "is_hash_of file:7c500e23be69787d97c511e9b5879c8a93bd62ca08b31c43e18232e1fe4c98ca": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "md5:d9e60e1daa615984baee4cd62e2f8739": {
@@ -442,7 +616,22 @@
       "relationships": {
         "is_hash_of file:425846d005aa14f4e2bbd18ddbe33c1c80f5be23786538abac31c636b8c525d7": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:18c5411db405f46da4f9d84467f7027acc9ca5b35623df18617fa1f45f020cfa": {
@@ -452,7 +641,22 @@
       "relationships": {
         "is_hash_of file:18c5411db405f46da4f9d84467f7027acc9ca5b35623df18617fa1f45f020cfa": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:3e430806b02d978f91b74f2ba41fcde60c00abd92df776a287efe2dda5826260": {
@@ -462,7 +666,22 @@
       "relationships": {
         "is_hash_of file:3e430806b02d978f91b74f2ba41fcde60c00abd92df776a287efe2dda5826260": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:425846d005aa14f4e2bbd18ddbe33c1c80f5be23786538abac31c636b8c525d7": {
@@ -472,7 +691,22 @@
       "relationships": {
         "is_hash_of file:425846d005aa14f4e2bbd18ddbe33c1c80f5be23786538abac31c636b8c525d7": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:5e83f51a248e92cb6dcb934465c6f19677b5311cbce4b269b9b308ea0a0fda05": {
@@ -482,7 +716,22 @@
       "relationships": {
         "is_hash_of file:5e83f51a248e92cb6dcb934465c6f19677b5311cbce4b269b9b308ea0a0fda05": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:6396aa3a020ef2913e67910037a6f31ea577e262697329d659ca69017ea380da": {
@@ -492,7 +741,22 @@
       "relationships": {
         "is_hash_of file:6396aa3a020ef2913e67910037a6f31ea577e262697329d659ca69017ea380da": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:7c500e23be69787d97c511e9b5879c8a93bd62ca08b31c43e18232e1fe4c98ca": {
@@ -502,7 +766,22 @@
       "relationships": {
         "is_hash_of file:7c500e23be69787d97c511e9b5879c8a93bd62ca08b31c43e18232e1fe4c98ca": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     }
   }

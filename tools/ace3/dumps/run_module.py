@@ -126,6 +126,14 @@ def parse_args():
     parser.add_argument("--fluent-bit", action="store_true", help="keep what ace3 sends to fluent-bit in the dump")
     parser.add_argument("--encryption-key", help="the 32-byte key, in hex, ace3's encryption is initialized with")
     parser.add_argument("--email-archive-store", help="a JSON file of emails ace3's email archive starts with")
+    parser.add_argument(
+        "--observable-tags", help="a JSON file of the tags ace3's database maps to observables, which "
+        "user_defined_tagging reads",
+    )
+    parser.add_argument(
+        "--detections", help="a JSON file of the observables enabled for detection, the Redis cache "
+        "observable_detection reads",
+    )
     parser.add_argument("--tree", action="store_true", help="also write the root in the normal form to tree.json")
     parser.add_argument(
         "--tree-view", action="store_true",
@@ -315,6 +323,63 @@ def fake_brocess(path):
 
     fa.query_brocess_by_source_email = by_source
     fa.query_brocess_by_email_conversation = by_conversation
+
+
+def fake_observable_tags(path):
+    """ace3's observables, observable_tag_mapping and tags tables, as user_defined_tagging's one SELECT
+    reads them (saq/modules/tag.py): the names mapped to an observable's type and the sha256 of its
+    value, in the order the file lists them. `path` holds {"tags": [{"type", "value", "tag"}]}; a
+    file's value is its sha256, which is what ace3's FileObservable.sha256_hash is."""
+    import contextlib
+
+    import saq.modules.tag as tag
+
+    with open(path) as fp:
+        mappings = json.load(fp)["tags"]
+
+    def sha256_of(kind, value):
+        return value.lower() if kind == "file" else hashlib.sha256(value.encode()).hexdigest()
+
+    class Cursor:
+        def __init__(self):
+            self.rows = []
+
+        def execute(self, sql, params=()):
+            assert "observable_tag_mapping" in sql, sql
+            kind, sha256 = params
+            self.rows = [
+                (m["tag"],) for m in mappings if m["type"] == kind and sha256_of(m["type"], m["value"]) == sha256.lower()
+            ]
+
+        def __iter__(self):
+            return iter(self.rows)
+
+    class Connection:
+        def cursor(self):
+            return Cursor()
+
+    @contextlib.contextmanager
+    def get_db_connection(name="ace"):
+        assert name == "ace", name
+        yield Connection()
+
+    tag.get_db_connection = get_db_connection
+
+
+def fake_detections(path):
+    """The Redis cache `ace observables export` keeps for observable_detection
+    (saq/observables/export/redis_cache.py): a key `<type>:<value>` for each observable enabled for
+    detection. `path` holds {"detections": [{"type", "value"}]}."""
+    import saq.modules.observable_detection as detection
+
+    with open(path) as fp:
+        keys = {f"{d['type']}:{d['value']}" for d in json.load(fp)["detections"]}
+
+    class Redis:
+        def get(self, key):
+            return b"1" if key in keys else None
+
+    detection.get_redis_connection = lambda *args, **kwargs: Redis()
 
 
 class FakeBrocess:
@@ -845,6 +910,9 @@ TREE_MODULES = {
     "PcapAnalysis": "pcap_analyzer",
     "PcapTlsDecryptionAnalysis": "pcap_tls_decryption",
     "TlsKeylogAnalysis": "tls_keylog",
+    "UserDefinedTaggingAnalysis": "user_defined_tagging",
+    "SiteTagAnalysis": "site_tagger",
+    "ObservableDetectionAnalysis": "observable_detection",
 }
 
 
@@ -1454,6 +1522,10 @@ def main():
     store = fake_brocess_store(args.brocess_store) if args.brocess_store else None
     if args.encryption_key:
         use_encryption_key(args.encryption_key)
+    if args.observable_tags:
+        fake_observable_tags(args.observable_tags)
+    if args.detections:
+        fake_detections(args.detections)
     email_archive = fake_email_archive(args.email_archive_store, work) if args.email_archive_store else None
     email_archive_before = json.loads(json.dumps(email_archive.rows())) if email_archive else None
     before = json.loads(json.dumps(store.rows())) if store else None

@@ -40,6 +40,13 @@
           "summary": "File Type Analysis: ASCII text (text/plain)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "tls_keylog": {
           "details": {
             "applied_to": [],
@@ -56,6 +63,13 @@
           },
           "summary": "TLS Key Log: 6 secrets for 2 TLS sessions (1 CLIENT_HANDSHAKE_TRAFFIC_SECRET, 1 CLIENT_RANDOM, 1 CLIENT_TRAFFIC_SECRET_0, 1 EXPORTER_SECRET, 1 SERVER_HANDSHAKE_TRAFFIC_SECRET, 1 SERVER_TRAFFIC_SECRET_0)",
           "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {
@@ -69,7 +83,22 @@
       "relationships": {
         "is_hash_of file:76f3b3e668343641d138e1121f7be54778c87bf38fe98f27723be8be971ff8e3": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:76f3b3e668343641d138e1121f7be54778c87bf38fe98f27723be8be971ff8e3": {
@@ -79,7 +108,22 @@
       "relationships": {
         "is_hash_of file:76f3b3e668343641d138e1121f7be54778c87bf38fe98f27723be8be971ff8e3": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     }
   }

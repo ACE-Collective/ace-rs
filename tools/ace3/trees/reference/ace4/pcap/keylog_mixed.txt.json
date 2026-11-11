@@ -40,6 +40,13 @@
           "summary": "File Type Analysis: ASCII text (text/plain)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "tls_keylog": {
           "details": {
             "applied_to": [],
@@ -55,6 +62,13 @@
           },
           "summary": "TLS Key Log: 5 secrets for 2 TLS sessions (1 CLIENT_EARLY_TRAFFIC_SECRET, 1 CLIENT_RANDOM, 1 EARLY_EXPORTER_SECRET, 1 EXPORTER_SECRET, 1 RSA)",
           "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {
@@ -68,7 +82,22 @@
       "relationships": {
         "is_hash_of file:6b398d4881e1db90a0a350b2f26f311e7fd2ecb2b37b392e274754d6384f8898": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:6b398d4881e1db90a0a350b2f26f311e7fd2ecb2b37b392e274754d6384f8898": {
@@ -78,7 +107,22 @@
       "relationships": {
         "is_hash_of file:6b398d4881e1db90a0a350b2f26f311e7fd2ecb2b37b392e274754d6384f8898": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     }
   }

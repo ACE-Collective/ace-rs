@@ -239,6 +239,7 @@ async fn reads_core(rules: std::path::PathBuf) -> Core {
         "snort_signature_analysis_v1",
         "email_conversation_frequency_analyzer",
         "nrd_analyzer",
+        "user_defined_tagging",
         "archive",
     ];
     Core::start_configured(
@@ -246,6 +247,7 @@ async fn reads_core(rules: std::path::PathBuf) -> Core {
             ace_mod_snort::MANIFEST,
             ace_mod_brocess::frequency::MANIFEST,
             ace_mod_nrd::MANIFEST,
+            ace_mod_tag::user::MANIFEST,
             ace_mod_archive::MANIFEST,
         ]),
         ace_core::modes::Modes::ace3(),
@@ -949,6 +951,203 @@ async fn the_nrd_module_reads_the_list_through_the_lease_api() {
         summary.as_deref(),
         Some("Newly Registered Domain: present in local NRD list")
     );
+}
+
+// ---- user_defined_tagging: the observable-tags read ----
+
+/// The tag mappings ace3's user_defined_tagging dumps read (tools/ace3/dumps/fixtures/tag), in the
+/// core's table, in the order the fixture lists them.
+async fn insert_observable_tags_fixture(core: &Core) {
+    let fixture: serde_json::Value = serde_json::from_str(
+        &std::fs::read_to_string(
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join("../../tools/ace3/dumps/fixtures/tag/observable_tags.json"),
+        )
+        .expect("the fixture reads"),
+    )
+    .expect("JSON");
+    for mapping in fixture["tags"].as_array().expect("tags") {
+        sqlx::query("INSERT INTO analysis.observable_tags (type, value, tag) VALUES ($1, $2, $3)")
+            .bind(mapping["type"].as_str())
+            .bind(mapping["value"].as_str())
+            .bind(mapping["tag"].as_str())
+            .execute(core.test_db.db().pool())
+            .await
+            .expect("inserts");
+    }
+}
+
+/// `observable-tags` (PLAN.md 7.6): for each observable and file ace3's user_defined_tagging dumps
+/// have, the core answers the tags ace3's database gave it, in their order; it answers only for the
+/// task's own observable; it says when it cut an answer at its bound; and the refusals every read
+/// makes.
+#[tokio::test]
+async fn observable_tags_answers_as_ace3_s_database_did_and_only_for_the_task_s_own_observable() {
+    let core = reads_core(snort_rules()).await;
+    insert_observable_tags_fixture(&core).await;
+    let client =
+        ace_pool::client::LeaseClient::new(&core.url, common::TOKEN, "w1").expect("a client");
+    let dumps = ace_testkit::reference::Dump::all("user_defined_tagging").expect("the dumps read");
+    assert_eq!(dumps.len(), 8);
+    for dump in dumps {
+        let input = &dump.value["input"]["observable"];
+        let kind: ace_results::ObservableKind = input["type"]
+            .as_str()
+            .expect("a type")
+            .parse()
+            .expect("a kind");
+        let value = input["value"].as_str().expect("a value");
+        if kind == ace_results::ObservableKind::File {
+            let path = ace_testkit::samples_dir().join("ace3/pcap/sslkeylog.txt");
+            file_root(&core, &path, "sslkeylog.txt", "user_defined_tagging").await;
+        } else {
+            root_of(&core, kind, &[value], "user_defined_tagging").await;
+        }
+        let task = client
+            .lease(&["user_defined_tagging".to_owned()], Duration::ZERO)
+            .await
+            .expect("leases")
+            .expect("a task");
+        let answer = client
+            .read(task.id, "observable-tags", &serde_json::json!({}), false)
+            .await
+            .expect("answers");
+        let ace3 = &dump
+            .analysis("UserDefinedTaggingAnalysis")
+            .expect("an analysis")["details"]["tags_added"];
+        assert_eq!(
+            answer,
+            serde_json::json!({"tags": ace3, "truncated": false}),
+            "{value}"
+        );
+        client
+            .end(
+                task.id,
+                &ace_sdk::wire::TaskEnd::Skipped {
+                    reason: "checked".into(),
+                    writes: Vec::new(),
+                },
+            )
+            .await
+            .expect("ends");
+    }
+
+    // past the bound, the first MAX_OBSERVABLE_TAGS, said to be cut
+    sqlx::query(
+        "INSERT INTO analysis.observable_tags (type, value, tag)
+         SELECT 'fqdn', 'many.example', 'tag_' || lpad(n::text, 4, '0') FROM generate_series(1, $1) n",
+    )
+    .bind(i32::try_from(ace_sdk::reads::MAX_OBSERVABLE_TAGS + 1).expect("small"))
+    .execute(core.test_db.db().pool())
+    .await
+    .expect("inserts");
+    let root = root_of(
+        &core,
+        ace_results::ObservableKind::Fqdn,
+        &["many.example", "tagged.example"],
+        "user_defined_tagging",
+    )
+    .await;
+    let elsewhere = root_of(
+        &core,
+        ace_results::ObservableKind::Fqdn,
+        &["x.example.com"],
+        "archive",
+    )
+    .await;
+    let task = client
+        .lease(&["user_defined_tagging".to_owned()], Duration::ZERO)
+        .await
+        .expect("leases")
+        .expect("a task");
+    assert_eq!(task.root, root);
+    let answer = client
+        .read(task.id, "observable-tags", &serde_json::json!({}), false)
+        .await
+        .expect("answers");
+    let tags = answer["tags"].as_array().expect("tags");
+    assert_eq!(tags.len(), ace_sdk::reads::MAX_OBSERVABLE_TAGS);
+    assert_eq!(tags[0], "tag_0001");
+    assert_eq!(answer["truncated"], true);
+    // another observable of its own root, tagged or not, isn't the task's own
+    let sibling = serde_json::json!({"subject": {"type": "fqdn", "value": "tagged.example"}});
+    assert_eq!(
+        status(
+            &client
+                .read(task.id, "observable-tags", &sibling, false)
+                .await
+        ),
+        Some(403)
+    );
+    let archive_task = client
+        .lease(&["archive".to_owned()], Duration::ZERO)
+        .await
+        .expect("leases")
+        .expect("a task");
+    assert_eq!(archive_task.root, elsewhere);
+    assert_refusals(
+        &core,
+        task.id,
+        "observable-tags",
+        serde_json::json!({}),
+        serde_json::json!({"subject": {"type": "fqdn", "value": "x.example.com"}}),
+        archive_task.id,
+    )
+    .await;
+}
+
+/// The user defined tagging module run as the lookups pool runs it: its read goes through the pool's
+/// client, and its result and the tags land on its observable.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn the_user_defined_tagging_module_reads_its_tags_through_the_lease_api() {
+    let core = reads_core(snort_rules()).await;
+    insert_observable_tags_fixture(&core).await;
+    let root = root_of(
+        &core,
+        ace_results::ObservableKind::Fqdn,
+        &["tagged.example"],
+        "user_defined_tagging",
+    )
+    .await;
+    let client =
+        ace_pool::client::LeaseClient::new(&core.url, common::TOKEN, "pool").expect("a client");
+    let modules = std::sync::Arc::new(
+        ace_pool::modules::Modules::new().with_lookup(
+            ace_pool::modules::Entry::<ace_mod_tag::UserDefinedTagging>::lookup(
+                None,
+                &ace_sdk::Secrets::new(),
+            )
+            .expect("the module"),
+        ),
+    );
+    let task = client
+        .lease(&[], Duration::ZERO)
+        .await
+        .expect("leases")
+        .expect("a task");
+    let end = ace_pool::run::run_in_process(
+        &client,
+        &modules,
+        task,
+        &tokio_util::sync::CancellationToken::new(),
+    )
+    .await
+    .expect("runs");
+    assert!(
+        matches!(end, ace_sdk::wire::TaskEnd::Done { .. }),
+        "{end:?}"
+    );
+    let row: (Option<String>, Vec<String>) = sqlx::query_as(
+        "SELECT r.summary, o.tags FROM analysis.results r
+         JOIN analysis.observables o ON o.root_id = r.root_id AND o.id = r.observable_id
+         WHERE r.root_id = $1 AND r.module = 'user_defined_tagging'",
+    )
+    .bind(root)
+    .fetch_one(core.test_db.db().pool())
+    .await
+    .expect("a result");
+    assert_eq!(row.0.as_deref(), Some("User Defined Tagging: added 3 tags"));
+    assert_eq!(row.1, ["phish_infra", "watchlist", "phish_infra2"]);
 }
 
 // ---- email_logger: the email-thread-domains read and the smtp-log and email-thread writes ----

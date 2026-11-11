@@ -48,7 +48,11 @@ Then the analyst-edited lists (PLAN.md 5.14): signed in as that analyst, it adds
 sender whitelist through the JSON API and submits the email once more, with nothing restarted. The email
 module has to whitelist it, the root's analysis has to stop with nothing extracted and no alert, and the
 entry's audit row has to name the analyst. It deletes the entry the same way before anything else runs,
-so the comparison below sees the empty lists ace3's trees were made with.
+so the comparison below sees the empty whitelists ace3's trees were made with. Before the comparison it
+gives ace4 what make-trees gave ace3's tagging and detection modules (PLAN.md 7.6): the observables
+enabled for detection in tools/ace3/trees/detections.json, added through the detection API with a key
+holding detection:write, and the tags of tools/ace3/trees/observable_tags.json, with SQL; the site
+tagger's rows are in the overlay.
 
 Then the library diff's self-test runs (PLAN.md 4.8), and tools/ace3/modules/check checks the module
 inventory, docs/modules.md, against ace3's config at the head of ace3's checkout (PLAN.md 7.1), and its
@@ -1024,6 +1028,42 @@ def check_ports_compared(failures):
             failures.append(f"{module} was compared with nothing: {counts}")
 
 
+def give_ace4_the_trees_world():
+    """What make-trees gave ace3's tagging and detection modules (PLAN.md 7.6), given to ace4: the
+    observables enabled for detection, through the detection API with a key of their own, the tags
+    analysts mapped to observables, with SQL, since ace3 has no API for them either, and the site
+    tags, which the overlay holds. Returns why it couldn't, or None."""
+    sql("DELETE FROM lists.entries WHERE list = 'observable_detection'; "
+        "TRUNCATE analysis.observable_tags")
+    out = compose(
+        "exec", "-T", "ace", ACE_COMMAND, "user", "create-key", f"e2e-detections-{uuid.uuid4().hex[:8]}",
+        "--grant", "detection:write", capture=True,
+    )
+    token = next((line.split(": ", 1)[1] for line in out.splitlines()
+                  if line.startswith("token (shown once): ")), None)
+    if not token:
+        return f"`ace user create-key` printed no token:\n{out}"
+    for detection in json.loads((TREES / "detections.json").read_text())["detections"]:
+        status, _, body = web_request(
+            "POST", "/api/observables/v1/detections",
+            json.dumps({"type": detection["type"], "value": detection["value"], "expires_on": None,
+                        "detection_context": "tools/ace3/trees/detections.json"}),
+            {"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+        )
+        if status != 201:
+            return f"adding the detection {detection} answered {status}: {body}"
+    for mapping in json.loads((TREES / "observable_tags.json").read_text())["tags"]:
+        quoted = [mapping[k].replace("'", "''") for k in ("type", "value", "tag")]
+        sql("INSERT INTO analysis.observable_tags (type, value, tag) VALUES ('"
+            + "', '".join(quoted) + "')")
+    overlay = (SITE / "overlay.yaml").read_text()
+    missing = [line for line in (TREES / "site_tags.csv").read_text().splitlines()
+               if line and f"        {line}\n" not in overlay]
+    if missing:
+        return f"tests/e2e/site/overlay.yaml's site_tagger csv doesn't have {missing}"
+    return None
+
+
 def compare_with_ace3(threshold=False):
     """Runs `ace compare` over the sample set in a one-off ace container, with the report under
     <work>/compare. Returns its exit code."""
@@ -1037,6 +1077,12 @@ def compare_with_ace3(threshold=False):
     sql("TRUNCATE nrd.domains; INSERT INTO nrd.domains (domain) VALUES "
         + ", ".join("('" + d.replace("'", "''") + "')" for d in domains)
         + " ON CONFLICT DO NOTHING")
+    # and with tools/ace3/trees' detections, tags and site tags (PLAN.md 7.6)
+    problem = give_ace4_the_trees_world()
+    if problem:
+        log(f"FAIL  the tagging and detection modules' world: {problem}")
+        return 1
+    log("ok    ace4 has the detections, tags and site tags ace3's trees were made with")
     # the recorded Splunk job counts requests from when the responder started
     compose("restart", "responder")
     compose("up", "-d", "--wait", "responder")

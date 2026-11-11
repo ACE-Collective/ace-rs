@@ -1,0 +1,25 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [],
+  "input": {
+    "directives": [],
+    "label": "url http://a.example/xpath, with fixtures/tag/site_tags.csv",
+    "meta_tags": [],
+    "observable": {
+      "type": "url",
+      "value": "http://a.example/xpath"
+    }
+  },
+  "module": "site_tagger",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "relationships": [],
+    "tags": [],
+    "type": "url",
+    "value": "http://a.example/xpath"
+  }
+}

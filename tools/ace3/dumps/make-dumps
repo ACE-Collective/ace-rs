@@ -1411,6 +1411,69 @@ def ssdeep_runs():
     return runs
 
 
+# PLAN.md 7.6: the tagging and detection modules over fixtures/tag. user_defined_tagging reads the
+# tags of observable_tags.json (run_module.py --observable-tags) and observable_detection the cache of
+# detections.json (--detections): a hit, a miss, the same value as another type, another case, and a
+# file, by its sha256. site_tagger reads site_tags.csv, a row of each match type, rows ace3 skips, and
+# two rows giving one tag.
+TAG_FIXTURES = f"{REMOTE}/fixtures/tag"
+TAG_FILE = "ace3/pcap/sslkeylog.txt"
+USER_TAG_OBSERVABLES = [
+    ("fqdn", "tagged.example"), ("fqdn", "untagged.example"), ("fqdn", "TAGGED.example"),
+    ("url", "http://tagged.example/"), ("email_address", "ceo@corp.example"), ("ipv4", "203.0.113.9"),
+    ("ip", "203.0.113.9"),
+]
+DETECTION_OBSERVABLES = [
+    ("fqdn", "flagged.example"), ("fqdn", "FLAGGED.example"), ("fqdn", "other.example"),
+    ("url", "http://flagged.example/landing"), ("url", "flagged.example"), ("ipv4", "203.0.113.66"),
+    ("ip", "203.0.113.66"),
+]
+SITE_TAG_OBSERVABLES = [
+    ("fqdn", "Exact.Example"), ("fqdn", "exact.example"), ("fqdn", "case.EXAMPLE"),
+    ("url", "http://a.example/path"), ("url", "http://a.example/xpath"), ("url", "http://shout.example/"),
+    ("email_address", "Admin@corp.example"), ("ipv4", "10.1.2.3"), ("ip", "10.1.2.3"), ("ipv4", "192.168.1.7"),
+    ("ipv4", "10.0.0.1"), ("fqdn", "a.b.CORP.example"), ("url", "corp.example"), ("fqdn", "notcorp.example"),
+    ("fqdn", "two.example"), ("user", "nobody"),
+]
+SITE_TAG_CONFIG = f"analysis_module_site_tagger:\n  csv_file: {TAG_FIXTURES}/site_tags.csv\n"
+
+
+def tag_runs(module, observables, args, label):
+    runs = [
+        {
+            "module": module,
+            "enable": [],
+            # macOS's file system ignores case, so a value with capitals is named apart
+            "name": f"{kind}_{value}".replace("/", "_") + (".upper" if value != value.lower() else ""),
+            "args": ["--observable", kind, value, *args],
+            "label": f"{kind} {value}, {label}",
+        }
+        for kind, value in observables
+    ]
+    runs.append({
+        "module": module,
+        "enable": [],
+        "name": TAG_FILE,
+        "args": ["--file", f"{REMOTE}/samples/{TAG_FILE}", "--alert-path", TAG_FILE.rsplit("/", 1)[-1], *args],
+        "label": f"{TAG_FILE}, {label}",
+    })
+    return runs
+
+
+def site_tag_runs():
+    config = f"{REMOTE}/runs/site_tagger.yaml"
+
+    @contextlib.contextmanager
+    def service():
+        put(config, SITE_TAG_CONFIG.encode())
+        yield
+
+    return [
+        {**run, "service": service}
+        for run in tag_runs("site_tagger", SITE_TAG_OBSERVABLES, ["--config", config], "with fixtures/tag/site_tags.csv")
+    ]
+
+
 RUNS = {
     "email": lambda: file_runs("email_analyzer", ["file_type"], "email"),
     "archive": lambda: file_runs("archive", ["file_type"], "archive/"),
@@ -1466,6 +1529,15 @@ RUNS = {
     "pcap_files": lambda: pcap_runs("pcap_files", ["pcap_analyzer"]),
     "pcap_tls_decryption": lambda: pcap_decryption_runs(),
     "tls_keylog": lambda: tls_keylog_runs(),
+    "user_defined_tagging": lambda: tag_runs(
+        "user_defined_tagging", USER_TAG_OBSERVABLES, ["--observable-tags", f"{TAG_FIXTURES}/observable_tags.json"],
+        "with fixtures/tag/observable_tags.json",
+    ),
+    "observable_detection": lambda: tag_runs(
+        "observable_detection", DETECTION_OBSERVABLES, ["--detections", f"{TAG_FIXTURES}/detections.json"],
+        "with fixtures/tag/detections.json",
+    ),
+    "site_tagger": site_tag_runs,
 }
 
 # the key logs each capture's decryption dump has in its root, by sample path; None for none
@@ -1828,6 +1900,9 @@ def run(spec):
         "pcap_files": "PcapCategoryAnalysis",
         "pcap_tls_decryption": "PcapTlsDecryptionAnalysis",
         "tls_keylog": "TlsKeylogAnalysis",
+        "user_defined_tagging": "UserDefinedTaggingAnalysis",
+        "observable_detection": "ObservableDetectionAnalysis",
+        "site_tagger": "SiteTagAnalysis",
     }[spec["module"]]
     # ace3's pcap_dns, pcap_tls, pcap_http and pcap_files are instances of one class
     instance = spec["module"].removeprefix("pcap_") if target_class == "PcapCategoryAnalysis" else None

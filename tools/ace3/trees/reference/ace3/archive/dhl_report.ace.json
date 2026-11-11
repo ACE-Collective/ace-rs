@@ -53,6 +53,20 @@
           },
           "summary": "File Type Analysis: ACE archive data version 20, from Win/32, version 20 to extract, contains AV-String (unregistered), solid (application/x-ace-compressed)",
           "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
@@ -119,6 +133,20 @@
           },
           "summary": "File Type Analysis: PE32 executable for MS Windows 4.00 (GUI), Intel i386, 8 sections (application/vnd.microsoft.portable-executable) (portable executable)",
           "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {
@@ -159,6 +187,20 @@
           },
           "summary": "File Type Analysis: empty (inode/x-empty)",
           "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
@@ -170,7 +212,22 @@
       "relationships": {
         "is_hash_of file:75f1d5b69ef6ecfb89c7ff6af1535cc7ad603ba1b72b489dc4c75ba77efab91e": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "md5:5833a6d4573d7496ef23d2d69c0a243e": {
@@ -180,7 +237,22 @@
       "relationships": {
         "is_hash_of file:2f3aaf99afb1f4ee8d3b7770fd4ed6df2896f811e8192b8f3f8fa128ec609fa9": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:2f3aaf99afb1f4ee8d3b7770fd4ed6df2896f811e8192b8f3f8fa128ec609fa9": {
@@ -190,7 +262,22 @@
       "relationships": {
         "is_hash_of file:2f3aaf99afb1f4ee8d3b7770fd4ed6df2896f811e8192b8f3f8fa128ec609fa9": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:75f1d5b69ef6ecfb89c7ff6af1535cc7ad603ba1b72b489dc4c75ba77efab91e": {
@@ -200,7 +287,22 @@
       "relationships": {
         "is_hash_of file:75f1d5b69ef6ecfb89c7ff6af1535cc7ad603ba1b72b489dc4c75ba77efab91e": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     }
   }

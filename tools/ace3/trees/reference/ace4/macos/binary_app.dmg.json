@@ -66,6 +66,20 @@
           },
           "summary": "File Type Analysis: zlib compressed data (application/zlib)",
           "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
@@ -115,6 +129,20 @@
           },
           "summary": "File Type Analysis: Python script, ASCII text executable (text/x-script.python)",
           "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {
@@ -161,6 +189,20 @@
           },
           "summary": "File Type Analysis: Mach-O 64-bit arm64 executable (application/x-mach-binary)",
           "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
@@ -195,6 +237,20 @@
             "type": "XML 1.0 document, ASCII text"
           },
           "summary": "File Type Analysis: XML 1.0 document, ASCII text (text/xml)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
           "tags": {}
         }
       },
@@ -261,6 +317,20 @@
           },
           "summary": "File Type Analysis: Apple Driver Map, blocksize 512, blockcount 8274, devtype 0, devid 0, driver count 1, contains[@0x200]: Apple Partition Map, map block count 4, start block 1, block count 63, name Apple, type Apple_partition_map, valid, allocated, contains[@0x400]: Apple Partition Map, map block count 4, start block 64, block count 8, name Macintosh, type Apple_Driver_ATAPI, boot arguments DMMY, valid, allocated, real driver, chain driver, contains[@0x600]: Apple Partition Map, map block count 4, start block 72, block count 8192, name Mac_OS_X, type Apple_HFSX, boot arguments goon, valid, allocated, readable, writable, mount at startup, contains[@0x800]: Apple Partition Map, map block count 4, start block 8264, block count 10, type Apple_Free (application/x-apple-diskimage)",
           "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {
@@ -275,7 +345,22 @@
       "relationships": {
         "is_hash_of file:b680a0ccecb5befe09b246735d895b052b5baebc789ad761c276bdd67a436f58": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "md5:946a060e7b9815025117a339cbc80831": {
@@ -285,7 +370,22 @@
       "relationships": {
         "is_hash_of file:43ed7c829500269d8705db6708c0da2589e5bffdf9c0d97cef06c16b01dde941": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "md5:e1288b1c92879ae415c2140ba97e5dab": {
@@ -295,7 +395,22 @@
       "relationships": {
         "is_hash_of file:049ac777e8487c4065d28b7737e7a1cd6d9a0b5c7e95a120db95c292ea53e93f": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "md5:f8c98c7b80355a4e61ad7b3e3877fcbb": {
@@ -305,7 +420,22 @@
       "relationships": {
         "is_hash_of file:afb491b81223df1e494d0db0e8c04de97baedd5421ad8b734e272b471ab9f057": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:049ac777e8487c4065d28b7737e7a1cd6d9a0b5c7e95a120db95c292ea53e93f": {
@@ -315,7 +445,22 @@
       "relationships": {
         "is_hash_of file:049ac777e8487c4065d28b7737e7a1cd6d9a0b5c7e95a120db95c292ea53e93f": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:43ed7c829500269d8705db6708c0da2589e5bffdf9c0d97cef06c16b01dde941": {
@@ -325,7 +470,22 @@
       "relationships": {
         "is_hash_of file:43ed7c829500269d8705db6708c0da2589e5bffdf9c0d97cef06c16b01dde941": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:afb491b81223df1e494d0db0e8c04de97baedd5421ad8b734e272b471ab9f057": {
@@ -335,7 +495,22 @@
       "relationships": {
         "is_hash_of file:afb491b81223df1e494d0db0e8c04de97baedd5421ad8b734e272b471ab9f057": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:b680a0ccecb5befe09b246735d895b052b5baebc789ad761c276bdd67a436f58": {
@@ -345,7 +520,22 @@
       "relationships": {
         "is_hash_of file:b680a0ccecb5befe09b246735d895b052b5baebc789ad761c276bdd67a436f58": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     }
   }

@@ -4410,6 +4410,417 @@
         }
       }
     },
+    "/api/observables/v1/detections": {
+      "get": {
+        "tags": [
+          "observables"
+        ],
+        "summary": "A page of the detections, ordered by type, value and id, each with its observable's comments.",
+        "operationId": "list",
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "description": "Part of the value, ignoring case; with `*`, a pattern, each `*` any run of characters.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "description": "Only detections of this type.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "`active` (the default: no expiry, or one still to come), `expired` or `all`.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "1-based, clamped to the pages there are.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "default": 1
+            }
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "description": "25, 50, 100 or 200; anything else is 50.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "default": 50
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of detections",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DetectionPageBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A status that isn't one, or a parameter that doesn't read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold detection:read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "This server's modules don't detect observables",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "observables"
+        ],
+        "summary": "Adds a detection: every alert holding the observable gets a detection point from the next task that\nchecks it. The observable needn't have been seen.",
+        "operationId": "create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewDetectionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "The detection",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DetectionBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A type this server doesn't have, a value that isn't one for it or is too long, a context that's too long, an expiry that passed, a list that would hold too many entries, or a body that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold detection:write, or a session's request came from another site",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "This server's modules don't detect observables",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "A detection of this type and value exists already",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The body is too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/observables/v1/detections/types": {
+      "get": {
+        "tags": [
+          "observables"
+        ],
+        "summary": "The types that have a detection, and every type a new one can be of.",
+        "operationId": "types",
+        "responses": {
+          "200": {
+            "description": "The types",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DetectionTypesBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold detection:read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "This server's modules don't detect observables",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/observables/v1/detections/{id}": {
+      "delete": {
+        "tags": [
+          "observables"
+        ],
+        "summary": "Removes a detection, which is how one is turned off. Its audit row keeps what it was.",
+        "operationId": "delete",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The detection's id",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "The detection is gone"
+          },
+          "400": {
+            "description": "An id that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold detection:write, or a session's request came from another site",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such detection",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/observables/v1/detections/{id}/expiration": {
+      "patch": {
+        "tags": [
+          "observables"
+        ],
+        "summary": "Sets when a detection expires, or that it never does. Setting what it has changes nothing.",
+        "operationId": "set_expiration",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The detection's id",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExpirationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The detection as it is now",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DetectionBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "An id that isn't one, an expiry that passed, or a body that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold detection:write, or a session's request came from another site",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such detection",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The body is too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/observables/v1/lookup": {
       "post": {
         "tags": [
@@ -8001,20 +8412,67 @@
       },
       "DetectionBody": {
         "type": "object",
+        "description": "An observable ACE detects.",
         "required": [
-          "description"
+          "id",
+          "type",
+          "value",
+          "expired",
+          "detection_context",
+          "created_by",
+          "created_at",
+          "modified_by",
+          "modified_at",
+          "comments"
         ],
         "properties": {
-          "description": {
-            "type": "string"
+          "comments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CommentBody"
+            },
+            "description": "The observable's comments, oldest first."
           },
-          "details": {},
-          "module": {
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "created_by": {
+            "$ref": "#/components/schemas/ActorBody"
+          },
+          "detection_context": {
+            "type": "string",
+            "description": "Why it's there."
+          },
+          "expired": {
+            "type": "boolean",
+            "description": "Its expiry passed."
+          },
+          "expires_on": {
             "type": [
               "string",
               "null"
             ],
-            "description": "The module whose result raised it."
+            "format": "date-time",
+            "description": "After this it detects nothing; null never expires."
+          },
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "modified_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "modified_by": {
+            "$ref": "#/components/schemas/ActorBody"
+          },
+          "type": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string",
+            "description": "The value as it's matched, exactly and with case. Show it as text."
           }
         }
       },
@@ -8037,6 +8495,43 @@
           "value": {
             "type": "string",
             "description": "A file's value is its sha256."
+          }
+        }
+      },
+      "DetectionPageBody": {
+        "type": "object",
+        "description": "A page of detections.",
+        "required": [
+          "items",
+          "total",
+          "page",
+          "page_size",
+          "total_pages"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DetectionBody"
+            }
+          },
+          "page": {
+            "type": "integer",
+            "format": "int64",
+            "description": "The page, clamped to the pages there are."
+          },
+          "page_size": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64",
+            "description": "How many match the filters, on every page."
+          },
+          "total_pages": {
+            "type": "integer",
+            "format": "int64"
           }
         }
       },
@@ -8129,6 +8624,30 @@
             ],
             "format": "int64",
             "description": "Pass as `after` for the next page; null on the last."
+          }
+        }
+      },
+      "DetectionTypesBody": {
+        "type": "object",
+        "description": "The types for a filter and for a new detection.",
+        "required": [
+          "present",
+          "all"
+        ],
+        "properties": {
+          "all": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Every type a detection can be of."
+          },
+          "present": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The types that have a detection."
           }
         }
       },
@@ -8685,6 +9204,20 @@
             ]
           }
         }
+      },
+      "ExpirationRequest": {
+        "type": "object",
+        "properties": {
+          "expires_on": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "When it stops detecting, in the future; null never."
+          }
+        },
+        "additionalProperties": false
       },
       "FileBody": {
         "type": "object",
@@ -9395,6 +9928,39 @@
           "value": {
             "type": "string",
             "description": "Its value; a file's is its sha256."
+          }
+        },
+        "additionalProperties": false
+      },
+      "NewDetectionRequest": {
+        "type": "object",
+        "required": [
+          "type",
+          "value"
+        ],
+        "properties": {
+          "detection_context": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Why, up to 1024 characters; `manually added by <name>` when left out."
+          },
+          "expires_on": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "Left out, the type's default lifetime: 90 days, or never for `sha256` and `md5`. Null never\nexpires. Otherwise it has to be in the future."
+          },
+          "type": {
+            "type": "string",
+            "description": "An observable type this server has."
+          },
+          "value": {
+            "type": "string",
+            "description": "The value, matched exactly and with case; a file's is its sha256."
           }
         },
         "additionalProperties": false

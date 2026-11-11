@@ -1,0 +1,41 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "SiteTagAnalysis",
+      "details": {
+        "tags_added": [
+          "shout"
+        ]
+      },
+      "detections": [],
+      "module_path": "saq.modules.tag:SiteTagAnalysis",
+      "observables": [],
+      "summary": "Site Tags: shout",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "url http://shout.example/, with fixtures/tag/site_tags.csv",
+    "meta_tags": [],
+    "observable": {
+      "type": "url",
+      "value": "http://shout.example/"
+    }
+  },
+  "module": "site_tagger",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "relationships": [],
+    "tags": [
+      "shout"
+    ],
+    "type": "url",
+    "value": "http://shout.example/"
+  }
+}

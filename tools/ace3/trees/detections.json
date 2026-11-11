@@ -1,0 +1,7 @@
+{
+  "about": "The observables enabled for detection when tools/ace3/trees/make-trees runs ace3, its Redis cache for observable_detection (run_module.py --detections). tests/e2e/run adds the same to ace4's observable_detection list through the detection API before its comparison.",
+  "detections": [
+    {"type": "fqdn", "value": "corp.example"},
+    {"type": "url", "value": "http://example.com/payload.exe"}
+  ]
+}

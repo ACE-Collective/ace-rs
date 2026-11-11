@@ -1,0 +1,41 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "UserDefinedTaggingAnalysis",
+      "details": {
+        "tags_added": [
+          "scanner"
+        ]
+      },
+      "detections": [],
+      "module_path": "saq.modules.tag:UserDefinedTaggingAnalysis",
+      "observables": [],
+      "summary": "User Defined Tagging: added 1 tags",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ipv4 203.0.113.9, with fixtures/tag/observable_tags.json",
+    "meta_tags": [],
+    "observable": {
+      "type": "ipv4",
+      "value": "203.0.113.9"
+    }
+  },
+  "module": "user_defined_tagging",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "relationships": [],
+    "tags": [
+      "scanner"
+    ],
+    "type": "ipv4",
+    "value": "203.0.113.9"
+  }
+}

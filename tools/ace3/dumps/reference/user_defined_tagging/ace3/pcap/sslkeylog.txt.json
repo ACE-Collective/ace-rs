@@ -1,0 +1,46 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "UserDefinedTaggingAnalysis",
+      "details": {
+        "tags_added": [
+          "known_keylog"
+        ]
+      },
+      "detections": [],
+      "module_path": "saq.modules.tag:UserDefinedTaggingAnalysis",
+      "observables": [],
+      "summary": "User Defined Tagging: added 1 tags",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace3/pcap/sslkeylog.txt, with fixtures/tag/observable_tags.json",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "sslkeylog.txt",
+      "size": 1114,
+      "type": "file",
+      "value": "76f3b3e668343641d138e1121f7be54778c87bf38fe98f27723be8be971ff8e3"
+    }
+  },
+  "module": "user_defined_tagging",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "file_path": "sslkeylog.txt",
+    "relationships": [],
+    "size": 1114,
+    "tags": [
+      "known_keylog"
+    ],
+    "type": "file",
+    "value": "76f3b3e668343641d138e1121f7be54778c87bf38fe98f27723be8be971ff8e3",
+    "yara_meta": []
+  }
+}

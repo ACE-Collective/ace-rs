@@ -36,6 +36,13 @@
           "summary": "File Type Analysis: data (application/octet-stream)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "url_extraction": {
           "details": {
             "urls": [],
@@ -43,29 +50,18 @@
           },
           "summary": null,
           "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
     },
-    "file:37b19caf19248f299b5d89de967500288baf31cdcdbc4035bcd07abc5b3cfca4": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "broken_garbage_after_header.pdf.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:9f3543ea87010d0416291b06834c62d9f8046b0b83d40168cafd13f163e41ad8": true
-      },
-      "results": {},
-      "tags": {}
-    },
-    "file:71b3bcd1c785950ff8de8466911a264ff3b68460e996e90236286de6742a6c9f": {
+    "file:83d8d7fdb35bc00ea9ac1e541da9a511df2f791db6bdc288c11b472721980ef8": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -103,6 +99,13 @@
           "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "pdftotext": {
           "details": {
             "output_path": "ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977",
@@ -124,6 +127,13 @@
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}
@@ -152,8 +162,8 @@
               "ExifTool:ExifToolVersion": 13.25,
               "ExifTool:Warning": "Invalid xref table",
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:10 11:34:42+00:00",
-              "File:FileInodeChangeDate": "2026:11:10 11:34:42+00:00",
+              "File:FileAccessDate": "2026:11:11 00:51:26+00:00",
+              "File:FileInodeChangeDate": "2026:11:11 00:51:26+00:00",
               "File:FileModifyDate": "2026:11:07 04:47:50+00:00",
               "File:FileName": "broken_garbage_after_header.pdf",
               "File:FilePermissions": 100644,
@@ -198,6 +208,13 @@
           "summary": "File Type Analysis: PDF document, version 1.7 (application/pdf) (pdf document)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "pdf_analyzer": {
           "details": {},
           "summary": null,
@@ -208,6 +225,13 @@
             "output_path": null,
             "stderr": "Syntax Error: Couldn't find trailer dictionary\nSyntax Error: Couldn't find trailer dictionary\nSyntax Error: Couldn't read xref table\n",
             "stdout": ""
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}
@@ -228,9 +252,9 @@
           "type=document.pdf.text": true
         }
       },
-      "redirection": "file:71b3bcd1c785950ff8de8466911a264ff3b68460e996e90236286de6742a6c9f",
+      "redirection": "file:83d8d7fdb35bc00ea9ac1e541da9a511df2f791db6bdc288c11b472721980ef8",
       "relationships": {
-        "extracted_from file:71b3bcd1c785950ff8de8466911a264ff3b68460e996e90236286de6742a6c9f": true
+        "extracted_from file:83d8d7fdb35bc00ea9ac1e541da9a511df2f791db6bdc288c11b472721980ef8": true
       },
       "results": {
         "file_type": {
@@ -251,6 +275,53 @@
           },
           "summary": "File Type Analysis: very short file (no magic) (application/octet-stream)",
           "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:ff171a638da5e1e078e511e76a2d881b6c091f89c7bf586a9f8338abc733c984": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "broken_garbage_after_header.pdf.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:9f3543ea87010d0416291b06834c62d9f8046b0b83d40168cafd13f163e41ad8": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {}
@@ -262,7 +333,22 @@
       "relationships": {
         "is_hash_of file:9f3543ea87010d0416291b06834c62d9f8046b0b83d40168cafd13f163e41ad8": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:9f3543ea87010d0416291b06834c62d9f8046b0b83d40168cafd13f163e41ad8": {
@@ -272,7 +358,22 @@
       "relationships": {
         "is_hash_of file:9f3543ea87010d0416291b06834c62d9f8046b0b83d40168cafd13f163e41ad8": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     }
   }

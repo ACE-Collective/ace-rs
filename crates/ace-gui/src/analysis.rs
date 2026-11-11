@@ -88,6 +88,9 @@ use ace_results::types::scripts::{
 use ace_results::types::snort::SnortSignatureAnalysis;
 use ace_results::types::splunk::{SplunkApiAnalysis, SplunkClickerDetectionAnalysis};
 use ace_results::types::ssdeep::SsdeepAnalysis;
+use ace_results::types::tag::{
+    ObservableDetectionAnalysis, SiteTagAnalysis, UserDefinedTaggingAnalysis,
+};
 use ace_results::types::url_extraction::UrlExtractionAnalysis;
 use ace_results::types::user::UserAnalysis;
 use ace_results::types::values::{
@@ -281,6 +284,9 @@ impl Views {
             .with(ViewEntry::of::<PcapFilesAnalysis>())
             .with(ViewEntry::of::<PcapTlsDecryptionAnalysis>())
             .with(ViewEntry::of::<TlsKeylogAnalysis>())
+            .with(ViewEntry::of::<ObservableDetectionAnalysis>())
+            .with(ViewEntry::of::<UserDefinedTaggingAnalysis>())
+            .with(ViewEntry::of::<SiteTagAnalysis>())
     }
 
     /// These views with `entry`, which takes the place of any view of the same type and version, so a
@@ -1895,6 +1901,43 @@ impl AnalysisView for OcrAnalysis {
             field("error", self.error.as_ref()),
             field("ocr", self.ocr.then_some("text found")),
         ])
+    }
+}
+
+// ---- tagging and detection (7.6): ace3's default_template.html ----
+
+/// `observable_detection_analysis`: whether the observable is enabled for detection.
+impl AnalysisView for ObservableDetectionAnalysis {
+    type View<'a> = FieldsView;
+    fn view(&self) -> FieldsView {
+        fields_view([field(
+            "for_detection",
+            Some(if self.for_detection { "yes" } else { "no" }),
+        )])
+    }
+}
+
+/// The tags a tagging module added, a field each, or that it added none.
+fn tags_added_view(tags: &[String]) -> FieldsView {
+    if tags.is_empty() {
+        return fields_view([field("tags_added", Some("none"))]);
+    }
+    fields_view(tags.iter().map(|tag| field("tag", Some(tag))))
+}
+
+/// `user_defined_tagging_analysis`: the tags analysts mapped to the observable.
+impl AnalysisView for UserDefinedTaggingAnalysis {
+    type View<'a> = FieldsView;
+    fn view(&self) -> FieldsView {
+        tags_added_view(&self.tags_added)
+    }
+}
+
+/// `site_tag_analysis`: the tags of the site's rows that matched.
+impl AnalysisView for SiteTagAnalysis {
+    type View<'a> = FieldsView;
+    fn view(&self) -> FieldsView {
+        tags_added_view(&self.tags_added)
     }
 }
 

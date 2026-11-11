@@ -91,8 +91,13 @@ async fn stack_with(limits: LiveLimits) -> Stack {
 }
 
 async fn stack_from(build: impl FnOnce(Service) -> Gui) -> Stack {
+    stack_of(Catalog::new(vec![]), build).await
+}
+
+/// A stack whose modules are `catalog`'s.
+async fn stack_of(catalog: Catalog, build: impl FnOnce(Service) -> Gui) -> Stack {
     let test_db = TestDb::new().await;
-    let orchestrator = Orchestrator::new(Catalog::new(vec![]), Modes::ace3());
+    let orchestrator = Orchestrator::new(catalog, Modes::ace3());
     let service = Service::new(test_db.db().clone(), orchestrator);
     let gui = build(service.clone());
     let router = gui.router();
@@ -2304,6 +2309,11 @@ fn each_module_s_view_draws_its_fixture() {
         "pcap_files_many_files",
         "pcap_tls_decryption_http_tls",
         "tls_keylog_sslkeylog",
+        "observable_detection_flagged",
+        "observable_detection_not_flagged",
+        "user_defined_tagging_tagged",
+        "user_defined_tagging_untagged",
+        "site_tagger_two_rows",
     ];
     let mut types = BTreeSet::new();
     for name in fixtures {
@@ -2812,6 +2822,29 @@ fn each_module_s_view_draws_its_fixture() {
             "tls_keylog_sslkeylog" => {
                 contains_all(&html, &["<tr><td>CLIENT_RANDOM</td><td>1</td></tr>"])
             }
+            "observable_detection_flagged" => {
+                contains_all(&html, &["<tr><th>for_detection</th><td>yes</td></tr>"])
+            }
+            "observable_detection_not_flagged" => {
+                contains_all(&html, &["<tr><th>for_detection</th><td>no</td></tr>"])
+            }
+            "user_defined_tagging_tagged" => contains_all(
+                &html,
+                &[
+                    "<tr><th>tag</th><td>phish_infra</td></tr>",
+                    "<tr><th>tag</th><td>watchlist</td></tr>",
+                ],
+            ),
+            "user_defined_tagging_untagged" => {
+                contains_all(&html, &["<tr><th>tags_added</th><td>none</td></tr>"])
+            }
+            "site_tagger_two_rows" => contains_all(
+                &html,
+                &[
+                    "<tr><th>tag</th><td>first</td></tr>",
+                    "<tr><th>tag</th><td>third</td></tr>",
+                ],
+            ),
             other => panic!("no checks for {other}"),
         }
     }
@@ -9670,4 +9703,431 @@ fn the_lure_view_escapes_what_the_email_wrote() {
         !html.contains("other candidate"),
         "the primary is the only candidate"
     );
+}
+
+// ---- Administration's Observables (PLAN.md 7.6) ----
+
+/// A module that reads 7.6's `observable_detection` list, so the binary has it. No mode names it.
+struct DetectionReader;
+
+impl ace_sdk::Module for DetectionReader {
+    const NAME: &'static str = "test_detection_reader";
+    const INPUTS: &'static [ace_results::ObservableKind] = &[ace_results::ObservableKind::Fqdn];
+    const LISTS: &'static [ace_sdk::lists::ListSpec] = &[ace_sdk::lists::ListSpec {
+        name: "observable_detection",
+        description: "the observables ACE detects",
+        typed: true,
+    }];
+    type Output = ace_results::types::snort::SnortSignatureAnalysis;
+    type Settings = ();
+
+    fn init(_: &()) -> Result<Self, ace_sdk::ModuleError> {
+        Ok(DetectionReader)
+    }
+}
+
+impl ace_sdk::Lookup for DetectionReader {
+    const TCP_PORTS: &'static [u16] = &[];
+
+    async fn analyze(
+        &self,
+        _: &ace_sdk::TaskContext<()>,
+    ) -> Result<ace_sdk::Outcome<Self::Output>, ace_sdk::ModuleError> {
+        Ok(ace_sdk::Outcome::Skipped("a stub".to_owned()))
+    }
+}
+
+async fn detection_stack() -> Stack {
+    stack_of(
+        Catalog::new(vec![ace_sdk::Manifest::lookup::<DetectionReader>()]),
+        |service| Gui::with_limits(service, Transport::Plain, LiveLimits::default()),
+    )
+    .await
+}
+
+fn detection_fixture(id: i64, kind: &str, value: &str) -> ace_service::Detection {
+    let at = chrono::DateTime::parse_from_rfc3339("2030-01-02T03:04:05Z")
+        .expect("a time")
+        .to_utc();
+    ace_service::Detection {
+        id,
+        observable_type: kind.to_owned(),
+        value: value.to_owned(),
+        expires_at: Some(at),
+        expired: true,
+        context: HOSTILE.to_owned(),
+        created_by: RecordedActor {
+            kind: "user".to_owned(),
+            id: "u".to_owned(),
+            name: Some(HOSTILE.to_owned()),
+        },
+        created_at: at,
+        modified_by: RecordedActor {
+            kind: "user".to_owned(),
+            id: "u".to_owned(),
+            name: None,
+        },
+        modified_at: at,
+        comments: vec![ObservableComment {
+            id: 1,
+            kind: kind.to_owned(),
+            value: value.to_owned(),
+            author: CommentAuthor {
+                id: ace_service::UserId(uuid::Uuid::from_u128(1)),
+                username: "alice".to_owned(),
+                display_name: Some(HOSTILE.to_owned()),
+            },
+            created_by: RecordedActor {
+                kind: "user".to_owned(),
+                id: "u".to_owned(),
+                name: None,
+            },
+            comment: HOSTILE.to_owned(),
+            created_at: at,
+            edited_at: None,
+        }],
+    }
+}
+
+/// The Observables page's view, called directly: ace3's filters, pager and table, each detection's
+/// expiry and delete as forms that carry the filters back, hostile text escaped and nothing inline, and
+/// without `detection:write` no forms. An expiry is typed as UTC.
+#[test]
+fn the_observables_page_draws_detections_as_text() {
+    use ace_gui::detection::{DetectionSettingsPage, detection_view, parse_expiry};
+    use ace_service::{DetectionFilter, DetectionPage, DetectionStatus, DetectionTypes};
+    let filter = DetectionFilter {
+        search: Some(HOSTILE.to_owned()),
+        observable_type: Some("fqdn".to_owned()),
+        status: DetectionStatus::All,
+        page: 2,
+        page_size: 25,
+    };
+    let page = || DetectionPage {
+        items: vec![detection_fixture(7, "fqdn", HOSTILE)],
+        total: 60,
+        page: 2,
+        page_size: 25,
+        total_pages: 3,
+    };
+    let types = || DetectionTypes {
+        present: vec!["fqdn".to_owned()],
+        all: vec!["file".to_owned(), "fqdn".to_owned(), "ipv4".to_owned()],
+    };
+    let layout = || {
+        Layout::new(
+            "n0nce",
+            Theme::Dark,
+            Some("alice".to_owned()),
+            "/admin/detection",
+        )
+    };
+    let html = drawn_safely(&DetectionSettingsPage {
+        layout: layout(),
+        view: detection_view(&filter, page(), types(), true),
+    });
+    let query = "q=%22%3E%3Cscript%3Ealert%28%27x%27%29%3C%2Fscript%3E%3Cimg+src%3Dx+onerror%3Dalert%281%29%3E%26amp%3B&#38;type=fqdn&#38;status=all&#38;page_size=25";
+    for part in [
+        "Showing 26–26 of 60",
+        "Page 2 of 3",
+        &format!(r#"<a href="/admin/detection?{query}&#38;page=1">First</a>"#),
+        &format!(r#"<a href="/admin/detection?{query}&#38;page=3">Last</a>"#),
+        r#"<option value="all" selected>all</option>"#,
+        r#"<option value="25" selected>25</option>"#,
+        r#"<option value="fqdn" selected>fqdn</option>"#,
+        r#"<form method="post" action="/admin/detection" class="detection-add" autocomplete="off">"#,
+        r#"<option value="ipv4">ipv4</option>"#,
+        r#"action="/admin/detection/7/expiration""#,
+        r#"<button type="submit" name="action" value="never">never</button>"#,
+        r#"action="/admin/detection/7/delete""#,
+        r#"<input type="hidden" name="page" value="2">"#,
+        &format!(r#"<input type="hidden" name="q" value="{HOSTILE_ESCAPED}">"#),
+        &format!("<code>{HOSTILE_ESCAPED}</code>"),
+        "2030-01-02 03:04:05 UTC",
+        r#"<span class="badge">expired</span>"#,
+    ] {
+        assert!(html.contains(part), "{part}: {html}");
+    }
+
+    // a reader sees no forms, and an empty listing says so
+    let empty = DetectionPage {
+        items: Vec::new(),
+        total: 0,
+        page: 1,
+        page_size: 50,
+        total_pages: 1,
+    };
+    let html = drawn_safely(&DetectionSettingsPage {
+        layout: layout(),
+        view: detection_view(&DetectionFilter::default(), empty, types(), false),
+    });
+    assert!(
+        !html.contains(r#"method="post" action="/admin/detection"#),
+        "{html}"
+    );
+    assert!(html.contains("No matching detections"));
+    assert!(html.contains("No detections found."));
+    assert!(!html.contains("First"), "one page has no pager");
+
+    let at = |s| parse_expiry(s).map(|t| t.to_rfc3339());
+    assert_eq!(
+        at("2030-01-02 03:04:05"),
+        Some("2030-01-02T03:04:05+00:00".to_owned())
+    );
+    assert_eq!(
+        at("2030-01-02T03:04"),
+        Some("2030-01-02T03:04:00+00:00".to_owned())
+    );
+    assert_eq!(
+        at(" 2030-01-02 03:04:05 UTC "),
+        Some("2030-01-02T03:04:05+00:00".to_owned())
+    );
+    assert_eq!(
+        at("2030-01-02"),
+        Some("2030-01-02T00:00:00+00:00".to_owned())
+    );
+    assert_eq!(at("tomorrow"), None);
+}
+
+/// PLAN.md 7.6: the Observables page through the server. It needs `admin:read` and `detection:read`,
+/// and the hub offers it to whoever holds `detection:read`; adding, setting an expiry and removing are
+/// this site's posts under `detection:write`, each one audited write that goes back to the page with its
+/// filters; a refusal draws the page again with the service's reason and what was typed, or says why,
+/// and writes nothing.
+#[tokio::test]
+async fn detections_are_added_expired_and_removed_through_the_admin_area() {
+    let stack = detection_stack().await;
+    let page = stack
+        .get("/admin/detection")
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(page.status(), StatusCode::SEE_OTHER);
+    assert_eq!(location(&page), "/login?next=%2Fadmin%2Fdetection");
+
+    let editor = user(&stack, "editor").await;
+    grant_to(&stack, &editor, "admin", "read").await;
+    grant_to(&stack, &editor, "detection", "read").await;
+    grant_to(&stack, &editor, "detection", "write").await;
+    let reader = user(&stack, "reader").await;
+    grant_to(&stack, &reader, "admin", "read").await;
+    grant_to(&stack, &reader, "detection", "read").await;
+    let admin_only = user(&stack, "admin-only").await;
+    grant_to(&stack, &admin_only, "admin", "read").await;
+    user(&stack, "nobody").await;
+    let (ed, rd, adm, none) = (
+        session_of(&stack, "editor").await,
+        session_of(&stack, "reader").await,
+        session_of(&stack, "admin-only").await,
+        session_of(&stack, "nobody").await,
+    );
+    let get = |session: &str, path: &str| stack.get(path).header("cookie", cookie(session)).send();
+    let text = |response: reqwest::Response| async move { response.text().await.expect("a page") };
+
+    // who sees what
+    let refused = get(&none, "/admin/detection").await.expect("answered");
+    assert_eq!(refused.status(), StatusCode::FORBIDDEN);
+    assert!(text(refused).await.contains("admin:read"));
+    let refused = get(&adm, "/admin/detection").await.expect("answered");
+    assert_eq!(refused.status(), StatusCode::FORBIDDEN);
+    assert!(text(refused).await.contains("detection:read"));
+    let hub = text(get(&adm, "/admin").await.expect("answered")).await;
+    assert!(!hub.contains(r#"href="/admin/detection""#), "{hub}");
+    let hub = text(get(&rd, "/admin").await.expect("answered")).await;
+    assert!(
+        hub.contains(r#"<a href="/admin/detection"><b>Observables</b>"#),
+        "{hub}"
+    );
+    let read = get(&rd, "/admin/detection").await.expect("answered");
+    assert_eq!(read.status(), StatusCode::OK);
+    let read = text(read).await;
+    assert!(read.contains("No detections found."));
+    assert!(
+        !read.contains(r#"method="post" action="/admin/detection"#),
+        "a reader has no forms"
+    );
+
+    // a post the reader, a cross-site page or an outsider makes writes nothing
+    let rows = stack.audit_count().await;
+    let add_form = [
+        ("observable_type", "fqdn"),
+        ("value", HOSTILE),
+        ("expires", ""),
+        ("context", ""),
+        ("q", "evil"),
+        ("status", "all"),
+        ("page_size", "25"),
+        ("page", "1"),
+    ];
+    let refused = stack
+        .post("/admin/detection", &add_form)
+        .header("cookie", cookie(&rd))
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(refused.status(), StatusCode::FORBIDDEN);
+    assert!(text(refused).await.contains("detection:write"));
+    let cross_site = stack
+        .http
+        .post(format!("{}/admin/detection", stack.url))
+        .header("cookie", cookie(&ed))
+        .header("origin", "https://evil.example")
+        .form(&add_form)
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(cross_site.status(), StatusCode::FORBIDDEN);
+    let refused = stack
+        .post("/admin/detection", &add_form)
+        .header("cookie", cookie(&none))
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(refused.status(), StatusCode::FORBIDDEN);
+    assert_eq!(stack.audit_count().await, rows, "nothing refused has a row");
+
+    // an add goes back to the page with its filters
+    let post = |path: String, form: Vec<(&'static str, String)>| {
+        let stack = &stack;
+        let ed = ed.clone();
+        async move {
+            let form: Vec<(&str, &str)> = form.iter().map(|(k, v)| (*k, v.as_str())).collect();
+            stack
+                .post(&path, &form)
+                .header("cookie", cookie(&ed))
+                .send()
+                .await
+                .expect("answered")
+        }
+    };
+    let owned = |form: &[(&'static str, &str)]| -> Vec<(&'static str, String)> {
+        form.iter().map(|(k, v)| (*k, (*v).to_owned())).collect()
+    };
+    let added = post("/admin/detection".to_owned(), owned(&add_form)).await;
+    assert_eq!(added.status(), StatusCode::SEE_OTHER);
+    assert_eq!(
+        location(&added),
+        "/admin/detection?q=evil&status=all&page_size=25&page=1&done=added"
+    );
+    assert_eq!(stack.audit_count().await, rows + 1);
+    assert_eq!(last_action(&stack).await, "create_detection");
+    let shown = text(
+        get(&ed, "/admin/detection?done=added")
+            .await
+            .expect("answered"),
+    )
+    .await;
+    assert!(shown.contains("The detection is added."), "{shown}");
+    assert!(shown.contains(&format!("<code>{HOSTILE_ESCAPED}</code>")));
+    assert!(shown.contains("manually added by editor"), "{shown}");
+    let id: i64 = sqlx::query_scalar(
+        "SELECT id FROM lists.entries WHERE list = 'observable_detection' AND value = $1",
+    )
+    .bind(HOSTILE)
+    .fetch_one(stack.test_db.db().pool())
+    .await
+    .expect("the entry");
+
+    // refusals draw the page again with the reason and what was typed
+    for (form, status, says) in [
+        (
+            vec![
+                ("observable_type", "no_such_type"),
+                ("value", "typed.example"),
+            ],
+            StatusCode::BAD_REQUEST,
+            "no observable type",
+        ),
+        (
+            vec![("observable_type", "file"), ("value", "typed.example")],
+            StatusCode::BAD_REQUEST,
+            "not a file value",
+        ),
+        (
+            vec![
+                ("observable_type", "fqdn"),
+                ("value", "typed.example"),
+                ("expires", "soon"),
+            ],
+            StatusCode::BAD_REQUEST,
+            "An expiry is a UTC time",
+        ),
+        (
+            vec![("observable_type", "fqdn"), ("value", HOSTILE)],
+            StatusCode::CONFLICT,
+            "a detection already exists",
+        ),
+    ] {
+        let refused = post("/admin/detection".to_owned(), owned(&form)).await;
+        assert_eq!(refused.status(), status, "{says}");
+        let page = text(refused).await;
+        assert!(page.contains(says), "{says}: {page}");
+        assert!(
+            page.contains(r#"value="typed.example""#) || says.starts_with("a detection"),
+            "{page}"
+        );
+    }
+    assert_eq!(stack.audit_count().await, rows + 1);
+
+    // an expiry, never, the same again, one that passed and one that isn't a time
+    let expiration = format!("/admin/detection/{id}/expiration");
+    let set = post(
+        expiration.clone(),
+        owned(&[("expires", "2999-01-02 03:04:05"), ("action", "set")]),
+    )
+    .await;
+    assert_eq!(set.status(), StatusCode::SEE_OTHER);
+    assert!(
+        location(&set).ends_with("done=expiration"),
+        "{}",
+        location(&set)
+    );
+    assert_eq!(last_action(&stack).await, "set_detection_expiration");
+    let never = post(expiration.clone(), owned(&[("action", "never")])).await;
+    assert!(location(&never).ends_with("done=expiration"));
+    let again = post(expiration.clone(), owned(&[("action", "never")])).await;
+    assert!(location(&again).ends_with("done=unchanged"));
+    assert_eq!(stack.audit_count().await, rows + 3);
+    let passed = post(
+        expiration.clone(),
+        owned(&[("expires", "2001-01-01"), ("action", "set")]),
+    )
+    .await;
+    assert_eq!(passed.status(), StatusCode::BAD_REQUEST);
+    assert!(text(passed).await.contains("in the future"));
+    let garbled = post(
+        expiration.clone(),
+        owned(&[("expires", ""), ("action", "set")]),
+    )
+    .await;
+    assert_eq!(garbled.status(), StatusCode::BAD_REQUEST);
+    for (path, status) in [
+        (
+            "/admin/detection/abc/expiration".to_owned(),
+            StatusCode::BAD_REQUEST,
+        ),
+        (
+            format!("/admin/detection/{}/expiration", i64::MAX),
+            StatusCode::NOT_FOUND,
+        ),
+    ] {
+        let refused = post(path.clone(), owned(&[("action", "never")])).await;
+        assert_eq!(refused.status(), status, "{path}");
+    }
+    assert_eq!(stack.audit_count().await, rows + 3);
+
+    // and a delete
+    let delete = format!("/admin/detection/{id}/delete");
+    let deleted = post(delete.clone(), owned(&[("status", "expired")])).await;
+    assert_eq!(deleted.status(), StatusCode::SEE_OTHER);
+    assert_eq!(
+        location(&deleted),
+        "/admin/detection?status=expired&page_size=50&page=1&done=deleted"
+    );
+    assert_eq!(last_action(&stack).await, "delete_detection");
+    let gone = post(delete, Vec::new()).await;
+    assert_eq!(gone.status(), StatusCode::NOT_FOUND);
+    let bad = post("/admin/detection/abc/delete".to_owned(), Vec::new()).await;
+    assert_eq!(bad.status(), StatusCode::BAD_REQUEST);
+    assert_eq!(stack.audit_count().await, rows + 4);
 }

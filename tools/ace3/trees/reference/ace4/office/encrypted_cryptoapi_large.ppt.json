@@ -1,7 +1,7 @@
 {
   "form": 1,
   "observables": {
-    "file:1c27db85da53f8b9772745cdeb3f44da37873ca734fc660b45a5a9b39a4deddb": {
+    "file:284cad59635e5fd4b42d29298f00bc000697e91f76da492fec334d20e3d76fb3": {
       "detections": {},
       "directives": {},
       "excluded_analysis": {
@@ -16,7 +16,22 @@
       "relationships": {
         "extracted_from file:c41dfb9f640d4986971b5495cc2bd74999b8cd7f14209c547ded916f400f54da": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "file:289a10f8bc1c09112a2824fb932252c1a61f224ee18cf09afcc837b75de4d0e4": {
@@ -59,10 +74,24 @@
           "summary": "File Type Analysis: data (application/octet-stream)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "url_extraction": {
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}
@@ -110,10 +139,24 @@
           "summary": "File Type Analysis: data (application/octet-stream)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "url_extraction": {
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}
@@ -138,8 +181,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:10 11:17:38+00:00",
-              "File:FileInodeChangeDate": "2026:11:10 11:17:38+00:00",
+              "File:FileAccessDate": "2026:11:11 00:36:14+00:00",
+              "File:FileInodeChangeDate": "2026:11:11 00:36:14+00:00",
               "File:FileModifyDate": "2026:11:07 10:46:15+00:00",
               "File:FileName": "encrypted_cryptoapi_large.ppt",
               "File:FilePermissions": 100644,
@@ -198,6 +241,13 @@
           "summary": "MSOffice Encryption Analysis: could not crack password",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "officeparser3": {
           "details": {
             "extracted_files": [
@@ -216,6 +266,13 @@
           },
           "summary": null,
           "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {
@@ -231,7 +288,22 @@
       "relationships": {
         "is_hash_of file:c41dfb9f640d4986971b5495cc2bd74999b8cd7f14209c547ded916f400f54da": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:c41dfb9f640d4986971b5495cc2bd74999b8cd7f14209c547ded916f400f54da": {
@@ -241,7 +313,22 @@
       "relationships": {
         "is_hash_of file:c41dfb9f640d4986971b5495cc2bd74999b8cd7f14209c547ded916f400f54da": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     }
   }

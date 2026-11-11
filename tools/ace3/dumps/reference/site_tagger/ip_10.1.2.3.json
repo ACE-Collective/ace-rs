@@ -1,0 +1,41 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "SiteTagAnalysis",
+      "details": {
+        "tags_added": [
+          "internal_net"
+        ]
+      },
+      "detections": [],
+      "module_path": "saq.modules.tag:SiteTagAnalysis",
+      "observables": [],
+      "summary": "Site Tags: internal_net",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ip 10.1.2.3, with fixtures/tag/site_tags.csv",
+    "meta_tags": [],
+    "observable": {
+      "type": "ip",
+      "value": "10.1.2.3"
+    }
+  },
+  "module": "site_tagger",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "relationships": [],
+    "tags": [
+      "internal_net"
+    ],
+    "type": "ip",
+    "value": "10.1.2.3"
+  }
+}

@@ -20,22 +20,22 @@ Versions are those of ace3's image: Python packages from `installer/requirements
 
 | Pool | Modules | Ported |
 |---|---|---|
-| parser | 53 | 52 |
-| lookup | 17 | 13 |
+| parser | 53 | 53 |
+| lookup | 17 | 15 |
 | core | 3 | 0 |
 | sandbox | 15 | 15 |
 | scanner | 2 | 0 |
-| all | 90 | 80 |
+| all | 90 | 83 |
 
 | Step | Modules |
 |---|---|
-| done | 80 |
-| 7.6 | 5 |
+| done | 83 |
+| 7.6 | 2 |
 | 7.7 | 2 |
 | 7.10 | 2 |
 | owner | 1 |
 
-No ace3 module goes to 7.8 or 7.9: 7.8's integrations are a site's (below), and remediation and file collection are services, not modules. "done" is the ten modules phases 1 to 4 ported and those 7.4 and 7.5 have ported since. "owner" is a module no step names.
+No ace3 module goes to 7.8 or 7.9: 7.8's integrations are a site's (below), and remediation and file collection are services, not modules. "done" is the ten modules phases 1 to 4 ported and those 7.4, 7.5 and 7.6 have ported since. "owner" is a module no step names.
 
 ## 7.5's batches
 
@@ -59,7 +59,7 @@ In order. Batches 10 to 13 run programs in the sandbox runner, which batch 10 bu
 
 ## What 7.2 serves
 
-Modules that read or write ACE's own data in ace3, or hold its encryption key, and what serves each in ace4, where workers hold neither. The reads, their scope, their bounds and how they refuse are a contract in `crates/ace-core/src/reads.md`, beside the lease API; each module's port step builds what its module calls. None is built in 7.2: the one ported module here then, `yara_scanner_v3_4`, gets its data on the ruleset, and that waits for 7.6, which brings the list it reads. 7.4 built the first, `snort-signature`, then `smtp-counts`, `email-thread-domains` with the first writes, `email_logger`'s, `email-thread`, and `newly-registered`, which serves `nrd_analyzer` though ace3's module reads no database of ACE's (below).
+Modules that read or write ACE's own data in ace3, or hold its encryption key, and what serves each in ace4, where workers hold neither. The reads, their scope, their bounds and how they refuse are a contract in `crates/ace-core/src/reads.md`, beside the lease API; each module's port step builds what its module calls. None is built in 7.2: the one ported module here then, `yara_scanner_v3_4`, gets its data on the ruleset, and that waits for 7.6, which brings the list it reads. 7.4 built the first, `snort-signature`, then `smtp-counts`, `email-thread-domains` with the first writes, `email_logger`'s, `email-thread`, and `newly-registered`, which serves `nrd_analyzer` though ace3's module reads no database of ACE's (below). 7.6 built `observable-tags`, over migration 0042's `analysis.observable_tags`, and `observable_detection` reads its list on the lease; the `ruleset` half of `yara_scanner_v3_4`, ace3's export of the detections as YARA rules, isn't built yet (PLAN.md 7.6).
 
 `tools/ace3/modules/check` finds these in ace3's code at the commit it checks. From each section's class it follows the class's methods, its bases, the functions they name in ace3's own packages and, through an interface, the methods of the package's classes, until it finds `get_db(`, `get_db_connection(`, `private_transaction(`, `run_private_transaction(` or a Redis connection, or a use of `saq.crypto`. It doesn't follow ace3's framework (`saq.analysis`, `saq.configuration`, `saq.engine` and the module base classes), whose own reads are the engine's. Some reads aren't in the module's own file: they're in helpers such as `saq/brocess.py`, `saq/modules/email/conversation.py`, `saq/email_archive/` and `saq/svs/`. At ace3 `f72f8946` it finds the 14 below. The check fails when this table misses one or lists one it doesn't find, or when a row names nothing to serve it or a read `reads.md` doesn't have.
 
@@ -269,9 +269,9 @@ In the config's order. ace4 is the crate a ported module is in.
 | `message_id_analyzer_v2` | `MessageIDAnalyzerV2` | `ace-mod-emailarchive` | lookup | done | correlation | analysis, cli, correlation |
 | `vbscript_analyzer` | `VBScriptAnalyzer` | `ace-mod-scripts` | parser | done | file | analysis, binary, cli, correlation, email, file |
 | `nowhitespace_analyzer` | `NoWhiteSpaceAnalyzer` | `ace-mod-scripts` | parser | done | file | analysis, binary, cli, correlation, email, file |
-| `user_defined_tagging` | `UserDefinedTaggingAnalyzer` | not yet | lookup | 7.6 | common | analysis, binary, cli, correlation, email, file |
+| `user_defined_tagging` | `UserDefinedTaggingAnalyzer` | `ace-mod-tag` | lookup | done | common | analysis, binary, cli, correlation, email, file |
 | `configuration_defined_tagging` | `ConfigurationDefinedTaggingAnalyzer` | not yet | core | 7.6 | common | analysis, binary, cli, correlation, email, file |
-| `site_tagger` | `SiteTagAnalyzer` | not yet | parser | 7.6 | common, file | analysis, binary, cli, correlation, email, file |
+| `site_tagger` | `SiteTagAnalyzer` | `ace-mod-tag` | parser | done | common, file | analysis, binary, cli, correlation, email, file |
 | `zip_encryption_analyzer` | `ZipEncryptionAnalyzer` | `ace-mod-encrypted` | parser | done | file | analysis, binary, cli, correlation, email, file |
 | `rar_encryption_analyzer` | `RarEncryptionAnalyzer` | `ace-mod-encrypted` | parser | done | file | analysis, binary, cli, correlation, email, file |
 | `pdf_encryption_analyzer` | `PDFEncryptionAnalyzer` | `ace-mod-encrypted` | parser | done | file | analysis, binary, cli, correlation, email, file |
@@ -279,7 +279,7 @@ In the config's order. ace4 is the crate a ported module is in.
 | `svs_yara_sample_capture` | `YaraSampleCapture` | not yet | lookup | 7.10 | - | dispositioned |
 | `svs_alert_tagger` | `SVSAlertTagger` | not yet | lookup | 7.10 | - | correlation |
 | `dhash` | `DHashImageAnalyzer` | `ace-mod-files` | parser | done | file | analysis, binary, cli, correlation, email, file |
-| `observable_detection` | `ObservableDetectionAnalyzer` | not yet | lookup | 7.6 | common | analysis, binary, cli, correlation, email, file |
+| `observable_detection` | `ObservableDetectionAnalyzer` | `ace-mod-tag` | lookup | done | common | analysis, binary, cli, correlation, email, file |
 | `phishkit_analyzer` | `PhishkitAnalyzer` | not yet | scanner | 7.7 | correlation, file | analysis, binary, cli, correlation, email, file |
 | `clicker_detection_splunk` | `SplunkClickerDetectionAnalyzer` | `ace-mod-splunk` | lookup | done | correlation | analysis, cli, correlation |
 
@@ -1929,9 +1929,9 @@ In the config's order. ace4 is the crate a ported module is in.
 ### user_defined_tagging
 
 - **Section**: `analysis_module_user_defined_tagging`, class `UserDefinedTaggingAnalyzer` in `saq/modules/tag.py`, enabled by default.
-- **ace4**: not yet.
+- **ace4**: ported in `ace-mod-tag`. Through the core's `observable-tags` read (7.2), of migration 0042's `analysis.observable_tags`, keyed by type and value. Nothing in ace3 writes its `observable_tag_mapping` but its tests, so nothing in ace4 writes the table either: a site fills it, and tests/e2e/run does with SQL. `crates/ace-mod-tag/tests/differences.md` has the rest.
 - **Pool**: lookup. One `observable-tags` read (7.2) per observable.
-- **Step**: 7.6.
+- **Step**: done.
 - **Does**: For every observable, reads the tags analysts attached to that (type, sha256 of value) in ACE's database and adds them to the observable.
 - **Input**: all (valid_observable_types None).
 - **Groups and modes**: groups common; modes analysis, binary, cli, correlation, email, file.
@@ -1971,9 +1971,9 @@ In the config's order. ace4 is the crate a ported module is in.
 ### site_tagger
 
 - **Section**: `analysis_module_site_tagger`, class `SiteTagAnalyzer` in `saq/modules/tag.py`, enabled by default.
-- **ace4**: not yet.
-- **Pool**: parser. Matches values against a site file; no network or database. Its CSV becomes a 5.14 list (5.14 says so).
-- **Step**: 7.6.
+- **ace4**: ported in `ace-mod-tag`. The CSV's text is the module's `csv` setting in the site's overlay, read when the pool starts, where ace3 watches `data/etc/site_tags.csv`; the rows are read with `ace-pycompat`'s csv reader and globs translated with its `fnmatch`. Off until the overlay gives it a section: ace3 enables it but doesn't ship the file it needs. A regex is the `regex` crate's, so a row using what only Python's `re` has is skipped, as ace3 skips a row it can't load. `crates/ace-mod-tag/tests/differences.md` has the rest.
+- **Pool**: parser. Matches values against the site's rows; no network or database. Its CSV is overlay settings, as 5.14 allows.
+- **Step**: done.
 - **Does**: Tags any observable whose value matches a row of the site tags CSV (match by exact, glob, regex, CIDR or subdomain, optionally case-insensitive, per observable type).
 - **Input**: all (valid_observable_types None; only types listed in the CSV do work).
 - **Groups and modes**: groups common, file; modes analysis, binary, cli, correlation, email, file.
@@ -2142,9 +2142,9 @@ In the config's order. ace4 is the crate a ported module is in.
 ### observable_detection
 
 - **Section**: `analysis_module_observable_detection`, class `ObservableDetectionAnalyzer` in `saq/modules/observable_detection.py`, enabled by default.
-- **ace4**: not yet.
-- **Pool**: lookup. One read per observable of the observables flagged for detection, a Redis cache today and a 5.14 list in ace4 (5.14 says so).
-- **Step**: 7.6.
+- **ace4**: ported in `ace-mod-tag`. The observables enabled for detection are 5.14's `observable_detection` list, typed by observable type, which the core adds to each task as it is when the task is leased (`Module::LISTS`), where ace3 reads a Redis copy of its `observable_detections` table that `ace observables export` rewrites every minute. An entry matches the observable's own type and its value exactly, as ace3's `<type>:<value>` key does, and an expired one matches nothing. Analysts edit it through ace3's `detection` router, `/api/observables/v1/detections` (`ace-service`'s `detection`, under `detection:read` and `detection:write`), and its admin page, `/admin/detection`. ace3's export of the same detections as YARA rules, whose `$obsd_` strings the YARA module resolves, isn't built (PLAN.md 7.6). `crates/ace-mod-tag/tests/differences.md` has the rest.
+- **Pool**: lookup. Reads the `observable_detection` list (5.14), which comes on the lease; it connects to nothing.
+- **Step**: done.
 - **Does**: For every observable, checks whether '<type>:<value>' is flagged for detection in the Redis cache maintained by 'ace observables export' and, if so, adds a detection point and a detect_<type> tag.
 - **Input**: all (valid_observable_types None).
 - **Groups and modes**: groups common; modes analysis, binary, cli, correlation, email, file.

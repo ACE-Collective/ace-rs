@@ -1,24 +1,6 @@
 {
   "form": 1,
   "observables": {
-    "file:197f7733bb4fcda01969a64bb4d46dd83a911d19e9c9d2ac1dab3fd7fac69f20": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "encrypted_ppt_no_session.ppt.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:a0c29a98583606e74bb159e759443eaf8f6874639510f0b4e0b8f8263745511d": true
-      },
-      "results": {},
-      "tags": {}
-    },
     "file:7d0a98a3301c7ddbe2b913457591a76affbf4b4ac5864572ce8c57f1b45a04aa": {
       "detections": {},
       "directives": {
@@ -59,10 +41,24 @@
           "summary": "File Type Analysis: data (application/octet-stream)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "url_extraction": {
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}
@@ -87,8 +83,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:10 11:17:56+00:00",
-              "File:FileInodeChangeDate": "2026:11:10 11:17:56+00:00",
+              "File:FileAccessDate": "2026:11:11 00:36:28+00:00",
+              "File:FileInodeChangeDate": "2026:11:11 00:36:28+00:00",
               "File:FileModifyDate": "2026:11:07 10:46:15+00:00",
               "File:FileName": "encrypted_ppt_no_session.ppt",
               "File:FilePermissions": 100644,
@@ -147,6 +143,13 @@
           "summary": "MSOffice Encryption Analysis: could not crack password",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "officeparser3": {
           "details": {
             "extracted_files": [
@@ -165,6 +168,13 @@
           },
           "summary": null,
           "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
         }
       },
       "tags": {
@@ -172,6 +182,39 @@
         "microsoft_office": true,
         "ole": true
       }
+    },
+    "file:eb85d7ab4885b044ff3c658fb6b784348a11a15cde6ff4b645ae9167643ffdb8": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "encrypted_ppt_no_session.ppt.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:a0c29a98583606e74bb159e759443eaf8f6874639510f0b4e0b8f8263745511d": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
     },
     "file:ebcbd5f378239f5638a26a8fc2256df5e0b976ed9ee28ba9d10b88266ffbc790": {
       "detections": {},
@@ -213,10 +256,24 @@
           "summary": "File Type Analysis: data (application/octet-stream)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
         "url_extraction": {
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}
@@ -231,7 +288,22 @@
       "relationships": {
         "is_hash_of file:a0c29a98583606e74bb159e759443eaf8f6874639510f0b4e0b8f8263745511d": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "sha256:a0c29a98583606e74bb159e759443eaf8f6874639510f0b4e0b8f8263745511d": {
@@ -241,7 +313,22 @@
       "relationships": {
         "is_hash_of file:a0c29a98583606e74bb159e759443eaf8f6874639510f0b4e0b8f8263745511d": true
       },
-      "results": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     }
   }

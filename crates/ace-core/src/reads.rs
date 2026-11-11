@@ -18,8 +18,9 @@ use ace_sdk::reads::{
     ArchivedEmailAnswer, ArchivedEmailRequest, ArchivedUrlCountAnswer, ArchivedUrlCountRequest,
     Conversation, ConversationMessage, DecryptedArchiveAnswer, DecryptedArchiveRequest,
     EmailThreadAnswer, EmailThreadDomainsAnswer, EmailThreadDomainsRequest, EmailThreadRequest,
-    EstablishedDomain, MessageParticipant, NewlyRegisteredAnswer, NewlyRegisteredRequest,
-    SmtpCountsAnswer, SmtpCountsRequest, SnortSignatureAnswer, SnortSignatureRequest,
+    EstablishedDomain, MAX_OBSERVABLE_TAGS, MessageParticipant, NewlyRegisteredAnswer,
+    NewlyRegisteredRequest, ObservableTagsAnswer, ObservableTagsRequest, SmtpCountsAnswer,
+    SmtpCountsRequest, SnortSignatureAnswer, SnortSignatureRequest,
 };
 use regex::Regex;
 use serde_json::Value;
@@ -123,6 +124,10 @@ pub async fn answer(
         "archived-url-count" => {
             let request: ArchivedUrlCountRequest = parse(request)?;
             serde_json::to_value(archived_url_count(stores, task, request).await?)
+        }
+        "observable-tags" => {
+            let request: ObservableTagsRequest = parse(request)?;
+            serde_json::to_value(observable_tags(db, task, request).await?)
         }
         other => {
             return Err(ReadFailure::Forbidden(format!(
@@ -449,6 +454,49 @@ async fn newly_registered(
         "read"
     );
     Ok(NewlyRegisteredAnswer { listed })
+}
+
+// ---- observable-tags ----
+
+/// `observable-tags`: ace3's `user_defined_tagging` SELECT, the tags mapped to the task's own
+/// observable's type and value (migration 0042's `analysis.observable_tags`), in the order they were
+/// mapped. It answers for nothing but the task's own observable, at most `MAX_OBSERVABLE_TAGS`.
+async fn observable_tags(
+    db: &Db,
+    task: &Task,
+    request: ObservableTagsRequest,
+) -> Result<ObservableTagsAnswer, ReadFailure> {
+    let own = ObservableRef::new(task.observable.kind, task.observable.value.clone());
+    if let Some(subject) = request.subject
+        && subject != own
+    {
+        return Err(ReadFailure::Forbidden(format!(
+            "{}:{} isn't the task's own observable, the only one this read answers for",
+            subject.kind, subject.value
+        )));
+    }
+    let limit = i64::try_from(MAX_OBSERVABLE_TAGS + 1).unwrap_or(i64::MAX);
+    let mut tags = sqlx::query_scalar!(
+        "SELECT tag FROM analysis.observable_tags
+         WHERE type = $1 AND value_hash = analysis.value_hash($2) AND value = $2
+         ORDER BY id LIMIT $3",
+        own.kind.as_str(),
+        own.value,
+        limit,
+    )
+    .fetch_all(db.pool())
+    .await?;
+    let truncated = tags.len() > MAX_OBSERVABLE_TAGS;
+    tags.truncate(MAX_OBSERVABLE_TAGS);
+    tracing::info!(
+        task = task.id.0,
+        root = %task.root,
+        read = "observable-tags",
+        tags = tags.len(),
+        truncated,
+        "read"
+    );
+    Ok(ObservableTagsAnswer { tags, truncated })
 }
 
 // ---- email-thread-domains ----
