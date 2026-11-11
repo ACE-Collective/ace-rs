@@ -29,6 +29,9 @@
 //! `nrd:` lists the feeds of the newly registered domains list (PLAN.md 7.4), as ace3's `nrd:`
 //! section does, for the scheduler's `nrd_refresh` task.
 //!
+//! `hooks:` holds the settings of `configuration_defined_tagging` and `observable_modifier`, which the
+//! core runs over the whole tree (PLAN.md 7.6, `crate::hooks`).
+//!
 //! `secrets:` says where each secret comes from, by the name modules declare in
 //! `Module::SECRETS`: `env:<VARIABLE>` or `file:<path>`, as ace3's `env:` references. Nothing
 //! is read when the overlay loads; a pool reads only the ones its modules declare (PLAN.md 2.24,
@@ -63,6 +66,9 @@ pub struct Overlay {
     /// The feeds of the newly registered domains list (PLAN.md 7.4), ace3's `nrd:` section, which
     /// `ace serve`'s `nrd_refresh` task reads.
     pub nrd: NrdSection,
+    /// The settings of the modules the core runs as hooks (PLAN.md 7.6), `ace_sdk::hooks`. `ace serve`
+    /// reads it; a pool doesn't.
+    pub hooks: crate::hooks::HooksSection,
 }
 
 /// ace3's `nrd:` section: the feeds the `nrd_refresh` task builds the newly registered domains list
@@ -274,6 +280,7 @@ impl Overlay {
             secrets: self.secrets.clone(),
             scheduler: BTreeMap::new(),
             nrd: NrdSection::default(),
+            hooks: crate::hooks::HooksSection::default(),
         }
     }
 

@@ -1,0 +1,23 @@
+{
+  "analysis_type": "observable_modifier_analysis",
+  "schema_version": 1,
+  "details": {
+    "matched_rules": [
+      {
+        "actions_applied": {
+          "add_detection_points": [
+            "the observable modifier marked a recipient's domain"
+          ],
+          "add_tags": [
+            "modifier_recipient_domain"
+          ],
+          "set_display_type": "Recipient Domain",
+          "set_display_value": "recipient"
+        },
+        "name": "e2e recipient domain",
+        "uuid": "2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a01"
+      }
+    ]
+  },
+  "summary": "Applied 1 rule(s): e2e recipient domain"
+}

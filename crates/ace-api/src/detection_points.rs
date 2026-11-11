@@ -33,8 +33,9 @@ pub(crate) struct DetectionPointBody {
     /// The detection's id, for `after`.
     id: i64,
     alert: Uuid,
-    /// The observable it's on.
-    observable: DetectionObservableBody,
+    /// The observable it's on, or null for a detection on the alert itself, such as a tag configured as
+    /// alertable makes.
+    observable: Option<DetectionObservableBody>,
     /// The module whose result raised it, or null for one a submission or the core added.
     module: Option<String>,
     /// As a module, a rule or a submission wrote it. Show it as text.
@@ -55,11 +56,9 @@ impl From<DetectionPoint> for DetectionPointBody {
         DetectionPointBody {
             id: detection.id,
             alert: detection.alert,
-            observable: DetectionObservableBody {
-                id: detection.observable_id,
-                kind: detection.observable_type,
-                value: detection.observable_value,
-            },
+            observable: detection
+                .observable
+                .map(|(id, kind, value)| DetectionObservableBody { id, kind, value }),
             module: detection.module,
             description: detection.description,
             details: detection.details,
@@ -93,9 +92,18 @@ impl ExportRow for DetectionPointBody {
         vec![
             self.id.to_string(),
             self.alert.to_string(),
-            self.observable.id.to_string(),
-            self.observable.kind.clone(),
-            self.observable.value.clone(),
+            self.observable
+                .as_ref()
+                .map(|o| o.id.to_string())
+                .unwrap_or_default(),
+            self.observable
+                .as_ref()
+                .map(|o| o.kind.clone())
+                .unwrap_or_default(),
+            self.observable
+                .as_ref()
+                .map(|o| o.value.clone())
+                .unwrap_or_default(),
             self.module.clone().unwrap_or_default(),
             self.description.clone(),
             self.details

@@ -221,8 +221,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files/vba_excel.xlsb.extracted/xl",
-              "File:FileAccessDate": "2026:11:11 00:43:17+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 00:43:17+00:00",
+              "File:FileAccessDate": "2026:11:11 09:10:41+00:00",
+              "File:FileInodeChangeDate": "2026:11:11 09:10:40+00:00",
               "File:FileModifyDate": "2026:01:01 00:00:00+00:00",
               "File:FileName": "vbaProject.bin",
               "File:FilePermissions": 100664,
@@ -490,39 +490,6 @@
       },
       "tags": {}
     },
-    "file:3527327fba1e896d364810db3e156f2067eca14e297647764eddb76a78efbe70": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "vba_excel.xlsb.extracted/xl/vbaProject.bin.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:170b804293599496c29d816cfe408adc5a99e767eb930b0c0cf9e7db62436abe": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:4558d5fd273bce9b9251c4b3b8abec915d5256936c215997408e84f504759325": {
       "detections": {},
       "directives": {
@@ -556,8 +523,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 00:43:16+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 00:43:16+00:00",
+              "File:FileAccessDate": "2026:11:11 09:10:39+00:00",
+              "File:FileInodeChangeDate": "2026:11:11 09:10:39+00:00",
               "File:FileModifyDate": "2026:11:07 15:11:53+00:00",
               "File:FileName": "vba_excel.xlsb",
               "File:FilePermissions": 100644,
@@ -714,6 +681,39 @@
         "macro": true
       }
     },
+    "file:63dcbe0af016e90ea2f5e12f7fba91785569f25388d47925810ee6e87aa8fd33": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "vba_excel.xlsb.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:4558d5fd273bce9b9251c4b3b8abec915d5256936c215997408e84f504759325": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:6abcffd4b8ab01c91122f2a8e6dffad54560556425cd0591005816b5b292d431": {
       "detections": {},
       "directives": {
@@ -765,39 +765,6 @@
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
-    "file:7611584b3c4562587d18aa5a96972f75e46a4dd4c8c8474f92152e5700b4b521": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "vba_excel.xlsb.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:4558d5fd273bce9b9251c4b3b8abec915d5256936c215997408e84f504759325": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
           },
           "summary": null,
           "tags": {}
@@ -942,6 +909,39 @@
       },
       "tags": {}
     },
+    "file:d715966df82dced617ffefb42d401466ac8f99211128946275ee989b3af263c8": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "vba_excel.xlsb.extracted/xl/vbaProject.bin.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:170b804293599496c29d816cfe408adc5a99e767eb930b0c0cf9e7db62436abe": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:fe0957024595307c9b083effc3231498bc7b7945d28bc1d5aa6d97d9e0729c25": {
       "detections": {},
       "directives": {},
@@ -1005,6 +1005,21 @@
           "summary": null,
           "tags": {}
         },
+        "observable_modifier": {
+          "details": {
+            "matched_rules": [
+              {
+                "actions_applied": {
+                  "ignore": true
+                },
+                "name": "hashes out from under the hash module",
+                "uuid": "2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03"
+              }
+            ]
+          },
+          "summary": "Applied 1 rule(s): hashes out from under the hash module",
+          "tags": {}
+        },
         "user_defined_tagging": {
           "details": {
             "tags_added": []
@@ -1039,6 +1054,36 @@
         }
       },
       "tags": {}
+    },
+    "signature_id:2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    }
+  },
+  "root": {
+    "detections": {
+      "tag olevba is configured to be alertable": [
+        null
+      ]
     }
   }
 }

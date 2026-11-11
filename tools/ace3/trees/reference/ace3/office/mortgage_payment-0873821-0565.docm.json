@@ -221,8 +221,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files/mortgage_payment-0873821-0565.docm.extracted/word",
-              "File:FileAccessDate": "2026:11:11 00:27:17+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 00:27:17+00:00",
+              "File:FileAccessDate": "2026:11:11 08:44:08+00:00",
+              "File:FileInodeChangeDate": "2026:11:11 08:44:07+00:00",
               "File:FileModifyDate": "1980:01:01 00:00:00+00:00",
               "File:FileName": "vbaProject.bin",
               "File:FilePermissions": 100664,
@@ -741,8 +741,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 00:27:16+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 00:27:16+00:00",
+              "File:FileAccessDate": "2026:11:11 08:44:06+00:00",
+              "File:FileInodeChangeDate": "2026:11:11 08:44:06+00:00",
               "File:FileModifyDate": "2026:11:06 19:20:07+00:00",
               "File:FileName": "mortgage_payment-0873821-0565.docm",
               "File:FilePermissions": 100644,
@@ -921,39 +921,6 @@
         "xml_plain_text_analyzer": {
           "details": {
             "xml_plain_text": null
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
-    "file:533a4bd4695bf4c0ee8afcf23b0f0cf5858d55cc147f7de54ad888f79bdf3b20": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "mortgage_payment-0873821-0565.docm.extracted/word/vbaProject.bin.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:170b804293599496c29d816cfe408adc5a99e767eb930b0c0cf9e7db62436abe": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
           },
           "summary": null,
           "tags": {}
@@ -1220,6 +1187,39 @@
       },
       "tags": {}
     },
+    "file:749663030882cbae0aa6d49acb7a0e7ea57945a7bd70237ad0e6dc3b469624d8": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "mortgage_payment-0873821-0565.docm.extracted/word/vbaProject.bin.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:170b804293599496c29d816cfe408adc5a99e767eb930b0c0cf9e7db62436abe": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:774eb91201717128f51f462a6bc1dbefe18948f3efabfedd32edc94cda8ae754": {
       "detections": {},
       "directives": {
@@ -1401,6 +1401,39 @@
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:8bfd76ba11791101d4bd5d977845efd2c325a4a8b5c740782b9887bfb9c4395b": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "mortgage_payment-0873821-0565.docm.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:45cca7fd63944ca6b6ea4e4669078cf3520b3896956c183c9bfd0fb3d0bfaf4f": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
           },
           "summary": null,
           "tags": {}
@@ -1823,39 +1856,6 @@
       },
       "tags": {}
     },
-    "file:d211ac7ca7c723a0341e273e7aca59739b7cd9ad1702151ab430e8c125f33085": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "mortgage_payment-0873821-0565.docm.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:45cca7fd63944ca6b6ea4e4669078cf3520b3896956c183c9bfd0fb3d0bfaf4f": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:db4522612e65b2ce4225a50bc41e7510fea3954f384236a7f10893795d41120d": {
       "detections": {},
       "directives": {
@@ -2179,6 +2179,21 @@
           "summary": null,
           "tags": {}
         },
+        "observable_modifier": {
+          "details": {
+            "matched_rules": [
+              {
+                "actions_applied": {
+                  "ignore": true
+                },
+                "name": "hashes out from under the hash module",
+                "uuid": "2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03"
+              }
+            ]
+          },
+          "summary": "Applied 1 rule(s): hashes out from under the hash module",
+          "tags": {}
+        },
         "user_defined_tagging": {
           "details": {
             "tags_added": []
@@ -2204,6 +2219,21 @@
           "summary": null,
           "tags": {}
         },
+        "observable_modifier": {
+          "details": {
+            "matched_rules": [
+              {
+                "actions_applied": {
+                  "ignore": true
+                },
+                "name": "hashes out from under the hash module",
+                "uuid": "2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03"
+              }
+            ]
+          },
+          "summary": "Applied 1 rule(s): hashes out from under the hash module",
+          "tags": {}
+        },
         "user_defined_tagging": {
           "details": {
             "tags_added": []
@@ -2227,6 +2257,21 @@
             "for_detection": false
           },
           "summary": null,
+          "tags": {}
+        },
+        "observable_modifier": {
+          "details": {
+            "matched_rules": [
+              {
+                "actions_applied": {
+                  "ignore": true
+                },
+                "name": "hashes out from under the hash module",
+                "uuid": "2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03"
+              }
+            ]
+          },
+          "summary": "Applied 1 rule(s): hashes out from under the hash module",
           "tags": {}
         },
         "user_defined_tagging": {
@@ -2313,6 +2358,36 @@
         }
       },
       "tags": {}
+    },
+    "signature_id:2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    }
+  },
+  "root": {
+    "detections": {
+      "tag olevba is configured to be alertable": [
+        null
+      ]
     }
   }
 }

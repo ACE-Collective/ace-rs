@@ -361,22 +361,25 @@
     },
     "email_subject:canary #1": {
       "detections": {},
-      "directives": {},
+      "directives": {
+        "exclude_all": true
+      },
       "excluded_analysis": {},
       "relationships": {},
       "results": {
-        "observable_detection": {
+        "observable_modifier": {
           "details": {
-            "for_detection": false
+            "matched_rules": [
+              {
+                "actions_applied": {
+                  "ignore": true
+                },
+                "name": "no subject analysis",
+                "uuid": "2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a04"
+              }
+            ]
           },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
+          "summary": "Applied 1 rule(s): no subject analysis",
           "tags": {}
         }
       },
@@ -594,7 +597,7 @@
         "email": true
       }
     },
-    "file:5012de2eb96b7eb3035610bc197303d837ab6a47ef05c217a9e2cd61b98ed84d": {
+    "file:43551db605d674ba65e6ef6bc424bf122f73403c0f8777e38a40f6b039c1b592": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -1588,39 +1591,6 @@
       },
       "tags": {}
     },
-    "file:9acd9c851dd1d93517f66e2236b381cf78270471a9abf609a7d376d269816051": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "spectre.pdf.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:d1a3c8c49faea6321bd01e706e0957012c18a94e1a187f1a5477c0e82270dc51": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:a9824e9a088bd0e3b97aef48b8e1ea8a95389d5661abb030b4f73b1e55e03e9f": {
       "detections": {},
       "directives": {
@@ -1759,6 +1729,39 @@
       },
       "tags": {}
     },
+    "file:b284e4ff357802d12d76c3648fe347291c5835c32f3ba4c78b1d81619f519a66": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "spectre.pdf.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:d1a3c8c49faea6321bd01e706e0957012c18a94e1a187f1a5477c0e82270dc51": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:bb09ae7a1d502a5d610a97f4b6a93488f7d21836d9784941623e481037d89cff": {
       "detections": {},
       "directives": {
@@ -1839,9 +1842,9 @@
               "ExifTool:ExifToolVersion": 13.25,
               "ExifTool:Warning": "FlateDecode Predictor 2 currently not supported",
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 00:25:13+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 00:25:13+00:00",
-              "File:FileModifyDate": "2026:11:11 00:25:13+00:00",
+              "File:FileAccessDate": "2026:11:11 08:42:11+00:00",
+              "File:FileInodeChangeDate": "2026:11:11 08:42:11+00:00",
+              "File:FileModifyDate": "2026:11:11 08:42:11+00:00",
               "File:FileName": "spectre.pdf",
               "File:FilePermissions": 100664,
               "File:FileSize": 131872,
@@ -1951,9 +1954,9 @@
           "type=document.pdf.text": true
         }
       },
-      "redirection": "file:5012de2eb96b7eb3035610bc197303d837ab6a47ef05c217a9e2cd61b98ed84d",
+      "redirection": "file:43551db605d674ba65e6ef6bc424bf122f73403c0f8777e38a40f6b039c1b592",
       "relationships": {
-        "extracted_from file:5012de2eb96b7eb3035610bc197303d837ab6a47ef05c217a9e2cd61b98ed84d": true
+        "extracted_from file:43551db605d674ba65e6ef6bc424bf122f73403c0f8777e38a40f6b039c1b592": true
       },
       "results": {
         "file_type": {
@@ -3457,6 +3460,21 @@
           "summary": null,
           "tags": {}
         },
+        "observable_modifier": {
+          "details": {
+            "matched_rules": [
+              {
+                "actions_applied": {
+                  "ignore": true
+                },
+                "name": "hashes out from under the hash module",
+                "uuid": "2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03"
+              }
+            ]
+          },
+          "summary": "Applied 1 rule(s): hashes out from under the hash module",
+          "tags": {}
+        },
         "user_defined_tagging": {
           "details": {
             "tags_added": []
@@ -3480,6 +3498,21 @@
             "for_detection": false
           },
           "summary": null,
+          "tags": {}
+        },
+        "observable_modifier": {
+          "details": {
+            "matched_rules": [
+              {
+                "actions_applied": {
+                  "ignore": true
+                },
+                "name": "hashes out from under the hash module",
+                "uuid": "2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03"
+              }
+            ]
+          },
+          "summary": "Applied 1 rule(s): hashes out from under the hash module",
           "tags": {}
         },
         "user_defined_tagging": {
@@ -3550,6 +3583,52 @@
       "relationships": {
         "is_hash_of file:d1a3c8c49faea6321bd01e706e0957012c18a94e1a187f1a5477c0e82270dc51": true
       },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "signature_id:2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "signature_id:2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a04": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
       "results": {
         "observable_detection": {
           "details": {

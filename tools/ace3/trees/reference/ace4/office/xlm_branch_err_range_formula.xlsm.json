@@ -182,39 +182,6 @@
       },
       "tags": {}
     },
-    "file:1fe4577cf8422f367829b8d10562db573b89154544c367c4a96c84b8ba362332": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "xlm_branch_err_range_formula.xlsm.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:df7d100a2d0c90c3e2fdede7a91d376acb7a9e23418821567915b109ef5daa00": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:28b5d848338ebb7f246e4026aebe3778a4d6857de13fba467fb9996e201af3d1": {
       "detections": {},
       "directives": {},
@@ -243,6 +210,39 @@
           "summary": "File Type Analysis: ASCII text (text/plain)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:675e648b52f72adcfab5118746204fa7b3d4c2299fa503ba4d29b64315dfd56f": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "xlm_branch_err_range_formula.xlsm.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:df7d100a2d0c90c3e2fdede7a91d376acb7a9e23418821567915b109ef5daa00": true
+      },
+      "results": {
         "observable_detection": {
           "details": {
             "for_detection": false
@@ -623,8 +623,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 00:45:47+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 00:45:47+00:00",
+              "File:FileAccessDate": "2026:11:11 09:13:12+00:00",
+              "File:FileInodeChangeDate": "2026:11:11 09:13:12+00:00",
               "File:FileModifyDate": "2026:11:07 14:35:12+00:00",
               "File:FileName": "xlm_branch_err_range_formula.xlsm",
               "File:FilePermissions": 100644,
@@ -792,6 +792,21 @@
           "summary": null,
           "tags": {}
         },
+        "observable_modifier": {
+          "details": {
+            "matched_rules": [
+              {
+                "actions_applied": {
+                  "ignore": true
+                },
+                "name": "hashes out from under the hash module",
+                "uuid": "2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03"
+              }
+            ]
+          },
+          "summary": "Applied 1 rule(s): hashes out from under the hash module",
+          "tags": {}
+        },
         "user_defined_tagging": {
           "details": {
             "tags_added": []
@@ -809,6 +824,29 @@
       "relationships": {
         "is_hash_of file:df7d100a2d0c90c3e2fdede7a91d376acb7a9e23418821567915b109ef5daa00": true
       },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "signature_id:2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
       "results": {
         "observable_detection": {
           "details": {

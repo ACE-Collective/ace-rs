@@ -1,6 +1,39 @@
 {
   "form": 1,
   "observables": {
+    "file:0d69e500e3a00534d1a2e794211719d049b6c41a330ad8128c76fa7d22313d7d": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "edge_empty_class.rtf.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:e8b4896c6bae3bffc82f3d3ed9ed74f01b7953d34368bb3a6a9a6a68151eb9e0": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:9a82a6f9fea0e7fddbadbcbc5df520b2afa1646a3d7c1a6d5af9d9795f99e214": {
       "detections": {},
       "directives": {},
@@ -78,39 +111,6 @@
         "microsoft_office": true,
         "rtf": true
       }
-    },
-    "file:b98c29108dd43e3564f812583b9a19cf6cbe41e0c60eeaebf5486e93008a9603": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "edge_empty_class.rtf.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:e8b4896c6bae3bffc82f3d3ed9ed74f01b7953d34368bb3a6a9a6a68151eb9e0": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
     },
     "file:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855": {
       "detections": {},
@@ -193,8 +193,8 @@
               "ExifTool:ExifToolVersion": 13.25,
               "ExifTool:Warning": "Unspecified RTF encoding. Will assume Latin",
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 00:59:19+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 00:59:19+00:00",
+              "File:FileAccessDate": "2026:11:11 09:39:03+00:00",
+              "File:FileInodeChangeDate": "2026:11:11 09:39:03+00:00",
               "File:FileModifyDate": "2026:11:07 15:11:53+00:00",
               "File:FileName": "edge_empty_class.rtf",
               "File:FilePermissions": 100644,
@@ -289,6 +289,21 @@
           "summary": null,
           "tags": {}
         },
+        "observable_modifier": {
+          "details": {
+            "matched_rules": [
+              {
+                "actions_applied": {
+                  "ignore": true
+                },
+                "name": "hashes out from under the hash module",
+                "uuid": "2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03"
+              }
+            ]
+          },
+          "summary": "Applied 1 rule(s): hashes out from under the hash module",
+          "tags": {}
+        },
         "user_defined_tagging": {
           "details": {
             "tags_added": []
@@ -312,6 +327,21 @@
             "for_detection": false
           },
           "summary": null,
+          "tags": {}
+        },
+        "observable_modifier": {
+          "details": {
+            "matched_rules": [
+              {
+                "actions_applied": {
+                  "ignore": true
+                },
+                "name": "hashes out from under the hash module",
+                "uuid": "2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03"
+              }
+            ]
+          },
+          "summary": "Applied 1 rule(s): hashes out from under the hash module",
           "tags": {}
         },
         "user_defined_tagging": {
@@ -356,6 +386,29 @@
       "relationships": {
         "is_hash_of file:e8b4896c6bae3bffc82f3d3ed9ed74f01b7953d34368bb3a6a9a6a68151eb9e0": true
       },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "signature_id:2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
       "results": {
         "observable_detection": {
           "details": {

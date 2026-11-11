@@ -1,88 +1,6 @@
 {
   "form": 1,
   "observables": {
-    "file:306c0c82b420b3826961eca469ee3856c5e533a43b62051ab977bfa89753e13c": {
-      "detections": {},
-      "directives": {
-        "extract_urls": true
-      },
-      "excluded_analysis": {
-        "pdf_analyzer": true
-      },
-      "paths": {
-        "action_integer.pdf.gs.pdf": {
-          "type=document.pdf": true,
-          "type=document.pdf.rendered": true
-        }
-      },
-      "redirection": "file:f6a8d6c942561d07277b1876d929cabccef7f263c3510a80d87be252f37a7313",
-      "relationships": {
-        "extracted_from file:f6a8d6c942561d07277b1876d929cabccef7f263c3510a80d87be252f37a7313": true
-      },
-      "results": {
-        "file_type": {
-          "details": {
-            "is_email_file": false,
-            "is_jar_file": false,
-            "is_lnk_file": false,
-            "is_office_document": false,
-            "is_office_ext": false,
-            "is_ole_file": false,
-            "is_pdf_file": true,
-            "is_pe_file": false,
-            "is_rtf_file": false,
-            "is_x509": false,
-            "is_zip_file": false,
-            "mime": "application/pdf",
-            "type": "PDF document, version 1.7, 1 page(s)"
-          },
-          "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
-          "tags": {}
-        },
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "pdftotext": {
-          "details": {
-            "output_path": "ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977",
-            "stderr": "",
-            "stdout": ""
-          },
-          "summary": "PDF Text Analysis",
-          "tags": {}
-        },
-        "qrcode": {
-          "details": {
-            "extracted_text": null,
-            "inverted": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "url_extraction": {
-          "details": {
-            "urls": [],
-            "urls_grouped_by_domain": {}
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {
-        "pdf": true
-      }
-    },
     "file:49dca59b2cb5c9f7497209c2dfca9cee08e0f1051c296f6b9e4aa6c563591f2f": {
       "detections": {},
       "directives": {
@@ -143,6 +61,39 @@
       },
       "tags": {}
     },
+    "file:a9804549172c8949a5d7bd010ba5d1322259f83dc696ef90a18368cb6f906341": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "action_integer.pdf.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:f6a8d6c942561d07277b1876d929cabccef7f263c3510a80d87be252f37a7313": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977": {
       "detections": {},
       "directives": {},
@@ -157,10 +108,10 @@
           "type=document.pdf.text": true
         }
       },
-      "redirection": "file:306c0c82b420b3826961eca469ee3856c5e533a43b62051ab977bfa89753e13c",
+      "redirection": "file:f81134a81ed59bb736f92fe12d4e9fb26f04b5699ed25ac06aa95d467e729a00",
       "relationships": {
-        "extracted_from file:306c0c82b420b3826961eca469ee3856c5e533a43b62051ab977bfa89753e13c": true,
-        "extracted_from file:f6a8d6c942561d07277b1876d929cabccef7f263c3510a80d87be252f37a7313": true
+        "extracted_from file:f6a8d6c942561d07277b1876d929cabccef7f263c3510a80d87be252f37a7313": true,
+        "extracted_from file:f81134a81ed59bb736f92fe12d4e9fb26f04b5699ed25ac06aa95d467e729a00": true
       },
       "results": {
         "file_type": {
@@ -199,39 +150,6 @@
       },
       "tags": {}
     },
-    "file:f1af5402583d751b75bc31677eb1ec932f7cb54acc5b5211a5c5bf6df1731d4b": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "action_integer.pdf.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:f6a8d6c942561d07277b1876d929cabccef7f263c3510a80d87be252f37a7313": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:f6a8d6c942561d07277b1876d929cabccef7f263c3510a80d87be252f37a7313": {
       "detections": {},
       "directives": {},
@@ -250,8 +168,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 00:50:39+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 00:50:39+00:00",
+              "File:FileAccessDate": "2026:11:11 09:29:57+00:00",
+              "File:FileInodeChangeDate": "2026:11:11 09:29:57+00:00",
               "File:FileModifyDate": "2026:11:07 04:47:50+00:00",
               "File:FileName": "action_integer.pdf",
               "File:FilePermissions": 100644,
@@ -338,7 +256,129 @@
         "pdf": true
       }
     },
+    "file:f81134a81ed59bb736f92fe12d4e9fb26f04b5699ed25ac06aa95d467e729a00": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {
+        "pdf_analyzer": true
+      },
+      "paths": {
+        "action_integer.pdf.gs.pdf": {
+          "type=document.pdf": true,
+          "type=document.pdf.rendered": true
+        }
+      },
+      "redirection": "file:f6a8d6c942561d07277b1876d929cabccef7f263c3510a80d87be252f37a7313",
+      "relationships": {
+        "extracted_from file:f6a8d6c942561d07277b1876d929cabccef7f263c3510a80d87be252f37a7313": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": true,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/pdf",
+            "type": "PDF document, version 1.7, 1 page(s)"
+          },
+          "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "pdftotext": {
+          "details": {
+            "output_path": "ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977",
+            "stderr": "",
+            "stdout": ""
+          },
+          "summary": "PDF Text Analysis",
+          "tags": {}
+        },
+        "qrcode": {
+          "details": {
+            "extracted_text": null,
+            "inverted": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {
+        "pdf": true
+      }
+    },
     "md5:ba706ba1dc156833570eeee08fc7dda7": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:f6a8d6c942561d07277b1876d929cabccef7f263c3510a80d87be252f37a7313": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "observable_modifier": {
+          "details": {
+            "matched_rules": [
+              {
+                "actions_applied": {
+                  "ignore": true
+                },
+                "name": "hashes out from under the hash module",
+                "uuid": "2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03"
+              }
+            ]
+          },
+          "summary": "Applied 1 rule(s): hashes out from under the hash module",
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "sha256:f6a8d6c942561d07277b1876d929cabccef7f263c3510a80d87be252f37a7313": {
       "detections": {},
       "directives": {},
       "excluded_analysis": {},
@@ -363,13 +403,11 @@
       },
       "tags": {}
     },
-    "sha256:f6a8d6c942561d07277b1876d929cabccef7f263c3510a80d87be252f37a7313": {
+    "signature_id:2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03": {
       "detections": {},
       "directives": {},
       "excluded_analysis": {},
-      "relationships": {
-        "is_hash_of file:f6a8d6c942561d07277b1876d929cabccef7f263c3510a80d87be252f37a7313": true
-      },
+      "relationships": {},
       "results": {
         "observable_detection": {
           "details": {

@@ -1138,8 +1138,16 @@ fn read_json(path: &Path) -> Result<Value> {
 }
 
 pub fn run(app: &App, args: CompareArgs) -> Result<ExitCode> {
-    let components = crate::cli::components(&app.registry(), &crate::cli::overlay()?)?;
-    let ported: BTreeSet<String> = components.into_iter().map(|c| c.key).collect();
+    let overlay = crate::cli::overlay()?;
+    let components = crate::cli::components(&app.registry(), &overlay)?;
+    let hooks = ace_core::hooks::Hooks::from_section(&overlay.hooks)
+        .context("the overlay's hooks section")?;
+    // the core's hooks the overlay turns on count as ported, as a module the binary has does
+    let ported: BTreeSet<String> = components
+        .into_iter()
+        .map(|c| c.key)
+        .chain(hooks.names().into_iter().map(str::to_owned))
+        .collect();
 
     let manifest_path = args.samples.join("manifest.json");
     let manifest: Manifest = serde_json::from_value(read_json(&manifest_path)?)

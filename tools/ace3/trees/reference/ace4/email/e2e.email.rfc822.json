@@ -358,22 +358,25 @@
     },
     "email_subject:ace4 end-to-end": {
       "detections": {},
-      "directives": {},
+      "directives": {
+        "exclude_all": true
+      },
       "excluded_analysis": {},
       "relationships": {},
       "results": {
-        "observable_detection": {
+        "observable_modifier": {
           "details": {
-            "for_detection": false
+            "matched_rules": [
+              {
+                "actions_applied": {
+                  "ignore": true
+                },
+                "name": "no subject analysis",
+                "uuid": "2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a04"
+              }
+            ]
           },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
+          "summary": "Applied 1 rule(s): no subject analysis",
           "tags": {}
         }
       },
@@ -1235,9 +1238,17 @@
       "tags": {}
     },
     "fqdn:example.net": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {},
+      "detections": {
+        "the observable modifier marked a recipient's domain": [
+          null
+        ]
+      },
+      "directives": {
+        "modifier_pre": true
+      },
+      "excluded_analysis": {
+        "rdap_analyzer": true
+      },
       "relationships": {},
       "results": {
         "fqdn_analyzer": {
@@ -1258,6 +1269,40 @@
             "for_detection": false
           },
           "summary": null,
+          "tags": {}
+        },
+        "observable_modifier": {
+          "details": {
+            "matched_rules": [
+              {
+                "actions_applied": {
+                  "add_directives": [
+                    "modifier_pre"
+                  ],
+                  "exclude_analysis": [
+                    "rdap_analyzer"
+                  ]
+                },
+                "name": "no rdap for example.net",
+                "uuid": "2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a02"
+              },
+              {
+                "actions_applied": {
+                  "add_detection_points": [
+                    "the observable modifier marked a recipient's domain"
+                  ],
+                  "add_tags": [
+                    "modifier_recipient_domain"
+                  ],
+                  "set_display_type": "Recipient Domain",
+                  "set_display_value": "recipient"
+                },
+                "name": "e2e recipient domain",
+                "uuid": "2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a01"
+              }
+            ]
+          },
+          "summary": "Applied 2 rule(s): no rdap for example.net, e2e recipient domain",
           "tags": {}
         },
         "proxy_domain_splunk": {
@@ -1296,31 +1341,6 @@
           "summary": "Proxy correlation: (3 results)",
           "tags": {}
         },
-        "rdap_analyzer": {
-          "details": {
-            "assignment_type": null,
-            "country": null,
-            "datetime_created": null,
-            "datetime_expiration": null,
-            "datetime_of_last_update": null,
-            "domain_name": null,
-            "emails": null,
-            "error": "rdap: Failed to make a GET request to https://rdap.verisign.com/net/v1/domain/example.net: nothing recorded for GET https://rdap.verisign.com/net/v1/domain/example.net; whois: no WHOIS in a replay",
-            "ip_version": null,
-            "lookup_protocol": null,
-            "name_servers": null,
-            "network_cidr": null,
-            "network_name": null,
-            "rdap_attempt_error": "Failed to make a GET request to https://rdap.verisign.com/net/v1/domain/example.net: nothing recorded for GET https://rdap.verisign.com/net/v1/domain/example.net",
-            "rdap_data": null,
-            "rdap_raw_json": null,
-            "rdap_service_url": null,
-            "registrar": null,
-            "whois_data": null,
-            "whois_raw_text": null
-          },
-          "tags": {}
-        },
         "user_defined_tagging": {
           "details": {
             "tags_added": []
@@ -1329,7 +1349,9 @@
           "tags": {}
         }
       },
-      "tags": {}
+      "tags": {
+        "modifier_recipient_domain": true
+      }
     },
     "ip:192.0.2.10": {
       "detections": {},
@@ -1376,6 +1398,21 @@
           "summary": null,
           "tags": {}
         },
+        "observable_modifier": {
+          "details": {
+            "matched_rules": [
+              {
+                "actions_applied": {
+                  "ignore": true
+                },
+                "name": "hashes out from under the hash module",
+                "uuid": "2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03"
+              }
+            ]
+          },
+          "summary": "Applied 1 rule(s): hashes out from under the hash module",
+          "tags": {}
+        },
         "user_defined_tagging": {
           "details": {
             "tags_added": []
@@ -1399,6 +1436,21 @@
             "for_detection": false
           },
           "summary": null,
+          "tags": {}
+        },
+        "observable_modifier": {
+          "details": {
+            "matched_rules": [
+              {
+                "actions_applied": {
+                  "ignore": true
+                },
+                "name": "hashes out from under the hash module",
+                "uuid": "2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03"
+              }
+            ]
+          },
+          "summary": "Applied 1 rule(s): hashes out from under the hash module",
           "tags": {}
         },
         "user_defined_tagging": {
@@ -1468,6 +1520,98 @@
       "relationships": {
         "is_hash_of file:f3ce3071cfcbe8573c02da89e0b693b486595cd42c06964f4f1df52ac80f870f": true
       },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "signature_id:2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a01": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "signature_id:2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a02": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "signature_id:2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "signature_id:2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a04": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
       "results": {
         "observable_detection": {
           "details": {

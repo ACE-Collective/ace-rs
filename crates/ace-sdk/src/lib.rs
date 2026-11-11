@@ -18,6 +18,7 @@ pub mod email_threads;
 pub mod example;
 pub mod files;
 pub mod generation;
+pub mod hooks;
 pub mod http;
 pub mod ip;
 pub mod lists;

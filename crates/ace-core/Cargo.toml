@@ -13,6 +13,8 @@ publish.workspace = true
 testing = []
 
 [dependencies]
+# Python's str() of a details value, which the observable modifier's details_match tests (hooks).
+ace-pycompat = { path = "../ace-pycompat" }
 ace-results = { path = "../ace-results" }
 ace-sdk = { path = "../ace-sdk" }
 ace-store = { path = "../ace-store" }

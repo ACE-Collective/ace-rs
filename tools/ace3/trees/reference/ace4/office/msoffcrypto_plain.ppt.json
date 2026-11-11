@@ -140,8 +140,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 00:37:45+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 00:37:45+00:00",
+              "File:FileAccessDate": "2026:11:11 09:00:37+00:00",
+              "File:FileInodeChangeDate": "2026:11:11 09:00:37+00:00",
               "File:FileModifyDate": "2026:11:07 10:46:11+00:00",
               "File:FileName": "msoffcrypto_plain.ppt",
               "File:FilePermissions": 100644,
@@ -393,6 +393,39 @@
       },
       "tags": {}
     },
+    "file:558cf40958bacd52a0cbacfadeec3f3d3a151cb33c093aec1e74582832d1c234": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "msoffcrypto_plain.ppt.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:18555251635eaab62a1fce9886026156d375615bd96f5639df7dc005e2488347": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:9a47488a3595fdd17a5b508f2f230d60f1207a086e44eefdb1f10cf9b2a0c2d0": {
       "detections": {},
       "directives": {
@@ -604,39 +637,6 @@
       },
       "tags": {}
     },
-    "file:e878ddb326c6c4862f764c1510734225d1190f4a8e646fd2e0eb1be9a4598d3c": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "msoffcrypto_plain.ppt.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:18555251635eaab62a1fce9886026156d375615bd96f5639df7dc005e2488347": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "md5:7e1d21aa05bcf4305aff35cb934fb9cf": {
       "detections": {},
       "directives": {},
@@ -650,6 +650,21 @@
             "for_detection": false
           },
           "summary": null,
+          "tags": {}
+        },
+        "observable_modifier": {
+          "details": {
+            "matched_rules": [
+              {
+                "actions_applied": {
+                  "ignore": true
+                },
+                "name": "hashes out from under the hash module",
+                "uuid": "2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03"
+              }
+            ]
+          },
+          "summary": "Applied 1 rule(s): hashes out from under the hash module",
           "tags": {}
         },
         "user_defined_tagging": {
@@ -669,6 +684,29 @@
       "relationships": {
         "is_hash_of file:18555251635eaab62a1fce9886026156d375615bd96f5639df7dc005e2488347": true
       },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "signature_id:2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
       "results": {
         "observable_detection": {
           "details": {

@@ -210,7 +210,7 @@
       },
       "tags": {}
     },
-    "file:52c51c7237a397cba3321e75da37de051e6ca8d4346c5395000bb988eabab79a": {
+    "file:6ce3c6280c1d05aaa99ee35607bfea8f88952c7064b39c4a63c49f73f2e075f7": {
       "detections": {},
       "directives": {},
       "excluded_analysis": {
@@ -262,8 +262,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 00:41:29+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 00:41:29+00:00",
+              "File:FileAccessDate": "2026:11:11 09:07:16+00:00",
+              "File:FileInodeChangeDate": "2026:11:11 09:07:16+00:00",
               "File:FileModifyDate": "2026:11:07 15:11:53+00:00",
               "File:FileName": "ole_orphan_module.doc",
               "File:FilePermissions": 100644,
@@ -923,6 +923,21 @@
           "summary": null,
           "tags": {}
         },
+        "observable_modifier": {
+          "details": {
+            "matched_rules": [
+              {
+                "actions_applied": {
+                  "ignore": true
+                },
+                "name": "hashes out from under the hash module",
+                "uuid": "2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03"
+              }
+            ]
+          },
+          "summary": "Applied 1 rule(s): hashes out from under the hash module",
+          "tags": {}
+        },
         "user_defined_tagging": {
           "details": {
             "tags_added": []
@@ -940,6 +955,29 @@
       "relationships": {
         "is_hash_of file:6f4208bad09e45239811d43e149d9285c926a064cafa8adb614335157740ae7b": true
       },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "signature_id:2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
       "results": {
         "observable_detection": {
           "details": {
@@ -1249,6 +1287,13 @@
         }
       },
       "tags": {}
+    }
+  },
+  "root": {
+    "detections": {
+      "tag olevba is configured to be alertable": [
+        null
+      ]
     }
   }
 }

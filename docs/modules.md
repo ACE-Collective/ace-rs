@@ -22,15 +22,14 @@ Versions are those of ace3's image: Python packages from `installer/requirements
 |---|---|---|
 | parser | 53 | 53 |
 | lookup | 17 | 15 |
-| core | 3 | 0 |
+| core | 3 | 2 |
 | sandbox | 15 | 15 |
 | scanner | 2 | 2 |
-| all | 90 | 85 |
+| all | 90 | 87 |
 
 | Step | Modules |
 |---|---|
-| done | 85 |
-| 7.6 | 2 |
+| done | 87 |
 | 7.10 | 2 |
 | owner | 1 |
 
@@ -177,7 +176,7 @@ Batch 10's image (`docker/ace4/Dockerfile`'s `sandbox` target, on `debian:13.7-s
 | `pdftotext` | sandbox | pdftotext (poppler-utils 25.03.0, /usr/bin/pdftotext) via run_sandboxed_tool: `pdftotext <file> output.txt`, timeout 5 s | pdftotext: **runner** |
 | `yara_scanner_v3_4` | parser | git via subprocess.run `git -C <dir> rev-parse HEAD` (saq/git.py get_commit_hash) when initializing the local scanner, through get_validated_git_repo_dirs | git: **none**; the ruleset records its commit (2.26) |
 | `microsoft_script_encoding_analysis` | parser | perl script bin/jscript.decode.pl (vendored, ~80 lines) via run_tool() = subprocess.run, NOT sandboxed; timeout = time_left() minus margin | jscript.decode.pl: **crate**, the decoder ported |
-| `observable_modifier` | core | git rev-parse HEAD via subprocess.run (saq/git.py:53-70), only when the optional git_dir setting is configured (not set in saq.default.yaml), on each rules reload | git: **none**; its rules come from 5.14's lists or the overlay |
+| `observable_modifier` | core | git rev-parse HEAD via subprocess.run (saq/git.py:53-70), only when the optional git_dir setting is configured (not set in saq.default.yaml), on each rules reload | git: **none**; its rules come from the overlay, with no commit |
 | `rtfole` | parser | `python /venv/bin/rtfobj -d {file}.rtfobj -s all <file>` (oletools 0.60.2 rtfobj) via run_tool() = subprocess.run, NOT sandboxed; 'python' resolved from PATH; timeout = time_left() minus margin | **crate** (4.10) |
 | `zip_encryption_analyzer` | parser | zip2john (john run dir) via run_sandboxed_tool; john 1.9.0-jumbo-1 (openwall git master, built with plain ./configure, so OpenMP is enabled if detected) via saq/cracking.py crack_password(): two run_sandboxed_tool calls, `john --session=john --pot=john.pot --wordlist=<abs> <hash>` (pot moved out as {hash}.pot) then `john --pot=<pot> --show <hash>`; 7z 25.01 `7z x -y -p<password> -o<abs dir> <file>` via run_sandboxed_tool, timeout extract_timeout=5s, write_dirs=[{file}.decrypted] | zip2john and John: **crate**, the wordlist tried in the task with zip; 7z: **crate** |
 | `rar_encryption_analyzer` | parser | rar2john (john run dir) via run_sandboxed_tool; john 1.9.0-jumbo-1 (openwall git master, built with plain ./configure, so OpenMP is enabled if detected) via saq/cracking.py crack_password(): two run_sandboxed_tool calls, `john --session=john --pot=john.pot --wordlist=<abs> <hash>` (pot moved out as {hash}.pot) then `john --pot=<pot> --show <hash>`; unrar 7.1.8 `unrar x -y -kb -p<password> <file> <abs dir>/` via run_sandboxed_tool, read_files=archive_volumes(), write_dirs=[{file}.decrypted], timeout = time_left() | rar2john and John: **crate**, the wordlist tried in the task with unrar; unrar: **crate** |
@@ -260,7 +259,7 @@ In the config's order. ace4 is the crate a ported module is in.
 | `microsoft_script_encoding_analysis` | `MicrosoftScriptEncodingAnalyzer` | `ace-mod-scripts` | parser | done | file | analysis, binary, cli, correlation, email, file |
 | `url_extraction` | `URLExtractionAnalyzer` | `ace-mod-urls` | parser | done | file | analysis, binary, cli, correlation, email, file |
 | `ioc_extraction` | `IOCExtractionAnalyzer` | `ace-mod-urls` | parser | done | file | analysis, binary, cli, correlation, email, file |
-| `observable_modifier` | `ObservableModifierAnalyzer` | not yet | core | 7.6 | common | analysis, binary, cli, correlation, email, file |
+| `observable_modifier` | `ObservableModifierAnalyzer` | `ace-core` | core | done | common | analysis, binary, cli, correlation, email, file |
 | `x509_analyzer` | `X509Analyzer` | `ace-mod-files` | parser | done | file | analysis, binary, cli, correlation, email, file |
 | `protected_url_analyzer` | `ProtectedURLAnalyzer` | `ace-mod-values` | parser | done | common | analysis, binary, cli, correlation, email, file |
 | `rtfole` | `RTFOLEObjectAnalyzer` | `ace-mod-oletools` | parser | done | file | analysis, binary, cli, correlation, email, file |
@@ -269,7 +268,7 @@ In the config's order. ace4 is the crate a ported module is in.
 | `vbscript_analyzer` | `VBScriptAnalyzer` | `ace-mod-scripts` | parser | done | file | analysis, binary, cli, correlation, email, file |
 | `nowhitespace_analyzer` | `NoWhiteSpaceAnalyzer` | `ace-mod-scripts` | parser | done | file | analysis, binary, cli, correlation, email, file |
 | `user_defined_tagging` | `UserDefinedTaggingAnalyzer` | `ace-mod-tag` | lookup | done | common | analysis, binary, cli, correlation, email, file |
-| `configuration_defined_tagging` | `ConfigurationDefinedTaggingAnalyzer` | not yet | core | 7.6 | common | analysis, binary, cli, correlation, email, file |
+| `configuration_defined_tagging` | `ConfigurationDefinedTaggingAnalyzer` | `ace-core` | core | done | common | analysis, binary, cli, correlation, email, file |
 | `site_tagger` | `SiteTagAnalyzer` | `ace-mod-tag` | parser | done | common, file | analysis, binary, cli, correlation, email, file |
 | `zip_encryption_analyzer` | `ZipEncryptionAnalyzer` | `ace-mod-encrypted` | parser | done | file | analysis, binary, cli, correlation, email, file |
 | `rar_encryption_analyzer` | `RarEncryptionAnalyzer` | `ace-mod-encrypted` | parser | done | file | analysis, binary, cli, correlation, email, file |
@@ -1759,9 +1758,9 @@ In the config's order. ace4 is the crate a ported module is in.
 ### observable_modifier
 
 - **Section**: `analysis_module_observable_modifier`, class `ObservableModifierAnalyzer` in `saq/modules/util/observable_modifier.py`, enabled by default.
-- **ace4**: not yet.
+- **ace4**: ported in `ace-core`. One of the core's hooks (`crates/ace-core/src/hooks.rs`, `hooks/rules.rs`): `pre` rules run where a result lands or a submission starts, before eligibility queues anything for what it touched, and `post` rules in the core's hooks task at the end of a pass, rerun while they match. The rules are the overlay's `hooks.observable_modifier.rules` in ace3's schema, checked when the core starts, and name modules by ace4's keys. A match is the observable's `observable_modifier_analysis` result with ace3's `matched_rules` and summary, a `signature_id` observable per rule, and its actions on the observable: `limit_modules`, `display_value` and `ignored` are migration 0044's, an `ignore` scoped to parents marks the parents' additions `ignored`, and `reset_analysis` queues again a task that ended with no result. Bounded: 1000 rules, 1024 patterns on the `regex` crate within size limits, the tree read to 20,000 observables and results, and a step budget per evaluation. The alert view has ace3's Observable Modifier Rules card and leaves an ignored observable out of the tree. What differs from ace3 is in the hooks' docs: rules reload with the core, not live, a rule ace3 would log and skip stops startup, `str()` of a details value is written as Python writes it, and the git commit isn't the detections' signature version.
 - **Pool**: core. Evaluates rules over the whole tree and edits other nodes (wide_diff: removes observables, limits and resets analysis), which only the core's orchestrator can do; it parses no attacker bytes.
-- **Step**: 7.6.
+- **Step**: done.
 - **Does**: Evaluates analyst-written YAML rules (observable type/value/tags/directives/yara_meta, alert type/queue/tags, and tree conditions over ancestors/descendants/siblings/parent/global analysis details) against every observable and applies actions: add directives/tags/detection points, exclude/limit/reset analysis, set display type/value, or ignore (remove from parent analyses).
 - **Input**: all (valid_observable_types None; rule observable_types are subtype-aware).
 - **Groups and modes**: groups common; modes analysis, binary, cli, correlation, email, file.
@@ -1949,9 +1948,9 @@ In the config's order. ace4 is the crate a ported module is in.
 ### configuration_defined_tagging
 
 - **Section**: `analysis_module_configuration_defined_tagging`, class `ConfigurationDefinedTaggingAnalyzer` in `saq/modules/tag.py`, disabled by default.
-- **ace4**: not yet.
+- **ace4**: ported in `ace-core`. One of the core's hooks (`crates/ace-core/src/hooks.rs`, the owner's decision of 2026-11-10): it runs at the end of a pass in the core's hooks task, once the observable modifier's post rules match nothing more, and adds its detections on the root, `analysis.detections` with no observable (migration 0044). ace3's `tags:` section is the overlay's `hooks.configuration_defined_tagging.tags`, and the section's presence turns it on, as ace3 ships it disabled. A tag gets one root detection per root, ever, where ace3's dedup is the detection's equality. A detection in a detectable mode makes the root an alert, as ace3's does after the pass; the alert view lists them above the tree. tools/ace3/trees/make-trees enables it over ace3's own tags, which tests/e2e/site/overlay.yaml copies.
 - **Pool**: core. Post-analysis over the whole tree, turning configured tag levels into detection points: core work. Disabled by default.
-- **Step**: 7.6.
+- **Step**: done.
 - **Does**: In post-analysis, walks every node of the root and adds one root detection point per tag whose value in the config 'tags' section is alert, critical or warning.
 - **Input**: all (execute_analysis is a no-op; work is in execute_post_analysis).
 - **Groups and modes**: groups common; modes analysis, binary, cli, correlation, email, file.
@@ -1965,7 +1964,7 @@ In the config's order. ace4 is the crate a ported module is in.
 - **Network**: none.
 - **Reads outside the alert**: saq config 'tags' section (tag name -> level), read once at construction.
 - **Tags and detections**: root detection point 'tag <tag> is configured to be alertable' (signature ALERTABLE_TAG 14564014-a223-440a-914f-03a1f322e1bf), once per tag
-- **Notes**: Disabled by default. Never creates an analysis object. execute_post_analysis runs at the end of every pass; detection points are presumably deduped by description (unsure).
+- **Notes**: Disabled by default. Never creates an analysis object. execute_post_analysis runs at the end of every pass; `BaseNode.add_detection_point` drops a detection equal to one the root has.
 
 ### site_tagger
 

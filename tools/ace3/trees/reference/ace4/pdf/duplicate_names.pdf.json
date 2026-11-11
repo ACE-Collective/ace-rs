@@ -233,8 +233,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 04:28:38+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 04:28:38+00:00",
+              "File:FileAccessDate": "2026:11:11 09:31:39+00:00",
+              "File:FileInodeChangeDate": "2026:11:11 09:31:39+00:00",
               "File:FileModifyDate": "2026:11:07 06:04:42+00:00",
               "File:FileName": "duplicate_names.pdf",
               "File:FilePermissions": 100644,
@@ -321,6 +321,39 @@
       "tags": {
         "pdf": true
       }
+    },
+    "file:756e00e18e9fa72385fd3bc63073a35883b301f0b179805e0507e37cfbca5314": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "duplicate_names.pdf.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:2d036fbaeb0bfcfd60e6cdb54dbdf293e5bb511c0ded41de270f423ea16b504e": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
     },
     "file:7b6eff938ebcc1c20675ec73c73a02c660349ac682ef3aedf63630b2209db1fe": {
       "detections": {},
@@ -504,39 +537,6 @@
         "js": true
       }
     },
-    "file:af95917c04c623882249ae40c1b347d3ec0bd3c2559dc0afd7dd7176117668bf": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "duplicate_names.pdf.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:2d036fbaeb0bfcfd60e6cdb54dbdf293e5bb511c0ded41de270f423ea16b504e": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:c6ea637124cd28efa55b0e2b96bbe8c458047a746ae09f3b5ad27dd585d265e5": {
       "detections": {},
       "directives": {
@@ -597,7 +597,7 @@
       },
       "tags": {}
     },
-    "file:e219f8ef155de76011446f40defab7a0f625d7f059bbf17e0dd3f8e5b2d0adf1": {
+    "file:db0a37c55bd216c82cd7aeb0bdd28b8286d39c22b5147691a88218140061090b": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -693,10 +693,10 @@
           "type=document.pdf.text": true
         }
       },
-      "redirection": "file:e219f8ef155de76011446f40defab7a0f625d7f059bbf17e0dd3f8e5b2d0adf1",
+      "redirection": "file:db0a37c55bd216c82cd7aeb0bdd28b8286d39c22b5147691a88218140061090b",
       "relationships": {
         "extracted_from file:2d036fbaeb0bfcfd60e6cdb54dbdf293e5bb511c0ded41de270f423ea16b504e": true,
-        "extracted_from file:e219f8ef155de76011446f40defab7a0f625d7f059bbf17e0dd3f8e5b2d0adf1": true
+        "extracted_from file:db0a37c55bd216c82cd7aeb0bdd28b8286d39c22b5147691a88218140061090b": true
       },
       "results": {
         "file_type": {
@@ -1014,6 +1014,21 @@
           "summary": null,
           "tags": {}
         },
+        "observable_modifier": {
+          "details": {
+            "matched_rules": [
+              {
+                "actions_applied": {
+                  "ignore": true
+                },
+                "name": "hashes out from under the hash module",
+                "uuid": "2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03"
+              }
+            ]
+          },
+          "summary": "Applied 1 rule(s): hashes out from under the hash module",
+          "tags": {}
+        },
         "user_defined_tagging": {
           "details": {
             "tags_added": []
@@ -1037,6 +1052,21 @@
             "for_detection": false
           },
           "summary": null,
+          "tags": {}
+        },
+        "observable_modifier": {
+          "details": {
+            "matched_rules": [
+              {
+                "actions_applied": {
+                  "ignore": true
+                },
+                "name": "hashes out from under the hash module",
+                "uuid": "2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03"
+              }
+            ]
+          },
+          "summary": "Applied 1 rule(s): hashes out from under the hash module",
           "tags": {}
         },
         "user_defined_tagging": {
@@ -1064,6 +1094,21 @@
           "summary": null,
           "tags": {}
         },
+        "observable_modifier": {
+          "details": {
+            "matched_rules": [
+              {
+                "actions_applied": {
+                  "ignore": true
+                },
+                "name": "hashes out from under the hash module",
+                "uuid": "2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03"
+              }
+            ]
+          },
+          "summary": "Applied 1 rule(s): hashes out from under the hash module",
+          "tags": {}
+        },
         "user_defined_tagging": {
           "details": {
             "tags_added": []
@@ -1089,6 +1134,21 @@
           "summary": null,
           "tags": {}
         },
+        "observable_modifier": {
+          "details": {
+            "matched_rules": [
+              {
+                "actions_applied": {
+                  "ignore": true
+                },
+                "name": "hashes out from under the hash module",
+                "uuid": "2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03"
+              }
+            ]
+          },
+          "summary": "Applied 1 rule(s): hashes out from under the hash module",
+          "tags": {}
+        },
         "user_defined_tagging": {
           "details": {
             "tags_added": []
@@ -1112,6 +1172,21 @@
             "for_detection": false
           },
           "summary": null,
+          "tags": {}
+        },
+        "observable_modifier": {
+          "details": {
+            "matched_rules": [
+              {
+                "actions_applied": {
+                  "ignore": true
+                },
+                "name": "hashes out from under the hash module",
+                "uuid": "2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03"
+              }
+            ]
+          },
+          "summary": "Applied 1 rule(s): hashes out from under the hash module",
           "tags": {}
         },
         "user_defined_tagging": {
@@ -1231,6 +1306,29 @@
       "relationships": {
         "is_hash_of file:aefab5542e4208776e27fe22ec5655413ad253862f35a5206eb658f7a3a28e4c": true
       },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "signature_id:2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
       "results": {
         "observable_detection": {
           "details": {

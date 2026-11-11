@@ -1,7 +1,8 @@
 //! Eligibility: whether a module may run on an observable.
 //!
 //! A component, a module or a named instance of one, is eligible for an observable when it
-//! takes the observable's type (or a type that type extends), the root's analysis mode runs it,
+//! takes the observable's type (or a type that type extends), the root's analysis mode runs it (or,
+//! when an observable modifier rule limited the observable's analysis, the limit names it),
 //! none of the observable's directives keeps it off, the observable has every directive the module
 //! requires and doesn't exclude it, and every module it depends on has a result for the
 //! observable, if the root's mode runs that module and the binary has it. A whitelisted observable, one with the
@@ -85,6 +86,9 @@ pub struct Facts<'a> {
     pub tags: &'a [String],
     pub directives: &'a [String],
     pub exclude_modules: &'a [String],
+    /// When not empty, the only modules that may analyze it, mode or not, as ace3's
+    /// `limited_analysis`, which an observable modifier rule sets.
+    pub limit_modules: &'a [String],
 }
 
 impl Facts<'_> {
@@ -107,6 +111,8 @@ pub enum Ineligible {
     NotAnInput,
     /// The root's analysis mode doesn't run the module.
     NotInMode,
+    /// The observable's analysis is limited to other modules.
+    NotInLimit,
     /// The observable is whitelisted.
     Whitelisted,
     /// A directive keeps the module off, such as `no_scan` or `exclude_all`.
@@ -132,7 +138,12 @@ pub fn check(
     if !component.accepts(facts.kind) {
         return Err(Ineligible::NotAnInput);
     }
-    if !mode_modules.contains(key) {
+    // ace3 takes the limited modules in place of the mode's
+    if !facts.limit_modules.is_empty() {
+        if !facts.limit_modules.iter().any(|m| m == key) {
+            return Err(Ineligible::NotInLimit);
+        }
+    } else if !mode_modules.contains(key) {
         return Err(Ineligible::NotInMode);
     }
     if facts.whitelisted() {

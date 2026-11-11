@@ -928,6 +928,7 @@ TREE_MODULES = {
     "UserDefinedTaggingAnalysis": "user_defined_tagging",
     "SiteTagAnalysis": "site_tagger",
     "ObservableDetectionAnalysis": "observable_detection",
+    "ObservableModifierAnalysis": "observable_modifier",
 }
 
 
@@ -1012,7 +1013,30 @@ TREE_EXCLUDED = {
     "AutoItAnalyzer": "autoit",
     "De4dotAnalyzer": "de4dot",
     "IlspyAnalyzer": "ilspy",
+    "RdapAnalyzer": "rdap_analyzer",
 }
+
+
+def tree_excluded(excluded):
+    """The module an entry of ace3's excluded_analysis names: `module:<class 'module.Class'>`, as ace3's
+    own exclude_analysis writes it, or `module:Class`, as an observable modifier rule's does."""
+    name = excluded.rsplit(".", 1)[-1].removesuffix("'>")
+    name = name.rsplit(":", 1)[-1]
+    return TREE_EXCLUDED.get(name, name)
+
+
+def modifier_modules(details):
+    """An ObservableModifierAnalysis's details with the modules its rules' actions name as ace4 names
+    them: ace3's rules name an analyzer class to exclude and an Analysis class to reset."""
+    for match in details.get("matched_rules") or []:
+        applied = match.get("actions_applied") or {}
+        if isinstance(applied.get("exclude_analysis"), list):
+            applied["exclude_analysis"] = [tree_excluded(m) for m in applied["exclude_analysis"]]
+        if isinstance(applied.get("reset_analysis"), list):
+            applied["reset_analysis"] = [
+                TREE_MODULES.get(m.rsplit(":", 1)[-1], m) for m in applied["reset_analysis"]
+            ]
+    return details
 
 
 def remove_at(value, segments):
@@ -1208,12 +1232,7 @@ def tree_form(root):
         entry = {
             "tags": members(str(tag) for tag in observable.tags),
             "directives": members(d for d in observable.directives if not d.startswith("yara_meta:")),
-            "excluded_analysis": members(
-                TREE_EXCLUDED.get(class_name, class_name)
-                for class_name in (
-                    excluded.rsplit(".", 1)[-1].removesuffix("'>") for excluded in observable.excluded_analysis
-                )
-            ),
+            "excluded_analysis": members(tree_excluded(excluded) for excluded in observable.excluded_analysis),
             "relationships": members(
                 f"{r.r_type} {r.target.type}:{renamed(r.target.type, r.target.value)}"
                 for r in observable.relationships
@@ -1242,6 +1261,8 @@ def tree_form(root):
                 rtfole_in_alert_paths(result, observable.full_path.removesuffix("/" + observable.file_path))
             if class_name == "MSOfficeEncryptionAnalysis":
                 msoffice_in_alert_paths(result, observable.full_path.removesuffix("/" + observable.file_path))
+            if class_name == "ObservableModifierAnalysis":
+                modifier_modules(result["details"])
             if class_name in ("ZipEncryptionAnalysis", "RarEncryptionAnalysis", "PDFEncryptionAnalysis"):
                 # the candidates come out of a set, whose order changes from run to run; the port sorts them
                 if isinstance(result["details"].get("word_list"), list):
@@ -1268,7 +1289,16 @@ def tree_form(root):
             merge_tree_entry(observables[key], entry)
         else:
             observables[key] = entry
-    return {"form": 1, "observables": observables}
+    form = {"form": 1, "observables": observables}
+    # a detection on the root itself, as configuration_defined_tagging adds
+    if root.detections:
+        on_root = {}
+        for detection in root.detections:
+            on_root.setdefault(detection.description, []).append(json_safe(detection.details))
+        for details in on_root.values():
+            details.sort(key=lambda d: json.dumps(d, sort_keys=True, ensure_ascii=False, separators=(",", ":")))
+        form["root"] = {"detections": on_root}
+    return form
 
 
 # a body the lure module reads, which ace3 doesn't read past this

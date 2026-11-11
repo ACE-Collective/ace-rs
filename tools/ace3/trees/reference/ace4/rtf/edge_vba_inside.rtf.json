@@ -158,9 +158,9 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files/edge_vba_inside.rtf.rtfobj",
-              "File:FileAccessDate": "2026:11:11 00:59:42+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 00:59:42+00:00",
-              "File:FileModifyDate": "2026:11:11 00:59:42+00:00",
+              "File:FileAccessDate": "2026:11:11 09:39:45+00:00",
+              "File:FileInodeChangeDate": "2026:11:11 09:39:45+00:00",
+              "File:FileModifyDate": "2026:11:11 09:39:45+00:00",
               "File:FileName": "edge_vba_inside.rtf_object_00000020.doc",
               "File:FilePermissions": 100666,
               "File:FileSize": 23552,
@@ -360,8 +360,8 @@
               "ExifTool:ExifToolVersion": 13.25,
               "ExifTool:Warning": "Unspecified RTF encoding. Will assume Latin",
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 00:59:41+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 00:59:41+00:00",
+              "File:FileAccessDate": "2026:11:11 09:39:44+00:00",
+              "File:FileInodeChangeDate": "2026:11:11 09:39:44+00:00",
               "File:FileModifyDate": "2026:11:07 15:11:53+00:00",
               "File:FileName": "edge_vba_inside.rtf",
               "File:FilePermissions": 100644,
@@ -442,6 +442,39 @@
         "microsoft_office": true,
         "rtf": true
       }
+    },
+    "file:2f15f2613ee7a3757ec7ec0b2dc1be8f775fa4de7e1d02946f74ae829893b63a": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "edge_vba_inside.rtf.rtfobj/edge_vba_inside.rtf_object_00000020.doc.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:170b804293599496c29d816cfe408adc5a99e767eb930b0c0cf9e7db62436abe": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
     },
     "file:5f6215a036890aff7ce33ebbda20fc8beb7ca7d1d1ebd71364750df0ab3ba5f9": {
       "detections": {},
@@ -627,6 +660,39 @@
       },
       "tags": {}
     },
+    "file:96666d512a924045a3adae5dafad98e13f55c1212fa3f33b636a0312923d3731": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "edge_vba_inside.rtf.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:2d2b2127b3e3b8cfc06d46ece6d346d15560246da69711231a5d719094f271c0": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:b1889d851399857246f127e715dba99fbdd07893320af705130112a2de27c5ed": {
       "detections": {},
       "directives": {},
@@ -744,72 +810,6 @@
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
-    "file:e44ba3198724a3a879f1901f4d4e7c7f2f5e77e8e91b86d9651505b53bd976ce": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "edge_vba_inside.rtf.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:2d2b2127b3e3b8cfc06d46ece6d346d15560246da69711231a5d719094f271c0": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
-    "file:e47e748a51ee4de32c949ca75db4dc07ca0d0dcf0d8ee37b2439d6b072467b52": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "edge_vba_inside.rtf.rtfobj/edge_vba_inside.rtf_object_00000020.doc.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:170b804293599496c29d816cfe408adc5a99e767eb930b0c0cf9e7db62436abe": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
           },
           "summary": null,
           "tags": {}
@@ -965,6 +965,21 @@
           "summary": null,
           "tags": {}
         },
+        "observable_modifier": {
+          "details": {
+            "matched_rules": [
+              {
+                "actions_applied": {
+                  "ignore": true
+                },
+                "name": "hashes out from under the hash module",
+                "uuid": "2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03"
+              }
+            ]
+          },
+          "summary": "Applied 1 rule(s): hashes out from under the hash module",
+          "tags": {}
+        },
         "user_defined_tagging": {
           "details": {
             "tags_added": []
@@ -988,6 +1003,21 @@
             "for_detection": false
           },
           "summary": null,
+          "tags": {}
+        },
+        "observable_modifier": {
+          "details": {
+            "matched_rules": [
+              {
+                "actions_applied": {
+                  "ignore": true
+                },
+                "name": "hashes out from under the hash module",
+                "uuid": "2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03"
+              }
+            ]
+          },
+          "summary": "Applied 1 rule(s): hashes out from under the hash module",
           "tags": {}
         },
         "user_defined_tagging": {
@@ -1015,6 +1045,21 @@
           "summary": null,
           "tags": {}
         },
+        "observable_modifier": {
+          "details": {
+            "matched_rules": [
+              {
+                "actions_applied": {
+                  "ignore": true
+                },
+                "name": "hashes out from under the hash module",
+                "uuid": "2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03"
+              }
+            ]
+          },
+          "summary": "Applied 1 rule(s): hashes out from under the hash module",
+          "tags": {}
+        },
         "user_defined_tagging": {
           "details": {
             "tags_added": []
@@ -1038,6 +1083,21 @@
             "for_detection": false
           },
           "summary": null,
+          "tags": {}
+        },
+        "observable_modifier": {
+          "details": {
+            "matched_rules": [
+              {
+                "actions_applied": {
+                  "ignore": true
+                },
+                "name": "hashes out from under the hash module",
+                "uuid": "2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03"
+              }
+            ]
+          },
+          "summary": "Applied 1 rule(s): hashes out from under the hash module",
           "tags": {}
         },
         "user_defined_tagging": {
@@ -1149,6 +1209,36 @@
         }
       },
       "tags": {}
+    },
+    "signature_id:2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    }
+  },
+  "root": {
+    "detections": {
+      "tag olevba is configured to be alertable": [
+        null
+      ]
     }
   }
 }

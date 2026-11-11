@@ -116,10 +116,9 @@ fn params(filter: &DetectionPointFilter) -> Result<Params, ServiceError> {
 pub struct DetectionPoint {
     pub id: i64,
     pub alert: Uuid,
-    /// The observable it's on. One on a module's analysis is on the observable it analyzed.
-    pub observable_id: i64,
-    pub observable_type: String,
-    pub observable_value: String,
+    /// The observable it's on, as (id, type, value). One on a module's analysis is on the observable it
+    /// analyzed; None is a detection on the alert itself, as `configuration_defined_tagging` makes.
+    pub observable: Option<(i64, String, String)>,
     /// The module whose result raised it, or None for one a submission or the core added.
     pub module: Option<String>,
     pub description: String,
@@ -163,13 +162,13 @@ impl Service {
                         known_alert(tx, alert).await?;
                     }
                     let mut detections: Vec<DetectionPoint> = sqlx::query!(
-                        r#"SELECT d.id, d.root_id, d.observable_id, o.type, o.value,
+                        r#"SELECT d.id, d.root_id, d.observable_id, o.type AS "type?", o.value AS "value?",
                                   res.module AS "module?", d.description, d.details, d.queue,
                                   d.signature_uuid, d.signature_version, d.signature_family,
                                   d.created_at
                            FROM analysis.detections d
                            JOIN analysis.roots r ON r.id = d.root_id
-                           JOIN analysis.observables o
+                           LEFT JOIN analysis.observables o
                              ON o.root_id = d.root_id AND o.id = d.observable_id
                            LEFT JOIN analysis.results res ON res.id = d.result_id
                            WHERE r.alerted_at IS NOT NULL
@@ -220,9 +219,10 @@ impl Service {
                     .map(|row| DetectionPoint {
                         id: row.id,
                         alert: row.root_id,
-                        observable_id: row.observable_id,
-                        observable_type: row.r#type,
-                        observable_value: row.value,
+                        observable: match (row.observable_id, row.r#type, row.value) {
+                            (Some(id), Some(kind), Some(value)) => Some((id, kind, value)),
+                            _ => None,
+                        },
                         module: row.module,
                         description: row.description,
                         details: row.details,

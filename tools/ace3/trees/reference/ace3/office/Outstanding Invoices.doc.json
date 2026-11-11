@@ -728,6 +728,39 @@
         "macro": true
       }
     },
+    "file:5f470b318348ab624a59490e2518f09daefc8c42b7e2b980edba40e9978ed3f3": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "Outstanding Invoices.doc.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:e3b01e57c810dfdefc08e93b5131438d31ef4108834cfc11a6f6fd9b44a1f0ab": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:66ed0c9c5c4aed21c8801aae9a63030f8fae187f9c8128a59caf46a1b7acc385": {
       "detections": {},
       "directives": {
@@ -1164,39 +1197,6 @@
       },
       "tags": {}
     },
-    "file:8f937f6c9669cf2603e206fb9671cb53db153376385ed57122622e07cec38a6b": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "Outstanding Invoices.doc.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:e3b01e57c810dfdefc08e93b5131438d31ef4108834cfc11a6f6fd9b44a1f0ab": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:97725006471ee201ccb227e86bb99ea56c9a03c97abb7efe9399c388906c14e5": {
       "detections": {},
       "directives": {
@@ -1473,8 +1473,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 00:26:23+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 00:26:23+00:00",
+              "File:FileAccessDate": "2026:11:11 08:43:20+00:00",
+              "File:FileInodeChangeDate": "2026:11:11 08:43:20+00:00",
               "File:FileModifyDate": "2026:11:06 19:20:07+00:00",
               "File:FileName": "Outstanding Invoices.doc",
               "File:FilePermissions": 100644,
@@ -1879,6 +1879,21 @@
           "summary": null,
           "tags": {}
         },
+        "observable_modifier": {
+          "details": {
+            "matched_rules": [
+              {
+                "actions_applied": {
+                  "ignore": true
+                },
+                "name": "hashes out from under the hash module",
+                "uuid": "2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03"
+              }
+            ]
+          },
+          "summary": "Applied 1 rule(s): hashes out from under the hash module",
+          "tags": {}
+        },
         "user_defined_tagging": {
           "details": {
             "tags_added": []
@@ -1913,6 +1928,36 @@
         }
       },
       "tags": {}
+    },
+    "signature_id:2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    }
+  },
+  "root": {
+    "detections": {
+      "tag olevba is configured to be alertable": [
+        null
+      ]
     }
   }
 }

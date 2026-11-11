@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE analysis.observables\n             SET tags = analysis.merged(tags, $3), directives = analysis.merged(directives, $4),\n                 exclude_modules = analysis.merged(exclude_modules, $5),\n                 limit_modules = analysis.merged(limit_modules, $6),\n                 display_type = $7, display_value = $8, ignored = ignored OR $9\n             WHERE root_id = $1 AND id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Int8",
+        "TextArray",
+        "TextArray",
+        "TextArray",
+        "TextArray",
+        "Text",
+        "Text",
+        "Bool"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "607d2f9cf16146d6a165005aab8af9a824d618a4bc066e6262c0540ddacdbd0a"
+}

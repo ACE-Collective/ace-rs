@@ -1,0 +1,52 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT observable_id AS \"id: ObservableId\", path, yara_meta FROM analysis.files\n           WHERE root_id = $1 ORDER BY observable_id, analyzed DESC, depth, path COLLATE \"C\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id: ObservableId",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "analysis.files",
+            "name": "observable_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "path",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "analysis.files",
+            "name": "path"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "yara_meta",
+        "type_info": "TextArray",
+        "origin": {
+          "Table": {
+            "table": "analysis.files",
+            "name": "yara_meta"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "e2f1a740002b410c23baf5257381a2298fe68b23a6924cb15a8d7c2f7b317e77"
+}

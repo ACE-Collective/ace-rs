@@ -249,17 +249,13 @@ pub fn tree_view(
 
     // The submission's observables, then any that no result added, then any the walk didn't reach,
     // such as one a result added to itself: each starts a walk at the top, so nothing is left out.
+    // what an observable modifier rule's `ignore` took out of the tree isn't drawn, as in ace3
     let top: HashSet<i64> = tree.top.iter().copied().collect();
-    let starts = tree
-        .observables
-        .iter()
+    let shown = || tree.observables.iter().filter(|o| !o.ignored);
+    let starts = shown()
         .filter(|o| top.contains(&o.id))
-        .chain(
-            tree.observables
-                .iter()
-                .filter(|o| !top.contains(&o.id) && !added.contains(&o.id)),
-        )
-        .chain(tree.observables.iter())
+        .chain(shown().filter(|o| !top.contains(&o.id) && !added.contains(&o.id)))
+        .chain(shown())
         .map(|o| o.id);
     let context = Context {
         alert: tree.alert.summary.id,
@@ -313,8 +309,8 @@ fn walk<'a>(
         match step {
             Step::Line(line) => lines.push(line),
             Step::Observable(id) => {
-                // past MAX_TREE_OBSERVABLES, which the view says
-                let Some(observable) = by_id.get(&id) else {
+                // past MAX_TREE_OBSERVABLES, which the view says, or ignored
+                let Some(observable) = by_id.get(&id).filter(|o| !o.ignored) else {
                     continue;
                 };
                 let reference = !drawn.insert(id);
@@ -393,10 +389,7 @@ fn observable_node(
         reference,
         analyzed: !observable.results.is_empty(),
         label: observable.display_label(),
-        value: match observable.files.first() {
-            Some(file) if observable.kind == "file" => file.path.clone(),
-            _ => observable.value.clone(),
-        },
+        value: display_value(observable),
         time: observable
             .time
             .map(|time| time.format("%Y-%m-%d %H:%M:%S %z").to_string()),
@@ -405,6 +398,97 @@ fn observable_node(
         comments,
         actions: Vec::new(),
     }
+}
+
+/// The observable's value as ace3's `display_value` reads: a file's path in place of its sha256, and a
+/// value an observable modifier rule set before either, with it in parentheses.
+fn display_value(observable: &AlertObservable) -> String {
+    let value = match observable.files.first() {
+        Some(file) if observable.kind == "file" => file.path.clone(),
+        _ => observable.value.clone(),
+    };
+    match &observable.display_value {
+        Some(shown) => format!("{shown} ({value})"),
+        None => value,
+    }
+}
+
+/// An observable modifier rule that matched in the alert, as ace3's Observable Modifier Rules card
+/// shows it (`app/templates/analysis/observable_modifier_rules.html`).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ModifierRuleView {
+    pub name: String,
+    pub uuid: String,
+    /// How many observables it matched.
+    pub observables: usize,
+    /// The actions it applied, in the order first seen.
+    pub actions: String,
+    /// The observables its `ignore` took out.
+    pub ignored: Vec<IgnoredView>,
+}
+
+/// An observable a rule's `ignore` took out.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct IgnoredView {
+    pub kind: String,
+    pub value: String,
+    /// Whether it left the tree, or only the results the rule named, so it's still drawn elsewhere.
+    pub hidden: bool,
+}
+
+/// The rules that matched in the alert, those that ignored something first, then by name, as ace3's
+/// `build_modifier_rule_matches`.
+pub fn modifier_rules(tree: &AlertTree) -> Vec<ModifierRuleView> {
+    use ace_results::types::tag::ObservableModifierAnalysis;
+
+    let mut rules: Vec<ModifierRuleView> = Vec::new();
+    for observable in &tree.observables {
+        for result in observable
+            .results
+            .iter()
+            .filter(|r| r.analysis_type == "observable_modifier_analysis")
+        {
+            let Ok(analysis) =
+                serde_json::from_value::<ObservableModifierAnalysis>(result.details.clone())
+            else {
+                continue;
+            };
+            for matched in analysis.matched_rules {
+                let at = match rules.iter().position(|r| r.uuid == matched.uuid) {
+                    Some(at) => at,
+                    None => {
+                        rules.push(ModifierRuleView {
+                            name: matched.name.clone(),
+                            uuid: matched.uuid.clone(),
+                            observables: 0,
+                            actions: String::new(),
+                            ignored: Vec::new(),
+                        });
+                        rules.len() - 1
+                    }
+                };
+                let rule = &mut rules[at];
+                rule.observables += 1;
+                for action in matched.actions_applied.keys() {
+                    if !rule.actions.split(", ").any(|a| a == action) {
+                        if !rule.actions.is_empty() {
+                            rule.actions.push_str(", ");
+                        }
+                        rule.actions.push_str(action);
+                    }
+                }
+                if matched.actions_applied.contains_key("ignore") {
+                    rule.ignored.push(IgnoredView {
+                        kind: observable.kind.clone(),
+                        value: display_value(observable),
+                        hidden: observable.ignored,
+                    });
+                }
+            }
+        }
+    }
+    rules.sort_by_key(|r| (r.ignored.is_empty(), r.name.to_lowercase()));
+    rules
 }
 
 /// The tree on its own: what the page includes and what the stream sends.
@@ -447,6 +531,12 @@ pub struct AlertPage {
     pub title: String,
     pub details_section: Section,
     pub details: Vec<Detail>,
+    /// The detections on the alert itself, such as a tag configured as alertable makes.
+    pub root_detections: Vec<String>,
+    /// The observable modifier rules that matched.
+    pub modifier_rules: Vec<ModifierRuleView>,
+    /// How many observables the rules' `ignore` took out, each counted once.
+    pub ignored_count: usize,
     pub tree: TreeView,
     /// The tree's version, which the stream starts from.
     pub version: String,
@@ -522,12 +612,27 @@ impl AlertPage {
                 value: by.name.clone().unwrap_or_else(|| by.id.clone()),
             });
         }
+        let mut root_detections: Vec<String> = Vec::new();
+        for detection in &tree.root_detections {
+            if !root_detections.contains(&detection.description) {
+                root_detections.push(detection.description.clone());
+            }
+        }
+        let modifier_rules = modifier_rules(tree);
+        let ignored_count = modifier_rules
+            .iter()
+            .flat_map(|r| r.ignored.iter().map(|i| (&i.kind, &i.value)))
+            .collect::<HashSet<_>>()
+            .len();
         Ok(AlertPage {
             layout,
             id: summary.id,
             title: summary.title.clone(),
             details_section: section("alert_details"),
             details,
+            root_detections,
+            modifier_rules,
+            ignored_count,
             tree: view,
             version,
         })

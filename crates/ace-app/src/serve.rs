@@ -1,6 +1,7 @@
 //! `ace serve`: the lease API workers call (PLAN.md 2.14), the JSON API people and their scripts call
 //! (5.5, `ace-api`), the reaper that takes back tasks whose lease expired, the recorder of YARA QA
-//! matches (2.27), the scheduler of ace3's maintenance tasks (6.7, `crate::scheduler`), and the ruleset
+//! matches (2.27), the worker that runs the core's hooks at the end of a root's pass (7.6,
+//! `ace_core::hooks`), the scheduler of ace3's maintenance tasks (6.7, `crate::scheduler`), and the ruleset
 //! builder (2.25) when `ACE4_SIGNATURES_REPO` names the signatures repository's checkout
 //! (`SignatureRepo::from_env`), every `ACE4_RULESET_POLL_SECONDS` (60).
 //!
@@ -94,7 +95,12 @@ async fn serve(app: &App) -> Result<ExitCode> {
         .map_err(anyhow::Error::msg)
         .context("the overlay's scheduler section")?;
     let modes = app.modes_with(&components);
-    let orchestrator = Orchestrator::new(Catalog::of(components), modes);
+    let hooks = ace_core::hooks::Hooks::from_section(&overlay.hooks)
+        .context("the overlay's hooks section")?;
+    for name in hooks.names() {
+        tracing::info!(hook = name, "running a hook in the core");
+    }
+    let orchestrator = Orchestrator::new(Catalog::of(components), modes).with_hooks(hooks);
     // a pool that lists a module leases its overlay instances too
     let config = ApiConfig::from_env(&app.pool_list())
         .with_instances(orchestrator.catalog())
@@ -127,6 +133,7 @@ async fn serve(app: &App) -> Result<ExitCode> {
             valid_type: |t| t.parse::<ace_results::ObservableKind>().is_ok(),
             command_types: std::sync::Arc::new(app.command_types()),
         });
+    let hooks_orchestrator = orchestrator.clone();
     let api = Api::new(db.clone(), bucket.clone(), orchestrator, config).await?;
     let stopping_api = api.clone();
     let listen = std::env::var("ACE4_API_LISTEN").unwrap_or_else(|_| "0.0.0.0:8080".to_owned());
@@ -145,6 +152,12 @@ async fn serve(app: &App) -> Result<ExitCode> {
     let recorder = tokio::spawn(ace_core::yara_qa::run_recorder(
         ace_core::yara_qa::recorder_worker(db.clone()),
         bucket.clone(),
+        Duration::from_secs(5),
+        stop.clone(),
+    ));
+    let hook_runner = tokio::spawn(ace_core::hooks::run_worker(
+        hooks_orchestrator,
+        ace_core::hooks::hooks_worker(db.clone()),
         Duration::from_secs(5),
         stop.clone(),
     ));
@@ -203,6 +216,12 @@ async fn serve(app: &App) -> Result<ExitCode> {
         .is_err()
     {
         tracing::warn!("the QA recorder didn't stop within 5 seconds");
+    }
+    if tokio::time::timeout(Duration::from_secs(5), hook_runner)
+        .await
+        .is_err()
+    {
+        tracing::warn!("the hooks worker didn't stop within 5 seconds");
     }
     // the scheduler stops its running tasks and waits STOP_WAIT for their ends to be recorded
     if tokio::time::timeout(

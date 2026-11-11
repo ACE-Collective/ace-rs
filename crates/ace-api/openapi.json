@@ -8541,7 +8541,6 @@
         "required": [
           "id",
           "alert",
-          "observable",
           "description",
           "created_at"
         ],
@@ -8574,8 +8573,15 @@
             "description": "The module whose result raised it, or null for one a submission or the core added."
           },
           "observable": {
-            "$ref": "#/components/schemas/DetectionObservableBody",
-            "description": "The observable it's on."
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/DetectionObservableBody",
+                "description": "The observable it's on, or null for a detection on the alert itself, such as a tag configured as\nalertable makes."
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "queue": {
             "type": [

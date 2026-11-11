@@ -24,7 +24,12 @@ systems see the same world, as tests/e2e/run gives ace4:
   (--observable-tags), as tests/e2e/run gives ace4's observable_detection list and
   analysis.observable_tags the same before its comparison;
 - the site tagger reads tools/ace3/trees/site_tags.csv, the text tests/e2e/site/overlay.yaml gives
-  ace4's site_tagger.
+  ace4's site_tagger;
+- the core's hooks (PLAN.md 7.6) are tests/e2e/site/overlay.yaml's `hooks:` section. ace3 ships
+  configuration_defined_tagging disabled, so it's enabled here, over ace3's own `tags:` section, which
+  the overlay's tags have to equal (checked in the container, which has PyYAML). ace3 ships
+  observable_modifier enabled with an empty rules file; it gets the overlay's rules, written as ace3's
+  YAML with ace3's names for the modules they name (MODULE_PATHS).
 
     tools/ace3/trees/make-trees                     every sample
     tools/ace3/trees/make-trees ace4/email/e2e...   the samples named, by path under samples/
@@ -70,8 +75,43 @@ ENABLE = [
     "pdftotext", "exif", "qrcode", "ocr", "java_class_decompiler", "upx", "autoit", "de4dot", "ilspy",
     "dmg_analyzer", "cve_2021_30657_analyzer", "pcap_analyzer", "pcap_dns", "pcap_tls", "pcap_http", "pcap_files",
     "pcap_tls_decryption", "tls_keylog", "user_defined_tagging", "observable_detection", "site_tagger",
-    "javascript_deobfuscation",
+    "javascript_deobfuscation", "observable_modifier", "configuration_defined_tagging",
 ]
+OVERLAY = REPO / "tests" / "e2e" / "site" / "overlay.yaml"
+MODIFIER_RULES = f"{REMOTE}/trees-observable_modifier_rules.yaml"
+# ace4 names a module by its key, where ace3's rules name the Python path of what they mean: a tree
+# condition's analysis_type and reset_analysis an Analysis class, exclude_analysis an analyzer class.
+# limit_analysis takes ace3's module names, which are ace4's keys.
+MODULE_PATHS = {
+    "analysis": {
+        "email_analyzer": "saq.modules.email.rfc822:EmailAnalysis",
+        "file_hash_analyzer": "saq.modules.file_analysis.hash:FileHashAnalysis",
+    },
+    "analyzer": {
+        "rdap_analyzer": "saq.modules.rdap:RdapAnalyzer",
+    },
+}
+# Run in ace3's container: checks the overlay's tags against ace3's and writes its rules as ace3's.
+HOOKS_SCRIPT = r'''
+import json, sys, yaml
+overlay = yaml.safe_load(open(sys.argv[1]))["hooks"]
+paths = json.loads(sys.argv[3])
+ace3_tags = yaml.safe_load(open("/opt/ace/etc/saq.default.yaml"))["tags"]
+tags = overlay["configuration_defined_tagging"]["tags"]
+if tags != ace3_tags:
+    sys.exit(f"the overlay's tags aren't ace3's: {sorted(set(tags.items()) ^ set(ace3_tags.items()))}")
+rules = overlay["observable_modifier"]["rules"]
+for rule in rules:
+    for tc in rule.get("conditions", {}).get("tree_conditions", []):
+        if tc.get("analysis_type"):
+            tc["analysis_type"] = paths["analysis"][tc["analysis_type"]]
+    actions = rule.get("actions", {})
+    for key, kind in (("exclude_analysis", "analyzer"), ("reset_analysis", "analysis")):
+        if key in actions:
+            actions[key] = [paths[kind][m] for m in actions[key]]
+with open(sys.argv[2], "w") as fp:
+    yaml.safe_dump({"rules": rules}, fp, sort_keys=False)
+'''
 BROCESS = HERE / "brocess.json"
 NRD = HERE / "nrd.json"
 DETECTIONS = HERE / "detections.json"
@@ -87,6 +127,8 @@ analysis_module_nrd_analyzer:
   max_registration_age_days: 0
 analysis_module_site_tagger:
   csv_file: {REMOTE}/trees-site_tags.csv
+analysis_module_observable_modifier:
+  rules_config_path: {MODIFIER_RULES}
 """
 DNS_RECORDING = HERE / "dns.json"
 RDAP_RECORDING = DUMPS / "reference" / "rdap_analyzer" / "fqdn_example.com.http"
@@ -212,6 +254,13 @@ def main():
     put(f"{REMOTE}/trees-detections.json", DETECTIONS.read_bytes())
     put(f"{REMOTE}/trees-observable_tags.json", OBSERVABLE_TAGS.read_bytes())
     put(f"{REMOTE}/trees-site_tags.csv", SITE_TAGS.read_bytes())
+    put(f"{REMOTE}/trees-overlay.yaml", OVERLAY.read_bytes())
+    hooks = docker(
+        "exec", CONTAINER, "/venv/bin/python3", "-I", "-c", HOOKS_SCRIPT, f"{REMOTE}/trees-overlay.yaml",
+        MODIFIER_RULES, json.dumps(MODULE_PATHS), check=False,
+    )
+    if hooks.returncode != 0:
+        raise SystemExit(hooks.stderr.decode(errors="replace"))
     docker(
         "exec", CONTAINER, "/venv/bin/python3", "-I", "-c",
         "import json, sqlite3, sys; db = sqlite3.connect(sys.argv[2]); "

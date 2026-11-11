@@ -1,6 +1,39 @@
 {
   "form": 1,
   "observables": {
+    "file:342f2c50cf7007d6fa9880ae3af9a9dcf0e4a158ebbf9351162f4c1cbcdbbcb7": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "js_names_name.pdf.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:59f4fca7c91c06050dc2946f62f55d167f55c4d90e125922df864060453f087a": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:59f4fca7c91c06050dc2946f62f55d167f55c4d90e125922df864060453f087a": {
       "detections": {},
       "directives": {},
@@ -19,8 +52,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 00:56:00+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 00:56:00+00:00",
+              "File:FileAccessDate": "2026:11:11 09:35:42+00:00",
+              "File:FileInodeChangeDate": "2026:11:11 09:35:42+00:00",
               "File:FileModifyDate": "2026:11:07 04:47:50+00:00",
               "File:FileName": "js_names_name.pdf",
               "File:FilePermissions": 100644,
@@ -107,39 +140,6 @@
         "pdf": true
       }
     },
-    "file:92678f0d09f8294879f62a8c0735d07cbc8661cdb25819f3ab6de4346a42d439": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "js_names_name.pdf.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:59f4fca7c91c06050dc2946f62f55d167f55c4d90e125922df864060453f087a": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:d95b29d817cdcd921084955fc9a55abc3a74d497086fcf907890ff2dde5b0e41": {
       "detections": {},
       "directives": {
@@ -200,7 +200,63 @@
       },
       "tags": {}
     },
-    "file:de76b9badce4d25e47da6a78d668bc63f7c87c0872272b1e5316872ed5d9e424": {
+    "file:ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "archive": true
+      },
+      "paths": {
+        "js_names_name.pdf.gs.pdf.txt": {
+          "type=document.pdf.text": true
+        },
+        "js_names_name.pdf.txt": {
+          "type=document.pdf.text": true
+        }
+      },
+      "redirection": "file:fa3606e66e8b95fc4570fc3b922a9e5d36ac29b45d768a7986139ef64a28e307",
+      "relationships": {
+        "extracted_from file:59f4fca7c91c06050dc2946f62f55d167f55c4d90e125922df864060453f087a": true,
+        "extracted_from file:fa3606e66e8b95fc4570fc3b922a9e5d36ac29b45d768a7986139ef64a28e307": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "very short file (no magic)"
+          },
+          "summary": "File Type Analysis: very short file (no magic) (application/octet-stream)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:fa3606e66e8b95fc4570fc3b922a9e5d36ac29b45d768a7986139ef64a28e307": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -282,62 +338,6 @@
         "pdf": true
       }
     },
-    "file:ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "archive": true
-      },
-      "paths": {
-        "js_names_name.pdf.gs.pdf.txt": {
-          "type=document.pdf.text": true
-        },
-        "js_names_name.pdf.txt": {
-          "type=document.pdf.text": true
-        }
-      },
-      "redirection": "file:de76b9badce4d25e47da6a78d668bc63f7c87c0872272b1e5316872ed5d9e424",
-      "relationships": {
-        "extracted_from file:59f4fca7c91c06050dc2946f62f55d167f55c4d90e125922df864060453f087a": true,
-        "extracted_from file:de76b9badce4d25e47da6a78d668bc63f7c87c0872272b1e5316872ed5d9e424": true
-      },
-      "results": {
-        "file_type": {
-          "details": {
-            "is_email_file": false,
-            "is_jar_file": false,
-            "is_lnk_file": false,
-            "is_office_document": false,
-            "is_office_ext": false,
-            "is_ole_file": false,
-            "is_pdf_file": false,
-            "is_pe_file": false,
-            "is_rtf_file": false,
-            "is_x509": false,
-            "is_zip_file": false,
-            "mime": "application/octet-stream",
-            "type": "very short file (no magic)"
-          },
-          "summary": "File Type Analysis: very short file (no magic) (application/octet-stream)",
-          "tags": {}
-        },
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "md5:46172fd90343bc360b230c1fbe086ba6": {
       "detections": {},
       "directives": {},
@@ -351,6 +351,21 @@
             "for_detection": false
           },
           "summary": null,
+          "tags": {}
+        },
+        "observable_modifier": {
+          "details": {
+            "matched_rules": [
+              {
+                "actions_applied": {
+                  "ignore": true
+                },
+                "name": "hashes out from under the hash module",
+                "uuid": "2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03"
+              }
+            ]
+          },
+          "summary": "Applied 1 rule(s): hashes out from under the hash module",
           "tags": {}
         },
         "user_defined_tagging": {
@@ -370,6 +385,29 @@
       "relationships": {
         "is_hash_of file:59f4fca7c91c06050dc2946f62f55d167f55c4d90e125922df864060453f087a": true
       },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "signature_id:2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
       "results": {
         "observable_detection": {
           "details": {

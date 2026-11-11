@@ -1415,6 +1415,8 @@ fn observable(id: i64, kind: &str, value: &str) -> AlertObservable {
         exclude_modules: Vec::new(),
         redirection: None,
         display_type: None,
+        display_value: None,
+        ignored: false,
         files: Vec::new(),
         relationships: Vec::new(),
         results: Vec::new(),
@@ -1481,6 +1483,7 @@ fn fixture_tree() -> (AlertTree, Vec<ObservableComment>) {
         .into_iter()
         .map(|(result, observable)| Addition { result, observable })
         .collect(),
+        root_detections: Vec::new(),
         truncated: false,
     };
     let comments = vec![ObservableComment {
@@ -1607,6 +1610,78 @@ fn the_view_function_draws_a_fixture_tree() {
     .expect("renders");
     assert!(closed.contains(r#"<details class="section" data-section-id="alert_details">"#));
     assert!(closed.contains("Collapsed by default"));
+}
+
+/// PLAN.md 7.6: what the core's hooks did shows as ace3's alert page shows it: the alert's own
+/// detections, the Observable Modifier Rules card with what a rule's `ignore` took out, a display value,
+/// and an ignored observable left out of the tree, each module's text escaped.
+#[test]
+fn the_alert_shows_what_the_hooks_did() {
+    let (mut tree, comments) = fixture_tree();
+    tree.root_detections.push(AlertDetection {
+        description: "tag <phish> is configured to be alertable".to_owned(),
+        details: None,
+        module: None,
+    });
+    let rule = |name: &str, uuid: &str, actions: serde_json::Value| serde_json::json!({"name": name, "uuid": uuid, "actions_applied": actions});
+    let mut modifier = module_result(20, "observable_modifier", Some("Applied 1 rule(s)"));
+    modifier.analysis_type = "observable_modifier_analysis".to_owned();
+    modifier.details = serde_json::json!({"matched_rules": [
+        rule("<b>hide</b>", "u1", serde_json::json!({"ignore": true})),
+    ]});
+    // the fqdn: hidden from the tree, and listed under the rule that hid it
+    tree.observables[3].ignored = true;
+    tree.observables[3].results.push(modifier.clone());
+    // the IP: a display value, and a rule that only tagged it
+    tree.observables[2].display_value = Some("the <bad> one".to_owned());
+    let mut tagged = modifier;
+    tagged.id = 21;
+    tagged.details = serde_json::json!({"matched_rules": [
+        rule("a tagger", "u2", serde_json::json!({"add_tags": ["x"], "set_display_value": "v"})),
+    ]});
+    tree.observables[2].results.push(tagged);
+    let page = AlertPage::new(
+        Layout::new("n0nce", Theme::Light, Some("alice".to_owned()), "/alerts/x"),
+        &tree,
+        &comments,
+        &ObservableActions::empty(),
+        &std::collections::BTreeMap::new(),
+    )
+    .expect("a page");
+    assert_eq!(page.ignored_count, 1);
+    assert_eq!(
+        page.modifier_rules
+            .iter()
+            .map(|r| (r.name.as_str(), r.observables, r.actions.as_str()))
+            .collect::<Vec<_>>(),
+        [
+            ("<b>hide</b>", 1, "ignore"),
+            ("a tagger", 1, "add_tags, set_display_value")
+        ],
+        "a rule that ignored something first"
+    );
+    let html = page.render().expect("renders");
+    let compact: String = html.lines().map(str::trim).collect();
+    assert!(
+        compact.contains("detection: tag &#60;phish&#62; is configured to be alertable"),
+        "{compact}"
+    );
+    assert!(
+        compact
+            .contains("Observable Modifier Rules (2 rules) <span class=\"badge\">1 ignored</span>")
+    );
+    assert!(compact.contains("&#60;b&#62;hide&#60;/b&#62;"));
+    assert!(compact.contains("hidden from the analysis tree"));
+    assert!(
+        compact.contains(r#"<span class="value">the &#60;bad&#62; one (192.0.2.10)</span>"#),
+        "{compact}"
+    );
+    assert!(
+        !compact.contains(r#"id="o4""#),
+        "an ignored observable isn't drawn in the tree"
+    );
+    assert!(!html.contains("<b>hide") && !html.contains("<bad>") && !html.contains("<phish>"));
+    assert!(!html.contains("style="));
 }
 
 fn grant_alert_read(stack: &Stack, actor: &Actor) -> impl std::future::Future<Output = ()> {
@@ -1777,6 +1852,65 @@ async fn the_alert_page_draws_the_tree_from_postgres_with_ace3_s_display_types()
     for label in ["Source IP (ip)", "Destination IP (ip)"] {
         assert!(page.contains(label));
     }
+
+    // What the core's hooks write (PLAN.md 7.6): a detection on the alert itself, a display value, and
+    // an observable an `ignore` took out, which the tree no longer draws.
+    let db = stack.test_db.db().pool();
+    sqlx::query(
+        "INSERT INTO analysis.detections (root_id, description)
+         VALUES ($1, 'tag <phish> is configured to be alertable')",
+    )
+    .bind(root)
+    .execute(db)
+    .await
+    .expect("a root detection");
+    sqlx::query(
+        "UPDATE analysis.observables SET display_value = 'the <proxy> host'
+         WHERE root_id = $1 AND value = 'www.example.com'",
+    )
+    .bind(root)
+    .execute(db)
+    .await
+    .expect("a display value");
+    let hidden: String = sqlx::query_scalar(
+        "UPDATE analysis.result_additions a SET ignored = true FROM analysis.observables o
+         WHERE a.root_id = $1 AND o.id = a.observable_id AND o.type = 'ip'
+           AND a.id = (SELECT min(b.id) FROM analysis.result_additions b
+                       JOIN analysis.observables p ON p.id = b.observable_id
+                       WHERE b.root_id = $1 AND p.type = 'ip')
+         RETURNING o.value",
+    )
+    .bind(root)
+    .fetch_one(db)
+    .await
+    .expect("an ignored addition");
+    // with no result left holding it, the hook takes it out of the tree
+    sqlx::query("UPDATE analysis.observables SET ignored = true WHERE root_id = $1 AND value = $2")
+        .bind(root)
+        .bind(&hidden)
+        .execute(db)
+        .await
+        .expect("ignored");
+    let page = stack
+        .get(&path)
+        .header("cookie", cookie(&alice_session))
+        .send()
+        .await
+        .expect("answered")
+        .text()
+        .await
+        .expect("a page");
+    assert!(
+        page.contains("detection: tag &#60;phish&#62; is configured to be alertable"),
+        "{page}"
+    );
+    assert!(
+        page.contains(r#"<span class="value">the &#60;proxy&#62; host (www.example.com)</span>"#)
+    );
+    assert!(
+        !page.contains(&format!(r#"<span class="value">{hidden}</span>"#)),
+        "the addition an ignore took out isn't drawn: {hidden}"
+    );
 
     // No alert:read, no such alert, not an id, and no session.
     let bob_session = session_of(&stack, "bob").await;
@@ -2314,6 +2448,7 @@ fn each_module_s_view_draws_its_fixture() {
         "user_defined_tagging_tagged",
         "user_defined_tagging_untagged",
         "site_tagger_two_rows",
+        "observable_modifier_recipient_domain",
         "javascript_deobfuscation_blob_redirect",
         "phishkit_url_scan",
     ];
@@ -2845,6 +2980,16 @@ fn each_module_s_view_draws_its_fixture() {
                 &[
                     "<tr><th>tag</th><td>first</td></tr>",
                     "<tr><th>tag</th><td>third</td></tr>",
+                ],
+            ),
+            // ace3's tree of the e2e email, under tests/e2e/site/overlay.yaml's rules
+            "observable_modifier_recipient_domain" => contains_all(
+                &html,
+                &[
+                    "<tr><th>rule</th><td>e2e recipient domain (2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a01): \
+                     add_detection_points: the observable modifier marked a recipient&#39;s domain; \
+                     add_tags: modifier_recipient_domain; set_display_type: Recipient Domain; \
+                     set_display_value: recipient</td></tr>",
                 ],
             ),
             "javascript_deobfuscation_blob_redirect" => contains_all(

@@ -90,7 +90,8 @@ use ace_results::types::snort::SnortSignatureAnalysis;
 use ace_results::types::splunk::{SplunkApiAnalysis, SplunkClickerDetectionAnalysis};
 use ace_results::types::ssdeep::SsdeepAnalysis;
 use ace_results::types::tag::{
-    ObservableDetectionAnalysis, SiteTagAnalysis, UserDefinedTaggingAnalysis,
+    ObservableDetectionAnalysis, ObservableModifierAnalysis, SiteTagAnalysis,
+    UserDefinedTaggingAnalysis,
 };
 use ace_results::types::url_extraction::UrlExtractionAnalysis;
 use ace_results::types::user::UserAnalysis;
@@ -288,6 +289,7 @@ impl Views {
             .with(ViewEntry::of::<ObservableDetectionAnalysis>())
             .with(ViewEntry::of::<UserDefinedTaggingAnalysis>())
             .with(ViewEntry::of::<SiteTagAnalysis>())
+            .with(ViewEntry::of::<ObservableModifierAnalysis>())
             .with(ViewEntry::of::<JavaScriptDeobfuscationAnalysis>())
             .with(ViewEntry::of::<PhishkitAnalysis>())
     }
@@ -1941,6 +1943,37 @@ impl AnalysisView for SiteTagAnalysis {
     type View<'a> = FieldsView;
     fn view(&self) -> FieldsView {
         tags_added_view(&self.tags_added)
+    }
+}
+
+/// `observable_modifier_analysis`, the core's hook (7.6): each rule that matched, with what its actions
+/// did, as ace3's default template prints its `matched_rules`.
+impl AnalysisView for ObservableModifierAnalysis {
+    type View<'a> = FieldsView;
+    fn view(&self) -> FieldsView {
+        fields_view(self.matched_rules.iter().map(|m| {
+            let actions: Vec<String> = m
+                .actions_applied
+                .iter()
+                .map(|(action, did)| match did {
+                    serde_json::Value::Bool(true) => action.clone(),
+                    serde_json::Value::String(s) => format!("{action}: {s}"),
+                    serde_json::Value::Array(items) => format!(
+                        "{action}: {}",
+                        items
+                            .iter()
+                            .map(|i| i.as_str().map_or_else(|| i.to_string(), str::to_owned))
+                            .collect::<Vec<_>>()
+                            .join(", ")
+                    ),
+                    other => format!("{action}: {other}"),
+                })
+                .collect();
+            field(
+                "rule",
+                Some(format!("{} ({}): {}", m.name, m.uuid, actions.join("; "))),
+            )
+        }))
     }
 }
 

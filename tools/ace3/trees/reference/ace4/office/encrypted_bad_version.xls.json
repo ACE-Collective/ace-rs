@@ -189,8 +189,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 00:35:46+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 00:35:46+00:00",
+              "File:FileAccessDate": "2026:11:11 08:58:42+00:00",
+              "File:FileInodeChangeDate": "2026:11:11 08:58:42+00:00",
               "File:FileModifyDate": "2026:11:07 10:46:15+00:00",
               "File:FileName": "encrypted_bad_version.xls",
               "File:FilePermissions": 100644,
@@ -506,39 +506,6 @@
       },
       "tags": {}
     },
-    "file:9c68815810012b7c1783a30d86b8759d15b9987f57f28043e2c29e0ae661a61e": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "encrypted_bad_version.xls.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:2d7dbed842f3fe4850ba1f4d7445fa7815272f1127ac527bc621d14bf6e7ca4b": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:b9f3acc130b3d1f16dfe1f51be672c1befeaeb2909c6785ea733eb09b9e32a70": {
       "detections": {},
       "directives": {
@@ -748,7 +715,80 @@
       },
       "tags": {}
     },
+    "file:ebbd48a1f96ab4d9356dd1fc8f6f6d7451e1ac8a5d7d2c2f73f6951b369c332f": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "encrypted_bad_version.xls.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:2d7dbed842f3fe4850ba1f4d7445fa7815272f1127ac527bc621d14bf6e7ca4b": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "md5:4d31b8b58081d3591dac3631247d23e4": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:2d7dbed842f3fe4850ba1f4d7445fa7815272f1127ac527bc621d14bf6e7ca4b": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "observable_modifier": {
+          "details": {
+            "matched_rules": [
+              {
+                "actions_applied": {
+                  "ignore": true
+                },
+                "name": "hashes out from under the hash module",
+                "uuid": "2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03"
+              }
+            ]
+          },
+          "summary": "Applied 1 rule(s): hashes out from under the hash module",
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "sha256:2d7dbed842f3fe4850ba1f4d7445fa7815272f1127ac527bc621d14bf6e7ca4b": {
       "detections": {},
       "directives": {},
       "excluded_analysis": {},
@@ -773,13 +813,11 @@
       },
       "tags": {}
     },
-    "sha256:2d7dbed842f3fe4850ba1f4d7445fa7815272f1127ac527bc621d14bf6e7ca4b": {
+    "signature_id:2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03": {
       "detections": {},
       "directives": {},
       "excluded_analysis": {},
-      "relationships": {
-        "is_hash_of file:2d7dbed842f3fe4850ba1f4d7445fa7815272f1127ac527bc621d14bf6e7ca4b": true
-      },
+      "relationships": {},
       "results": {
         "observable_detection": {
           "details": {

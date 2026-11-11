@@ -1036,39 +1036,6 @@
       },
       "tags": {}
     },
-    "file:6a0ccba36e83a36d16acff84ab398c9572812991208627cf8e307189ea420eac": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "Past Due Invoices.doc.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:6bed1dcf60d33d3907832ba5ca22467684fcf5183bed7feecc839b388042dba8": {
       "detections": {},
       "directives": {
@@ -1386,6 +1353,39 @@
       },
       "tags": {}
     },
+    "file:946df38d1d12fbc7221e7879c6d7a206d713ac56ed3c756c3c7e43c9ce8eccf3": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "Past Due Invoices.doc.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f": {
       "detections": {},
       "directives": {
@@ -1405,8 +1405,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 00:26:40+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 00:26:40+00:00",
+              "File:FileAccessDate": "2026:11:11 08:43:31+00:00",
+              "File:FileInodeChangeDate": "2026:11:11 08:43:31+00:00",
               "File:FileModifyDate": "2026:11:06 19:20:07+00:00",
               "File:FileName": "Past Due Invoices.doc",
               "File:FilePermissions": 100644,
@@ -2514,6 +2514,21 @@
           "summary": null,
           "tags": {}
         },
+        "observable_modifier": {
+          "details": {
+            "matched_rules": [
+              {
+                "actions_applied": {
+                  "ignore": true
+                },
+                "name": "hashes out from under the hash module",
+                "uuid": "2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03"
+              }
+            ]
+          },
+          "summary": "Applied 1 rule(s): hashes out from under the hash module",
+          "tags": {}
+        },
         "user_defined_tagging": {
           "details": {
             "tags_added": []
@@ -2531,6 +2546,29 @@
       "relationships": {
         "is_hash_of file:b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f": true
       },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "signature_id:2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
       "results": {
         "observable_detection": {
           "details": {
@@ -2680,6 +2718,13 @@
         }
       },
       "tags": {}
+    }
+  },
+  "root": {
+    "detections": {
+      "tag olevba is configured to be alertable": [
+        null
+      ]
     }
   }
 }

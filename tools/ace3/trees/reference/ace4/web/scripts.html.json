@@ -145,7 +145,7 @@
         "js": true
       }
     },
-    "file:1dc4753522a11a7c9ca78e290318e39fb6634c646ec0f4911eb65420987baff9": {
+    "file:0ac5765c77c9fa2fa892044d624337e1db6402dead076a901de982ec3e24a471": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -154,12 +154,12 @@
         "javascript_deobfuscation": true
       },
       "paths": {
-        "deobfuscated-scripts_js_event_onload_0_08cd18e2.js": {
+        "deobfuscated-scripts_js_inline_2_49db13ae.js": {
           "type=script.javascript": true
         }
       },
       "relationships": {
-        "extracted_from file:08cd18e251cc4e0c44f325f38076ae8568a0421f451b7e1dd54acb1634dd8410": true
+        "extracted_from file:49db13aefad48c0d8a569c59ff5cc0d51038afbecb4738df6269420a974170de": true
       },
       "results": {
         "file_type": {
@@ -286,67 +286,6 @@
         "observable_detection": {
           "details": {
             "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
-    "file:2e1b000746e7240156971238c39d6cc049de9ee7a3e0bbf79fa3c3f64e217517": {
-      "detections": {},
-      "directives": {
-        "extract_urls": true
-      },
-      "excluded_analysis": {
-        "javascript_deobfuscation": true
-      },
-      "paths": {
-        "deobfuscated-scripts_js_event_onclick_1_cd32f3aa.js": {
-          "type=script.javascript": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:cd32f3aa2a2385872d6e82fa2c34399e7e3c50f0fbf72663711851205c36812b": true
-      },
-      "results": {
-        "file_type": {
-          "details": {
-            "is_email_file": false,
-            "is_jar_file": false,
-            "is_lnk_file": false,
-            "is_office_document": false,
-            "is_office_ext": false,
-            "is_ole_file": false,
-            "is_pdf_file": false,
-            "is_pe_file": false,
-            "is_rtf_file": false,
-            "is_x509": false,
-            "is_zip_file": false,
-            "mime": "text/plain",
-            "type": "ASCII text"
-          },
-          "summary": "File Type Analysis: ASCII text (text/plain)",
-          "tags": {}
-        },
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "url_extraction": {
-          "details": {
-            "urls": [],
-            "urls_grouped_by_domain": {}
           },
           "summary": null,
           "tags": {}
@@ -529,7 +468,7 @@
         "js": true
       }
     },
-    "file:60b4a643248e970ad89b3232a4474625c7f04680d72df879abc1b7ac2f44e481": {
+    "file:76a234cce51540a9529035d0113d69fd291bcdcfbc757fb8a821a684ec64e20b": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -538,12 +477,12 @@
         "javascript_deobfuscation": true
       },
       "paths": {
-        "deobfuscated-scripts_js_inline_1_a31bfe52.js": {
+        "deobfuscated-scripts_js_inline_0_f2dac8e8.js": {
           "type=script.javascript": true
         }
       },
       "relationships": {
-        "extracted_from file:a31bfe5218c19f2fe76fbdac4fc1bd7341cce5c2ee8624f73540764d48d0eabc": true
+        "extracted_from file:f2dac8e86ea3054b9b5c95fcae9c3675bf0bd73c648f015d695a372de40df448": true
       },
       "results": {
         "file_type": {
@@ -574,10 +513,16 @@
         },
         "url_extraction": {
           "details": {
-            "urls": [],
-            "urls_grouped_by_domain": {}
+            "urls": [
+              "https://evil.example.com/collect?u=victim"
+            ],
+            "urls_grouped_by_domain": {
+              "example.com": [
+                "https://evil.example.com/collect?u=victim"
+              ]
+            }
           },
-          "summary": null,
+          "summary": "URL Extraction Analysis (evil.example.com)",
           "tags": {}
         },
         "user_defined_tagging": {
@@ -672,7 +617,7 @@
         "js": true
       }
     },
-    "file:8781863af98215ba698ca5c6dc4daec056feaf8fa0fd617b21739bc2884be086": {
+    "file:9bf988b7a55a1240bf8cbe0b0205d695a3bec476b203537b60c58d14fd468859": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -823,73 +768,6 @@
         "js": true
       }
     },
-    "file:b0efb21be4e2b62d9f80968026f895c2932daf7bf318a83f918331e89f6a0164": {
-      "detections": {},
-      "directives": {
-        "extract_urls": true
-      },
-      "excluded_analysis": {
-        "javascript_deobfuscation": true
-      },
-      "paths": {
-        "deobfuscated-scripts_js_inline_0_f2dac8e8.js": {
-          "type=script.javascript": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:f2dac8e86ea3054b9b5c95fcae9c3675bf0bd73c648f015d695a372de40df448": true
-      },
-      "results": {
-        "file_type": {
-          "details": {
-            "is_email_file": false,
-            "is_jar_file": false,
-            "is_lnk_file": false,
-            "is_office_document": false,
-            "is_office_ext": false,
-            "is_ole_file": false,
-            "is_pdf_file": false,
-            "is_pe_file": false,
-            "is_rtf_file": false,
-            "is_x509": false,
-            "is_zip_file": false,
-            "mime": "text/plain",
-            "type": "ASCII text"
-          },
-          "summary": "File Type Analysis: ASCII text (text/plain)",
-          "tags": {}
-        },
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "url_extraction": {
-          "details": {
-            "urls": [
-              "https://evil.example.com/collect?u=victim"
-            ],
-            "urls_grouped_by_domain": {
-              "example.com": [
-                "https://evil.example.com/collect?u=victim"
-              ]
-            }
-          },
-          "summary": "URL Extraction Analysis (evil.example.com)",
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:cd32f3aa2a2385872d6e82fa2c34399e7e3c50f0fbf72663711851205c36812b": {
       "detections": {},
       "directives": {},
@@ -973,6 +851,128 @@
       "tags": {
         "js": true
       }
+    },
+    "file:d4a1080300019f883f6cc078226725ace11f3701483578982eeacbda87d5fe17": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {
+        "javascript_deobfuscation": true
+      },
+      "paths": {
+        "deobfuscated-scripts_js_event_onclick_1_cd32f3aa.js": {
+          "type=script.javascript": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:cd32f3aa2a2385872d6e82fa2c34399e7e3c50f0fbf72663711851205c36812b": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text"
+          },
+          "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:e049e2dbf1d9ae0de062d98001635a3663e519b475d423e9fe15331a8fd3fb09": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {
+        "javascript_deobfuscation": true
+      },
+      "paths": {
+        "deobfuscated-scripts_js_event_onload_0_08cd18e2.js": {
+          "type=script.javascript": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:08cd18e251cc4e0c44f325f38076ae8568a0421f451b7e1dd54acb1634dd8410": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text"
+          },
+          "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
     },
     "file:f2dac8e86ea3054b9b5c95fcae9c3675bf0bd73c648f015d695a372de40df448": {
       "detections": {},
@@ -1058,7 +1058,7 @@
         "js": true
       }
     },
-    "file:feff3b4cb9523fec3a3d6ed5a891ef2477517af3665205603862e140c6ccd5ff": {
+    "file:f5319e073432cb7794805891001569f1bdd7e20527b24d6151a6f54670791366": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -1067,12 +1067,12 @@
         "javascript_deobfuscation": true
       },
       "paths": {
-        "deobfuscated-scripts_js_inline_2_49db13ae.js": {
+        "deobfuscated-scripts_js_inline_1_a31bfe52.js": {
           "type=script.javascript": true
         }
       },
       "relationships": {
-        "extracted_from file:49db13aefad48c0d8a569c59ff5cc0d51038afbecb4738df6269420a974170de": true
+        "extracted_from file:a31bfe5218c19f2fe76fbdac4fc1bd7341cce5c2ee8624f73540764d48d0eabc": true
       },
       "results": {
         "file_type": {
@@ -2080,6 +2080,21 @@
           "summary": null,
           "tags": {}
         },
+        "observable_modifier": {
+          "details": {
+            "matched_rules": [
+              {
+                "actions_applied": {
+                  "ignore": true
+                },
+                "name": "hashes out from under the hash module",
+                "uuid": "2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03"
+              }
+            ]
+          },
+          "summary": "Applied 1 rule(s): hashes out from under the hash module",
+          "tags": {}
+        },
         "user_defined_tagging": {
           "details": {
             "tags_added": []
@@ -2103,6 +2118,21 @@
             "for_detection": false
           },
           "summary": null,
+          "tags": {}
+        },
+        "observable_modifier": {
+          "details": {
+            "matched_rules": [
+              {
+                "actions_applied": {
+                  "ignore": true
+                },
+                "name": "hashes out from under the hash module",
+                "uuid": "2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03"
+              }
+            ]
+          },
+          "summary": "Applied 1 rule(s): hashes out from under the hash module",
           "tags": {}
         },
         "user_defined_tagging": {
@@ -2130,6 +2160,21 @@
           "summary": null,
           "tags": {}
         },
+        "observable_modifier": {
+          "details": {
+            "matched_rules": [
+              {
+                "actions_applied": {
+                  "ignore": true
+                },
+                "name": "hashes out from under the hash module",
+                "uuid": "2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03"
+              }
+            ]
+          },
+          "summary": "Applied 1 rule(s): hashes out from under the hash module",
+          "tags": {}
+        },
         "user_defined_tagging": {
           "details": {
             "tags_added": []
@@ -2153,6 +2198,21 @@
             "for_detection": false
           },
           "summary": null,
+          "tags": {}
+        },
+        "observable_modifier": {
+          "details": {
+            "matched_rules": [
+              {
+                "actions_applied": {
+                  "ignore": true
+                },
+                "name": "hashes out from under the hash module",
+                "uuid": "2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03"
+              }
+            ]
+          },
+          "summary": "Applied 1 rule(s): hashes out from under the hash module",
           "tags": {}
         },
         "user_defined_tagging": {
@@ -2180,6 +2240,21 @@
           "summary": null,
           "tags": {}
         },
+        "observable_modifier": {
+          "details": {
+            "matched_rules": [
+              {
+                "actions_applied": {
+                  "ignore": true
+                },
+                "name": "hashes out from under the hash module",
+                "uuid": "2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03"
+              }
+            ]
+          },
+          "summary": "Applied 1 rule(s): hashes out from under the hash module",
+          "tags": {}
+        },
         "user_defined_tagging": {
           "details": {
             "tags_added": []
@@ -2203,6 +2278,21 @@
             "for_detection": false
           },
           "summary": null,
+          "tags": {}
+        },
+        "observable_modifier": {
+          "details": {
+            "matched_rules": [
+              {
+                "actions_applied": {
+                  "ignore": true
+                },
+                "name": "hashes out from under the hash module",
+                "uuid": "2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03"
+              }
+            ]
+          },
+          "summary": "Applied 1 rule(s): hashes out from under the hash module",
           "tags": {}
         },
         "user_defined_tagging": {
@@ -2230,6 +2320,21 @@
           "summary": null,
           "tags": {}
         },
+        "observable_modifier": {
+          "details": {
+            "matched_rules": [
+              {
+                "actions_applied": {
+                  "ignore": true
+                },
+                "name": "hashes out from under the hash module",
+                "uuid": "2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03"
+              }
+            ]
+          },
+          "summary": "Applied 1 rule(s): hashes out from under the hash module",
+          "tags": {}
+        },
         "user_defined_tagging": {
           "details": {
             "tags_added": []
@@ -2253,6 +2358,21 @@
             "for_detection": false
           },
           "summary": null,
+          "tags": {}
+        },
+        "observable_modifier": {
+          "details": {
+            "matched_rules": [
+              {
+                "actions_applied": {
+                  "ignore": true
+                },
+                "name": "hashes out from under the hash module",
+                "uuid": "2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03"
+              }
+            ]
+          },
+          "summary": "Applied 1 rule(s): hashes out from under the hash module",
           "tags": {}
         },
         "user_defined_tagging": {
@@ -2447,6 +2567,29 @@
       "relationships": {
         "is_hash_of file:f2dac8e86ea3054b9b5c95fcae9c3675bf0bd73c648f015d695a372de40df448": true
       },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "signature_id:2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
       "results": {
         "observable_detection": {
           "details": {

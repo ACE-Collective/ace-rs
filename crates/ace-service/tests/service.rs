@@ -1925,11 +1925,11 @@ async fn detection_points_page_through_every_alert_s_detections_once_while_more_
     assert_eq!(listed.details, Some(json!({"rule": "<b>x</b>"})));
     assert_eq!(listed.module.as_deref(), Some("rdap_analyzer"));
     assert_eq!(
-        (
-            listed.observable_type.as_str(),
-            listed.observable_value.as_str()
-        ),
-        ("fqdn", "evil.example.com")
+        listed
+            .observable
+            .as_ref()
+            .map(|(_, kind, value)| (kind.as_str(), value.as_str())),
+        Some(("fqdn", "evil.example.com"))
     );
 
     // one that arrives while a puller pages is on a later page, and nothing repeats
@@ -12140,6 +12140,8 @@ fn graph_observable(id: i64, kind: &str, value: &str) -> AlertObservable {
         exclude_modules: Vec::new(),
         redirection: None,
         display_type: None,
+        display_value: None,
+        ignored: false,
         files: Vec::new(),
         relationships: Vec::new(),
         results: Vec::new(),
@@ -12192,6 +12194,7 @@ fn graph_tree(
             .iter()
             .map(|&(result, observable)| Addition { result, observable })
             .collect(),
+        root_detections: Vec::new(),
         truncated: false,
     }
 }

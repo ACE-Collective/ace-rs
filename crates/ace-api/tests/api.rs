@@ -1075,6 +1075,29 @@ async fn detection_points(client: &mut Client<'_>, token: &str, earlier: Uuid) {
     assert_eq!(rest["detections"][0]["id"], second);
     assert_eq!(rest["detections"][0]["details"], Value::Null);
     assert_eq!(rest["next"], Value::Null);
+    // one on the alert itself, as configuration_defined_tagging makes (PLAN.md 7.6), has no observable
+    let on_root: i64 = sqlx::query_scalar(
+        "INSERT INTO analysis.detections (root_id, description, signature_uuid)
+         VALUES ($1, 'tag phish is configured to be alertable', '14564014-a223-440a-914f-03a1f322e1bf')
+         RETURNING id",
+    )
+    .bind(target)
+    .fetch_one(client.stack.test_db.db().pool())
+    .await
+    .expect("a detection");
+    let root_page = client
+        .json(
+            Method::GET,
+            DETECTIONS,
+            &format!("{DETECTIONS}?alert={target}&after={second}"),
+            Some(token),
+            Send::Nothing,
+            StatusCode::OK,
+        )
+        .await;
+    assert_eq!(root_page["detections"][0]["id"], on_root);
+    assert_eq!(root_page["detections"][0]["observable"], Value::Null);
+    assert_eq!(root_page["detections"][0]["module"], Value::Null);
 
     // every alert's, oldest first, paged to the end
     let mut seen = Vec::new();

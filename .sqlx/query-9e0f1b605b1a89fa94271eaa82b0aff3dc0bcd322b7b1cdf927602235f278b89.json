@@ -1,11 +1,22 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT result_id AS result, observable_id AS observable\n                         FROM analysis.result_additions WHERE root_id = $1 ORDER BY id",
+  "query": "SELECT id, result_id, observable_id FROM analysis.result_additions\n           WHERE root_id = $1 AND NOT ignored ORDER BY id",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
-        "name": "result",
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "analysis.result_additions",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "result_id",
         "type_info": "Int8",
         "origin": {
           "Table": {
@@ -15,8 +26,8 @@
         }
       },
       {
-        "ordinal": 1,
-        "name": "observable",
+        "ordinal": 2,
+        "name": "observable_id",
         "type_info": "Int8",
         "origin": {
           "Table": {
@@ -33,8 +44,9 @@
     },
     "nullable": [
       false,
+      false,
       false
     ]
   },
-  "hash": "446a008ea16d09bdebc7e0c7b5f6da2ec91fee7d73ea7f03af1d22b1f3ea4788"
+  "hash": "9e0f1b605b1a89fa94271eaa82b0aff3dc0bcd322b7b1cdf927602235f278b89"
 }

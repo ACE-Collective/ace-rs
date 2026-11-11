@@ -210,6 +210,39 @@
         "macro": true
       }
     },
+    "file:3059865333b91ec6cad17f21f4a547451b624b0c302c38f6933674ecd515b1d8": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "vba_excel_bad_biff.xls.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:713376c89836c2a00399cd35ad60e4aa11054b05f1619628370587b8a9590dfe": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:4bc03d883e84c6e66e0e608c1a98f8a4347cd41642277aacfdbb48255334ac60": {
       "detections": {},
       "directives": {
@@ -294,8 +327,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 00:43:24+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 00:43:24+00:00",
+              "File:FileAccessDate": "2026:11:11 09:10:47+00:00",
+              "File:FileInodeChangeDate": "2026:11:11 09:10:47+00:00",
               "File:FileModifyDate": "2026:11:07 15:11:53+00:00",
               "File:FileName": "vba_excel_bad_biff.xls",
               "File:FilePermissions": 100644,
@@ -776,39 +809,6 @@
       },
       "tags": {}
     },
-    "file:f956bfe6e485af1863776606d17ee041664e8ea0a7033d140dfc7736bada0767": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "vba_excel_bad_biff.xls.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:713376c89836c2a00399cd35ad60e4aa11054b05f1619628370587b8a9590dfe": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "fqdn:example.com": {
       "detections": {},
       "directives": {},
@@ -1120,6 +1120,21 @@
           "summary": null,
           "tags": {}
         },
+        "observable_modifier": {
+          "details": {
+            "matched_rules": [
+              {
+                "actions_applied": {
+                  "ignore": true
+                },
+                "name": "hashes out from under the hash module",
+                "uuid": "2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03"
+              }
+            ]
+          },
+          "summary": "Applied 1 rule(s): hashes out from under the hash module",
+          "tags": {}
+        },
         "user_defined_tagging": {
           "details": {
             "tags_added": []
@@ -1137,6 +1152,29 @@
       "relationships": {
         "is_hash_of file:713376c89836c2a00399cd35ad60e4aa11054b05f1619628370587b8a9590dfe": true
       },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "signature_id:2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
       "results": {
         "observable_detection": {
           "details": {
@@ -1446,6 +1484,13 @@
         }
       },
       "tags": {}
+    }
+  },
+  "root": {
+    "detections": {
+      "tag olevba is configured to be alertable": [
+        null
+      ]
     }
   }
 }

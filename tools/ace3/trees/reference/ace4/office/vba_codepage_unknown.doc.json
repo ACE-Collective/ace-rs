@@ -1,39 +1,6 @@
 {
   "form": 1,
   "observables": {
-    "file:0dd9a48f5afc3aa67da66c3a9e443d259a028dfa27cab9ecc7e10ae5dc852428": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "vba_codepage_unknown.doc.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:215d0ac0c460504e67fc536f5965260addfddda8cc8f92d19914bd859d05088a": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:0f2b39fab432bcbaafc3efabdd678e9d2d27e2099b2a061fb0d4ce10e7ffb46d": {
       "detections": {},
       "directives": {
@@ -251,8 +218,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 00:43:10+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 00:43:10+00:00",
+              "File:FileAccessDate": "2026:11:11 09:10:33+00:00",
+              "File:FileInodeChangeDate": "2026:11:11 09:10:33+00:00",
               "File:FileModifyDate": "2026:11:07 15:11:53+00:00",
               "File:FileName": "vba_codepage_unknown.doc",
               "File:FilePermissions": 100644,
@@ -410,6 +377,39 @@
       },
       "tags": {}
     },
+    "file:66277e9a0cb94997236ee695c33fa38e0d1d557fe40befbaec52f6786d3e52c7": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "vba_codepage_unknown.doc.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:215d0ac0c460504e67fc536f5965260addfddda8cc8f92d19914bd859d05088a": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:a2982fd01877e34c3240428597204753c26397cb08e18522ec8783b5ef17d5bb": {
       "detections": {},
       "directives": {
@@ -544,6 +544,21 @@
           "summary": null,
           "tags": {}
         },
+        "observable_modifier": {
+          "details": {
+            "matched_rules": [
+              {
+                "actions_applied": {
+                  "ignore": true
+                },
+                "name": "hashes out from under the hash module",
+                "uuid": "2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03"
+              }
+            ]
+          },
+          "summary": "Applied 1 rule(s): hashes out from under the hash module",
+          "tags": {}
+        },
         "user_defined_tagging": {
           "details": {
             "tags_added": []
@@ -561,6 +576,29 @@
       "relationships": {
         "is_hash_of file:215d0ac0c460504e67fc536f5965260addfddda8cc8f92d19914bd859d05088a": true
       },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "signature_id:2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
       "results": {
         "observable_detection": {
           "details": {

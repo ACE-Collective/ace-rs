@@ -20,6 +20,8 @@
 //! pass's one completion (`check_completion`), which `Completions` waits for. Every change
 //! that queues or ends tasks locks the root's row first, so two that race on one root take
 //! turns and the second sees what the first did: a pass can't end twice, or not at all.
+//! When the core's hooks are due (`crate::hooks`), the transaction that ends the last task queues
+//! the hooks task instead, and the pass ends after it.
 //!
 //! Cancelling a root (`cancel_root`) cancels its queued and delayed tasks and asks its running
 //! ones to stop. A worker learns of it from a notification (`CancelWatch`) at once, or from
@@ -172,6 +174,26 @@ pub async fn check_completion(tx: &mut Tx<'_>, root: Uuid) -> Result<Option<i32>
     if active {
         return Ok(None);
     }
+    // the hooks run before the pass ends, once nothing else is left (`crate::hooks`)
+    let due = sqlx::query_scalar!(
+        r#"SELECT hooks_due AND cancelled_at IS NULL AS "due!" FROM analysis.roots WHERE id = $1"#,
+        root,
+    )
+    .fetch_optional(tx.conn())
+    .await?
+    .unwrap_or(false);
+    if due {
+        if queue_hooks(tx, root).await?.is_some() {
+            return Ok(None);
+        }
+        // a hooks task that failed doesn't run again; the pass ends without it
+        sqlx::query!(
+            "UPDATE analysis.roots SET hooks_due = false WHERE id = $1",
+            root
+        )
+        .execute(tx.conn())
+        .await?;
+    }
     let pass = sqlx::query_scalar!(
         "UPDATE analysis.roots SET completed_pass = pass
          WHERE id = $1 AND completed_pass < pass
@@ -193,6 +215,70 @@ pub async fn check_completion(tx: &mut Tx<'_>, root: Uuid) -> Result<Option<i32>
         crate::email_archive::index_urls(tx, root).await?;
     }
     Ok(pass)
+}
+
+/// Queues the root's hooks task (`crate::hooks`), on its first observable: a new one, or the one that
+/// ran before, again. Returns None when there's nothing to queue it on, or it failed before.
+async fn queue_hooks(tx: &mut Tx<'_>, root: Uuid) -> Result<Option<TaskId>, QueueError> {
+    let id = sqlx::query_scalar!(
+        r#"INSERT INTO queue.tasks AS t (root_id, observable_id, module, max_attempts)
+           SELECT $1, min(o.id), $2, $3 FROM analysis.observables o
+           WHERE o.root_id = $1 HAVING min(o.id) IS NOT NULL
+           ON CONFLICT (root_id, observable_id, module) DO UPDATE
+               SET state = 'queued', run_after = now(), attempts = 0, error = NULL,
+                   lease_owner = NULL, lease_expires_at = NULL, delay_state = NULL,
+                   first_delayed_at = NULL, delays = 0, cancel_requested = false,
+                   updated_at = now()
+               WHERE t.state IN ('done', 'cancelled')
+           RETURNING id AS "id: TaskId""#,
+        root,
+        crate::hooks::HOOKS_MODULE,
+        DEFAULT_MAX_ATTEMPTS,
+    )
+    .fetch_optional(tx.conn())
+    .await?;
+    if id.is_some() {
+        begin_pass(tx, root).await?;
+    }
+    Ok(id)
+}
+
+/// Queues again the tasks of `modules` on the observable that ended with no result, as ace3's
+/// `reset_analysis` clears a module's "no analysis" mark so it runs again.
+pub async fn requeue_without_result(
+    tx: &mut Tx<'_>,
+    root: Uuid,
+    observable: ObservableId,
+    modules: &[String],
+) -> Result<Vec<TaskId>, DbError> {
+    let ids = sqlx::query_scalar!(
+        r#"UPDATE queue.tasks t
+           SET state = 'queued', run_after = now(), attempts = 0, error = NULL,
+               delay_state = NULL, first_delayed_at = NULL, delays = 0, cancel_requested = false,
+               updated_at = now()
+           WHERE t.root_id = $1 AND t.observable_id = $2 AND t.module = ANY($3)
+             AND t.state = 'done'
+             AND NOT EXISTS (SELECT 1 FROM analysis.results r
+                             WHERE r.root_id = t.root_id AND r.observable_id = t.observable_id
+                               AND r.module = t.module)
+           RETURNING id AS "id: TaskId""#,
+        root,
+        observable as ObservableId,
+        modules,
+    )
+    .fetch_all(tx.conn())
+    .await?;
+    if !ids.is_empty() {
+        sqlx::query!(
+            "UPDATE analysis.roots
+             SET pass = CASE WHEN completed_pass = pass THEN pass + 1 ELSE pass END
+             WHERE id = $1",
+            root,
+        )
+        .execute(tx.conn())
+        .await?;
+    }
+    Ok(ids)
 }
 
 /// Queues a cancelled task again from the start, as when a root's mode changes and the module

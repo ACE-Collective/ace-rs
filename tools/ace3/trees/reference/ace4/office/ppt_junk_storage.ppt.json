@@ -1,6 +1,39 @@
 {
   "form": 1,
   "observables": {
+    "file:054d1868409494482fd0945ce0ba3ebb89247c70e7f2ab3fb41ba25f70ca5f9d": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "ppt_junk_storage.ppt.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:7590c212e4152ea350b0e8f76dbc75fd02729269a8313baa1aba6ee63139c43d": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:2f42b5d33619d0c3b33d9bf636ee54ab1165385b64d3b9e2b3cfa4cfb6721d79": {
       "detections": {},
       "directives": {
@@ -66,39 +99,6 @@
       },
       "tags": {}
     },
-    "file:6d16a8edad31be5cc16e38aa4801432d05ef72df91ce92f113e32450aa0852be": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "ppt_junk_storage.ppt.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:7590c212e4152ea350b0e8f76dbc75fd02729269a8313baa1aba6ee63139c43d": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:7590c212e4152ea350b0e8f76dbc75fd02729269a8313baa1aba6ee63139c43d": {
       "detections": {},
       "directives": {
@@ -118,8 +118,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 00:42:48+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 00:42:48+00:00",
+              "File:FileAccessDate": "2026:11:11 09:10:11+00:00",
+              "File:FileInodeChangeDate": "2026:11:11 09:10:11+00:00",
               "File:FileModifyDate": "2026:11:07 15:11:53+00:00",
               "File:FileName": "ppt_junk_storage.ppt",
               "File:FilePermissions": 100644,
@@ -283,6 +283,21 @@
           "summary": null,
           "tags": {}
         },
+        "observable_modifier": {
+          "details": {
+            "matched_rules": [
+              {
+                "actions_applied": {
+                  "ignore": true
+                },
+                "name": "hashes out from under the hash module",
+                "uuid": "2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03"
+              }
+            ]
+          },
+          "summary": "Applied 1 rule(s): hashes out from under the hash module",
+          "tags": {}
+        },
         "user_defined_tagging": {
           "details": {
             "tags_added": []
@@ -300,6 +315,29 @@
       "relationships": {
         "is_hash_of file:7590c212e4152ea350b0e8f76dbc75fd02729269a8313baa1aba6ee63139c43d": true
       },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "signature_id:2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
       "results": {
         "observable_detection": {
           "details": {

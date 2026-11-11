@@ -126,22 +126,25 @@
     },
     "email_subject:the attached file": {
       "detections": {},
-      "directives": {},
+      "directives": {
+        "exclude_all": true
+      },
       "excluded_analysis": {},
       "relationships": {},
       "results": {
-        "observable_detection": {
+        "observable_modifier": {
           "details": {
-            "for_detection": false
+            "matched_rules": [
+              {
+                "actions_applied": {
+                  "ignore": true
+                },
+                "name": "no subject analysis",
+                "uuid": "2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a04"
+              }
+            ]
           },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
+          "summary": "Applied 1 rule(s): no subject analysis",
           "tags": {}
         }
       },
@@ -301,7 +304,7 @@
       },
       "tags": {}
     },
-    "file:0ea6f58ea617533deca3e3100a672649fdd722c6a954faead5bbd153af75c284": {
+    "file:0e0845f9a74a7c360abbdfa0780c40bda2fd30eaf6322dab963ebebc4e0504e6": {
       "detections": {},
       "directives": {},
       "excluded_analysis": {
@@ -544,9 +547,9 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 00:29:15+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 00:29:15+00:00",
-              "File:FileModifyDate": "2026:11:11 00:29:15+00:00",
+              "File:FileAccessDate": "2026:11:11 08:46:07+00:00",
+              "File:FileInodeChangeDate": "2026:11:11 08:46:07+00:00",
+              "File:FileModifyDate": "2026:11:11 08:46:07+00:00",
               "File:FileName": "invoice.doc",
               "File:FilePermissions": 100664,
               "File:FileSize": 22528,
@@ -843,39 +846,6 @@
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
-    "file:3c0f9b1fad315c13ee71a5047afc1cc393a72e9d64f64b0d1171c38c235608e9": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "invoice.doc.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:2933e69bd26f61b99ba7b81487bee95fa954ef7ad19996e5bfbc0f57e635624d": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
           },
           "summary": null,
           "tags": {}
@@ -1303,9 +1273,9 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 00:29:18+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 00:29:18+00:00",
-              "File:FileModifyDate": "2026:11:11 00:29:18+00:00",
+              "File:FileAccessDate": "2026:11:11 08:46:08+00:00",
+              "File:FileInodeChangeDate": "2026:11:11 08:46:08+00:00",
+              "File:FileModifyDate": "2026:11:11 08:46:08+00:00",
               "File:FileName": "invoice.doc.decrypted",
               "File:FilePermissions": 100666,
               "File:FileSize": 22528,
@@ -1501,6 +1471,39 @@
       "tags": {
         "email": true
       }
+    },
+    "file:e1849723347d78b445dc580cc2b54f4674314722919198d2a71c8061a86bf428": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "invoice.doc.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:2933e69bd26f61b99ba7b81487bee95fa954ef7ad19996e5bfbc0f57e635624d": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
     },
     "file:eebd080c8748bc2d19a0273ac2f84bb8222e8b1e9fef26f08933053cb9e94218": {
       "detections": {},
@@ -2035,6 +2038,21 @@
           "summary": null,
           "tags": {}
         },
+        "observable_modifier": {
+          "details": {
+            "matched_rules": [
+              {
+                "actions_applied": {
+                  "ignore": true
+                },
+                "name": "hashes out from under the hash module",
+                "uuid": "2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03"
+              }
+            ]
+          },
+          "summary": "Applied 1 rule(s): hashes out from under the hash module",
+          "tags": {}
+        },
         "user_defined_tagging": {
           "details": {
             "tags_added": []
@@ -2058,6 +2076,21 @@
             "for_detection": false
           },
           "summary": null,
+          "tags": {}
+        },
+        "observable_modifier": {
+          "details": {
+            "matched_rules": [
+              {
+                "actions_applied": {
+                  "ignore": true
+                },
+                "name": "hashes out from under the hash module",
+                "uuid": "2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03"
+              }
+            ]
+          },
+          "summary": "Applied 1 rule(s): hashes out from under the hash module",
           "tags": {}
         },
         "user_defined_tagging": {
@@ -2127,6 +2160,52 @@
       "relationships": {
         "is_hash_of file:da1442cfb424fde5250f03e617414980e0c294fc27938e9a6dda57776bd8fa61": true
       },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "signature_id:2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "signature_id:2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a04": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
       "results": {
         "observable_detection": {
           "details": {

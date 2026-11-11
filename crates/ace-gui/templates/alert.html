@@ -26,6 +26,35 @@
       {%- endif %}
     </form>
   </details>
+  {%- if !root_detections.is_empty() %}
+  <section class="root-detections">
+    <h2>Detections on the alert</h2>
+    <ul>
+      {%- for detection in root_detections %}
+      <li><span class="detection" title="{{ detection }}">detection: {{ detection }}</span></li>
+      {%- endfor %}
+    </ul>
+  </section>
+  {%- endif %}
+  {%- if !modifier_rules.is_empty() %}
+  {#- ace3's Observable Modifier Rules card: collapsed, but find-in-page opens it, and an observable the
+      tree no longer draws can be found here -#}
+  <details class="section modifier-rules">
+    <summary>Observable Modifier Rules ({{ modifier_rules.len() }} rule{% if modifier_rules.len() != 1 %}s{% endif %}){% if ignored_count > 0 %} <span class="badge">{{ ignored_count }} ignored</span>{% endif %}</summary>
+    <table class="details">
+      {%- for rule in modifier_rules %}
+      <tr><th title="{{ rule.uuid }}">{% if !rule.ignored.is_empty() %}<span class="muted" title="ignored observables">(ignores)</span> {% endif %}{{ rule.name }}</th>
+        <td class="muted">{{ rule.observables }} observable{% if rule.observables != 1 %}s{% endif %}</td>
+        <td class="muted">{{ rule.actions }}</td></tr>
+      {%- for observable in rule.ignored %}
+      <tr><td></td><td colspan="2"><span class="muted">{{ observable.kind }}</span> {{ observable.value }}
+        {%- if observable.hidden %} <span class="muted">hidden from the analysis tree</span>
+        {%- else %} <span class="muted">removed where the rule matched it, still shown elsewhere</span>{% endif %}</td></tr>
+      {%- endfor %}
+      {%- endfor %}
+    </table>
+  </details>
+  {%- endif %}
   <section class="overview">
     <h2>Analysis Overview</h2>
     {% include "alert_tree.html" %}

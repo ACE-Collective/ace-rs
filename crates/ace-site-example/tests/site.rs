@@ -136,6 +136,8 @@ fn the_site_binary_draws_its_results_with_its_own_view() {
         exclude_modules: Vec::new(),
         redirection: None,
         display_type: None,
+        display_value: None,
+        ignored: false,
         files: Vec::new(),
         relationships: Vec::new(),
         results: Vec::new(),

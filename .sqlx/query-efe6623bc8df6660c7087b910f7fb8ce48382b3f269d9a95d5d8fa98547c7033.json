@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE analysis.roots\n             SET pass = CASE WHEN completed_pass = pass THEN pass + 1 ELSE pass END\n             WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "efe6623bc8df6660c7087b910f7fb8ce48382b3f269d9a95d5d8fa98547c7033"
+}

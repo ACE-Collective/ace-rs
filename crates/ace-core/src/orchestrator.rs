@@ -27,6 +27,7 @@ use uuid::Uuid;
 
 use crate::db::{DbError, Retryable, Tx};
 use crate::eligibility::{Catalog, Facts, check, is_whitelisted};
+use crate::hooks::{self, Hooks};
 use crate::modes::{CORRELATION, DISPOSITIONED, Modes};
 use crate::queue::{self, QueueError, Task, TaskId, TaskState, Worker};
 use crate::tree::{self, ObservableId, ResultId};
@@ -91,6 +92,8 @@ pub struct Orchestrator {
     /// The catalog's analysis types and their schemas, built the first time a result is
     /// checked.
     registry: Arc<OnceLock<Result<Registry, String>>>,
+    /// The hooks the core runs over the tree (`crate::hooks`).
+    hooks: Hooks,
 }
 
 /// Why a result was refused before anything from it was written.
@@ -107,7 +110,18 @@ impl Orchestrator {
             catalog,
             modes,
             registry: Arc::default(),
+            hooks: Hooks::none(),
         }
+    }
+
+    /// This orchestrator, running `hooks` (`crate::hooks`).
+    pub fn with_hooks(mut self, hooks: Hooks) -> Self {
+        self.hooks = hooks;
+        self
+    }
+
+    pub fn hooks(&self) -> &Hooks {
+        &self.hooks
     }
 
     /// Checks a result before it lands (PLAN.md 2.15): its type is the one `module`'s manifest
@@ -222,7 +236,8 @@ impl Orchestrator {
             Scope::Observables(ids) => Some(ids.iter().map(|id| id.0).collect()),
         };
         let observables = sqlx::query!(
-            r#"SELECT id AS "id: ObservableId", type AS kind, tags, directives, exclude_modules
+            r#"SELECT id AS "id: ObservableId", type AS kind, tags, directives, exclude_modules,
+                      limit_modules
                FROM analysis.observables
                WHERE root_id = $1 AND ($2::bigint[] IS NULL OR id = ANY($2))
                ORDER BY id"#,
@@ -274,6 +289,7 @@ impl Orchestrator {
                 tags: &observable.tags,
                 directives: &observable.directives,
                 exclude_modules: &observable.exclude_modules,
+                limit_modules: &observable.limit_modules,
             };
             let done: BTreeSet<&str> = results
                 .get(&observable.id)
@@ -313,9 +329,32 @@ impl Orchestrator {
     ) -> Result<Vec<TaskId>, OrchestratorError> {
         let locked = lock_root(tx, root).await?;
         queue::begin_pass(tx, root).await?;
-        let queued = self
+        let all: Vec<ObservableId> = sqlx::query_scalar!(
+            r#"SELECT id AS "id: ObservableId" FROM analysis.observables WHERE root_id = $1 ORDER BY id"#,
+            root,
+        )
+        .fetch_all(tx.conn())
+        .await?;
+        let pre = hooks::pre(tx, &self.hooks, &self.modes, root, &locked.mode, &all).await?;
+        hooks::mark_due(tx, &self.hooks, &self.modes, root, &locked.mode).await?;
+        if pre.detected
+            && self.modes.is_detectable(&locked.mode)
+            && !tree::has_whitelisted(tx.conn(), root).await?
+        {
+            sqlx::query!(
+                "UPDATE analysis.roots SET alerted_at = COALESCE(alerted_at, now()) WHERE id = $1",
+                root,
+            )
+            .execute(tx.conn())
+            .await?;
+            let queued = self.set_mode(tx, root, CORRELATION).await?;
+            queue::check_completion(tx, root).await?;
+            return Ok(queued);
+        }
+        let mut queued = self
             .queue_eligible_locked(tx, root, &locked.mode, Scope::All, false)
             .await?;
+        queued.extend(pre.requeued);
         queue::check_completion(tx, root).await?;
         Ok(queued)
     }
@@ -337,8 +376,40 @@ impl Orchestrator {
         )
         .execute(tx.conn())
         .await?;
+        hooks::mark_due(tx, &self.hooks, &self.modes, root, mode).await?;
         self.queue_eligible_locked(tx, root, mode, Scope::All, true)
             .await
+    }
+
+    /// What follows a hooks run (`crate::hooks`): a detection in a detectable mode makes the root an
+    /// alert in correlation mode, as a landing's does, and otherwise eligibility runs over what the
+    /// hooks touched. Returns the tasks queued and the mode the root changed to.
+    pub(crate) async fn after_hooks(
+        &self,
+        tx: &mut Tx<'_>,
+        root: Uuid,
+        mode: &str,
+        touched: &[ObservableId],
+        detected: bool,
+    ) -> Result<(Vec<TaskId>, Option<String>), OrchestratorError> {
+        if detected
+            && self.modes.is_detectable(mode)
+            && !tree::has_whitelisted(tx.conn(), root).await?
+        {
+            sqlx::query!(
+                "UPDATE analysis.roots SET alerted_at = COALESCE(alerted_at, now()) WHERE id = $1",
+                root,
+            )
+            .execute(tx.conn())
+            .await?;
+            tracing::info!(%root, from = %mode, "a hook's detection made the root an alert");
+            let queued = self.set_mode(tx, root, CORRELATION).await?;
+            return Ok((queued, Some(CORRELATION.to_owned())));
+        }
+        let queued = self
+            .queue_eligible_locked(tx, root, mode, Scope::Observables(touched), false)
+            .await?;
+        Ok((queued, None))
     }
 
     /// What a disposition does to an alert's analysis: cancels it, then switches it to dispositioned
@@ -454,6 +525,13 @@ impl Orchestrator {
         if let Some(changes) = &result.root {
             tree::change_root(tx, root, changes).await?;
         }
+        // the observable modifier's pre rules, before anything is queued for what the result touched
+        let mut pre = hooks::Effects::default();
+        if !locked.cancelled {
+            pre = hooks::pre(tx, &self.hooks, &self.modes, root, &mode, &touched).await?;
+            touched.extend(pre.touched.iter().copied());
+            hooks::mark_due(tx, &self.hooks, &self.modes, root, &mode).await?;
+        }
 
         // a result that lands after its root was cancelled is kept, and queues nothing
         if locked.cancelled {
@@ -483,7 +561,7 @@ impl Orchestrator {
         {
             qa_task.push(id);
         }
-        if !detections.is_empty()
+        if (!detections.is_empty() || pre.detected)
             && self.modes.is_detectable(&mode)
             && !tree::has_whitelisted(tx.conn(), root).await?
         {
@@ -506,6 +584,7 @@ impl Orchestrator {
         let mut queued = self
             .queue_eligible_locked(tx, root, &mode, Scope::Observables(&touched), false)
             .await?;
+        queued.extend(pre.requeued);
         queued.extend(qa_task);
         queue::check_completion(tx, root).await?;
         Ok(Landed {

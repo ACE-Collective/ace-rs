@@ -9,7 +9,8 @@ there, and fails when the inventory's table of modules:
   the config's module_group_* and analysis_mode_* sections give it;
 - gives a module no pool or step from the inventory's lists, or a 7.5 batch the list of batches
   doesn't have, or a batch list that disagrees with the table;
-- names a crate as ace4's that crates/ace doesn't register, or misses one it does;
+- names a crate as ace4's that crates/ace doesn't register, or misses one it does, or names
+  ace-core, where the core runs a module as a hook (PLAN.md 7.6), for a module off the core's pool;
 - disagrees with a module's entry below it, or with its own counts.
 
 And it finds the modules that read or write ACE's own data (PLAN.md 7.2) in ace3's code at the same
@@ -48,6 +49,9 @@ STEPS = ["done", "7.4", "7.5", "7.6", "7.7", "7.8", "7.9", "7.10", "owner"]
 # ace3's SplunkAPIAnalyzer has no section of its own in saq.default.yaml: sites run it as
 # instances, as tests/e2e/site/overlay.yaml does
 REGISTERED_WITHOUT_A_SECTION = {"ace-mod-splunk"}
+# the core runs a core-pool module as one of its hooks (PLAN.md 7.6, crates/ace-core/src/hooks.rs),
+# so it's in the core's crate rather than a crate crates/ace registers
+CORE_CRATE = "ace-core"
 ROW = re.compile(
     r"^\| `(?P<name>[a-z0-9_]+)` \| `(?P<cls>[A-Za-z0-9_]+)` \| (?P<ace4>not yet|`[a-z0-9-]+`) "
     r"\| (?P<pool>[^|]+) \| (?P<step>[^|]+) \| (?P<groups>[^|]+) \| (?P<modes>[^|]+) \|$"
@@ -191,7 +195,12 @@ def check_doc(doc, ace3, failures):
         elif name in in_batch:
             failures.append(f"{name}: 7.5's batch {in_batch[name]} has it, and the table says {step}")
         crate = row["ace4"].strip("`") if row["ace4"] != "not yet" else None
-        if crate:
+        if crate == CORE_CRATE:
+            if pool != "core":
+                failures.append(f"{name}: ace4 {CORE_CRATE} is for a module on the core's pool")
+            if f"`{name}`" not in (REPO / "crates" / "ace-core" / "src" / "hooks.rs").read_text():
+                failures.append(f"{name}: crates/ace-core/src/hooks.rs doesn't run it")
+        elif crate:
             named.add(crate)
             if crate not in crates:
                 failures.append(f"{name}: crates/ace doesn't register {crate}")

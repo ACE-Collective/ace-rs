@@ -52,5 +52,58 @@ modules:
           query: index=proxy hostname="<O_VALUE>"
           observable_mapping:
             - {field: user, type: email_address}
+# The core's hooks (PLAN.md 7.6). tools/ace3/trees/make-trees gives ace3 the same: it enables
+# configuration_defined_tagging, which ace3 ships disabled, over ace3's own `tags:` section, which these
+# tags are, and writes these rules into ace3's observable modifier rules file with ace3's names for the
+# modules they name (its MODULE_PATHS).
+hooks:
+  configuration_defined_tagging:
+    tags:
+      {high_fp_frequency: special, whitelisted: special, encrypted_email: special,
+       decrypted_email: special, tracked: special, debug: fp, qualys: fp, infosec: fp, p2p: fp,
+       frequent_conversation: fp, guest_wireless: fp, pentester: fp, new_sender: interesting,
+       hunt_validation: interesting, warning: warning, executive: warning, treasury: warning,
+       suspicious_url: warning, suspect: warning, olevba: warning, officeparser_failed: warning,
+       rtf_binary: warning, unexpected_binary_data: warning, microsoft_script_encoding: warning,
+       office365_block: alert, pos: alert, phish: alert, apt: alert, av: alert, dc: alert,
+       malicious_url: alert, malicious: alert, ssdeep: alert, rat: alert, script_in_zip: alert,
+       exe_in_zip: alert, one_in_zip: alert, lnk_in_zip: alert, suspect_ole_attachment: alert,
+       critical: critical, needs_research: critical, denied: detail, proxied: alert, observed: alert,
+       analysis_too_large: detail}
+  observable_modifier:
+    rules:
+      # post: walks the fqdn's ancestors to the email and reads a list in its details
+      - name: e2e recipient domain
+        uuid: 2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a01
+        conditions:
+          observable_types: [fqdn]
+          value_pattern: '^example\.net$'
+          tree_conditions:
+            - analysis_type: email_analyzer
+              details_match: {email.to_addresses: '^bob@example\.net$'}
+        actions:
+          add_tags: [modifier_recipient_domain]
+          add_detection_points: [the observable modifier marked a recipient's domain]
+          set_display_type: Recipient Domain
+          set_display_value: recipient
+      # pre: keeps RDAP off an fqdn before it's queued
+      - name: no rdap for example.net
+        uuid: 2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a02
+        phase: pre
+        conditions: {observable_types: [fqdn], value_pattern: '^example\.net$'}
+        actions: {exclude_analysis: [rdap_analyzer], add_directives: [modifier_pre]}
+      # post: takes a hash out from under the module that added it
+      - name: hashes out from under the hash module
+        uuid: 2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03
+        conditions:
+          observable_types: [md5]
+          tree_conditions: [{analysis_type: file_hash_analyzer, scope: parent}]
+        actions: {ignore: true}
+      # pre: an ignore keeps everything off what it matches
+      - name: no subject analysis
+        uuid: 2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a04
+        phase: pre
+        conditions: {observable_types: [email_subject]}
+        actions: {ignore: true}
 secrets:
   splunk_password: env:ACE4_SPLUNK_PASSWORD

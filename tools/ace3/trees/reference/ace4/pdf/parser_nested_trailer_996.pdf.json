@@ -1,7 +1,7 @@
 {
   "form": 1,
   "observables": {
-    "file:4c03ee07e92a832cfaed281b8c5b5df398493a0b8b682902cddfc2c7ed896ee8": {
+    "file:380b49d0139a450c7a2c4e08f8b53e2173513a7bf01beaef406ce8ef4af9906c": {
       "detections": {},
       "directives": {},
       "excluded_analysis": {
@@ -94,7 +94,59 @@
       },
       "tags": {}
     },
-    "file:8c38c8691c89a072fb11c4ce75cf18cbbe501e0d1f30f2eab97278b35a8f99d9": {
+    "file:ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "archive": true
+      },
+      "paths": {
+        "parser_nested_trailer_996.pdf.gs.pdf.txt": {
+          "type=document.pdf.text": true
+        }
+      },
+      "redirection": "file:f22aa2e30fbc817bef2786e7a689a517e65fa67a5bbf0b23ad35cbbc9270651e",
+      "relationships": {
+        "extracted_from file:f22aa2e30fbc817bef2786e7a689a517e65fa67a5bbf0b23ad35cbbc9270651e": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "very short file (no magic)"
+          },
+          "summary": "File Type Analysis: very short file (no magic) (application/octet-stream)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:f22aa2e30fbc817bef2786e7a689a517e65fa67a5bbf0b23ad35cbbc9270651e": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -176,58 +228,6 @@
         "pdf": true
       }
     },
-    "file:ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "archive": true
-      },
-      "paths": {
-        "parser_nested_trailer_996.pdf.gs.pdf.txt": {
-          "type=document.pdf.text": true
-        }
-      },
-      "redirection": "file:8c38c8691c89a072fb11c4ce75cf18cbbe501e0d1f30f2eab97278b35a8f99d9",
-      "relationships": {
-        "extracted_from file:8c38c8691c89a072fb11c4ce75cf18cbbe501e0d1f30f2eab97278b35a8f99d9": true
-      },
-      "results": {
-        "file_type": {
-          "details": {
-            "is_email_file": false,
-            "is_jar_file": false,
-            "is_lnk_file": false,
-            "is_office_document": false,
-            "is_office_ext": false,
-            "is_ole_file": false,
-            "is_pdf_file": false,
-            "is_pe_file": false,
-            "is_rtf_file": false,
-            "is_x509": false,
-            "is_zip_file": false,
-            "mime": "application/octet-stream",
-            "type": "very short file (no magic)"
-          },
-          "summary": "File Type Analysis: very short file (no magic) (application/octet-stream)",
-          "tags": {}
-        },
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:f7e35e49cc79f17dd2a97a00dfdd18ff9564be8954e0f95a721c27447185f977": {
       "detections": {},
       "directives": {},
@@ -247,8 +247,8 @@
               "ExifTool:ExifToolVersion": 13.25,
               "ExifTool:Warning": "Invalid xref table",
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 00:58:16+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 00:58:16+00:00",
+              "File:FileAccessDate": "2026:11:11 09:37:59+00:00",
+              "File:FileInodeChangeDate": "2026:11:11 09:37:59+00:00",
               "File:FileModifyDate": "2026:11:07 04:47:50+00:00",
               "File:FileName": "parser_nested_trailer_996.pdf",
               "File:FilePermissions": 100644,
@@ -341,6 +341,21 @@
           "summary": null,
           "tags": {}
         },
+        "observable_modifier": {
+          "details": {
+            "matched_rules": [
+              {
+                "actions_applied": {
+                  "ignore": true
+                },
+                "name": "hashes out from under the hash module",
+                "uuid": "2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03"
+              }
+            ]
+          },
+          "summary": "Applied 1 rule(s): hashes out from under the hash module",
+          "tags": {}
+        },
         "user_defined_tagging": {
           "details": {
             "tags_added": []
@@ -358,6 +373,29 @@
       "relationships": {
         "is_hash_of file:f7e35e49cc79f17dd2a97a00dfdd18ff9564be8954e0f95a721c27447185f977": true
       },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "signature_id:2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
       "results": {
         "observable_detection": {
           "details": {

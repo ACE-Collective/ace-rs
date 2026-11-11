@@ -159,8 +159,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files/js_ole_obj.docx.extracted/word/embeddings",
-              "File:FileAccessDate": "2026:11:11 00:27:12+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 00:27:10+00:00",
+              "File:FileAccessDate": "2026:11:11 08:44:00+00:00",
+              "File:FileInodeChangeDate": "2026:11:11 08:43:58+00:00",
               "File:FileModifyDate": "1980:01:01 00:00:00+00:00",
               "File:FileName": "oleObject1.bin",
               "File:FilePermissions": 100664,
@@ -483,6 +483,39 @@
       },
       "tags": {}
     },
+    "file:277a550209afa4796d17f55fea1bfa3de540c02f6c3f4181fee701291f31f7c1": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "js_ole_obj.docx.extracted/word/embeddings/oleObject2.bin.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:7fb4d8857922a72e50815fd32af023baef9b11eed1794b35c7392c3884113ea1": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:2a6aee4c8a9714223a3568077411a0c82d11b484b1c9ab93a19d50b99c57baa5": {
       "detections": {},
       "directives": {
@@ -678,7 +711,7 @@
       },
       "tags": {}
     },
-    "file:3670a797bd683ab399b848e9547f2b2e69e5f2d91ace61fb9ad0e5ee659d85e8": {
+    "file:331c2998382ed2a09c8e2dc082afea7b353683dcf18de70cec528080b6da2dd7": {
       "detections": {},
       "directives": {},
       "excluded_analysis": {
@@ -1256,8 +1289,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 00:27:09+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 00:27:09+00:00",
+              "File:FileAccessDate": "2026:11:11 08:43:57+00:00",
+              "File:FileInodeChangeDate": "2026:11:11 08:43:57+00:00",
               "File:FileModifyDate": "2026:11:06 19:20:07+00:00",
               "File:FileName": "js_ole_obj.docx",
               "File:FilePermissions": 100644,
@@ -1570,6 +1603,39 @@
       },
       "tags": {}
     },
+    "file:7262212f8213c187497fafb3e0b4e8f22951a822ec6caad71ec9f10b08ce6598": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "js_ole_obj.docx.extracted/word/embeddings/oleObject1.bin.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:0e10f65a582c636090bbfad35c75710ac052fd7fdbbbc942e0790c5225f8c312": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:751eebbbc0f8df28338688db6981e8ed1ad53a360352e38860529469355149fc": {
       "detections": {},
       "directives": {},
@@ -1633,8 +1699,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files/js_ole_obj.docx.extracted/word/embeddings",
-              "File:FileAccessDate": "2026:11:11 00:27:12+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 00:27:10+00:00",
+              "File:FileAccessDate": "2026:11:11 08:44:00+00:00",
+              "File:FileInodeChangeDate": "2026:11:11 08:43:58+00:00",
               "File:FileModifyDate": "1980:01:01 00:00:00+00:00",
               "File:FileName": "oleObject2.bin",
               "File:FilePermissions": 100664,
@@ -2139,39 +2205,6 @@
       },
       "tags": {}
     },
-    "file:9d8a9f1dc146e29601eb2a75aca36b0a92ca1dc1345086dda450a59aa5d75ccc": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "js_ole_obj.docx.extracted/word/embeddings/oleObject2.bin.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:7fb4d8857922a72e50815fd32af023baef9b11eed1794b35c7392c3884113ea1": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:a0ae50d66431e911004f40681093300e8709a5827622efbc6f8ca15fc762d8aa": {
       "detections": {},
       "directives": {
@@ -2367,39 +2400,6 @@
         "xml_plain_text_analyzer": {
           "details": {
             "xml_plain_text": "js_ole_obj.docx.extracted/word/document.xml.noxml"
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
-    "file:ac9746db7850456870b57314a3cce984b6e82a4deb07dc8fe1202a10e96b8bc7": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "js_ole_obj.docx.extracted/word/embeddings/oleObject1.bin.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:0e10f65a582c636090bbfad35c75710ac052fd7fdbbbc942e0790c5225f8c312": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
           },
           "summary": null,
           "tags": {}
@@ -3552,6 +3552,21 @@
           "summary": null,
           "tags": {}
         },
+        "observable_modifier": {
+          "details": {
+            "matched_rules": [
+              {
+                "actions_applied": {
+                  "ignore": true
+                },
+                "name": "hashes out from under the hash module",
+                "uuid": "2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03"
+              }
+            ]
+          },
+          "summary": "Applied 1 rule(s): hashes out from under the hash module",
+          "tags": {}
+        },
         "user_defined_tagging": {
           "details": {
             "tags_added": []
@@ -3575,6 +3590,21 @@
             "for_detection": false
           },
           "summary": null,
+          "tags": {}
+        },
+        "observable_modifier": {
+          "details": {
+            "matched_rules": [
+              {
+                "actions_applied": {
+                  "ignore": true
+                },
+                "name": "hashes out from under the hash module",
+                "uuid": "2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03"
+              }
+            ]
+          },
+          "summary": "Applied 1 rule(s): hashes out from under the hash module",
           "tags": {}
         },
         "user_defined_tagging": {
@@ -3602,6 +3632,21 @@
           "summary": null,
           "tags": {}
         },
+        "observable_modifier": {
+          "details": {
+            "matched_rules": [
+              {
+                "actions_applied": {
+                  "ignore": true
+                },
+                "name": "hashes out from under the hash module",
+                "uuid": "2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03"
+              }
+            ]
+          },
+          "summary": "Applied 1 rule(s): hashes out from under the hash module",
+          "tags": {}
+        },
         "user_defined_tagging": {
           "details": {
             "tags_added": []
@@ -3627,6 +3672,21 @@
           "summary": null,
           "tags": {}
         },
+        "observable_modifier": {
+          "details": {
+            "matched_rules": [
+              {
+                "actions_applied": {
+                  "ignore": true
+                },
+                "name": "hashes out from under the hash module",
+                "uuid": "2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03"
+              }
+            ]
+          },
+          "summary": "Applied 1 rule(s): hashes out from under the hash module",
+          "tags": {}
+        },
         "user_defined_tagging": {
           "details": {
             "tags_added": []
@@ -3650,6 +3710,21 @@
             "for_detection": false
           },
           "summary": null,
+          "tags": {}
+        },
+        "observable_modifier": {
+          "details": {
+            "matched_rules": [
+              {
+                "actions_applied": {
+                  "ignore": true
+                },
+                "name": "hashes out from under the hash module",
+                "uuid": "2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03"
+              }
+            ]
+          },
+          "summary": "Applied 1 rule(s): hashes out from under the hash module",
           "tags": {}
         },
         "user_defined_tagging": {
@@ -3786,6 +3861,36 @@
         }
       },
       "tags": {}
+    },
+    "signature_id:2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    }
+  },
+  "root": {
+    "detections": {
+      "tag suspect_ole_attachment is configured to be alertable": [
+        null
+      ]
     }
   }
 }

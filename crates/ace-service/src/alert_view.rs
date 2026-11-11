@@ -58,8 +58,12 @@ pub struct AlertTree {
     pub observables: Vec<AlertObservable>,
     /// The observables the submission added, at the top of the tree, in the order it added them.
     pub top: Vec<i64>,
-    /// Which result added which observable, in the order each result listed them.
+    /// Which result added which observable, in the order each result listed them, without those an
+    /// observable modifier rule's `ignore` took out.
     pub additions: Vec<Addition>,
+    /// The detections on the alert itself rather than on one of its observables, such as
+    /// `configuration_defined_tagging`'s (PLAN.md 7.6), in the order they were made.
+    pub root_detections: Vec<crate::alerts::AlertDetection>,
     /// Whether the alert has more observables than `MAX_TREE_OBSERVABLES`, which this leaves out.
     pub truncated: bool,
 }
@@ -206,11 +210,26 @@ impl Service {
                     let additions = sqlx::query_as!(
                         Addition,
                         "SELECT result_id AS result, observable_id AS observable
-                         FROM analysis.result_additions WHERE root_id = $1 ORDER BY id",
+                         FROM analysis.result_additions WHERE root_id = $1 AND NOT ignored
+                         ORDER BY id",
                         id,
                     )
                     .fetch_all(tx.conn())
                     .await?;
+                    let root_detections = sqlx::query!(
+                        "SELECT description, details FROM analysis.detections
+                         WHERE root_id = $1 AND observable_id IS NULL ORDER BY id",
+                        id,
+                    )
+                    .fetch_all(tx.conn())
+                    .await?
+                    .into_iter()
+                    .map(|row| crate::alerts::AlertDetection {
+                        description: row.description,
+                        details: row.details,
+                        module: None,
+                    })
+                    .collect();
                     let top = sqlx::query_scalar!(
                         "SELECT o.id FROM analysis.observables o
                          JOIN analysis.roots r ON r.id = o.root_id
@@ -225,6 +244,7 @@ impl Service {
                         observables,
                         top,
                         additions,
+                        root_detections,
                         truncated,
                     })
                 })

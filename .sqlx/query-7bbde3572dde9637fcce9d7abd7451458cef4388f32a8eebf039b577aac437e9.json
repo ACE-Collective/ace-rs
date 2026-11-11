@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id AS \"id: ObservableId\" FROM analysis.observables WHERE root_id = $1 ORDER BY id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id: ObservableId",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "analysis.observables",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "7bbde3572dde9637fcce9d7abd7451458cef4388f32a8eebf039b577aac437e9"
+}

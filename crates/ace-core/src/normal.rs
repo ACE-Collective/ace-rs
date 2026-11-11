@@ -23,6 +23,9 @@
 //!         }
 //!       }
 //!     }
+//!   },
+//!   "root": {                                    only when the root has detections of its own
+//!     "detections": {"<description>": [details, ...]}
 //!   }
 //! }
 //! ```
@@ -129,6 +132,7 @@ pub async fn normal_form(pool: &PgPool, root: Uuid) -> Result<Option<Value>, DbE
     }
 
     let mut detections: BTreeMap<ObservableId, BTreeMap<String, Vec<Value>>> = BTreeMap::new();
+    let mut on_root: BTreeMap<String, Vec<Value>> = BTreeMap::new();
     for row in sqlx::query!(
         r#"SELECT observable_id AS "id: ObservableId", description, details
            FROM analysis.detections WHERE root_id = $1"#,
@@ -137,9 +141,11 @@ pub async fn normal_form(pool: &PgPool, root: Uuid) -> Result<Option<Value>, DbE
     .fetch_all(pool)
     .await?
     {
-        detections
-            .entry(row.id)
-            .or_default()
+        let entry = match row.id {
+            Some(id) => detections.entry(id).or_default(),
+            None => &mut on_root,
+        };
+        entry
             .entry(row.description)
             .or_default()
             .push(sort_json_keys(row.details.unwrap_or(Value::Null)));
@@ -197,7 +203,14 @@ pub async fn normal_form(pool: &PgPool, root: Uuid) -> Result<Option<Value>, DbE
         }
         observables.insert(format!("{}:{}", row.kind, row.value), normal);
     }
-    Ok(Some(json!({"form": FORM, "observables": observables})))
+    let mut form = json!({"form": FORM, "observables": observables});
+    if !on_root.is_empty() {
+        for details in on_root.values_mut() {
+            details.sort_by_cached_key(Value::to_string);
+        }
+        form["root"] = json!({"detections": on_root});
+    }
+    Ok(Some(form))
 }
 
 /// The form as text: keys sorted at every level, two-space indents, a final newline. Python's

@@ -148,8 +148,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 00:35:53+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 00:35:53+00:00",
+              "File:FileAccessDate": "2026:11:11 08:58:49+00:00",
+              "File:FileInodeChangeDate": "2026:11:11 08:58:49+00:00",
               "File:FileModifyDate": "2026:11:07 10:46:15+00:00",
               "File:FileName": "encrypted_cryptoapi.doc",
               "File:FilePermissions": 100644,
@@ -425,7 +425,7 @@
       },
       "tags": {}
     },
-    "file:df7210c4fd7ddd7e87270a7987530c2387567571f477b6a12b7c598feca121e3": {
+    "file:74e380f6e42e0c4a3cd27214ace36e7e72ab7c1b1cfc067173f629420c4e4358": {
       "detections": {},
       "directives": {},
       "excluded_analysis": {
@@ -538,6 +538,21 @@
           "summary": null,
           "tags": {}
         },
+        "observable_modifier": {
+          "details": {
+            "matched_rules": [
+              {
+                "actions_applied": {
+                  "ignore": true
+                },
+                "name": "hashes out from under the hash module",
+                "uuid": "2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03"
+              }
+            ]
+          },
+          "summary": "Applied 1 rule(s): hashes out from under the hash module",
+          "tags": {}
+        },
         "user_defined_tagging": {
           "details": {
             "tags_added": []
@@ -555,6 +570,29 @@
       "relationships": {
         "is_hash_of file:2933e69bd26f61b99ba7b81487bee95fa954ef7ad19996e5bfbc0f57e635624d": true
       },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "signature_id:2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
       "results": {
         "observable_detection": {
           "details": {

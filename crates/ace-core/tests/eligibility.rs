@@ -278,6 +278,7 @@ fn each_rule() {
                 tags: &tags,
                 directives: &directives,
                 exclude_modules: &exclude,
+                limit_modules: &[],
             },
             &mode_modules,
             &results,
@@ -1480,5 +1481,502 @@ async fn a_task_walks_its_roots_tree_and_a_result_changes_others_and_its_root() 
         view.observables.len(),
         5,
         "nothing added for the url the root doesn't hold"
+    );
+}
+
+/// PLAN.md 7.6: the core's hooks, `observable_modifier` and `configuration_defined_tagging`
+/// (`ace_core::hooks`), from an overlay's `hooks:` section.
+fn hooked(yaml: &str) -> Orchestrator {
+    let modes = modes().with_mode(AnalysisMode {
+        name: "hooks_test".to_owned(),
+        module_groups: vec!["common".to_owned(), "yara".to_owned()],
+        enabled_modules: Vec::new(),
+        disabled_modules: Vec::new(),
+    });
+    let overlay = ace_sdk::Overlay::from_yaml(yaml).expect("an overlay");
+    let hooks = ace_core::hooks::Hooks::from_section(&overlay.hooks).expect("rules that compile");
+    Orchestrator::new(Catalog::new(manifests()), modes).with_hooks(hooks)
+}
+
+async fn idle(db: &ace_core::db::Db, root: uuid::Uuid) -> bool {
+    ace_core::queue::root_is_idle(db, root)
+        .await
+        .expect("reads")
+}
+
+/// Runs the hooks task the root has queued, as `ace serve`'s hooks worker does.
+async fn run_hooks(test_db: &TestDb, orchestrator: &Orchestrator) -> ace_core::hooks::Ran {
+    let hooks = worker(
+        test_db,
+        "core/hooks",
+        &[ace_core::hooks::HOOKS_MODULE],
+        Duration::from_secs(60),
+    )
+    .await;
+    let task = hooks.claim().await.expect("claims").expect("a hooks task");
+    orchestrator.run_hooks(&hooks, &task).await.expect("runs")
+}
+
+#[tokio::test]
+async fn the_hooks_run_when_a_pass_ends_and_what_they_do_is_in_the_tree() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let orchestrator = hooked(
+        r#"
+hooks:
+  configuration_defined_tagging:
+    tags: {evil_fqdn: alert, boring: fp}
+  observable_modifier:
+    rules:
+      - name: evil below a yara match
+        uuid: 0b4c3f86-2b1e-4d0e-9a51-6f0c1a6d1c11
+        conditions:
+          observable_types: [fqdn]
+          value_pattern: '^evil\.'
+          tree_conditions:
+            - analysis_type: yara_scanner_v3_4
+              details_match: {matches: '^evil_'}
+        actions:
+          add_tags: [evil_fqdn]
+          set_display_value: the bad one
+          limit_analysis: [rdap_analyzer]
+"#,
+    );
+    let (root, _) = root_with(db, "hooks_test", &[(ObservableKind::File, EMAIL_SHA256)]).await;
+    let mut tx = db.begin().await.expect("begins");
+    orchestrator.start(&mut tx, root).await.expect("starts");
+    tx.commit().await.expect("commits");
+
+    let scanner = worker(
+        &test_db,
+        "yara",
+        &["yara_scanner_v3_4"],
+        Duration::from_secs(60),
+    )
+    .await;
+    let task = scanner.claim().await.expect("claims").expect("a task");
+    let mut tx = db.begin().await.expect("begins");
+    orchestrator
+        .land_result(
+            &mut tx,
+            &scanner,
+            &task,
+            &result(json!({
+                "analysis_type": "yara_scan_results",
+                "schema_version": 1,
+                "details": {"matches": ["evil_macro"]},
+                "observables": [
+                    {"type": "fqdn", "value": "evil.example.com"},
+                    {"type": "fqdn", "value": "fine.example.com", "tags": ["boring"]},
+                ],
+            })),
+        )
+        .await
+        .expect("lands");
+    tx.commit().await.expect("commits");
+    // nothing is left to run, so the hooks are, and the pass waits for them
+    assert!(!idle(db, root).await);
+    assert!(tasks_of(db, root).await.contains(&(
+        ace_core::hooks::HOOKS_MODULE.to_owned(),
+        EMAIL_SHA256.to_owned(),
+        "queued".to_owned()
+    )));
+
+    // the rule matched, so the hooks run again once what it made eligible is done: RDAP, which the
+    // mode doesn't run, since a limit takes the place of the mode's modules, as in ace3
+    let first = run_hooks(&test_db, &orchestrator).await;
+    assert!(first.effects.matched);
+    assert!(!first.effects.detected);
+    let rdap = worker(
+        &test_db,
+        "rdap",
+        &["rdap_analyzer"],
+        Duration::from_secs(60),
+    )
+    .await;
+    let task = rdap
+        .claim()
+        .await
+        .expect("claims")
+        .expect("RDAP, by the limit");
+    assert_eq!(task.observable.value, "evil.example.com");
+    rdap.complete(task.id).await.expect("completes");
+    assert!(!idle(db, root).await, "the hooks are queued again");
+
+    // nothing more matches, so the tag's level makes a detection on the root, which makes it an alert
+    let second = run_hooks(&test_db, &orchestrator).await;
+    assert!(!second.effects.matched);
+    assert!(second.effects.detected);
+    assert_eq!(second.mode_changed_to.as_deref(), Some("correlation"));
+
+    let form = ace_core::normal::normal_form(db.pool(), root)
+        .await
+        .expect("reads")
+        .expect("a root");
+    assert_eq!(
+        form["root"]["detections"],
+        json!({"tag evil_fqdn is configured to be alertable": [null]})
+    );
+    let evil = &form["observables"]["fqdn:evil.example.com"];
+    assert_eq!(evil["tags"], json!({"evil_fqdn": true}));
+    assert_eq!(
+        evil["results"]["observable_modifier"],
+        json!({
+            "summary": "Applied 1 rule(s): evil below a yara match",
+            "tags": {},
+            "details": {"matched_rules": [{
+                "name": "evil below a yara match",
+                "uuid": "0b4c3f86-2b1e-4d0e-9a51-6f0c1a6d1c11",
+                "actions_applied": {
+                    "add_tags": ["evil_fqdn"],
+                    "limit_analysis": ["rdap_analyzer"],
+                    "set_display_value": "the bad one",
+                },
+            }]},
+        })
+    );
+    assert!(
+        form["observables"]["signature_id:0b4c3f86-2b1e-4d0e-9a51-6f0c1a6d1c11"].is_object(),
+        "the rule's signature_id"
+    );
+    assert!(
+        form["observables"]["fqdn:fine.example.com"]["results"]["observable_modifier"].is_null()
+    );
+    let (display_value, limit): (Option<String>, Vec<String>) = sqlx::query_as(
+        "SELECT display_value, limit_modules FROM analysis.observables
+         WHERE root_id = $1 AND value = 'evil.example.com'",
+    )
+    .bind(root)
+    .fetch_one(db.pool())
+    .await
+    .expect("reads");
+    assert_eq!(display_value.as_deref(), Some("the bad one"));
+    assert_eq!(limit, ["rdap_analyzer"]);
+    // the correlation mode runs RDAP on the other fqdn, and the hooks again at the end of that pass
+    let tasks = tasks_of(db, root).await;
+    assert!(
+        tasks.contains(&(
+            "rdap_analyzer".to_owned(),
+            "fine.example.com".to_owned(),
+            "queued".to_owned()
+        )),
+        "{tasks:?}"
+    );
+    let due: bool = sqlx::query_scalar("SELECT hooks_due FROM analysis.roots WHERE id = $1")
+        .bind(root)
+        .fetch_one(db.pool())
+        .await
+        .expect("reads");
+    assert!(due);
+}
+
+#[tokio::test]
+async fn a_pre_rule_acts_before_anything_is_queued_for_an_observable() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let orchestrator = hooked(
+        r#"
+hooks:
+  observable_modifier:
+    rules:
+      - name: no rdap for the quiet one
+        uuid: 6a1e5a54-0d7f-4a77-8c3b-37d3c4fcbc01
+        phase: pre
+        conditions: {observable_types: [fqdn], value_pattern: '^quiet\.'}
+        actions: {exclude_analysis: [rdap_analyzer]}
+      - name: drop what yara adds
+        uuid: 6a1e5a54-0d7f-4a77-8c3b-37d3c4fcbc02
+        phase: pre
+        conditions:
+          value_pattern: '^gone\.'
+          tree_conditions: [{analysis_type: yara_scanner_v3_4, scope: parent}]
+        actions: {ignore: true}
+      - name: a detection
+        uuid: 6a1e5a54-0d7f-4a77-8c3b-37d3c4fcbc03
+        phase: pre
+        conditions: {value_pattern: '^loud\.'}
+        actions: {add_detection_points: [a loud fqdn]}
+"#,
+    );
+    // correlation's group runs RDAP; the mode's a detectable one
+    let modes_with_rdap = AnalysisMode {
+        name: "hooks_rdap".to_owned(),
+        module_groups: vec![
+            "common".to_owned(),
+            "yara".to_owned(),
+            "correlation".to_owned(),
+        ],
+        enabled_modules: Vec::new(),
+        disabled_modules: Vec::new(),
+    };
+    let orchestrator = Orchestrator::new(
+        orchestrator.catalog().clone(),
+        orchestrator.modes().clone().with_mode(modes_with_rdap),
+    )
+    .with_hooks(orchestrator.hooks().clone());
+    let (root, _) = root_with(db, "hooks_rdap", &[(ObservableKind::File, EMAIL_SHA256)]).await;
+    let mut tx = db.begin().await.expect("begins");
+    orchestrator.start(&mut tx, root).await.expect("starts");
+    tx.commit().await.expect("commits");
+    let scanner = worker(
+        &test_db,
+        "yara",
+        &["yara_scanner_v3_4"],
+        Duration::from_secs(60),
+    )
+    .await;
+    let task = scanner.claim().await.expect("claims").expect("a task");
+    let mut tx = db.begin().await.expect("begins");
+    let landed = orchestrator
+        .land_result(
+            &mut tx,
+            &scanner,
+            &task,
+            &result(json!({
+                "analysis_type": "yara_scan_results",
+                "schema_version": 1,
+                "details": {"matches": []},
+                "observables": [
+                    {"type": "fqdn", "value": "quiet.example.com"},
+                    {"type": "fqdn", "value": "gone.example.com"},
+                    {"type": "fqdn", "value": "plain.example.com"},
+                ],
+            })),
+        )
+        .await
+        .expect("lands");
+    tx.commit().await.expect("commits");
+    assert_eq!(landed.mode_changed_to, None, "no pre rule detected yet");
+    let rdap: Vec<String> = tasks_of(db, root)
+        .await
+        .into_iter()
+        .filter(|(module, _, _)| module == "rdap_analyzer")
+        .map(|(_, value, _)| value)
+        .collect();
+    assert_eq!(
+        rdap,
+        ["plain.example.com"],
+        "excluded, and ignored with exclude_all"
+    );
+    let (ignored, directives): (bool, Vec<String>) = sqlx::query_as(
+        "SELECT ignored, directives FROM analysis.observables
+         WHERE root_id = $1 AND value = 'gone.example.com'",
+    )
+    .bind(root)
+    .fetch_one(db.pool())
+    .await
+    .expect("reads");
+    assert!(ignored, "its only parent was the yara result");
+    assert_eq!(directives, ["exclude_all"]);
+    let held: bool = sqlx::query_scalar(
+        "SELECT a.ignored FROM analysis.result_additions a
+         JOIN analysis.observables o ON o.id = a.observable_id
+         WHERE a.root_id = $1 AND o.value = 'gone.example.com'",
+    )
+    .bind(root)
+    .fetch_one(db.pool())
+    .await
+    .expect("reads");
+    assert!(held, "the yara result no longer holds it");
+
+    // a pre rule's detection on a later landing makes the root an alert at once
+    let rdap_worker = worker(
+        &test_db,
+        "rdap",
+        &["rdap_analyzer"],
+        Duration::from_secs(60),
+    )
+    .await;
+    let task = rdap_worker.claim().await.expect("claims").expect("a task");
+    let mut tx = db.begin().await.expect("begins");
+    let landed = orchestrator
+        .land_result(
+            &mut tx,
+            &rdap_worker,
+            &task,
+            &result(json!({
+                "analysis_type": "rdap_analysis",
+                "schema_version": 1,
+                "details": {},
+                "observables": [{"type": "fqdn", "value": "loud.example.com"}],
+            })),
+        )
+        .await
+        .expect("lands");
+    tx.commit().await.expect("commits");
+    assert_eq!(landed.mode_changed_to.as_deref(), Some("correlation"));
+    let (description, signature, family): (String, Option<String>, Option<String>) =
+        sqlx::query_as(
+            "SELECT d.description, d.signature_uuid, d.signature_family
+             FROM analysis.detections d JOIN analysis.observables o ON o.id = d.observable_id
+             WHERE d.root_id = $1 AND o.value = 'loud.example.com'",
+        )
+        .bind(root)
+        .fetch_one(db.pool())
+        .await
+        .expect("reads");
+    assert_eq!(description, "a loud fqdn");
+    assert_eq!(
+        signature.as_deref(),
+        Some("6a1e5a54-0d7f-4a77-8c3b-37d3c4fcbc03")
+    );
+    assert_eq!(family.as_deref(), Some("observable_modifier"));
+}
+
+#[tokio::test]
+async fn a_reset_reruns_a_module_and_the_hooks_end_once_nothing_new_matches() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let orchestrator = hooked(
+        r#"
+hooks:
+  observable_modifier:
+    rules:
+      - name: rdap again
+        uuid: 1c7b5d0e-6b55-4a42-b0e5-2f6e3c0d9a10
+        conditions: {observable_types: [fqdn]}
+        actions: {reset_analysis: [rdap_analyzer, archive], add_directives: [again]}
+"#,
+    );
+    let orchestrator = Orchestrator::new(
+        orchestrator.catalog().clone(),
+        orchestrator.modes().clone().with_mode(AnalysisMode {
+            name: "hooks_rdap".to_owned(),
+            module_groups: vec!["common".to_owned(), "correlation".to_owned()],
+            enabled_modules: Vec::new(),
+            disabled_modules: Vec::new(),
+        }),
+    )
+    .with_hooks(orchestrator.hooks().clone());
+    let (root, _) = root_with(db, "hooks_rdap", &[(ObservableKind::Fqdn, "x.example.com")]).await;
+    let mut tx = db.begin().await.expect("begins");
+    orchestrator.start(&mut tx, root).await.expect("starts");
+    tx.commit().await.expect("commits");
+    let rdap = worker(
+        &test_db,
+        "rdap",
+        &["rdap_analyzer"],
+        Duration::from_secs(60),
+    )
+    .await;
+    // RDAP ends with no result, ace3's "no analysis"
+    let task = rdap.claim().await.expect("claims").expect("a task");
+    rdap.complete(task.id).await.expect("completes");
+    assert!(!idle(db, root).await);
+
+    let ran = run_hooks(&test_db, &orchestrator).await;
+    assert_eq!(
+        ran.effects.requeued,
+        [task.id],
+        "only a module that ran is reset"
+    );
+    let form = ace_core::normal::normal_form(db.pool(), root)
+        .await
+        .expect("reads")
+        .expect("a root");
+    assert_eq!(
+        form["observables"]["fqdn:x.example.com"]["results"]["observable_modifier"]["details"]["matched_rules"]
+            [0]["actions_applied"],
+        json!({"reset_analysis": ["rdap_analyzer"], "add_directives": ["again"]})
+    );
+    let task = rdap.claim().await.expect("claims").expect("RDAP again");
+    rdap.complete(task.id).await.expect("completes");
+    // the hooks run once more, match nothing new, and the pass ends
+    let ran = run_hooks(&test_db, &orchestrator).await;
+    assert!(!ran.effects.matched);
+    assert!(idle(db, root).await);
+}
+
+#[tokio::test]
+async fn a_failed_hooks_task_ends_the_pass_and_doesnt_run_again() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let orchestrator = hooked("hooks:\n  configuration_defined_tagging:\n    tags: {x: alert}\n");
+    let (root, _) = root_with(db, "hooks_test", &[(ObservableKind::File, EMAIL_SHA256)]).await;
+    let mut tx = db.begin().await.expect("begins");
+    orchestrator.start(&mut tx, root).await.expect("starts");
+    tx.commit().await.expect("commits");
+    let scanner = worker(
+        &test_db,
+        "yara",
+        &["yara_scanner_v3_4"],
+        Duration::from_secs(60),
+    )
+    .await;
+    let task = scanner.claim().await.expect("claims").expect("a task");
+    scanner.fail(task.id, "boom").await.expect("fails");
+    let hooks = worker(
+        &test_db,
+        "core/hooks",
+        &[ace_core::hooks::HOOKS_MODULE],
+        Duration::from_secs(60),
+    )
+    .await;
+    let task = hooks.claim().await.expect("claims").expect("a hooks task");
+    hooks
+        .fail(task.id, "the hooks failed")
+        .await
+        .expect("fails");
+    assert!(idle(db, root).await, "the pass ends without them");
+    assert!(hooks.claim().await.expect("claims").is_none());
+}
+
+#[test]
+fn the_hooks_refuse_rules_ace3_would_skip() {
+    let refused = |yaml: &str| {
+        let overlay = ace_sdk::Overlay::from_yaml(yaml);
+        match overlay {
+            Err(e) => e.to_string(),
+            Ok(o) => ace_core::hooks::Hooks::from_section(&o.hooks)
+                .expect_err("refused")
+                .to_string(),
+        }
+    };
+    let rules =
+        |rule: &str| format!("hooks:\n  observable_modifier:\n    rules:\n      - {rule}\n");
+    assert!(
+        refused(&rules("{name: a}")).contains("uuid"),
+        "a uuid is required"
+    );
+    assert!(refused(&rules("{uuid: u, phase: later}")).contains("phase"));
+    assert!(
+        refused(&rules("{uuid: u, conditions: {value_pattern: '(?=x)'}}"))
+            .contains("doesn't compile"),
+        "a look-around needs backtracking, which the regex crate doesn't do"
+    );
+    assert!(refused(&rules("{uuid: u, conditions: {observable_types: [nope]}}")).contains("nope"));
+    assert!(
+        refused(&rules(
+            "{uuid: u, conditions: {tree_conditions: [{observable_match: {size: x}}]}}"
+        ))
+        .contains("observable_match")
+    );
+    assert!(
+        refused(&rules(&format!(
+            "{{uuid: u, conditions: {{value_pattern: '{}'}}}}",
+            "a".repeat(1025)
+        )))
+        .contains("at most 1024 bytes")
+    );
+    let many: String = (0..1001)
+        .map(|i| format!("      - {{uuid: u{i}}}\n"))
+        .collect();
+    assert!(
+        refused(&format!(
+            "hooks:\n  observable_modifier:\n    rules:\n{many}"
+        ))
+        .contains("at most 1000 rules")
+    );
+    assert!(refused(&rules("{uuid: u, actions: {explode: true}}")).contains("explode"));
+    // no section, and a section of disabled rules, run nothing
+    let none = ace_core::hooks::Hooks::from_section(&ace_sdk::hooks::HooksSection::default())
+        .expect("none");
+    assert!(none.names().is_empty());
+    let off = ace_sdk::Overlay::from_yaml(&rules("{uuid: u, enabled: false}")).expect("parses");
+    assert!(
+        ace_core::hooks::Hooks::from_section(&off.hooks)
+            .expect("compiles")
+            .names()
+            .is_empty()
     );
 }

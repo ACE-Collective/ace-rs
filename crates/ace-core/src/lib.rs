@@ -7,7 +7,8 @@
 //! wait for, which a scanner pool runs (`scans`, 7.7). A leased task carries the
 //! analyst-edited lists its module reads (`lists`, PLAN.md 5.14), as they are when it's leased.
 //! `scheduler` holds the tables through which `ace serve`'s replicas share out the scheduled
-//! maintenance tasks (PLAN.md 6.7).
+//! maintenance tasks (PLAN.md 6.7). `hooks` runs ace3's `observable_modifier` and
+//! `configuration_defined_tagging` in the core, over the whole tree, at the end of a pass (PLAN.md 7.6).
 
 pub mod api;
 pub mod bucket;
@@ -15,6 +16,7 @@ pub mod commands;
 pub mod db;
 pub mod eligibility;
 pub mod email_archive;
+pub mod hooks;
 pub mod lists;
 pub mod modes;
 pub mod normal;

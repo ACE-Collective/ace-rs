@@ -294,6 +294,11 @@ pub struct AlertObservable {
     pub redirection: Option<(String, String)>,
     /// The label a module gave it in place of its type's name, such as `Source IP`, or None.
     pub display_type: Option<String>,
+    /// What an observable modifier rule shows in place of its value, or None (PLAN.md 7.6).
+    pub display_value: Option<String>,
+    /// An observable modifier rule's `ignore` took it out of the tree, so the alert view doesn't draw it,
+    /// as ace3's `Observable.ignored`.
+    pub ignored: bool,
     /// A file's paths, the one it's analyzed under first (PLAN.md decision 15).
     pub files: Vec<AlertFile>,
     pub relationships: Vec<Relationship>,
@@ -877,7 +882,7 @@ pub(crate) async fn observables_in(
 ) -> Result<(Vec<AlertObservable>, bool), ServiceError> {
     let mut rows = sqlx::query!(
         "SELECT id, type, value, time, tags, directives, exclude_modules,
-                redirection_type, redirection_value, display_type
+                redirection_type, redirection_value, display_type, display_value, ignored
          FROM analysis.observables
          WHERE root_id = $1 AND id > $2
          ORDER BY id LIMIT $3",
@@ -902,6 +907,8 @@ pub(crate) async fn observables_in(
             exclude_modules: row.exclude_modules,
             redirection: row.redirection_type.zip(row.redirection_value),
             display_type: row.display_type,
+            display_value: row.display_value,
+            ignored: row.ignored,
             files: Vec::new(),
             relationships: Vec::new(),
             results: Vec::new(),
@@ -984,7 +991,7 @@ pub(crate) async fn observables_in(
     .fetch_all(tx.conn())
     .await?
     {
-        if let Some(i) = at(row.observable_id) {
+        if let Some(i) = row.observable_id.and_then(at) {
             observables[i].detections.push(AlertDetection {
                 description: row.description,
                 details: row.details,

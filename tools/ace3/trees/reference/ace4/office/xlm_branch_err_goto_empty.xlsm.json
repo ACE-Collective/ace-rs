@@ -91,8 +91,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 00:45:25+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 00:45:25+00:00",
+              "File:FileAccessDate": "2026:11:11 09:12:49+00:00",
+              "File:FileInodeChangeDate": "2026:11:11 09:12:49+00:00",
               "File:FileModifyDate": "2026:11:07 14:35:12+00:00",
               "File:FileName": "xlm_branch_err_goto_empty.xlsm",
               "File:FilePermissions": 100644,
@@ -679,7 +679,7 @@
       },
       "tags": {}
     },
-    "file:ec54e1fcda1c0b6d3ab91da93dbf50cac1e647185c25b438be13ec15f54335d5": {
+    "file:dcb9b284d06b775997f0242e131c02031c904e5df393f1bf4da6936fda295f2e": {
       "detections": {},
       "directives": {},
       "excluded_analysis": {
@@ -792,6 +792,21 @@
           "summary": null,
           "tags": {}
         },
+        "observable_modifier": {
+          "details": {
+            "matched_rules": [
+              {
+                "actions_applied": {
+                  "ignore": true
+                },
+                "name": "hashes out from under the hash module",
+                "uuid": "2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03"
+              }
+            ]
+          },
+          "summary": "Applied 1 rule(s): hashes out from under the hash module",
+          "tags": {}
+        },
         "user_defined_tagging": {
           "details": {
             "tags_added": []
@@ -809,6 +824,29 @@
       "relationships": {
         "is_hash_of file:27a0596f6fe2bff2568dff27c5978269f6c84bf67df958a6020b2ab824ce6fae": true
       },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "signature_id:2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
       "results": {
         "observable_detection": {
           "details": {

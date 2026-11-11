@@ -1,7 +1,11 @@
 //! The tagging and detection modules' types (PLAN.md 7.6): `observable_detection_analysis`
 //! (ace3's `ObservableDetectionAnalysis`, `saq/modules/observable_detection.py`),
 //! `user_defined_tagging_analysis` (`UserDefinedTaggingAnalysis`) and `site_tag_analysis`
-//! (`SiteTagAnalysis`, both `saq/modules/tag.py`). `ace-mod-tag` writes them.
+//! (`SiteTagAnalysis`, both `saq/modules/tag.py`). `ace-mod-tag` writes them. The core's
+//! `observable_modifier` hook writes `observable_modifier_analysis` (ace3's `ObservableModifierAnalysis`,
+//! `saq/modules/util/observable_modifier.py`), `ace_core::hooks`.
+
+use std::collections::BTreeMap;
 
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -50,6 +54,40 @@ impl AnalysisType for SiteTagAnalysis {
     const MODULE: &'static str = "site_tagger";
 }
 
+/// The details of an `observable_modifier_analysis` result: each observable modifier rule that matched
+/// the observable, in the order they matched, with what its actions did.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct ObservableModifierAnalysis {
+    pub matched_rules: Vec<MatchedRule>,
+}
+
+/// One rule's match, ace3's `{"name", "uuid", "actions_applied"}`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct MatchedRule {
+    pub name: String,
+    pub uuid: String,
+    /// Each action that did something, by its name in the rule (`add_tags`, `ignore`, ...), with what
+    /// it did: the tags, the modules, the display value, or `true` for `ignore`.
+    pub actions_applied: BTreeMap<String, serde_json::Value>,
+}
+
+impl ObservableModifierAnalysis {
+    /// Whether a rule's `ignore` matched.
+    pub fn ignores(&self) -> bool {
+        self.matched_rules
+            .iter()
+            .any(|m| m.actions_applied.contains_key("ignore"))
+    }
+}
+
+impl AnalysisType for ObservableModifierAnalysis {
+    const NAME: &'static str = "observable_modifier_analysis";
+    const VERSION: u32 = 1;
+    const MODULE: &'static str = "observable_modifier";
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -75,5 +113,11 @@ mod tests {
         assert!(
             serde_json::from_value::<SiteTagAnalysis>(json!({"tags_added": [], "x": 1})).is_err()
         );
+        let modifier = json!({"matched_rules": [{"name": "r", "uuid": "u",
+            "actions_applied": {"add_tags": ["a"], "ignore": true}}]});
+        let read: ObservableModifierAnalysis =
+            serde_json::from_value(modifier.clone()).expect("reads");
+        assert!(read.ignores());
+        assert_eq!(serde_json::to_value(&read).expect("writes"), modifier);
     }
 }

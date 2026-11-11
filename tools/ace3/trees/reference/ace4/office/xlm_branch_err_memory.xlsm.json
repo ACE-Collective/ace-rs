@@ -66,6 +66,39 @@
       },
       "tags": {}
     },
+    "file:1c693b97773b2a898774951b70840bedb34ea6639c2485c9896e2c707bde2095": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "xlm_branch_err_memory.xlsm.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:920f4926ede7a064982e6b0d162c3fd0352e941c908411705c6a225b8ffafed6": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:5ad4661d4222e09294812f2d43d4892b0566844e1217c6f5d0032ead83af9ac9": {
       "detections": {},
       "directives": {
@@ -422,8 +455,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 00:45:32+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 00:45:32+00:00",
+              "File:FileAccessDate": "2026:11:11 09:12:56+00:00",
+              "File:FileInodeChangeDate": "2026:11:11 09:12:56+00:00",
               "File:FileModifyDate": "2026:11:07 14:35:12+00:00",
               "File:FileName": "xlm_branch_err_memory.xlsm",
               "File:FilePermissions": 100644,
@@ -744,39 +777,6 @@
       },
       "tags": {}
     },
-    "file:ff5730e486cd187b89d6ebc0d3e9f61ad003288f2e2b611e01ea3f5be54957af": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "xlm_branch_err_memory.xlsm.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:920f4926ede7a064982e6b0d162c3fd0352e941c908411705c6a225b8ffafed6": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "md5:a054deba3375fa66484d1fa8adb9ec30": {
       "detections": {},
       "directives": {},
@@ -790,6 +790,21 @@
             "for_detection": false
           },
           "summary": null,
+          "tags": {}
+        },
+        "observable_modifier": {
+          "details": {
+            "matched_rules": [
+              {
+                "actions_applied": {
+                  "ignore": true
+                },
+                "name": "hashes out from under the hash module",
+                "uuid": "2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03"
+              }
+            ]
+          },
+          "summary": "Applied 1 rule(s): hashes out from under the hash module",
           "tags": {}
         },
         "user_defined_tagging": {
@@ -809,6 +824,29 @@
       "relationships": {
         "is_hash_of file:920f4926ede7a064982e6b0d162c3fd0352e941c908411705c6a225b8ffafed6": true
       },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "signature_id:2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
       "results": {
         "observable_detection": {
           "details": {

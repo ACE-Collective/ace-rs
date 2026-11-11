@@ -126,22 +126,25 @@
     },
     "email_subject:the attached file": {
       "detections": {},
-      "directives": {},
+      "directives": {
+        "exclude_all": true
+      },
       "excluded_analysis": {},
       "relationships": {},
       "results": {
-        "observable_detection": {
+        "observable_modifier": {
           "details": {
-            "for_detection": false
+            "matched_rules": [
+              {
+                "actions_applied": {
+                  "ignore": true
+                },
+                "name": "no subject analysis",
+                "uuid": "2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a04"
+              }
+            ]
           },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
+          "summary": "Applied 1 rule(s): no subject analysis",
           "tags": {}
         }
       },
@@ -177,7 +180,7 @@
       },
       "tags": {}
     },
-    "file:00b370e9d20a3cf9ffdaa66dc8333cd89c0c5ef532afd113f2d703b739de165b": {
+    "file:08ee22839e3c994a109b907a66d43d684eefe25916560cdee4db4a9e479e64b2": {
       "detections": {},
       "directives": {},
       "excluded_analysis": {
@@ -341,6 +344,39 @@
       },
       "tags": {}
     },
+    "file:261e9c4d73fa5bd68a169a4cb1484b649b3981e660ca5d116917fcbfbdad243f": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "invoice_000.docx.decrypted.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:6a65fb99c4c7ecb88273b7f1d49b00640de95cb682cb1a63df0c08764f0ef24d": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:2e966c65c82862da88710459a90e2c3a494f4bedf0f3ec3cbf85942f88078460": {
       "detections": {},
       "directives": {
@@ -430,9 +466,9 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 00:30:20+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 00:30:20+00:00",
-              "File:FileModifyDate": "2026:11:11 00:30:20+00:00",
+              "File:FileAccessDate": "2026:11:11 08:47:07+00:00",
+              "File:FileInodeChangeDate": "2026:11:11 08:47:07+00:00",
+              "File:FileModifyDate": "2026:11:11 08:47:07+00:00",
               "File:FileName": "invoice.docx",
               "File:FilePermissions": 100664,
               "File:FileSize": 17920,
@@ -1195,9 +1231,9 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 00:30:23+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 00:30:23+00:00",
-              "File:FileModifyDate": "2026:11:11 00:30:23+00:00",
+              "File:FileAccessDate": "2026:11:11 08:47:10+00:00",
+              "File:FileInodeChangeDate": "2026:11:11 08:47:10+00:00",
+              "File:FileModifyDate": "2026:11:11 08:47:10+00:00",
               "File:FileName": "invoice_000.docx.decrypted",
               "File:FilePermissions": 100666,
               "File:FileSize": 12529,
@@ -1752,7 +1788,7 @@
         "email": true
       }
     },
-    "file:89f3ad44b3518f9472302ffd7dd5a346cc3632bf0d8b63c69de7f319b05154a9": {
+    "file:8706f11f6f023858f807bdcdb58a0dc21523dcbd1775d6540a5f829f54ec40b4": {
       "detections": {},
       "directives": {},
       "excluded_analysis": {
@@ -1760,12 +1796,12 @@
         "file_type": true
       },
       "paths": {
-        "invoice_000.docx.decrypted.exif/exiftool.out": {
+        "invoice.docx.exif/exiftool.out": {
           "type=metadata.exif": true
         }
       },
       "relationships": {
-        "extracted_from file:6a65fb99c4c7ecb88273b7f1d49b00640de95cb682cb1a63df0c08764f0ef24d": true
+        "extracted_from file:2ed4859b4203569d8720219e128039963af868b98f9b04ced3d2db0e49d4bfd2": true
       },
       "results": {
         "observable_detection": {
@@ -1909,39 +1945,6 @@
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
-    "file:ac42be290e58eeb9b08cb5f5a5efe55abc3de8b23af3bb4add62049a3614f1bd": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "invoice.docx.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:2ed4859b4203569d8720219e128039963af868b98f9b04ced3d2db0e49d4bfd2": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
           },
           "summary": null,
           "tags": {}
@@ -3043,6 +3046,21 @@
           "summary": null,
           "tags": {}
         },
+        "observable_modifier": {
+          "details": {
+            "matched_rules": [
+              {
+                "actions_applied": {
+                  "ignore": true
+                },
+                "name": "hashes out from under the hash module",
+                "uuid": "2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03"
+              }
+            ]
+          },
+          "summary": "Applied 1 rule(s): hashes out from under the hash module",
+          "tags": {}
+        },
         "user_defined_tagging": {
           "details": {
             "tags_added": []
@@ -3066,6 +3084,21 @@
             "for_detection": false
           },
           "summary": null,
+          "tags": {}
+        },
+        "observable_modifier": {
+          "details": {
+            "matched_rules": [
+              {
+                "actions_applied": {
+                  "ignore": true
+                },
+                "name": "hashes out from under the hash module",
+                "uuid": "2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03"
+              }
+            ]
+          },
+          "summary": "Applied 1 rule(s): hashes out from under the hash module",
           "tags": {}
         },
         "user_defined_tagging": {
@@ -3160,6 +3193,52 @@
       "relationships": {
         "is_hash_of file:6a65fb99c4c7ecb88273b7f1d49b00640de95cb682cb1a63df0c08764f0ef24d": true
       },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "signature_id:2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "signature_id:2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a04": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
       "results": {
         "observable_detection": {
           "details": {

@@ -61,39 +61,6 @@
       },
       "tags": {}
     },
-    "file:225d8263dae5dac6a6c7ffdc8f4042cf7971284fc01e4c13c667733c69ae4b21": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "ComplaintApril_424256637.pdf.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:f68ba01d524f39a2832632eeb77772feb30440d2dbbf92fc83de39494cff4076": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:234001d104b81822d825068e6e39b434c768df40b979eefe9a12f8fc5434c417": {
       "detections": {},
       "directives": {},
@@ -161,7 +128,40 @@
         "pdf": true
       }
     },
-    "file:4692566242cf174bb01cbe8e6144a2e39c0ca1c30b625a76d85864c8ca42b6ae": {
+    "file:4fc73a4d2faaa1d78e54da5dd5125a3c90b9a38899412a6389ca325dbd879416": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "ComplaintApril_424256637.pdf.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:f68ba01d524f39a2832632eeb77772feb30440d2dbbf92fc83de39494cff4076": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:6d9992243bc579b6f370135db45bf5533ed699f393bbce8df9bc2813babce3e5": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -408,9 +408,9 @@
           "type=document.pdf.text": true
         }
       },
-      "redirection": "file:4692566242cf174bb01cbe8e6144a2e39c0ca1c30b625a76d85864c8ca42b6ae",
+      "redirection": "file:6d9992243bc579b6f370135db45bf5533ed699f393bbce8df9bc2813babce3e5",
       "relationships": {
-        "extracted_from file:4692566242cf174bb01cbe8e6144a2e39c0ca1c30b625a76d85864c8ca42b6ae": true,
+        "extracted_from file:6d9992243bc579b6f370135db45bf5533ed699f393bbce8df9bc2813babce3e5": true,
         "extracted_from file:f68ba01d524f39a2832632eeb77772feb30440d2dbbf92fc83de39494cff4076": true
       },
       "results": {
@@ -529,8 +529,8 @@
               "ExifTool:ExifToolVersion": 13.25,
               "ExifTool:Warning": "[minor] Decryption is very slow for encryption V5.6 or higher",
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 00:28:16+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 00:28:16+00:00",
+              "File:FileAccessDate": "2026:11:11 08:45:08+00:00",
+              "File:FileInodeChangeDate": "2026:11:11 08:45:08+00:00",
               "File:FileModifyDate": "2026:11:06 19:20:07+00:00",
               "File:FileName": "ComplaintApril_424256637.pdf",
               "File:FilePermissions": 100644,
@@ -1129,6 +1129,21 @@
           "summary": null,
           "tags": {}
         },
+        "observable_modifier": {
+          "details": {
+            "matched_rules": [
+              {
+                "actions_applied": {
+                  "ignore": true
+                },
+                "name": "hashes out from under the hash module",
+                "uuid": "2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03"
+              }
+            ]
+          },
+          "summary": "Applied 1 rule(s): hashes out from under the hash module",
+          "tags": {}
+        },
         "user_defined_tagging": {
           "details": {
             "tags_added": []
@@ -1154,6 +1169,21 @@
           "summary": null,
           "tags": {}
         },
+        "observable_modifier": {
+          "details": {
+            "matched_rules": [
+              {
+                "actions_applied": {
+                  "ignore": true
+                },
+                "name": "hashes out from under the hash module",
+                "uuid": "2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03"
+              }
+            ]
+          },
+          "summary": "Applied 1 rule(s): hashes out from under the hash module",
+          "tags": {}
+        },
         "user_defined_tagging": {
           "details": {
             "tags_added": []
@@ -1177,6 +1207,21 @@
             "for_detection": false
           },
           "summary": null,
+          "tags": {}
+        },
+        "observable_modifier": {
+          "details": {
+            "matched_rules": [
+              {
+                "actions_applied": {
+                  "ignore": true
+                },
+                "name": "hashes out from under the hash module",
+                "uuid": "2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03"
+              }
+            ]
+          },
+          "summary": "Applied 1 rule(s): hashes out from under the hash module",
           "tags": {}
         },
         "user_defined_tagging": {
@@ -1246,6 +1291,29 @@
       "relationships": {
         "is_hash_of file:f68ba01d524f39a2832632eeb77772feb30440d2dbbf92fc83de39494cff4076": true
       },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "signature_id:2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
       "results": {
         "observable_detection": {
           "details": {

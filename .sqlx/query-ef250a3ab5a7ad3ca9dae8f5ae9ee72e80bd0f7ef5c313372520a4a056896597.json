@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT d.id, d.root_id, d.observable_id, o.type, o.value,\n                                  res.module AS \"module?\", d.description, d.details, d.queue,\n                                  d.signature_uuid, d.signature_version, d.signature_family,\n                                  d.created_at\n                           FROM analysis.detections d\n                           JOIN analysis.roots r ON r.id = d.root_id\n                           JOIN analysis.observables o\n                             ON o.root_id = d.root_id AND o.id = d.observable_id\n                           LEFT JOIN analysis.results res ON res.id = d.result_id\n                           WHERE r.alerted_at IS NOT NULL\n                             AND ($2::uuid IS NULL OR d.root_id = $2)\n                             AND ($3::bigint IS NULL OR d.id > $3)\n                             AND ($4::timestamptz IS NULL OR d.created_at >= $4 OR r.alerted_at >= $4)\n                             -- Signature: its uuid, and its version when the value has one\n                             AND ($5::text[] IS NULL OR EXISTS (\n                                   SELECT FROM unnest($5::text[], $6::text[]) g(u, v)\n                                   WHERE lower(d.signature_uuid) = g.u\n                                     AND (g.v = '' OR d.signature_version = g.v)))\n                             AND ($7::text[] IS NULL OR NOT EXISTS (\n                                   SELECT FROM unnest($7::text[], $8::text[]) g(u, v)\n                                   WHERE lower(d.signature_uuid) = g.u\n                                     AND (g.v = '' OR d.signature_version = g.v)))\n                             -- Family\n                             AND ($9::text[] IS NULL OR d.signature_family = ANY ($9::text[]))\n                             AND ($10::text[] IS NULL\n                                  OR NOT COALESCE(d.signature_family = ANY ($10::text[]), false))\n                             -- Alert Date: when its root became an alert\n                             AND ($11::timestamptz[] IS NULL OR EXISTS (\n                                   SELECT FROM unnest($11::timestamptz[], $12::timestamptz[]) w(s, e)\n                                   WHERE r.alerted_at BETWEEN w.s AND w.e))\n                             AND ($13::timestamptz[] IS NULL OR NOT EXISTS (\n                                   SELECT FROM unnest($13::timestamptz[], $14::timestamptz[]) w(s, e)\n                                   WHERE r.alerted_at BETWEEN w.s AND w.e))\n                           ORDER BY d.id\n                           LIMIT $1",
+  "query": "SELECT d.id, d.root_id, d.observable_id, o.type AS \"type?\", o.value AS \"value?\",\n                                  res.module AS \"module?\", d.description, d.details, d.queue,\n                                  d.signature_uuid, d.signature_version, d.signature_family,\n                                  d.created_at\n                           FROM analysis.detections d\n                           JOIN analysis.roots r ON r.id = d.root_id\n                           LEFT JOIN analysis.observables o\n                             ON o.root_id = d.root_id AND o.id = d.observable_id\n                           LEFT JOIN analysis.results res ON res.id = d.result_id\n                           WHERE r.alerted_at IS NOT NULL\n                             AND ($2::uuid IS NULL OR d.root_id = $2)\n                             AND ($3::bigint IS NULL OR d.id > $3)\n                             AND ($4::timestamptz IS NULL OR d.created_at >= $4 OR r.alerted_at >= $4)\n                             -- Signature: its uuid, and its version when the value has one\n                             AND ($5::text[] IS NULL OR EXISTS (\n                                   SELECT FROM unnest($5::text[], $6::text[]) g(u, v)\n                                   WHERE lower(d.signature_uuid) = g.u\n                                     AND (g.v = '' OR d.signature_version = g.v)))\n                             AND ($7::text[] IS NULL OR NOT EXISTS (\n                                   SELECT FROM unnest($7::text[], $8::text[]) g(u, v)\n                                   WHERE lower(d.signature_uuid) = g.u\n                                     AND (g.v = '' OR d.signature_version = g.v)))\n                             -- Family\n                             AND ($9::text[] IS NULL OR d.signature_family = ANY ($9::text[]))\n                             AND ($10::text[] IS NULL\n                                  OR NOT COALESCE(d.signature_family = ANY ($10::text[]), false))\n                             -- Alert Date: when its root became an alert\n                             AND ($11::timestamptz[] IS NULL OR EXISTS (\n                                   SELECT FROM unnest($11::timestamptz[], $12::timestamptz[]) w(s, e)\n                                   WHERE r.alerted_at BETWEEN w.s AND w.e))\n                             AND ($13::timestamptz[] IS NULL OR NOT EXISTS (\n                                   SELECT FROM unnest($13::timestamptz[], $14::timestamptz[]) w(s, e)\n                                   WHERE r.alerted_at BETWEEN w.s AND w.e))\n                           ORDER BY d.id\n                           LIMIT $1",
   "describe": {
     "columns": [
       {
@@ -38,7 +38,7 @@
       },
       {
         "ordinal": 3,
-        "name": "type",
+        "name": "type?",
         "type_info": "Text",
         "origin": {
           "Table": {
@@ -49,7 +49,7 @@
       },
       {
         "ordinal": 4,
-        "name": "value",
+        "name": "value?",
         "type_info": "Text",
         "origin": {
           "Table": {
@@ -168,7 +168,7 @@
     "nullable": [
       false,
       false,
-      false,
+      true,
       false,
       false,
       false,
@@ -181,5 +181,5 @@
       false
     ]
   },
-  "hash": "735890664f0b6271ba39b58aa80c319d046a80a2b7bf8ec7befbc97122e94135"
+  "hash": "ef250a3ab5a7ad3ca9dae8f5ae9ee72e80bd0f7ef5c313372520a4a056896597"
 }

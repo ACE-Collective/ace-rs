@@ -66,39 +66,6 @@
       },
       "tags": {}
     },
-    "file:315f3b99c1c46b358489c70bbfbf79842c0617a0aa7438cb368ac7fc3e3cfadb": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "encrypted_velvet.docx.decrypted.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:6a65fb99c4c7ecb88273b7f1d49b00640de95cb682cb1a63df0c08764f0ef24d": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:3189776231de3ed47a23e59ec8b1acc4e04dab7b6774576fa626fdeb6f13cc39": {
       "detections": {},
       "directives": {
@@ -229,6 +196,39 @@
       },
       "tags": {}
     },
+    "file:38ccb9103ce76d8aa0d686d7acffdb0d049baa1b7fec7cf14d4428398fe2c1eb": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "encrypted_velvet.docx.decrypted.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:6a65fb99c4c7ecb88273b7f1d49b00640de95cb682cb1a63df0c08764f0ef24d": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:403729e14f6244be4640ab42a7c91833e90d6be8f2efa2223aeeac8fb20a23d2": {
       "detections": {},
       "directives": {
@@ -337,9 +337,9 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 00:36:50+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 00:36:50+00:00",
-              "File:FileModifyDate": "2026:11:11 00:36:50+00:00",
+              "File:FileAccessDate": "2026:11:11 08:59:38+00:00",
+              "File:FileInodeChangeDate": "2026:11:11 08:59:38+00:00",
+              "File:FileModifyDate": "2026:11:11 08:59:38+00:00",
               "File:FileName": "encrypted_velvet.docx.decrypted",
               "File:FilePermissions": 100666,
               "File:FileSize": 12529,
@@ -574,6 +574,39 @@
         "xml_plain_text_analyzer": {
           "details": {
             "xml_plain_text": null
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:7b2e4c62c02193253f94756d5369f7249450047c44effdd485136c69f1ec1d17": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "encrypted_velvet.docx.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:cf8e19f41bc41f7a5de92c96b15f30e8b9ad9a6effb87d936d1d864059db09c7": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}
@@ -1235,8 +1268,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 00:36:49+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 00:36:49+00:00",
+              "File:FileAccessDate": "2026:11:11 08:59:37+00:00",
+              "File:FileInodeChangeDate": "2026:11:11 08:59:37+00:00",
               "File:FileModifyDate": "2026:11:07 01:34:09+00:00",
               "File:FileName": "encrypted_velvet.docx",
               "File:FilePermissions": 100644,
@@ -1585,39 +1618,6 @@
       },
       "tags": {}
     },
-    "file:fb3c1e9b947210f08218132bf1239cbdc2945714342dd18dd809134422a2b77d": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "encrypted_velvet.docx.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:cf8e19f41bc41f7a5de92c96b15f30e8b9ad9a6effb87d936d1d864059db09c7": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:ffc4f29dc8c2ef23c77a785de8471f235f8d325dffa1873978f2b4119a889346": {
       "detections": {},
       "directives": {},
@@ -1678,6 +1678,21 @@
           "summary": null,
           "tags": {}
         },
+        "observable_modifier": {
+          "details": {
+            "matched_rules": [
+              {
+                "actions_applied": {
+                  "ignore": true
+                },
+                "name": "hashes out from under the hash module",
+                "uuid": "2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03"
+              }
+            ]
+          },
+          "summary": "Applied 1 rule(s): hashes out from under the hash module",
+          "tags": {}
+        },
         "user_defined_tagging": {
           "details": {
             "tags_added": []
@@ -1701,6 +1716,21 @@
             "for_detection": false
           },
           "summary": null,
+          "tags": {}
+        },
+        "observable_modifier": {
+          "details": {
+            "matched_rules": [
+              {
+                "actions_applied": {
+                  "ignore": true
+                },
+                "name": "hashes out from under the hash module",
+                "uuid": "2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03"
+              }
+            ]
+          },
+          "summary": "Applied 1 rule(s): hashes out from under the hash module",
           "tags": {}
         },
         "user_defined_tagging": {
@@ -1745,6 +1775,29 @@
       "relationships": {
         "is_hash_of file:cf8e19f41bc41f7a5de92c96b15f30e8b9ad9a6effb87d936d1d864059db09c7": true
       },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "signature_id:2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
       "results": {
         "observable_detection": {
           "details": {
