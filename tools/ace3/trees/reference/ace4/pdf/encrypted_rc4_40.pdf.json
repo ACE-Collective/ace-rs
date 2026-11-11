@@ -177,6 +177,24 @@
           "summary": "File Type Analysis: ASCII text (text/plain)",
           "tags": {}
         },
+        "javascript_deobfuscation": {
+          "details": {
+            "dom_snapshot": false,
+            "dom_snapshot_source": null,
+            "error": null,
+            "error_type": null,
+            "event_count": 0,
+            "exit_code": 0,
+            "extracted_files": [],
+            "secondary_script_count": 0,
+            "stderr": "",
+            "stdout": "{\"status\":\"ok\",\"event_count\":0,\"secondary_script_count\":0,\"error\":null,\"error_type\":null,\"webcrack_status\":\"applied (cosmetic only)\",\"webcrack_error\":null,\"blob_files\":[],\"dom_snapshot\":false}",
+            "webcrack_error": null,
+            "webcrack_status": "applied (cosmetic only)"
+          },
+          "summary": null,
+          "tags": {}
+        },
         "observable_detection": {
           "details": {
             "for_detection": false
@@ -206,7 +224,9 @@
           "tags": {}
         }
       },
-      "tags": {}
+      "tags": {
+        "js": true
+      }
     },
     "file:2b827014b27d850fa53f2250136dbb00258e9ce0ddbddab8bf6fad2126ed88f4": {
       "detections": {},
@@ -303,8 +323,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 00:54:04+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 00:54:04+00:00",
+              "File:FileAccessDate": "2026:11:11 04:30:14+00:00",
+              "File:FileInodeChangeDate": "2026:11:11 04:30:14+00:00",
               "File:FileModifyDate": "2026:11:07 04:47:50+00:00",
               "File:FileName": "encrypted_rc4_40.pdf",
               "File:FilePermissions": 100644,
@@ -415,117 +435,7 @@
         "pdf": true
       }
     },
-    "file:5b0cddbd1370d8d6db7fdaa8b820d2c37d342239aaabffc12f6f58a4156d9ae5": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "encrypted_rc4_40.pdf.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:40b7f5fd1afee612f6f3b43ee80bbcfb24eb7e2d3af12ffa7f9d62ba5023641c": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
-    "file:5e218abd0373a6f262027d8f572b2920b83da0d9dc620a68022448d41dd1081e": {
-      "detections": {},
-      "directives": {
-        "extract_urls": true
-      },
-      "excluded_analysis": {
-        "pdf_analyzer": true
-      },
-      "paths": {
-        "encrypted_rc4_40.pdf.annotation_uris.txt": {
-          "type=document.pdf.annotation_uris": true
-        }
-      },
-      "redirection": "file:40b7f5fd1afee612f6f3b43ee80bbcfb24eb7e2d3af12ffa7f9d62ba5023641c",
-      "relationships": {
-        "extracted_from file:40b7f5fd1afee612f6f3b43ee80bbcfb24eb7e2d3af12ffa7f9d62ba5023641c": true
-      },
-      "results": {
-        "file_hash_analyzer": {
-          "details": {
-            "md5": "4d1072cb32d653b47e2a972530fc2796",
-            "sha1": "4585485622ba75e7f1862ba2c66d44554ae06fb1",
-            "sha256": "5e218abd0373a6f262027d8f572b2920b83da0d9dc620a68022448d41dd1081e"
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "file_type": {
-          "details": {
-            "is_email_file": false,
-            "is_jar_file": false,
-            "is_lnk_file": false,
-            "is_office_document": false,
-            "is_office_ext": false,
-            "is_ole_file": false,
-            "is_pdf_file": false,
-            "is_pe_file": false,
-            "is_rtf_file": false,
-            "is_x509": false,
-            "is_zip_file": false,
-            "mime": "text/plain",
-            "type": "ASCII text, with no line terminators"
-          },
-          "summary": "File Type Analysis: ASCII text, with no line terminators (text/plain)",
-          "tags": {}
-        },
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "url_extraction": {
-          "details": {
-            "urls": [
-              "https://example.com/encrypted-annotation"
-            ],
-            "urls_grouped_by_domain": {
-              "example.com": [
-                "https://example.com/encrypted-annotation"
-              ]
-            }
-          },
-          "summary": "URL Extraction Analysis (example.com)",
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
-    "file:77652bb17af9759e0b37ce39c7a2430029022d63373bc2e4cea6871dfa825282": {
+    "file:54f849b20eaf847b39e620dbb661212f2afc64c7a1233d28cb577a478aa0afd1": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -607,6 +517,83 @@
         "pdf": true
       }
     },
+    "file:5e218abd0373a6f262027d8f572b2920b83da0d9dc620a68022448d41dd1081e": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {
+        "pdf_analyzer": true
+      },
+      "paths": {
+        "encrypted_rc4_40.pdf.annotation_uris.txt": {
+          "type=document.pdf.annotation_uris": true
+        }
+      },
+      "redirection": "file:40b7f5fd1afee612f6f3b43ee80bbcfb24eb7e2d3af12ffa7f9d62ba5023641c",
+      "relationships": {
+        "extracted_from file:40b7f5fd1afee612f6f3b43ee80bbcfb24eb7e2d3af12ffa7f9d62ba5023641c": true
+      },
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "4d1072cb32d653b47e2a972530fc2796",
+            "sha1": "4585485622ba75e7f1862ba2c66d44554ae06fb1",
+            "sha256": "5e218abd0373a6f262027d8f572b2920b83da0d9dc620a68022448d41dd1081e"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text, with no line terminators"
+          },
+          "summary": "File Type Analysis: ASCII text, with no line terminators (text/plain)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [
+              "https://example.com/encrypted-annotation"
+            ],
+            "urls_grouped_by_domain": {
+              "example.com": [
+                "https://example.com/encrypted-annotation"
+              ]
+            }
+          },
+          "summary": "URL Extraction Analysis (example.com)",
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:778680bd6222c6efb604412bcfc74402e3b85d8f4f7d15cdc9f1605f9d8b18ec": {
       "detections": {},
       "directives": {
@@ -653,6 +640,24 @@
           "summary": "File Type Analysis: ASCII text, with no line terminators (text/plain)",
           "tags": {}
         },
+        "javascript_deobfuscation": {
+          "details": {
+            "dom_snapshot": false,
+            "dom_snapshot_source": null,
+            "error": null,
+            "error_type": null,
+            "event_count": 0,
+            "exit_code": 0,
+            "extracted_files": [],
+            "secondary_script_count": 0,
+            "stderr": "",
+            "stdout": "{\"status\":\"ok\",\"event_count\":0,\"secondary_script_count\":0,\"error\":null,\"error_type\":null,\"webcrack_status\":\"applied (cosmetic only)\",\"webcrack_error\":null,\"blob_files\":[],\"dom_snapshot\":false}",
+            "webcrack_error": null,
+            "webcrack_status": "applied (cosmetic only)"
+          },
+          "summary": null,
+          "tags": {}
+        },
         "observable_detection": {
           "details": {
             "for_detection": false
@@ -682,6 +687,41 @@
           "tags": {}
         }
       },
+      "tags": {
+        "js": true
+      }
+    },
+    "file:8ba096f939aff4fe92a194373d6bb8025c0508b727daa893491e32a34a71b6f9": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "encrypted_rc4_40.pdf.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:40b7f5fd1afee612f6f3b43ee80bbcfb24eb7e2d3af12ffa7f9d62ba5023641c": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {}
     },
     "file:a62e2fd14228e52df1262da33959d78073459ba41543704cb44bb5c0a12867a5": {
@@ -695,9 +735,9 @@
           "type=document.pdf.text": true
         }
       },
-      "redirection": "file:77652bb17af9759e0b37ce39c7a2430029022d63373bc2e4cea6871dfa825282",
+      "redirection": "file:54f849b20eaf847b39e620dbb661212f2afc64c7a1233d28cb577a478aa0afd1",
       "relationships": {
-        "extracted_from file:77652bb17af9759e0b37ce39c7a2430029022d63373bc2e4cea6871dfa825282": true
+        "extracted_from file:54f849b20eaf847b39e620dbb661212f2afc64c7a1233d28cb577a478aa0afd1": true
       },
       "results": {
         "file_type": {

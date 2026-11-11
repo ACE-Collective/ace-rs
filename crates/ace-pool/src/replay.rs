@@ -67,6 +67,7 @@ pub async fn replay_task(
         reader: Some(Arc::new(client.replay_reads())),
         // and runs its tools as plain processes, as it runs the module
         tools: modules.local_tools(&task.module)?,
+        scan_output: None,
     };
     if let Some(parser) = modules.parser(&task.module) {
         Ok(tokio::task::block_in_place(|| parser.run(run)))

@@ -1,0 +1,227 @@
+#!/usr/bin/env python3
+"""Writes what ace3's scanner managers leave in a scan's output directory, for the reference dumps of
+PLAN.md 7.7's modules (tools/ace3/dumps/make-dumps javascript_deobfuscation phishkit_analyzer).
+
+ace3's js-deobfuscator and phishkit modules ask a Celery manager to run a scanner image and read back
+the directory it leaves. Running them through ace3's live managers would make every dump depend on
+what a browser fetched that day, so the scanners run here once, on the host, from the images
+docker/scanners/build builds from ace3's own sources, as the managers run them, and their directories
+are kept under fixtures/scanners/. The dumps then run ace3's modules on those directories, and ace4's
+tests run ace4's on the same ones.
+
+- js/<case>/: `docker run --rm --network none ... node /opt/app/harness.js <input> <output>/deobfuscated.js`,
+  with the input, and its DOM snapshot when it has one, under /js-deobfuscator/input/<job>/, and
+  std.out, std.err, exit.code and report.json written as js_deobfuscator.py writes them.
+- phishkit/<case>/: `scanner.py --file <input> --output-dir <output>` for a file the scanner renders,
+  with --network none, so it reaches nothing, and with the manager's --init, memory and CPU limits,
+  and std.out, std.err, exit.code and proxy.json written as phishkit.py writes them with no proxy.
+  The URL cases are made from that one by hand (PHISHKIT_EDITS below), since a URL scan needs the
+  internet: what a kit's page requests, the bodies it serves, a timeout, and a failure.
+
+The job id in every path is FIXED_JOB, so the fixtures are the same each time the scanner gives the
+same output. Usage: tools/ace3/dumps/scanner-fixtures [js] [phishkit]
+"""
+
+import json
+import os
+import shutil
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+REPO = HERE.parents[2]
+SAMPLES = REPO / "samples"
+OUT = HERE / "fixtures" / "scanners"
+FIXED_JOB = "00000000-0000-4000-8000-000000000000"
+JS_IMAGE = os.environ.get("ACE4_JS_DEOBFUSCATOR_IMAGE", "ace4-js-deobfuscator:latest")
+PHISHKIT_IMAGE = os.environ.get("ACE4_PHISHKIT_IMAGE", "ace4-phishkit:latest")
+
+# case -> (sample, the name the script has, the DOM snapshot beside it: a dump's sidecar or None)
+JS_CASES = {
+    "dropper": ("ace4/js/dropper.js", "dropper.js", None),
+    "broken": ("ace4/js/broken.js", "broken.js", None),
+    "blob_redirect": ("ace4/js/blob_redirect.js", "blob_redirect.js", None),
+    "runtime_error": ("ace4/js/runtime_error.js", "runtime_error.js", None),
+    # html_js_extraction's first inline script of scripts.html, with the snapshot ace3 wrote for it
+    "scripts_inline": (
+        None, "scripts_js_inline_0_f2dac8e8.js",
+        ("html_js_extraction/scripts.html.json", "scripts_js_inline_0_f2dac8e8.js.dom.json"),
+    ),
+}
+SCRIPTS_INLINE = "var redirect = document.getElementById('d').getAttribute('data-u'); window.location = redirect;"
+
+PHISHKIT_PAGE = "ace4/web/phishkit_page.html"
+
+
+def work():
+    """A directory Docker's VM shares with this host, as it shares the checkout."""
+    path = REPO / "target" / "scanner-fixtures"
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
+def js_case(case, sample, name, sidecar):
+    with tempfile.TemporaryDirectory(prefix="ace4-js-fixture-", dir=work()) as tmp:
+        volume = Path(tmp)
+        os.chmod(volume, 0o777)
+        input_dir = volume / "input" / FIXED_JOB
+        output_dir = volume / "output" / FIXED_JOB
+        input_dir.mkdir(parents=True)
+        output_dir.mkdir(parents=True)
+        data = (SAMPLES / sample).read_bytes() if sample else SCRIPTS_INLINE.encode()
+        (input_dir / name).write_bytes(data)
+        if sidecar:
+            dump = json.loads((HERE / "reference" / sidecar[0]).read_text())
+            (input_dir / (name + ".dom.json")).write_text(dump["sidecars"][sidecar[1]])
+        for path in volume.rglob("*"):
+            os.chmod(path, 0o777 if path.is_dir() else 0o666)
+        run = subprocess.run(
+            ["docker", "run", "--rm", "--network", "none", "-v", f"{volume}:/js-deobfuscator", JS_IMAGE,
+             "node", "/opt/app/harness.js", f"/js-deobfuscator/input/{FIXED_JOB}/{name}",
+             f"/js-deobfuscator/output/{FIXED_JOB}/deobfuscated.js"],
+            capture_output=True, text=True, timeout=60,
+        )
+        (output_dir / "std.out").write_text(run.stdout)
+        (output_dir / "std.err").write_text(run.stderr)
+        (output_dir / "exit.code").write_text(str(run.returncode))
+        try:
+            report = json.loads(run.stdout or "{}")
+        except json.JSONDecodeError:
+            report = {"status": "parse_error", "raw_stdout": run.stdout}
+        (output_dir / "report.json").write_text(json.dumps(report))
+        dest = OUT / "js" / case
+        shutil.rmtree(dest, ignore_errors=True)
+        shutil.copytree(output_dir, dest)
+        print(f"js/{case}: exit {run.returncode}, {sorted(p.name for p in dest.iterdir())}")
+
+
+NO_PROXY = {
+    "configured": False, "host": None, "fallback_enabled": True, "fallback_triggered": False,
+    "fallback_reason": None, "fallback_details": {}, "final_route": "none",
+}
+
+
+def phishkit_file():
+    with tempfile.TemporaryDirectory(prefix="ace4-phishkit-fixture-", dir=work()) as tmp:
+        volume = Path(tmp)
+        input_dir = volume / "input" / FIXED_JOB
+        output_dir = volume / "output" / FIXED_JOB
+        input_dir.mkdir(parents=True)
+        output_dir.mkdir(parents=True)
+        shutil.copy(SAMPLES / PHISHKIT_PAGE, input_dir / "phishkit_page.html")
+        for path in volume.rglob("*"):
+            os.chmod(path, 0o777 if path.is_dir() else 0o666)
+        os.chmod(volume, 0o777)
+        run = subprocess.run(
+            ["docker", "run", "--rm", "--init", "--network", "none", "--memory", "2g", "--memory-swap", "2g",
+             "--cpus", "2.0", "--stop-timeout", "5", "-v", f"{volume}:/phishkit", PHISHKIT_IMAGE,
+             "/opt/venv/bin/python", "/opt/app/scanner.py", "--file",
+             f"/phishkit/input/{FIXED_JOB}/phishkit_page.html", "--output-dir", f"/phishkit/output/{FIXED_JOB}"],
+            capture_output=True, text=True, timeout=300,
+        )
+        (output_dir / "std.out").write_text(run.stdout)
+        (output_dir / "std.err").write_text(run.stderr)
+        (output_dir / "exit.code").write_text(str(run.returncode))
+        (output_dir / "proxy.json").write_text(json.dumps(NO_PROXY))
+        dest = OUT / "phishkit" / "file_render"
+        shutil.rmtree(dest, ignore_errors=True)
+        shutil.copytree(output_dir, dest)
+        print(f"phishkit/file_render: exit {run.returncode}, {sorted(str(p.relative_to(dest)) for p in dest.rglob('*'))}")
+
+
+def write(dest, name, text):
+    path = dest / name
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text)
+
+
+def phishkit_url_cases():
+    """The URL scans, from the file scan's screenshot and DOM, with what a kit's page would have
+    requested and served."""
+    base = OUT / "phishkit" / "file_render"
+    requests = [
+        {"type": "request", "url": "https://kit.evil.example/start", "requestId": "1", "frame_id": "F",
+         "resource_type": "Document"},
+        {"type": "response", "url": "https://kit.evil.example/start", "status_code": 302,
+         "headers": {"Location": "https://kit.evil.example/login#victim@corp.example"}},
+        {"type": "request", "url": "https://kit.evil.example/login", "requestId": "2", "frame_id": "F",
+         "resource_type": "Document"},
+        {"type": "response", "url": "https://kit.evil.example/login", "status_code": 200,
+         "headers": {"Content-Type": "text/html; charset=utf-8"}},
+        {"type": "request", "url": "https://cdn.evil.example/kit.js", "requestId": "3", "frame_id": "F",
+         "resource_type": "Script"},
+        {"type": "request", "url": "data:image/png;base64,AAAA", "requestId": "4"},
+        {"type": "request", "url": "https://cdn.evil.example/kit.js/", "requestId": "5"},
+        {"type": "error", "url": "https://blocked.evil.example/next", "error_text": "net::ERR_FAILED"},
+        {"type": "request", "url": "", "requestId": "6"},
+        {"type": "request", "url": "https://tracker.evil.example/p", "requestId": "7"},
+    ]
+    bodies = (
+        "\n\nMARKER URL: https://kit.evil.example/login\n\n"
+        "<html><script>var next = 'https://stage2.evil.example/collect.php';</script></html>"
+        "\n\nMARKER URL: https://cdn.evil.example/kit.js\n\n"
+        "fetch('https://api.evil.example/v1/post'); // and https://kit.evil.example/start again\n"
+        "\n\nMARKER URL: https://kit.evil.example/start\n\n"
+    )
+    metrics = {
+        "url_scanned": "https://kit.evil.example/start", "timestamp": "2026-11-10T00:00:00Z",
+        "total_bytes_downloaded": 3145728, "scan_duration_seconds": 12.5,
+        "document_url": "https://kit.evil.example/login#victim@corp.example",
+        "domain_stats": {"kit.evil.example": {"requests": 2, "bytes": 2048}},
+    }
+    cases = {
+        "url_scan": dict(requests=requests, bodies=bodies, metrics=metrics, exit=0, stderr=""),
+        # the scanner flushed what it had on SIGTERM at its timeout
+        "url_partial": dict(requests=requests[:4], bodies=None, metrics={**metrics, "interrupted": True,
+                                                                         "document_url": "https://kit.evil.example/start"},
+                            exit=143, stderr="terminated\n"),
+        # the top-level response was a script, which Chrome shows as text
+        "url_script": dict(
+            requests=[
+                {"type": "request", "url": "https://kit.evil.example/a.js", "requestId": "1"},
+                {"type": "response", "url": "https://kit.evil.example/a.js", "status_code": 200,
+                 "headers": {"content-type": "application/javascript"}},
+            ],
+            bodies=None, metrics={"total_bytes_downloaded": 0, "document_url": "https://kit.evil.example/a.js"},
+            exit=0, stderr="", script="var u = 'https://stage3.evil.example/x';\n"),
+        # the scanner failed and left nothing to harvest, which scan_url raises on
+        "url_failed": dict(requests=None, bodies=None, metrics=None, exit=1,
+                           stderr="Traceback (most recent call last):\nselenium.common.exceptions.WebDriverException\n"),
+    }
+    for case, spec in cases.items():
+        dest = OUT / "phishkit" / case
+        shutil.rmtree(dest, ignore_errors=True)
+        dest.mkdir(parents=True)
+        if spec["requests"] is not None:
+            shutil.copy(base / "screenshot.png", dest / "screenshot.png")
+            write(dest, "requests.json", json.dumps(spec["requests"]))
+            write(dest, "dom.html", (base / "dom.html").read_text())
+        if spec["bodies"] is not None:
+            write(dest, "response_bodies.txt", spec["bodies"])
+        if spec["metrics"] is not None:
+            write(dest, "metrics.json", json.dumps(spec["metrics"]))
+        if spec.get("script"):
+            write(dest, "script.js", spec["script"])
+        if case == "url_scan":
+            write(dest, "downloads/invoice.zip", "PK not really a zip\n")
+        write(dest, "std.out", "{'screenshot': True}\n" if spec["exit"] == 0 else "")
+        write(dest, "std.err", spec["stderr"])
+        write(dest, "exit.code", str(spec["exit"]))
+        write(dest, "proxy.json", json.dumps(NO_PROXY))
+        print(f"phishkit/{case}: {sorted(str(p.relative_to(dest)) for p in dest.rglob('*') if p.is_file())}")
+
+
+def main():
+    which = sys.argv[1:] or ["js", "phishkit"]
+    if "js" in which:
+        for case, (sample, name, sidecar) in JS_CASES.items():
+            js_case(case, sample, name, sidecar)
+    if "phishkit" in which:
+        phishkit_file()
+        phishkit_url_cases()
+
+
+if __name__ == "__main__":
+    main()

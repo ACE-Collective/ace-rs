@@ -283,6 +283,7 @@ fn tree_of(observable: &Observable) -> TreeView {
             size: None,
             pending: Vec::new(),
             download: None,
+            relationships: Vec::new(),
         }],
         ..Default::default()
     }

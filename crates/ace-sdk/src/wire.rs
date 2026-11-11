@@ -200,6 +200,9 @@ pub struct LeasedTask {
     /// For a module that reads it (`Module::READS_TREE`), the root's tree when the task was leased.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub tree: Option<crate::tree::TreeView>,
+    /// For a module that asked for a scan in its last delay, the scan (PLAN.md 7.7).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub scan: Option<crate::scanners::WireScan>,
 }
 
 /// An observable the task's observable is related to, and its tags.
@@ -262,11 +265,15 @@ pub enum TaskEnd {
         #[serde(default, skip_serializing_if = "Vec::is_empty")]
         writes: Vec<WireWrite>,
     },
-    /// Run the task again after `after_seconds`, with `state` for the next run.
+    /// Run the task again after `after_seconds`, with `state` for the next run, and the scan to run
+    /// meanwhile, if the module asked for one (PLAN.md 7.7): its inputs the module wrote must have
+    /// been uploaded first, as a result's files are.
     Delay {
         after_seconds: f64,
         #[serde(default)]
         state: Value,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        scan: Option<crate::scanners::ScanRequest>,
     },
     /// The module or its setup failed.
     Failed { error: String },

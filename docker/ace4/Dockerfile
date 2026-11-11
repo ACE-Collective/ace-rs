@@ -2,7 +2,7 @@
 #
 # The images of ace4's Compose stack (PLAN.md 2.29): ace4-ace, the core; ace4-parsers, the
 # parser pool; ace4-sandbox, the parser pool whose image carries the tools its modules run
-# (PLAN.md 7.3); ace4-lookups, the network pool; and
+# (PLAN.md 7.3); ace4-lookups, the network pool; ace4-scanners, the scanner pool (7.7); and
 # ace4-responder, the recorded-response server of the end-to-end test. One build stage compiles every binary once, and each image is a
 # target of this file. The build's target directory is a BuildKit cache, so a rebuild compiles
 # only what changed; it isn't the dev container's target/ volume.
@@ -118,7 +118,7 @@ RUN --mount=type=cache,id=ace4-images-registry,target=/usr/local/cargo/registry 
     cargo build --release --locked -p ace -p ace-testkit --bins \
     && mkdir -p /out \
     && cp target/release/ace target/release/ace-parsers target/release/ace-sandbox target/release/ace-lookups \
-        target/release/replay-server /out/
+        target/release/ace-scanners target/release/replay-server /out/
 
 # What every image runs on: Debian with the pinned libmagic and its database, which the core's
 # mime types and the YARA module's mime_type filter read.
@@ -222,6 +222,13 @@ FROM runtime AS lookups
 COPY --from=build /out/ace-lookups /usr/local/bin/ace-lookups
 USER ace4
 CMD ["ace-lookups"]
+
+# The scanner pool (PLAN.md 7.7): the one process that holds the Docker socket, which it needs to start
+# the phishkit and js-deobfuscator scanner images (docker/scanners/build), and parses nothing they
+# write. It runs as root, which the socket's owner is.
+FROM runtime AS scanners
+COPY --from=build /out/ace-scanners /usr/local/bin/ace-scanners
+CMD ["ace-scanners"]
 
 # The libraries tools/library-diff/run (PLAN.md 4.8) compares each Rust port with. Nothing in the
 # stack runs this: the Python pool that did went at PLAN.md 4.13. Python is ace3's, 3.14 on trixie,

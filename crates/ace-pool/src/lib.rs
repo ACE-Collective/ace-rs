@@ -6,7 +6,8 @@
 //! Containment (2.18) is what a parser's task process applies to itself before the module runs.
 //! A parser pool's supervisor can also run the commands analysts start from the GUI (`commands`, 5.12),
 //! each in a contained process of its own. A parser pool whose image carries programs runs them at a task's
-//! request in the sandbox runner (`tools`, PLAN.md 7.3).
+//! request in the sandbox runner (`tools`, PLAN.md 7.3). A scanner pool holds the Docker socket and runs
+//! the scanner images modules' scans ask for (`scanners`, PLAN.md 7.7).
 
 pub mod client;
 pub mod commands;
@@ -16,6 +17,7 @@ pub mod pool;
 pub mod replay;
 pub mod rulesets;
 pub mod run;
+pub mod scanners;
 pub mod secrets;
 pub mod supervisor;
 pub mod task_process;

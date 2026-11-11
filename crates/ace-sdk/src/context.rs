@@ -20,6 +20,7 @@ use crate::files::{FileOutputError, FileStore, write_file};
 use crate::lists::{List, ListSpec, WireList};
 use crate::module::{Module, ModuleError};
 use crate::reads::{Read as DeclaredRead, ReadError, ReadKind, Reader};
+use crate::scanners::{Scan, ScanInput};
 use crate::tools::{TIMEOUT_MARGIN, ToolError, ToolOutput, ToolRun, ToolRunner};
 use crate::tree::TreeView;
 use crate::wire::RelatedTags;
@@ -247,6 +248,8 @@ pub struct TaskContext<S> {
     declared_tools: &'static [&'static str],
     /// What runs the module's tools (PLAN.md 7.3).
     tools: Option<Arc<dyn ToolRunner>>,
+    /// The task's latest scan (PLAN.md 7.7), for a module that asked for one.
+    scan: Option<Scan>,
 }
 
 impl<S> TaskContext<S> {
@@ -288,7 +291,38 @@ impl<S> TaskContext<S> {
             tree_files: None,
             declared_tools: M::TOOLS,
             tools: None,
+            scan: None,
         }
+    }
+
+    /// The task's latest scan, with its output archive on this machine (PLAN.md 7.7).
+    pub fn with_scan(mut self, scan: Option<Scan>) -> Self {
+        self.scan = scan;
+        self
+    }
+
+    /// The scan the task's module asked for in its last delay, once the core has one for it: ended,
+    /// or still pending when the delay ran out first. None before the module asked for one.
+    pub fn scan(&self) -> Option<&Scan> {
+        self.scan.as_ref()
+    }
+
+    /// Stores `bytes` for a scan to copy into its scanner's input directory at `name`, and returns
+    /// the input to put in the `ScanRequest`. The pool uploads it with the task's delay.
+    pub fn write_scan_input(&self, name: &str, bytes: &[u8]) -> Result<ScanInput, ModuleError> {
+        if !crate::scanners::is_input_name(name) {
+            return Err(ModuleError::other(format!("the scan input name {name:?}")));
+        }
+        let store = self
+            .files
+            .as_deref()
+            .ok_or_else(|| ModuleError::other(FileOutputError::NoStore))?;
+        let (sha256, size) = store.put(&mut &bytes[..])?;
+        Ok(ScanInput {
+            name: name.to_owned(),
+            sha256,
+            size,
+        })
     }
 
     /// What runs the task's tools: the supervisor, or a `LocalRunner`.

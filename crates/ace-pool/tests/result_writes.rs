@@ -431,6 +431,7 @@ async fn a_nul_from_a_hostile_file_doesnt_stop_a_task_ending() {
             &TaskEnd::Delay {
                 after_seconds: 0.0,
                 state: json!({"note\0": "st\0ate"}),
+                scan: None,
             },
         )
         .await

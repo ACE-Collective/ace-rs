@@ -177,6 +177,24 @@
           "summary": "File Type Analysis: ASCII text (text/plain)",
           "tags": {}
         },
+        "javascript_deobfuscation": {
+          "details": {
+            "dom_snapshot": false,
+            "dom_snapshot_source": null,
+            "error": null,
+            "error_type": null,
+            "event_count": 0,
+            "exit_code": 0,
+            "extracted_files": [],
+            "secondary_script_count": 0,
+            "stderr": "",
+            "stdout": "{\"status\":\"ok\",\"event_count\":0,\"secondary_script_count\":0,\"error\":null,\"error_type\":null,\"webcrack_status\":\"applied (cosmetic only)\",\"webcrack_error\":null,\"blob_files\":[],\"dom_snapshot\":false}",
+            "webcrack_error": null,
+            "webcrack_status": "applied (cosmetic only)"
+          },
+          "summary": null,
+          "tags": {}
+        },
         "observable_detection": {
           "details": {
             "for_detection": false
@@ -206,7 +224,9 @@
           "tags": {}
         }
       },
-      "tags": {}
+      "tags": {
+        "js": true
+      }
     },
     "file:2b827014b27d850fa53f2250136dbb00258e9ce0ddbddab8bf6fad2126ed88f4": {
       "detections": {},
@@ -285,7 +305,7 @@
       },
       "tags": {}
     },
-    "file:4ff950240713aeaa994acf341f54b44402415c4b327927c99254539f617d2548": {
+    "file:551a75c1c60f7ff37b7bf1fa0fc08d422de74db70593585f4a9c9a02a8085463": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -453,8 +473,8 @@
               "ExifTool:ExifToolVersion": 13.25,
               "ExifTool:Warning": "[minor] Decryption is very slow for encryption V5.6 or higher",
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 00:53:13+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 00:53:13+00:00",
+              "File:FileAccessDate": "2026:11:11 04:29:21+00:00",
+              "File:FileInodeChangeDate": "2026:11:11 04:29:21+00:00",
               "File:FileModifyDate": "2026:11:07 04:47:50+00:00",
               "File:FileName": "encrypted_no_permissions.pdf",
               "File:FilePermissions": 100644,
@@ -688,6 +708,24 @@
           "summary": "File Type Analysis: ASCII text, with no line terminators (text/plain)",
           "tags": {}
         },
+        "javascript_deobfuscation": {
+          "details": {
+            "dom_snapshot": false,
+            "dom_snapshot_source": null,
+            "error": null,
+            "error_type": null,
+            "event_count": 0,
+            "exit_code": 0,
+            "extracted_files": [],
+            "secondary_script_count": 0,
+            "stderr": "",
+            "stdout": "{\"status\":\"ok\",\"event_count\":0,\"secondary_script_count\":0,\"error\":null,\"error_type\":null,\"webcrack_status\":\"applied (cosmetic only)\",\"webcrack_error\":null,\"blob_files\":[],\"dom_snapshot\":false}",
+            "webcrack_error": null,
+            "webcrack_status": "applied (cosmetic only)"
+          },
+          "summary": null,
+          "tags": {}
+        },
         "observable_detection": {
           "details": {
             "for_detection": false
@@ -717,9 +755,11 @@
           "tags": {}
         }
       },
-      "tags": {}
+      "tags": {
+        "js": true
+      }
     },
-    "file:93c3bdada4f35b87d3e187db53b753b763666e4a21096c098f7433f774618378": {
+    "file:8d1aa482f6f8d9a6d7648950eec1cf61dcc463b398d45231c02ddb059295b3d7": {
       "detections": {},
       "directives": {},
       "excluded_analysis": {
@@ -763,9 +803,9 @@
           "type=document.pdf.text": true
         }
       },
-      "redirection": "file:4ff950240713aeaa994acf341f54b44402415c4b327927c99254539f617d2548",
+      "redirection": "file:551a75c1c60f7ff37b7bf1fa0fc08d422de74db70593585f4a9c9a02a8085463",
       "relationships": {
-        "extracted_from file:4ff950240713aeaa994acf341f54b44402415c4b327927c99254539f617d2548": true
+        "extracted_from file:551a75c1c60f7ff37b7bf1fa0fc08d422de74db70593585f4a9c9a02a8085463": true
       },
       "results": {
         "file_type": {

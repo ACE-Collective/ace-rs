@@ -162,6 +162,7 @@ impl Dump {
                 size: o["size"].as_u64(),
                 pending: Vec::new(),
                 download: None,
+                relationships: Vec::new(),
             })
             .collect();
         let results = view["results"]
@@ -183,10 +184,12 @@ impl Dump {
                         path: a["path"].as_str().map(str::to_owned),
                     })
                     .collect(),
+                details: None,
             })
             .collect();
         TreeView {
             alert_type: view["alert_type"].as_str().map(str::to_owned),
+            analysis_mode: view["analysis_mode"].as_str().map(str::to_owned),
             whitelisted: view["whitelisted"].as_bool().unwrap_or_default(),
             this,
             observables,
@@ -388,6 +391,8 @@ fn ace3_module_name(excluded: &str) -> String {
         "AutoItAnalyzer" => "autoit",
         "De4dotAnalyzer" => "de4dot",
         "IlspyAnalyzer" => "ilspy",
+        "PhishkitAnalyzer" => "phishkit_analyzer",
+        "JavaScriptDeobfuscationAnalyzer" => "javascript_deobfuscation",
         other => other,
     }
     .to_owned()

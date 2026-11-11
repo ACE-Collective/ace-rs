@@ -217,6 +217,7 @@ services:
       ACE4_POOL_TOKEN_PARSERS: ${ACE4_POOL_TOKEN_PARSERS:-ace4-dev-parsers-token}
       ACE4_POOL_TOKEN_LOOKUPS: ${ACE4_POOL_TOKEN_LOOKUPS:-ace4-dev-lookups-token}
       ACE4_POOL_TOKEN_SANDBOX: ${ACE4_POOL_TOKEN_SANDBOX:-ace4-dev-sandbox-token}
+      ACE4_POOL_TOKEN_SCANNERS: ${ACE4_POOL_TOKEN_SCANNERS:-ace4-dev-scanners-token}
       ACE4_ADMIN_TOKEN: ${ACE4_ADMIN_TOKEN:-ace4-dev-admin-token}
       # the email archive's key (64 hex digits), which only this service holds; with none, nothing is
       # archived or opened
@@ -337,6 +338,47 @@ services:
       start_period: 10s
       retries: 3
 
+  # The scanner pool (PLAN.md 7.7): it runs ace3's phishkit and js-deobfuscator scanner images, which
+  # docker/scanners/build builds as ace4-phishkit and ace4-js-deobfuscator, for the scans the parser
+  # pool's javascript_deobfuscation and phishkit_analyzer modules ask for. It holds the Docker socket,
+  # which is root on the host, so it parses nothing a scanner writes: it copies inputs in and the output
+  # directory and logs out, as bytes, and the module's next run reads them, contained. Each scanner's
+  # container is a sibling on the host's daemon, labelled ace4.scanner.stack=$ACE4_STACK, named
+  # <stack>-scan-<id>-<n>, and removed at its end; ace3's reapers select phishkit.* labels and never
+  # see them. js-deobfuscator's has no network; phishkit's is on Docker's default bridge, or the
+  # network ACE4_PHISHKIT_NETWORK names, and reaches what that network reaches, the internet included.
+  scanners:
+    build:
+      context: .
+      dockerfile: docker/ace4/Dockerfile
+      target: scanners
+    image: ace4-scanners:latest
+    depends_on:
+      ace:
+        condition: service_healthy
+    init: true
+    environment:
+      ACE4_API_URL: http://ace:8080
+      ACE4_POOL_TOKEN: ${ACE4_POOL_TOKEN_SCANNERS:-ace4-dev-scanners-token}
+      ACE4_STACK: ${ACE4_STACK:-ace4}
+      ACE4_CONCURRENCY: ${ACE4_SCANNERS_CONCURRENCY:-4}
+      ACE4_PHISHKIT_IMAGE: ${ACE4_PHISHKIT_IMAGE:-ace4-phishkit:latest}
+      ACE4_JS_DEOBFUSCATOR_IMAGE: ${ACE4_JS_DEOBFUSCATOR_IMAGE:-ace4-js-deobfuscator:latest}
+      ACE4_PHISHKIT_NETWORK: ${ACE4_PHISHKIT_NETWORK:-}
+      ACE4_LOG: ${ACE4_LOG:-info}
+      NO_PROXY: localhost,127.0.0.1,ace,bucket,collector
+      no_proxy: localhost,127.0.0.1,ace,bucket,collector
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    mem_limit: ${ACE4_SCANNERS_MEM_LIMIT:-2g}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "test -n \"$$(find /tmp/ace4-health -newermt '-20 seconds')\""]
+      interval: 5s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+
   # The end-to-end test's recorded RDAP and Splunk APIs (PLAN.md 2.30), behind the e2e
   # profile, so the stack's lookups never reach the internet in the test. Plain HTTP on 443,
   # a port both modules' manifests allow, and DNS on 53 from what ace3's trees were answered;
@@ -365,6 +407,10 @@ services:
       - 0.0.0.0:53
       - --dns-recording
       - /recordings/trees.dns.json
+    # and on the scanned network, the only one the end-to-end test's phishkit scanners are on
+    networks:
+      - default
+      - scanned
     mem_limit: ${ACE4_RESPONDER_MEM_LIMIT:-128m}
     healthcheck:
       test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/443"]
@@ -392,6 +438,13 @@ services:
       timeout: 5s
       start_period: 10s
       retries: 3
+
+networks:
+  # The end-to-end test's network for phishkit's scanner containers (PLAN.md 7.7, tests/e2e/run sets
+  # ACE4_PHISHKIT_NETWORK to it): internal, so it reaches the responder and nothing outside the stack.
+  # Compose makes it only when the e2e profile's responder starts.
+  scanned:
+    internal: true
 
 volumes:
   postgres-data:

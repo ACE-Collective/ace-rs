@@ -45,6 +45,11 @@ pub trait Module: Sized + Send + Sync + 'static {
     /// `required_directives`, such as `original_email` for the email logger. The core doesn't queue
     /// the module for an observable without every one.
     const REQUIRED_DIRECTIVES: &'static [&'static str] = &[];
+    /// Directives an observable of one type must have for the module to run on it, as ace3's
+    /// phishkit module needs `crawl` on a URL and nothing of the kind on a file
+    /// (`custom_requirement`). The core doesn't queue the module for such an observable without
+    /// them, and queues it once a result adds the last one.
+    const REQUIRED_DIRECTIVES_BY_KIND: &'static [(ObservableKind, &'static [&'static str])] = &[];
     /// The names of the secrets the module reads. The task context gives it these and no others.
     const SECRETS: &'static [&'static str] = &[];
     const RESOURCES: Resources = Resources::DEFAULT;
@@ -86,6 +91,10 @@ pub trait Module: Sized + Send + Sync + 'static {
     /// For a module that reads its root's tree: the files in it whose bytes it reads too, which the
     /// pool downloads before the task runs (`TaskContext::tree_file`).
     const READS_TREE_FILES: Option<TreeFiles> = None;
+    /// For a module that reads its root's tree: the modules whose results' details it reads there
+    /// (`TreeResult::details`), such as the JavaScript deobfuscator the DOM snapshots that
+    /// `html_js_extraction` and `har_extraction` keep in theirs.
+    const READS_TREE_DETAILS: &'static [&'static str] = &[];
     /// What a module that walks the tree may add to observables in its root other than the one it
     /// analyzed (`ResultEnvelope::others`), as ace3's lure module adds `crawl` to the URL it picks.
     /// A parser's result comes from hostile input, so the core refuses a result whose `others` add
@@ -114,6 +123,10 @@ pub trait Module: Sized + Send + Sync + 'static {
     /// (`crate::tools::ToolSpec`), with `TaskContext::run_tool`. Only a parser may declare one, and
     /// only a pool whose image has each runs it.
     const TOOLS: &'static [&'static str] = &[];
+    /// The scanner images the module sends its observable through (PLAN.md 7.7), by the names of
+    /// their specs (`crate::scanners::ScannerSpec`), with `Delay::with_scan`. Only a parser may
+    /// declare one: the scanner's output is hostile, and its next run reads it.
+    const SCANNERS: &'static [&'static str] = &[];
     /// False for a module whose tasks end with writes and never a result, as ace3's email logger,
     /// which creates no analysis. Its type needs no view.
     const STORES_RESULTS: bool = true;
@@ -208,6 +221,10 @@ pub struct Delay {
     pub timeout: Duration,
     /// What the next run needs, such as a search id. `TaskContext::delay_state` reads it back.
     pub state: serde_json::Value,
+    /// A scan to run meanwhile (PLAN.md 7.7): the core queues it and runs the task again when it
+    /// ends, or after `run_after`, whichever comes first, and the next run reads it with
+    /// `TaskContext::scan`.
+    pub scan: Option<crate::scanners::ScanRequest>,
 }
 
 impl Delay {
@@ -216,7 +233,14 @@ impl Delay {
             run_after,
             timeout,
             state: serde_json::Value::Null,
+            scan: None,
         }
+    }
+
+    /// Runs `scan` while the task waits, as ace3's modules wait on a Celery task.
+    pub fn with_scan(mut self, scan: crate::scanners::ScanRequest) -> Self {
+        self.scan = Some(scan);
+        self
     }
 
     pub fn with_state<T: Serialize>(mut self, state: &T) -> Result<Self, ModuleError> {

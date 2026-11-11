@@ -37,7 +37,10 @@ use crate::commands::{CommandConfig, run_commands};
 use crate::containment::SandboxProfile;
 use crate::modules::Modules;
 use crate::pool::{PoolStats, Runner, SHUTDOWN_GRACE, lease_loop};
-use crate::run::{LeaseKeeper, TaskDir, fetch_email_body, fetch_input, fetch_tree_files, finish};
+use crate::run::{
+    LeaseKeeper, TaskDir, fetch_email_body, fetch_input, fetch_scan_output, fetch_tree_files,
+    finish,
+};
 use crate::tools::{TOOL_FD, ToolDirs, ToolHost, ToolTable};
 
 /// The task's end is on stdout.
@@ -74,6 +77,9 @@ pub struct TaskRequest {
     /// `TOOL_FD`.
     #[serde(default)]
     pub tools: Option<PathBuf>,
+    /// The output archive of the task's latest scan (PLAN.md 7.7).
+    #[serde(default)]
+    pub scan_output: Option<PathBuf>,
 }
 
 /// How a supervisor starts task processes.
@@ -234,6 +240,7 @@ pub async fn run_task_process(
     open_to_task_user(&dir, input.as_deref(), config.user)?;
     let email_body = fetch_email_body(client, &task, dir.path()).await?;
     let tree_files = fetch_tree_files(client, &task, dir.path()).await?;
+    let scan_output = fetch_scan_output(client, &task, dir.path()).await?;
 
     let mut profile = SandboxProfile::for_manifest(&manifest).allow_write(dir.outputs());
     let tool_dirs = if manifest.tools.is_empty() {
@@ -252,6 +259,9 @@ pub async fn run_task_process(
     if let Some(files) = &tree_files {
         profile = profile.allow_read(files);
     }
+    if let Some(output) = &scan_output {
+        profile = profile.allow_read(output);
+    }
     for path in &config.read_paths {
         profile = profile.allow_read(path);
     }
@@ -263,6 +273,7 @@ pub async fn run_task_process(
         outputs: dir.outputs(),
         profile,
         tools: tool_dirs.as_ref().map(|dirs| dirs.scratch.clone()),
+        scan_output,
     };
     let deadline = manifest.resources.timeout;
     let host = match tool_dirs {

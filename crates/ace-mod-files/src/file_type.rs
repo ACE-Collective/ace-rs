@@ -27,14 +27,23 @@ use crate::libmagic::{self, Answer, Magic};
 pub const MANIFEST: Manifest = Manifest::parser::<FileType>();
 
 /// `YARA_META_TYPE_BY_DETAIL`, by the check's result.
-const JAVASCRIPT_MIME_TYPES: &[&str] = &[
+pub const JAVASCRIPT_MIME_TYPES: &[&str] = &[
     "text/javascript",
     "application/javascript",
     "application/x-javascript",
     "application/ecmascript",
     "text/ecmascript",
 ];
-const JAVASCRIPT_EXTENSIONS: &[&str] = &[".js", ".mjs", ".cjs", ".jse"];
+pub const JAVASCRIPT_EXTENSIONS: &[&str] = &[".js", ".mjs", ".cjs", ".jse"];
+
+/// Whether file_type gives a file at `path`, with these bytes and its mime type, the `yara_meta` type
+/// `script.javascript`: the mime type or the name says JavaScript, and node would parse it.
+pub fn tags_javascript(path: &str, mime: &str, data: &[u8]) -> bool {
+    let lowered = path.rsplit('/').next().unwrap_or(path).to_lowercase();
+    let ext = ace_mod_oletools::ftguess::splitext(&lowered).1;
+    (JAVASCRIPT_MIME_TYPES.contains(&mime) || JAVASCRIPT_EXTENSIONS.contains(&ext))
+        && crate::javascript::is_javascript_file(path, data)
+}
 
 /// The module, with libmagic's database read before containment, which can't open it.
 pub struct FileType {

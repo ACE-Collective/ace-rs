@@ -162,6 +162,22 @@ pub async fn fetch_tree_files(
     Ok(Some(files))
 }
 
+/// Downloads the output archive of the task's latest scan (PLAN.md 7.7) into `dir`, for the task's
+/// user to read.
+pub async fn fetch_scan_output(
+    client: &LeaseClient,
+    task: &LeasedTask,
+    dir: &Path,
+) -> Result<Option<PathBuf>, ClientError> {
+    let Some(output) = task.scan.as_ref().and_then(|scan| scan.output.as_ref()) else {
+        return Ok(None);
+    };
+    let path = dir.join("scan_output");
+    client.download(&output.download, &path).await?;
+    std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o644))?;
+    Ok(Some(path))
+}
+
 /// Uploads each file a result adds from the task's output directory, then ends the task. A 422 is
 /// an end too: the core rejected the result and failed the task, and its row says why.
 pub async fn send_end(
@@ -170,11 +186,23 @@ pub async fn send_end(
     outputs: &LocalFileStore,
     end: &TaskEnd,
 ) -> Result<(), ClientError> {
-    if let TaskEnd::Done { result, .. } = end {
-        let files = result.files.iter().map(|f| (&f.sha256, f.size));
-        let stored = result.stored.iter().map(|f| (&f.sha256, f.size));
+    let uploads: Vec<(&ace_results::Sha256, u64)> = match end {
+        TaskEnd::Done { result, .. } => result
+            .files
+            .iter()
+            .map(|f| (&f.sha256, f.size))
+            .chain(result.stored.iter().map(|f| (&f.sha256, f.size)))
+            .collect(),
+        // a scan's inputs the module wrote (`TaskContext::write_scan_input`); its own file is
+        // already in the bucket
+        TaskEnd::Delay {
+            scan: Some(scan), ..
+        } => scan.inputs.iter().map(|i| (&i.sha256, i.size)).collect(),
+        _ => Vec::new(),
+    };
+    {
         let mut sent = Vec::new();
-        for (sha256, size) in files.chain(stored) {
+        for (sha256, size) in uploads {
             let path = outputs.path_of(sha256);
             // a file a read put in the root, or another result stored there, is already in the
             // bucket, and the core checks that it is, and that the module may add one (`reads.md`,
@@ -241,6 +269,7 @@ pub async fn run_in_process(
     .await?;
     let email_body = fetch_email_body(client, &task, dir.path()).await?;
     let tree_files = fetch_tree_files(client, &task, dir.path()).await?;
+    let scan_output = fetch_scan_output(client, &task, dir.path()).await?;
     let outputs = Arc::new(LocalFileStore::new(dir.outputs())?);
     // the module's own span (ace_sdk::module::task_span) is a child of this task's
     let span = tracing::Span::current();
@@ -266,6 +295,7 @@ pub async fn run_in_process(
                     contained: false,
                     reader: None,
                     tools,
+                    scan_output: scan_output.as_deref(),
                 })
             }),
             None => unknown_module(&owned_task),
@@ -287,6 +317,7 @@ pub async fn run_in_process(
                                 contained: false,
                                 reader: Some(Arc::new(reads)),
                                 tools: None,
+                                scan_output: None,
                             })
                             .await
                     }

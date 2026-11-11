@@ -1,0 +1,32 @@
+[package]
+name = "ace-mod-scanners"
+version = "0.1.0"
+description = "PLAN.md 7.7's modules, which send a file or a URL through a scanner image: javascript_deobfuscation and phishkit_analyzer"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+# file_type's test for JavaScript, whose tag the module leaves out as ace3's does (js.rs)
+ace-mod-files = { path = "../ace-mod-files" }
+ace-pycompat = { path = "../ace-pycompat" }
+ace-results = { path = "../ace-results" }
+ace-sdk = { path = "../ace-sdk" }
+# urlfinderlib's find_urls and URL, which ace3's phishkit module runs over what it captured
+ace-urlfinder = { path = "../ace-urlfinder" }
+schemars = "1.2.3"
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+# a scan's output archive (ace_sdk::scanners)
+tar = { version = "0.4", default-features = false }
+tracing = "0.1.44"
+# a scan's job id, a UUID as ace3's Celery task ids are, made from the module and the observable
+uuid = { version = "1.29.0", features = ["v5"] }
+
+[dev-dependencies]
+ace-testkit = { path = "../ace-testkit" }
+tempfile = "3.27.0"
+
+[lints]
+workspace = true

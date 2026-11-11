@@ -48,6 +48,9 @@ pub struct TreeView {
     /// None when it said nothing: only a submitter inside ACE says one.
     #[serde(default)]
     pub alert_type: Option<String>,
+    /// The root's analysis mode, such as `correlation`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub analysis_mode: Option<String>,
     /// An observable in the root is whitelisted, as ace3's `RootAnalysis.whitelisted`.
     #[serde(default)]
     pub whitelisted: bool,
@@ -89,6 +92,19 @@ pub struct TreeObservable {
     /// Where to download a file the module reads (`Module::READS_TREE_FILES`).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub download: Option<Presigned>,
+    /// Its relationships to other observables, by index, such as a URL `extracted_from` the
+    /// document it was found in, as ace3's `get_relationships_by_type` reads them.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub relationships: Vec<TreeRelationship>,
+}
+
+/// A relationship of one observable to another in the tree.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct TreeRelationship {
+    pub kind: ace_results::RelationshipKind,
+    /// The observable it's to, by index.
+    pub target: usize,
 }
 
 /// A path a file was added under, with the `yara_meta` types it was given there.
@@ -115,6 +131,10 @@ pub struct TreeResult {
     /// What it added, in order: ace3's `analysis.observables`.
     #[serde(default)]
     pub added: Vec<TreeAddition>,
+    /// Its details, for a result of a module whose details the reading module declares it reads
+    /// (`Module::READS_TREE_DETAILS`). None for any other.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub details: Option<serde_json::Value>,
 }
 
 /// An observable a result added, and the path it added a file under.
@@ -290,6 +310,7 @@ mod tests {
             size: None,
             pending: Vec::new(),
             download: None,
+            relationships: Vec::new(),
         }
     }
 
@@ -306,6 +327,7 @@ mod tests {
                     path: None,
                 })
                 .collect(),
+            details: None,
         }
     }
 
@@ -326,6 +348,7 @@ mod tests {
                 result(1, "officeparser3", &[2]),
             ],
             truncated: false,
+            analysis_mode: None,
         }
     }
 

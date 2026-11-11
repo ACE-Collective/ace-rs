@@ -1,0 +1,162 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "PhishkitAnalysis",
+      "details": {
+        "error": "phishkit scan failed for url(https://kit.evil.example/start) job ID 00000000-0000-4000-8000-000000000000: scan failed: Traceback (most recent call last):\nselenium.common.exceptions.WebDriverException\n",
+        "exit_code": null,
+        "job_id": "00000000-0000-4000-8000-000000000000",
+        "metrics": null,
+        "output_dir": "<work>/tmp/tmprzsjkayk",
+        "output_files": [],
+        "proxy_status": null,
+        "scan_result": null,
+        "scan_type": "url",
+        "stderr": null,
+        "stdout": null
+      },
+      "detections": [],
+      "module_path": "saq.modules.phishkit:PhishkitAnalysis",
+      "observables": [],
+      "summary": "Phishkit Analysis: failed: phishkit scan failed for url(https://kit.evil.example/start) job ID 00000000-0000-4000-8000-000000000000: scan failed: Traceback (most recent call last):\nselenium.common.exceptions.WebDriverException\n",
+      "tags": []
+    }
+  ],
+  "fluent_bit": [
+    {
+      "record": {
+        "event": "scan_dispatched",
+        "job_id": "00000000-0000-4000-8000-000000000000",
+        "observable_value": "https://kit.evil.example/start",
+        "proxy_configured": false,
+        "proxy_fallback_enabled": true,
+        "scan_type": "url"
+      },
+      "tag": "phishkit-metrics"
+    },
+    {
+      "record": {
+        "path": "database.pool.status",
+        "timestamp": "2026-11-11T03:27:13.942118",
+        "value": "Pool size: 5  Connections in pool: 0 Current Overflow: -4 Current Checked out connections: 1"
+      },
+      "tag": "monitoring"
+    },
+    {
+      "record": {
+        "alert_type": "cli_analysis",
+        "analysis_time_seconds": 0.008541,
+        "exec_count": 1,
+        "is_alert": false,
+        "module": "phishkit_analyzer",
+        "percentage": 53.55271095165486,
+        "queue": "default",
+        "root_uuid": "e4be53da-b3e6-4bae-b7cc-61be1858940b",
+        "timestamp": "2026-11-11 03:27:13.944443",
+        "total_analysis_time_seconds": 0.008541,
+        "total_time_seconds": 0.015948772430419922
+      },
+      "tag": "metrics"
+    },
+    {
+      "record": {
+        "path": "database.pool.available_count",
+        "timestamp": "2026-11-11T03:27:13.944586",
+        "value": 0
+      },
+      "tag": "monitoring"
+    },
+    {
+      "record": {
+        "path": "database.pool.in_use_count",
+        "timestamp": "2026-11-11T03:27:13.944605",
+        "value": 1
+      },
+      "tag": "monitoring"
+    },
+    {
+      "record": {
+        "path": "error.report",
+        "timestamp": "2026-11-11T03:27:19.985633",
+        "value": {
+          "exception": "scan failed: Traceback (most recent call last):\nselenium.common.exceptions.WebDriverException\n",
+          "exception_source": "",
+          "message": "phishkit scan failed for url(https://kit.evil.example/start) job ID 00000000-0000-4000-8000-000000000000: scan failed: Traceback (most recent call last):\nselenium.common.exceptions.WebDriverException\n",
+          "stack_trace": "  File \"/opt/ace/saq/modules/phishkit.py\", line 612, in continue_analysis\n    scan_results = get_async_scan_result(analysis.job_id, analysis.output_dir, timeout=1)\n  File \"<stdin>\", line 1185, in get_async_scan_result\n  File \"<stdin>\", line 1149, in answer\n",
+          "transaction_id": "e4be53da-b3e6-4bae-b7cc-61be1858940b"
+        }
+      },
+      "tag": "monitoring"
+    },
+    {
+      "record": {
+        "error": "phishkit scan failed for url(https://kit.evil.example/start) job ID 00000000-0000-4000-8000-000000000000: scan failed: Traceback (most recent call last):\nselenium.common.exceptions.WebDriverException\n",
+        "event": "scan_outcome",
+        "exit_code": null,
+        "job_id": "00000000-0000-4000-8000-000000000000",
+        "observable_value": "https://kit.evil.example/start",
+        "outcome": "failed",
+        "proxy_configured": null,
+        "proxy_fallback_enabled": null,
+        "proxy_fallback_reason": null,
+        "proxy_fallback_triggered": null,
+        "proxy_final_route": null,
+        "scan_duration_seconds": null,
+        "scan_type": "url",
+        "total_bytes_downloaded": null
+      },
+      "tag": "phishkit-metrics"
+    },
+    {
+      "record": {
+        "alert_type": "cli_analysis",
+        "analysis_time_seconds": 0.036992,
+        "exec_count": 1,
+        "is_alert": false,
+        "module": "phishkit_analyzer",
+        "percentage": 98.13769359139785,
+        "queue": "default",
+        "root_uuid": "e4be53da-b3e6-4bae-b7cc-61be1858940b",
+        "timestamp": "2026-11-11 03:27:19.987871",
+        "total_analysis_time_seconds": 0.036992,
+        "total_time_seconds": 0.03769397735595703
+      },
+      "tag": "metrics"
+    }
+  ],
+  "input": {
+    "directives": [
+      "crawl"
+    ],
+    "label": "url https://kit.evil.example/start, answered with fixtures/scanners/phishkit/url_failed",
+    "meta_tags": [],
+    "observable": {
+      "type": "url",
+      "value": "https://kit.evil.example/start"
+    }
+  },
+  "module": "phishkit_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "crawl"
+    ],
+    "excluded_analysis": [],
+    "relationships": [],
+    "tags": [],
+    "type": "url",
+    "value": "https://kit.evil.example/start"
+  },
+  "scanner_request": {
+    "config_path": "etc/phishkit_config.yaml",
+    "kind": "url",
+    "proxy": null,
+    "proxy_fallback_to_direct": true,
+    "scanner": "phishkit",
+    "scanner_timeout": 30,
+    "target": "https://kit.evil.example/start"
+  }
+}

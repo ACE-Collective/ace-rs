@@ -147,6 +147,7 @@ fn compare_decryption() -> Vec<(String, Vec<Difference>)> {
             size: None,
             pending: Vec::new(),
             download: None,
+            relationships: Vec::new(),
         }];
         let label = dump.value["input"]["label"].as_str().expect("a label");
         if let Some(keylog) = label.split(" with ").nth(1) {
@@ -179,6 +180,7 @@ fn compare_decryption() -> Vec<(String, Vec<Difference>)> {
                 size: Some(bytes.len() as u64),
                 pending: Vec::new(),
                 download: None,
+                relationships: Vec::new(),
             });
             if tagged {
                 harness = harness.tree_file(&sha256, &bytes).expect("the tree file");

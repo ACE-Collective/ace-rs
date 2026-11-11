@@ -78,6 +78,8 @@ pub struct Manifest {
     pub skip_directives: &'static [&'static str],
     /// Directives an observable must have for the module to run on it.
     pub required_directives: &'static [&'static str],
+    /// Directives an observable of one type must have (`Module::REQUIRED_DIRECTIVES_BY_KIND`).
+    pub required_directives_by_kind: &'static [(ObservableKind, &'static [&'static str])],
     pub resources: Resources,
     pub sandbox: Sandbox,
     pub secrets: &'static [&'static str],
@@ -100,6 +102,8 @@ pub struct Manifest {
     pub reads_tree: bool,
     /// The files of the tree whose bytes it reads (`Module::READS_TREE_FILES`).
     pub reads_tree_files: Option<TreeFiles>,
+    /// The modules whose results' details it reads in its tree (`Module::READS_TREE_DETAILS`).
+    pub reads_tree_details: &'static [&'static str],
     /// What the module may add to other observables in its root (`Module::ADDS_TO_OTHERS`).
     pub adds_to_others: Option<OtherAdditionsAllowed>,
     /// The module changes its root's description and details (`Module::SETS_ROOT`).
@@ -117,6 +121,8 @@ pub struct Manifest {
     pub stores_results: bool,
     /// The programs the module runs (`Module::TOOLS`).
     pub tools: &'static [&'static str],
+    /// The scanners the module sends its observable through (`Module::SCANNERS`).
+    pub scanners: &'static [&'static str],
     settings_schema: fn() -> Schema,
     check_settings: fn(Option<&Value>) -> Result<(), SettingsError>,
 }
@@ -142,6 +148,10 @@ impl Manifest {
             M::TOOLS.is_empty(),
             "a lookup can't declare tools (Module::TOOLS)"
         );
+        assert!(
+            M::SCANNERS.is_empty(),
+            "a lookup can't declare scanners (Module::SCANNERS)"
+        );
         Manifest::of::<M>(
             ModuleKind::Lookup,
             Sandbox::Network {
@@ -155,6 +165,10 @@ impl Manifest {
             M::READS_TREE || M::READS_TREE_FILES.is_none(),
             "a module reads its tree's files only with its tree (Module::READS_TREE)"
         );
+        assert!(
+            M::READS_TREE || M::READS_TREE_DETAILS.is_empty(),
+            "a module reads results' details only with its tree (Module::READS_TREE)"
+        );
         Manifest {
             name: M::NAME,
             kind,
@@ -163,6 +177,7 @@ impl Manifest {
             depends_on: M::DEPENDS_ON,
             skip_directives: M::SKIP_DIRECTIVES,
             required_directives: M::REQUIRED_DIRECTIVES,
+            required_directives_by_kind: M::REQUIRED_DIRECTIVES_BY_KIND,
             resources: M::RESOURCES,
             sandbox,
             secrets: M::SECRETS,
@@ -175,6 +190,7 @@ impl Manifest {
             reads_related_tags: M::READS_RELATED_TAGS,
             reads_tree: M::READS_TREE,
             reads_tree_files: M::READS_TREE_FILES,
+            reads_tree_details: M::READS_TREE_DETAILS,
             adds_to_others: M::ADDS_TO_OTHERS,
             sets_root: M::SETS_ROOT,
             adds_stored_files: M::ADDS_STORED_FILES,
@@ -183,6 +199,7 @@ impl Manifest {
             writes: M::WRITES,
             stores_results: M::STORES_RESULTS,
             tools: M::TOOLS,
+            scanners: M::SCANNERS,
             settings_schema: settings_schema::<M::Settings>,
             check_settings: check_settings::<M::Settings>,
         }
@@ -220,6 +237,22 @@ impl Manifest {
             .find(|required| !directives.iter().any(|d| d == required))
     }
 
+    /// The first directive an observable of type `kind` needs for the module and lacks: the
+    /// module's own requirements first, then its type's (`Module::REQUIRED_DIRECTIVES_BY_KIND`).
+    pub fn missing_directive_for(
+        &self,
+        kind: ObservableKind,
+        directives: &[String],
+    ) -> Option<&'static str> {
+        self.missing_directive(directives).or_else(|| {
+            self.required_directives_by_kind
+                .iter()
+                .filter(|(k, _)| *k == kind)
+                .flat_map(|(_, required)| required.iter().copied())
+                .find(|required| !directives.iter().any(|d| d == required))
+        })
+    }
+
     /// The manifest as JSON, for listing modules and for snapshots.
     pub fn describe(&self) -> Value {
         let sandbox = match self.sandbox {
@@ -246,7 +279,13 @@ impl Manifest {
             "reads": self.reads.iter().map(|r| r.name).collect::<Vec<_>>(),
             "writes": self.writes.iter().map(|w| w.name).collect::<Vec<_>>(),
             "tools": self.tools,
+            "scanners": self.scanners,
             "required_directives": self.required_directives,
+            "required_directives_by_kind": self
+                .required_directives_by_kind
+                .iter()
+                .map(|(kind, directives)| json!({"type": kind, "directives": directives}))
+                .collect::<Vec<_>>(),
             "settings_schema": self.settings_schema(),
         })
     }

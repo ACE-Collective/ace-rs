@@ -60,8 +60,10 @@
 //! both sides, in another order.
 //!
 //! Some files have new bytes each run, on both systems: Ghostscript's rewrite of a PDF, `.gs.pdf`,
-//! which holds the time and an `/ID` from it, and ExifTool's metadata, `.exif/exiftool.out`, which
-//! holds the file's path and dates (`VOLATILE_FILES`). Their sha256s can't match, so before the diff
+//! which holds the time and an `/ID` from it, ExifTool's metadata, `.exif/exiftool.out`, which
+//! holds the file's path and dates (`VOLATILE_FILES`), and the JavaScript deobfuscator's trace,
+//! `deobfuscated-<script>`, whose second line names the script's path in the scanner, under a job id
+//! each run makes (`VOLATILE_PREFIXES`). Their sha256s can't match, so before the diff
 //! each such file is keyed by its path on both sides, `file:<path>`, and every reference to it
 //! follows; what ran on it is then compared like anything else.
 //!
@@ -492,7 +494,21 @@ fn category(path: &str) -> String {
 /// rewrite of a PDF (`pdf.py`), and ExifTool's pretty-printed metadata (`exif.py`).
 const VOLATILE_FILES: &[&str] = &[".gs.pdf", ".exif/exiftool.out"];
 
-/// Keys each file observable whose every path ends in one of `VOLATILE_FILES` by its first path,
+/// The starts of the names of files whose bytes differ from run to run on both systems: the
+/// JavaScript deobfuscator's trace, whose `// source:` line holds `/js-deobfuscator/input/<job id>/`
+/// (PLAN.md 7.7, js_deobfuscator/harness.js).
+const VOLATILE_PREFIXES: &[&str] = &["deobfuscated-"];
+
+/// Whether the file at `path` is one whose bytes differ from run to run.
+fn is_volatile(path: &str) -> bool {
+    let name = path.rsplit('/').next().unwrap_or(path);
+    VOLATILE_FILES.iter().any(|end| path.ends_with(end))
+        || VOLATILE_PREFIXES
+            .iter()
+            .any(|start| name.starts_with(start))
+}
+
+/// Keys each file observable whose every path is volatile (`is_volatile`) by its first path,
 /// `file:<path>`, in place of its sha256, and every reference to it in the form with it.
 fn key_volatile_files(form: &mut Value) -> Result<()> {
     let Some(observables) = form["observables"].as_object() else {
@@ -508,10 +524,7 @@ fn key_volatile_files(form: &mut Value) -> Result<()> {
         };
         let mut names: Vec<&String> = paths.keys().collect();
         names.sort();
-        let volatile = !names.is_empty()
-            && names
-                .iter()
-                .all(|path| VOLATILE_FILES.iter().any(|end| path.ends_with(end)));
+        let volatile = !names.is_empty() && names.iter().all(|path| is_volatile(path));
         if volatile {
             renames.push((key.clone(), format!("file:{}", names[0])));
         }
@@ -1806,5 +1819,15 @@ mod tests {
             ..sample
         };
         assert!(submission_form(&quoted, b"", "B").is_err());
+    }
+
+    /// PLAN.md 7.7: the deobfuscator's trace names a job id each run makes, so it's keyed by its path.
+    #[test]
+    fn a_deobfuscated_trace_is_keyed_by_its_path() {
+        assert!(is_volatile("dir/deobfuscated-x.js"));
+        assert!(is_volatile("deobfuscated-x.js"));
+        assert!(is_volatile("x.pdf.gs.pdf"));
+        assert!(!is_volatile("dir/x.js.deobfuscated-"));
+        assert!(!is_volatile("x.dll.deobfuscated"));
     }
 }

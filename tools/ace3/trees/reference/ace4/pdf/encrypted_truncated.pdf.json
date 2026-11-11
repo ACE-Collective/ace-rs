@@ -61,25 +61,53 @@
       },
       "tags": {}
     },
-    "file:19e1e8beca7eb14b548b3052adb782dfdb20415495239c62be0997feedf7d80a": {
+    "file:048b27b3d88c455d07f3ffddea5907c13fcb7d91a29eef49e28ef9e5613a64aa": {
       "detections": {},
-      "directives": {},
+      "directives": {
+        "extract_urls": true
+      },
       "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
+        "javascript_deobfuscation": true
       },
       "paths": {
-        "encrypted_truncated.pdf.exif/exiftool.out": {
-          "type=metadata.exif": true
+        "deobfuscated-encrypted_truncated.pdf.js_________I_______N______5dL5_V_q_.js": {
+          "type=script.javascript": true
         }
       },
       "relationships": {
-        "extracted_from file:e2e708bda0b103f72bbc5973455e7e1772f472071b252ed569af431f99328060": true
+        "extracted_from file:24c17eb8ee168ce44e1f370d93c5bb6f2c0c83c273ad19a47875914393cfbab0": true
       },
       "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        },
         "observable_detection": {
           "details": {
             "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
           },
           "summary": null,
           "tags": {}
@@ -140,6 +168,26 @@
           "summary": "File Type Analysis: data (application/octet-stream)",
           "tags": {}
         },
+        "javascript_deobfuscation": {
+          "details": {
+            "dom_snapshot": false,
+            "dom_snapshot_source": null,
+            "error": "evalmachine.<anonymous>:1\n\bjä˛GáÃ\u000e”\u0000˙.;?qÑ¦Ê\u0011Ï¿]}fÕ\n^\n\nSyntaxError: Invalid or unexpected token\n    at new Script (node:vm:118:7)\n    at file:///opt/app/harness.js:907:12",
+            "error_type": "compile",
+            "event_count": 0,
+            "exit_code": 0,
+            "extracted_files": [
+              "deobfuscated-encrypted_truncated.pdf.js_________I_______N______5dL5_V_q_.js"
+            ],
+            "secondary_script_count": 0,
+            "stderr": "",
+            "stdout": "{\"status\":\"error_during_run\",\"event_count\":0,\"secondary_script_count\":0,\"error\":\"evalmachine.<anonymous>:1\\n\\bjä˛GáÃ\\u000e”\\u0000˙.;?qÑ¦Ê\\u0011Ï¿]}fÕ\\n^\\n\\nSyntaxError: Invalid or unexpected token\\n    at new Script (node:vm:118:7)\\n    at file:///opt/app/harness.js:907:12\",\"error_type\":\"compile\",\"webcrack_status\":\"failed: Unexpected character '\\b'. (1:0)\",\"webcrack_error\":\"Unexpected character '\\b'. (1:0)\",\"blob_files\":[],\"dom_snapshot\":false}",
+            "webcrack_error": "Unexpected character '\b'. (1:0)",
+            "webcrack_status": "failed: Unexpected character '\b'. (1:0)"
+          },
+          "summary": "JavaScript Deobfuscation: failed: evalmachine.<anonymous>:1\n\bjä˛GáÃ\u000e”\u0000˙.;?qÑ¦Ê\u0011Ï¿]}fÕ\n^\n\nSyntaxError: Invalid or unexpected token\n    at new Script (node:vm:118:7)\n    at file:///opt/app/harness.js:907:12",
+          "tags": {}
+        },
         "observable_detection": {
           "details": {
             "for_detection": false
@@ -163,7 +211,9 @@
           "tags": {}
         }
       },
-      "tags": {}
+      "tags": {
+        "js": true
+      }
     },
     "file:2b827014b27d850fa53f2250136dbb00258e9ce0ddbddab8bf6fad2126ed88f4": {
       "detections": {},
@@ -313,7 +363,7 @@
       },
       "tags": {}
     },
-    "file:93d7dc65d61155fa1edcc0d82bc6b0bec9c51c4e4c710932f4125a67fdb4a55a": {
+    "file:6987d3180354040f7c5dd9467e0cc48cdbfdd7129645ea401dd18676505e416a": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -395,6 +445,39 @@
         "pdf": true
       }
     },
+    "file:ae076def22f42db06d71088223ab1329b2676c81d57119403970f0383c8c0580": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "encrypted_truncated.pdf.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:e2e708bda0b103f72bbc5973455e7e1772f472071b252ed569af431f99328060": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:cf06374c540d197c2769a145549caa4d8ca37bc8fbeaf1e498a904e5dbf277b9": {
       "detections": {},
       "directives": {
@@ -474,8 +557,8 @@
               "ExifTool:ExifToolVersion": 13.25,
               "ExifTool:Warning": "Invalid xref table",
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 00:54:17+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 00:54:17+00:00",
+              "File:FileAccessDate": "2026:11:11 04:30:27+00:00",
+              "File:FileInodeChangeDate": "2026:11:11 04:30:27+00:00",
               "File:FileModifyDate": "2026:11:07 04:47:50+00:00",
               "File:FileName": "encrypted_truncated.pdf",
               "File:FilePermissions": 100644,
@@ -572,9 +655,9 @@
           "type=document.pdf.text": true
         }
       },
-      "redirection": "file:93d7dc65d61155fa1edcc0d82bc6b0bec9c51c4e4c710932f4125a67fdb4a55a",
+      "redirection": "file:6987d3180354040f7c5dd9467e0cc48cdbfdd7129645ea401dd18676505e416a",
       "relationships": {
-        "extracted_from file:93d7dc65d61155fa1edcc0d82bc6b0bec9c51c4e4c710932f4125a67fdb4a55a": true
+        "extracted_from file:6987d3180354040f7c5dd9467e0cc48cdbfdd7129645ea401dd18676505e416a": true
       },
       "results": {
         "file_type": {

@@ -27,6 +27,7 @@ pub mod pdf;
 pub mod rdap;
 pub mod rtf;
 pub mod sandbox;
+pub mod scanners;
 pub mod scripts;
 pub mod snort;
 pub mod splunk;

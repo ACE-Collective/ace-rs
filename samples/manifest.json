@@ -1433,6 +1433,34 @@
       ]
     },
     {
+      "path": "ace4/js/blob_redirect.js",
+      "sha256": "cc76c07c2f398348856e1fac646d984d280df60b10c22970b2640ac2562f2966",
+      "size": 231,
+      "kinds": [
+        "js"
+      ],
+      "source": "hand-made for 7.7: a script that makes an HTML Blob and goes to it",
+      "in_git": true,
+      "alert_path": "blob_redirect.js",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/js/runtime_error.js",
+      "sha256": "18c57d5bb2ffb4da33e5f0a2b2f7369fc652205cbec403c86736c7e5e8cfb25a",
+      "size": 138,
+      "kinds": [
+        "js"
+      ],
+      "source": "hand-made for 7.7: a script that sets the location and then fails while it runs",
+      "in_git": true,
+      "alert_path": "runtime_error.js",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
       "path": "ace4/lnk/kitchen_sink.lnk",
       "sha256": "1b9201cb3fe11a6926e18e9bac2e2d7651f4d4ba0a4901bd213602b8da5341bb",
       "size": 1613,
@@ -6207,6 +6235,20 @@
       "source": "hand-made for 7.5 batch 4, the same as tools/ace3/dumps/fixtures/html/session.har",
       "in_git": true,
       "alert_path": "session.har",
+      "meta_tags": [
+        "type=email.attachment"
+      ]
+    },
+    {
+      "path": "ace4/web/phishkit_page.html",
+      "sha256": "11aaf96a80428904497a629ad878428706f0beeb4c3734f082884a9f4c934935",
+      "size": 702,
+      "kinds": [
+        "web/html"
+      ],
+      "source": "hand-made for 7.7: a sign-in page phishkit renders, with no resource it fetches",
+      "in_git": true,
+      "alert_path": "phishkit_page.html",
       "meta_tags": [
         "type=email.attachment"
       ]

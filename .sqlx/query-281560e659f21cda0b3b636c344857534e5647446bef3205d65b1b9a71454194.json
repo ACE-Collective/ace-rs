@@ -1,0 +1,49 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE queue.scans\n             SET state = $3::queue.scan_state, exit_code = $4,\n                 error = CASE $3::queue.scan_state\n                     WHEN 'timed_out'::queue.scan_state THEN\n                         coalesce($5, format('stopped at its deadline, %s seconds after it started',\n                                             timeout_seconds))\n                     WHEN 'cancelled'::queue.scan_state THEN coalesce($5, 'cancelled while it ran')\n                     ELSE $5 END,\n                 output_sha256 = $6, output_size = $7, finished_at = now(),\n                 lease_owner = NULL, lease_expires_at = NULL\n             WHERE id = $1 AND lease_owner = $2 AND state = 'running'\n             RETURNING task_id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "task_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "queue.scans",
+            "name": "task_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text",
+        {
+          "Custom": {
+            "name": "queue.scan_state",
+            "kind": {
+              "Enum": [
+                "queued",
+                "running",
+                "completed",
+                "timed_out",
+                "cancelled",
+                "failed",
+                "abandoned"
+              ]
+            }
+          }
+        },
+        "Int4",
+        "Text",
+        "Text",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "281560e659f21cda0b3b636c344857534e5647446bef3205d65b1b9a71454194"
+}

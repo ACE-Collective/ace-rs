@@ -28,6 +28,16 @@
 //! - `POST /api/worker/v1/commands/<id>/report`: the command's output so far, which renews its lease; the
 //!   answer says whether it was cancelled.
 //! - `POST /api/worker/v1/commands/<id>/end`: how the command ended, with all it wrote.
+//! - `POST /api/worker/v1/scans/lease`: a scan (PLAN.md 7.7, `scans.rs`) of a scanner the pool's list in
+//!   `ACE4_POOLS` names as `@scan/<scanner>`, or 204 after waiting, with a presigned URL for each input.
+//!   Its claim starts its clock, and the answer says how long it has until its deadline.
+//! - `POST /api/worker/v1/scans/<id>/renew`: extends the scan's lease; the answer says whether its root
+//!   was cancelled.
+//! - `POST /api/worker/v1/scans/<id>/upload`: a presigned URL to upload the scan's output archive.
+//! - `POST /api/worker/v1/scans/<id>/end`: how the scan ended, a `ScanEnd`. Its output archive must be
+//!   uploaded first; the core checks its bytes against its sha256, puts it in `alert_files` held by
+//!   the root, and wakes the task. A task's delay can carry the scan it waits for (`TaskEnd::Delay`):
+//!   each input the module wrote is uploaded first, as a result's files are.
 //! - `GET /api/admin/v1/tasks/<id>/replay`: any task in its leased form, with a fresh download
 //!   URL, for `ace task replay`. It takes the admin token, and takes no lease.
 //! - `GET /healthz`: 200 when the database answers, for the stack's healthcheck. It takes no
@@ -82,7 +92,11 @@ use crate::db::{Db, DbError, Isolation, Retryable};
 use crate::lists::ListCache;
 use crate::orchestrator::{Orchestrator, OrchestratorError, Rejected};
 use crate::queue::{QueueError, TASKS_CHANNEL, Task, TaskId, Worker};
+use crate::scans::{EndedScan, ScanRowState, ScanWorker};
 use crate::tree;
+
+/// What a pool's list in `ACE4_POOLS` names a scanner it runs with (`ace_sdk::scanners::pool_entry`).
+const SCAN_PREFIX: &str = "@scan/";
 
 /// The header a task-scoped request names its worker in.
 pub const WORKER_HEADER: &str = "x-ace4-worker";
@@ -116,6 +130,8 @@ pub struct PoolAccess {
     pub modules: Vec<String>,
     /// It runs GUI commands (PLAN.md 5.12): its list has `@commands` (`ace_sdk::wire::COMMANDS`).
     pub commands: bool,
+    /// The scanners it runs (PLAN.md 7.7): its list has `@scan/<scanner>` for each.
+    pub scanners: Vec<String>,
 }
 
 impl PoolAccess {
@@ -123,11 +139,18 @@ impl PoolAccess {
     pub fn new(name: impl Into<String>, token: &str, mut modules: Vec<String>) -> Self {
         let commands = modules.iter().any(|m| m == COMMANDS);
         modules.retain(|m| m != COMMANDS);
+        let scanners = modules
+            .iter()
+            .filter_map(|m| m.strip_prefix(SCAN_PREFIX))
+            .map(str::to_owned)
+            .collect();
+        modules.retain(|m| !m.starts_with(SCAN_PREFIX));
         PoolAccess {
             name: name.into(),
             token_sha256: sha256(token),
             modules,
             commands,
+            scanners,
         }
     }
 }
@@ -138,6 +161,7 @@ impl std::fmt::Debug for PoolAccess {
             .field("name", &self.name)
             .field("modules", &self.modules)
             .field("commands", &self.commands)
+            .field("scanners", &self.scanners)
             .finish_non_exhaustive()
     }
 }
@@ -369,6 +393,10 @@ impl Api {
                 "/api/worker/v1/commands/{id}/end",
                 post(end_command).layer(axum::extract::DefaultBodyLimit::max(MAX_COMMAND_BODY)),
             )
+            .route(ace_sdk::scanners::paths::LEASE, post(lease_scan))
+            .route("/api/worker/v1/scans/{id}/renew", post(renew_scan))
+            .route("/api/worker/v1/scans/{id}/upload", post(upload_scan))
+            .route("/api/worker/v1/scans/{id}/end", post(end_scan))
             .route(paths::RULESET, get(current_ruleset))
             .route("/api/admin/v1/tasks/{id}/replay", get(replay))
             .route("/healthz", get(health))
@@ -434,6 +462,232 @@ impl Api {
             format!("{}/{name}", pool.name),
             self.inner.config.lease,
         ))
+    }
+
+    /// The pool a scan request comes from, as a scan worker named by `x-ace4-worker` or `name`, and
+    /// the scanners it runs.
+    fn scan_worker(
+        &self,
+        headers: &HeaderMap,
+        name: Option<&str>,
+    ) -> Result<(ScanWorker, Vec<String>), Failure> {
+        let pool = self.pool(headers)?;
+        if pool.scanners.is_empty() {
+            return Err(Failure::Forbidden(format!(
+                "pool {} runs no scanner",
+                pool.name
+            )));
+        }
+        let name = match name {
+            Some(name) => name,
+            None => headers
+                .get(WORKER_HEADER)
+                .and_then(|v| v.to_str().ok())
+                .ok_or_else(|| Failure::BadRequest(format!("no {WORKER_HEADER} header")))?,
+        };
+        if name.is_empty() {
+            return Err(Failure::BadRequest("no worker name".to_owned()));
+        }
+        Ok((
+            ScanWorker::new(
+                self.inner.db.clone(),
+                format!("{}/{name}", pool.name),
+                self.inner.config.lease,
+            ),
+            pool.scanners.clone(),
+        ))
+    }
+
+    /// Claims a scan of `scanners` for `worker`, waiting up to `wait` for one.
+    async fn lease_scan_for(
+        &self,
+        worker: &ScanWorker,
+        scanners: &[String],
+        wait: Duration,
+    ) -> Result<Option<ace_sdk::scanners::LeasedScan>, Failure> {
+        let mut wakeups = self.inner.wakeups.subscribe();
+        let deadline = tokio::time::Instant::now() + wait;
+        let payloads: Vec<String> = scanners
+            .iter()
+            .map(|s| ace_sdk::scanners::pool_entry(s))
+            .collect();
+        loop {
+            if let Some(scan) = worker.claim(scanners).await? {
+                let mut inputs = Vec::new();
+                for input in scan.inputs {
+                    let download = self
+                        .inner
+                        .bucket
+                        .store()
+                        .presign_get(ALERT_FILES, &input.sha256, self.inner.config.url_expiry)
+                        .await
+                        .map_err(BucketError::from)?;
+                    inputs.push(ace_sdk::scanners::LeasedScanInput {
+                        name: input.name,
+                        sha256: input.sha256,
+                        size: input.size,
+                        download: wire_presigned(download),
+                    });
+                }
+                return Ok(Some(ace_sdk::scanners::LeasedScan {
+                    id: scan.id,
+                    scanner: scan.scanner,
+                    args: scan.args,
+                    inputs,
+                    timeout_seconds: scan.timeout_seconds,
+                    deadline_seconds: scan.deadline_in.as_secs_f64(),
+                    lease_seconds: worker.lease().as_secs_f64(),
+                }));
+            }
+            if self.inner.stopping.is_cancelled() {
+                return Ok(None);
+            }
+            let sleep = tokio::time::sleep_until(deadline);
+            tokio::pin!(sleep);
+            loop {
+                tokio::select! {
+                    () = &mut sleep => return Ok(None),
+                    () = self.inner.stopping.cancelled() => return Ok(None),
+                    woken = wakeups.recv() => match woken {
+                        Ok(payload) if payload == "*" || payloads.contains(&payload) => break,
+                        Ok(_) => {}
+                        Err(broadcast::error::RecvError::Lagged(_)) => break,
+                        Err(broadcast::error::RecvError::Closed) => {
+                            (&mut sleep).await;
+                            return Ok(None);
+                        }
+                    },
+                }
+            }
+        }
+    }
+
+    /// The task's latest scan, as its lease carries it, with a download for its output.
+    async fn task_scan(&self, task: &Task) -> Result<Option<ace_sdk::scanners::WireScan>, Failure> {
+        let declares = self
+            .inner
+            .orchestrator
+            .catalog()
+            .get(&task.module)
+            .is_some_and(|m| !m.scanners.is_empty());
+        if !declares {
+            return Ok(None);
+        }
+        let Some(scan) = crate::scans::latest_for_task(&self.inner.db, task.id).await? else {
+            return Ok(None);
+        };
+        let output = match scan.output {
+            Some((sha256, size)) => {
+                let download = self
+                    .inner
+                    .bucket
+                    .store()
+                    .presign_get(ALERT_FILES, &sha256, self.inner.config.url_expiry)
+                    .await
+                    .map_err(BucketError::from)?;
+                Some(ace_sdk::scanners::WireScanOutput {
+                    sha256,
+                    size,
+                    download: wire_presigned(download),
+                })
+            }
+            None => None,
+        };
+        Ok(Some(ace_sdk::scanners::WireScan {
+            id: scan.id,
+            scanner: scan.scanner,
+            state: scan.state.for_module(),
+            exit_code: scan.exit_code,
+            error: scan.error,
+            output,
+        }))
+    }
+
+    /// Delays a task the worker owns and queues the scan it waits for (PLAN.md 7.7), in one
+    /// transaction. The module must declare the scanner, the request must fit its spec, and each
+    /// input must be the task's own file or one the worker uploaded for it, which goes into
+    /// `alert_files` held by the root. A request that doesn't is refused, and fails the task.
+    async fn delay_for_scan(
+        &self,
+        worker: &Worker,
+        task: TaskId,
+        after: Duration,
+        state: &Value,
+        request: &ace_sdk::scanners::ScanRequest,
+    ) -> Result<(), Failure> {
+        let owned = worker.owned(task).await?.ok_or(Failure::LeaseLost(task))?;
+        let declared = self
+            .inner
+            .orchestrator
+            .catalog()
+            .get(&owned.module)
+            .is_some_and(|m| m.scanners.contains(&request.scanner.as_str()));
+        let refusal = if !declared {
+            Some(format!(
+                "{} doesn't declare the scanner {:?}",
+                owned.module, request.scanner
+            ))
+        } else {
+            match ace_sdk::scanners::find(ace_sdk::scanners::SCANNERS, &request.scanner) {
+                None => Some(format!("no scanner is called {:?}", request.scanner)),
+                Some(spec) if u64::from(request.timeout_seconds) > spec.max_timeout.as_secs() => {
+                    Some(format!(
+                        "a timeout of {} seconds, past {}'s {} seconds",
+                        request.timeout_seconds,
+                        spec.name,
+                        spec.max_timeout.as_secs()
+                    ))
+                }
+                Some(_) => request.refusal(),
+            }
+        };
+        if let Some(why) = refusal {
+            let error = format!("the scan request was refused: {why}");
+            tracing::error!(%task, "{error}");
+            worker.fail(task, &error).await?;
+            return Err(Failure::Forbidden(error));
+        }
+        let own = (owned.observable.kind == ObservableKind::File)
+            .then(|| owned.observable.value.parse::<Sha256>().ok())
+            .flatten();
+        let bucket = &self.inner.bucket;
+        let mut files = Vec::new();
+        for input in &request.inputs {
+            if Some(input.sha256) == own || files.iter().any(|(sha, _)| *sha == input.sha256) {
+                continue;
+            }
+            files.push((
+                input.sha256,
+                bucket.fetch_upload(task.0, &input.sha256).await?,
+            ));
+        }
+        let hold = Hold::root(owned.root);
+        let (files, hold) = (&files, &hold);
+        let queued = self
+            .inner
+            .db
+            .transaction(Isolation::ReadCommitted, |tx| {
+                Box::pin(async move {
+                    let Some((_, root)) = worker.delay_in(tx, task, after, state).await? else {
+                        return Ok::<_, LandError>(None);
+                    };
+                    for (_, spooled) in files {
+                        bucket.put_in(tx, ALERT_FILES, spooled, Some(hold)).await?;
+                    }
+                    Ok(Some(crate::scans::queue(tx, task, root, request).await?))
+                })
+            })
+            .await?;
+        for (sha256, _) in files {
+            bucket.remove_upload(task.0, sha256).await?;
+        }
+        match queued {
+            Some(scan) => {
+                tracing::info!(%task, scan, scanner = %request.scanner, "queued a scan");
+                Ok(())
+            }
+            None => Err(QueueError::Cancelled(task).into()),
+        }
     }
 
     /// Claims a command for `worker`, waiting up to `wait` for one.
@@ -593,6 +847,7 @@ impl Api {
         let (dependency_results, observables_below) = self.tree_reads(&task, runs_last).await?;
         let (added_by, related_tags) = self.lineage_reads(&task).await?;
         let tree = self.tree_read(&task).await?;
+        let scan = self.task_scan(&task).await?;
         // read after the claim, so an edit committed before it is in the task (`lists`' docs)
         let lists = self.lists_for(&task.module).await?;
         let mut leased = self.wire_task(task, file, redirection);
@@ -606,6 +861,7 @@ impl Api {
         leased.lists = lists;
         leased.dependency_results = dependency_results;
         leased.observables_below = observables_below;
+        leased.scan = scan;
         Ok(Some(leased))
     }
 
@@ -673,6 +929,7 @@ impl Api {
             task.root,
             task.observable.id,
             manifest.reads_tree_files,
+            manifest.reads_tree_details,
         )
         .await?;
         for (index, value) in wanted {
@@ -779,6 +1036,7 @@ impl Api {
             added_by: Vec::new(),
             related_tags: Vec::new(),
             tree: None,
+            scan: None,
         }
     }
 
@@ -1160,6 +1418,8 @@ enum LandError {
     Bucket(#[from] BucketError),
     #[error(transparent)]
     Orchestrator(#[from] OrchestratorError),
+    #[error(transparent)]
+    Queue(#[from] QueueError),
 }
 
 impl From<DbError> for LandError {
@@ -1174,6 +1434,7 @@ impl Retryable for LandError {
             LandError::Bucket(BucketError::Db(e)) => e.is_retryable(),
             LandError::Bucket(_) => false,
             LandError::Orchestrator(e) => e.is_retryable(),
+            LandError::Queue(e) => e.is_retryable(),
         }
     }
 }
@@ -1183,6 +1444,7 @@ impl From<LandError> for Failure {
         match error {
             LandError::Bucket(e) => Failure::from(e),
             LandError::Orchestrator(e) => Failure::from(e),
+            LandError::Queue(e) => Failure::from(e),
         }
     }
 }
@@ -1323,6 +1585,101 @@ async fn end_command(
     Ok(StatusCode::NO_CONTENT)
 }
 
+async fn lease_scan(
+    State(api): State<Api>,
+    headers: HeaderMap,
+    Json(request): Json<ace_sdk::scanners::ScanLeaseRequest>,
+) -> Result<Response, Failure> {
+    let (worker, scanners) = api.scan_worker(&headers, Some(&request.worker))?;
+    let wait = Duration::from_secs(request.wait_seconds).min(api.inner.config.max_wait);
+    match api.lease_scan_for(&worker, &scanners, wait).await? {
+        Some(scan) => Ok(Json(scan).into_response()),
+        None => Ok(StatusCode::NO_CONTENT.into_response()),
+    }
+}
+
+async fn renew_scan(
+    State(api): State<Api>,
+    Path(id): Path<i64>,
+    headers: HeaderMap,
+) -> Result<Json<ace_sdk::scanners::ScanRenewal>, Failure> {
+    let (worker, _) = api.scan_worker(&headers, None)?;
+    let cancel_requested = worker.renew(id).await?;
+    Ok(Json(ace_sdk::scanners::ScanRenewal { cancel_requested }))
+}
+
+/// A URL to upload a scan's output archive to, under its task's key in the bucket.
+async fn upload_scan(
+    State(api): State<Api>,
+    Path(id): Path<i64>,
+    headers: HeaderMap,
+    Json(request): Json<ace_sdk::scanners::ScanUploadRequest>,
+) -> Result<Json<Presigned>, Failure> {
+    let (worker, _) = api.scan_worker(&headers, None)?;
+    let (task, _) = worker
+        .owned(id)
+        .await?
+        .ok_or(Failure::LeaseLost(TaskId(id)))?;
+    let key = ace_store::Store::upload_key(task.0, &request.sha256);
+    let presigned = api
+        .inner
+        .bucket
+        .store()
+        .presign_put(&key, request.size, api.inner.config.url_expiry)
+        .await
+        .map_err(BucketError::from)?;
+    Ok(Json(wire_presigned(presigned)))
+}
+
+async fn end_scan(
+    State(api): State<Api>,
+    Path(id): Path<i64>,
+    headers: HeaderMap,
+    Json(end): Json<ace_sdk::scanners::ScanEnd>,
+) -> Result<StatusCode, Failure> {
+    use ace_sdk::scanners::ScanOutcome;
+    let (worker, _) = api.scan_worker(&headers, None)?;
+    let (task, root) = worker
+        .owned(id)
+        .await?
+        .ok_or(Failure::LeaseLost(TaskId(id)))?;
+    let (state, exit_code, error) = match &end.outcome {
+        ScanOutcome::Completed { exit_code } => (ScanRowState::Completed, Some(*exit_code), None),
+        ScanOutcome::TimedOut { exit_code } => (ScanRowState::TimedOut, *exit_code, None),
+        ScanOutcome::Cancelled => (ScanRowState::Cancelled, None, None),
+        ScanOutcome::Failed { error } => (ScanRowState::Failed, None, Some(error.as_str())),
+    };
+    let bucket = &api.inner.bucket;
+    let spooled = match &end.output {
+        Some(output) => Some(bucket.fetch_upload(task.0, &output.sha256).await?),
+        None => None,
+    };
+    let ended = EndedScan {
+        state,
+        exit_code,
+        error,
+        output: end.output.map(|o| (o.sha256, o.size)),
+    };
+    let hold = Hold::root(root);
+    let (worker, ended, spooled, hold) = (&worker, &ended, &spooled, &hold);
+    api.inner
+        .db
+        .transaction(Isolation::ReadCommitted, |tx| {
+            Box::pin(async move {
+                if let Some(spooled) = spooled {
+                    bucket.put_in(tx, ALERT_FILES, spooled, Some(hold)).await?;
+                }
+                worker.end_in(tx, id, ended).await?;
+                Ok::<_, LandError>(())
+            })
+        })
+        .await?;
+    if let Some(output) = &end.output {
+        bucket.remove_upload(task.0, &output.sha256).await?;
+    }
+    Ok(StatusCode::NO_CONTENT)
+}
+
 async fn renew(
     State(api): State<Api>,
     Path(id): Path<i64>,
@@ -1417,13 +1774,32 @@ async fn end_in(
         TaskEnd::Delay {
             after_seconds,
             state,
+            scan,
         } => {
             let after = Duration::try_from_secs_f64(after_seconds)
                 .map_err(|e| Failure::BadRequest(format!("after_seconds: {e}")))?;
-            worker.delay(task, after, &without_nul(state)).await?;
+            match scan {
+                Some(scan) => {
+                    api.delay_for_scan(&worker, task, after, &without_nul(state), &scan)
+                        .await?
+                }
+                None => {
+                    worker.delay(task, after, &without_nul(state)).await?;
+                }
+            }
+            return Ok(StatusCode::NO_CONTENT);
         }
         TaskEnd::Failed { error } => worker.fail(task, &text_without_nul(&error)).await?,
         TaskEnd::Cancelled => worker.cancelled(task).await?,
+    }
+    // a task that ends while its scan still runs doesn't wait for it (PLAN.md 7.7)
+    let catalog = api.inner.orchestrator.catalog();
+    if worker
+        .modules()
+        .iter()
+        .any(|m| catalog.get(m).is_some_and(|m| !m.scanners.is_empty()))
+    {
+        crate::scans::cancel_for_task(&api.inner.db, task).await?;
     }
     Ok(StatusCode::NO_CONTENT)
 }

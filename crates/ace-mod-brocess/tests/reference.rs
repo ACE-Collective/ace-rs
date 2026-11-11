@@ -603,6 +603,7 @@ async fn the_entry_names_where_the_archiver_archived_the_email() {
             size: None,
             pending: Vec::new(),
             download: None,
+            relationships: Vec::new(),
         }],
         results: vec![TreeResult {
             observable: 0,
@@ -610,6 +611,7 @@ async fn the_entry_names_where_the_archiver_archived_the_email() {
             analysis_type: "email_archive_results".to_owned(),
             tags: Vec::new(),
             added: Vec::new(),
+            details: None,
         }],
         ..Default::default()
     };
@@ -848,6 +850,7 @@ async fn emailtree_view(dump: &Dump, this: usize, leave_out: &str) -> ace_sdk::t
             analysis_type: EmailConversationFrequencyAnalysis::NAME.to_owned(),
             tags: Vec::new(),
             added: Vec::new(),
+            details: None,
         });
     }
     tree

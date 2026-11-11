@@ -169,6 +169,66 @@ impl LeaseClient {
         answer(response, 0).await.map(Some)
     }
 
+    /// Leases a scan of one of the pool's scanners (PLAN.md 7.7), waiting up to `wait` for one.
+    pub async fn lease_scan(
+        &self,
+        wait: Duration,
+    ) -> Result<Option<ace_sdk::scanners::LeasedScan>, ClientError> {
+        let request = self
+            .post(ace_sdk::scanners::paths::LEASE)
+            .json(&ace_sdk::scanners::ScanLeaseRequest {
+                worker: self.worker.clone(),
+                wait_seconds: wait.as_secs(),
+            })
+            .timeout(wait + CALL_TIMEOUT);
+        let response = self.http.send(request).await?;
+        if response.status() == StatusCode::NO_CONTENT {
+            return Ok(None);
+        }
+        answer(response, 0).await.map(Some)
+    }
+
+    /// Renews a scan's lease. The answer says whether its root was cancelled.
+    pub async fn renew_scan(
+        &self,
+        scan: i64,
+    ) -> Result<ace_sdk::scanners::ScanRenewal, ClientError> {
+        let request = self.post(&ace_sdk::scanners::paths::scan(scan, "renew"));
+        let response = self.http.send(request).await?;
+        answer(response, scan).await
+    }
+
+    /// Where to upload a scan's output archive.
+    pub async fn scan_upload_url(
+        &self,
+        scan: i64,
+        sha256: &Sha256,
+        size: u64,
+    ) -> Result<Presigned, ClientError> {
+        let request = self
+            .post(&ace_sdk::scanners::paths::scan(scan, "upload"))
+            .json(&ace_sdk::scanners::ScanUploadRequest {
+                sha256: *sha256,
+                size,
+            });
+        let response = self.http.send(request).await?;
+        answer(response, scan).await
+    }
+
+    /// Ends a scan. Its output archive must have been uploaded first.
+    pub async fn end_scan(
+        &self,
+        scan: i64,
+        end: &ace_sdk::scanners::ScanEnd,
+    ) -> Result<(), ClientError> {
+        let request = self
+            .post(&ace_sdk::scanners::paths::scan(scan, "end"))
+            .timeout(TRANSFER_TIMEOUT)
+            .json(end);
+        let response = self.http.send(request).await?;
+        expect_empty(response, scan).await
+    }
+
     /// Sends a command's output so far, which renews its lease. The answer says whether it was
     /// cancelled.
     pub async fn report_command(

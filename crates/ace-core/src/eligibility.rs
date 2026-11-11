@@ -141,7 +141,7 @@ pub fn check(
     if let Some(directive) = manifest.skipped_by(facts.directives) {
         return Err(Ineligible::Directive(directive.to_owned()));
     }
-    if let Some(directive) = manifest.missing_directive(facts.directives) {
+    if let Some(directive) = manifest.missing_directive_for(facts.kind, facts.directives) {
         return Err(Ineligible::MissingDirective(directive.to_owned()));
     }
     if facts.exclude_modules.iter().any(|m| m == key) {

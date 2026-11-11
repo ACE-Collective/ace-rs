@@ -4,6 +4,7 @@
 
 mod common;
 
+use std::path::Path;
 use std::time::Duration;
 
 use ace_core::bucket::ALERT_FILES;
@@ -3376,4 +3377,851 @@ async fn pcap_files_adds_what_pcap_analyzer_stored() {
     );
     assert_eq!(common::task_of(&core, root, "pcap_dns").await.0, "running");
     assert_eq!(files(root).await.len(), 2);
+}
+
+// ---- PLAN.md 7.7: scans ----
+
+/// A core whose test pool runs the JavaScript deobfuscator and its scanner.
+async fn scans_core(lease: Duration) -> Core {
+    Core::start(
+        vec![ace_sdk::Manifest::parser::<
+            ace_mod_scanners::JavaScriptDeobfuscationAnalyzer,
+        >()],
+        &["javascript_deobfuscation", "@scan/js-deobfuscator"],
+        lease,
+    )
+    .await
+}
+
+/// The deobfuscator, as a pool runs it.
+fn js_modules() -> std::sync::Arc<ace_pool::modules::Modules> {
+    use ace_pool::modules::{Entry, Modules};
+    std::sync::Arc::new(
+        Modules::new().with_parser(
+            Entry::<ace_mod_scanners::JavaScriptDeobfuscationAnalyzer>::parser(
+                None,
+                &ace_sdk::Secrets::new(),
+            )
+            .expect("builds"),
+        ),
+    )
+}
+
+/// Leases the root's deobfuscator task and runs it in this process, as a pool would.
+async fn run_js_task(core: &Core, worker: &str) -> ace_sdk::wire::TaskEnd {
+    let client =
+        ace_pool::client::LeaseClient::new(&core.url, common::TOKEN, worker).expect("a client");
+    let task = client
+        .lease(
+            &["javascript_deobfuscation".to_owned()],
+            Duration::from_secs(5),
+        )
+        .await
+        .expect("leases")
+        .expect("a task");
+    ace_pool::run::run_in_process(
+        &client,
+        &js_modules(),
+        task,
+        &tokio_util::sync::CancellationToken::new(),
+    )
+    .await
+    .expect("runs")
+}
+
+/// An output archive as the scanner pool packs one: Docker's tar of the output directory, and the two
+/// log streams in Docker's frames.
+fn scan_archive(files: &[(&str, &[u8])], stdout: &[u8], stderr: &[u8]) -> Vec<u8> {
+    let tar_of = |entries: &[(String, Vec<u8>)]| {
+        let mut builder = tar::Builder::new(Vec::new());
+        for (name, bytes) in entries {
+            let mut header = tar::Header::new_gnu();
+            header.set_size(bytes.len() as u64);
+            header.set_mode(0o644);
+            builder
+                .append_data(&mut header, name, &bytes[..])
+                .expect("appends");
+        }
+        builder.into_inner().expect("a tar")
+    };
+    let framed = |stream: u8, bytes: &[u8]| {
+        let mut out = vec![stream, 0, 0, 0];
+        out.extend_from_slice(&(bytes.len() as u32).to_be_bytes());
+        out.extend_from_slice(bytes);
+        out
+    };
+    let output: Vec<(String, Vec<u8>)> = files
+        .iter()
+        .map(|(name, bytes)| (format!("output/{name}"), bytes.to_vec()))
+        .collect();
+    tar_of(&[
+        ("output.tar".to_owned(), tar_of(&output)),
+        ("stdout".to_owned(), framed(1, stdout)),
+        ("stderr".to_owned(), framed(2, stderr)),
+    ])
+}
+
+/// PLAN.md 7.7: a module's task delays with a scan and holds no slot while it waits; a scanner pool
+/// leases the scan with its inputs, ends it with its output archive, and that wakes the task, whose
+/// next run reads the archive and lands the result.
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn a_scan_runs_between_a_tasks_two_runs() {
+    let core = scans_core(Duration::from_secs(30)).await;
+    let (root, _, js) = core
+        .root_with_file("file", "ace4/js/dropper.js", "dropper.js")
+        .await;
+    let end = run_js_task(&core, "parser").await;
+    let ace_sdk::wire::TaskEnd::Delay {
+        scan: Some(request),
+        after_seconds,
+        ..
+    } = &end
+    else {
+        panic!("a delay with a scan: {end:?}");
+    };
+    assert_eq!(*after_seconds, 60.0);
+    assert_eq!(request.scanner, "js-deobfuscator");
+    assert_eq!(
+        core.tasks(root).await,
+        [(
+            "javascript_deobfuscation".to_owned(),
+            js.to_hex(),
+            "delayed".to_owned()
+        )]
+    );
+
+    let scanner =
+        ace_pool::client::LeaseClient::new(&core.url, common::TOKEN, "scanner").expect("a client");
+    let scan = scanner
+        .lease_scan(Duration::from_secs(5))
+        .await
+        .expect("leases")
+        .expect("a scan");
+    assert_eq!(scan.scanner, "js-deobfuscator");
+    assert_eq!(scan.timeout_seconds, 30);
+    assert!(scan.deadline_seconds > 29.0 && scan.deadline_seconds <= 30.0);
+    let [input] = &scan.inputs[..] else {
+        panic!("one input: {:?}", scan.inputs);
+    };
+    let (job, name) = input.name.split_once('/').expect("<job>/<name>");
+    assert_eq!(name, "dropper.js");
+    assert_eq!(input.sha256, js);
+    assert_eq!(
+        scan.args,
+        [
+            format!("/js-deobfuscator/input/{job}/dropper.js"),
+            "/js-deobfuscator/output/deobfuscated.js".to_owned(),
+        ]
+    );
+    let dir = tempfile::tempdir().expect("a directory");
+    let fetched = dir.path().join("input");
+    scanner
+        .download(&input.download, &fetched)
+        .await
+        .expect("downloads");
+    let sample = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../samples/ace4/js/dropper.js");
+    assert_eq!(
+        std::fs::read(&fetched).expect("reads"),
+        std::fs::read(&sample).expect("reads")
+    );
+    assert!(
+        !scanner
+            .renew_scan(scan.id)
+            .await
+            .expect("renews")
+            .cancel_requested
+    );
+    // nothing else to lease meanwhile: the task waits, delayed, for the scan
+    let idle = ace_pool::client::LeaseClient::new(&core.url, common::TOKEN, "other")
+        .expect("a client")
+        .lease(
+            &["javascript_deobfuscation".to_owned()],
+            Duration::from_secs(1),
+        )
+        .await
+        .expect("asks");
+    assert!(idle.is_none(), "{idle:?}");
+
+    let report = br#"{"status": "ok", "event_count": 2, "secondary_script_count": 0, "error": null, "error_type": null, "webcrack_status": "applied", "webcrack_error": null, "blob_files": ["blob_0.html"], "dom_snapshot": false}"#;
+    let archive = scan_archive(
+        &[
+            (
+                "deobfuscated.js",
+                b"window.location.href = \"https://x.example/\";\n",
+            ),
+            ("blob_0.html", b"<p>hi</p>"),
+        ],
+        report,
+        b"",
+    );
+    let path = dir.path().join("scan.tar");
+    std::fs::write(&path, &archive).expect("writes");
+    let sha256 = Sha256(sha2::Sha256::digest(&archive).into());
+    let url = scanner
+        .scan_upload_url(scan.id, &sha256, archive.len() as u64)
+        .await
+        .expect("a URL");
+    scanner.upload(&url, &path).await.expect("uploads");
+    scanner
+        .end_scan(
+            scan.id,
+            &ace_sdk::scanners::ScanEnd {
+                outcome: ace_sdk::scanners::ScanOutcome::Completed { exit_code: 0 },
+                output: Some(ace_sdk::scanners::ScanOutputRecord {
+                    sha256,
+                    size: archive.len() as u64,
+                }),
+            },
+        )
+        .await
+        .expect("ends");
+
+    // the end woke the task, well before its 60-second delay
+    let end = run_js_task(&core, "parser").await;
+    let ace_sdk::wire::TaskEnd::Done { result, .. } = &end else {
+        panic!("a result: {end:?}");
+    };
+    assert_eq!(
+        result.details["extracted_files"],
+        serde_json::json!(["deobfuscated-dropper.js", "dropper.js.blob_0.html"])
+    );
+    assert_eq!(result.details["event_count"], 2);
+    assert_eq!(
+        result.details["stdout"],
+        String::from_utf8_lossy(report).as_ref()
+    );
+    assert_eq!(result.analyzed.tags, ["js"]);
+    let db = core.test_db.db();
+    let stored: (String, i64) =
+        sqlx::query_as("SELECT state::text, output_size FROM queue.scans WHERE id = $1")
+            .bind(scan.id)
+            .fetch_one(db.pool())
+            .await
+            .expect("the scan");
+    assert_eq!(stored, ("completed".to_owned(), archive.len() as i64));
+    // the archive is the root's, held as its files are
+    let holds: Vec<(String, String)> = sqlx::query_as(
+        "SELECT holder_kind, holder_id FROM store.holds WHERE pool = $1 AND sha256 = $2",
+    )
+    .bind(ALERT_FILES)
+    .bind(sha256.to_hex())
+    .fetch_all(db.pool())
+    .await
+    .expect("reads");
+    assert_eq!(holds, [("root".to_owned(), root.to_string())]);
+    assert_eq!(
+        core.tasks(root).await.first().map(|t| t.2.clone()),
+        Some("done".to_owned())
+    );
+}
+
+/// PLAN.md 7.7: cancelling a root asks its running scan to stop through the scan's lease, and ends a
+/// queued one; a scan whose pool stops renewing it is abandoned by the reaper, and wakes its task,
+/// whose module says so.
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn a_scan_ends_at_a_cancellation_and_at_a_lost_lease() {
+    let core = scans_core(Duration::from_secs(2)).await;
+    let db = core.test_db.db();
+    let scanner =
+        ace_pool::client::LeaseClient::new(&core.url, common::TOKEN, "scanner").expect("a client");
+
+    // cancelled while it runs
+    let (root, _, _) = core
+        .root_with_file("file", "ace4/js/dropper.js", "dropper.js")
+        .await;
+    run_js_task(&core, "parser").await;
+    let scan = scanner
+        .lease_scan(Duration::from_secs(5))
+        .await
+        .expect("leases")
+        .expect("a scan");
+    let mut tx = db.begin().await.expect("begins");
+    ace_core::queue::cancel_root(&mut tx, root)
+        .await
+        .expect("cancels");
+    tx.commit().await.expect("commits");
+    assert!(
+        scanner
+            .renew_scan(scan.id)
+            .await
+            .expect("renews")
+            .cancel_requested
+    );
+    scanner
+        .end_scan(
+            scan.id,
+            &ace_sdk::scanners::ScanEnd {
+                outcome: ace_sdk::scanners::ScanOutcome::Cancelled,
+                output: None,
+            },
+        )
+        .await
+        .expect("ends");
+    let scans = ace_core::scans::for_root(db, root).await.expect("reads");
+    assert_eq!(scans[0].state, ace_core::scans::ScanRowState::Cancelled);
+
+    // cancelled before a pool took it
+    let (queued, _, _) = core
+        .root_with_file("file", "ace4/js/dropper.js", "dropper.js")
+        .await;
+    run_js_task(&core, "parser").await;
+    let mut tx = db.begin().await.expect("begins");
+    ace_core::queue::cancel_root(&mut tx, queued)
+        .await
+        .expect("cancels");
+    tx.commit().await.expect("commits");
+    let scans = ace_core::scans::for_root(db, queued).await.expect("reads");
+    assert_eq!(scans[0].state, ace_core::scans::ScanRowState::Cancelled);
+    assert!(
+        scanner
+            .lease_scan(Duration::from_secs(1))
+            .await
+            .expect("asks")
+            .is_none()
+    );
+
+    // its pool stops renewing it, as when the pool crashes
+    let (lost, _, _) = core
+        .root_with_file("file", "ace4/js/dropper.js", "dropper.js")
+        .await;
+    run_js_task(&core, "parser").await;
+    let scan = scanner
+        .lease_scan(Duration::from_secs(5))
+        .await
+        .expect("leases")
+        .expect("a scan");
+    tokio::time::sleep(Duration::from_millis(2500)).await;
+    let reaped = ace_core::scans::reap_scans(db).await.expect("reaps");
+    assert_eq!(reaped.unreported, 1);
+    // the pool's end comes too late
+    let late = scanner
+        .end_scan(
+            scan.id,
+            &ace_sdk::scanners::ScanEnd {
+                outcome: ace_sdk::scanners::ScanOutcome::Completed { exit_code: 0 },
+                output: None,
+            },
+        )
+        .await;
+    assert!(
+        matches!(late, Err(ace_pool::client::ClientError::LeaseLost(_))),
+        "{late:?}"
+    );
+    let end = run_js_task(&core, "parser").await;
+    let ace_sdk::wire::TaskEnd::Done { result, .. } = &end else {
+        panic!("a result: {end:?}");
+    };
+    assert_eq!(
+        result.details["error"],
+        "js deobfuscator call failed: its pool stopped reporting on it before it ended"
+    );
+    let scans = ace_core::scans::for_root(db, lost).await.expect("reads");
+    assert_eq!(scans[0].state, ace_core::scans::ScanRowState::Abandoned);
+}
+
+/// PLAN.md 7.7: a scan the module doesn't declare, or past its scanner's limits, fails the task, and
+/// a pool that runs no scanner can't lease one.
+#[tokio::test]
+async fn a_scan_request_outside_the_modules_declaration_fails_its_task() {
+    let core = scans_core(Duration::from_secs(30)).await;
+    let (root, _, js) = core
+        .root_with_file("file", "ace4/js/dropper.js", "dropper.js")
+        .await;
+    let client =
+        ace_pool::client::LeaseClient::new(&core.url, common::TOKEN, "parser").expect("a client");
+    let task = client
+        .lease(&[], Duration::from_secs(5))
+        .await
+        .expect("leases")
+        .expect("a task");
+    let request = ace_sdk::scanners::ScanRequest::new("phishkit", Duration::from_secs(30)).input(
+        ace_sdk::scanners::ScanInput {
+            name: "x/dropper.js".to_owned(),
+            sha256: js,
+            size: 1,
+        },
+    );
+    let refused = client
+        .end(
+            task.id,
+            &ace_sdk::wire::TaskEnd::Delay {
+                after_seconds: 10.0,
+                state: serde_json::Value::Null,
+                scan: Some(request),
+            },
+        )
+        .await;
+    assert!(
+        matches!(
+            &refused,
+            Err(ace_pool::client::ClientError::Api { status: 403, .. })
+        ),
+        "{refused:?}"
+    );
+    let (state, error) = common::task_of(&core, root, "javascript_deobfuscation").await;
+    assert_eq!(state, "failed");
+    assert!(
+        error
+            .as_deref()
+            .is_some_and(|e| e.contains("doesn't declare the scanner \"phishkit\"")),
+        "{error:?}"
+    );
+
+    let other = Core::start(vec![], &["archive"], Duration::from_secs(30)).await;
+    let refused = ace_pool::client::LeaseClient::new(&other.url, common::TOKEN, "scanner")
+        .expect("a client")
+        .lease_scan(Duration::from_secs(1))
+        .await;
+    assert!(
+        matches!(
+            &refused,
+            Err(ace_pool::client::ClientError::Api { status: 403, .. })
+        ),
+        "{refused:?}"
+    );
+}
+
+/// A Docker daemon on a Unix socket that answers the calls a scanner pool makes, keeping the
+/// containers it creates in memory. A container started with `forever` in its command runs until it's
+/// stopped or killed; any other exits at once with 0.
+mod fake_docker {
+    use std::collections::BTreeMap;
+    use std::sync::{Arc, Mutex};
+
+    use axum::Router;
+    use axum::body::Bytes;
+    use axum::extract::{Path, Query, State};
+    use axum::http::StatusCode;
+    use axum::routing::{delete, get, post, put};
+    use serde_json::{Value, json};
+
+    #[derive(Debug, Clone, Default)]
+    pub struct Container {
+        pub labels: BTreeMap<String, String>,
+        pub body: Value,
+        pub running: bool,
+        pub exit_code: Option<i64>,
+        pub input: Vec<u8>,
+    }
+
+    #[derive(Default)]
+    pub struct Daemon {
+        pub containers: BTreeMap<String, Container>,
+        /// Each call, as `<verb> <container>`.
+        pub calls: Vec<String>,
+        next: u32,
+    }
+
+    pub type Shared = Arc<Mutex<Daemon>>;
+
+    /// Serves the daemon on a socket in `dir` and returns the socket's path.
+    pub fn serve(dir: &std::path::Path, daemon: Shared) -> std::path::PathBuf {
+        let socket = dir.join("docker.sock");
+        let listener = tokio::net::UnixListener::bind(&socket).expect("binds");
+        let app = Router::new()
+            .route("/containers/create", post(create))
+            .route("/containers/json", get(list))
+            .route(
+                "/containers/{id}/archive",
+                put(put_archive).get(get_archive),
+            )
+            .route("/containers/{id}/start", post(start))
+            .route("/containers/{id}/wait", post(wait))
+            .route("/containers/{id}/stop", post(stop))
+            .route("/containers/{id}/kill", post(kill))
+            .route("/containers/{id}/logs", get(logs))
+            .route("/containers/{id}", delete(remove))
+            .route("/images/{*name}", get(image))
+            .with_state(daemon);
+        tokio::spawn(async move {
+            if let Err(e) = axum::serve(listener, app).await {
+                eprintln!("the fake daemon stopped: {e}");
+            }
+        });
+        socket
+    }
+
+    pub fn add(daemon: &Shared, id: &str, labels: &[(&str, &str)]) {
+        daemon.lock().expect("a lock").containers.insert(
+            id.to_owned(),
+            Container {
+                labels: labels
+                    .iter()
+                    .map(|(k, v)| ((*k).to_owned(), (*v).to_owned()))
+                    .collect(),
+                running: true,
+                ..Default::default()
+            },
+        );
+    }
+
+    fn call(daemon: &Shared, what: &str, id: &str) {
+        daemon
+            .lock()
+            .expect("a lock")
+            .calls
+            .push(format!("{what} {id}"));
+    }
+
+    async fn create(
+        State(daemon): State<Shared>,
+        Json(body): axum::Json<Value>,
+    ) -> axum::Json<Value> {
+        let mut d = daemon.lock().expect("a lock");
+        d.next += 1;
+        let id = format!("c{}", d.next);
+        let labels = body["Labels"]
+            .as_object()
+            .map(|m| {
+                m.iter()
+                    .map(|(k, v)| (k.clone(), v.as_str().unwrap_or_default().to_owned()))
+                    .collect()
+            })
+            .unwrap_or_default();
+        d.containers.insert(
+            id.clone(),
+            Container {
+                labels,
+                body,
+                ..Default::default()
+            },
+        );
+        d.calls.push(format!("create {id}"));
+        axum::Json(json!({"Id": id}))
+    }
+    use axum::Json;
+
+    async fn put_archive(
+        State(daemon): State<Shared>,
+        Path(id): Path<String>,
+        body: Bytes,
+    ) -> StatusCode {
+        call(&daemon, "put_archive", &id);
+        match daemon.lock().expect("a lock").containers.get_mut(&id) {
+            Some(c) => {
+                c.input = body.to_vec();
+                StatusCode::OK
+            }
+            None => StatusCode::NOT_FOUND,
+        }
+    }
+
+    async fn start(State(daemon): State<Shared>, Path(id): Path<String>) -> StatusCode {
+        call(&daemon, "start", &id);
+        let mut d = daemon.lock().expect("a lock");
+        let Some(c) = d.containers.get_mut(&id) else {
+            return StatusCode::NOT_FOUND;
+        };
+        let forever = c.body["Cmd"].as_array().is_some_and(|cmd| {
+            cmd.iter()
+                .any(|a| a.as_str().is_some_and(|a| a.contains("forever")))
+        });
+        if forever {
+            c.running = true;
+        } else {
+            c.exit_code = Some(0);
+        }
+        StatusCode::NO_CONTENT
+    }
+
+    async fn wait(State(daemon): State<Shared>, Path(id): Path<String>) -> Json<Value> {
+        loop {
+            {
+                let d = daemon.lock().expect("a lock");
+                match d.containers.get(&id) {
+                    Some(c) if c.running => {}
+                    Some(c) => return Json(json!({"StatusCode": c.exit_code.unwrap_or(0)})),
+                    None => return Json(json!({"StatusCode": -1})),
+                }
+            }
+            tokio::time::sleep(std::time::Duration::from_millis(20)).await;
+        }
+    }
+
+    fn end(daemon: &Shared, id: &str, what: &str, code: i64) -> StatusCode {
+        call(daemon, what, id);
+        match daemon.lock().expect("a lock").containers.get_mut(id) {
+            Some(c) => {
+                c.running = false;
+                c.exit_code = Some(code);
+                StatusCode::NO_CONTENT
+            }
+            None => StatusCode::NOT_FOUND,
+        }
+    }
+
+    async fn stop(State(daemon): State<Shared>, Path(id): Path<String>) -> StatusCode {
+        end(&daemon, &id, "stop", 143)
+    }
+
+    async fn kill(State(daemon): State<Shared>, Path(id): Path<String>) -> StatusCode {
+        end(&daemon, &id, "kill", 137)
+    }
+
+    async fn get_archive(State(daemon): State<Shared>, Path(id): Path<String>) -> Vec<u8> {
+        call(&daemon, "get_archive", &id);
+        let mut builder = tar::Builder::new(Vec::new());
+        let bytes = b"// trace\nwindow.location = 'https://x.example/';\n";
+        let mut header = tar::Header::new_gnu();
+        header.set_size(bytes.len() as u64);
+        header.set_mode(0o644);
+        builder
+            .append_data(&mut header, "output/deobfuscated.js", &bytes[..])
+            .expect("appends");
+        builder.into_inner().expect("a tar")
+    }
+
+    async fn logs(
+        State(daemon): State<Shared>,
+        Path(id): Path<String>,
+        Query(query): Query<BTreeMap<String, String>>,
+    ) -> Vec<u8> {
+        call(&daemon, "logs", &id);
+        let text: &[u8] = if query.contains_key("stdout") {
+            br#"{"event_count": 1}"#
+        } else {
+            b""
+        };
+        let mut out = vec![1, 0, 0, 0];
+        out.extend_from_slice(&(text.len() as u32).to_be_bytes());
+        out.extend_from_slice(text);
+        out
+    }
+
+    async fn remove(State(daemon): State<Shared>, Path(id): Path<String>) -> StatusCode {
+        call(&daemon, "remove", &id);
+        match daemon.lock().expect("a lock").containers.remove(&id) {
+            Some(_) => StatusCode::NO_CONTENT,
+            None => StatusCode::NOT_FOUND,
+        }
+    }
+
+    async fn list(
+        State(daemon): State<Shared>,
+        Query(query): Query<BTreeMap<String, String>>,
+    ) -> Json<Value> {
+        let filters: Value =
+            serde_json::from_str(query.get("filters").map_or("{}", String::as_str))
+                .expect("filters");
+        let wanted: Vec<(String, String)> = filters["label"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter_map(|l| {
+                l.as_str()?
+                    .split_once('=')
+                    .map(|(k, v)| (k.to_owned(), v.to_owned()))
+            })
+            .collect();
+        let d = daemon.lock().expect("a lock");
+        let found: Vec<Value> = d
+            .containers
+            .iter()
+            .filter(|(_, c)| wanted.iter().all(|(k, v)| c.labels.get(k) == Some(v)))
+            .map(|(id, c)| json!({"Id": id, "Labels": c.labels}))
+            .collect();
+        Json(Value::Array(found))
+    }
+
+    async fn image() -> Json<Value> {
+        Json(json!({"Id": "sha256:fake"}))
+    }
+}
+
+/// A scanner pool on the fake daemon, for `scans_core`'s test pool.
+fn scanner_pool(core: &Core, socket: &Path, host: &str) -> ace_pool::scanners::ScannerPool {
+    let mut config = ace_pool::scanners::ScannerPoolConfig::new(
+        "ace4-test",
+        host,
+        &[ace_sdk::scanners::JS_DEOBFUSCATOR],
+        &|_| None,
+    );
+    config.socket = socket.to_owned();
+    let client =
+        ace_pool::client::LeaseClient::new(&core.url, common::TOKEN, "scanners").expect("a client");
+    ace_pool::scanners::ScannerPool::new(client, config)
+}
+
+/// Runs the deobfuscator's first run with `settings`, as a pool would, so its scan is queued.
+async fn queue_js_scan(core: &Core, settings: serde_json::Value) {
+    use ace_pool::modules::{Entry, Modules};
+    let client =
+        ace_pool::client::LeaseClient::new(&core.url, common::TOKEN, "parser").expect("a client");
+    let task = client
+        .lease(
+            &["javascript_deobfuscation".to_owned()],
+            Duration::from_secs(5),
+        )
+        .await
+        .expect("leases")
+        .expect("a task");
+    let modules = std::sync::Arc::new(
+        Modules::new().with_parser(
+            Entry::<ace_mod_scanners::JavaScriptDeobfuscationAnalyzer>::parser(
+                Some(&settings),
+                &ace_sdk::Secrets::new(),
+            )
+            .expect("builds"),
+        ),
+    );
+    let end = ace_pool::run::run_in_process(
+        &client,
+        &modules,
+        task,
+        &tokio_util::sync::CancellationToken::new(),
+    )
+    .await
+    .expect("runs");
+    assert!(
+        matches!(end, ace_sdk::wire::TaskEnd::Delay { scan: Some(_), .. }),
+        "{end:?}"
+    );
+}
+
+/// Waits until the root's scan is in `state`.
+async fn wait_for_scan(core: &Core, root: uuid::Uuid, state: ace_core::scans::ScanRowState) {
+    for _ in 0..200 {
+        let scans = ace_core::scans::for_root(core.test_db.db(), root)
+            .await
+            .expect("reads");
+        if scans.first().is_some_and(|s| s.state == state) {
+            return;
+        }
+        tokio::time::sleep(Duration::from_millis(100)).await;
+    }
+    panic!("the scan never became {state:?}");
+}
+
+/// PLAN.md 7.7: the scanner pool stops a scanner at its deadline (SIGTERM, then the grace), brings
+/// back what it wrote and ends the scan timed out; and removes its container.
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn the_scanner_pool_stops_a_scanner_at_its_deadline() {
+    let core = scans_core(Duration::from_secs(30)).await;
+    let dir = tempfile::tempdir().expect("a directory");
+    let daemon = fake_docker::Shared::default();
+    let socket = fake_docker::serve(dir.path(), daemon.clone());
+    // the sample's name is what makes the fake daemon's container run until it's stopped
+    let (root, _) = common::root_with_bytes(&core, "file", b"for(;;){}", "forever.js").await;
+    queue_js_scan(&core, serde_json::json!({"scanner_timeout": 1})).await;
+    let stop = tokio_util::sync::CancellationToken::new();
+    let pool = tokio::spawn(scanner_pool(&core, &socket, "host-a").run(stop.clone()));
+    wait_for_scan(&core, root, ace_core::scans::ScanRowState::TimedOut).await;
+    let scans = ace_core::scans::for_root(core.test_db.db(), root)
+        .await
+        .expect("reads");
+    assert_eq!(scans[0].exit_code, Some(143));
+    let calls = daemon.lock().expect("a lock").calls.clone();
+    assert_eq!(
+        calls,
+        [
+            "create c1",
+            "put_archive c1",
+            "start c1",
+            "stop c1",
+            "get_archive c1",
+            "logs c1",
+            "logs c1",
+            "remove c1"
+        ]
+    );
+    assert!(daemon.lock().expect("a lock").containers.is_empty());
+    // its task woke, and its module reads the timeout as ace3's manager reported one
+    let end = run_js_task(&core, "parser").await;
+    let ace_sdk::wire::TaskEnd::Done { result, .. } = &end else {
+        panic!("a result: {end:?}");
+    };
+    assert_eq!(result.details["exit_code"], -1);
+    assert_eq!(
+        result.details["stderr"],
+        "scanner container timed out after 30s"
+    );
+    stop.cancel();
+    pool.await.expect("joins");
+}
+
+/// PLAN.md 7.7: a scanner whose root is cancelled is killed and its container removed; and a pool
+/// that starts removes the containers its host left, which a crash of the pool leaves, and its sweep
+/// those of its stack past their deadline, and nothing that isn't its stack's.
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn the_scanner_pool_kills_a_cancelled_scanner_and_reaps_what_a_crash_left() {
+    let core = scans_core(Duration::from_secs(2)).await;
+    let dir = tempfile::tempdir().expect("a directory");
+    let daemon = fake_docker::Shared::default();
+    let socket = fake_docker::serve(dir.path(), daemon.clone());
+    let stack = |host: &str, deadline: &str| {
+        vec![
+            ("ace4.scanner.stack".to_owned(), "ace4-test".to_owned()),
+            ("ace4.scanner.host".to_owned(), host.to_owned()),
+            ("ace4.scanner.name".to_owned(), "js-deobfuscator".to_owned()),
+            ("ace4.scanner.deadline".to_owned(), deadline.to_owned()),
+        ]
+    };
+    let add = |id: &str, labels: Vec<(String, String)>| {
+        let labels: Vec<(&str, &str)> = labels
+            .iter()
+            .map(|(k, v)| (k.as_str(), v.as_str()))
+            .collect();
+        fake_docker::add(&daemon, id, &labels);
+    };
+    let far = "99999999999";
+    add("left-by-a-crash", stack("host-a", far));
+    add("another-hosts", stack("host-b", far));
+    add("another-hosts-overdue", stack("host-b", "1"));
+    add(
+        "another-stack",
+        vec![
+            ("ace4.scanner.stack".to_owned(), "ace4".to_owned()),
+            ("ace4.scanner.host".to_owned(), "host-a".to_owned()),
+        ],
+    );
+    add(
+        "ace3s-phishkit",
+        vec![
+            ("phishkit.stack".to_owned(), "ace".to_owned()),
+            ("phishkit.job_id".to_owned(), "x".to_owned()),
+        ],
+    );
+
+    let pool = scanner_pool(&core, &socket, "host-a");
+    assert_eq!(pool.reap_own().await.expect("reaps"), 1);
+    assert_eq!(pool.sweep().await.expect("sweeps"), 1);
+    let left: Vec<String> = daemon
+        .lock()
+        .expect("a lock")
+        .containers
+        .keys()
+        .cloned()
+        .collect();
+    assert_eq!(left, ["ace3s-phishkit", "another-hosts", "another-stack"]);
+
+    let (root, _) = common::root_with_bytes(&core, "file", b"for(;;){}", "forever.js").await;
+    queue_js_scan(&core, serde_json::json!({})).await;
+    let stop = tokio_util::sync::CancellationToken::new();
+    let running = tokio::spawn(pool.run(stop.clone()));
+    wait_for_scan(&core, root, ace_core::scans::ScanRowState::Running).await;
+    let db = core.test_db.db();
+    let mut tx = db.begin().await.expect("begins");
+    ace_core::queue::cancel_root(&mut tx, root)
+        .await
+        .expect("cancels");
+    tx.commit().await.expect("commits");
+    wait_for_scan(&core, root, ace_core::scans::ScanRowState::Cancelled).await;
+    let calls = daemon.lock().expect("a lock").calls.clone();
+    let scan_calls: Vec<&str> = calls
+        .iter()
+        .map(String::as_str)
+        .filter(|c| c.ends_with(" c1"))
+        .collect();
+    assert_eq!(
+        scan_calls,
+        [
+            "create c1",
+            "put_archive c1",
+            "start c1",
+            "kill c1",
+            "remove c1"
+        ]
+    );
+    stop.cancel();
+    running.await.expect("joins");
 }

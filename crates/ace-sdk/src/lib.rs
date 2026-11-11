@@ -8,7 +8,8 @@
 //! gives modules their settings and declares named instances of them. A module reads the
 //! analyst-edited lists it declares, such as whitelists, through `lists` (PLAN.md 5.14), and a
 //! lookup reads ACE's own data through `reads` and writes it through `writes` (PLAN.md 7.2). A parser
-//! runs the programs it declares through `tools` (PLAN.md 7.3).
+//! runs the programs it declares through `tools` (PLAN.md 7.3), and sends its observable through the
+//! scanner images it declares through `scanners` (7.7).
 
 pub mod context;
 pub mod domains;
@@ -25,6 +26,7 @@ pub mod module;
 pub mod nrd;
 pub mod overlay;
 pub mod reads;
+pub mod scanners;
 pub mod tools;
 pub mod tree;
 pub mod wire;

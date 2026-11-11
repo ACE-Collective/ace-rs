@@ -1,0 +1,96 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "JavaScriptDeobfuscationAnalysis",
+      "details": {
+        "dom_snapshot": false,
+        "dom_snapshot_source": null,
+        "error": "evalmachine.<anonymous>:4\nnotDefinedAnywhere(next);\n^\n\nReferenceError: notDefinedAnywhere is not defined\n    at evalmachine.<anonymous>:4:1\n    at Script.runInContext (node:vm:150:12)\n    at file:///opt/app/harness.js:914:12",
+        "error_type": "runtime",
+        "event_count": 3,
+        "exit_code": 0,
+        "extracted_files": [
+          "deobfuscated-runtime_error.js"
+        ],
+        "secondary_script_count": 0,
+        "stderr": "",
+        "stdout": "{\"status\":\"error_during_run\",\"event_count\":3,\"secondary_script_count\":0,\"error\":\"evalmachine.<anonymous>:4\\nnotDefinedAnywhere(next);\\n^\\n\\nReferenceError: notDefinedAnywhere is not defined\\n    at evalmachine.<anonymous>:4:1\\n    at Script.runInContext (node:vm:150:12)\\n    at file:///opt/app/harness.js:914:12\",\"error_type\":\"runtime\",\"webcrack_status\":\"applied\",\"webcrack_error\":null,\"blob_files\":[],\"dom_snapshot\":false}",
+        "webcrack_error": null,
+        "webcrack_status": "applied"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.js:JavaScriptDeobfuscationAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls",
+            "yara_meta:type=script.javascript"
+          ],
+          "excluded_analysis": [
+            "saq.modules.file_analysis.js:<class 'saq.modules.file_analysis.js.JavaScriptDeobfuscationAnalyzer'>"
+          ],
+          "file_path": "deobfuscated-runtime_error.js",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "18c57d5bb2ffb4da33e5f0a2b2f7369fc652205cbec403c86736c7e5e8cfb25a"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 716,
+          "tags": [],
+          "type": "file",
+          "value": "1078e839c99d7b60f70eb36dd4d9e58d868581b48c95c77446b621e0deaded19",
+          "yara_meta": [
+            "type=script.javascript"
+          ]
+        }
+      ],
+      "summary": "JavaScript Deobfuscation: failed: evalmachine.<anonymous>:4\nnotDefinedAnywhere(next);\n^\n\nReferenceError: notDefinedAnywhere is not defined\n    at evalmachine.<anonymous>:4:1\n    at Script.runInContext (node:vm:150:12)\n    at file:///opt/app/harness.js:914:12",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace4/js/runtime_error.js, answered with fixtures/scanners/js/runtime_error",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "runtime_error.js",
+      "size": 138,
+      "type": "file",
+      "value": "18c57d5bb2ffb4da33e5f0a2b2f7369fc652205cbec403c86736c7e5e8cfb25a"
+    }
+  },
+  "module": "javascript_deobfuscation",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=script.javascript"
+    ],
+    "excluded_analysis": [],
+    "file_path": "runtime_error.js",
+    "relationships": [],
+    "size": 138,
+    "tags": [
+      "js"
+    ],
+    "type": "file",
+    "value": "18c57d5bb2ffb4da33e5f0a2b2f7369fc652205cbec403c86736c7e5e8cfb25a",
+    "yara_meta": [
+      "type=script.javascript"
+    ]
+  },
+  "scanner_request": {
+    "dom_snapshot": null,
+    "file_name": "runtime_error.js",
+    "scanner": "js-deobfuscator",
+    "scanner_timeout": 30,
+    "timeout": 60
+  }
+}

@@ -1,0 +1,121 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE queue.scans s\n               SET state = 'running', lease_owner = $1,\n                   lease_expires_at = now() + make_interval(secs => $2),\n                   started_at = now(), deadline_at = now() + make_interval(secs => s.timeout_seconds)\n               WHERE s.id = (SELECT id FROM queue.scans WHERE state = 'queued' AND scanner = ANY($3)\n                             ORDER BY id FOR UPDATE SKIP LOCKED LIMIT 1)\n               RETURNING s.id, s.task_id AS \"task_id: TaskId\", s.root_id, s.scanner, s.args, s.inputs,\n                         s.timeout_seconds, s.deadline_at AS \"deadline_at!\",\n                         extract(epoch FROM s.deadline_at - now())::float8 AS \"deadline_in!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "queue.scans",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "task_id: TaskId",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "queue.scans",
+            "name": "task_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "root_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "queue.scans",
+            "name": "root_id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "scanner",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "queue.scans",
+            "name": "scanner"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "args",
+        "type_info": "TextArray",
+        "origin": {
+          "Table": {
+            "table": "queue.scans",
+            "name": "args"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "inputs",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "queue.scans",
+            "name": "inputs"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "timeout_seconds",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "queue.scans",
+            "name": "timeout_seconds"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "deadline_at!",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "queue.scans",
+            "name": "deadline_at"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "deadline_in!",
+        "type_info": "Float8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Float8",
+        "TextArray"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      null
+    ]
+  },
+  "hash": "2c12aa3ce895e378a52ce4611137d8425339c2a6b55f208d7ced121631a34d8c"
+}

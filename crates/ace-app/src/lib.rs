@@ -64,6 +64,7 @@ pub struct App {
     observable_types: Vec<ObservableKind>,
     parser_pools: Vec<ParserPool>,
     lookup_pools: Vec<LookupPool>,
+    scanner_pools: Vec<ScannerPool>,
     groups: Vec<(String, String)>,
     views: ace_gui::Views,
     actions: ace_gui::ObservableActions,
@@ -107,6 +108,29 @@ pub struct LookupPool {
     registry: Registry,
 }
 
+/// A scanner pool (PLAN.md 7.7): the process that holds the Docker socket and runs the scanner images
+/// modules' scans ask for (`ace_pool::scanners`), as many at once as `ACE4_CONCURRENCY` says.
+pub struct ScannerPool {
+    name: String,
+    scanners: Vec<ace_sdk::scanners::ScannerSpec>,
+}
+
+impl ScannerPool {
+    pub fn new(name: &str) -> ScannerPool {
+        ScannerPool {
+            name: name.to_owned(),
+            scanners: Vec::new(),
+        }
+    }
+
+    /// A scanner the pool runs, such as `ace_sdk::scanners::PHISHKIT`. The core lists it as
+    /// `@scan/<name>`.
+    pub fn scanner(mut self, spec: ace_sdk::scanners::ScannerSpec) -> ScannerPool {
+        self.scanners.push(spec);
+        self
+    }
+}
+
 /// A parser pool's YARA rulesets (2.26): the module whose `rulesets` setting the pool sets to its
 /// ruleset directory, and the check that a downloaded ruleset loads.
 #[derive(Clone, Copy)]
@@ -129,6 +153,11 @@ impl App {
 
     pub fn parser_pool(mut self, pool: ParserPool) -> App {
         self.parser_pools.push(pool);
+        self
+    }
+
+    pub fn scanner_pool(mut self, pool: ScannerPool) -> App {
+        self.scanner_pools.push(pool);
         self
     }
 
@@ -327,6 +356,9 @@ impl App {
         if let Some(lookups) = self.lookup_pools.iter().find(|p| p.name == pool) {
             return pools::lookup_main(lookups);
         }
+        if let Some(scanners) = self.scanner_pools.iter().find(|p| p.name == pool) {
+            return pools::scanner_main(scanners);
+        }
         eprintln!("this binary has no pool {pool}");
         ExitCode::from(2)
     }
@@ -396,6 +428,14 @@ impl App {
                 }
             })
             .chain(self.lookup_pools.iter().map(|p| pool(&p.name, &p.registry)))
+            .chain(self.scanner_pools.iter().map(|p| {
+                let scanners: Vec<String> = p
+                    .scanners
+                    .iter()
+                    .map(|s| ace_sdk::scanners::pool_entry(s.name))
+                    .collect();
+                format!("{}:{}", p.name, scanners.join(","))
+            }))
             .collect::<Vec<_>>()
             .join(";")
     }

@@ -1,0 +1,195 @@
+{
+  "form": 1,
+  "observables": {
+    "file:18c57d5bb2ffb4da33e5f0a2b2f7369fc652205cbec403c86736c7e5e8cfb25a": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "runtime_error.js": {
+          "type=email.attachment": true,
+          "type=script.javascript": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "726bb5b1fa16d9d205ef02372e86d8a2",
+            "sha1": "8daa0edae8406edb4876ec3fa596c4e41820cf9a",
+            "sha256": "18c57d5bb2ffb4da33e5f0a2b2f7369fc652205cbec403c86736c7e5e8cfb25a"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text"
+          },
+          "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        },
+        "javascript_deobfuscation": {
+          "details": {
+            "dom_snapshot": false,
+            "dom_snapshot_source": null,
+            "error": "evalmachine.<anonymous>:4\nnotDefinedAnywhere(next);\n^\n\nReferenceError: notDefinedAnywhere is not defined\n    at evalmachine.<anonymous>:4:1\n    at Script.runInContext (node:vm:150:12)\n    at file:///opt/app/harness.js:914:12",
+            "error_type": "runtime",
+            "event_count": 3,
+            "exit_code": 0,
+            "extracted_files": [
+              "deobfuscated-runtime_error.js"
+            ],
+            "secondary_script_count": 0,
+            "stderr": "",
+            "stdout": "{\"status\":\"error_during_run\",\"event_count\":3,\"secondary_script_count\":0,\"error\":\"evalmachine.<anonymous>:4\\nnotDefinedAnywhere(next);\\n^\\n\\nReferenceError: notDefinedAnywhere is not defined\\n    at evalmachine.<anonymous>:4:1\\n    at Script.runInContext (node:vm:150:12)\\n    at file:///opt/app/harness.js:914:12\",\"error_type\":\"runtime\",\"webcrack_status\":\"applied\",\"webcrack_error\":null,\"blob_files\":[],\"dom_snapshot\":false}",
+            "webcrack_error": null,
+            "webcrack_status": "applied"
+          },
+          "summary": "JavaScript Deobfuscation: failed: evalmachine.<anonymous>:4\nnotDefinedAnywhere(next);\n^\n\nReferenceError: notDefinedAnywhere is not defined\n    at evalmachine.<anonymous>:4:1\n    at Script.runInContext (node:vm:150:12)\n    at file:///opt/app/harness.js:914:12",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {
+        "js": true
+      }
+    },
+    "file:99fe01e4d95fb17960b45941a709d82f82076935c05df0560fbca8cd9540cca7": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {
+        "javascript_deobfuscation": true
+      },
+      "paths": {
+        "deobfuscated-runtime_error.js": {
+          "type=script.javascript": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:18c57d5bb2ffb4da33e5f0a2b2f7369fc652205cbec403c86736c7e5e8cfb25a": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text"
+          },
+          "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "md5:726bb5b1fa16d9d205ef02372e86d8a2": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:18c57d5bb2ffb4da33e5f0a2b2f7369fc652205cbec403c86736c7e5e8cfb25a": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "sha256:18c57d5bb2ffb4da33e5f0a2b2f7369fc652205cbec403c86736c7e5e8cfb25a": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:18c57d5bb2ffb4da33e5f0a2b2f7369fc652205cbec403c86736c7e5e8cfb25a": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    }
+  }
+}

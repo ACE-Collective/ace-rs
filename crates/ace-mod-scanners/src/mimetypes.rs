@@ -1,0 +1,183 @@
+//! Python's `mimetypes.guess_extension`, as ace3's phishkit manager runs it (Python 3.14, with no
+//! `/etc/mime.types`, so its built-in table), which it uses to give a file it renders the extension
+//! its type has, since Chrome picks how to show a `file://` URL by its extension
+//! (`_correct_file_extension`). Generated from that table by running `guess_extension` on each of its
+//! types in the manager's image, `phishkit-manager:latest`.
+
+/// `(type, guess_extension(type))`, sorted by type, for each type that has one.
+const EXTENSIONS: &[(&str, &str)] = &[
+    ("application/epub+zip", ".epub"),
+    ("application/gzip", ".gz"),
+    ("application/json", ".json"),
+    ("application/manifest+json", ".webmanifest"),
+    ("application/msword", ".doc"),
+    ("application/n-quads", ".nq"),
+    ("application/n-triples", ".nt"),
+    ("application/octet-stream", ".bin"),
+    ("application/oda", ".oda"),
+    ("application/ogg", ".ogx"),
+    ("application/pdf", ".pdf"),
+    ("application/pkcs7-mime", ".p7c"),
+    ("application/postscript", ".ps"),
+    ("application/trig", ".trig"),
+    ("application/vnd.apple.mpegurl", ".m3u"),
+    ("application/vnd.ms-excel", ".xls"),
+    ("application/vnd.ms-fontobject", ".eot"),
+    ("application/vnd.ms-powerpoint", ".ppt"),
+    ("application/vnd.oasis.opendocument.graphics", ".odg"),
+    ("application/vnd.oasis.opendocument.presentation", ".odp"),
+    ("application/vnd.oasis.opendocument.spreadsheet", ".ods"),
+    ("application/vnd.oasis.opendocument.text", ".odt"),
+    (
+        "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        ".pptx",
+    ),
+    (
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        ".xlsx",
+    ),
+    (
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        ".docx",
+    ),
+    ("application/vnd.rar", ".rar"),
+    ("application/wasm", ".wasm"),
+    ("application/x-7z-compressed", ".7z"),
+    ("application/x-bcpio", ".bcpio"),
+    ("application/x-cpio", ".cpio"),
+    ("application/x-csh", ".csh"),
+    ("application/x-debian-package", ".deb"),
+    ("application/x-dvi", ".dvi"),
+    ("application/x-gtar", ".gtar"),
+    ("application/x-hdf", ".hdf"),
+    ("application/x-hdf5", ".h5"),
+    ("application/x-httpd-php", ".php"),
+    ("application/x-latex", ".latex"),
+    ("application/x-mif", ".mif"),
+    ("application/x-netcdf", ".cdf"),
+    ("application/x-pkcs12", ".p12"),
+    ("application/x-pn-realaudio", ".ram"),
+    ("application/x-python-code", ".pyc"),
+    ("application/x-rpm", ".rpm"),
+    ("application/x-sh", ".sh"),
+    ("application/x-shar", ".shar"),
+    ("application/x-shockwave-flash", ".swf"),
+    ("application/x-sv4cpio", ".sv4cpio"),
+    ("application/x-sv4crc", ".sv4crc"),
+    ("application/x-tar", ".tar"),
+    ("application/x-tcl", ".tcl"),
+    ("application/x-tex", ".tex"),
+    ("application/x-texinfo", ".texi"),
+    ("application/x-troff", ".roff"),
+    ("application/x-troff-man", ".man"),
+    ("application/x-troff-me", ".me"),
+    ("application/x-troff-ms", ".ms"),
+    ("application/x-ustar", ".ustar"),
+    ("application/x-wais-source", ".src"),
+    ("application/xml", ".xsl"),
+    ("application/yaml", ".yaml"),
+    ("application/zip", ".zip"),
+    ("audio/3gpp", ".3gp"),
+    ("audio/3gpp2", ".3g2"),
+    ("audio/aac", ".aac"),
+    ("audio/basic", ".au"),
+    ("audio/flac", ".flac"),
+    ("audio/matroska", ".mka"),
+    ("audio/mp4", ".m4a"),
+    ("audio/mpeg", ".mp3"),
+    ("audio/ogg", ".ogg"),
+    ("audio/opus", ".opus"),
+    ("audio/vnd.wave", ".wav"),
+    ("audio/webm", ".weba"),
+    ("audio/x-aiff", ".aif"),
+    ("audio/x-pn-realaudio", ".ra"),
+    ("font/otf", ".otf"),
+    ("font/ttf", ".ttf"),
+    ("font/woff", ".woff"),
+    ("font/woff2", ".woff2"),
+    ("image/avif", ".avif"),
+    ("image/bmp", ".bmp"),
+    ("image/emf", ".emf"),
+    ("image/fits", ".fits"),
+    ("image/g3fax", ".g3"),
+    ("image/gif", ".gif"),
+    ("image/heic", ".heic"),
+    ("image/heif", ".heif"),
+    ("image/ief", ".ief"),
+    ("image/jp2", ".jp2"),
+    ("image/jpeg", ".jpg"),
+    ("image/jpm", ".jpm"),
+    ("image/jpx", ".jpx"),
+    ("image/png", ".png"),
+    ("image/svg+xml", ".svg"),
+    ("image/t38", ".t38"),
+    ("image/tiff", ".tiff"),
+    ("image/tiff-fx", ".tfx"),
+    ("image/vnd.microsoft.icon", ".ico"),
+    ("image/webp", ".webp"),
+    ("image/wmf", ".wmf"),
+    ("image/x-cmu-raster", ".ras"),
+    ("image/x-portable-anymap", ".pnm"),
+    ("image/x-portable-bitmap", ".pbm"),
+    ("image/x-portable-graymap", ".pgm"),
+    ("image/x-portable-pixmap", ".ppm"),
+    ("image/x-rgb", ".rgb"),
+    ("image/x-xbitmap", ".xbm"),
+    ("image/x-xpixmap", ".xpm"),
+    ("image/x-xwindowdump", ".xwd"),
+    ("message/rfc822", ".eml"),
+    ("model/gltf+json", ".gltf"),
+    ("model/gltf-binary", ".glb"),
+    ("model/stl", ".stl"),
+    ("text/css", ".css"),
+    ("text/csv", ".csv"),
+    ("text/html", ".html"),
+    ("text/javascript", ".js"),
+    ("text/markdown", ".md"),
+    ("text/n3", ".n3"),
+    ("text/plain", ".txt"),
+    ("text/richtext", ".rtx"),
+    ("text/rtf", ".rtf"),
+    ("text/tab-separated-values", ".tsv"),
+    ("text/vtt", ".vtt"),
+    ("text/x-python", ".py"),
+    ("text/x-rst", ".rst"),
+    ("text/x-setext", ".etx"),
+    ("text/x-sgml", ".sgm"),
+    ("text/x-vcard", ".vcf"),
+    ("text/xml", ".xml"),
+    ("video/matroska", ".mkv"),
+    ("video/matroska-3d", ".mk3d"),
+    ("video/mp4", ".mp4"),
+    ("video/mpeg", ".mpeg"),
+    ("video/ogg", ".ogv"),
+    ("video/quicktime", ".mov"),
+    ("video/vnd.avi", ".avi"),
+    ("video/webm", ".webm"),
+    ("video/x-m4v", ".m4v"),
+    ("video/x-ms-wmv", ".wmv"),
+    ("video/x-sgi-movie", ".movie"),
+];
+
+/// `mimetypes.guess_extension(mime_type)`: the type's first extension, or None.
+pub fn guess_extension(mime_type: &str) -> Option<&'static str> {
+    let lower = ace_pycompat::pystr::lower(mime_type);
+    EXTENSIONS
+        .binary_search_by(|(t, _)| (*t).cmp(lower.as_ref()))
+        .ok()
+        .map(|i| EXTENSIONS[i].1)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn the_types_phishkit_renders_have_their_extensions() {
+        assert_eq!(guess_extension("text/html"), Some(".html"));
+        assert_eq!(guess_extension("application/pdf"), Some(".pdf"));
+        assert_eq!(guess_extension("TEXT/PLAIN"), Some(".txt"));
+        assert_eq!(guess_extension("application/x-nothing"), None);
+        assert!(EXTENSIONS.windows(2).all(|w| w[0].0 < w[1].0));
+    }
+}

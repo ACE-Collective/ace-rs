@@ -54,6 +54,17 @@ enabled for detection in tools/ace3/trees/detections.json, added through the det
 holding detection:write, and the tags of tools/ace3/trees/observable_tags.json, with SQL; the site
 tagger's rows are in the overlay.
 
+Then the scanners (PLAN.md 7.7): it builds ace4-js-deobfuscator and ace4-phishkit from ace3's checkout
+with docker/scanners/build when this host hasn't them, and the stack's scanner pool runs them, phishkit's
+on the e2e profile's internal network, `scanned`. It submits samples/ace4/web/phishkit_page.html as an
+email's attachment named phishkit_page.htm, the one extension tests/e2e/site/overlay.yaml lets phishkit render, in correlation mode, and phishkit_analyzer has to render it and javascript_deobfuscation
+run the script html_js_extraction writes out of it, each through a scan the queue held while its task
+waited. Then it submits the page again and dispositions the root while its phishkit scan runs, and the
+pool has to kill the scanner and remove its container; and again, and kills the pool with SIGKILL while
+the scanner runs, and the pool has to remove the container it left when it starts again, while the core
+ends the scan abandoned once its lease runs out and the module says so. ace3's scanner managers, and any
+container they started, have to be as they were.
+
 Then the library diff's self-test runs (PLAN.md 4.8), and tools/ace3/modules/check checks the module
 inventory, docs/modules.md, against ace3's config at the head of ace3's checkout (PLAN.md 7.1), and its
 modules that read ACE's own data against ace3's code, each with what serves it (7.2), and its modules
@@ -142,12 +153,18 @@ ENV = {
             "POOL_RULESET_POLL_SECONDS": "2",
             # the recorded Splunk takes any password
             "SPLUNK_PASSWORD": "ace4-fake-password",
+            # phishkit's containers go on the e2e profile's internal network, which reaches the
+            # responder and nothing outside the stack (compose.yaml's `scanned`)
+            "PHISHKIT_NETWORK": f"{PROJECT}_scanned",
         }.items()
     },
 }
 ENV.pop("COMPOSE_PROJECT_NAME", None)
 COMPOSE = ["docker", "compose", "-f", str(COMPOSE_FILE), "--profile", "e2e"]
-SERVICES = ["postgres", "bucket", "ace", "parsers", "sandbox", "lookups", "responder"]
+SERVICES = ["postgres", "bucket", "ace", "parsers", "sandbox", "lookups", "scanners", "responder"]
+# PLAN.md 7.7: the page the scanner checks render, and its inline script the deobfuscator runs
+SCANNER_PAGE = ROOT / "samples" / "ace4" / "web" / "phishkit_page.html"
+SCANNER_IMAGES = ["ace4-js-deobfuscator:latest", "ace4-phishkit:latest"]
 # The analyst the browser test logs in as, and the GUI as the browser reaches it on the stack's network.
 ANALYST = "e2e-analyst"
 ANALYST_PASSWORD = "e2e analyst password, not a secret"
@@ -262,6 +279,170 @@ def submit(email, mode="email", observables=()):
         if response.status != 201:
             raise SystemExit(f"e2e: the submission answered {response.status}")
         return json.load(response)["id"]
+
+
+def submit_file(data, name, mode, yara_meta=()):
+    """Submits a root with one file at `name`, with these yara_meta tags, and returns its uuid."""
+    boundary = f"ace4-e2e-{uuid.uuid4().hex}"
+    analysis = json.dumps({
+        "description": "ace4 end-to-end test",
+        "analysis_mode": mode,
+        "file_yara_meta": {name: list(yara_meta)},
+    })
+    body = (
+        f"--{boundary}\r\nContent-Disposition: form-data; name=\"analysis\"\r\n\r\n{analysis}\r\n"
+        f"--{boundary}\r\nContent-Disposition: form-data; name=\"file\"; filename=\"{name}\"\r\n"
+        f"Content-Type: application/octet-stream\r\n\r\n"
+    ).encode() + data + f"\r\n--{boundary}--\r\n".encode()
+    request = urllib.request.Request(
+        f"http://127.0.0.1:{PORT}/api/analysis/v1/submit", data=body, method="POST",
+        headers={"Authorization": f"Bearer {ENV['ACE4_API_KEY']}",
+                 "Content-Type": f"multipart/form-data; boundary={boundary}"},
+    )
+    with urllib.request.urlopen(request, timeout=30) as response:
+        if response.status != 201:
+            raise SystemExit(f"e2e: the submission answered {response.status}")
+        return json.load(response)["id"]
+
+
+def build_scanner_images():
+    """The scanner images (PLAN.md 7.7), built from ace3's checkout by docker/scanners/build when this
+    host hasn't them. Without a checkout, as under CI, the test can't build them, and says so."""
+    missing = [image for image in SCANNER_IMAGES if subprocess.run(
+        ["docker", "image", "inspect", image], capture_output=True).returncode != 0]
+    if not missing:
+        return
+    log(f"building the scanner images {missing} from ace3's sources")
+    names = [image.removeprefix("ace4-").removesuffix(":latest") for image in missing]
+    if subprocess.run([str(ROOT / "docker" / "scanners" / "build"), *names]).returncode != 0:
+        raise SystemExit("e2e: docker/scanners/build failed; the scanner pool needs its images")
+
+
+def scanner_containers(*labels):
+    """The ids of the containers on this host's daemon with every one of `labels`, running or not."""
+    out = subprocess.run(
+        ["docker", "ps", "-a", "-q", *[a for label in labels for a in ("--filter", f"label={label}")]],
+        capture_output=True, text=True, check=True,
+    ).stdout
+    return [line for line in out.split() if line]
+
+
+def ace3_scanner_state():
+    """ace3's scanner managers and the scanners they run, which nothing here may touch."""
+    out = subprocess.run(
+        ["docker", "ps", "-a", "--format", "{{.ID}} {{.Names}} {{.State}}",
+         "--filter", "label=com.docker.compose.project=ace"],
+        capture_output=True, text=True, check=True,
+    ).stdout
+    managers = sorted(line for line in out.splitlines() if "phishkit" in line or "deobfuscator" in line)
+    return managers, scanner_containers("phishkit.job_id")
+
+
+def running_scan(root, within=120):
+    """The id of the root's phishkit scan once its pool has started its container, and the container."""
+    def found():
+        rows = sql(f"""SELECT id FROM queue.scans WHERE root_id = '{root}' AND scanner = 'phishkit'
+                       AND state = 'running'""")
+        if not rows:
+            return None
+        containers = scanner_containers(f"ace4.scanner.stack={PROJECT}", f"ace4.scanner.scan={rows[0][0]}")
+        return (rows[0][0], containers[0]) if containers else None
+    return wait_for(f"root {root}'s phishkit scan to start its container", found, within=within)
+
+
+def check_scanners(failures):
+    """PLAN.md 7.7's Done check: phishkit_analyzer and javascript_deobfuscation results come through
+    the queue, from scans the scanner pool ran in ace3's scanner images; a cancelled root's scanner is
+    killed and its container removed; a scanner a crashed pool left is removed when the pool starts
+    again, and its scan ends abandoned; and nothing of ace3's is touched."""
+
+    def expect(ok, message):
+        log(("ok    " if ok else "FAIL  ") + message)
+        if not ok:
+            failures.append(message)
+
+    ace3_before = ace3_scanner_state()
+    page = SCANNER_PAGE.read_bytes()
+    # an email's HTML attachment in correlation mode, which phishkit renders, and whose inline script
+    # html_js_extraction writes out for the deobfuscator
+    root = submit_file(page, "phishkit_page.htm", "correlation", ["type=email.attachment"])
+    wait_for(f"root {root} to finish", lambda: completed_after(root) is not None, within=240)
+    phishkit = sql(
+        f"""SELECT r.details->>'scan_type', r.details->>'exit_code', coalesce(r.details->>'error', ''),
+                   jsonb_array_length(r.details->'output_files'), r.summary
+            FROM analysis.results r WHERE r.root_id = '{root}' AND r.module = 'phishkit_analyzer'"""
+    )
+    expect(len(phishkit) == 1 and phishkit[0][:3] == ["file", "0", ""] and int(phishkit[0][3]) >= 2,
+           f"phishkit_analyzer rendered the page in its scanner: {phishkit}")
+    files = sql(
+        f"""SELECT f.path FROM analysis.files f WHERE f.root_id = '{root}' AND f.path LIKE 'phishkit/%'"""
+    )
+    expect(any(row[0].endswith("/screenshot.png") for row in files),
+           f"its screenshot is a file in the alert: {[row[0] for row in files]}")
+    deobfuscated = sql(
+        f"""SELECT f.path, r.details->>'event_count', r.details->>'exit_code'
+            FROM analysis.results r JOIN analysis.files f
+              ON f.root_id = r.root_id AND f.observable_id = r.observable_id
+            WHERE r.root_id = '{root}' AND r.module = 'javascript_deobfuscation'"""
+    )
+    expect(any(row[2] == "0" and row[1] not in ("0", None) for row in deobfuscated),
+           f"javascript_deobfuscation ran the page's script in its scanner: {deobfuscated}")
+    trace = sql(
+        f"""SELECT f.path FROM analysis.files f WHERE f.root_id = '{root}'
+            AND f.path LIKE '%deobfuscated-%'"""
+    )
+    expect(bool(trace), f"the deobfuscator's trace is a file in the alert: {trace}")
+    scans = sql(f"SELECT scanner, state::text FROM queue.scans WHERE root_id = '{root}' ORDER BY id")
+    expect(sorted(scans) == [["js-deobfuscator", "completed"], ["phishkit", "completed"]],
+           f"the root's two scans ran through the queue and completed: {scans}")
+    left = scanner_containers(f"ace4.scanner.stack={PROJECT}")
+    expect(not left, f"no scanner container is left: {left}")
+
+    # cancelled while its scanner runs: the pool kills it at its next renewal and removes it
+    root = submit_file(page, "phishkit_page.htm", "correlation", ["type=email.attachment"])
+    scan, container = running_scan(root)
+    # dispositioning a root cancels its analysis (ace_service::Service::disposition)
+    out = compose(
+        "exec", "-T", "ace", ACE_COMMAND, "user", "create-key", "e2e-scan-canceller",
+        "--grant", "alert:write", capture=True,
+    )
+    token = next((line.split(": ", 1)[1] for line in out.splitlines()
+                  if line.startswith("token (shown once): ")), None)
+    request = urllib.request.Request(
+        f"http://127.0.0.1:{PORT}/api/alerts/v1/alerts/{root}/disposition",
+        data=json.dumps({"disposition": "FALSE_POSITIVE"}).encode(), method="PUT",
+        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+    )
+    with urllib.request.urlopen(request, timeout=30) as response:
+        expect(response.status == 200, f"the scanned root was dispositioned: {response.status}")
+    state = wait_for(f"scan {scan} to end", lambda: (sql(
+        f"SELECT state::text FROM queue.scans WHERE id = {scan} AND state <> 'running'") or [[None]])[0][0],
+        within=60)
+    gone = wait_for(f"container {container} to go", lambda: not scanner_containers(
+        f"ace4.scanner.scan={scan}", f"ace4.scanner.stack={PROJECT}") or None, within=30)
+    expect(state == "cancelled" and gone, f"a cancelled root's scanner was killed and removed: {state}")
+
+    # the pool dies with SIGKILL while its scanner runs: the scanner outlives it, and the pool removes
+    # it when it starts again; the core ends the scan abandoned when its lease runs out
+    root = submit_file(page, "phishkit_page.htm", "correlation", ["type=email.attachment"])
+    scan, container = running_scan(root)
+    compose("kill", "-s", "SIGKILL", "scanners")
+    survived = bool(scanner_containers(f"ace4.scanner.scan={scan}", f"ace4.scanner.stack={PROJECT}"))
+    compose("start", "scanners")
+    gone = wait_for(f"the restarted pool to remove container {container}", lambda: not scanner_containers(
+        f"ace4.scanner.scan={scan}", f"ace4.scanner.stack={PROJECT}") or None, within=60)
+    expect(survived and gone, "a scanner the killed pool left was removed when the pool started again")
+    wait_for(f"root {root} to finish", lambda: completed_after(root) is not None, within=240)
+    abandoned = sql(f"SELECT state::text, error FROM queue.scans WHERE id = {scan}")
+    error = sql(
+        f"""SELECT r.details->>'error' FROM analysis.results r
+            WHERE r.root_id = '{root}' AND r.module = 'phishkit_analyzer'"""
+    )
+    expect(abandoned and abandoned[0][0] == "abandoned"
+           and bool(error) and "its pool stopped reporting on it" in (error[0][0] or ""),
+           f"its scan ended abandoned, and the module says so: {abandoned} {error}")
+    ace3_after = ace3_scanner_state()
+    expect(ace3_after == ace3_before, f"ace3's scanner managers and scanners are as they were: {ace3_after}")
 
 
 def check_gui(failures):
@@ -1168,6 +1349,7 @@ def main(argv):
     browser = has_browser()
     if not browser and "ACE4_E2E_COMPOSE" not in os.environ:
         raise SystemExit("e2e: compose.yaml has no browser service")
+    build_scanner_images()
     compose("up", "-d", "--build", "--wait", *SERVICES, *(["browser"] if browser else []))
     failures = []
     try:
@@ -1207,6 +1389,7 @@ def main(argv):
             log("FAIL  the roots' normal forms differ; see normal-form*.json in " + str(WORK))
             failures.append("the same email's two roots have different normal forms")
         check_whitelist(email, failures)
+        check_scanners(failures)
         if browser:
             try:
                 check_live_alert(email, failures)
@@ -1228,7 +1411,7 @@ def main(argv):
                     "in differences.md, and every row matched one")
     finally:
         if failures or keep:
-            for service in ("ace", "parsers", "sandbox", "lookups", "responder",
+            for service in ("ace", "parsers", "sandbox", "lookups", "scanners", "responder",
                             *(["browser"] if browser else [])):
                 print(f"----- {service} logs (last 40 lines)")
                 print(compose("logs", "--no-color", "--tail", "40", service, capture=True,

@@ -1,6 +1,67 @@
 {
   "form": 1,
   "observables": {
+    "file:1d67aa91cf696c356a716e2e3d0cfaba138c80f5868a943694e9de8447539b8c": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {
+        "javascript_deobfuscation": true
+      },
+      "paths": {
+        "deobfuscated-broken.js": {
+          "type=script.javascript": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:469ffd53d3d26f6bb2d0bbe7760da92d3f36e0066b8b21b714a14104034fe4ac": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text"
+          },
+          "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:469ffd53d3d26f6bb2d0bbe7760da92d3f36e0066b8b21b714a14104034fe4ac": {
       "detections": {},
       "directives": {},
@@ -40,6 +101,26 @@
           "summary": "File Type Analysis: ASCII text (text/plain)",
           "tags": {}
         },
+        "javascript_deobfuscation": {
+          "details": {
+            "dom_snapshot": false,
+            "dom_snapshot_source": null,
+            "error": "evalmachine.<anonymous>:1\nfunction (\n^^^^^^^^\n\nSyntaxError: Function statements require a function name\n    at new Script (node:vm:118:7)\n    at file:///opt/app/harness.js:907:12",
+            "error_type": "compile",
+            "event_count": 0,
+            "exit_code": 0,
+            "extracted_files": [
+              "deobfuscated-broken.js"
+            ],
+            "secondary_script_count": 0,
+            "stderr": "",
+            "stdout": "{\"status\":\"error_during_run\",\"event_count\":0,\"secondary_script_count\":0,\"error\":\"evalmachine.<anonymous>:1\\nfunction (\\n^^^^^^^^\\n\\nSyntaxError: Function statements require a function name\\n    at new Script (node:vm:118:7)\\n    at file:///opt/app/harness.js:907:12\",\"error_type\":\"compile\",\"webcrack_status\":\"failed: Unexpected token (1:9)\",\"webcrack_error\":\"Unexpected token (1:9)\",\"blob_files\":[],\"dom_snapshot\":false}",
+            "webcrack_error": "Unexpected token (1:9)",
+            "webcrack_status": "failed: Unexpected token (1:9)"
+          },
+          "summary": "JavaScript Deobfuscation: failed: evalmachine.<anonymous>:1\nfunction (\n^^^^^^^^\n\nSyntaxError: Function statements require a function name\n    at new Script (node:vm:118:7)\n    at file:///opt/app/harness.js:907:12",
+          "tags": {}
+        },
         "observable_detection": {
           "details": {
             "for_detection": false
@@ -55,7 +136,9 @@
           "tags": {}
         }
       },
-      "tags": {}
+      "tags": {
+        "js": true
+      }
     },
     "md5:08d4628215b2aa0afc45985258c94ed2": {
       "detections": {},

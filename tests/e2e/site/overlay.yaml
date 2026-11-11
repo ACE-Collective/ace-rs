@@ -26,6 +26,16 @@ modules:
       csv: |
         url,glob,false,http://192.0.2.1:8080/*,lab_url
         fqdn,subdomain,false,pcap-http.example,pcap_lab
+  # phishkit loads no URL in the test and renders only `.htm` files: the comparison's samples have URLs
+  # other modules mark to crawl, which are on the internet, and HTML bodies of emails that become alerts,
+  # and ace3's trees have no phishkit, since make-trees doesn't enable it, as it would load those URLs.
+  # Every URL a scanner loads has "://" in it, and no sample is a `.htm` file. tests/e2e/run's
+  # check_scanners renders a `.htm` page through it in correlation mode.
+  phishkit_analyzer:
+    settings:
+      deny_crawl_url_patterns: ["://"]
+      valid_file_extensions: [".htm"]
+      valid_mime_types: []
   splunk_api:
     instances:
       # in ace3's correlation group, so a root that becomes an alert runs it, as make-trees

@@ -67,10 +67,24 @@ pub struct Run<'a> {
     pub reader: Option<Arc<dyn Reader>>,
     /// What runs the module's tools (PLAN.md 7.3): the supervisor, for a contained task.
     pub tools: Option<Arc<dyn ToolRunner>>,
+    /// The task's latest scan's output archive on this machine (PLAN.md 7.7).
+    pub scan_output: Option<&'a Path>,
 }
 
 impl Run<'_> {
     /// What the task's leased form and its fetched file say of the email that carried it.
+    /// The task's latest scan, as its module reads it, with its output where the pool put it.
+    fn scan(&self) -> Option<ace_sdk::scanners::Scan> {
+        self.task.scan.as_ref().map(|scan| ace_sdk::scanners::Scan {
+            id: scan.id,
+            scanner: scan.scanner.clone(),
+            state: scan.state,
+            exit_code: scan.exit_code,
+            error: scan.error.clone(),
+            output: self.scan_output.map(Path::to_path_buf),
+        })
+    }
+
     fn carrying_email(&self) -> CarryingEmail {
         if self.task.emails_pending {
             return CarryingEmail::Pending;
@@ -153,7 +167,8 @@ impl<M: ace_sdk::Module> Entry<M> {
         .with_related_tags(run.task.related_tags.clone())
         .with_tree(run.task.tree.clone())
         .with_tree_files(run.tree_files.map(Path::to_path_buf))
-        .with_tool_runner(run.tools.clone());
+        .with_tool_runner(run.tools.clone())
+        .with_scan(run.scan());
         match &run.task.delayed {
             Some(delayed) => ctx.with_delayed(delayed.clone()),
             None => ctx,
@@ -223,6 +238,7 @@ pub fn task_end<D: AnalysisType>(
         Ok(Outcome::Delay(delay)) => TaskEnd::Delay {
             after_seconds: delay.run_after.as_secs_f64(),
             state: delay.state,
+            scan: delay.scan,
         },
         Ok(Outcome::Skipped(reason)) => TaskEnd::Skipped { reason, writes },
         Err(ModuleError::Cancelled) => TaskEnd::Cancelled,
@@ -451,6 +467,7 @@ mod tests {
             added_by: Vec::new(),
             related_tags: Vec::new(),
             tree: None,
+            scan: None,
         }
     }
 
@@ -505,6 +522,7 @@ mod tests {
                 contained: false,
                 reader: None,
                 tools: None,
+                scan_output: None,
             }
             .carrying_email()
         };

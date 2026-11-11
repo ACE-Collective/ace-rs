@@ -2314,6 +2314,8 @@ fn each_module_s_view_draws_its_fixture() {
         "user_defined_tagging_tagged",
         "user_defined_tagging_untagged",
         "site_tagger_two_rows",
+        "javascript_deobfuscation_blob_redirect",
+        "phishkit_url_scan",
     ];
     let mut types = BTreeSet::new();
     for name in fixtures {
@@ -2843,6 +2845,23 @@ fn each_module_s_view_draws_its_fixture() {
                 &[
                     "<tr><th>tag</th><td>first</td></tr>",
                     "<tr><th>tag</th><td>third</td></tr>",
+                ],
+            ),
+            "javascript_deobfuscation_blob_redirect" => contains_all(
+                &html,
+                &[
+                    "<tr><th>event_count</th><td>6</td></tr>",
+                    "<tr><th>extracted_file</th><td>blob_redirect.js.blob_0.html</td></tr>",
+                    "<tr><th>webcrack_status</th><td>applied</td></tr>",
+                ],
+            ),
+            // what the kit's page served is escaped, as anything from a scan is
+            "phishkit_url_scan" => contains_all(
+                &html,
+                &[
+                    "<tr><th>scan_result</th><td>successfully scanned url(https://kit.evil.example/start)</td></tr>",
+                    "downloads/invoice.zip</td></tr>",
+                    "&#34;final_route&#34;: &#34;none&#34;",
                 ],
             ),
             other => panic!("no checks for {other}"),

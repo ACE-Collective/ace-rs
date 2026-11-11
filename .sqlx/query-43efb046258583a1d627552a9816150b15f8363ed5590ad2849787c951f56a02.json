@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE queue.tasks SET run_after = now(), updated_at = now()\n         WHERE id = $1 AND state = 'delayed' AND run_after > now()",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "43efb046258583a1d627552a9816150b15f8363ed5590ad2849787c951f56a02"
+}

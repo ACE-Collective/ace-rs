@@ -70,6 +70,7 @@ pub fn main(modules: &Modules) -> ExitCode {
         // a parser declares no reads
         reader: None,
         tools,
+        scan_output: request.scan_output.as_deref(),
     });
     let reply = match serde_json::to_vec(&end) {
         Ok(reply) => reply,

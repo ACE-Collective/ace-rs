@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE queue.scans SET cancel_requested = true\n         WHERE task_id = $1 AND state = 'running' AND NOT cancel_requested",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "23c43986323a2721ba1ff2875ca1a01fe2559b1fbe2d95f2ab87cead9e48d9de"
+}

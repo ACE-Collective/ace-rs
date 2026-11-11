@@ -483,10 +483,27 @@ impl Worker {
         let run_after = self
             .db
             .transaction(Isolation::ReadCommitted, |tx| {
-                Box::pin(async move {
-                    let root = self.lock_task_root(tx, task).await?;
-                    let row = sqlx::query!(
-                        r#"UPDATE queue.tasks
+                Box::pin(async move { self.delay_in(tx, task, after, state).await })
+            })
+            .await?;
+        run_after
+            .map(|(run_after, _)| run_after)
+            .ok_or(QueueError::Cancelled(task))
+    }
+
+    /// `delay` inside the caller's transaction, which also queues what the task waits for, such as
+    /// its scan (PLAN.md 7.7). The task's root stays locked. None when the root was cancelled while
+    /// the task ran, so the task ended cancelled instead; otherwise when it runs again, and its root.
+    pub async fn delay_in(
+        &self,
+        tx: &mut Tx<'_>,
+        task: TaskId,
+        after: Duration,
+        state: &serde_json::Value,
+    ) -> Result<Option<(DateTime<Utc>, Uuid)>, QueueError> {
+        let root = self.lock_task_root(tx, task).await?;
+        let row = sqlx::query!(
+            r#"UPDATE queue.tasks
                SET state = CASE WHEN cancel_requested THEN 'cancelled'::queue.task_state
                                 ELSE 'delayed'::queue.task_state END,
                    run_after = now() + make_interval(secs => $3),
@@ -495,24 +512,20 @@ impl Worker {
                    lease_expires_at = NULL, updated_at = now()
                WHERE id = $1 AND lease_owner = $2 AND state = 'running'
                RETURNING run_after, state AS "state: TaskState""#,
-                        task as TaskId,
-                        self.name,
-                        after.as_secs_f64(),
-                        state,
-                    )
-                    .fetch_optional(tx.conn())
-                    .await?
-                    .ok_or(QueueError::LeaseLost(task))?;
-                    // a task whose root was cancelled while it ran ends here instead
-                    if row.state == TaskState::Cancelled {
-                        check_completion(tx, root).await?;
-                        return Ok(None);
-                    }
-                    Ok::<_, QueueError>(Some(row.run_after))
-                })
-            })
-            .await?;
-        run_after.ok_or(QueueError::Cancelled(task))
+            task as TaskId,
+            self.name,
+            after.as_secs_f64(),
+            state,
+        )
+        .fetch_optional(tx.conn())
+        .await?
+        .ok_or(QueueError::LeaseLost(task))?;
+        // a task whose root was cancelled while it ran ends here instead
+        if row.state == TaskState::Cancelled {
+            check_completion(tx, root).await?;
+            return Ok(None);
+        }
+        Ok(Some((row.run_after, root)))
     }
 
     /// The task's root, locked until the transaction ends.
@@ -792,6 +805,8 @@ pub async fn cancel_root(tx: &mut Tx<'_>, root: Uuid) -> Result<CancelledRoot, Q
     )
     .fetch_all(tx.conn())
     .await?;
+    // the scans its tasks wait for (PLAN.md 7.7): a scanner pool kills a running one's container
+    crate::scans::cancel_for_root(tx, root).await?;
     check_completion(tx, root).await?;
     tracing::info!(
         %root,
@@ -1087,7 +1102,7 @@ pub async fn completions(db: &Db, root: Uuid) -> Result<Vec<Completion>, QueueEr
     .collect())
 }
 
-/// Runs `reap_expired_leases` and `commands::reap_commands` every `interval` until `stop` fires.
+/// Runs `reap_expired_leases`, `commands::reap_commands` and `scans::reap_scans` every `interval` until `stop` fires.
 pub async fn run_reaper(db: Db, interval: Duration, stop: CancellationToken) {
     loop {
         if let Err(e) = reap_expired_leases(&db).await {
@@ -1096,6 +1111,10 @@ pub async fn run_reaper(db: Db, interval: Duration, stop: CancellationToken) {
         // GUI commands (PLAN.md 5.12) never run twice, so their lost leases end them
         if let Err(e) = crate::commands::reap_commands(&db).await {
             tracing::error!("the reaper failed on commands: {e}");
+        }
+        // nor do scans (PLAN.md 7.7), whose tasks are woken to decide
+        if let Err(e) = crate::scans::reap_scans(&db).await {
+            tracing::error!("the reaper failed on scans: {e}");
         }
         tokio::select! {
             () = stop.cancelled() => return,

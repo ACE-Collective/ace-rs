@@ -82,6 +82,7 @@ use ace_results::types::pdf::PdfAnalysis;
 use ace_results::types::rdap::RdapAnalysis;
 use ace_results::types::rtf::RtfOleObjectAnalysis;
 use ace_results::types::sandbox::{ExifAnalysis, OcrAnalysis, PdfTextAnalysis, QrCodeAnalysis};
+use ace_results::types::scanners::{JavaScriptDeobfuscationAnalysis, PhishkitAnalysis};
 use ace_results::types::scripts::{
     ExtractedRtfAnalysis, MicrosoftScriptEncodingAnalysis, NoWhiteSpaceAnalysis, VbScriptAnalysis,
 };
@@ -287,6 +288,8 @@ impl Views {
             .with(ViewEntry::of::<ObservableDetectionAnalysis>())
             .with(ViewEntry::of::<UserDefinedTaggingAnalysis>())
             .with(ViewEntry::of::<SiteTagAnalysis>())
+            .with(ViewEntry::of::<JavaScriptDeobfuscationAnalysis>())
+            .with(ViewEntry::of::<PhishkitAnalysis>())
     }
 
     /// These views with `entry`, which takes the place of any view of the same type and version, so a
@@ -2025,6 +2028,112 @@ impl AnalysisView for IlspyAnalysis {
             field("exit_code", self.exit_code.as_ref()),
             field("stderr", self.stderr.as_ref()),
         ])
+    }
+}
+
+// ---- the scanners (7.7): ace3's default_template.html ----
+
+/// A JSON value as text: a string as itself, anything else as its JSON. None for null.
+fn value_text(value: Option<&Value>) -> Option<String> {
+    match value? {
+        Value::Null => None,
+        Value::String(s) => Some(s.clone()),
+        other => Some(json_text(other)),
+    }
+}
+
+/// `javascript_deobfuscation_analysis`: what the harness's run found, the files it added, and what
+/// the scanner wrote.
+impl AnalysisView for JavaScriptDeobfuscationAnalysis {
+    type View<'a> = FieldsView;
+    fn view(&self) -> FieldsView {
+        let mut fields = vec![
+            field("error", value_text(self.error.as_ref())),
+            field("error_type", value_text(self.error_type.as_ref())),
+            field("exit_code", self.exit_code.as_ref()),
+            field("event_count", Some(self.event_count)),
+            field("secondary_script_count", Some(self.secondary_script_count)),
+            field("webcrack_status", value_text(self.webcrack_status.as_ref())),
+            field("webcrack_error", value_text(self.webcrack_error.as_ref())),
+            field(
+                "dom_snapshot",
+                Some(if self.dom_snapshot { "yes" } else { "no" }),
+            ),
+            field("dom_snapshot_source", self.dom_snapshot_source.as_ref()),
+        ];
+        fields.extend(
+            self.extracted_files
+                .iter()
+                .take(MAX_ITEMS)
+                .map(|f| field("extracted_file", Some(f))),
+        );
+        fields.push(field(
+            "stdout",
+            self.stdout
+                .as_ref()
+                .filter(|s| !s.is_empty())
+                .map(|s| clipped(s)),
+        ));
+        fields.push(field(
+            "stderr",
+            self.stderr
+                .as_ref()
+                .filter(|s| !s.is_empty())
+                .map(|s| clipped(s)),
+        ));
+        fields_view(fields)
+    }
+}
+
+/// `phishkit_analysis`: the scan, the files it added, its metrics and what the scanner wrote.
+impl AnalysisView for PhishkitAnalysis {
+    type View<'a> = FieldsView;
+    fn view(&self) -> FieldsView {
+        let mut fields = vec![
+            field("error", self.error.as_ref()),
+            field("scan_type", self.scan_type.as_ref()),
+            field("job_id", self.job_id.as_ref()),
+            field("scan_result", self.scan_result.as_ref()),
+            field("exit_code", self.exit_code.as_ref()),
+        ];
+        fields.extend(
+            self.output_files
+                .iter()
+                .take(MAX_ITEMS)
+                .map(|f| field("output_file", Some(f))),
+        );
+        fields.push(field(
+            "metrics",
+            value_text(self.metrics.as_ref()).map(|s| clipped(&s)),
+        ));
+        fields.push(field(
+            "proxy_status",
+            value_text(self.proxy_status.as_ref()),
+        ));
+        fields.push(field(
+            "stdout",
+            self.stdout
+                .as_ref()
+                .filter(|s| !s.is_empty())
+                .map(|s| clipped(s)),
+        ));
+        fields.push(field(
+            "stderr",
+            self.stderr
+                .as_ref()
+                .filter(|s| !s.is_empty())
+                .map(|s| clipped(s)),
+        ));
+        fields_view(fields)
+    }
+}
+
+/// At most `MAX_TEXT` bytes of `text`, cut at a character, saying how much more there was.
+fn clipped(text: &str) -> String {
+    let clipped = clip(text, MAX_TEXT);
+    match clipped.more {
+        0 => clipped.text,
+        more => format!("{}\n... {more} more bytes", clipped.text),
     }
 }
 

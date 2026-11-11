@@ -14,7 +14,7 @@ Versions are those of ace3's image: Python packages from `installer/requirements
 | lookup | the async network pool: DNS, HTTP APIs, and ACE's own data through the internal API (7.2), parsing nothing hostile |
 | core | work over the whole tree that edits other nodes or the root's mode, which only the core's orchestrator can do |
 | sandbox | a parser pool whose image carries external programs, which its supervisor runs at a task's request in ACE's sandbox runner (*External tools*, 7.3) |
-| scanner | 7.7's pool that starts a scanner image per file and reads back what it wrote |
+| scanner | 7.7's scanner pool, the one process with the Docker socket, which starts a scanner image per scan, and parses nothing it wrote; the module itself runs on the parser pool, which asks for the scan, waits for it as a delayed task, and reads what came back contained |
 
 ## Counts
 
@@ -24,18 +24,17 @@ Versions are those of ace3's image: Python packages from `installer/requirements
 | lookup | 17 | 15 |
 | core | 3 | 0 |
 | sandbox | 15 | 15 |
-| scanner | 2 | 0 |
-| all | 90 | 83 |
+| scanner | 2 | 2 |
+| all | 90 | 85 |
 
 | Step | Modules |
 |---|---|
-| done | 83 |
+| done | 85 |
 | 7.6 | 2 |
-| 7.7 | 2 |
 | 7.10 | 2 |
 | owner | 1 |
 
-No ace3 module goes to 7.8 or 7.9: 7.8's integrations are a site's (below), and remediation and file collection are services, not modules. "done" is the ten modules phases 1 to 4 ported and those 7.4, 7.5 and 7.6 have ported since. "owner" is a module no step names.
+No ace3 module goes to 7.8 or 7.9: 7.8's integrations are a site's (below), and remediation and file collection are services, not modules. "done" is the ten modules phases 1 to 4 ported and those 7.4, 7.5, 7.6 and 7.7 have ported since. "owner" is a module no step names.
 
 ## 7.5's batches
 
@@ -146,7 +145,7 @@ Batch 10's image (`docker/ace4/Dockerfile`'s `sandbox` target, on `debian:13.7-s
 | jscript.decode.pl | `microsoft_script_encoding_analysis` | none | about 80 lines of Perl, ported in batch 6 (`ace_mod_scripts::mse::decode`), matching the Perl byte for byte (`docs/measurements/scripts.md`) | **crate** | none |
 | git | `yara_scanner_v3_4`, `observable_modifier`, `svs_yara_sample_capture` | not run | the ruleset records its commit (2.26) | **none** | none |
 | version probes (`probe_binary_version`) | `ocr`, `qrcode` | not run | they key ace3's analysis result cache, which ace4 doesn't have (6.7) | **none** | none |
-| docker, through the scanner managers | `javascript_deobfuscation`, `phishkit_analyzer` | not ACE's | 7.7 | **scanner** | 7.7's images |
+| docker, through the scanner managers | `javascript_deobfuscation`, `phishkit_analyzer` | not ACE's | 7.7: the scanner pool, `ace_pool::scanners`, over Docker's API | **scanner** | `ace4-js-deobfuscator` and `ace4-phishkit`, built from ace3's sources by `docker/scanners/build` |
 
 ### Modules that start a process
 
@@ -203,7 +202,7 @@ In the config's order. ace4 is the crate a ported module is in.
 | `tls_keylog` | `TlsKeylogAnalyzer` | `ace-mod-pcap` | parser | done | file | analysis, binary, cli, correlation, email, file |
 | `html_js_extraction` | `HTMLJavaScriptExtractor` | `ace-mod-html` | parser | done | file | analysis, binary, cli, correlation, email, file |
 | `onenote_extraction` | `OneNoteFileAnalyzer` | `ace-mod-office` | parser | done | file | analysis, binary, cli, correlation, email, file |
-| `javascript_deobfuscation` | `JavaScriptDeobfuscationAnalyzer` | not yet | scanner | 7.7 | file | analysis, binary, cli, correlation, email, file |
+| `javascript_deobfuscation` | `JavaScriptDeobfuscationAnalyzer` | `ace-mod-scanners` | scanner | done | file | analysis, binary, cli, correlation, email, file |
 | `command_line_analyzer` | `CommandLineAnalyzer` | `ace-mod-values` | parser | done | common | analysis, binary, cli, correlation, email, file |
 | `mailbox_email_analyzer` | `MailboxEmailAnalyzer` | `ace-mod-emailtree` | parser | done | email | analysis, cli, correlation, email |
 | `email_analyzer` | `EmailAnalyzer` | `ace-mod-email` | parser | done | email | analysis, cli, correlation, email |
@@ -280,7 +279,7 @@ In the config's order. ace4 is the crate a ported module is in.
 | `svs_alert_tagger` | `SVSAlertTagger` | not yet | lookup | 7.10 | - | correlation |
 | `dhash` | `DHashImageAnalyzer` | `ace-mod-files` | parser | done | file | analysis, binary, cli, correlation, email, file |
 | `observable_detection` | `ObservableDetectionAnalyzer` | `ace-mod-tag` | lookup | done | common | analysis, binary, cli, correlation, email, file |
-| `phishkit_analyzer` | `PhishkitAnalyzer` | not yet | scanner | 7.7 | correlation, file | analysis, binary, cli, correlation, email, file |
+| `phishkit_analyzer` | `PhishkitAnalyzer` | `ace-mod-scanners` | scanner | done | correlation, file | analysis, binary, cli, correlation, email, file |
 | `clicker_detection_splunk` | `SplunkClickerDetectionAnalyzer` | `ace-mod-splunk` | lookup | done | correlation | analysis, cli, correlation |
 
 ## Entries
@@ -522,9 +521,9 @@ In the config's order. ace4 is the crate a ported module is in.
 ### javascript_deobfuscation
 
 - **Section**: `analysis_module_javascript_deobfuscation`, class `JavaScriptDeobfuscationAnalyzer` in `saq/modules/file_analysis/js.py`, enabled by default.
-- **ace4**: not yet.
+- **ace4**: ported in `ace-mod-scanners`. The module runs on the parser pool and reads its root's tree for the DOM snapshot of the document the script runs in, which `html_js_extraction` and `har_extraction` keep in their results' `dom_snapshots` (`Module::READS_TREE_DETAILS`), or for a script fetched from a URL, that URL's `extracted_from` document's. Its first run asks for a js-deobfuscator scan of the script, with the snapshot beside it as `<script>.dom.json`, and its task waits for the scan as a delayed task, up to `celery_timeout`; the scanner pool runs `ace4-js-deobfuscator`, ace3's image built from ace3's sources (`docker/scanners/build`), with `--network none` as ace3's manager does, and its next run reads the output, contained, and makes the manager's `report.json` from stdout as the manager does. It waits for `file_type` and leaves out the `script.javascript` tag file_type's own test gives, since ace3 runs it before file_type in its configuration's order and never sees that tag; in ace4, without the wait, which landed first would be a race. Matches ace3's dumps on 9 inputs (`crates/ace-mod-scanners/tests/differences.md`); the trace's bytes differ from run to run in both, by the job id in its `// source:` line, so the comparison keys it by its path (`ace compare`'s `VOLATILE_PREFIXES`). No volatile observables, as elsewhere in ace4.
 - **Pool**: scanner. Runs attacker JavaScript in node in a no-network container that a Celery manager starts through the Docker socket; 7.7's scanner pool replaces the manager.
-- **Step**: 7.7.
+- **Step**: done.
 - **Does**: Sends a JavaScript file (.js extension or yara meta type=script.javascript) to the js-deobfuscator Celery service, which runs it in a throwaway no-network Node container (webcrack static pass plus a node:vm sandbox that traces writes to stubbed browser/Acrobat globals), and adds the reconstructed trace and any Blob payloads as file observables marked for URL extraction.
 - **Input**: file.
 - **Groups and modes**: groups file; modes analysis, binary, cli, correlation, email, file.
@@ -2163,9 +2162,9 @@ In the config's order. ace4 is the crate a ported module is in.
 ### phishkit_analyzer
 
 - **Section**: `analysis_module_phishkit_analyzer`, class `PhishkitAnalyzer` in `saq/modules/phishkit.py`, enabled by default.
-- **ace4**: not yet.
+- **ace4**: ported in `ace-mod-scanners`. The module runs on the parser pool; a URL needs `crawl` (`Module::REQUIRED_DIRECTIVES_BY_KIND`), so the core queues it when another module adds one, as ace3's `custom_requirement` lets it run then; a file renders only in correlation mode, which it reads from its tree. Its first run asks for a phishkit scan, `scanner.py <url>` or `--file <path>` with the extension the file's type has (the manager's `_correct_file_extension`), and its task waits for it as a delayed task, up to `max(scanner_timeout, 60) * 2 + 30` seconds, as ace3's `delay_analysis`; the scanner pool runs `ace4-phishkit`, ace3's image built from ace3's sources, with the manager's `--init`, `--stop-timeout 5`, 2 GiB of memory and swap and 2 CPUs, on Docker's default network or `ACE4_PHISHKIT_NETWORK`'s, and stops it with SIGTERM at the deadline so it flushes what it has, as the manager does. Its next run reads the output, contained: the files, `requests.json`, the bodies corpus and `metrics.json`, and makes the manager's `proxy.json`. Matches ace3's dumps on 8 inputs, from a real file scan and URL scans made from it (`crates/ace-mod-scanners/tests/phishkit_differences.md`). Not carried over: proxies (ace3's named proxy configuration, its credentials, and the manager's retry without the proxy, which parses `requests.json` and so would be this module's next run), fluent-bit's metrics events, the analysis cache, and the manager's per-scan copy of `etc/phishkit_config.yaml`: the scanner reads the copy its image was built with, and `deny_crawl_url_patterns` is the module's setting. Its trees aren't compared: make-trees doesn't enable it, since it would load the samples' URLs on the internet, and tests/e2e/site/overlay.yaml keeps ace4's from loading any; tests/e2e/run renders a page through it instead (PLAN.md 7.7).
 - **Pool**: scanner. Drives Chrome against attacker URLs in a container a Celery manager starts; 7.7's scanner pool replaces the manager, with a delayed task while it runs.
-- **Step**: 7.7.
+- **Step**: done.
 - **Does**: Sends a URL with the crawl directive (or, in correlation mode, an HTML/PDF file with the render directive or an email attachment) to the phishkit Celery service, which loads it in headless Chrome (SeleniumBase UC mode) in a throwaway container, then adds the screenshots, rendered DOM, captured requests/bodies and downloads as file observables and the requested and captured URLs as url observables.
 - **Input**: url; file.
 - **Groups and modes**: groups correlation, file; modes analysis, binary, cli, correlation, email, file.

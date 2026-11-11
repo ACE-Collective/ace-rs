@@ -27,7 +27,13 @@
 //! `ACE4_HEALTH_FILE`. It contains itself before its runtime starts a thread: it may connect only
 //! to its modules' TCP ports, the lease API's and the collector's.
 //!
-//! Both run until SIGTERM.
+//! A scanner pool (PLAN.md 7.7) reads `ACE4_API_URL`, `ACE4_POOL_TOKEN`, `ACE4_STACK` (`ace4`), which
+//! its containers' labels and names carry, `ACE4_DOCKER_SOCKET` (`/var/run/docker.sock`),
+//! `ACE4_CONCURRENCY` (4), each scanner's image and network variables (`ace_sdk::scanners`) and
+//! `ACE4_HEALTH_FILE`. It holds the Docker socket and parses nothing a scanner wrote
+//! (`ace_pool::scanners`).
+//!
+//! All run until SIGTERM.
 
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
@@ -43,7 +49,7 @@ use ace_pool::supervisor::{EXIT_SETUP, Supervisor, SupervisorConfig};
 use ace_sdk::{Component, Overlay};
 use tokio_util::sync::CancellationToken;
 
-use crate::{LookupPool, ParserPool, Rulesets};
+use crate::{LookupPool, ParserPool, Rulesets, ScannerPool};
 
 /// The overlay at `path`, or none.
 fn overlay(path: Option<&Path>) -> Result<Overlay, String> {
@@ -435,6 +441,40 @@ pub fn lookup_main(pool: &LookupPool) -> ExitCode {
         let beating = tokio::spawn(heartbeat(health_file(), stop.clone()));
         let stats = AsyncPool::new(client, &definition).run(stop).await;
         tracing::info!(tasks = stats.tasks, errors = stats.errors, "stopped");
+        join_all(vec![("heartbeat", beating)]).await;
+        ExitCode::SUCCESS
+    })
+}
+
+/// A scanner pool's binary.
+pub fn scanner_main(pool: &ScannerPool) -> ExitCode {
+    let mut telemetry = ace_pool::telemetry::init(&format!("ace4-{}", pool.name), "info");
+    let client = match LeaseClient::from_env(&worker_name()) {
+        Ok(client) => client,
+        Err(e) => {
+            eprintln!("{e}");
+            return ExitCode::from(2);
+        }
+    };
+    if let Err(e) = telemetry.start_export() {
+        eprintln!("no span export: {e}");
+    }
+    let host = std::fs::read_to_string("/etc/hostname").unwrap_or_default();
+    let mut config = ace_pool::scanners::ScannerPoolConfig::new(
+        &var("ACE4_STACK", "ace4"),
+        host.trim(),
+        &pool.scanners,
+        &|name| std::env::var(name).ok(),
+    );
+    config.socket = PathBuf::from(var("ACE4_DOCKER_SOCKET", "/var/run/docker.sock"));
+    config.concurrency = number("ACE4_CONCURRENCY", 4);
+    with_runtime(async move {
+        let stop = stop_on_signal();
+        let beating = tokio::spawn(heartbeat(health_file(), stop.clone()));
+        let stats = ace_pool::scanners::ScannerPool::new(client, config)
+            .run(stop)
+            .await;
+        tracing::info!(scans = stats.scans, errors = stats.errors, "stopped");
         join_all(vec![("heartbeat", beating)]).await;
         ExitCode::SUCCESS
     })

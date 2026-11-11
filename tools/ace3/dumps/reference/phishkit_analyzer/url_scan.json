@@ -1,0 +1,332 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "PhishkitAnalysis",
+      "details": {
+        "error": null,
+        "exit_code": 0,
+        "job_id": "00000000-0000-4000-8000-000000000000",
+        "metrics": {
+          "document_url": "https://kit.evil.example/login#victim@corp.example",
+          "domain_stats": {
+            "kit.evil.example": {
+              "bytes": 2048,
+              "requests": 2
+            }
+          },
+          "scan_duration_seconds": 12.5,
+          "timestamp": "2026-11-10T00:00:00Z",
+          "total_bytes_downloaded": 3145728,
+          "url_scanned": "https://kit.evil.example/start"
+        },
+        "output_dir": "<work>/tmp/tmp0274pkje",
+        "output_files": [
+          "phishkit/00000000-0000-4000-8000-000000000000/response_bodies.txt",
+          "phishkit/00000000-0000-4000-8000-000000000000/requests.json",
+          "phishkit/00000000-0000-4000-8000-000000000000/dom.html",
+          "phishkit/00000000-0000-4000-8000-000000000000/screenshot.png",
+          "phishkit/00000000-0000-4000-8000-000000000000/downloads/invoice.zip"
+        ],
+        "proxy_status": {
+          "configured": false,
+          "fallback_details": {},
+          "fallback_enabled": true,
+          "fallback_reason": null,
+          "fallback_triggered": false,
+          "final_route": "none",
+          "host": null
+        },
+        "scan_result": "successfully scanned url(https://kit.evil.example/start)",
+        "scan_type": "url",
+        "stderr": "",
+        "stdout": "{'screenshot': True}\n"
+      },
+      "detections": [],
+      "module_path": "saq.modules.phishkit:PhishkitAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=document.html.phishkit"
+          ],
+          "excluded_analysis": [
+            "saq.modules.file_analysis.html_js_extraction:<class 'saq.modules.file_analysis.html_js_extraction.HTMLJavaScriptExtractor'>",
+            "saq.modules.file_analysis.pdf:<class 'saq.modules.file_analysis.pdf.PDFAnalyzer'>",
+            "saq.modules.phishkit:<class 'saq.modules.phishkit.PhishkitAnalyzer'>"
+          ],
+          "file_path": "phishkit/00000000-0000-4000-8000-000000000000/response_bodies.txt",
+          "relationships": [],
+          "size": 309,
+          "tags": [],
+          "type": "file",
+          "value": "3320bfe1697cc350476b78ff3c2f4382ae6a41cee0187fe3421ff30a14964a63",
+          "yara_meta": [
+            "type=document.html.phishkit"
+          ]
+        },
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=document.html.phishkit"
+          ],
+          "excluded_analysis": [
+            "saq.modules.file_analysis.pdf:<class 'saq.modules.file_analysis.pdf.PDFAnalyzer'>",
+            "saq.modules.phishkit:<class 'saq.modules.phishkit.PhishkitAnalyzer'>"
+          ],
+          "file_path": "phishkit/00000000-0000-4000-8000-000000000000/requests.json",
+          "relationships": [],
+          "size": 1063,
+          "tags": [],
+          "type": "file",
+          "value": "83cfa13be5f7556ce240f8b745649df26a00505fba09bd9e75b2c30eccf6897d",
+          "yara_meta": [
+            "type=document.html.phishkit"
+          ]
+        },
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=document.html.phishkit"
+          ],
+          "excluded_analysis": [
+            "saq.modules.file_analysis.pdf:<class 'saq.modules.file_analysis.pdf.PDFAnalyzer'>",
+            "saq.modules.phishkit:<class 'saq.modules.phishkit.PhishkitAnalyzer'>"
+          ],
+          "file_path": "phishkit/00000000-0000-4000-8000-000000000000/dom.html",
+          "relationships": [
+            {
+              "target": {
+                "type": "url",
+                "value": "https://kit.evil.example/login#victim@corp.example"
+              },
+              "type": "downloaded_from"
+            }
+          ],
+          "size": 780,
+          "tags": [],
+          "type": "file",
+          "value": "65d0ada6e4625fcde0b20de15137b3d0640383e741330887137db3d3c965e00d",
+          "yara_meta": [
+            "type=document.html.phishkit"
+          ]
+        },
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=document.html.phishkit"
+          ],
+          "excluded_analysis": [
+            "saq.modules.file_analysis.pdf:<class 'saq.modules.file_analysis.pdf.PDFAnalyzer'>",
+            "saq.modules.phishkit:<class 'saq.modules.phishkit.PhishkitAnalyzer'>"
+          ],
+          "file_path": "phishkit/00000000-0000-4000-8000-000000000000/screenshot.png",
+          "relationships": [],
+          "size": 14941,
+          "tags": [],
+          "type": "file",
+          "value": "d33fef4c2c078949064bc0442989c82569e3ac25eb9747847adc0d5b1228a25c",
+          "yara_meta": [
+            "type=document.html.phishkit"
+          ]
+        },
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=document.html.phishkit"
+          ],
+          "excluded_analysis": [
+            "saq.modules.file_analysis.pdf:<class 'saq.modules.file_analysis.pdf.PDFAnalyzer'>",
+            "saq.modules.phishkit:<class 'saq.modules.phishkit.PhishkitAnalyzer'>"
+          ],
+          "file_path": "phishkit/00000000-0000-4000-8000-000000000000/downloads/invoice.zip",
+          "relationships": [],
+          "size": 20,
+          "tags": [],
+          "type": "file",
+          "value": "45adb12d349e6fdc63a7cb838650f32fe4b5111d2c5ebe0ffedf6c95029762be",
+          "yara_meta": [
+            "type=document.html.phishkit"
+          ]
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "display_type": "Phishkit Request URL",
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "url",
+          "value": "https://kit.evil.example/login"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "display_type": "Phishkit Request URL",
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "url",
+          "value": "https://cdn.evil.example/kit.js"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "display_type": "Phishkit Request URL",
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "url",
+          "value": "https://tracker.evil.example/p"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "display_type": "Phishkit Document URL",
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "url",
+          "value": "https://kit.evil.example/login#victim@corp.example"
+        }
+      ],
+      "summary": "Phishkit Analysis: output files created (phishkit/00000000-0000-4000-8000-000000000000/response_bodies.txt, phishkit/00000000-0000-4000-8000-000000000000/requests.json, phishkit/00000000-0000-4000-8000-000000000000/dom.html, phishkit/00000000-0000-4000-8000-000000000000/screenshot.png, phishkit/00000000-0000-4000-8000-000000000000/downloads/invoice.zip) - 3.00 MB downloaded",
+      "tags": []
+    }
+  ],
+  "fluent_bit": [
+    {
+      "record": {
+        "event": "scan_dispatched",
+        "job_id": "00000000-0000-4000-8000-000000000000",
+        "observable_value": "https://kit.evil.example/start",
+        "proxy_configured": false,
+        "proxy_fallback_enabled": true,
+        "scan_type": "url"
+      },
+      "tag": "phishkit-metrics"
+    },
+    {
+      "record": {
+        "path": "database.pool.status",
+        "timestamp": "2026-11-11T03:26:49.957085",
+        "value": "Pool size: 5  Connections in pool: 0 Current Overflow: -4 Current Checked out connections: 1"
+      },
+      "tag": "monitoring"
+    },
+    {
+      "record": {
+        "alert_type": "cli_analysis",
+        "analysis_time_seconds": 0.008667,
+        "exec_count": 1,
+        "is_alert": false,
+        "module": "phishkit_analyzer",
+        "percentage": 52.34500088988725,
+        "queue": "default",
+        "root_uuid": "9c2e8212-13ea-41fb-a361-e5969428aa2d",
+        "timestamp": "2026-11-11 03:26:49.959432",
+        "total_analysis_time_seconds": 0.008667,
+        "total_time_seconds": 0.01655745506286621
+      },
+      "tag": "metrics"
+    },
+    {
+      "record": {
+        "path": "database.pool.available_count",
+        "timestamp": "2026-11-11T03:26:49.959591",
+        "value": 0
+      },
+      "tag": "monitoring"
+    },
+    {
+      "record": {
+        "path": "database.pool.in_use_count",
+        "timestamp": "2026-11-11T03:26:49.959604",
+        "value": 1
+      },
+      "tag": "monitoring"
+    },
+    {
+      "record": {
+        "bytes": 2048,
+        "domain": "kit.evil.example",
+        "job_id": "00000000-0000-4000-8000-000000000000",
+        "requests": 2,
+        "scan_duration_seconds": 12.5,
+        "timestamp": "2026-11-10T00:00:00Z",
+        "total_bytes_downloaded": 3145728,
+        "url_scanned": "https://kit.evil.example/start"
+      },
+      "tag": "phishkit-metrics"
+    },
+    {
+      "record": {
+        "error": null,
+        "event": "scan_outcome",
+        "exit_code": 0,
+        "job_id": "00000000-0000-4000-8000-000000000000",
+        "observable_value": "https://kit.evil.example/start",
+        "outcome": "success",
+        "proxy_configured": false,
+        "proxy_fallback_enabled": true,
+        "proxy_fallback_reason": null,
+        "proxy_fallback_triggered": false,
+        "proxy_final_route": "none",
+        "scan_duration_seconds": 12.5,
+        "scan_type": "url",
+        "total_bytes_downloaded": 3145728
+      },
+      "tag": "phishkit-metrics"
+    },
+    {
+      "record": {
+        "alert_type": "cli_analysis",
+        "analysis_time_seconds": 0.02004,
+        "exec_count": 1,
+        "is_alert": false,
+        "module": "phishkit_analyzer",
+        "percentage": 94.34182856501486,
+        "queue": "default",
+        "root_uuid": "9c2e8212-13ea-41fb-a361-e5969428aa2d",
+        "timestamp": "2026-11-11 03:26:55.985777",
+        "total_analysis_time_seconds": 0.02004,
+        "total_time_seconds": 0.02124190330505371
+      },
+      "tag": "metrics"
+    }
+  ],
+  "input": {
+    "directives": [
+      "crawl"
+    ],
+    "label": "url https://kit.evil.example/start, answered with fixtures/scanners/phishkit/url_scan",
+    "meta_tags": [],
+    "observable": {
+      "type": "url",
+      "value": "https://kit.evil.example/start"
+    }
+  },
+  "module": "phishkit_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "crawl"
+    ],
+    "excluded_analysis": [],
+    "relationships": [],
+    "tags": [],
+    "type": "url",
+    "value": "https://kit.evil.example/start"
+  },
+  "scanner_request": {
+    "config_path": "etc/phishkit_config.yaml",
+    "kind": "url",
+    "proxy": null,
+    "proxy_fallback_to_direct": true,
+    "scanner": "phishkit",
+    "scanner_timeout": 30,
+    "target": "https://kit.evil.example/start"
+  }
+}

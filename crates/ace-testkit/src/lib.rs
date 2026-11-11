@@ -107,6 +107,7 @@ pub struct Harness<M: Module> {
     added_by: Vec<String>,
     related_tags: Vec<RelatedTags>,
     tree: Option<ace_sdk::tree::TreeView>,
+    scan: Option<ace_sdk::scanners::Scan>,
 }
 
 impl<M: Module> Harness<M> {
@@ -141,7 +142,20 @@ impl<M: Module> Harness<M> {
             added_by: Vec::new(),
             related_tags: Vec::new(),
             tree: None,
+            scan: None,
         })
+    }
+
+    /// The task's latest scan, as the core sends it after a delay that asked for one (PLAN.md 7.7).
+    pub fn scan(mut self, scan: ace_sdk::scanners::Scan) -> Self {
+        self.scan = Some(scan);
+        self
+    }
+
+    /// Where the harness's file store keeps the bytes stored under `sha256`, such as a scan input
+    /// the module wrote.
+    pub fn stored(&self, sha256: &ace_results::Sha256) -> PathBuf {
+        self.store.path_of(sha256)
     }
 
     /// What a module that reads its carrying email is told of it.
@@ -331,7 +345,8 @@ impl<M: Module> Harness<M> {
             .with_related_tags(self.related_tags.clone())
             .with_tree(self.tree.clone())
             .with_tree_files(Some(self._dir.path().join("tree_files")))
-            .with_tool_runner(tool_runner::<M>());
+            .with_tool_runner(tool_runner::<M>())
+            .with_scan(self.scan.clone());
         let ctx = match &self.reader {
             Some(_) => ctx.with_task_id(1),
             None => ctx,

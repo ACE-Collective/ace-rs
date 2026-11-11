@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE queue.scans\n         SET state = 'cancelled', cancel_requested = true, finished_at = now(),\n             error = 'its task ended before a pool took it'\n         WHERE task_id = $1 AND state = 'queued'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "d949d8304985def5cc14c5ac68b8acc8d5c9b7aaafde5a0ec942327cfc5c33dc"
+}

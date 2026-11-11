@@ -1,0 +1,55 @@
+[
+  {
+    "date": "2026-11-11T03:21:01.127645",
+    "type": "request",
+    "requestId": "E1AF2EB2EF481167869AF5E2F555625D",
+    "method": "GET",
+    "url": "file:///phishkit/input/00000000-0000-4000-8000-000000000000/phishkit_page.html",
+    "headers": {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.8103.50 Safari/537.36",
+      "sec-ch-ua": "\"Chromium\";v=\"157\", \"Not_A Brand\";v=\"8\", \"Google Chrome\";v=\"157\"",
+      "sec-ch-ua-mobile": "?0",
+      "sec-ch-ua-platform": "Windows"
+    },
+    "resource_type": "Document",
+    "frame_id": "CE0484F466FC5E94F26B752CB7B5C216",
+    "initiator_type": "other",
+    "redirect_status": null,
+    "raw": null
+  },
+  {
+    "date": "2026-11-11T03:21:01.129828",
+    "type": "response",
+    "url": "file:///phishkit/input/00000000-0000-4000-8000-000000000000/phishkit_page.html",
+    "requestId": "E1AF2EB2EF481167869AF5E2F555625D",
+    "headers": {
+      "Content-Type": "text/html",
+      "Last-Modified": "Wed, 11 Nov 2026 03:20:58 GMT"
+    },
+    "status_code": 200,
+    "encoded_data_length": 702,
+    "resource_type": "Document",
+    "raw": {
+      "url": "file:///phishkit/input/00000000-0000-4000-8000-000000000000/phishkit_page.html",
+      "status": 200,
+      "statusText": "OK",
+      "headers": {
+        "Content-Type": "text/html",
+        "Last-Modified": "Wed, 11 Nov 2026 03:20:58 GMT"
+      },
+      "mimeType": "text/html",
+      "charset": "",
+      "connectionReused": false,
+      "connectionId": 0.0,
+      "encodedDataLength": -1.0,
+      "securityState": "secure",
+      "remoteIPAddress": "",
+      "remotePort": 0,
+      "fromDiskCache": false,
+      "fromServiceWorker": false,
+      "fromPrefetchCache": false,
+      "protocol": "file",
+      "alternateProtocolUsage": "alternativeJobWonWithoutRace"
+    }
+  }
+]

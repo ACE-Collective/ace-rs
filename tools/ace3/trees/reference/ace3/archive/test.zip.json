@@ -129,9 +129,92 @@
           "summary": "File Type Analysis: ASCII text, with very long lines (23405), with no line terminators (text/plain)",
           "tags": {}
         },
+        "javascript_deobfuscation": {
+          "details": {
+            "dom_snapshot": false,
+            "dom_snapshot_source": null,
+            "error": "<anonymous_script>:1\nWScript\n^\n\nReferenceError: WScript is not defined\n    at eval (eval at <anonymous> (evalmachine.<anonymous>:434:32), <anonymous>:1:1)\n    at evalmachine.<anonymous>:434:32\n    at Script.runInContext (node:vm:150:12)\n    at file:///opt/app/harness.js:914:12",
+            "error_type": "runtime",
+            "event_count": 0,
+            "exit_code": 0,
+            "extracted_files": [
+              "test.zip.extracted/deobfuscated-Faktura.FS.17.9.20_2018_2_13_AI02668779.pdf.js"
+            ],
+            "secondary_script_count": 0,
+            "stderr": "",
+            "stdout": "{\"status\":\"error_during_run\",\"event_count\":0,\"secondary_script_count\":0,\"error\":\"<anonymous_script>:1\\nWScript\\n^\\n\\nReferenceError: WScript is not defined\\n    at eval (eval at <anonymous> (evalmachine.<anonymous>:434:32), <anonymous>:1:1)\\n    at evalmachine.<anonymous>:434:32\\n    at Script.runInContext (node:vm:150:12)\\n    at file:///opt/app/harness.js:914:12\",\"error_type\":\"runtime\",\"webcrack_status\":\"applied (cosmetic only)\",\"webcrack_error\":null,\"blob_files\":[],\"dom_snapshot\":false}",
+            "webcrack_error": null,
+            "webcrack_status": "applied (cosmetic only)"
+          },
+          "summary": "JavaScript Deobfuscation: failed: <anonymous_script>:1\nWScript\n^\n\nReferenceError: WScript is not defined\n    at eval (eval at <anonymous> (evalmachine.<anonymous>:434:32), <anonymous>:1:1)\n    at evalmachine.<anonymous>:434:32\n    at Script.runInContext (node:vm:150:12)\n    at file:///opt/app/harness.js:914:12",
+          "tags": {}
+        },
         "observable_detection": {
           "details": {
             "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {
+        "js": true
+      }
+    },
+    "file:b45d6f813e4a2099a022d1ab18cb99fa3fc93501304b24c72ee9453f576c532f": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {
+        "javascript_deobfuscation": true
+      },
+      "paths": {
+        "test.zip.extracted/deobfuscated-Faktura.FS.17.9.20_2018_2_13_AI02668779.pdf.js": {
+          "type=script.javascript": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:2e981fb20ec03bb5bf767e61069d4ceca975dabb333a958d45df74bbe6bf1bcb": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text"
+          },
+          "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
           },
           "summary": null,
           "tags": {}

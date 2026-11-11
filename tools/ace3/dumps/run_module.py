@@ -52,6 +52,14 @@ does (saq/cli/commands/correlate.py) with all modules disabled except the ones n
   rtfole's extracted_rtf; the dump's input lists it;
 - with --dump-file ALERT_PATH, the dump is of the file the run added under that path, such as the image
   dmg_analyzer writes, when it added one;
+- with --scanner-output DIR, the scanner clients of the JavaScript deobfuscator and phishkit
+  (saq/js_deobfuscator.py, saq/phishkit.py) don't send a Celery task: each gives back a copy of DIR,
+  a scan's output directory as the manager leaves it (tools/ace3/dumps/scanner-fixtures), and the dump
+  keeps what the module asked for (`scanner_request`). A URL scan whose scanner failed and left
+  nothing to harvest raises as phishkit.py's scan_url does. DIR `raise:<message>` raises <message>
+  instead, as a Celery call that failed does;
+- with --analysis-mode MODE, the root is in that mode rather than cli, such as correlation, the only
+  one phishkit renders files in;
 - with --tree, it also writes tree.json, the whole root in the normal form of PLAN.md 3.1
   (crates/ace-core/src/normal.rs), which tools/ace3/trees/make-trees collects.
 
@@ -155,6 +163,11 @@ def parse_args():
         help="the dump is of the file the run added under ALERT_PATH, such as the image dmg_analyzer writes "
         "for a DMG, when the run added one; otherwise of the observable given",
     )
+    parser.add_argument(
+        "--scanner-output", metavar="DIR",
+        help="answer the scanner clients with a copy of DIR, a scan's output directory, or raise:<message>",
+    )
+    parser.add_argument("--analysis-mode", default="cli", help="the root's analysis mode")
     parser.add_argument("--label", default="", help="a name for the input, written into the dump")
     args = parser.parse_args(sys.argv[1:])
     if bool(args.file) == bool(args.observable):
@@ -871,6 +884,8 @@ TREE_MODULES = {
     "HTMLDataURLAnalysis": "html_data_url_extraction",
     "HARAnalysis": "har_extraction",
     "HTMLJavaScriptExtractionAnalysis": "html_js_extraction",
+    "JavaScriptDeobfuscationAnalysis": "javascript_deobfuscation",
+    "PhishkitAnalysis": "phishkit_analyzer",
     "MHTMLAnalysis": "mhtml",
     "OneNoteFileAnalysis": "onenote_extraction",
     "OfficeParserAnalysis3": "officeparser3",
@@ -946,6 +961,8 @@ TREE_RUN_FIELDS = {
 }
 # ace3's excluded_analysis holds `module:<class ...>` strings
 TREE_EXCLUDED = {
+    "PhishkitAnalyzer": "phishkit_analyzer",
+    "JavaScriptDeobfuscationAnalyzer": "javascript_deobfuscation",
     "EmailAnalyzer": "email_analyzer",
     "FQDNAnalyzer": "fqdn_analyzer",
     "EmailConversationFrequencyAnalyzer": "email_conversation_frequency_analyzer",
@@ -1109,6 +1126,71 @@ def xlm_output_value(observable, files_dir):
     stdout = stdout.replace(os.fsencode(files_dir + "/"), b"")
     stdout = re.sub(rb"time elapsed: [0-9.e+-]+\n\Z", b"", stdout)
     return hashlib.sha256(stdout).hexdigest()
+
+
+SCANNER_JOB = "00000000-0000-4000-8000-000000000000"
+
+
+def fake_scanners(output, scanner_requests):
+    """The scanner clients answer with a copy of `output`, a scan's output directory as the manager
+    leaves it, and `scanner_requests` gets what the module asked for, each time it asks.
+    `raise:<message>` raises instead."""
+    import saq.modules.file_analysis.js as js
+    import saq.modules.phishkit as phishkit
+
+    def answer(output_dir, kind):
+        if output.startswith("raise:"):
+            raise Exception(output[len("raise:"):])
+        if kind == "url":
+            # phishkit.py's scan_url: a failed scanner that left nothing to harvest raises
+            with open(os.path.join(output, "exit.code")) as fp:
+                code = int(fp.read().strip() or "0")
+            recoverable = any(os.path.exists(os.path.join(output, n)) for n in ("requests.json", "dom.html"))
+            if code != 0 and not recoverable:
+                with open(os.path.join(output, "std.err")) as fp:
+                    raise Exception(f"scan failed: {fp.read()}")
+        os.makedirs(output_dir, exist_ok=True)
+        files = []
+        for root, _, names in os.walk(output):
+            for name in names:
+                source = os.path.join(root, name)
+                dest = os.path.join(output_dir, os.path.relpath(source, output))
+                os.makedirs(os.path.dirname(dest), exist_ok=True)
+                shutil.copy2(source, dest)
+                files.append(dest)
+        return files
+
+    def deobfuscate_file(file_path, output_dir, timeout=60, scanner_timeout=30, dom_snapshot_path=None):
+        snapshot = None
+        if dom_snapshot_path is not None:
+            with open(dom_snapshot_path, encoding="utf-8") as fp:
+                snapshot = json.load(fp)
+        scanner_requests.append({
+            "scanner": "js-deobfuscator", "file_name": os.path.basename(file_path), "timeout": timeout,
+            "scanner_timeout": scanner_timeout, "dom_snapshot": snapshot,
+        })
+        return answer(output_dir, "js")
+
+    def scan(kind):
+        def submit(target, output_dir, is_async=False, timeout=15, scanner_timeout=15, proxy=None,
+                   proxy_fallback_to_direct=False, config_path=None):
+            scanner_requests.append({
+                "scanner": "phishkit", "kind": kind,
+                "target": target if kind == "url" else os.path.basename(target),
+                "scanner_timeout": scanner_timeout, "proxy": proxy,
+                "proxy_fallback_to_direct": proxy_fallback_to_direct, "config_path": config_path,
+            })
+            return SCANNER_JOB
+        return submit
+
+    def get_async_scan_result(result_id, output_dir, timeout=1):
+        return answer(output_dir, scanner_requests[-1].get("kind"))
+
+    js.deobfuscate_file = deobfuscate_file
+    phishkit.scan_url = scan("url")
+    phishkit.scan_file = scan("file")
+    phishkit.get_async_scan_result = get_async_scan_result
+    phishkit.get_phishkit_scanner_version = lambda: {}
 
 
 def tree_form(root):
@@ -1530,6 +1612,9 @@ def main():
     email_archive_before = json.loads(json.dumps(email_archive.rows())) if email_archive else None
     before = json.loads(json.dumps(store.rows())) if store else None
     fluent_bit = record_fluent_bit() if args.fluent_bit else None
+    scanner_requests = []
+    if args.scanner_output:
+        fake_scanners(args.scanner_output, scanner_requests)
 
     # results must not reach ace3's database through the analysis cache
     get_config().analysis_cache.enabled = False
@@ -1555,7 +1640,7 @@ def main():
     root.tool = "ACE - Command Line Analysis"
     root.tool_instance = socket.gethostname()
     root.alert_type = args.alert_type
-    root.analysis_mode = ANALYSIS_MODE_CLI
+    root.analysis_mode = args.analysis_mode
     get_config().get_analysis_mode_config(root.analysis_mode).cleanup = False
     root.description = "ace4 reference dump"
     root.set_event_time(datetime.datetime.now(), EventTimeSource.NOW)
@@ -1611,7 +1696,7 @@ def main():
         module_config.enabled = False
     for name in [args.module, *args.enable]:
         get_analysis_module_config(name).enabled = True
-        engine.configuration_manager.enable_module(name, ANALYSIS_MODE_CLI)
+        engine.configuration_manager.enable_module(name, args.analysis_mode)
 
     engine.start_single_threaded(execution_mode=EngineExecutionMode.UNTIL_COMPLETE)
 
@@ -1687,6 +1772,11 @@ def main():
         dump["brocess_reads"] = store.reads
     if fluent_bit is not None:
         dump["fluent_bit"] = fluent_bit
+    if args.scanner_output:
+        # the request for the dumped file, when the run asked for others too
+        name = os.path.basename(target.file_path) if target.type == "file" else None
+        mine = [r for r in scanner_requests if r.get("file_name", r.get("target")) == name]
+        dump["scanner_request"] = (mine or scanner_requests or [None])[-1]
     if email_archive is not None:
         dump["email_archive_before"] = email_archive_before
         dump["email_archive_after"] = email_archive.rows()

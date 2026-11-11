@@ -7987,6 +7987,87 @@
     },
     {
       "ace3_commit": "f72f8946",
+      "analysis": "JavaScriptDeobfuscationAnalysis",
+      "dump": "javascript_deobfuscation/ace4/js/blob_redirect.js.json",
+      "input": "ace4/js/blob_redirect.js, answered with fixtures/scanners/js/blob_redirect",
+      "module": "javascript_deobfuscation",
+      "observables_added": 2,
+      "summary": "JavaScript Deobfuscation: extracted deobfuscated-blob_redirect.js, blob_redirect.js.blob_0.html (6 events, 0 secondary scripts)"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "JavaScriptDeobfuscationAnalysis",
+      "dump": "javascript_deobfuscation/ace4/js/broken.js.json",
+      "input": "ace4/js/broken.js, answered with fixtures/scanners/js/broken",
+      "module": "javascript_deobfuscation",
+      "observables_added": 1,
+      "summary": "JavaScript Deobfuscation: failed: evalmachine.<anonymous>:1\nfunction (\n^^^^^^^^\n\nSyntaxError: Function statements require a function name\n    at new Script (node:vm:118:7)\n    at file:///opt/app/harness.js:907:12"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "JavaScriptDeobfuscationAnalysis",
+      "dump": "javascript_deobfuscation/ace4/js/dropper.js.celery_timeout.json",
+      "input": "ace4/js/dropper.js, the Celery call timing out",
+      "module": "javascript_deobfuscation",
+      "observables_added": 0,
+      "summary": "JavaScript Deobfuscation: failed: js deobfuscator call failed: The operation timed out."
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "JavaScriptDeobfuscationAnalysis",
+      "dump": "javascript_deobfuscation/ace4/js/dropper.js.json",
+      "input": "ace4/js/dropper.js, answered with fixtures/scanners/js/dropper",
+      "module": "javascript_deobfuscation",
+      "observables_added": 1,
+      "summary": "JavaScript Deobfuscation: failed: evalmachine.<anonymous>:1\nvar s = new ActiveXObject(\"WScript.Shell\");\n        ^\n\nReferenceError: ActiveXObject is not defined\n    at evalmachine.<anonymous>:1:9\n    at Script.runInContext (node:vm:150:12)\n    at file:///opt/app/harness.js:914:12"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "JavaScriptDeobfuscationAnalysis",
+      "dump": "javascript_deobfuscation/ace4/js/dropper.js.tagged.json",
+      "input": "ace4/js/dropper.js as dropper.txt tagged type=script.javascript",
+      "module": "javascript_deobfuscation",
+      "observables_added": 1,
+      "summary": "JavaScript Deobfuscation: failed: evalmachine.<anonymous>:1\nvar s = new ActiveXObject(\"WScript.Shell\");\n        ^\n\nReferenceError: ActiveXObject is not defined\n    at evalmachine.<anonymous>:1:9\n    at Script.runInContext (node:vm:150:12)\n    at file:///opt/app/harness.js:914:12"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "javascript_deobfuscation/ace4/js/loader.mjs.json",
+      "input": "ace4/js/loader.mjs, answered with fixtures/scanners/js/dropper",
+      "module": "javascript_deobfuscation",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "javascript_deobfuscation/ace4/js/report.JS.json",
+      "input": "ace4/js/report.JS, answered with fixtures/scanners/js/dropper",
+      "module": "javascript_deobfuscation",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "JavaScriptDeobfuscationAnalysis",
+      "dump": "javascript_deobfuscation/ace4/js/runtime_error.js.json",
+      "input": "ace4/js/runtime_error.js, answered with fixtures/scanners/js/runtime_error",
+      "module": "javascript_deobfuscation",
+      "observables_added": 1,
+      "summary": "JavaScript Deobfuscation: failed: evalmachine.<anonymous>:4\nnotDefinedAnywhere(next);\n^\n\nReferenceError: notDefinedAnywhere is not defined\n    at evalmachine.<anonymous>:4:1\n    at Script.runInContext (node:vm:150:12)\n    at file:///opt/app/harness.js:914:12"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "JavaScriptDeobfuscationAnalysis",
+      "dump": "javascript_deobfuscation/ace4/web/scripts.html.inline_0.json",
+      "input": "scripts.html's first inline script, with its DOM snapshot",
+      "module": "javascript_deobfuscation",
+      "observables_added": 1,
+      "summary": "JavaScript Deobfuscation: extracted deobfuscated-scripts_js_inline_0_f2dac8e8.js (3 events, 0 secondary scripts)"
+    },
+    {
+      "ace3_commit": "f72f8946",
       "analysis": "LnkParseAnalysis",
       "dump": "lnk_parser/ace4/lnk/kitchen_sink.lnk.json",
       "input": "ace4/lnk/kitchen_sink.lnk",
@@ -13177,6 +13258,78 @@
       "module": "pdftotext",
       "observables_added": 1,
       "summary": "PDF Text Analysis"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "phishkit_analyzer/file_cli.json",
+      "input": "ace4/web/phishkit_page.html in cli mode, tagged ['type=email.attachment']",
+      "module": "phishkit_analyzer",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "PhishkitAnalysis",
+      "dump": "phishkit_analyzer/file_render.json",
+      "input": "ace4/web/phishkit_page.html in correlation mode, tagged ['type=email.attachment']",
+      "module": "phishkit_analyzer",
+      "observables_added": 4,
+      "summary": "Phishkit Analysis: output files created (phishkit/00000000-0000-4000-8000-000000000000/response_bodies.txt, phishkit/00000000-0000-4000-8000-000000000000/requests.json, phishkit/00000000-0000-4000-8000-000000000000/dom.html, phishkit/00000000-0000-4000-8000-000000000000/screenshot.png) - 0.00 MB downloaded"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "phishkit_analyzer/file_untagged.json",
+      "input": "ace4/web/phishkit_page.html in correlation mode, tagged []",
+      "module": "phishkit_analyzer",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "PhishkitAnalysis",
+      "dump": "phishkit_analyzer/url_failed.json",
+      "input": "url https://kit.evil.example/start, answered with fixtures/scanners/phishkit/url_failed",
+      "module": "phishkit_analyzer",
+      "observables_added": 0,
+      "summary": "Phishkit Analysis: failed: phishkit scan failed for url(https://kit.evil.example/start) job ID 00000000-0000-4000-8000-000000000000: scan failed: Traceback (most recent call last):\nselenium.common.exceptions.WebDriverException\n"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": null,
+      "dump": "phishkit_analyzer/url_no_crawl.json",
+      "input": "url https://kit.evil.example/start, answered with fixtures/scanners/phishkit/url_scan",
+      "module": "phishkit_analyzer",
+      "observables_added": 0,
+      "summary": null
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "PhishkitAnalysis",
+      "dump": "phishkit_analyzer/url_partial.json",
+      "input": "url https://kit.evil.example/start, answered with fixtures/scanners/phishkit/url_partial",
+      "module": "phishkit_analyzer",
+      "observables_added": 4,
+      "summary": "Phishkit Analysis: output files created (phishkit/00000000-0000-4000-8000-000000000000/requests.json, phishkit/00000000-0000-4000-8000-000000000000/dom.html, phishkit/00000000-0000-4000-8000-000000000000/screenshot.png) - PARTIAL (scanner timed out) - 3.00 MB downloaded"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "PhishkitAnalysis",
+      "dump": "phishkit_analyzer/url_scan.json",
+      "input": "url https://kit.evil.example/start, answered with fixtures/scanners/phishkit/url_scan",
+      "module": "phishkit_analyzer",
+      "observables_added": 9,
+      "summary": "Phishkit Analysis: output files created (phishkit/00000000-0000-4000-8000-000000000000/response_bodies.txt, phishkit/00000000-0000-4000-8000-000000000000/requests.json, phishkit/00000000-0000-4000-8000-000000000000/dom.html, phishkit/00000000-0000-4000-8000-000000000000/screenshot.png, phishkit/00000000-0000-4000-8000-000000000000/downloads/invoice.zip) - 3.00 MB downloaded"
+    },
+    {
+      "ace3_commit": "f72f8946",
+      "analysis": "PhishkitAnalysis",
+      "dump": "phishkit_analyzer/url_script.json",
+      "input": "url https://kit.evil.example/a.js, answered with fixtures/scanners/phishkit/url_script",
+      "module": "phishkit_analyzer",
+      "observables_added": 4,
+      "summary": "Phishkit Analysis: output files created (phishkit/00000000-0000-4000-8000-000000000000/requests.json, phishkit/00000000-0000-4000-8000-000000000000/script.js, phishkit/00000000-0000-4000-8000-000000000000/dom.html, phishkit/00000000-0000-4000-8000-000000000000/screenshot.png)"
     },
     {
       "ace3_commit": "f72f8946",

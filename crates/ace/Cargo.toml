@@ -1,7 +1,7 @@
 [package]
 name = "ace"
 version = "0.1.0"
-description = "The open-source binaries over ace-app: ace, and the ace-parsers, ace-sandbox and ace-lookups pools"
+description = "The open-source binaries over ace-app: ace, and the ace-parsers, ace-sandbox, ace-lookups and ace-scanners pools"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
@@ -31,6 +31,10 @@ path = "src/bin/ace-sandbox.rs"
 name = "ace-lookups"
 path = "src/bin/ace-lookups.rs"
 
+[[bin]]
+name = "ace-scanners"
+path = "src/bin/ace-scanners.rs"
+
 [dependencies]
 ace-app = { path = "../ace-app" }
 ace-hunt = { path = "../ace-hunt" }
@@ -52,6 +56,7 @@ ace-mod-pdf = { path = "../ace-mod-pdf" }
 ace-mod-rdap = { path = "../ace-mod-rdap" }
 ace-mod-pcap = { path = "../ace-mod-pcap" }
 ace-mod-sandbox = { path = "../ace-mod-sandbox" }
+ace-mod-scanners = { path = "../ace-mod-scanners" }
 ace-mod-snort = { path = "../ace-mod-snort" }
 ace-mod-tag = { path = "../ace-mod-tag" }
 ace-mod-urls = { path = "../ace-mod-urls" }

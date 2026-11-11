@@ -1337,7 +1337,7 @@ async fn a_task_walks_its_roots_tree_and_a_result_changes_others_and_its_root() 
         max_size: 10,
         tagged: None,
     };
-    let (view, wanted) = tree::tree_view(db.pool(), root, email_id, Some(files))
+    let (view, wanted) = tree::tree_view(db.pool(), root, email_id, Some(files), &[])
         .await
         .expect("reads");
     assert_eq!(view.alert_type.as_deref(), Some("mailbox"));
@@ -1472,7 +1472,7 @@ async fn a_task_walks_its_roots_tree_and_a_result_changes_others_and_its_root() 
         origin,
         json!({"alert_type": "mailbox", "details": {"query": "q", "email": {"subject": "hello"}}})
     );
-    let (view, _) = tree::tree_view(db.pool(), root, email_id, None)
+    let (view, _) = tree::tree_view(db.pool(), root, email_id, None, &[])
         .await
         .expect("reads");
     assert_eq!(view.observables[3].directives, ["crawl"]);

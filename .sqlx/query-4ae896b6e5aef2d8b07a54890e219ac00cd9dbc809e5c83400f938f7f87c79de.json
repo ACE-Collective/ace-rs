@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE queue.scans SET cancel_requested = true\n         WHERE root_id = $1 AND state = 'running' AND NOT cancel_requested",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "4ae896b6e5aef2d8b07a54890e219ac00cd9dbc809e5c83400f938f7f87c79de"
+}

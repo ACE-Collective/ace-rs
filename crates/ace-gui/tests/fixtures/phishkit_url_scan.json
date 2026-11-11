@@ -1,0 +1,138 @@
+{
+  "analysis_type": "phishkit_analysis",
+  "schema_version": 1,
+  "details": {
+    "error": null,
+    "exit_code": 0,
+    "job_id": "2c2d5265-9267-5874-8bcc-a6127158dee3",
+    "metrics": {
+      "document_url": "https://kit.evil.example/login#victim@corp.example",
+      "domain_stats": {
+        "kit.evil.example": {
+          "bytes": 2048,
+          "requests": 2
+        }
+      },
+      "scan_duration_seconds": 12.5,
+      "timestamp": "2026-11-10T00:00:00Z",
+      "total_bytes_downloaded": 3145728,
+      "url_scanned": "https://kit.evil.example/start"
+    },
+    "output_dir": "phishkit/2c2d5265-9267-5874-8bcc-a6127158dee3",
+    "output_files": [
+      "phishkit/2c2d5265-9267-5874-8bcc-a6127158dee3/dom.html",
+      "phishkit/2c2d5265-9267-5874-8bcc-a6127158dee3/requests.json",
+      "phishkit/2c2d5265-9267-5874-8bcc-a6127158dee3/response_bodies.txt",
+      "phishkit/2c2d5265-9267-5874-8bcc-a6127158dee3/screenshot.png",
+      "phishkit/2c2d5265-9267-5874-8bcc-a6127158dee3/downloads/invoice.zip"
+    ],
+    "proxy_status": {
+      "configured": false,
+      "fallback_details": {},
+      "fallback_enabled": true,
+      "fallback_reason": null,
+      "fallback_triggered": false,
+      "final_route": "none",
+      "host": null
+    },
+    "scan_result": "successfully scanned url(https://kit.evil.example/start)",
+    "scan_type": "url",
+    "stderr": "",
+    "stdout": "{'screenshot': True}\n"
+  },
+  "summary": "Phishkit Analysis: output files created (phishkit/2c2d5265-9267-5874-8bcc-a6127158dee3/dom.html, phishkit/2c2d5265-9267-5874-8bcc-a6127158dee3/requests.json, phishkit/2c2d5265-9267-5874-8bcc-a6127158dee3/response_bodies.txt, phishkit/2c2d5265-9267-5874-8bcc-a6127158dee3/screenshot.png, phishkit/2c2d5265-9267-5874-8bcc-a6127158dee3/downloads/invoice.zip) - 3.00 MB downloaded",
+  "observables": [
+    {
+      "type": "url",
+      "value": "https://kit.evil.example/login",
+      "display_type": "Phishkit Request URL"
+    },
+    {
+      "type": "url",
+      "value": "https://cdn.evil.example/kit.js",
+      "display_type": "Phishkit Request URL"
+    },
+    {
+      "type": "url",
+      "value": "https://tracker.evil.example/p",
+      "display_type": "Phishkit Request URL"
+    },
+    {
+      "type": "url",
+      "value": "https://kit.evil.example/login#victim@corp.example",
+      "display_type": "Phishkit Document URL"
+    }
+  ],
+  "files": [
+    {
+      "path": "phishkit/2c2d5265-9267-5874-8bcc-a6127158dee3/dom.html",
+      "sha256": "65d0ada6e4625fcde0b20de15137b3d0640383e741330887137db3d3c965e00d",
+      "size": 780,
+      "yara_meta": [
+        "type=document.html.phishkit"
+      ],
+      "exclude_modules": [
+        "phishkit_analyzer",
+        "pdf_analyzer"
+      ],
+      "relationships": [
+        {
+          "type": "downloaded_from",
+          "target": {
+            "type": "url",
+            "value": "https://kit.evil.example/login#victim@corp.example"
+          }
+        }
+      ]
+    },
+    {
+      "path": "phishkit/2c2d5265-9267-5874-8bcc-a6127158dee3/requests.json",
+      "sha256": "83cfa13be5f7556ce240f8b745649df26a00505fba09bd9e75b2c30eccf6897d",
+      "size": 1063,
+      "yara_meta": [
+        "type=document.html.phishkit"
+      ],
+      "exclude_modules": [
+        "phishkit_analyzer",
+        "pdf_analyzer"
+      ]
+    },
+    {
+      "path": "phishkit/2c2d5265-9267-5874-8bcc-a6127158dee3/response_bodies.txt",
+      "sha256": "3320bfe1697cc350476b78ff3c2f4382ae6a41cee0187fe3421ff30a14964a63",
+      "size": 309,
+      "yara_meta": [
+        "type=document.html.phishkit"
+      ],
+      "exclude_modules": [
+        "phishkit_analyzer",
+        "pdf_analyzer",
+        "html_js_extraction"
+      ]
+    },
+    {
+      "path": "phishkit/2c2d5265-9267-5874-8bcc-a6127158dee3/screenshot.png",
+      "sha256": "d33fef4c2c078949064bc0442989c82569e3ac25eb9747847adc0d5b1228a25c",
+      "size": 14941,
+      "yara_meta": [
+        "type=document.html.phishkit"
+      ],
+      "exclude_modules": [
+        "phishkit_analyzer",
+        "pdf_analyzer"
+      ]
+    },
+    {
+      "path": "phishkit/2c2d5265-9267-5874-8bcc-a6127158dee3/downloads/invoice.zip",
+      "sha256": "45adb12d349e6fdc63a7cb838650f32fe4b5111d2c5ebe0ffedf6c95029762be",
+      "size": 20,
+      "yara_meta": [
+        "type=document.html.phishkit"
+      ],
+      "exclude_modules": [
+        "phishkit_analyzer",
+        "pdf_analyzer"
+      ]
+    }
+  ]
+}

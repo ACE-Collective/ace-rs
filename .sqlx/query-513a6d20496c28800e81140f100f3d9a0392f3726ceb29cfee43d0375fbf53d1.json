@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE queue.scans\n                     SET state = 'abandoned', finished_at = now(),\n                         error = 'no scanner pool took it in time'\n                     WHERE state = 'queued'\n                       AND created_at + make_interval(secs => timeout_seconds::float8 + $1) < now()\n                     RETURNING task_id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "task_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "queue.scans",
+            "name": "task_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Float8"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "513a6d20496c28800e81140f100f3d9a0392f3726ceb29cfee43d0375fbf53d1"
+}

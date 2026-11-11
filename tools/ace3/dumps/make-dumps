@@ -1538,6 +1538,8 @@ RUNS = {
         "with fixtures/tag/detections.json",
     ),
     "site_tagger": site_tag_runs,
+    "javascript_deobfuscation": lambda: js_runs(),
+    "phishkit_analyzer": lambda: phishkit_runs(),
 }
 
 # the key logs each capture's decryption dump has in its root, by sample path; None for none
@@ -1552,6 +1554,100 @@ PCAP_DECRYPTIONS = [
     ("ace4/pcap/many_hosts.pcap", "ace4/pcap/keylog_mixed.txt"),
     ("ace4/pcap/bad_certificate.pcap", "ace3/pcap/sslkeylog.txt"),
 ]
+
+
+# PLAN.md 7.7: the scanner modules on the output directories tools/ace3/dumps/scanner-fixtures keeps,
+# which run_module.py's --scanner-output hands back in place of a Celery manager's. A sample the module
+# turns away gets the fixture too, unread.
+SCANNERS = f"{REMOTE}/fixtures/scanners"
+JS_RUNS = [
+    ("ace4/js/dropper.js", "dropper", []),
+    ("ace4/js/broken.js", "broken", []),
+    ("ace4/js/blob_redirect.js", "blob_redirect", []),
+    ("ace4/js/runtime_error.js", "runtime_error", []),
+    ("ace4/js/report.JS", "dropper", []),
+    ("ace4/js/loader.mjs", "dropper", []),
+]
+
+
+def js_runs():
+    runs = [
+        {
+            "module": "javascript_deobfuscation",
+            "enable": [],
+            "name": path,
+            "args": ["--file", f"{REMOTE}/samples/{path}", "--alert-path", path.rsplit("/", 1)[-1],
+                     "--scanner-output", f"{SCANNERS}/js/{case}", *args],
+            "label": f"{path}, answered with fixtures/scanners/js/{case}",
+        }
+        for path, case, args in JS_RUNS
+    ]
+    # the module's file tagged as a script, as html_js_extraction tags what it writes
+    runs.append({
+        "module": "javascript_deobfuscation",
+        "enable": [],
+        "name": "ace4/js/dropper.js.tagged",
+        "args": ["--file", f"{REMOTE}/samples/ace4/js/dropper.js", "--alert-path", "dropper.txt",
+                 "--meta-tag", "type=script.javascript", "--scanner-output", f"{SCANNERS}/js/dropper"],
+        "label": "ace4/js/dropper.js as dropper.txt tagged type=script.javascript",
+    })
+    # the Celery call failed, as when it ran out of time
+    runs.append({
+        "module": "javascript_deobfuscation",
+        "enable": [],
+        "name": "ace4/js/dropper.js.celery_timeout",
+        "args": ["--file", f"{REMOTE}/samples/ace4/js/dropper.js", "--alert-path", "dropper.js",
+                 "--scanner-output", "raise:The operation timed out."],
+        "label": "ace4/js/dropper.js, the Celery call timing out",
+    })
+    # a script html_js_extraction pulled out of a page, with the DOM snapshot it wrote beside it
+    runs.append({
+        "module": "javascript_deobfuscation",
+        "enable": ["html_js_extraction", "file_type"],
+        "name": "ace4/web/scripts.html.inline_0",
+        "args": ["--file", f"{REMOTE}/samples/ace4/web/scripts.html", "--alert-path", "scripts.html",
+                 "--dump-file", "scripts_js_inline_0_f2dac8e8.js", "--sidecars", ".dom.json", "--tree-view",
+                 "--scanner-output", f"{SCANNERS}/js/scripts_inline"],
+        "label": "scripts.html's first inline script, with its DOM snapshot",
+    })
+    return runs
+
+
+PHISHKIT_PAGE = "ace4/web/phishkit_page.html"
+
+
+def phishkit_runs():
+    def url(name, value, case, extra=()):
+        return {
+            "module": "phishkit_analyzer",
+            "enable": [],
+            "name": name,
+            "args": ["--observable", "url", value, "--fluent-bit",
+                     "--scanner-output", f"{SCANNERS}/phishkit/{case}", *extra],
+            "label": f"url {value}, answered with fixtures/scanners/phishkit/{case}",
+        }
+
+    def page(name, mode, tags, case):
+        return {
+            "module": "phishkit_analyzer",
+            "enable": ["file_type"],
+            "name": name,
+            "args": ["--file", f"{REMOTE}/samples/{PHISHKIT_PAGE}", "--alert-path", "phishkit_page.html",
+                     "--analysis-mode", mode, "--fluent-bit", "--scanner-output", f"{SCANNERS}/phishkit/{case}",
+                     *[arg for tag in tags for arg in ("--meta-tag", tag)]],
+            "label": f"{PHISHKIT_PAGE} in {mode} mode, tagged {tags}",
+        }
+
+    return [
+        url("url_scan", "https://kit.evil.example/start", "url_scan", ["--directive", "crawl"]),
+        url("url_partial", "https://kit.evil.example/start", "url_partial", ["--directive", "crawl"]),
+        url("url_script", "https://kit.evil.example/a.js", "url_script", ["--directive", "crawl"]),
+        url("url_failed", "https://kit.evil.example/start", "url_failed", ["--directive", "crawl"]),
+        url("url_no_crawl", "https://kit.evil.example/start", "url_scan"),
+        page("file_render", "correlation", ["type=email.attachment"], "file_render"),
+        page("file_cli", "cli", ["type=email.attachment"], "file_render"),
+        page("file_untagged", "correlation", [], "file_render"),
+    ]
 
 
 def pcap_samples():
@@ -1902,6 +1998,8 @@ def run(spec):
         "tls_keylog": "TlsKeylogAnalysis",
         "user_defined_tagging": "UserDefinedTaggingAnalysis",
         "observable_detection": "ObservableDetectionAnalysis",
+        "javascript_deobfuscation": "JavaScriptDeobfuscationAnalysis",
+        "phishkit_analyzer": "PhishkitAnalysis",
         "site_tagger": "SiteTagAnalysis",
     }[spec["module"]]
     # ace3's pcap_dns, pcap_tls, pcap_http and pcap_files are instances of one class

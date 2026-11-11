@@ -61,7 +61,7 @@
       },
       "tags": {}
     },
-    "file:33313e3320f966f23d1144286209f71ab4306326f56b856ac618d3616ec94097": {
+    "file:473f832d64bf9f52c52dd001742b58e43adb37fbc2763b643b62fac3cccea990": {
       "detections": {},
       "directives": {},
       "excluded_analysis": {
@@ -94,7 +94,7 @@
       },
       "tags": {}
     },
-    "file:46c8ccd8b64cc704678ef2767c5728bf3b1e416e540b2d912f7e311657324a0f": {
+    "file:68d6d854d5fde28746bc1f765dcd5f79281c40a67fb6b1f3886a85432c9f6d61": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -222,6 +222,24 @@
           "summary": "File Type Analysis: ASCII text, with no line terminators (text/plain)",
           "tags": {}
         },
+        "javascript_deobfuscation": {
+          "details": {
+            "dom_snapshot": false,
+            "dom_snapshot_source": null,
+            "error": null,
+            "error_type": null,
+            "event_count": 0,
+            "exit_code": 0,
+            "extracted_files": [],
+            "secondary_script_count": 0,
+            "stderr": "",
+            "stdout": "{\"status\":\"ok\",\"event_count\":0,\"secondary_script_count\":0,\"error\":null,\"error_type\":null,\"webcrack_status\":\"applied (cosmetic only)\",\"webcrack_error\":null,\"blob_files\":[],\"dom_snapshot\":false}",
+            "webcrack_error": null,
+            "webcrack_status": "applied (cosmetic only)"
+          },
+          "summary": null,
+          "tags": {}
+        },
         "observable_detection": {
           "details": {
             "for_detection": false
@@ -245,7 +263,9 @@
           "tags": {}
         }
       },
-      "tags": {}
+      "tags": {
+        "js": true
+      }
     },
     "file:9faf161d193fcc38645ed142a627fdb872feab791e1e1a341578a536eb2c3ae8": {
       "detections": {},
@@ -265,8 +285,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 00:55:37+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 00:55:37+00:00",
+              "File:FileAccessDate": "2026:11:11 04:30:55+00:00",
+              "File:FileInodeChangeDate": "2026:11:11 04:30:55+00:00",
               "File:FileModifyDate": "2026:11:07 04:47:50+00:00",
               "File:FileName": "js_action_null.pdf",
               "File:FilePermissions": 100644,
@@ -367,9 +387,9 @@
           "type=document.pdf.text": true
         }
       },
-      "redirection": "file:46c8ccd8b64cc704678ef2767c5728bf3b1e416e540b2d912f7e311657324a0f",
+      "redirection": "file:68d6d854d5fde28746bc1f765dcd5f79281c40a67fb6b1f3886a85432c9f6d61",
       "relationships": {
-        "extracted_from file:46c8ccd8b64cc704678ef2767c5728bf3b1e416e540b2d912f7e311657324a0f": true,
+        "extracted_from file:68d6d854d5fde28746bc1f765dcd5f79281c40a67fb6b1f3886a85432c9f6d61": true,
         "extracted_from file:9faf161d193fcc38645ed142a627fdb872feab791e1e1a341578a536eb2c3ae8": true
       },
       "results": {

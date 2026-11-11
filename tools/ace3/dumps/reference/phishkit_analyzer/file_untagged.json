@@ -1,0 +1,103 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "f72f8946",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": false,
+        "is_office_ext": false,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "text/html",
+        "type": "HTML document, ASCII text"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: HTML document, ASCII text (text/html)",
+      "tags": []
+    }
+  ],
+  "fluent_bit": [
+    {
+      "record": {
+        "path": "database.pool.status",
+        "timestamp": "2026-11-11T03:27:34.309846",
+        "value": "Pool size: 5  Connections in pool: 0 Current Overflow: -4 Current Checked out connections: 1"
+      },
+      "tag": "monitoring"
+    },
+    {
+      "record": {
+        "alert_type": "cli_analysis",
+        "analysis_time_seconds": 0.011266,
+        "exec_count": 1,
+        "is_alert": true,
+        "module": "file_type",
+        "percentage": 55.29192130211441,
+        "queue": "default",
+        "root_uuid": "66f8604a-7d88-42f4-ac26-37e6b43a96ce",
+        "timestamp": "2026-11-11 03:27:34.331693",
+        "total_analysis_time_seconds": 0.011266,
+        "total_time_seconds": 0.020375490188598633
+      },
+      "tag": "metrics"
+    },
+    {
+      "record": {
+        "path": "database.pool.available_count",
+        "timestamp": "2026-11-11T03:27:34.331868",
+        "value": 0
+      },
+      "tag": "monitoring"
+    },
+    {
+      "record": {
+        "path": "database.pool.in_use_count",
+        "timestamp": "2026-11-11T03:27:34.331891",
+        "value": 1
+      },
+      "tag": "monitoring"
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace4/web/phishkit_page.html in correlation mode, tagged []",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "phishkit_page.html",
+      "size": 702,
+      "type": "file",
+      "value": "11aaf96a80428904497a629ad878428706f0beeb4c3734f082884a9f4c934935"
+    }
+  },
+  "module": "phishkit_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=document.html"
+    ],
+    "excluded_analysis": [],
+    "file_path": "phishkit_page.html",
+    "relationships": [],
+    "size": 702,
+    "tags": [],
+    "type": "file",
+    "value": "11aaf96a80428904497a629ad878428706f0beeb4c3734f082884a9f4c934935",
+    "yara_meta": [
+      "type=document.html"
+    ]
+  },
+  "scanner_request": null
+}

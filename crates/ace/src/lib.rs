@@ -1,7 +1,7 @@
 //! The open-source pools and their modules, which the open-source binaries are built from and a
 //! site's `App` can start from (PLAN.md 2.31).
 
-use ace_app::{App, LookupPool, ParserPool};
+use ace_app::{App, LookupPool, ParserPool, ScannerPool};
 
 /// The parser pool: the email, olevba, rtfole, YARA, URL and IOC extraction, file type, file hash,
 /// binary file, shortcut, certificate, dhash and ssdeep modules, the modules that read an
@@ -12,7 +12,8 @@ use ace_app::{App, LookupPool, ParserPool};
 /// its copy without whitespace), the encrypted attachment modules (zip, RAR and PDF, with the carrying
 /// email's candidate passwords), the modules that walk an email's tree (its lure URL, a mailbox alert's
 /// root, and a macro or a URL from a new sender), the packet capture modules that read
-/// pcap_analyzer's index (DNS, TLS, HTTP and files), the TLS key log module and the site tagger, with the YARA module on the core's current ruleset (2.26), and the commands analysts
+/// pcap_analyzer's index (DNS, TLS, HTTP and files), the TLS key log module, the site tagger, and the two that send a
+/// file or a URL through a scanner image (JavaScript deobfuscation and phishkit, 7.7), with the YARA module on the core's current ruleset (2.26), and the commands analysts
 /// start from the GUI (5.12).
 pub fn parser_pool() -> ParserPool {
     ParserPool::new("parsers")
@@ -69,6 +70,8 @@ pub fn parser_pool() -> ParserPool {
         .module::<ace_mod_pcap::PcapFiles>()
         .module::<ace_mod_pcap::TlsKeylogAnalyzer>()
         .module::<ace_mod_tag::SiteTagger>()
+        .module::<ace_mod_scanners::JavaScriptDeobfuscationAnalyzer>()
+        .module::<ace_mod_scanners::PhishkitAnalyzer>()
         .yara_rulesets::<ace_mod_yara::YaraScanner>(ace_mod_yara::check_ruleset)
         .commands()
 }
@@ -99,6 +102,14 @@ pub fn sandbox_pool() -> ParserPool {
         .module::<ace_mod_pcap::PcapTlsDecryptor>()
 }
 
+/// The scanner pool (PLAN.md 7.7): ace3's js-deobfuscator and phishkit images, which the parser pool's
+/// javascript_deobfuscation and phishkit_analyzer modules send their scans to.
+pub fn scanner_pool() -> ScannerPool {
+    ScannerPool::new("scanners")
+        .scanner(ace_sdk::scanners::JS_DEOBFUSCATOR)
+        .scanner(ace_sdk::scanners::PHISHKIT)
+}
+
 /// The network pool: the RDAP, DNS, snort signature, conversation frequency, email logger, email
 /// thread, newly registered domains, user (LDAP), Splunk and Splunk clicker detection modules, the
 /// one that follows 1drv.ms links for the protected URL module, the four on the email archive
@@ -125,7 +136,7 @@ pub fn lookup_pool() -> LookupPool {
         .module::<ace_mod_tag::UserDefinedTagging>()
 }
 
-/// The open-source binaries' list: the three pools, no observable types beyond ace3's, ace3's
+/// The open-source binaries' list: the four pools, no observable types beyond ace3's, ace3's
 /// one open-source hunt type, Splunk (PLAN.md 6.2), and the script command types that stand in for
 /// the signatures' hunt scripts (decision 16). `ace hunter` checks the Splunk instance a hunt
 /// names against its configuration's (6.4); elsewhere a hunt's `splunk_config` isn't checked.
@@ -134,6 +145,7 @@ pub fn app() -> App {
         .parser_pool(parser_pool())
         .parser_pool(sandbox_pool())
         .lookup_pool(lookup_pool())
+        .scanner_pool(scanner_pool())
         // ace3's protected_url_analyzer is in its common group, and this does its network half
         .module_in_group("common", "protected_url_one_drive")
         .hunt_type(ace_hunt::types::Splunk::default());

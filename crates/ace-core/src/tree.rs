@@ -913,20 +913,25 @@ pub async fn tree_view(
     root: Uuid,
     this: ObservableId,
     files: Option<ace_sdk::tree::TreeFiles>,
+    details_of: &[&str],
 ) -> Result<(ace_sdk::tree::TreeView, Vec<(usize, String)>), DbError> {
     use ace_sdk::tree::{
-        MAX_TREE_OBSERVABLES, MAX_TREE_RESULTS, TreeAddition, TreeObservable, TreePath, TreeResult,
-        TreeView,
+        MAX_TREE_OBSERVABLES, MAX_TREE_RESULTS, TreeAddition, TreeObservable, TreePath,
+        TreeRelationship, TreeResult, TreeView,
     };
     use std::collections::HashMap;
 
     let head = sqlx::query!(
-        r#"SELECT origin ->> 'alert_type' AS alert_type FROM analysis.roots WHERE id = $1"#,
+        r#"SELECT origin ->> 'alert_type' AS alert_type, analysis_mode
+           FROM analysis.roots WHERE id = $1"#,
         root,
     )
     .fetch_optional(pool)
     .await?;
-    let alert_type = head.and_then(|row| row.alert_type);
+    let (alert_type, analysis_mode) = match head {
+        Some(row) => (row.alert_type, Some(row.analysis_mode)),
+        None => (None, None),
+    };
     let whitelisted = has_whitelisted(pool, root).await?;
 
     let limit = MAX_TREE_OBSERVABLES as i64 + 1;
@@ -965,6 +970,7 @@ pub async fn tree_view(
             size: row.size.and_then(|s| u64::try_from(s).ok()),
             pending: Vec::new(),
             download: None,
+            relationships: Vec::new(),
         });
     }
     let Some(&this_index) = index.get(&this) else {
@@ -1008,15 +1014,44 @@ pub async fn tree_view(
         }
     }
 
+    let relationships = sqlx::query!(
+        r#"SELECT r.observable_id AS "observable_id: ObservableId", r.kind,
+                  t.id AS "target: ObservableId"
+           FROM analysis.relationships r
+           JOIN analysis.observables t
+             ON t.root_id = r.root_id AND t.type = r.target_type
+                AND t.value_hash = r.target_value_hash
+           WHERE r.root_id = $1
+           ORDER BY r.observable_id, r.kind, r.target_type, r.target_value"#,
+        root,
+    )
+    .fetch_all(pool)
+    .await?;
+    for row in relationships {
+        let (Some(&from), Some(&target)) = (index.get(&row.observable_id), index.get(&row.target))
+        else {
+            continue;
+        };
+        let Ok(kind) = serde_json::from_value(Value::String(row.kind.clone())) else {
+            continue;
+        };
+        observables[from]
+            .relationships
+            .push(TreeRelationship { kind, target });
+    }
+
     let limit = MAX_TREE_RESULTS as i64 + 1;
+    let details_of: Vec<String> = details_of.iter().map(|m| (*m).to_owned()).collect();
     let rows = sqlx::query!(
         r#"SELECT id AS "id: ResultId", observable_id AS "observable_id: ObservableId",
-                  module, analysis_type, tags
+                  module, analysis_type, tags,
+                  CASE WHEN module = ANY($3) THEN details END AS details
            FROM analysis.results WHERE root_id = $1
            ORDER BY id
            LIMIT $2"#,
         root,
         limit,
+        &details_of,
     )
     .fetch_all(pool)
     .await?;
@@ -1034,6 +1069,7 @@ pub async fn tree_view(
             analysis_type: row.analysis_type,
             tags: row.tags,
             added: Vec::new(),
+            details: row.details,
         });
     }
     let additions = sqlx::query!(
@@ -1070,6 +1106,7 @@ pub async fn tree_view(
     Ok((
         TreeView {
             alert_type,
+            analysis_mode,
             whitelisted,
             this: this_index,
             observables,
