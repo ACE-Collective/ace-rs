@@ -111,8 +111,9 @@ const SCAN_PREFIX: &str = "@scan/";
 /// The header a task-scoped request names its worker in.
 pub const WORKER_HEADER: &str = "x-ace4-worker";
 
-/// How long a task that runs last first waits for the rest of its root, doubling up to 32 s. Every file
-/// has one, so it starts low: most roots are done in a moment.
+/// How long a task that runs last first waits for the rest of its root, doubling up to 32 s while the
+/// same thing holds it back (`tree::HeldBack`). Every file has one, so it starts low: most roots are
+/// done in a moment.
 const OTHERS_PENDING_DELAY: Duration = Duration::from_millis(250);
 
 /// How long a file's first task is held, at most, while something nearer the root that could add
@@ -908,18 +909,31 @@ impl Api {
             .iter()
             .any(|c| c.key == task.module && c.manifest.runs_last);
         // ace3's execute_final_analysis: what's below this file has all been found and scanned.
-        // Modules that run last don't wait for each other, and what they add can only hold them back
-        // again for as long as it takes to analyze.
+        // Modules that run last wait for each other only on the files below their observable, which
+        // they read and the other can add to (`tree::held_back`); ace3 reruns its final analysis
+        // until nothing more is added, and this runs each once. The wait doubles while the same
+        // thing holds it back and starts low again when that changes, so a wait for xlmdeobfuscator
+        // below, and then for what it added, isn't as long as the wait for the whole root was.
         if runs_last {
             let last: Vec<String> = catalog
                 .iter()
                 .filter(|c| c.manifest.runs_last)
                 .map(|c| c.key.clone())
                 .collect();
-            if tree::others_pending(self.inner.db.pool(), task.root, &last).await? {
-                let delays = task.delayed.as_ref().map_or(0, |d| d.delays);
-                let after = OTHERS_PENDING_DELAY.saturating_mul(2u32.saturating_pow(delays.min(7)));
-                match worker.delay(task.id, after, &Value::Null).await {
+            if let Some(held) =
+                tree::held_back(self.inner.db.pool(), task.root, task.observable.id, &last).await?
+            {
+                let before = task.delayed.as_ref().map(|d| &d.state);
+                let step = match before {
+                    Some(state) if state["held_back_by"] == held.as_str() => {
+                        state["step"].as_u64().unwrap_or(0).saturating_add(1)
+                    }
+                    _ => 0,
+                };
+                let exponent = u32::try_from(step.min(7)).unwrap_or(7);
+                let after = OTHERS_PENDING_DELAY.saturating_mul(2u32.saturating_pow(exponent));
+                let state = serde_json::json!({"held_back_by": held.as_str(), "step": step});
+                match worker.delay(task.id, after, &state).await {
                     Ok(_) | Err(QueueError::Cancelled(_)) => return Ok(None),
                     Err(e) => return Err(e.into()),
                 }

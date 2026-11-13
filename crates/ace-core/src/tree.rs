@@ -661,6 +661,87 @@ pub async fn emails_pending(pool: &PgPool, root: Uuid) -> Result<bool, DbError> 
     .await?)
 }
 
+/// What holds back a task that runs last (`held_back`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum HeldBack {
+    /// A module that doesn't run last has a task in the root that hasn't finished.
+    ByOthers,
+    /// A module that runs last has one on a file below the task's observable.
+    ByLastBelow,
+}
+
+impl HeldBack {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            HeldBack::ByOthers => "others",
+            HeldBack::ByLastBelow => "last_below",
+        }
+    }
+}
+
+/// Whether a task that runs last, on `observable`, must wait, and for what: a module not in `last` has
+/// a task in the root that hasn't finished, or one in `last` has one on a file below `observable`, what
+/// its results added and theirs in turn. What's below is what a module that runs last reads, and one
+/// that runs last on a file can add to it, as xlmdeobfuscator adds its output under an email's
+/// attachment, where the email's lure_url_analyzer finds its URLs; extracted_ole_analyzer and
+/// pcap_tls_decryption add files too. One on another type isn't waited for: email_thread_analyzer, on a
+/// message_id below the email, adds nothing and waits itself for the email logger above it, so waiting
+/// for it would never end. Nor are those on the same observable, above it, elsewhere in the root, or
+/// both above and below it in a cycle, so no two wait on each other while a module that runs last on a
+/// file waits for none above it. The walk below is read only once nothing else is left.
+pub async fn held_back(
+    pool: &PgPool,
+    root: Uuid,
+    observable: ObservableId,
+    last: &[String],
+) -> Result<Option<HeldBack>, DbError> {
+    if others_pending(pool, root, last).await? {
+        return Ok(Some(HeldBack::ByOthers));
+    }
+    let below = sqlx::query_scalar!(
+        r#"WITH RECURSIVE below (observable_id) AS (
+               SELECT a.observable_id
+               FROM analysis.results r
+               JOIN analysis.result_additions a ON a.result_id = r.id
+               WHERE r.root_id = $1 AND r.observable_id = $2
+               UNION
+               SELECT a.observable_id
+               FROM below
+               JOIN analysis.results r ON r.root_id = $1 AND r.observable_id = below.observable_id
+               JOIN analysis.result_additions a ON a.result_id = r.id
+           ), above (observable_id) AS (
+               SELECT r.observable_id
+               FROM analysis.result_additions a
+               JOIN analysis.results r ON r.id = a.result_id
+               WHERE a.root_id = $1 AND a.observable_id = $2
+               UNION
+               SELECT r.observable_id
+               FROM above
+               JOIN analysis.result_additions a
+                 ON a.root_id = $1 AND a.observable_id = above.observable_id
+               JOIN analysis.results r ON r.id = a.result_id
+           )
+           SELECT EXISTS (
+               SELECT 1 FROM queue.tasks t
+               JOIN analysis.observables o ON o.root_id = t.root_id AND o.id = t.observable_id
+               WHERE t.root_id = $1
+                 AND t.state IN ('queued', 'delayed', 'running')
+                 AND t.module = ANY($3)
+                 AND o.type = $4
+                 AND t.observable_id <> $2
+                 AND t.observable_id IN (SELECT observable_id FROM below)
+                 AND t.observable_id NOT IN (SELECT observable_id FROM above)
+           ) AS "pending!""#,
+        root,
+        observable as ObservableId,
+        last,
+        ObservableKind::File.as_str(),
+    )
+    .fetch_one(pool)
+    .await?;
+    Ok(below.then_some(HeldBack::ByLastBelow))
+}
+
 /// Whether a module not in `except` has a task in the root that hasn't finished.
 pub async fn others_pending(pool: &PgPool, root: Uuid, except: &[String]) -> Result<bool, DbError> {
     Ok(sqlx::query_scalar!(

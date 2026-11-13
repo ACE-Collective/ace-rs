@@ -15400,11 +15400,109 @@ async fn a_classification_change_relabels_at_read_time() {
             .chain([("REVIEWED".to_owned(), DispositionClass::Fp)]),
         [],
     );
-    let relabelled = service(db).with_disposition_classes(classes);
+    let relabelled = service(db).with_disposition_classes(classes.clone());
     assert_eq!(
         verdicts(verdict_rows(&relabelled, &actor, root).await),
         BTreeSet::from([Some(Verdict::Fp)])
     );
+    // the site overlay's sections, merged over ace3's, do the same
+    let overlay =
+        ace_sdk::Overlay::from_yaml("disposition_classification: {REVIEWED: fp}").expect("parses");
+    let configured = DispositionClasses::configured(&overlay).expect("a good section");
+    assert_eq!(configured.lists(), classes.lists());
+    assert_eq!(configured.set_by_ace_list(), ["SIMULATED"]);
+    let relabelled = service(db).with_disposition_classes(configured);
+    assert_eq!(
+        verdicts(verdict_rows(&relabelled, &actor, root).await),
+        BTreeSet::from([Some(Verdict::Fp)])
+    );
+    // and moving a TP disposition to FP relabels its alerts' detections, a stored verdict masked
+    let (delivery, ids) = verdict_alert(db, TWO_SIGNATURES, Some("DELIVERY")).await;
+    store_verdict(db, delivery, ids[0], "tp").await;
+    let sources = |rows: Vec<ace_service::DetectionPoint>| {
+        rows.into_iter()
+            .map(|row| (row.verdict, row.verdict_source))
+            .collect::<BTreeSet<_>>()
+    };
+    assert_eq!(
+        sources(verdict_rows(&service(db), &actor, delivery).await),
+        BTreeSet::from([
+            (Some(Verdict::Tp), Some(VerdictSource::Explicit)),
+            (Some(Verdict::Tp), Some(VerdictSource::InheritedMulti)),
+        ])
+    );
+    let overlay =
+        ace_sdk::Overlay::from_yaml("disposition_classification: {DELIVERY: fp}").expect("parses");
+    let relabelled = service(db)
+        .with_disposition_classes(DispositionClasses::configured(&overlay).expect("good"));
+    assert_eq!(
+        sources(verdict_rows(&relabelled, &actor, delivery).await),
+        BTreeSet::from([(Some(Verdict::Fp), Some(VerdictSource::InheritedSingle))])
+    );
+}
+
+/// The overlay's disposition sections: ace3's classification with none, each entry merged over it, and a
+/// section naming a disposition ace4 doesn't know, or OPEN, refused, as `ace serve` refuses to start on it.
+#[test]
+fn the_overlay_configures_the_disposition_classes() {
+    let configured = |yaml: &str| {
+        DispositionClasses::configured(&ace_sdk::Overlay::from_yaml(yaml).expect("parses"))
+    };
+    assert_eq!(configured(""), Ok(DispositionClasses::ace3()));
+    assert_eq!(
+        configured("disposition_classification: {}\ndispositions: {}"),
+        Ok(DispositionClasses::ace3())
+    );
+    // a merge: what isn't named keeps ace3's class
+    let classes = configured(
+        "disposition_classification: {GRAYWARE: fp, REVIEWED: tp}\n\
+         dispositions: {SIMULATED: {analyst_selectable: true}, DAMAGE: {analyst_selectable: false}, \
+         EXFIL: {}}",
+    )
+    .expect("a good section");
+    assert_eq!(classes.class(Some("GRAYWARE")), Some(DispositionClass::Fp));
+    assert_eq!(classes.class(Some("REVIEWED")), Some(DispositionClass::Tp));
+    assert_eq!(classes.class(Some("DELIVERY")), Some(DispositionClass::Tp));
+    assert_eq!(
+        classes.class(Some("FALSE_POSITIVE")),
+        Some(DispositionClass::Fp)
+    );
+    assert_eq!(classes.class(Some("IGNORE")), None);
+    assert_eq!(classes.set_by_ace_list(), ["DAMAGE"]);
+    assert!(!classes.set_by_ace(Some("SIMULATED")) && !classes.set_by_ace(Some("EXFIL")));
+    assert_eq!(classes.refusal(Some("SIMULATED"), true), None);
+    assert!(classes.refusal(Some("DAMAGE"), true).is_some());
+    for (yaml, said) in [
+        (
+            "disposition_classification: {BENIGN: fp}",
+            "disposition_classification.BENIGN: not a disposition ace4 knows",
+        ),
+        (
+            "disposition_classification: {delivery: tp}",
+            "disposition_classification.delivery: not a disposition ace4 knows",
+        ),
+        (
+            "dispositions: {MALICIOUS: {analyst_selectable: false}}",
+            "dispositions.MALICIOUS: not a disposition ace4 knows",
+        ),
+        (
+            "disposition_classification: {OPEN: fp}",
+            "disposition_classification.OPEN: OPEN is an alert with no disposition",
+        ),
+        (
+            "dispositions: {OPEN: {analyst_selectable: false}}",
+            "dispositions.OPEN: OPEN is an alert with no disposition",
+        ),
+    ] {
+        let err = configured(yaml).expect_err(yaml);
+        assert!(err.starts_with(said), "{yaml}: {err}");
+    }
+    // a disposition can't be both TP and FP: it's one key, and a key written twice doesn't parse
+    let err = ace_sdk::Overlay::from_yaml(
+        "disposition_classification:\n  DELIVERY: tp\n  DELIVERY: fp\n",
+    )
+    .expect_err("a key written twice");
+    assert!(err.to_string().contains("duplicate entry"), "{err}");
 }
 
 /// test_effective.py's `test_override_survives_an_fp_round_trip`: TP to FP masks the stored verdict without

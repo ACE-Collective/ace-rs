@@ -157,8 +157,8 @@ pub use detection_points::{
     DetectionPoint, DetectionPointFilter, DetectionPointPage, MAX_DETECTIONS_PAGE,
 };
 pub use detection_verdicts::{
-    BatchRules, DispositionClass, DispositionClasses, MAX_VERDICT_TARGETS, SkipCause,
-    SkippedDetection, Verdict, VerdictBatch, VerdictSource, effective_verdict,
+    ACE_DISPOSITIONS, BatchRules, DispositionClass, DispositionClasses, MAX_VERDICT_TARGETS,
+    SkipCause, SkippedDetection, Verdict, VerdictBatch, VerdictSource, effective_verdict,
 };
 pub use email_archive::ArchivedEmail;
 pub use events::{

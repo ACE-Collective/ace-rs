@@ -44,6 +44,6 @@ pub use module::{
     Parser, Settings, WHITELISTED, run_lookup, run_parser,
 };
 pub use overlay::{
-    ActionSection, Component, NrdList, NrdSection, Overlay, OverlayError, ScheduledTaskSection,
-    SecretSource,
+    ActionSection, Component, DispositionClass, DispositionSection, NrdList, NrdSection, Overlay,
+    OverlayError, ScheduledTaskSection, SecretSource,
 };

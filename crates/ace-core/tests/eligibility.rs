@@ -893,6 +893,113 @@ async fn a_module_that_runs_last_waits_for_every_other_module() {
     );
 }
 
+/// What a module that runs last waits for among those that run last: a task on a file below its
+/// observable, as the email's lure_url_analyzer waits for xlmdeobfuscator on its attachment's decrypted
+/// workbook, whose output has the URLs it reads. Not one on the same observable, above it, beside it, in
+/// a cycle with it, or on another type, as email_thread_analyzer on the email's message_id, which waits
+/// itself for the email logger on the email, so no two wait on each other.
+#[tokio::test]
+async fn a_module_that_runs_last_waits_for_one_below_it() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let hash = |c: &str| c.repeat(64);
+    let (email, xls, decrypted, sibling) = (hash("a"), hash("b"), hash("c"), hash("d"));
+    let mut observables: Vec<(ObservableKind, &str)> = [&email, &xls, &decrypted, &sibling]
+        .iter()
+        .map(|value| (ObservableKind::File, value.as_str()))
+        .collect();
+    observables.push((ObservableKind::MessageId, "<a@example.com>"));
+    let (root, ids) = root_with(db, "test", &observables).await;
+    let (email_id, xls_id, decrypted_id, sibling_id, message_id) =
+        (ids[0], ids[1], ids[2], ids[3], ids[4]);
+    add_result(
+        db,
+        root,
+        email_id,
+        "email_analysis",
+        json!({}),
+        &[(xls_id, Some("invoice.xls")), (message_id, None)],
+    )
+    .await;
+    add_result(
+        db,
+        root,
+        xls_id,
+        "msoffice_encryption_analysis",
+        json!({}),
+        &[(decrypted_id, Some("invoice.xls.decrypted"))],
+    )
+    .await;
+    let last = [
+        "lure_url_analyzer".to_owned(),
+        "xlmdeobfuscator".to_owned(),
+        "email_logger".to_owned(),
+        "email_thread_analyzer".to_owned(),
+    ];
+    let pending = |id| {
+        let last = &last;
+        async move {
+            tree::held_back(db.pool(), root, id, last)
+                .await
+                .expect("reads")
+                .is_some()
+        }
+    };
+    let queue = |id, module: &'static str| async move {
+        let mut tx = db.begin().await.expect("begins");
+        ace_core::queue::enqueue(&mut tx, root, id, module)
+            .await
+            .expect("queues");
+        tx.commit().await.expect("commits");
+    };
+    queue(email_id, "lure_url_analyzer").await;
+    queue(email_id, "email_logger").await;
+    queue(sibling_id, "xlmdeobfuscator").await;
+    queue(message_id, "email_thread_analyzer").await;
+    // the same observable's, one beside it and one below that isn't on a file don't hold it back
+    assert!(!pending(email_id).await);
+    assert!(!pending(message_id).await, "nor does one above");
+    queue(decrypted_id, "xlmdeobfuscator").await;
+    assert!(pending(email_id).await, "one below holds it back");
+    let held = |id| {
+        let last = &last;
+        async move {
+            tree::held_back(db.pool(), root, id, last)
+                .await
+                .expect("reads")
+        }
+    };
+    assert_eq!(held(email_id).await, Some(tree::HeldBack::ByLastBelow));
+    // anything that doesn't run last holds back every one, which is read first
+    queue(sibling_id, "archive").await;
+    assert_eq!(held(email_id).await, Some(tree::HeldBack::ByOthers));
+    assert_eq!(held(decrypted_id).await, Some(tree::HeldBack::ByOthers));
+    let archive = worker(&test_db, "a", &["archive"], Duration::from_secs(30)).await;
+    let task = archive.claim().await.expect("claims").expect("the task");
+    archive.fail(task.id, "broke").await.expect("fails");
+    assert!(pending(xls_id).await, "however far below");
+    assert!(!pending(decrypted_id).await, "one above doesn't");
+    // until it's finished
+    let worker = worker(&test_db, "w", &["xlmdeobfuscator"], Duration::from_secs(30)).await;
+    while let Some(task) = worker.claim().await.expect("claims") {
+        assert!(pending(email_id).await, "running, it still holds it back");
+        worker.fail(task.id, "broke").await.expect("fails");
+    }
+    assert!(!pending(email_id).await);
+    // in a cycle, each is above the other, so neither waits
+    add_result(
+        db,
+        root,
+        decrypted_id,
+        "archive_analysis",
+        json!({}),
+        &[(email_id, Some("again.eml"))],
+    )
+    .await;
+    queue(xls_id, "xlmdeobfuscator").await;
+    assert!(!pending(email_id).await && !pending(xls_id).await);
+}
+
 /// The walk ace3's `recurse_tree` does: the file, what was added below it by any module, and no
 /// further than that. A cycle ends, and a result with no rules has none.
 #[tokio::test]

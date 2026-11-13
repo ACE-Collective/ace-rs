@@ -100,6 +100,27 @@ async fn serve(app: &App) -> Result<ExitCode> {
     for name in hooks.names() {
         tracing::info!(hook = name, "running a hook in the core");
     }
+    let classes = ace_service::DispositionClasses::configured(&overlay)
+        .map_err(anyhow::Error::msg)
+        .context("the overlay's disposition sections")?;
+    let (tp, fp) = classes.lists();
+    let set_by_ace = classes.set_by_ace_list();
+    // changing it relabels every detection at once, so a site's own is a warning, as ace3 logs it
+    if classes == ace_service::DispositionClasses::ace3() {
+        tracing::info!(
+            ?tp,
+            ?fp,
+            ?set_by_ace,
+            "disposition classification in effect: ace3's"
+        );
+    } else {
+        tracing::warn!(
+            ?tp,
+            ?fp,
+            ?set_by_ace,
+            "disposition classification in effect: the overlay's"
+        );
+    }
     let orchestrator = Orchestrator::new(Catalog::of(components), modes).with_hooks(hooks);
     // a pool that lists a module leases its overlay instances too
     // the remediators, probes and collectors the pools host decide their actions' tries (PLAN.md 7.9)
@@ -114,7 +135,9 @@ async fn serve(app: &App) -> Result<ExitCode> {
     for pool in &config.pools {
         tracing::info!(pool = %pool.name, modules = ?pool.modules, "serving a pool");
     }
-    let service = ace_service::Service::new(db.clone(), orchestrator.clone()).with_actions(actions);
+    let service = ace_service::Service::new(db.clone(), orchestrator.clone())
+        .with_actions(actions)
+        .with_disposition_classes(classes);
     let scheduler =
         crate::scheduler::Scheduler::new(db.clone(), service.clone(), bucket.clone(), scheduled)
             .with_overlay(overlay.clone())

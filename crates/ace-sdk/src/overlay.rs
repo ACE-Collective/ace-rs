@@ -36,6 +36,15 @@
 //! pool hosts (PLAN.md 7.9, `crate::actions`), by `<kind>/<name>`, such as `remediation/office365_email`.
 //! A pool gives each handler its own entry's `settings`, and the secrets its spec declares.
 //!
+//! `disposition_classification:` and `dispositions:` are ace3's sections of those names, which say what
+//! a disposition means for its alert's detections' verdicts (PLAN.md 7.14, `ace_service`'s
+//! `DispositionClasses`): `disposition_classification` maps a disposition to `tp` or `fp`, and an entry of
+//! `dispositions` takes `analyst_selectable`, false for one only ACE sets. Each entry is merged over ace3's
+//! own, as ace3 merges a site's config over its `saq.default.yaml`, so a site names only what it changes.
+//! ace4 doesn't configure the dispositions themselves, so a name must be one of ace3's, and an entry of
+//! `dispositions` takes nothing else of ace3's (`rank`, `css`, `show_save_to_event`). `ace serve` checks both
+//! when it starts; a pool doesn't read them.
+//!
 //! `secrets:` says where each secret comes from, by the name modules declare in
 //! `Module::SECRETS`: `env:<VARIABLE>` or `file:<path>`, as ace3's `env:` references. Nothing
 //! is read when the overlay loads; a pool reads only the ones its modules declare (PLAN.md 2.24,
@@ -75,6 +84,31 @@ pub struct Overlay {
     pub hooks: crate::hooks::HooksSection,
     /// The settings of the action handlers (PLAN.md 7.9), by `<kind>/<name>`.
     pub actions: BTreeMap<String, ActionSection>,
+    /// ace3's `disposition_classification:`, each entry over ace3's own (PLAN.md 7.14). `ace serve` reads
+    /// it; a pool doesn't.
+    pub disposition_classification: BTreeMap<String, DispositionClass>,
+    /// ace3's `dispositions:`, by disposition, each entry over ace3's own (PLAN.md 7.14). `ace serve` reads
+    /// it; a pool doesn't.
+    pub dispositions: BTreeMap<String, DispositionSection>,
+}
+
+/// What a disposition says about an alert's detections, ace3's `tp` and `fp`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum DispositionClass {
+    /// They found malicious activity.
+    Tp,
+    /// They didn't.
+    Fp,
+}
+
+/// What the overlay says about one disposition: the one key of ace3's entry that ace4 reads.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields, default)]
+pub struct DispositionSection {
+    /// False when only ACE sets the disposition, so only ACE grades its alerts' detections. Left out, it
+    /// keeps ace3's.
+    pub analyst_selectable: Option<bool>,
 }
 
 /// What the overlay says about one action handler.
@@ -256,9 +290,12 @@ impl Component {
 }
 
 impl Overlay {
-    /// Parses an overlay. An empty file is an overlay with no sections.
+    /// Parses an overlay. An empty file is an overlay with no sections. A key written twice in one
+    /// mapping is refused, where reading straight into JSON would keep the last silently.
     pub fn from_yaml(text: &str) -> Result<Overlay, OverlayError> {
         let parse_error = |path: String, message: String| OverlayError::Parse { path, message };
+        serde_norway::from_str::<serde_norway::Value>(text)
+            .map_err(|e| parse_error(String::new(), e.to_string()))?;
         let value: Value =
             serde_norway::from_str(text).map_err(|e| parse_error(String::new(), e.to_string()))?;
         if value.is_null() {
@@ -296,6 +333,8 @@ impl Overlay {
             nrd: NrdSection::default(),
             hooks: crate::hooks::HooksSection::default(),
             actions: self.actions.clone(),
+            disposition_classification: BTreeMap::new(),
+            dispositions: BTreeMap::new(),
         }
     }
 
@@ -485,6 +524,67 @@ mod tests {
                 if path == "modules.example_resolver.instances.a.settings" && key == "delay"),
             "{err}"
         );
+    }
+
+    /// The disposition sections parse as ace3 writes them, and refuse a key or class they don't know, and
+    /// a disposition named twice, which could otherwise be both TP and FP.
+    #[test]
+    fn the_disposition_sections_refuse_what_they_dont_know() {
+        let overlay = Overlay::from_yaml(
+            "disposition_classification: {REVIEWED: fp, SIMULATED: tp}\n\
+             dispositions: {SIMULATED: {analyst_selectable: true}, DELIVERY: {}}",
+        )
+        .expect("parses");
+        assert_eq!(
+            overlay.disposition_classification,
+            BTreeMap::from([
+                ("REVIEWED".to_owned(), DispositionClass::Fp),
+                ("SIMULATED".to_owned(), DispositionClass::Tp),
+            ])
+        );
+        assert_eq!(
+            overlay.dispositions["SIMULATED"].analyst_selectable,
+            Some(true)
+        );
+        assert_eq!(overlay.dispositions["DELIVERY"].analyst_selectable, None);
+        for (yaml, path, message) in [
+            (
+                "disposition_classification: {REVIEWED: benign}",
+                "disposition_classification.REVIEWED",
+                "unknown variant `benign`",
+            ),
+            (
+                "dispositions: {SIMULATED: {rank: 55}}",
+                "dispositions.SIMULATED.rank",
+                "unknown field `rank`",
+            ),
+            (
+                "disposition_classifications: {REVIEWED: fp}",
+                "disposition_classifications",
+                "unknown field",
+            ),
+            (
+                "disposition_classification:\n  REVIEWED: tp\n  REVIEWED: fp\n",
+                "",
+                "duplicate entry with key \"REVIEWED\"",
+            ),
+            (
+                "modules:\n  example_resolver: {}\n  example_resolver: {settings: {}}\n",
+                "",
+                "duplicate entry with key \"example_resolver\"",
+            ),
+        ] {
+            match Overlay::from_yaml(yaml) {
+                Err(OverlayError::Parse {
+                    path: got,
+                    message: said,
+                }) => {
+                    assert_eq!(got, path, "{yaml}: {said}");
+                    assert!(said.contains(message), "{yaml}: {said}");
+                }
+                other => panic!("{yaml}: {other:?}"),
+            }
+        }
     }
 
     #[test]

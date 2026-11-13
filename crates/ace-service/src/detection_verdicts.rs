@@ -51,8 +51,11 @@
 //!   an API key without a user (422). A key without an owner holding `alert:write` can set one.
 //! - `confirm_detections` reads and writes in one transaction, where ace3's reads first and then calls
 //!   `set_verdicts` in a second; the result is the same, and nothing is set meanwhile.
-//! - The classification is ace3's `saq.default.yaml`'s, held by the service (`Service::with_disposition_classes`),
-//!   since ace4 doesn't configure dispositions yet (`Service::disposition`).
+//! - The classification is the site overlay's `disposition_classification:` and `dispositions:`, merged over
+//!   ace3's `saq.default.yaml` and checked when `ace serve` starts (`DispositionClasses::configured`), then
+//!   held by the service (`Service::with_disposition_classes`). ace4 doesn't configure the dispositions
+//!   themselves (`Service::disposition`), so the names it takes are ace3's, and `analyst_selectable: false`
+//!   decides only who grades the alert's detections: ace3 also refuses the disposition from an analyst.
 
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 
@@ -129,14 +132,13 @@ impl VerdictSource {
     }
 }
 
-/// What a disposition says about an alert's detections.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum DispositionClass {
-    /// They found malicious activity.
-    Tp,
-    /// They didn't.
-    Fp,
-}
+/// What a disposition says about an alert's detections: the overlay's `tp` and `fp`.
+pub use ace_sdk::DispositionClass;
+
+/// ace3's dispositions that only ACE sets, which the analysts' list (`filters::DISPOSITIONS`) leaves out:
+/// SIMULATED, SVS's test runs' (7.10). With that list, they're the dispositions the overlay's sections may
+/// name.
+pub const ACE_DISPOSITIONS: &[&str] = &["SIMULATED"];
 
 /// Which dispositions classify how, ace3's `disposition_classification`, and which only ACE sets, ace3's
 /// `analyst_selectable: false`. A disposition in neither map is unclassified: its detections have no
@@ -174,8 +176,52 @@ impl DispositionClasses {
                 tp.into_iter()
                     .map(|name| (name.to_owned(), DispositionClass::Tp)),
             ),
-            ["SIMULATED".to_owned()],
+            ACE_DISPOSITIONS.iter().map(|name| (*name).to_owned()),
         )
+    }
+
+    /// The classification a site's overlay sets: its `disposition_classification` and `dispositions`
+    /// entries over ace3's, as ace3 merges a site's config over its defaults. Refused, saying where: a
+    /// disposition that isn't one of ace3's (`filters::DISPOSITIONS` and `ACE_DISPOSITIONS`), and OPEN,
+    /// which is an alert with no disposition and so always unclassified. A disposition can't be both TP
+    /// and FP: each is one key of a map, and the overlay refuses a key written twice.
+    pub fn configured(overlay: &ace_sdk::Overlay) -> Result<Self, String> {
+        let check = |section: &str, name: &str| {
+            if name == crate::OPEN {
+                return Err(format!(
+                    "{section}.{name}: OPEN is an alert with no disposition yet, which is always \
+                     unclassified"
+                ));
+            }
+            let known = crate::filters::DISPOSITIONS.iter().chain(ACE_DISPOSITIONS);
+            if !known.clone().any(|known| *known == name) {
+                return Err(format!(
+                    "{section}.{name}: not a disposition ace4 knows; ace4 doesn't configure its \
+                     dispositions, so they're ace3's: {}",
+                    known.copied().collect::<Vec<_>>().join(", ")
+                ));
+            }
+            Ok(())
+        };
+        let mut classes = DispositionClasses::ace3();
+        for (name, class) in &overlay.disposition_classification {
+            check("disposition_classification", name)?;
+            classes.classes.insert(name.clone(), *class);
+        }
+        for (name, section) in &overlay.dispositions {
+            check("dispositions", name)?;
+            match section.analyst_selectable {
+                Some(false) => classes.set_by_ace.insert(name.clone()),
+                Some(true) => classes.set_by_ace.remove(name),
+                None => false,
+            };
+        }
+        Ok(classes)
+    }
+
+    /// The dispositions only ACE sets, sorted.
+    pub fn set_by_ace_list(&self) -> Vec<String> {
+        self.set_by_ace.iter().cloned().collect()
     }
 
     pub fn new(

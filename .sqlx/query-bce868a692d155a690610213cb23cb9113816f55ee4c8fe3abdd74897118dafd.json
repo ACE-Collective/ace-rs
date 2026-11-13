@@ -1,0 +1,26 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH RECURSIVE below (observable_id) AS (\n               SELECT a.observable_id\n               FROM analysis.results r\n               JOIN analysis.result_additions a ON a.result_id = r.id\n               WHERE r.root_id = $1 AND r.observable_id = $2\n               UNION\n               SELECT a.observable_id\n               FROM below\n               JOIN analysis.results r ON r.root_id = $1 AND r.observable_id = below.observable_id\n               JOIN analysis.result_additions a ON a.result_id = r.id\n           ), above (observable_id) AS (\n               SELECT r.observable_id\n               FROM analysis.result_additions a\n               JOIN analysis.results r ON r.id = a.result_id\n               WHERE a.root_id = $1 AND a.observable_id = $2\n               UNION\n               SELECT r.observable_id\n               FROM above\n               JOIN analysis.result_additions a\n                 ON a.root_id = $1 AND a.observable_id = above.observable_id\n               JOIN analysis.results r ON r.id = a.result_id\n           )\n           SELECT EXISTS (\n               SELECT 1 FROM queue.tasks t\n               JOIN analysis.observables o ON o.root_id = t.root_id AND o.id = t.observable_id\n               WHERE t.root_id = $1\n                 AND t.state IN ('queued', 'delayed', 'running')\n                 AND t.module = ANY($3)\n                 AND o.type = $4\n                 AND t.observable_id <> $2\n                 AND t.observable_id IN (SELECT observable_id FROM below)\n                 AND t.observable_id NOT IN (SELECT observable_id FROM above)\n           ) AS \"pending!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "pending!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Int8",
+        "TextArray",
+        "Text"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "bce868a692d155a690610213cb23cb9113816f55ee4c8fe3abdd74897118dafd"
+}

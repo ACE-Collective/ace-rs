@@ -68,7 +68,9 @@ pub trait Module: Sized + Send + Sync + 'static {
     const READS_CARRYING_EMAIL: bool = false;
     /// True for a module that runs once everything else in its root has finished, as ace3's
     /// `execute_final_analysis`, and reads the YARA rules that matched its observable or anything
-    /// below it. The core holds its tasks back until then and adds those rules to them.
+    /// below it. The core holds its tasks back until then and adds those rules to them. Of the others
+    /// that run last, it waits only for those on a file below its observable, which can add to what's
+    /// below, so one that runs last on a file mustn't wait itself for one above it.
     const RUNS_LAST: bool = false;
     /// For a module that runs last: the observable types whose values below its observable it
     /// reads, as ace3's `recurse_tree` finds them, such as the email logger's URLs. The core adds
