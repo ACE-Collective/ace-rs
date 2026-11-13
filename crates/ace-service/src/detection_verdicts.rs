@@ -15,10 +15,11 @@
 //!     tp  inherited_multi       otherwise: unconfirmed
 //! ```
 //!
-//! The rule exists twice, as `effective_verdict` here and as migration 0046's `analysis.detection_verdict`
-//! and `analysis.detection_verdict_source`, which every query uses, and the tests check that the two agree.
-//! 7.10 adds the test run condition to both, and its attributions; until then nothing is attributed to a
-//! run, so the SQL leaves it out.
+//! The rule exists twice, as `effective_verdict` here and as `analysis.detection_verdict` and
+//! `analysis.detection_verdict_source`, which every query uses, and the tests check that the two agree.
+//! Migration 0047 (7.10) gave both the test run condition: every query passes `svs.unreviewed_run` of the
+//! detection's root, true while an attribution of the alert that holds names a run that isn't reviewed, as
+//! ace3's `unreviewed_run_condition` is. Removing the attribution gives the verdicts back.
 //!
 //! **What a verdict is keyed on.** ace3 keys it on a detection's content hash, a hash of the node it's on,
 //! its signature, description and details, because its `detection_points` rows are copies that each sync of
@@ -550,7 +551,7 @@ impl Service {
                                    r.disposition, $2, $3, v.verdict,
                                    EXISTS (SELECT FROM analysis.detections o
                                            WHERE o.root_id = d.root_id
-                                             AND o.signature_uuid IS DISTINCT FROM d.signature_uuid))
+                                             AND o.signature_uuid IS DISTINCT FROM d.signature_uuid), svs.unreviewed_run(d.root_id))
                                  = 'inherited_multi'
                            ORDER BY d.id"#,
                         alert,
@@ -669,7 +670,7 @@ impl Service {
                                 r.disposition, $2, $3, v.verdict,
                                 EXISTS (SELECT FROM analysis.detections o
                                         WHERE o.root_id = d.root_id
-                                          AND o.signature_uuid IS DISTINCT FROM d.signature_uuid))
+                                          AND o.signature_uuid IS DISTINCT FROM d.signature_uuid), svs.unreviewed_run(d.root_id))
                        FROM analysis.detections d
                        JOIN analysis.roots r ON r.id = d.root_id
                        LEFT JOIN analysis.detection_verdicts v ON v.detection_id = d.id

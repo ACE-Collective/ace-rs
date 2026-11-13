@@ -312,6 +312,11 @@ pub const SIGNATURE_READ: PermissionName = PermissionName::known("signature", "r
 pub const SIGNATURE_DOWNLOAD: PermissionName = PermissionName::known("signature", "download");
 /// Purge the matches of rules in QA mode: ace3's `signature:qa_purge`.
 pub const SIGNATURE_QA_PURGE: PermissionName = PermissionName::known("signature", "qa_purge");
+/// Change SVS's test hosts, and later batches of 7.10 its other settings, global ignores and samples:
+/// ace3's `svs:admin`.
+pub const SVS_ADMIN: PermissionName = PermissionName::known("svs", "admin");
+/// Read SVS's runs, tests, test hosts and coverage: ace3's `svs:run_read`.
+pub const SVS_RUN_READ: PermissionName = PermissionName::known("svs", "run_read");
 /// See users, groups, grants and keys: ace3's `user:read`.
 pub const USER_READ: PermissionName = PermissionName::known("user", "read");
 /// Change users, groups and grants: ace3's `user:write`.
@@ -472,6 +477,14 @@ pub static CATALOG: &[CatalogEntry] = &[
         name: SIGNATURE_READ,
         description: "Read the YARA rules in QA mode, their match counts, their matches and the matches' \
                       records.",
+    },
+    CatalogEntry {
+        name: SVS_ADMIN,
+        description: "Add, change and remove the SVS test hosts runs may target (audited).",
+    },
+    CatalogEntry {
+        name: SVS_RUN_READ,
+        description: "Read the SVS test hosts.",
     },
     CatalogEntry {
         name: USER_READ,

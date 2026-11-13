@@ -171,6 +171,14 @@ impl Target {
         }
     }
 
+    /// An SVS test host, by its id (PLAN.md 7.10).
+    pub(crate) fn test_host(id: i64) -> Self {
+        Target {
+            kind: "svs_test_host",
+            id: id.to_string(),
+        }
+    }
+
     /// An entry on an analyst-edited list, by its id.
     pub(crate) fn list_entry(id: i64) -> Self {
         Target {

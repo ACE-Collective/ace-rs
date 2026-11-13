@@ -45,6 +45,9 @@
 //! `dispositions` takes nothing else of ace3's (`rank`, `css`, `show_save_to_event`). `ace serve` checks both
 //! when it starts; a pool doesn't read them.
 //!
+//! `svs:` is ace3's section of that name, holding the keys of SVS that are ported (PLAN.md 7.10): so far
+//! `log_search_url`, which `ace serve` checks when it starts.
+//!
 //! `secrets:` says where each secret comes from, by the name modules declare in
 //! `Module::SECRETS`: `env:<VARIABLE>` or `file:<path>`, as ace3's `env:` references. Nothing
 //! is read when the overlay loads; a pool reads only the ones its modules declare (PLAN.md 2.24,
@@ -90,6 +93,20 @@ pub struct Overlay {
     /// ace3's `dispositions:`, by disposition, each entry over ace3's own (PLAN.md 7.14). `ace serve` reads
     /// it; a pool doesn't.
     pub dispositions: BTreeMap<String, DispositionSection>,
+    /// ace3's `svs:` section, as far as SVS is ported (PLAN.md 7.10). `ace serve` reads it; a pool doesn't.
+    pub svs: SvsSection,
+}
+
+/// ace3's `svs:` section. Each batch of 7.10 adds the keys its part reads; one this build doesn't have is
+/// refused, as ace3's schema refuses an unknown key.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields, default)]
+pub struct SvsSection {
+    /// A link to the site's log search for one run, shown on the run's page; ACE never queries it.
+    /// `{run_uuid}`, `{marker}`, `{test_guid}`, `{earliest}` and `{latest}` (epoch seconds: the run's start,
+    /// and the end of its attribution window or now) are replaced, URL-encoded. `ace serve` checks it when
+    /// it starts (`ace_core::svs::log_search`).
+    pub log_search_url: Option<String>,
 }
 
 /// What a disposition says about an alert's detections, ace3's `tp` and `fp`.
@@ -335,6 +352,7 @@ impl Overlay {
             actions: self.actions.clone(),
             disposition_classification: BTreeMap::new(),
             dispositions: BTreeMap::new(),
+            svs: SvsSection::default(),
         }
     }
 

@@ -1,0 +1,76 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, hostname, fqdn, usernames, platform FROM svs.test_hosts WHERE hostname = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "svs.test_hosts",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "hostname",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.test_hosts",
+            "name": "hostname"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "fqdn",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.test_hosts",
+            "name": "fqdn"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "usernames",
+        "type_info": "TextArray",
+        "origin": {
+          "Table": {
+            "table": "svs.test_hosts",
+            "name": "usernames"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "platform",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.test_hosts",
+            "name": "platform"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      true
+    ]
+  },
+  "hash": "4d8973b0033713b13b44e5b2d45d4bfa37954cfe9be8e8b14d55f79b8cb97c25"
+}

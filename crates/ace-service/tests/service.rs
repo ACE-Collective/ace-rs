@@ -1598,6 +1598,9 @@ async fn every_write_function_has_an_audit_test() {
         clear_detection_verdict_records_its_row(db).await,
         set_detection_verdicts_records_its_row(db).await,
         confirm_detections_records_its_row(db).await,
+        create_test_host_records_its_row(db).await,
+        update_test_host_records_its_row(db).await,
+        delete_test_host_records_its_row(db).await,
     ]);
     assert_eq!(covered, write_functions(), "{WRITES_NEED_A_TEST}");
 }
@@ -3325,6 +3328,11 @@ async fn every_write_fails_when_its_audit_fails() {
         stored_verdicts(db, graded).await,
         verdict_history(db, graded).await,
     );
+    let lab = service
+        .create_test_host(&actor, &HostFields::new("win10-01"))
+        .await
+        .expect("adds a test host");
+    let hosts_before = test_host_rows(db).await;
     let actions_before = action_rows(db).await;
     let lists_before = list_rows(db).await;
     let commands_before = command_rows(db).await;
@@ -4021,6 +4029,30 @@ async fn every_write_fails_when_its_audit_fails() {
                 .map(|_| ())
                 .expect_err("refused"),
         ),
+        (
+            "create_test_host",
+            service
+                .create_test_host(&actor, &HostFields::new("win10-02"))
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
+        (
+            "update_test_host",
+            service
+                .update_test_host(&actor, lab.id, &HostFields::new("win10-03"))
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
+        (
+            "delete_test_host",
+            service
+                .delete_test_host(&actor, lab.id)
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
     ];
     let mut covered = BTreeSet::new();
     for (function, error) in &attempts {
@@ -4053,6 +4085,11 @@ async fn every_write_fails_when_its_audit_fails() {
         "no verdict changed"
     );
     assert_eq!(action_rows(db).await, actions_before);
+    assert_eq!(
+        test_host_rows(db).await,
+        hosts_before,
+        "no test host changed"
+    );
     assert_eq!(command_rows(db).await, commands_before);
     assert_eq!(
         list_rows(db).await,
@@ -15330,7 +15367,7 @@ fn disposition_class_lists_follow_the_configuration() {
 
 /// test_effective.py's `test_sql_agrees_with_python`: the SQL the list reads agrees with
 /// `effective_verdict` for one disposition of each class (and none), one and two signatures, with and
-/// without a stored verdict. ace3's run states wait for SVS's attributions (7.10).
+/// without a stored verdict, and with no test run, an unreviewed one and a reviewed one (7.10).
 #[tokio::test]
 async fn sql_agrees_with_rust() {
     let test_db = TestDb::new().await;
@@ -15341,39 +15378,77 @@ async fn sql_agrees_with_rust() {
     for disposition in [None, Some("OPEN"), Some("FALSE_POSITIVE"), Some("DELIVERY")] {
         for detections in [ONE_SIGNATURE, TWO_SIGNATURES] {
             for with_override in [false, true] {
-                let (root, ids) = verdict_alert(db, detections, disposition).await;
-                if with_override {
-                    store_verdict(db, root, ids[0], "fp").await;
-                }
-                let rows = verdict_rows(&service, &actor, root).await;
-                assert_eq!(rows.len(), 2);
-                let multi = rows
-                    .iter()
-                    .map(|row| row.signature_uuid.clone())
-                    .collect::<BTreeSet<_>>()
-                    .len()
-                    > 1;
-                for row in rows {
-                    let expected = effective_verdict(
-                        classes.class(disposition),
-                        row.override_verdict,
-                        multi,
-                        false,
-                    );
-                    assert_eq!(
-                        (row.verdict, row.verdict_source),
-                        expected,
-                        "{disposition:?} {detections:?} {with_override} {row:?}"
-                    );
-                    assert_eq!(
-                        row.override_verdict,
-                        (with_override && row.id == ids[0]).then_some(Verdict::Fp),
-                        "a stored verdict is listed even where it's masked"
-                    );
+                for run_state in [None, Some(RunState::Ended), Some(RunState::Reviewed)] {
+                    let (root, ids) = verdict_alert(db, detections, disposition).await;
+                    if let Some(state) = run_state {
+                        attribute_to_run(db, root, ids[0], state).await;
+                    }
+                    if with_override {
+                        store_verdict(db, root, ids[0], "fp").await;
+                    }
+                    let rows = verdict_rows(&service, &actor, root).await;
+                    assert_eq!(rows.len(), 2);
+                    let multi = rows
+                        .iter()
+                        .map(|row| row.signature_uuid.clone())
+                        .collect::<BTreeSet<_>>()
+                        .len()
+                        > 1;
+                    for row in rows {
+                        let expected = effective_verdict(
+                            classes.class(disposition),
+                            row.override_verdict,
+                            multi,
+                            run_state == Some(RunState::Ended),
+                        );
+                        assert_eq!(
+                            (row.verdict, row.verdict_source),
+                            expected,
+                            "{disposition:?} {detections:?} {with_override} {run_state:?} {row:?}"
+                        );
+                        assert_eq!(
+                            row.override_verdict,
+                            (with_override && row.id == ids[0]).then_some(Verdict::Fp),
+                            "a stored verdict is listed even where it's masked"
+                        );
+                    }
                 }
             }
         }
     }
+}
+
+/// test_effective.py's `test_a_removed_attribution_gives_the_verdicts_back` (7.10): an alert attributed to
+/// a run that isn't reviewed has no verdicts, its other detections included, until the attribution no
+/// longer holds.
+#[tokio::test]
+async fn a_removed_attribution_gives_the_verdicts_back() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let actor = admin(db).await;
+    let (root, ids) = verdict_alert(db, ONE_SIGNATURE, Some("DELIVERY")).await;
+    let run = attribute_to_run(db, root, ids[0], RunState::Ended).await;
+    let verdicts = |rows: Vec<ace_service::DetectionPoint>| {
+        rows.into_iter()
+            .map(|row| row.verdict)
+            .collect::<BTreeSet<_>>()
+    };
+    assert_eq!(
+        verdicts(verdict_rows(&service(db), &actor, root).await),
+        BTreeSet::from([None])
+    );
+    sqlx::query(
+        "UPDATE svs.attributions SET removed_at = now(), removed_by = $2::jsonb WHERE run_id = $1",
+    )
+    .bind(run.id)
+    .bind(r#"{"kind": "user", "id": "alice"}"#)
+    .execute(db.pool())
+    .await
+    .expect("removes the attribution");
+    assert_eq!(
+        verdicts(verdict_rows(&service(db), &actor, root).await),
+        BTreeSet::from([Some(Verdict::Tp)])
+    );
 }
 
 /// test_effective.py's `test_a_classification_change_relabels_at_read_time`.
@@ -16345,4 +16420,722 @@ async fn verdict_writes_need_alert_write() {
     assert_eq!(verdict_history(db, root).await, []);
     // the reader still reads them
     assert_eq!(verdict_rows(&service, &reader, root).await.len(), 3);
+}
+
+// PLAN.md 7.10 batch 1: SVS's foundation, ace3's tests/saq/svs/ test_hosts.py, test_alert_status.py and
+// test_config.py's unknown keys; test_markers.py, test_log_search.py and test_hosts.py's pure cases are
+// ace-core's unit tests.
+
+use std::collections::BTreeMap;
+
+use ace_core::svs::hosts::{HostFields, match_target};
+use ace_core::svs::{AttributionConfidence, MARKER_MISMATCH_SIGNATURE, RunState, SvsStatus};
+use ace_service::{AlertSvsView, MarkerMismatch, RunRef, TestHost};
+
+/// conftest.py's `attribute_to_run`'s test.
+const SVS_TEST_GUID: &str = "dddddddd-4444-4444-8444-444444444444";
+
+/// A run as a fixture names it.
+#[derive(Debug, Clone)]
+struct TestRun {
+    id: i64,
+    uuid: Uuid,
+    marker: String,
+}
+
+/// conftest.py's `add_catalog_test`: a test in the Atomic Red Team catalog, as the catalog stores one.
+async fn add_catalog_test(db: &Db, guid: &str, name: &str) {
+    sqlx::query(
+        "INSERT INTO svs.catalog_tests
+             (guid, repository, technique, technique_name, name, description, platforms, executor,
+              test, content_hash, commit, path)
+         VALUES ($1::uuid, 'atomic-red-team', 'T1059.001', 'T1059.001 name', $2, $2 || ' does a thing',
+                 '{windows}', 'powershell', '{}', repeat('0', 64), repeat('a', 40),
+                 'atomics/T1059.001/T1059.001.yaml')
+         ON CONFLICT (guid) DO NOTHING",
+    )
+    .bind(guid)
+    .bind(name)
+    .execute(db.pool())
+    .await
+    .expect("adds a catalog test");
+}
+
+/// conftest.py's `attribute_to_run`: a new run in `state` of its test, with `detection` of `root`
+/// attributed to it by a marker, as the core's SVS hook would have.
+async fn attribute_to_run(db: &Db, root: Uuid, detection: i64, state: RunState) -> TestRun {
+    add_catalog_test(db, SVS_TEST_GUID, "PowerShell download").await;
+    let marker = ace_core::svs::markers::new_marker();
+    let (id, uuid): (i64, Uuid) = sqlx::query_as(
+        "INSERT INTO svs.runs
+             (uuid, test_guid, platform, test_content_hash, catalog_commit, state, marker, launcher,
+              observation_seconds, attribution_seconds)
+         VALUES (gen_random_uuid(), $1::uuid, 'windows', repeat('0', 64), repeat('a', 40), $2, $3,
+                 'art', 3600, 90000)
+         RETURNING id, uuid",
+    )
+    .bind(SVS_TEST_GUID)
+    .bind(state)
+    .bind(&marker)
+    .fetch_one(db.pool())
+    .await
+    .expect("adds a run");
+    attribute(db, id, root, detection, false).await;
+    TestRun { id, uuid, marker }
+}
+
+/// test_alert_status.py's `_attribute`: another attribution of `detection` to the run, held or removed.
+async fn attribute(db: &Db, run: i64, root: Uuid, detection: i64, removed: bool) {
+    sqlx::query(
+        "INSERT INTO svs.attributions
+             (run_id, root_id, detection_id, confidence, source, actor, removed_at, removed_by)
+         VALUES ($1, $2, $3, 'marker', 'router', '{\"kind\": \"internal\", \"id\": \"svs\"}',
+                 CASE WHEN $4 THEN now() END,
+                 CASE WHEN $4 THEN '{\"kind\": \"internal\", \"id\": \"svs\"}'::jsonb END)",
+    )
+    .bind(run)
+    .bind(root)
+    .bind(detection)
+    .bind(removed)
+    .execute(db.pool())
+    .await
+    .expect("attributes");
+}
+
+/// test_alert_status.py's `_mismatch`: a marker mismatch detection on the alert, its details naming the
+/// marker and how it disagrees unless `details` says otherwise.
+async fn mismatch_detection(
+    db: &Db,
+    root: Uuid,
+    marker: &str,
+    result: &str,
+    details: Option<Value>,
+) {
+    let details = details.unwrap_or_else(|| json!({"marker": marker, "result": result}));
+    sqlx::query(
+        "INSERT INTO analysis.detections (root_id, description, details, signature_uuid)
+         VALUES ($1, $2, $3, $4)",
+    )
+    .bind(root)
+    .bind(format!(
+        "SVS test run marker {marker} does not match its run"
+    ))
+    .bind(details)
+    .bind(MARKER_MISMATCH_SIGNATURE)
+    .execute(db.pool())
+    .await
+    .expect("adds a mismatch");
+}
+
+const SVS_SIGNATURE: &str = "6f3a1b2c-1111-2222-3333-444455556666";
+
+/// An alert with `count` detections on itself, test_alert_status.py's `_detections`.
+async fn svs_alert(db: &Db, count: usize) -> (Uuid, Vec<i64>) {
+    const ONE: &[Detected] = &[(None, SVS_SIGNATURE, "detection a")];
+    const TWO: &[Detected] = &[
+        (None, SVS_SIGNATURE, "detection a"),
+        (None, SVS_SIGNATURE, "detection b"),
+    ];
+    verdict_alert(db, if count == 1 { ONE } else { TWO }, None).await
+}
+
+fn run_ref(run: &TestRun, state: RunState) -> RunRef {
+    RunRef {
+        uuid: run.uuid,
+        state,
+        test_guid: SVS_TEST_GUID.parse().expect("a uuid"),
+        test_name: Some("PowerShell download".to_owned()),
+    }
+}
+
+async fn svs_view(db: &Db, root: Uuid) -> Option<AlertSvsView> {
+    service(db)
+        .alert_svs_view(&admin(db).await, root)
+        .await
+        .expect("reads")
+}
+
+/// test_alert_status.py's `test_an_alert_svs_never_touched`.
+#[tokio::test]
+async fn an_alert_svs_never_touched() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let (root, _) = svs_alert(db, 1).await;
+    assert_eq!(svs_view(db, root).await, None);
+    assert!(
+        service(db)
+            .alert_svs_statuses(&admin(db).await, &[root])
+            .await
+            .expect("reads")
+            .is_empty()
+    );
+    // a root that isn't an alert has no page
+    let not_an_alert = NewRoot::new("analysis");
+    let mut tx = db.begin().await.expect("begins");
+    tree::create_root(&mut tx, &not_an_alert)
+        .await
+        .expect("creates");
+    tx.commit().await.expect("commits");
+    assert!(matches!(
+        service(db)
+            .alert_svs_view(&admin(db).await, not_an_alert.id)
+            .await,
+        Err(ServiceError::NotFound(_))
+    ));
+    // the alert's readers read it
+    let reader = UserId(Uuid::from_u128(0xC2));
+    exists(db, &Holder::User(reader)).await;
+    assert!(matches!(
+        service(db).alert_svs_view(&user(reader), root).await,
+        Err(ServiceError::PermissionDenied { ref permission, .. })
+            if permission.to_string() == "alert:read"
+    ));
+}
+
+/// test_alert_status.py's `test_a_test_alert_held_by_two_runs`.
+#[tokio::test]
+async fn a_test_alert_held_by_two_runs() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let (root, ids) = svs_alert(db, 2).await;
+    let (a, b) = (ids[0], ids[1]);
+    let run = attribute_to_run(db, root, a, RunState::Started).await;
+    let other = attribute_to_run(db, root, b, RunState::Closed).await;
+    attribute(db, run.id, root, b, false).await;
+
+    assert_eq!(
+        svs_view(db, root).await,
+        Some(AlertSvsView {
+            status: SvsStatus::Test,
+            runs: vec![
+                run_ref(&run, RunState::Started),
+                run_ref(&other, RunState::Closed)
+            ],
+            detections: BTreeMap::from([(a, vec![run.uuid]), (b, vec![run.uuid, other.uuid])]),
+            mismatches: vec![],
+        })
+    );
+    let statuses = service(db)
+        .alert_svs_statuses(&admin(db).await, &[root])
+        .await
+        .expect("reads");
+    assert_eq!(statuses[&root].status, SvsStatus::Test);
+    assert_eq!(statuses[&root].runs, [run.uuid, other.uuid]);
+}
+
+/// test_alert_status.py's `test_a_partial_alert_names_only_what_holds`.
+#[tokio::test]
+async fn a_partial_alert_names_only_what_holds() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let (root, ids) = svs_alert(db, 2).await;
+    let run = attribute_to_run(db, root, ids[0], RunState::Started).await;
+    attribute(db, run.id, root, ids[1], true).await;
+
+    let view = svs_view(db, root).await.expect("a view");
+    assert_eq!(
+        (view.status, view.runs, view.detections),
+        (
+            SvsStatus::Partial,
+            vec![run_ref(&run, RunState::Started)],
+            BTreeMap::from([(ids[0], vec![run.uuid])])
+        )
+    );
+}
+
+/// test_alert_status.py's `test_a_test_alert_by_context`.
+#[tokio::test]
+async fn a_test_alert_by_context() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let (root, ids) = svs_alert(db, 1).await;
+    attribute_to_run(db, root, ids[0], RunState::Started).await;
+    sqlx::query("UPDATE svs.attributions SET confidence = $2 WHERE root_id = $1")
+        .bind(root)
+        .bind(AttributionConfidence::Context)
+        .execute(db.pool())
+        .await
+        .expect("updates");
+    assert_eq!(
+        svs_view(db, root).await.expect("a view").status,
+        SvsStatus::TestContext
+    );
+}
+
+/// test_alert_status.py's `test_a_run_whose_test_left_the_catalog_has_no_name`.
+#[tokio::test]
+async fn a_run_whose_test_left_the_catalog_has_no_name() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let (root, ids) = svs_alert(db, 1).await;
+    let run = attribute_to_run(db, root, ids[0], RunState::Started).await;
+    let gone: Uuid = "eeeeeeee-5555-4555-8555-555555555555"
+        .parse()
+        .expect("a uuid");
+    sqlx::query("UPDATE svs.runs SET test_guid = $2 WHERE id = $1")
+        .bind(run.id)
+        .bind(gone)
+        .execute(db.pool())
+        .await
+        .expect("updates");
+    let view = svs_view(db, root).await.expect("a view");
+    let [found] = view.runs.as_slice() else {
+        panic!("one run: {view:?}");
+    };
+    assert_eq!((found.test_guid, found.test_name.as_deref()), (gone, None));
+}
+
+/// test_alert_status.py's `test_markers_that_disagree_name_their_run`.
+#[tokio::test]
+async fn markers_that_disagree_name_their_run() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let (elsewhere, elsewhere_ids) = svs_alert(db, 1).await;
+    let run = attribute_to_run(db, elsewhere, elsewhere_ids[0], RunState::Started).await;
+
+    let (root, _) = svs_alert(db, 1).await;
+    // a marker may be in any case in an alert; runs store it lower case
+    let upper = run.marker.to_uppercase();
+    mismatch_detection(db, root, &upper, "other host", None).await;
+    let unknown = format!("svs-{}", "q".repeat(26));
+    mismatch_detection(db, root, &unknown, "unknown", None).await;
+    // a detection whose details can't be read is left out
+    mismatch_detection(db, root, "", "", Some(json!("not json"))).await;
+
+    let view = svs_view(db, root).await.expect("a view");
+    assert_eq!(
+        (view.status, view.runs, view.detections),
+        (SvsStatus::Mismatch, vec![], BTreeMap::new())
+    );
+    assert_eq!(
+        view.mismatches,
+        [
+            MarkerMismatch {
+                marker: upper,
+                result: "other host".to_owned(),
+                run: Some(run_ref(&run, RunState::Started)),
+            },
+            MarkerMismatch {
+                marker: unknown,
+                result: "unknown".to_owned(),
+                run: None,
+            },
+        ]
+    );
+    let statuses = service(db)
+        .alert_svs_statuses(&admin(db).await, &[root, elsewhere])
+        .await
+        .expect("reads");
+    assert_eq!(statuses[&root].status, SvsStatus::Mismatch);
+    assert!(statuses[&root].runs.is_empty());
+    assert_eq!(statuses[&elsewhere].status, SvsStatus::Test);
+}
+
+/// test_config.py's `test_unknown_svs_keys_are_rejected`: the overlay's `svs:` section refuses a key this
+/// build doesn't have, as ace3's schema does. `samples` comes with batch 2, so it's unknown here too.
+#[test]
+fn unknown_svs_keys_are_rejected() {
+    assert!(ace_sdk::Overlay::from_yaml("svs: {samples: {pool: svs_samples, nope: 1}}").is_err());
+    assert!(ace_sdk::Overlay::from_yaml("svs: {nope: {}}").is_err());
+    let overlay = ace_sdk::Overlay::from_yaml(
+        "svs: {log_search_url: 'https://logs.example/?q=svs_run%3D{run_uuid}'}",
+    )
+    .expect("parses");
+    assert_eq!(
+        overlay.svs.log_search_url.as_deref(),
+        Some("https://logs.example/?q=svs_run%3D{run_uuid}")
+    );
+    assert_eq!(
+        ace_sdk::Overlay::from_yaml("")
+            .expect("parses")
+            .svs
+            .log_search_url,
+        None
+    );
+}
+
+/// Every test host's row, for the audit failure test.
+async fn test_host_rows(db: &Db) -> Vec<(i64, String, Vec<String>)> {
+    sqlx::query_as("SELECT id, hostname, usernames FROM svs.test_hosts ORDER BY id")
+        .fetch_all(db.pool())
+        .await
+        .expect("reads")
+}
+
+fn host_fields(hostname: &str, usernames: &[&str], platform: Option<&str>) -> HostFields {
+    HostFields {
+        usernames: usernames.iter().map(|name| (*name).to_owned()).collect(),
+        platform: platform.map(str::to_owned),
+        ..HostFields::new(hostname)
+    }
+}
+
+/// test_hosts.py's `test_match_target`, every case of its table, over its lab: a host that lists its
+/// users, one that doesn't, and one without an fqdn.
+#[tokio::test]
+async fn match_target_finds_the_test_host() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let service = service(db);
+    let actor = admin(db).await;
+    for fields in [
+        host_fields("win10-01.corp.example", &["CORP\\svc_art"], Some("windows")),
+        host_fields("ubuntu-01.corp.example", &[], Some("linux")),
+        host_fields("mac-01", &[], None),
+    ] {
+        service
+            .create_test_host(&actor, &fields)
+            .await
+            .expect("adds a host");
+    }
+    let mut conn = db.pool().acquire().await.expect("a connection");
+    for (hostname, username, matched, reason) in [
+        ("win10-01", Some("svc_art"), true, None),
+        ("WIN10-01.CORP.EXAMPLE", Some("CORP\\SVC_ART"), true, None),
+        (
+            "win10-01",
+            Some("administrator"),
+            false,
+            Some("administrator is not a user of test host win10-01"),
+        ),
+        (
+            "win10-01",
+            None,
+            false,
+            Some("lists its users and no user was given"),
+        ),
+        (
+            "win10-01.prod.example",
+            Some("svc_art"),
+            false,
+            Some("win10-01.prod.example is not test host win10-01.corp.example"),
+        ),
+        ("ubuntu-01", None, true, None),
+        ("mac-01.anything.example", Some("anyone"), true, None),
+        (
+            "dc-01",
+            Some("svc_art"),
+            false,
+            Some("dc-01 is not a test host"),
+        ),
+        (
+            "not a host",
+            Some("svc_art"),
+            false,
+            Some("is not a host name"),
+        ),
+    ] {
+        let found = match_target(&mut conn, hostname, username)
+            .await
+            .expect("matches");
+        assert_eq!(
+            found.matched(),
+            matched,
+            "{hostname} {username:?}: {found:?}"
+        );
+        if let Some(reason) = reason {
+            let given = found.reason.unwrap_or_default();
+            assert!(given.contains(reason), "{hostname}: {given}");
+        }
+    }
+}
+
+/// test_hosts.py's `test_create_update_delete_are_audited`, by a key with no owner, ace3's config key: no
+/// user, so the key is all that says who it was.
+#[tokio::test]
+async fn create_update_delete_are_audited() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let service = service(db);
+    let key_id = ApiKeyId(Uuid::from_u128(0x5A));
+    exists(db, &Holder::ApiKey(key_id)).await;
+    service
+        .grant(
+            &admin(db).await,
+            &Holder::ApiKey(key_id),
+            &pattern("svs", "admin"),
+            Effect::Allow,
+        )
+        .await
+        .expect("grants");
+    let key = key(key_id, None);
+    let before = audit_rows(db).await.len();
+    let host = service
+        .create_test_host(&key, &host_fields("win10-01", &["a"], None))
+        .await
+        .expect("adds");
+    service
+        .update_test_host(
+            &key,
+            host.id,
+            &host_fields("win10-01", &["b"], Some("windows")),
+        )
+        .await
+        .expect("changes");
+    service
+        .delete_test_host(&key, host.id)
+        .await
+        .expect("removes");
+    let rows = audit_rows(db).await.split_off(before);
+    let key_json = json!({"kind": "api_key", "id": key_id.0, "name": "triage", "owner": null});
+    assert_eq!(
+        rows.iter()
+            .map(|row| (row.action.as_str(), &row.actor))
+            .collect::<Vec<_>>(),
+        [
+            ("create_test_host", &key_json),
+            ("update_test_host", &key_json),
+            ("delete_test_host", &key_json),
+        ]
+    );
+    assert_eq!(
+        rows[0].after.as_ref().expect("an after")["usernames"],
+        json!(["a"])
+    );
+    assert_eq!(
+        rows[1].before.as_ref().expect("a before")["usernames"],
+        json!(["a"])
+    );
+    assert_eq!(
+        rows[1].after.as_ref().expect("an after")["usernames"],
+        json!(["b"])
+    );
+    assert_eq!(
+        rows[2].before.as_ref().expect("a before")["hostname"],
+        "win10-01"
+    );
+    assert_eq!(test_host_rows(db).await, []);
+}
+
+/// test_hosts.py's `test_stored_fields`.
+#[tokio::test]
+async fn stored_fields() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let service = service(db);
+    let actor = admin(db).await;
+    let fields = HostFields {
+        ips: vec!["10.0.0.5".to_owned()],
+        ..host_fields("win10-01.corp.example", &["CORP\\Alice"], None)
+    };
+    let host = service
+        .create_test_host(&actor, &fields)
+        .await
+        .expect("adds");
+    let row = service.test_host(&actor, host.id).await.expect("reads");
+    assert_eq!(
+        (row.hostname.as_str(), row.fqdn.as_deref()),
+        ("win10-01", Some("win10-01.corp.example"))
+    );
+    assert_eq!(
+        (row.usernames, row.ips),
+        (vec!["alice".to_owned()], vec!["10.0.0.5".to_owned()])
+    );
+    assert_eq!(
+        row.created_by.expect("who").id,
+        Uuid::from_u128(0xAD).to_string()
+    );
+    assert_eq!(
+        service
+            .test_hosts(&actor)
+            .await
+            .expect("lists")
+            .into_iter()
+            .map(|host| host.hostname)
+            .collect::<Vec<_>>(),
+        ["win10-01"]
+    );
+    // reading needs svs:run_read
+    let reader = UserId(Uuid::from_u128(0xC3));
+    exists(db, &Holder::User(reader)).await;
+    assert!(matches!(
+        service.test_hosts(&user(reader)).await,
+        Err(ServiceError::PermissionDenied { ref permission, .. })
+            if permission.to_string() == "svs:run_read"
+    ));
+}
+
+/// test_hosts.py's `test_a_host_is_never_created_after_it_was_updated`: ace3 rounded a fraction up past
+/// the server's updated_at. Here both are the transaction's time, and an update moves only updated_at.
+#[tokio::test]
+async fn a_host_is_never_created_after_it_was_updated() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let service = service(db);
+    let actor = admin(db).await;
+    let host: TestHost = service
+        .create_test_host(&actor, &HostFields::new("win10-07"))
+        .await
+        .expect("adds");
+    assert!(host.created_at <= host.updated_at);
+    let changed = service
+        .update_test_host(&actor, host.id, &host_fields("win10-07", &["a"], None))
+        .await
+        .expect("changes");
+    assert_eq!(changed.created_at, host.created_at);
+    assert!(changed.updated_at > host.updated_at);
+}
+
+/// test_hosts.py's `test_a_short_name_is_one_host`.
+#[tokio::test]
+async fn a_short_name_is_one_host() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let service = service(db);
+    let actor = admin(db).await;
+    service
+        .create_test_host(&actor, &HostFields::new("win10-01.corp.example"))
+        .await
+        .expect("adds");
+    assert!(matches!(
+        service
+            .create_test_host(&actor, &HostFields::new("WIN10-01.lab.example"))
+            .await,
+        Err(ServiceError::Conflict(why)) if why == "win10-01 is already a test host"
+    ));
+    let other = service
+        .create_test_host(&actor, &HostFields::new("win10-02"))
+        .await
+        .expect("adds");
+    assert!(matches!(
+        service
+            .update_test_host(&actor, other.id, &HostFields::new("win10-01"))
+            .await,
+        Err(ServiceError::Conflict(_))
+    ));
+    // a field that can't be used is refused before anything is written
+    assert!(matches!(
+        service
+            .create_test_host(&actor, &HostFields::new("not a host"))
+            .await,
+        Err(ServiceError::InvalidRequest(why)) if why == "'not a host' is not a host name"
+    ));
+}
+
+/// test_hosts.py's `test_unknown_host`.
+#[tokio::test]
+async fn unknown_host() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let service = service(db);
+    let actor = admin(db).await;
+    assert!(matches!(
+        service
+            .update_test_host(&actor, 12345, &HostFields::new("x"))
+            .await,
+        Err(ServiceError::NotFound(_))
+    ));
+    assert!(matches!(
+        service.delete_test_host(&actor, 12345).await,
+        Err(ServiceError::NotFound(_))
+    ));
+    assert!(matches!(
+        service.test_host(&actor, 12345).await,
+        Err(ServiceError::NotFound(_))
+    ));
+}
+
+async fn create_test_host_records_its_row(db: &Db) -> String {
+    let actor = admin(db).await;
+    let fields = HostFields {
+        ips: vec!["::1".to_owned(), "10.0.0.5".to_owned()],
+        notes: Some("  lab 3  ".to_owned()),
+        ..host_fields(
+            "Audit-01.corp.example",
+            &["CORP\\Bob", "alice"],
+            Some("Windows"),
+        )
+    };
+    let host = service(db)
+        .create_test_host(&actor, &fields)
+        .await
+        .expect("adds");
+    assert_eq!(host.notes.as_deref(), Some("lab 3"));
+    let row = last_audit(db).await;
+    assert_eq!(
+        row,
+        AuditRow {
+            actor: boss_json(),
+            action: "create_test_host".to_owned(),
+            target: ("svs_test_host".to_owned(), host.id.to_string()),
+            before: None,
+            after: Some(json!({
+                "hostname": "audit-01",
+                "fqdn": "audit-01.corp.example",
+                "usernames": ["alice", "bob"],
+                "ips": ["10.0.0.5", "::1"],
+                "platform": "windows",
+            })),
+            details: json!({}),
+        }
+    );
+    row.action
+}
+
+async fn update_test_host_records_its_row(db: &Db) -> String {
+    let actor = admin(db).await;
+    let service = service(db);
+    let host = service
+        .create_test_host(&actor, &HostFields::new("audit-02"))
+        .await
+        .expect("adds");
+    let fields = host_fields("audit-02", &["svc_art"], Some("linux"));
+    service
+        .update_test_host(&actor, host.id, &fields)
+        .await
+        .expect("changes");
+    let row = last_audit(db).await;
+    assert_eq!(
+        row,
+        AuditRow {
+            actor: boss_json(),
+            action: "update_test_host".to_owned(),
+            target: ("svs_test_host".to_owned(), host.id.to_string()),
+            before: Some(json!({
+                "hostname": "audit-02", "fqdn": null, "usernames": [], "ips": [], "platform": null,
+            })),
+            after: Some(json!({
+                "hostname": "audit-02", "fqdn": null, "usernames": ["svc_art"], "ips": [],
+                "platform": "linux",
+            })),
+            details: json!({}),
+        }
+    );
+    // the same fields again change nothing, and have no row
+    let rows = audit_rows(db).await.len();
+    service
+        .update_test_host(&actor, host.id, &fields)
+        .await
+        .expect("changes nothing");
+    assert_eq!(audit_rows(db).await.len(), rows);
+    row.action
+}
+
+async fn delete_test_host_records_its_row(db: &Db) -> String {
+    let actor = admin(db).await;
+    let service = service(db);
+    let host = service
+        .create_test_host(&actor, &host_fields("audit-03", &["svc_art"], None))
+        .await
+        .expect("adds");
+    service
+        .delete_test_host(&actor, host.id)
+        .await
+        .expect("removes");
+    let row = last_audit(db).await;
+    assert_eq!(
+        row,
+        AuditRow {
+            actor: boss_json(),
+            action: "delete_test_host".to_owned(),
+            target: ("svs_test_host".to_owned(), host.id.to_string()),
+            before: Some(json!({
+                "hostname": "audit-03", "fqdn": null, "usernames": ["svc_art"], "ips": [],
+                "platform": null,
+            })),
+            after: None,
+            details: json!({}),
+        }
+    );
+    row.action
 }

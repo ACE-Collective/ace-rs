@@ -45,5 +45,5 @@ pub use module::{
 };
 pub use overlay::{
     ActionSection, Component, DispositionClass, DispositionSection, NrdList, NrdSection, Overlay,
-    OverlayError, ScheduledTaskSection, SecretSource,
+    OverlayError, ScheduledTaskSection, SecretSource, SvsSection,
 };

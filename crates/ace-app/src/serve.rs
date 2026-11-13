@@ -121,6 +121,11 @@ async fn serve(app: &App) -> Result<ExitCode> {
             "disposition classification in effect: the overlay's"
         );
     }
+    // the run page's link to the site's log search (PLAN.md 7.10)
+    let log_search =
+        ace_core::svs::log_search::LogSearchTemplate::parse(overlay.svs.log_search_url.as_deref())
+            .map_err(anyhow::Error::msg)
+            .context("the overlay's svs section")?;
     let orchestrator = Orchestrator::new(Catalog::of(components), modes).with_hooks(hooks);
     // a pool that lists a module leases its overlay instances too
     // the remediators, probes and collectors the pools host decide their actions' tries (PLAN.md 7.9)
@@ -137,7 +142,8 @@ async fn serve(app: &App) -> Result<ExitCode> {
     }
     let service = ace_service::Service::new(db.clone(), orchestrator.clone())
         .with_actions(actions)
-        .with_disposition_classes(classes);
+        .with_disposition_classes(classes)
+        .with_log_search(log_search);
     let scheduler =
         crate::scheduler::Scheduler::new(db.clone(), service.clone(), bucket.clone(), scheduled)
             .with_overlay(overlay.clone())

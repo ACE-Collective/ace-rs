@@ -1,0 +1,91 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT r.marker AS \"marker!\", r.uuid AS \"uuid!\", r.state AS \"state!: RunState\",\n                                      r.test_guid AS \"test_guid!\", t.name AS \"name?\"\n                               FROM svs.runs r\n                               LEFT JOIN svs.catalog_tests t ON t.guid = r.test_guid\n                               WHERE r.marker = ANY ($1)",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "marker!",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.runs",
+            "name": "marker"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "uuid!",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "svs.runs",
+            "name": "uuid"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "state!: RunState",
+        "type_info": {
+          "Custom": {
+            "name": "svs.run_state",
+            "kind": {
+              "Enum": [
+                "created",
+                "started",
+                "ended",
+                "reviewed",
+                "canceled",
+                "error",
+                "closed"
+              ]
+            }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "svs.runs",
+            "name": "state"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "test_guid!",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "svs.runs",
+            "name": "test_guid"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "name?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.catalog_tests",
+            "name": "name"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "TextArray"
+      ]
+    },
+    "nullable": [
+      true,
+      true,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "09a8938ed405a10daf8a1d000e7154cd04684314ce463a22e8906e34d5f1e724"
+}

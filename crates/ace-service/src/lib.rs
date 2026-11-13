@@ -72,6 +72,9 @@
 //! stops, retries, deletes and prunes file collections (7.9), each an action of `ace_core::actions`, which
 //! network pools run from the queue.
 //!
+//! `svs` is SVS's service side (7.10): the test hosts, under `svs:admin` to change and `svs:run_read` to
+//! read, and an alert's SVS status, read with the alert. Its model is `ace_core::svs`.
+//!
 //! `filters` is the filter model of a list screen (5.10), ace3's filter language and share links, which the
 //! alert list (`alerts`) and the detection points (`detection_points`) take, and `saved_filters` keeps an
 //! analyst's saved filters, ace3's `saved_filters` router.
@@ -110,6 +113,7 @@ mod remediation;
 mod saved_filters;
 mod source;
 mod submit;
+mod svs;
 mod users;
 mod yara_qa;
 
@@ -198,7 +202,7 @@ pub use permission::{
     FILE_COLLECTION_READ, FILE_COLLECTION_WRITE, HUNT_READ, HUNT_WRITE, InvalidPermission,
     LIST_READ, LIST_WRITE, NRD_REFRESH, OBSERVABLE_READ, OBSERVABLE_WRITE, PermissionName,
     PermissionPattern, REMEDIATION_READ, REMEDIATION_WRITE, SIGNATURE_DOWNLOAD, SIGNATURE_QA_PURGE,
-    SIGNATURE_READ, USER_READ, USER_SELF, USER_WRITE,
+    SIGNATURE_READ, SVS_ADMIN, SVS_RUN_READ, USER_READ, USER_SELF, USER_WRITE,
 };
 pub use preferences::{
     AlertSectionsPreference, MANAGE_COLUMNS, MAX_ALERT_SECTIONS, ManageColumn,
@@ -216,6 +220,7 @@ pub use saved_filters::{
     NewSavedFilter, SavedFilter, SavedFilterChange,
 };
 pub use source::with_source_ip;
+pub use svs::{AlertSvsStatus, AlertSvsView, MarkerMismatch, RunRef, TestHost};
 pub use users::{ApiKey, Grant, Group, MAX_KEY_SCOPE, Profile, User, UserDetail};
 pub use yara_qa::{
     MAX_PURGE_REASON, MAX_PURGE_VERSIONS, MAX_QA_DOWNLOAD_BYTES, MAX_QA_DOWNLOAD_FILES,
@@ -394,6 +399,8 @@ pub struct Service {
     actions: ace_core::actions::ActionCatalog,
     /// Which dispositions classify how, which the detection verdicts are derived from (PLAN.md 7.14).
     classes: std::sync::Arc<detection_verdicts::DispositionClasses>,
+    /// The run page's link to the site's log search, the overlay's `svs.log_search_url` (PLAN.md 7.10).
+    log_search: Option<std::sync::Arc<ace_core::svs::log_search::LogSearchTemplate>>,
 }
 
 impl Service {
@@ -405,7 +412,22 @@ impl Service {
             feed: std::sync::Arc::default(),
             actions: ace_core::actions::ActionCatalog::default(),
             classes: std::sync::Arc::default(),
+            log_search: None,
         }
+    }
+
+    /// The service with the overlay's `svs.log_search_url`, checked (PLAN.md 7.10).
+    pub fn with_log_search(
+        mut self,
+        template: Option<ace_core::svs::log_search::LogSearchTemplate>,
+    ) -> Self {
+        self.log_search = template.map(std::sync::Arc::new);
+        self
+    }
+
+    /// The template of a run's link to the site's log search, None when the site set none.
+    pub fn log_search(&self) -> Option<&ace_core::svs::log_search::LogSearchTemplate> {
+        self.log_search.as_deref()
     }
 
     /// The service with the binary's action handlers (PLAN.md 7.9), which a remediation names and

@@ -10,7 +10,8 @@
 //! maintenance tasks (PLAN.md 6.7). `hooks` runs ace3's `observable_modifier` and
 //! `configuration_defined_tagging` in the core, over the whole tree, at the end of a pass (PLAN.md 7.6).
 //! `actions` holds remediations, remediation checks and file collections, which network pools lease
-//! through the lease API as they lease tasks (PLAN.md 7.9).
+//! through the lease API as they lease tasks (PLAN.md 7.9). `svs` is the model of SVS, the Signature
+//! Validation System, which the rest of SVS builds on (PLAN.md 7.10).
 
 pub mod actions;
 pub mod api;
@@ -31,6 +32,7 @@ pub mod rulesets;
 pub mod scans;
 pub mod scheduler;
 pub mod submit;
+pub mod svs;
 #[cfg(any(test, feature = "testing"))]
 pub mod testing;
 pub mod tree;

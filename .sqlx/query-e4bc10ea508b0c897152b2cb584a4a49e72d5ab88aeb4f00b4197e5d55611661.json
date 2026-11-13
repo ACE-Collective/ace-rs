@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO svs.test_hosts\n                             (hostname, fqdn, usernames, ips, platform, notes, created_by)\n                         VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb)\n                         RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "svs.test_hosts",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "TextArray",
+        "TextArray",
+        "Text",
+        "Text",
+        "Jsonb"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "e4bc10ea508b0c897152b2cb584a4a49e72d5ab88aeb4f00b4197e5d55611661"
+}

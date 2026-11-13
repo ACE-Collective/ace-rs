@@ -1,0 +1,25 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT analysis.detection_verdict_source(\n                                r.disposition, $2, $3, v.verdict,\n                                EXISTS (SELECT FROM analysis.detections o\n                                        WHERE o.root_id = d.root_id\n                                          AND o.signature_uuid IS DISTINCT FROM d.signature_uuid), svs.unreviewed_run(d.root_id))\n                       FROM analysis.detections d\n                       JOIN analysis.roots r ON r.id = d.root_id\n                       LEFT JOIN analysis.detection_verdicts v ON v.detection_id = d.id\n                       WHERE d.id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "detection_verdict_source",
+        "type_info": "Text",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "TextArray",
+        "TextArray"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "e02740596542a57e11b72442c8bb15a813f04fb95760211fa9037ce16c1f5737"
+}

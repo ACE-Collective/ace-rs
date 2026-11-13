@@ -631,7 +631,7 @@ impl Service {
                                              r.disposition, $40, $41, v.verdict,
                                              EXISTS (SELECT FROM analysis.detections x
                                                      WHERE x.root_id = d.root_id
-                                                       AND x.signature_uuid IS DISTINCT FROM d.signature_uuid))
+                                                       AND x.signature_uuid IS DISTINCT FROM d.signature_uuid), svs.unreviewed_run(d.root_id))
                                            = 'inherited_multi'))
                                     OR ('False' = ANY ($38::text[]) AND NOT EXISTS (
                                      SELECT FROM analysis.detections d
@@ -641,7 +641,7 @@ impl Service {
                                              r.disposition, $40, $41, v.verdict,
                                              EXISTS (SELECT FROM analysis.detections x
                                                      WHERE x.root_id = d.root_id
-                                                       AND x.signature_uuid IS DISTINCT FROM d.signature_uuid))
+                                                       AND x.signature_uuid IS DISTINCT FROM d.signature_uuid), svs.unreviewed_run(d.root_id))
                                            = 'inherited_multi')))
                                AND ($39::text[] IS NULL OR NOT (
                                     ('True' = ANY ($39::text[]) AND EXISTS (
@@ -652,7 +652,7 @@ impl Service {
                                              r.disposition, $40, $41, v.verdict,
                                              EXISTS (SELECT FROM analysis.detections x
                                                      WHERE x.root_id = d.root_id
-                                                       AND x.signature_uuid IS DISTINCT FROM d.signature_uuid))
+                                                       AND x.signature_uuid IS DISTINCT FROM d.signature_uuid), svs.unreviewed_run(d.root_id))
                                            = 'inherited_multi'))
                                     OR ('False' = ANY ($39::text[]) AND NOT EXISTS (
                                      SELECT FROM analysis.detections d
@@ -662,7 +662,7 @@ impl Service {
                                              r.disposition, $40, $41, v.verdict,
                                              EXISTS (SELECT FROM analysis.detections x
                                                      WHERE x.root_id = d.root_id
-                                                       AND x.signature_uuid IS DISTINCT FROM d.signature_uuid))
+                                                       AND x.signature_uuid IS DISTINCT FROM d.signature_uuid), svs.unreviewed_run(d.root_id))
                                            = 'inherited_multi'))))
                            )
                            SELECT r.id, r.description, r.analysis_mode, r.event_time,

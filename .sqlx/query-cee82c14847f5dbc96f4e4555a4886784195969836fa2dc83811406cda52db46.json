@@ -1,0 +1,86 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT a.root_id, a.detection_id, a.confidence AS \"confidence: AttributionConfidence\",\n                  r.id AS run_id, r.uuid AS run_uuid\n           FROM svs.attributions a\n           JOIN svs.runs r ON r.id = a.run_id\n           WHERE a.root_id = ANY ($1) AND a.removed_at IS NULL",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "root_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "svs.attributions",
+            "name": "root_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "detection_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "svs.attributions",
+            "name": "detection_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "confidence: AttributionConfidence",
+        "type_info": {
+          "Custom": {
+            "name": "svs.attribution_confidence",
+            "kind": {
+              "Enum": [
+                "marker",
+                "context"
+              ]
+            }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "svs.attributions",
+            "name": "confidence"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "run_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "svs.runs",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "run_uuid",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "svs.runs",
+            "name": "uuid"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "UuidArray"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "cee82c14847f5dbc96f4e4555a4886784195969836fa2dc83811406cda52db46"
+}

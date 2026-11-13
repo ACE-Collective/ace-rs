@@ -258,12 +258,12 @@ impl Service {
                            LEFT JOIN analysis.results res ON res.id = d.result_id
                            LEFT JOIN analysis.detection_verdicts v ON v.detection_id = d.id
                            CROSS JOIN LATERAL (
-                             SELECT analysis.detection_verdict(r.disposition, $16, $17, v.verdict) AS verdict,
+                             SELECT analysis.detection_verdict(r.disposition, $16, $17, v.verdict, svs.unreviewed_run(d.root_id)) AS verdict,
                                     analysis.detection_verdict_source(
                                       r.disposition, $16, $17, v.verdict,
                                       EXISTS (SELECT FROM analysis.detections x
                                               WHERE x.root_id = d.root_id
-                                                AND x.signature_uuid IS DISTINCT FROM d.signature_uuid))
+                                                AND x.signature_uuid IS DISTINCT FROM d.signature_uuid), svs.unreviewed_run(d.root_id))
                                       AS source) e
                            WHERE r.alerted_at IS NOT NULL
                              AND ($2::uuid IS NULL OR d.root_id = $2)
@@ -397,12 +397,12 @@ impl Service {
                            JOIN analysis.roots r ON r.id = d.root_id
                            LEFT JOIN analysis.detection_verdicts v ON v.detection_id = d.id
                            CROSS JOIN LATERAL (
-                             SELECT analysis.detection_verdict(r.disposition, $14, $15, v.verdict) AS verdict,
+                             SELECT analysis.detection_verdict(r.disposition, $14, $15, v.verdict, svs.unreviewed_run(d.root_id)) AS verdict,
                                     analysis.detection_verdict_source(
                                       r.disposition, $14, $15, v.verdict,
                                       EXISTS (SELECT FROM analysis.detections x
                                               WHERE x.root_id = d.root_id
-                                                AND x.signature_uuid IS DISTINCT FROM d.signature_uuid))
+                                                AND x.signature_uuid IS DISTINCT FROM d.signature_uuid), svs.unreviewed_run(d.root_id))
                                       AS source) e
                            WHERE r.alerted_at IS NOT NULL
                              AND ($2::uuid IS NULL OR d.root_id = $2)
