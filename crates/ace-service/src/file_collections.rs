@@ -4,9 +4,19 @@
 //! A file collection is an action of `ace_core::actions`, which a network pool hosting its collector leases
 //! and tries, backing off, until it completes or runs out of tries or time. Here are its list, its tries and
 //! the writes on it under `file_collection:write`, each with its audit row: stopping, retrying and deleting
-//! one. ace3's router has no way to ask for a collection: its integrations' modules and its EndpointVendor API
-//! do, and here a module's request is `ace_core::actions::request_collection`, which joins a pending
-//! collection of the same file so that each alert that asks holds the file (#1101).
+//! one. ace3's router has no way to ask for a collection: its integrations' modules and a site's
+//! EndpointVendor API do (`POST /endpoint/browser-history`, `{hostname}`, under `file_collection:create`). Here a
+//! module's request is `ace_core::actions::request_collection`, and someone's is `request_file_collection`
+//! under `file_collection:create` (the owner's decision of 2026-11-13): a collector by name, its target and
+//! the alerts it's for, if any. Each joins a pending collection of the same file by the same collector, so
+//! that each alert that asks holds the file (#1101) and a second request waits on the first.
+//!
+//! What a request is checked for: the collector is one this server's pools declare (`Service::actions`,
+//! from `App::action_catalog`), since whether a pool that runs it is up isn't known when someone asks, and
+//! a request no pool leases ends at its deadline; the type is the collector's; the value is one its type
+//! takes, and a `file_location` is ace3's `host@path` with neither blank; each alert is one. What else a
+//! collector needs of a value, such as a site's Endpoint hostname pattern, the collector checks when it
+//! tries, and ends the collection with its result if it refuses.
 //!
 //! `prune_file_collections` is ace3's `ace file-collection prune`, which the scheduler runs daily as
 //! `file_collection_prune` under `file_collection:prune`: it lets go of each collection's own hold on its
@@ -23,7 +33,9 @@ use uuid::Uuid;
 use crate::alerts::{SET_LIST_TIMEOUT, page_limit, timed_out};
 use crate::filters::{FilterEntry, FilterScreen, Resolved, split};
 use crate::gate::{Audited, Change, Recorded, Target};
-use crate::permission::{FILE_COLLECTION_PRUNE, FILE_COLLECTION_READ, FILE_COLLECTION_WRITE};
+use crate::permission::{
+    FILE_COLLECTION_CREATE, FILE_COLLECTION_PRUNE, FILE_COLLECTION_READ, FILE_COLLECTION_WRITE,
+};
 use crate::remediation::{
     ActionAttempt, ActionQuery, ActionSummary, MAX_ACTIONS_PAGE, action_state, history_in, ids,
     no_action, summary_in,
@@ -60,6 +72,62 @@ pub struct FileCollectionPage {
     pub collections: Vec<FileCollection>,
     pub total: i64,
     pub next: Option<i64>,
+}
+
+/// The most alerts one request names.
+pub const MAX_COLLECTION_ALERTS: usize = 100;
+
+/// A request for a file: a collector by name, what it collects, and the alerts it's for.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CollectionAsk {
+    pub collector: String,
+    pub observable_type: String,
+    pub observable_value: String,
+    /// Up to `MAX_COLLECTION_ALERTS`, each an alert. A repeated one counts once.
+    pub alerts: Vec<Uuid>,
+}
+
+/// What a request did.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CollectionRequested {
+    pub id: i64,
+    /// True for a new collection, false for a pending one the request joined.
+    pub queued: bool,
+    pub status: String,
+    pub result: Option<String>,
+    /// Every alert the collection is for now, in the order they asked.
+    pub alerts: Vec<Uuid>,
+}
+
+#[derive(Serialize)]
+struct Asked<'a> {
+    collector: &'a str,
+    observable_type: &'a str,
+    observable_value: &'a str,
+    alerts: &'a [Uuid],
+}
+
+impl Recorded for Asked<'_> {}
+
+#[derive(Serialize)]
+struct Joined<'a> {
+    collector: &'a str,
+    observable_type: &'a str,
+    observable_value: &'a str,
+    alerts: Vec<Uuid>,
+}
+
+impl Recorded for Joined<'_> {}
+
+/// ace3's `FileLocationObservable`: a host and a path around the first `@`, neither blank.
+fn file_location(value: &str) -> Result<(), String> {
+    match value.split_once('@') {
+        None => Err("a file_location is host@path, and this has no @".to_owned()),
+        Some((host, path)) if host.trim().is_empty() || path.trim().is_empty() => {
+            Err("a file_location's host and path can't be blank".to_owned())
+        }
+        Some(_) => Ok(()),
+    }
 }
 
 /// What a prune let go of.
@@ -256,6 +324,121 @@ impl Service {
             total,
             next,
         })
+    }
+
+    /// Asks the collector for the file, for the alerts named, and returns the collection: a new one, or a
+    /// pending one of the same file by the same collector, which the alerts now belong to as well (#1101).
+    /// Attributed to the actor, and audited either way: a new one as added, a joined one with its alerts
+    /// before and after.
+    pub async fn request_file_collection(
+        &self,
+        actor: &Actor,
+        ask: &CollectionAsk,
+    ) -> Result<CollectionRequested, ServiceError> {
+        let spec = self
+            .actions
+            .require(ActionKind::FileCollection, &ask.collector)?;
+        if spec.observable_type != ask.observable_type {
+            return Err(ServiceError::InvalidRequest(format!(
+                "{} collects {} observables, not {}",
+                spec.name, spec.observable_type, ask.observable_type
+            )));
+        }
+        let invalid = |why: String| {
+            ServiceError::InvalidRequest(format!(
+                "invalid {} value {:?}: {why}",
+                ask.observable_type, ask.observable_value
+            ))
+        };
+        let (kind, value) =
+            crate::observables::normalized(&ask.observable_type, &ask.observable_value)
+                .map_err(invalid)?;
+        if kind == ace_results::ObservableKind::FileLocation {
+            file_location(&value).map_err(invalid)?;
+        }
+        let mut alerts: Vec<Uuid> = Vec::with_capacity(ask.alerts.len());
+        for alert in &ask.alerts {
+            if !alerts.contains(alert) {
+                alerts.push(*alert);
+            }
+        }
+        if alerts.len() > MAX_COLLECTION_ALERTS {
+            return Err(ServiceError::InvalidRequest(format!(
+                "a request names at most {MAX_COLLECTION_ALERTS} alerts"
+            )));
+        }
+        let requested_by = serde_json::to_value(actor)?;
+        let (requested_by, alerts, value) = (&requested_by, &alerts, &value);
+        self.gate
+            .write(
+                actor,
+                "request_file_collection",
+                &FILE_COLLECTION_CREATE,
+                &|tx| {
+                    Box::pin(async move {
+                        for alert in alerts {
+                            let known = sqlx::query_scalar!(
+                                "SELECT alerted_at IS NOT NULL FROM analysis.roots WHERE id = $1",
+                                alert,
+                            )
+                            .fetch_optional(tx.conn())
+                            .await?
+                            .flatten();
+                            if known != Some(true) {
+                                return Err(crate::alerts::no_alert(*alert));
+                            }
+                        }
+                        let new = core_actions::CollectionRequest {
+                            handler: spec.name,
+                            observable_type: spec.observable_type,
+                            observable_value: value,
+                            roots: alerts,
+                            requested_by,
+                            user: crate::remediation::person(actor).ok(),
+                        };
+                        let (requested, before) =
+                            core_actions::ask_for_collection(tx, &self.actions, &new).await?;
+                        let id = requested.id();
+                        let after = core_actions::roots_in(tx, id).await?;
+                        let summary = summary_in(tx, id).await?;
+                        let change = match requested {
+                            core_actions::Requested::Queued(_) => Change::added(
+                                Target::action(id),
+                                &Asked {
+                                    collector: spec.name,
+                                    observable_type: spec.observable_type,
+                                    observable_value: value,
+                                    alerts: &after,
+                                },
+                            )?,
+                            _ => {
+                                let joined = |alerts: Vec<Uuid>| Joined {
+                                    collector: spec.name,
+                                    observable_type: spec.observable_type,
+                                    observable_value: value,
+                                    alerts,
+                                };
+                                Change::updated(
+                                    Target::action(id),
+                                    &joined(before),
+                                    &joined(after.clone()),
+                                )?
+                            }
+                        };
+                        Ok(Audited::changed(
+                            CollectionRequested {
+                                id,
+                                queued: matches!(requested, core_actions::Requested::Queued(_)),
+                                status: summary.status,
+                                result: summary.result,
+                                alerts: after,
+                            },
+                            change,
+                        ))
+                    })
+                },
+            )
+            .await
     }
 
     /// One file collection.

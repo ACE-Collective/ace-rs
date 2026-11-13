@@ -323,7 +323,8 @@
 //! more. A bad entry is refused with 400, where ace3 logged a line it couldn't parse and skipped it.
 //!
 //! ace3's `remediation` and `file_collection` routers (PLAN.md 5.6, brought by 7.9), under ace3's
-//! `remediation:read`/`write` and `file_collection:read`/`write` (`ace_service`'s `remediation` and
+//! `remediation:read`/`write` and `file_collection:read`/`write`, and `file_collection:create`, which ace3's
+//! integrations check (`ace_service`'s `remediation` and
 //! `file_collections` docs). A remediation, a remediation check and a file collection are actions on the
 //! one queue (`ace_core::actions`), which network pools run:
 //!
@@ -338,6 +339,7 @@
 //! | `DELETE /remediation/remediations/{id}` | `DELETE /api/remediation/v1/remediations/{id}`, audited |
 //! | none | `GET /api/remediation/v1/remediations/{id}` |
 //! | `GET /file-collections/?f=&cursor=&limit=&tz=`, its exports | `GET /api/file-collections/v1/collections`, and `/export/csv`, `/export/ndjson` |
+//! | none in ace3's router; a site's `POST /integrations/endpoint_vendor/endpoint/browser-history`, `{hostname}`, under `file_collection:create` | `POST /api/file-collections/v1/collections`, `{collector, observable_type, observable_value, alerts}`, under `file_collection:create`: 201 for a new collection, 200 for a pending one it joins, audited |
 //! | `GET /file-collections/{id}/history?limit=` | `GET /api/file-collections/v1/collections/{id}/history?limit=` |
 //! | `POST /file-collections/{id}/cancel`, `/retry` | the same under `/api/file-collections/v1/collections/{id}/`, audited |
 //! | `DELETE /file-collections/{id}` | `DELETE /api/file-collections/v1/collections/{id}`, audited |
@@ -740,7 +742,9 @@ impl Web {
             )
             .route(
                 "/api/file-collections/v1/collections",
-                get(file_collections::list),
+                get(file_collections::list)
+                    .post(file_collections::request)
+                    .layer(json_limit),
             )
             .route(
                 "/api/file-collections/v1/collections/export/csv",
@@ -954,6 +958,7 @@ impl Web {
         remediation::restore,
         remediation::delete,
         file_collections::list,
+        file_collections::request,
         file_collections::export_csv,
         file_collections::export_ndjson,
         file_collections::one,

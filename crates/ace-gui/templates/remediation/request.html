@@ -1,0 +1,28 @@
+{#- Request File Collection (src/remediation.rs): a collector, what it collects, and the alerts it's for.
+    ace3 has no such page: its integrations' modules and a site's API ask. -#}
+{% extends "base.html" %}
+{% block title %}Request File Collection · ACE{% endblock %}
+{% block content %}
+<section class="admin remediations">
+  <p><a href="/file-collections">File Collections</a></p>
+  <h1>Request File Collection</h1>
+  <p class="muted">A pool that runs the collector fetches the file, trying again while the host is offline. A pending request for the same file by the same collector is joined, and each alert named holds the file once it's collected.</p>
+  {%- if view.collectors.is_empty() %}
+  <p class="muted">This server runs no file collector.</p>
+  {%- else %}
+  <form method="post" action="/file-collections" class="detection-add">
+    <label for="request-collector">Collector</label>
+    <select id="request-collector" name="collector">
+      {%- for c in view.collectors %}
+      <option value="{{ c.name }}">{{ c.display_name }} ({{ c.observable_type }})</option>
+      {%- endfor %}
+    </select>
+    <label for="request-value">Value, such as host@C:\path\file.exe for a file_location</label>
+    <input id="request-value" name="value" required>
+    <label for="request-alerts">Alerts, one id per line, or none</label>
+    <textarea id="request-alerts" name="alerts" rows="4">{{ view.alerts }}</textarea>
+    <button type="submit">Request</button>
+  </form>
+  {%- endif %}
+</section>
+{% endblock %}

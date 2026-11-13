@@ -10,9 +10,10 @@
 //! | the bulk Restore, Retry, Cancel and Delete of the ticked rows | a form per row: `POST /remediations/{id}/restore`, `/retry`, `/cancel`, `/delete` |
 //! | the Add Remediation modal: a type, values, Find Targets, Remediate | `GET /remediations/targets?type=&values=`, or `?alert=` repeated from an event's page, then `POST /remediations` with the ticked targets and Remove or Restore |
 //! | `/file_collection/manage`, its list, history modal, Retry, Cancel and Delete | `GET /file-collections`, `GET /file-collections/{id}`, `POST /file-collections/{id}/retry`, `/cancel`, `/delete` |
+//! | none: ace3's integrations ask for a collection, and a site's API takes a host | `GET /file-collections/new`, or `?alert=` repeated, then `POST /file-collections` with a collector, a value and the alerts, one per line, under `file_collection:create` (the owner's decision of 2026-11-13) |
 //!
 //! The pages need `remediation:read` or `file_collection:read`, and each form the matching `:write`, as
-//! ace3's routes do; the service checks each and audits each write. Every form is a `SignedIn` post, which
+//! ace3's routes do, but for the request form, which needs `file_collection:create`; the service checks each and audits each write. Every form is a `SignedIn` post, which
 //! passed 5.7's same-origin check. A list's filters are the shared filter model (`ace_service::filters`):
 //! the page takes a share link's `f`, as the API does, and the form's fields, one per filter, each a value
 //! or several separated by commas, which it folds into `f` and redirects to.
@@ -24,8 +25,9 @@
 
 use ace_service::filters::{self, FilterScreen, FilterSpec};
 use ace_service::{
-    ActionAttempt, ActionQuery, FILE_COLLECTION_WRITE, FileCollection, FilterEntry, FilterValue,
-    REMEDIATION_WRITE, Remediation, RemediationAction, RemediationTarget, ServiceError, TargetKey,
+    ActionAttempt, ActionQuery, CollectionAsk, FILE_COLLECTION_CREATE, FILE_COLLECTION_WRITE,
+    FileCollection, FilterEntry, FilterValue, MAX_COLLECTION_ALERTS, REMEDIATION_WRITE,
+    Remediation, RemediationAction, RemediationTarget, ServiceError, TargetKey,
 };
 use askama::Template;
 use axum::body::Bytes;
@@ -254,6 +256,12 @@ fn notice(done: Option<&str>) -> Option<&'static str> {
     Some(match done? {
         "queued" => {
             "The remediations are queued. A pool that runs their remediator tries each until it completes."
+        }
+        "requested" => {
+            "The file collection is queued. A pool that runs its collector tries it until it completes."
+        }
+        "joined" => {
+            "A collection of that file by that collector was already pending: the alerts now belong to it as well."
         }
         "cancelled" => "It's cancelled.",
         "retried" => "It's queued again.",
@@ -735,6 +743,8 @@ fn collection_row(c: FileCollection, can_write: bool) -> CollectionRow {
 pub struct CollectionsPage {
     pub layout: Layout,
     pub view: ListView<CollectionRow>,
+    /// Whether the viewer holds `file_collection:create`, for the link to the request form.
+    pub can_create: bool,
 }
 
 pub fn collections_view(
@@ -792,10 +802,147 @@ pub(crate) async fn collections(
         .allowed(&viewer.actor, &FILE_COLLECTION_WRITE)
         .await
         .unwrap_or(false);
+    let can_create = gui
+        .service
+        .allowed(&viewer.actor, &FILE_COLLECTION_CREATE)
+        .await
+        .unwrap_or(false);
     render(&CollectionsPage {
         layout: viewer.layout,
         view: collections_view(&request, page, can_write),
+        can_create,
     })
+}
+
+/// A collector the request form offers: its name, its display name and the type it collects.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CollectorChoice {
+    pub name: &'static str,
+    pub display_name: &'static str,
+    pub observable_type: &'static str,
+}
+
+/// What the request form shows.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RequestView {
+    pub collectors: Vec<CollectorChoice>,
+    /// The alerts, one per line, as the form had them or the event page's `?alert=` gave them.
+    pub alerts: String,
+}
+
+/// `/file-collections/new`.
+#[derive(Debug, Template)]
+#[template(path = "remediation/request.html")]
+pub struct RequestPage {
+    pub layout: Layout,
+    pub view: RequestView,
+}
+
+/// The request form's view: the collectors offered, by name, and the alerts.
+pub fn request_view(collectors: Vec<CollectorChoice>, alerts: &[String]) -> RequestView {
+    RequestView {
+        collectors,
+        alerts: alerts.join("\n"),
+    }
+}
+
+/// `GET /file-collections/new`, or `?alert=` repeated: the request form.
+pub(crate) async fn request_form(
+    State(gui): State<Gui>,
+    viewer: SignedIn,
+    parts: Parts,
+    raw: RawQuery,
+) -> Response {
+    match gui
+        .service
+        .allowed(&viewer.actor, &FILE_COLLECTION_CREATE)
+        .await
+    {
+        Ok(true) => {}
+        Ok(false) => {
+            return Failure::new(
+                StatusCode::FORBIDDEN,
+                "Requesting a file collection needs file_collection:create. Ask an administrator.",
+                &parts,
+            )
+            .into_response();
+        }
+        Err(error) => return Failure::from_service(error, &parts).into_response(),
+    }
+    let query: Vec<(String, String)> =
+        serde_urlencoded::from_str(raw.0.as_deref().unwrap_or("")).unwrap_or_default();
+    let alerts: Vec<String> = all(&query, "alert")
+        .into_iter()
+        .take(MAX_COLLECTION_ALERTS)
+        .collect();
+    render(&RequestPage {
+        layout: viewer.layout,
+        view: request_view(
+            gui.service
+                .actions()
+                .of_kind(ace_service::ActionKind::FileCollection)
+                .map(|spec| CollectorChoice {
+                    name: spec.name,
+                    display_name: spec.display_name,
+                    observable_type: spec.observable_type,
+                })
+                .collect(),
+            &alerts,
+        ),
+    })
+}
+
+/// `POST /file-collections`: asks the collector for the file, for the alerts listed.
+pub(crate) async fn request(
+    State(gui): State<Gui>,
+    viewer: SignedIn,
+    parts: Parts,
+    body: Bytes,
+) -> Response {
+    let form = pairs(&body);
+    let Some(collector) = one(&form, "collector").and_then(|name| {
+        gui.service
+            .actions()
+            .get(ace_service::ActionKind::FileCollection, name)
+    }) else {
+        return Failure::new(
+            StatusCode::BAD_REQUEST,
+            "Pick a collector this server runs.",
+            &parts,
+        )
+        .into_response();
+    };
+    let mut alerts = Vec::new();
+    for line in one(&form, "alerts").unwrap_or_default().lines() {
+        let line = line.trim();
+        if line.is_empty() {
+            continue;
+        }
+        let Ok(alert) = line.parse::<Uuid>() else {
+            return Failure::new(
+                StatusCode::BAD_REQUEST,
+                "An alert is its id, one per line.",
+                &parts,
+            )
+            .into_response();
+        };
+        alerts.push(alert);
+    }
+    let ask = CollectionAsk {
+        collector: collector.name.to_owned(),
+        observable_type: collector.observable_type.to_owned(),
+        observable_value: one(&form, "value").unwrap_or_default().trim().to_owned(),
+        alerts,
+    };
+    match gui
+        .service
+        .request_file_collection(&viewer.actor, &ask)
+        .await
+    {
+        Ok(requested) if requested.queued => see_other("/file-collections?done=requested", None),
+        Ok(_) => see_other("/file-collections?done=joined", None),
+        Err(error) => Failure::from_service(error, &parts).into_response(),
+    }
 }
 
 /// What a collection's own page shows.

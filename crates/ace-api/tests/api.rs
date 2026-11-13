@@ -612,6 +612,9 @@ fn good_body(route: &str) -> Send {
         REMEDIATIONS => Send::Json(json!({"action": "remove", "targets": [
             {"remediator": "test", "observable_type": "test", "observable_value": "SUCCESS"},
         ]})),
+        COLLECTIONS => Send::Json(json!({
+            "collector": "edr", "observable_type": "file_location", "observable_value": "h@C:\\x.exe",
+        })),
         _ => Send::Nothing,
     }
 }
@@ -637,7 +640,7 @@ async fn refuses_without_a_credential_or_a_permission(
         .map(|(method, route, _)| (method, route))
         .filter(|route| !public.contains(route))
         .collect();
-    assert_eq!(routes.len(), 120, "{routes:?}");
+    assert_eq!(routes.len(), 121, "{routes:?}");
     for (method, route) in routes {
         let method: Method = method.to_uppercase().parse().expect("a method");
         let path = fill(&route, id, file);
@@ -7037,6 +7040,7 @@ async fn remediation_routers(client: &mut Client<'_>) {
             "remediation:write",
             "file_collection:read",
             "file_collection:write",
+            "file_collection:create",
         ],
     )
     .await;
@@ -7617,6 +7621,116 @@ async fn remediation_routers(client: &mut Client<'_>) {
             .await;
         assert_eq!(response.status(), status, "{path}");
     }
+
+    // asking for a file (the owner's decision of 2026-11-13): a new collection, 201, and a request for a
+    // file a pending collection is fetching joins it, 200, its alerts belonging to it as well (#1101)
+    let asker = key(stack, &["file_collection:create"]).await;
+    let rows = audit_count(stack).await;
+    let ask = |value: &str, alerts: &[Uuid]| {
+        json!({
+            "collector": "edr", "observable_type": "file_location", "observable_value": value,
+            "alerts": alerts,
+        })
+    };
+    let asked = client
+        .json(
+            M::POST,
+            COLLECTIONS,
+            COLLECTIONS,
+            a,
+            json(ask("h@C:\\d.exe", &[])),
+            S::CREATED,
+        )
+        .await;
+    assert_eq!(
+        (&asked["queued"], &asked["status"], &asked["alerts"]),
+        (&json!(true), &json!("NEW"), &json!([]))
+    );
+    let third = alert(stack, "asks as well", &[]).await;
+    let joined = client
+        .json(
+            M::POST,
+            COLLECTIONS,
+            COLLECTIONS,
+            a,
+            json(ask("h@C:\\a.exe", &[third])),
+            S::OK,
+        )
+        .await;
+    assert_eq!(
+        (&joined["id"], &joined["queued"]),
+        (&made[0], &json!(false))
+    );
+    assert_eq!(joined["alerts"], json!([alert_id, other, third]));
+    let one = client
+        .json(
+            M::GET,
+            COLLECTION,
+            &at(COLLECTION, &asked["id"]),
+            a,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(one["requested_by"], "remediator");
+    // a key with no owner may ask: the request is the key's
+    let by_key = client
+        .json(
+            M::POST,
+            COLLECTIONS,
+            COLLECTIONS,
+            Some(asker.as_str()),
+            json(ask("h@C:\\e.exe", &[])),
+            S::CREATED,
+        )
+        .await;
+    assert_eq!(by_key["queued"], true);
+    assert_eq!(audit_count(stack).await, rows + 3);
+    let actions: Vec<String> = sqlx::query_scalar(
+        "SELECT action FROM service.audit WHERE action = 'request_file_collection' ORDER BY id",
+    )
+    .fetch_all(db.pool())
+    .await
+    .expect("reads");
+    assert_eq!(actions.len(), 3);
+    for body in [
+        json!({"collector": "endpoint", "observable_type": "file_location", "observable_value": "h@C:\\x"}),
+        json!({"collector": "edr", "observable_type": "hostname", "observable_value": "h"}),
+        json!({"collector": "edr", "observable_type": "file_location", "observable_value": "no host"}),
+        json!({"collector": "edr", "observable_type": "file_location", "observable_value": "h@C:\\x", "extra": 1}),
+        json!({"collector": "edr", "observable_type": "file_location"}),
+        json!({"collector": "edr", "observable_type": "file_location", "observable_value": "h@C:\\x", "alerts": ["x"]}),
+    ] {
+        client
+            .json(
+                M::POST,
+                COLLECTIONS,
+                COLLECTIONS,
+                a,
+                json(body),
+                S::BAD_REQUEST,
+            )
+            .await;
+    }
+    client
+        .json(
+            M::POST,
+            COLLECTIONS,
+            COLLECTIONS,
+            a,
+            json(ask("h@C:\\x.exe", &[Uuid::nil()])),
+            S::NOT_FOUND,
+        )
+        .await;
+    let response = client
+        .call(M::POST, COLLECTIONS, COLLECTIONS, a, too_large())
+        .await;
+    assert_eq!(response.status(), S::PAYLOAD_TOO_LARGE);
+    assert_eq!(
+        audit_count(stack).await,
+        rows + 3,
+        "nothing refused has a row"
+    );
 }
 
 /// `good_body`'s JSON, for a route that takes one.

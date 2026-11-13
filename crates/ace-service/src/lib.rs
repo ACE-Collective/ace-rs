@@ -170,7 +170,10 @@ pub use events::{
     MAX_EVENTS_PAGE, MAX_EXPORT_EVENTS, MAX_NEW_MALWARE_THREATS, MAX_THREAT_TYPE_CHARS,
     MalwareChoice, NewEvent, RemovedAlerts, Threat, ThreatType, disposition_rank, rolled_up,
 };
-pub use file_collections::{CollectionsPruned, FileCollection, FileCollectionPage};
+pub use file_collections::{
+    CollectionAsk, CollectionRequested, CollectionsPruned, FileCollection, FileCollectionPage,
+    MAX_COLLECTION_ALERTS,
+};
 pub use filters::events::{
     EventFilters, EventOwnerFilter, EventQuery, EventSort, MAX_EVENT_FILTER_IDS,
     MAX_EVENT_FILTER_VALUES,
@@ -191,11 +194,11 @@ pub use observables::{
 pub use permission::{
     ADMIN_READ, ALERT_CREATE, ALERT_READ, ALERT_WRITE, BUCKET_GC, BUCKET_VERIFY, CATALOG,
     CLI_EXECUTE, CRASH_READ, CatalogEntry, DETECTION_READ, DETECTION_WRITE, EMAIL_ARCHIVE_MAINTAIN,
-    EMAIL_READ, EVENT_READ, EVENT_WRITE, Effect, FILE_COLLECTION_PRUNE, FILE_COLLECTION_READ,
-    FILE_COLLECTION_WRITE, HUNT_READ, HUNT_WRITE, InvalidPermission, LIST_READ, LIST_WRITE,
-    NRD_REFRESH, OBSERVABLE_READ, OBSERVABLE_WRITE, PermissionName, PermissionPattern,
-    REMEDIATION_READ, REMEDIATION_WRITE, SIGNATURE_DOWNLOAD, SIGNATURE_QA_PURGE, SIGNATURE_READ,
-    USER_READ, USER_SELF, USER_WRITE,
+    EMAIL_READ, EVENT_READ, EVENT_WRITE, Effect, FILE_COLLECTION_CREATE, FILE_COLLECTION_PRUNE,
+    FILE_COLLECTION_READ, FILE_COLLECTION_WRITE, HUNT_READ, HUNT_WRITE, InvalidPermission,
+    LIST_READ, LIST_WRITE, NRD_REFRESH, OBSERVABLE_READ, OBSERVABLE_WRITE, PermissionName,
+    PermissionPattern, REMEDIATION_READ, REMEDIATION_WRITE, SIGNATURE_DOWNLOAD, SIGNATURE_QA_PURGE,
+    SIGNATURE_READ, USER_READ, USER_SELF, USER_WRITE,
 };
 pub use preferences::{
     AlertSectionsPreference, MANAGE_COLUMNS, MAX_ALERT_SECTIONS, ManageColumn,

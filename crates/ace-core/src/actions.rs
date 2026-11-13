@@ -387,6 +387,80 @@ pub async fn request_collection(
     Ok(Requested::Queued(id))
 }
 
+/// A file collection someone asks for through the API, for any number of alerts or none.
+#[derive(Debug, Clone)]
+pub struct CollectionRequest<'a> {
+    pub handler: &'a str,
+    pub observable_type: &'a str,
+    pub observable_value: &'a str,
+    /// The alerts it's for, each of which holds the file once it's collected.
+    pub roots: &'a [Uuid],
+    /// The actor that asked, as `service.actor` JSON.
+    pub requested_by: &'a Value,
+    pub user: Option<Uuid>,
+}
+
+impl Target for CollectionRequest<'_> {
+    fn target(&self) -> (&str, &str) {
+        (self.observable_type, self.observable_value)
+    }
+}
+
+/// Asks for a file on someone's request: joins a pending collection of the same file by the same
+/// collector, whoever asked for it, and makes it each root's, or queues a new one for them (#1101). It's
+/// `Queued` or `Joined`, never `Collected`: someone asking again wants the file fetched again, as a site's
+/// browser history request does, where a module asking for an alert's file takes the one it has. Returns
+/// with it the roots a joined collection was for before, for the request's audit row.
+pub async fn ask_for_collection(
+    tx: &mut Tx<'_>,
+    catalog: &ActionCatalog,
+    new: &CollectionRequest<'_>,
+) -> Result<(Requested, Vec<Uuid>), ActionError> {
+    let spec = catalog.require(ActionKind::FileCollection, new.handler)?;
+    check_target(spec, new.observable_type, new.observable_value)?;
+    lock_target(tx, ActionKind::FileCollection, spec.name, new).await?;
+    let pending = sqlx::query_scalar!(
+        "SELECT id FROM queue.actions
+         WHERE kind = 'file_collection' AND handler = $1 AND observable_type = $2
+           AND observable_value = $3 AND status <> 'COMPLETED'
+         ORDER BY id LIMIT 1",
+        spec.name,
+        new.observable_type,
+        new.observable_value,
+    )
+    .fetch_optional(tx.conn())
+    .await?;
+    let (requested, before) = match pending {
+        Some(id) => (Requested::Joined(id), roots_in(tx, id).await?),
+        None => (
+            Requested::Queued(
+                sqlx::query_scalar!(
+                    "INSERT INTO queue.actions
+                     (kind, handler, observable_type, observable_value, max_attempts, deadline_at,
+                      requested_by, user_id)
+                 VALUES ('file_collection', $1, $2, $3, $4, now() + make_interval(secs => $5),
+                         $6::jsonb, $7)
+                 RETURNING id",
+                    spec.name,
+                    new.observable_type,
+                    new.observable_value,
+                    limit(spec.retry.max_attempts),
+                    spec.retry.deadline_seconds.map(seconds),
+                    new.requested_by,
+                    new.user,
+                )
+                .fetch_one(tx.conn())
+                .await?,
+            ),
+            Vec::new(),
+        ),
+    };
+    for root in new.roots {
+        attach(tx, requested.id(), *root).await?;
+    }
+    Ok((requested, before))
+}
+
 /// Something with a target, for `lock_target`.
 trait Target {
     fn target(&self) -> (&str, &str);

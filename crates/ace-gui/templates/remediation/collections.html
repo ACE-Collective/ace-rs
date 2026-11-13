@@ -9,6 +9,9 @@
   {%- if let Some(notice) = view.notice %}
   <p class="notice" role="status">{{ notice }}</p>
   {%- endif %}
+  {%- if can_create %}
+  <p><a href="/file-collections/new">Request File Collection</a></p>
+  {%- endif %}
   {%- let action = "/file-collections" %}
   {%- include "remediation/filters.html" %}
   <table class="keys">

@@ -1,16 +1,17 @@
 //! `/api/file-collections/v1`: file collections (PLAN.md 7.9, `ace_service`'s `file_collections` docs).
-//! Reading needs `file_collection:read`, and stopping, retrying and deleting need `file_collection:write`,
-//! each write audited. A value is returned as it was stored: show it as text.
+//! Asking for one needs `file_collection:create`, reading needs `file_collection:read`, and stopping,
+//! retrying and deleting need `file_collection:write`, each write audited. A value is returned as it was
+//! stored: show it as text.
 
 use ace_service::filters::FilterScreen;
-use ace_service::{Actor, FileCollection};
+use ace_service::{Actor, CollectionAsk, CollectionRequested, FileCollection};
 use axum::Json;
-use axum::extract::rejection::PathRejection;
+use axum::extract::rejection::{JsonRejection, PathRejection};
 use axum::extract::{Path, RawQuery, State};
 use axum::http::StatusCode;
 use axum::response::Response;
 use chrono::{DateTime, Utc};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
 
@@ -136,6 +137,93 @@ pub(crate) struct FileCollectionPageBody {
     total: i64,
     /// Pass as `after` for the next page; null on the last.
     next: Option<i64>,
+}
+
+/// A file to ask a collector for.
+#[derive(Debug, Deserialize, ToSchema)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct RequestBody {
+    /// The collector's name, one this server's pools run, such as a site's Endpoint collectors.
+    collector: String,
+    /// The type the collector collects, such as `file_location`.
+    observable_type: String,
+    /// What to collect. A `file_location` is `host@path`.
+    observable_value: String,
+    /// The alerts it's for, at most 100, each of which holds the file once it's collected. None for a
+    /// request of your own.
+    #[serde(default)]
+    alerts: Vec<Uuid>,
+}
+
+/// The collection a request queued or joined. Poll `GET /api/file-collections/v1/collections/{id}`.
+#[derive(Debug, Serialize, ToSchema)]
+pub(crate) struct RequestedBody {
+    id: i64,
+    /// True for a new collection, false for a pending one of the same file by the same collector, which
+    /// the alerts now belong to as well.
+    queued: bool,
+    /// `NEW`, `IN_PROGRESS` (waiting to be tried again) or `COMPLETED`.
+    status: String,
+    result: Option<String>,
+    /// Every alert the collection is for now.
+    alerts: Vec<Uuid>,
+}
+
+impl From<CollectionRequested> for RequestedBody {
+    fn from(r: CollectionRequested) -> Self {
+        RequestedBody {
+            id: r.id,
+            queued: r.queued,
+            status: r.status,
+            result: r.result,
+            alerts: r.alerts,
+        }
+    }
+}
+
+/// Asks a collector for a file, for the alerts named or none: a new collection, 201, or a pending one of the
+/// same file by the same collector, 200, which the alerts join, each holding the file once it's collected.
+/// The pool that runs the collector fetches it, trying again while the host is offline, until it
+/// completes or runs out of tries or time. Audited either way.
+#[utoipa::path(
+    post,
+    path = "/api/file-collections/v1/collections",
+    tag = "file_collections",
+    request_body = RequestBody,
+    responses(
+        (status = 201, description = "A new collection", body = RequestedBody),
+        (status = 200, description = "A pending collection of the same file, which the alerts now belong to as well", body = RequestedBody),
+        (status = 400, description = "A collector this server hasn't, a type it doesn't collect, a value its type refuses, more than 100 alerts, or a body that isn't one", body = ErrorBody),
+        (status = 401, description = "No credential, or one that isn't valid", body = ErrorBody),
+        (status = 403, description = "The actor doesn't hold file_collection:create, or a session's request came from another site", body = ErrorBody),
+        (status = 404, description = "An alert that isn't one", body = ErrorBody),
+        (status = 413, description = "The body is too large", body = ErrorBody),
+    )
+)]
+pub(crate) async fn request(
+    Authenticated(actor): Authenticated,
+    State(web): State<Web>,
+    body: Result<Json<RequestBody>, JsonRejection>,
+) -> Result<(StatusCode, Json<RequestedBody>), ApiError> {
+    let Json(body) = body?;
+    let requested = web
+        .service
+        .request_file_collection(
+            &actor,
+            &CollectionAsk {
+                collector: body.collector,
+                observable_type: body.observable_type,
+                observable_value: body.observable_value,
+                alerts: body.alerts,
+            },
+        )
+        .await?;
+    let status = if requested.queued {
+        StatusCode::CREATED
+    } else {
+        StatusCode::OK
+    };
+    Ok((status, Json(RequestedBody::from(requested))))
 }
 
 /// File collections the filters match, newest first, a page at a time. Follow `next` until it's null.

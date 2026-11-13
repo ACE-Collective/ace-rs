@@ -53,7 +53,7 @@
 //!
 //! - `remediation`: the remediations and file collections areas (5.11, brought by 7.9), ace3's
 //!   `remediation/manage.html` and `file_collection/manage.html`: each list with its screen's filters, a
-//!   row's page with its tries, its forms, and Add Remediation, over the `remediation` and
+//!   row's page with its tries, its forms, Add Remediation and Request File Collection, over the `remediation` and
 //!   `file_collections` services, and the event page's remediation coverage badges. The base layout links
 //!   to each for whoever holds its `:read`.
 //!
@@ -325,7 +325,11 @@ impl Gui {
                 "/remediations/{id}/{what}",
                 post(remediation::remediation_write),
             )
-            .route("/file-collections", get(remediation::collections))
+            .route(
+                "/file-collections",
+                get(remediation::collections).post(remediation::request),
+            )
+            .route("/file-collections/new", get(remediation::request_form))
             .route("/file-collections/{id}", get(remediation::collection))
             .route(
                 "/file-collections/{id}/{what}",

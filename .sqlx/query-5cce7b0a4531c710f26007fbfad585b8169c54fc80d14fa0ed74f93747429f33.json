@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO queue.actions\n                     (kind, handler, observable_type, observable_value, max_attempts, deadline_at,\n                      requested_by, user_id)\n                 VALUES ('file_collection', $1, $2, $3, $4, now() + make_interval(secs => $5),\n                         $6::jsonb, $7)\n                 RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "queue.actions",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text",
+        "Int4",
+        "Float8",
+        "Jsonb",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "5cce7b0a4531c710f26007fbfad585b8169c54fc80d14fa0ed74f93747429f33"
+}

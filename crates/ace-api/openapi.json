@@ -3083,6 +3083,95 @@
             }
           }
         }
+      },
+      "post": {
+        "tags": [
+          "file_collections"
+        ],
+        "summary": "Asks a collector for a file, for the alerts named or none: a new collection, 201, or a pending one of the\nsame file by the same collector, 200, which the alerts join, each holding the file once it's collected.\nThe pool that runs the collector fetches it, trying again while the host is offline, until it\ncompletes or runs out of tries or time. Audited either way.",
+        "operationId": "request",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "A pending collection of the same file, which the alerts now belong to as well",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestedBody"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "A new collection",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestedBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A collector this server hasn't, a type it doesn't collect, a value its type refuses, more than 100 alerts, or a body that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold file_collection:create, or a session's request came from another site",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "An alert that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The body is too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/file-collections/v1/collections/export/csv": {
@@ -13263,6 +13352,76 @@
             "type": "integer",
             "format": "int64",
             "description": "How many the filters match, on every page."
+          }
+        }
+      },
+      "RequestBody": {
+        "type": "object",
+        "description": "A file to ask a collector for.",
+        "required": [
+          "collector",
+          "observable_type",
+          "observable_value"
+        ],
+        "properties": {
+          "alerts": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "The alerts it's for, at most 100, each of which holds the file once it's collected. None for a\nrequest of your own."
+          },
+          "collector": {
+            "type": "string",
+            "description": "The collector's name, one this server's pools run, such as a site's Endpoint collectors."
+          },
+          "observable_type": {
+            "type": "string",
+            "description": "The type the collector collects, such as `file_location`."
+          },
+          "observable_value": {
+            "type": "string",
+            "description": "What to collect. A `file_location` is `host@path`."
+          }
+        },
+        "additionalProperties": false
+      },
+      "RequestedBody": {
+        "type": "object",
+        "description": "The collection a request queued or joined. Poll `GET /api/file-collections/v1/collections/{id}`.",
+        "required": [
+          "id",
+          "queued",
+          "status",
+          "alerts"
+        ],
+        "properties": {
+          "alerts": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Every alert the collection is for now."
+          },
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "queued": {
+            "type": "boolean",
+            "description": "True for a new collection, false for a pending one of the same file by the same collector, which\nthe alerts now belong to as well."
+          },
+          "result": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "description": "`NEW`, `IN_PROGRESS` (waiting to be tried again) or `COMPLETED`."
           }
         }
       },

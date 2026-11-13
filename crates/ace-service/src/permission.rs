@@ -264,6 +264,10 @@ pub const EMAIL_ARCHIVE_MAINTAIN: PermissionName =
 pub const DETECTION_READ: PermissionName = PermissionName::known("detection", "read");
 /// Add and remove the observables ACE detects, and set when each expires: ace3's `detection:write`.
 pub const DETECTION_WRITE: PermissionName = PermissionName::known("detection", "write");
+/// Ask a collector for a file through the API: ace3's `file_collection:create`, which ace3's integrations
+/// check on their own request routes. A collector may run a script on the host to produce the file.
+pub const FILE_COLLECTION_CREATE: PermissionName =
+    PermissionName::known("file_collection", "create");
 /// Read file collection requests and their tries: ace3's `file_collection:read`.
 pub const FILE_COLLECTION_READ: PermissionName = PermissionName::known("file_collection", "read");
 /// Stop, retry and delete file collection requests: ace3's `file_collection:write`.
@@ -392,6 +396,11 @@ pub static CATALOG: &[CatalogEntry] = &[
         name: EVENT_WRITE,
         description: "Make events, add alerts to them and change them, and add, rename and delete threat \
                       types and malware's threats.",
+    },
+    CatalogEntry {
+        name: FILE_COLLECTION_CREATE,
+        description: "Request file collections from hosts through the API; a collector may run a script on the \
+                      host to produce the file.",
     },
     CatalogEntry {
         name: FILE_COLLECTION_PRUNE,

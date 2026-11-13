@@ -1589,6 +1589,7 @@ async fn every_write_function_has_an_audit_test() {
         retry_remediation_records_its_row(db).await,
         restore_remediation_records_its_row(db).await,
         delete_remediation_records_its_row(db).await,
+        request_file_collection_records_its_row(db).await,
         cancel_file_collection_records_its_row(db).await,
         retry_file_collection_records_its_row(db).await,
         delete_file_collection_records_its_row(db).await,
@@ -3939,6 +3940,14 @@ async fn every_write_fails_when_its_audit_fails() {
             "delete_remediation",
             service
                 .delete_remediation(&actor, acted.removed)
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
+        (
+            "request_file_collection",
+            service
+                .request_file_collection(&actor, &collection_ask("h9@C:\\z.exe", &[]))
                 .await
                 .map(|_| ())
                 .expect_err("refused"),
@@ -14347,6 +14356,180 @@ fn collection_state_json(status: &str, result: Option<&str>, value: &str) -> Val
         "kind": "file_collection", "handler": "edr", "observable_type": "file_location",
         "observable_value": value, "action": null, "status": status, "result": result,
     })
+}
+
+fn collection_ask(value: &str, alerts: &[Uuid]) -> ace_service::CollectionAsk {
+    ace_service::CollectionAsk {
+        collector: "edr".to_owned(),
+        observable_type: "file_location".to_owned(),
+        observable_value: value.to_owned(),
+        alerts: alerts.to_vec(),
+    }
+}
+
+/// `alert`, made an alert.
+async fn an_alert(db: &Db) -> Uuid {
+    let root = alert(db).await;
+    sqlx::query("UPDATE analysis.roots SET alerted_at = now() WHERE id = $1")
+        .bind(root)
+        .execute(db.pool())
+        .await
+        .expect("makes it an alert");
+    root
+}
+
+/// The owner's decision of 2026-11-13: someone asks a collector for a file. A request for a file a
+/// pending collection is fetching joins it, the alerts it names belonging to it as well (#1101), and each
+/// is audited; one after that collection completed queues another; what isn't a request is refused with no
+/// row.
+async fn request_file_collection_records_its_row(db: &Db) -> String {
+    let actor = admin(db).await;
+    let service = service(db);
+    let (first, second) = (an_alert(db).await, an_alert(db).await);
+    let value = "h8@C:\\r.exe";
+    let queued = service
+        .request_file_collection(&actor, &collection_ask(value, &[]))
+        .await
+        .expect("queues");
+    assert!(queued.queued);
+    assert_eq!(
+        (
+            queued.status.as_str(),
+            queued.result.as_deref(),
+            queued.alerts.len()
+        ),
+        ("NEW", None, 0)
+    );
+    let id = queued.id;
+    let row = last_audit(db).await;
+    assert_eq!(
+        row,
+        AuditRow {
+            actor: boss_json(),
+            action: "request_file_collection".to_owned(),
+            target: ("action".to_owned(), id.to_string()),
+            before: None,
+            after: Some(json!({
+                "collector": "edr", "observable_type": "file_location", "observable_value": value,
+                "alerts": [],
+            })),
+            details: json!({}),
+        }
+    );
+    let (by, user): (Value, Option<Uuid>) =
+        sqlx::query_as("SELECT requested_by, user_id FROM queue.actions WHERE id = $1")
+            .bind(id)
+            .fetch_one(db.pool())
+            .await
+            .expect("reads");
+    assert_eq!((by, user), (boss_json(), Some(Uuid::from_u128(0xAD))));
+
+    // the same file again joins it, for the alerts named, a repeated one once
+    let joined = service
+        .request_file_collection(&actor, &collection_ask(value, &[first, first]))
+        .await
+        .expect("joins");
+    assert_eq!((joined.id, joined.queued), (id, false));
+    assert_eq!(joined.alerts, [first]);
+    let joined = service
+        .request_file_collection(&actor, &collection_ask(value, &[second, first]))
+        .await
+        .expect("joins");
+    assert_eq!((joined.id, joined.queued), (id, false));
+    assert_eq!(joined.alerts, [first, second], "in the order they asked");
+    let joined_row = last_audit(db).await;
+    let state = |alerts: Value| {
+        json!({
+            "collector": "edr", "observable_type": "file_location", "observable_value": value,
+            "alerts": alerts,
+        })
+    };
+    assert_eq!(
+        (
+            joined_row.action.as_str(),
+            joined_row.before,
+            joined_row.after
+        ),
+        (
+            "request_file_collection",
+            Some(state(json!([first]))),
+            Some(state(json!([first, second]))),
+        )
+    );
+    // a module's request for one of those alerts joins it too
+    let by_module = collection(db, Some(first), value).await;
+    assert_eq!(by_module, id);
+
+    // once it completed, a request queues another, where a module would get its own back
+    complete(db, id, "SUCCESS").await;
+    let again = service
+        .request_file_collection(&actor, &collection_ask(value, &[first]))
+        .await
+        .expect("queues");
+    assert!(again.queued);
+    assert_ne!(again.id, id);
+
+    // refusals, with no row
+    let rows = audit_rows(db).await.len();
+    let not_an_alert = alert(db).await;
+    let refusals: Vec<(ace_service::CollectionAsk, &str)> = vec![
+        (
+            ace_service::CollectionAsk {
+                collector: "endpoint".to_owned(),
+                ..collection_ask(value, &[])
+            },
+            "invalid",
+        ),
+        (
+            ace_service::CollectionAsk {
+                observable_type: "hostname".to_owned(),
+                ..collection_ask("h8", &[])
+            },
+            "invalid",
+        ),
+        (collection_ask("no-at-sign", &[]), "invalid"),
+        (collection_ask("@C:\\x", &[]), "invalid"),
+        (collection_ask("h8@  ", &[]), "invalid"),
+        (collection_ask("", &[]), "invalid"),
+        (collection_ask("h8@C:\\nul\0", &[]), "invalid"),
+        (
+            collection_ask(
+                value,
+                &(0..=ace_service::MAX_COLLECTION_ALERTS as u128)
+                    .map(Uuid::from_u128)
+                    .collect::<Vec<_>>(),
+            ),
+            "invalid",
+        ),
+        (collection_ask(value, &[Uuid::from_u128(0xDEAD)]), "missing"),
+        (collection_ask(value, &[first, not_an_alert]), "missing"),
+    ];
+    for (ask, why) in refusals {
+        let refused = service.request_file_collection(&actor, &ask).await;
+        match why {
+            "invalid" => assert!(
+                matches!(refused, Err(ServiceError::InvalidRequest(_))),
+                "{ask:?}: {refused:?}"
+            ),
+            _ => assert!(
+                matches!(refused, Err(ServiceError::NotFound(_))),
+                "{ask:?}: {refused:?}"
+            ),
+        }
+    }
+    assert_eq!(
+        audit_rows(db).await.len(),
+        rows,
+        "nothing refused has a row"
+    );
+    let attached: i64 =
+        sqlx::query_scalar("SELECT count(*) FROM queue.action_roots WHERE action_id = $1")
+            .bind(again.id)
+            .fetch_one(db.pool())
+            .await
+            .expect("reads");
+    assert_eq!(attached, 1, "a refused request attached nothing");
+    row.action
 }
 
 async fn cancel_file_collection_records_its_row(db: &Db) -> String {

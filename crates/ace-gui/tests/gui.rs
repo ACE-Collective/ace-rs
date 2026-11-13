@@ -10353,9 +10353,9 @@ fn remediation_fixture(
 #[test]
 fn the_remediation_areas_draw_hostile_values_as_text() {
     use ace_gui::remediation::{
-        CollectionPage, CollectionsPage, RemediationPage, RemediationsPage, TargetsPage,
-        TargetsView, collection_view, collections_view, list_request, remediation_view,
-        remediations_view, target_key, target_row,
+        CollectionPage, CollectionsPage, CollectorChoice, RemediationPage, RemediationsPage,
+        RequestPage, TargetsPage, TargetsView, collection_view, collections_view, list_request,
+        remediation_view, remediations_view, request_view, target_key, target_row,
     };
     use ace_service::filters::FilterScreen;
     let layout = |path: &str| Layout::new("n0nce", Theme::Dark, Some("alice".to_owned()), path);
@@ -10490,8 +10490,10 @@ fn the_remediation_areas_draw_hostile_values_as_text() {
             },
             true,
         ),
+        can_create: true,
     });
     for part in [
+        r#"<a href="/file-collections/new">Request File Collection</a>"#,
         r#"<a href="/alerts/00000000-0000-0000-0000-000000000001">"#,
         r#"<a href="/alerts/00000000-0000-0000-0000-000000000002">"#,
         "2/10",
@@ -10504,10 +10506,56 @@ fn the_remediation_areas_draw_hostile_values_as_text() {
         !html.contains("/file-collections/3/cancel"),
         "a completed one isn't cancelled"
     );
+    let cannot = drawn_safely(&CollectionsPage {
+        layout: layout("/file-collections"),
+        view: collections_view(
+            &crequest,
+            ace_service::FileCollectionPage {
+                collections: vec![],
+                total: 0,
+                next: None,
+            },
+            false,
+        ),
+        can_create: false,
+    });
+    assert!(!cannot.contains("/file-collections/new"), "{cannot}");
     drawn_safely(&CollectionPage {
         layout: layout("/file-collections/3"),
         view: collection_view(collection(), vec![attempt], false),
     });
+
+    // the request form: the collectors, and the alerts it was given, as text
+    let html = drawn_safely(&RequestPage {
+        layout: layout("/file-collections/new"),
+        view: request_view(
+            vec![CollectorChoice {
+                name: "edr",
+                display_name: "Test EDR",
+                observable_type: "file_location",
+            }],
+            &[
+                HOSTILE.to_owned(),
+                "00000000-0000-0000-0000-000000000001".to_owned(),
+            ],
+        ),
+    });
+    for part in [
+        r#"<form method="post" action="/file-collections" class="detection-add">"#,
+        r#"<option value="edr">Test EDR (file_location)</option>"#,
+        &format!("{HOSTILE_ESCAPED}\n00000000-0000-0000-0000-000000000001</textarea>") as &str,
+    ] {
+        assert!(html.contains(part), "{part}: {html}");
+    }
+    let none = drawn_safely(&RequestPage {
+        layout: layout("/file-collections/new"),
+        view: request_view(vec![], &[]),
+    });
+    assert!(
+        none.contains("This server runs no file collector."),
+        "{none}"
+    );
+    assert!(!none.contains(r#"action="/file-collections""#), "{none}");
 
     // a filter the screen hasn't, or a value of the wrong shape, isn't a list
     for bad in ["f=nope:x", "f=id:x", "after=x", "status=WHENEVER"] {
@@ -10542,6 +10590,7 @@ async fn remediations_and_collections_are_worked_through_the_gui() {
         ("remediation", "write"),
         ("file_collection", "read"),
         ("file_collection", "write"),
+        ("file_collection", "create"),
         ("event", "read"),
         ("alert", "read"),
     ] {
@@ -10741,6 +10790,106 @@ async fn remediations_and_collections_are_worked_through_the_gui() {
     )
     .await;
     assert!(page.contains("CANCELLED"), "{page}");
+
+    // Request File Collection: the form, then a request, then the same file joins it (#1101)
+    let refused = get(&rd, "/file-collections/new").await.expect("answered");
+    assert_eq!(refused.status(), StatusCode::FORBIDDEN);
+    assert!(text(refused).await.contains("file_collection:create"));
+    let form = text(
+        get(&ed, &format!("/file-collections/new?alert={alert}"))
+            .await
+            .expect("answered"),
+    )
+    .await;
+    assert!(
+        form.contains(r#"<option value="edr">Test EDR (file_location)</option>"#),
+        "{form}"
+    );
+    assert!(form.contains(&format!("{alert}</textarea>")), "{form}");
+    assert!(
+        collections.contains(r#"<a href="/file-collections/new">Request File Collection</a>"#),
+        "{collections}"
+    );
+    let other = list_alert(&stack, "another alert", "2026-11-01T11:00:00Z", None).await;
+    let rows = stack.audit_count().await;
+    let ask = |value: &'static str, alerts: String| {
+        vec![
+            ("collector", "edr".to_owned()),
+            ("value", value.to_owned()),
+            ("alerts", alerts),
+        ]
+    };
+    let asked = ask("host@C:\\evil.ps1", format!("{alert}\r\n"));
+    for (session, origin, status) in [
+        (&rd, None, StatusCode::FORBIDDEN),
+        (&ed, Some("https://evil.example"), StatusCode::FORBIDDEN),
+    ] {
+        let request = stack
+            .http
+            .post(format!("{}/file-collections", stack.url))
+            .header("origin", origin.unwrap_or(&stack.url))
+            .header("cookie", cookie(session))
+            .form(&asked);
+        assert_eq!(request.send().await.expect("answered").status(), status);
+    }
+    assert_eq!(stack.audit_count().await, rows, "nothing refused has a row");
+    let post = |form: Vec<(&'static str, String)>| {
+        let stack = &stack;
+        let ed = ed.clone();
+        async move {
+            let form: Vec<(&str, &str)> = form.iter().map(|(k, v)| (*k, v.as_str())).collect();
+            stack
+                .post("/file-collections", &form)
+                .header("cookie", cookie(&ed))
+                .send()
+                .await
+                .expect("answered")
+        }
+    };
+    let requested = post(asked.clone()).await;
+    assert_eq!(requested.status(), StatusCode::SEE_OTHER);
+    assert_eq!(location(&requested), "/file-collections?done=requested");
+    assert_eq!(last_action(&stack).await, "request_file_collection");
+    let joined = post(ask("host@C:\\evil.ps1", format!("{other}"))).await;
+    assert_eq!(location(&joined), "/file-collections?done=joined");
+    let listed = text(
+        get(&ed, "/file-collections?done=joined")
+            .await
+            .expect("answered"),
+    )
+    .await;
+    assert!(
+        listed.contains("the alerts now belong to it as well"),
+        "{listed}"
+    );
+    let alerts: Vec<uuid::Uuid> = sqlx::query_scalar(
+        "SELECT r.root_id FROM queue.action_roots r JOIN queue.actions a ON a.id = r.action_id
+         WHERE a.status <> 'COMPLETED' AND a.observable_value = 'host@C:\\evil.ps1'
+         ORDER BY r.created_at",
+    )
+    .fetch_all(stack.test_db.db().pool())
+    .await
+    .expect("reads");
+    assert_eq!(alerts, [alert, other], "one collection, each alert's");
+    assert_eq!(stack.audit_count().await, rows + 2);
+    for form in [
+        vec![
+            ("collector", "endpoint".to_owned()),
+            ("value", "h@C:\\x".to_owned()),
+        ],
+        ask("no host", String::new()),
+        ask("h@C:\\x", "not-an-alert".to_owned()),
+    ] {
+        let refused = post(form).await;
+        assert_eq!(refused.status(), StatusCode::BAD_REQUEST);
+    }
+    let missing = post(ask("h@C:\\x", uuid::Uuid::nil().to_string())).await;
+    assert_eq!(missing.status(), StatusCode::NOT_FOUND);
+    assert_eq!(
+        stack.audit_count().await,
+        rows + 2,
+        "nothing refused has a row"
+    );
 
     // an event's page: the coverage badge, to whoever reads remediations
     let event = gui_event(&stack, "remediated", "2026-11-01", "OPEN").await;
