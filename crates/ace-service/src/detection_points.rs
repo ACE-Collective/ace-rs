@@ -14,17 +14,18 @@
 //! pass the time the previous pull started, and a transaction still open then can land a row stamped before
 //! it; delivery is at least once for a transaction shorter than the gap between pulls.
 //!
-//! The filters (5.10) are the detection points screen's (`crate::filters`): `Alert Date`, `Family` and
-//! `Signature`, each a fixed condition in one static query with its values bound. ace3's others, and why
-//! they aren't here, are `FilterScreen::DetectionPoints.left_out()`. The exports (`ace-api`) page through
+//! Each detection comes with its verdict (7.14, `crate::detection_verdicts`): the effective verdict, its
+//! source, and the stored one behind them with who set it and when, as ace3's `detection_points_select`.
+//! `changed_since` also catches a detection whose alert was dispositioned, which derives every verdict
+//! again, and one whose stored verdict was set or cleared, from its history, as ace3's does. ace3 also
+//! counts any other change to the alert's row, which says nothing new about a detection.
+//!
+//! The filters (5.10) are the detection points screen's (`crate::filters`): `Alert Date`, `Family`,
+//! `Signature`, and 7.14's `Verdict` (with `none` for no verdict), `Source` and `Has Override`, each a fixed
+//! condition in one static query with its values bound. ace3's others, and why they aren't here, are
+//! `FilterScreen::DetectionPoints.left_out()`. The exports (`ace-api`) page through
 //! `Service::detection_points` with the same filter to the end, and `detection_point_count` is how they
 //! refuse one past their bound before sending anything.
-//!
-//! What later steps add here, and where:
-//! - 7.14: each detection's effective verdict, its source and the stored override join `DetectionPoint`,
-//!   and the verdict writes and the alert's confirm become writes here. ace3 keys a verdict on a content
-//!   hash of the detection's node, signature, description and details; 7.14 decides whether ace4 keys it
-//!   on that or on the row's id, which re-analysis doesn't keep.
 //!
 //! A detection's description and details are what a module, a rule's meta or a submission wrote, so they
 //! are data: nothing here reads them, and the adapters return them as they are.
@@ -34,13 +35,17 @@ use chrono_tz::Tz;
 use serde_json::Value;
 use uuid::Uuid;
 
-use crate::alerts::{SET_LIST_TIMEOUT, no_alert, page_limit, timed_out};
+use crate::alerts::{RecordedActor, SET_LIST_TIMEOUT, no_alert, page_limit, timed_out};
+use crate::detection_verdicts::{Verdict, VerdictSource};
 use crate::filters::{FilterEntry, FilterScreen, Resolved, split};
 use crate::permission::ALERT_READ;
 use crate::{Service, ServiceError};
 
 /// The most detections one page holds, as ace3's listing.
 pub const MAX_DETECTIONS_PAGE: u32 = 1000;
+
+/// The Verdict filter's value for a detection with no verdict, ace3's `VERDICT_FILTER_NONE`.
+const NO_VERDICT: &str = "none";
 
 /// Which detections to list. Every filter that's set must match.
 #[derive(Debug, Clone, PartialEq)]
@@ -49,7 +54,8 @@ pub struct DetectionPointFilter {
     pub alert: Option<Uuid>,
     /// The detection points screen's filters.
     pub filters: Vec<FilterEntry>,
-    /// Only those made, or whose root became an alert, at or after this.
+    /// Only those made, whose root became an alert or was dispositioned, or whose stored verdict changed,
+    /// at or after this.
     pub changed_since: Option<DateTime<Utc>>,
     /// Where a date filter's wall clock is.
     pub tz: Tz,
@@ -66,52 +72,75 @@ impl Default for DetectionPointFilter {
     }
 }
 
-/// The filter's parameters, in the order the queries take them.
-type Params = (
-    Option<Vec<String>>,
-    Option<Vec<String>>,
-    Option<Vec<String>>,
-    Option<Vec<String>>,
-    Option<Vec<String>>,
-    Option<Vec<String>>,
-    Option<Vec<DateTime<Utc>>>,
-    Option<Vec<DateTime<Utc>>>,
-    Option<Vec<DateTime<Utc>>>,
-    Option<Vec<DateTime<Utc>>>,
-);
+/// A date filter's windows as two arrays, starts and ends.
+type Windows = (Option<Vec<DateTime<Utc>>>, Option<Vec<DateTime<Utc>>>);
 
-fn params(filter: &DetectionPointFilter) -> Result<Params, ServiceError> {
+/// The filter's parameters, as the queries take them.
+struct Params {
+    signed: (Option<Vec<String>>, Option<Vec<String>>),
+    not_signed: (Option<Vec<String>>, Option<Vec<String>>),
+    family: Option<Vec<String>>,
+    not_family: Option<Vec<String>>,
+    alerted: Windows,
+    not_alerted: Windows,
+    /// The TP dispositions and the FP ones.
+    tp: Vec<String>,
+    fp: Vec<String>,
+    /// The verdicts asked for, and whether `none` was.
+    verdict: (Option<Vec<String>>, bool),
+    not_verdict: (Option<Vec<String>>, bool),
+    source: Option<Vec<String>>,
+    not_source: Option<Vec<String>>,
+    /// `true`, `false` or both.
+    has_override: Option<Vec<String>>,
+    not_has_override: Option<Vec<String>>,
+}
+
+fn verdicts(names: Option<Vec<String>>) -> (Option<Vec<String>>, bool) {
+    match names {
+        None => (None, false),
+        Some(names) => {
+            let none = names.iter().any(|name| name == NO_VERDICT);
+            (
+                Some(
+                    names
+                        .into_iter()
+                        .filter(|name| name != NO_VERDICT)
+                        .collect(),
+                ),
+                none,
+            )
+        }
+    }
+}
+
+fn params(service: &Service, filter: &DetectionPointFilter) -> Result<Params, ServiceError> {
     let f = Resolved::new(
         FilterScreen::DetectionPoints,
         &filter.filters,
         Utc::now(),
         filter.tz,
     )?;
-    let (signed, not_signed) = (
-        f.signatures("signature", false),
-        f.signatures("signature", true),
-    );
-    let (alerted, not_alerted) = (
-        f.windows("alert_date", false)?,
-        f.windows("alert_date", true)?,
-    );
-    let ((s1, s2), (s3, s4)) = (split(signed), split(not_signed));
-    let ((a1, a2), (a3, a4)) = (split(alerted), split(not_alerted));
-    Ok((
-        s1,
-        s2,
-        s3,
-        s4,
-        f.names("family", false),
-        f.names("family", true),
-        a1,
-        a2,
-        a3,
-        a4,
-    ))
+    let (tp, fp) = service.disposition_classes().lists();
+    Ok(Params {
+        signed: split(f.signatures("signature", false)),
+        not_signed: split(f.signatures("signature", true)),
+        family: f.names("family", false),
+        not_family: f.names("family", true),
+        alerted: split(f.windows("alert_date", false)?),
+        not_alerted: split(f.windows("alert_date", true)?),
+        tp,
+        fp,
+        verdict: verdicts(f.names("verdict", false)),
+        not_verdict: verdicts(f.names("verdict", true)),
+        source: f.names("source", false),
+        not_source: f.names("source", true),
+        has_override: f.names("has_override", false),
+        not_has_override: f.names("has_override", true),
+    })
 }
 
-/// One detection of an alert.
+/// One detection of an alert, with its verdict.
 #[derive(Debug, Clone, PartialEq)]
 pub struct DetectionPoint {
     pub id: i64,
@@ -129,6 +158,15 @@ pub struct DetectionPoint {
     pub signature_version: Option<String>,
     pub signature_family: Option<String>,
     pub created_at: DateTime<Utc>,
+    /// Its effective verdict, None when the alert's disposition is unclassified.
+    pub verdict: Option<Verdict>,
+    /// Why the verdict is what it is.
+    pub verdict_source: Option<VerdictSource>,
+    /// The stored verdict, if any: ace3's `override`, masked on an FP alert.
+    pub override_verdict: Option<Verdict>,
+    /// Who stored it, and when.
+    pub override_by: Option<RecordedActor>,
+    pub override_set_at: Option<DateTime<Utc>>,
 }
 
 /// One page of detections, oldest first, and the cursor for the next, None on the last.
@@ -136,6 +174,20 @@ pub struct DetectionPoint {
 pub struct DetectionPointPage {
     pub detections: Vec<DetectionPoint>,
     pub next: Option<i64>,
+}
+
+fn decode<T>(
+    text: Option<String>,
+    parse: fn(&str) -> Option<T>,
+) -> Result<Option<T>, ServiceError> {
+    text.map(|text| {
+        parse(&text).ok_or_else(|| {
+            ServiceError::from(ace_core::DbError::Decode(format!(
+                "a stored verdict or source {text:?}"
+            )))
+        })
+    })
+    .transpose()
 }
 
 impl Service {
@@ -150,89 +202,163 @@ impl Service {
         after: Option<i64>,
     ) -> Result<DetectionPointPage, ServiceError> {
         let limit = page_limit(limit, MAX_DETECTIONS_PAGE)?;
+        self.detection_page(actor, filter, limit, after, None).await
+    }
+
+    /// One detection of an alert, with its verdict, as the list gives it: ace3's `get_alert_detection_point`.
+    /// It needs `alert:read`. A root that isn't an alert, or a detection it doesn't have, is `NotFound`.
+    pub async fn detection_point(
+        &self,
+        actor: &crate::Actor,
+        alert: Uuid,
+        detection: i64,
+    ) -> Result<DetectionPoint, ServiceError> {
+        let filter = DetectionPointFilter {
+            alert: Some(alert),
+            ..DetectionPointFilter::default()
+        };
+        self.detection_page(actor, &filter, 1, None, Some(detection))
+            .await?
+            .detections
+            .pop()
+            .ok_or_else(|| {
+                ServiceError::NotFound(format!("alert {alert} has no detection {detection}"))
+            })
+    }
+
+    async fn detection_page(
+        &self,
+        actor: &crate::Actor,
+        filter: &DetectionPointFilter,
+        limit: i64,
+        after: Option<i64>,
+        only: Option<i64>,
+    ) -> Result<DetectionPointPage, ServiceError> {
         let alert = filter.alert;
         let changed_since = filter.changed_since;
-        let params = &params(filter)?;
+        let p = &params(self, filter)?;
         self.gate
             .read(actor, "detection_points", &ALERT_READ, &|tx| {
                 Box::pin(async move {
-                    let (s1, s2, s3, s4, family, not_family, a1, a2, a3, a4) = params;
                     sqlx::raw_sql(SET_LIST_TIMEOUT).execute(tx.conn()).await?;
                     if let Some(alert) = alert {
                         known_alert(tx, alert).await?;
                     }
-                    let mut detections: Vec<DetectionPoint> = sqlx::query!(
+                    let rows = sqlx::query!(
                         r#"SELECT d.id, d.root_id, d.observable_id, o.type AS "type?", o.value AS "value?",
                                   res.module AS "module?", d.description, d.details, d.queue,
                                   d.signature_uuid, d.signature_version, d.signature_family,
-                                  d.created_at
+                                  d.created_at, e.verdict AS "verdict?", e.source AS "source?",
+                                  v.verdict AS "stored?", v.set_by AS "set_by?: Value",
+                                  v.set_at AS "set_at?"
                            FROM analysis.detections d
                            JOIN analysis.roots r ON r.id = d.root_id
                            LEFT JOIN analysis.observables o
                              ON o.root_id = d.root_id AND o.id = d.observable_id
                            LEFT JOIN analysis.results res ON res.id = d.result_id
+                           LEFT JOIN analysis.detection_verdicts v ON v.detection_id = d.id
+                           CROSS JOIN LATERAL (
+                             SELECT analysis.detection_verdict(r.disposition, $16, $17, v.verdict) AS verdict,
+                                    analysis.detection_verdict_source(
+                                      r.disposition, $16, $17, v.verdict,
+                                      EXISTS (SELECT FROM analysis.detections x
+                                              WHERE x.root_id = d.root_id
+                                                AND x.signature_uuid IS DISTINCT FROM d.signature_uuid))
+                                      AS source) e
                            WHERE r.alerted_at IS NOT NULL
                              AND ($2::uuid IS NULL OR d.root_id = $2)
                              AND ($3::bigint IS NULL OR d.id > $3)
-                             AND ($4::timestamptz IS NULL OR d.created_at >= $4 OR r.alerted_at >= $4)
+                             AND ($4::timestamptz IS NULL OR d.created_at >= $4 OR r.alerted_at >= $4
+                                  OR r.dispositioned_at >= $4
+                                  OR EXISTS (SELECT FROM analysis.detection_verdict_history h
+                                             WHERE h.detection_id = d.id AND h.changed_at >= $4))
+                             AND ($5::bigint IS NULL OR d.id = $5)
                              -- Signature: its uuid, and its version when the value has one
-                             AND ($5::text[] IS NULL OR EXISTS (
-                                   SELECT FROM unnest($5::text[], $6::text[]) g(u, v)
+                             AND ($6::text[] IS NULL OR EXISTS (
+                                   SELECT FROM unnest($6::text[], $7::text[]) g(u, v)
                                    WHERE lower(d.signature_uuid) = g.u
                                      AND (g.v = '' OR d.signature_version = g.v)))
-                             AND ($7::text[] IS NULL OR NOT EXISTS (
-                                   SELECT FROM unnest($7::text[], $8::text[]) g(u, v)
+                             AND ($8::text[] IS NULL OR NOT EXISTS (
+                                   SELECT FROM unnest($8::text[], $9::text[]) g(u, v)
                                    WHERE lower(d.signature_uuid) = g.u
                                      AND (g.v = '' OR d.signature_version = g.v)))
                              -- Family
-                             AND ($9::text[] IS NULL OR d.signature_family = ANY ($9::text[]))
-                             AND ($10::text[] IS NULL
-                                  OR NOT COALESCE(d.signature_family = ANY ($10::text[]), false))
+                             AND ($10::text[] IS NULL OR d.signature_family = ANY ($10::text[]))
+                             AND ($11::text[] IS NULL
+                                  OR NOT COALESCE(d.signature_family = ANY ($11::text[]), false))
                              -- Alert Date: when its root became an alert
-                             AND ($11::timestamptz[] IS NULL OR EXISTS (
-                                   SELECT FROM unnest($11::timestamptz[], $12::timestamptz[]) w(s, e)
+                             AND ($12::timestamptz[] IS NULL OR EXISTS (
+                                   SELECT FROM unnest($12::timestamptz[], $13::timestamptz[]) w(s, e)
                                    WHERE r.alerted_at BETWEEN w.s AND w.e))
-                             AND ($13::timestamptz[] IS NULL OR NOT EXISTS (
-                                   SELECT FROM unnest($13::timestamptz[], $14::timestamptz[]) w(s, e)
+                             AND ($14::timestamptz[] IS NULL OR NOT EXISTS (
+                                   SELECT FROM unnest($14::timestamptz[], $15::timestamptz[]) w(s, e)
                                    WHERE r.alerted_at BETWEEN w.s AND w.e))
+                             -- Verdict, with none for no verdict
+                             AND ($18::text[] IS NULL OR e.verdict = ANY ($18::text[])
+                                  OR ($19::boolean AND e.verdict IS NULL))
+                             AND ($20::text[] IS NULL OR NOT COALESCE(e.verdict = ANY ($20::text[])
+                                  OR ($21::boolean AND e.verdict IS NULL), false))
+                             -- Source
+                             AND ($22::text[] IS NULL OR e.source = ANY ($22::text[]))
+                             AND ($23::text[] IS NULL OR NOT COALESCE(e.source = ANY ($23::text[]), false))
+                             -- Has Override: true, false or both
+                             AND ($24::text[] IS NULL OR (v.verdict IS NOT NULL)::text = ANY ($24::text[]))
+                             AND ($25::text[] IS NULL OR NOT (v.verdict IS NOT NULL)::text = ANY ($25::text[]))
                            ORDER BY d.id
                            LIMIT $1"#,
                         limit + 1,
                         alert,
                         after,
                         changed_since,
-                        s1.as_deref(),
-                        s2.as_deref(),
-                        s3.as_deref(),
-                        s4.as_deref(),
-                        family.as_deref(),
-                        not_family.as_deref(),
-                        a1.as_deref(),
-                        a2.as_deref(),
-                        a3.as_deref(),
-                        a4.as_deref(),
+                        only,
+                        p.signed.0.as_deref(),
+                        p.signed.1.as_deref(),
+                        p.not_signed.0.as_deref(),
+                        p.not_signed.1.as_deref(),
+                        p.family.as_deref(),
+                        p.not_family.as_deref(),
+                        p.alerted.0.as_deref(),
+                        p.alerted.1.as_deref(),
+                        p.not_alerted.0.as_deref(),
+                        p.not_alerted.1.as_deref(),
+                        &p.tp,
+                        &p.fp,
+                        p.verdict.0.as_deref(),
+                        p.verdict.1,
+                        p.not_verdict.0.as_deref(),
+                        p.not_verdict.1,
+                        p.source.as_deref(),
+                        p.not_source.as_deref(),
+                        p.has_override.as_deref(),
+                        p.not_has_override.as_deref(),
                     )
                     .fetch_all(tx.conn())
                     .await
-                    .map_err(timed_out)?
-                    .into_iter()
-                    .map(|row| DetectionPoint {
-                        id: row.id,
-                        alert: row.root_id,
-                        observable: match (row.observable_id, row.r#type, row.value) {
-                            (Some(id), Some(kind), Some(value)) => Some((id, kind, value)),
-                            _ => None,
-                        },
-                        module: row.module,
-                        description: row.description,
-                        details: row.details,
-                        queue: row.queue,
-                        signature_uuid: row.signature_uuid,
-                        signature_version: row.signature_version,
-                        signature_family: row.signature_family,
-                        created_at: row.created_at,
-                    })
-                    .collect();
+                    .map_err(timed_out)?;
+                    let mut detections = Vec::with_capacity(rows.len());
+                    for row in rows {
+                        detections.push(DetectionPoint {
+                            id: row.id,
+                            alert: row.root_id,
+                            observable: match (row.observable_id, row.r#type, row.value) {
+                                (Some(id), Some(kind), Some(value)) => Some((id, kind, value)),
+                                _ => None,
+                            },
+                            module: row.module,
+                            description: row.description,
+                            details: row.details,
+                            queue: row.queue,
+                            signature_uuid: row.signature_uuid,
+                            signature_version: row.signature_version,
+                            signature_family: row.signature_family,
+                            created_at: row.created_at,
+                            verdict: decode(row.verdict, Verdict::parse)?,
+                            verdict_source: decode(row.source, VerdictSource::parse)?,
+                            override_verdict: decode(row.stored, Verdict::parse)?,
+                            override_by: RecordedActor::from_row(row.set_by)?,
+                            override_set_at: row.set_at,
+                        });
+                    }
                     let limit = usize::try_from(limit).unwrap_or(usize::MAX);
                     let more = detections.len() > limit;
                     detections.truncate(limit);
@@ -257,11 +383,10 @@ impl Service {
     ) -> Result<i64, ServiceError> {
         let alert = filter.alert;
         let changed_since = filter.changed_since;
-        let params = &params(filter)?;
+        let p = &params(self, filter)?;
         self.gate
             .read(actor, "detection_point_count", &ALERT_READ, &|tx| {
                 Box::pin(async move {
-                    let (s1, s2, s3, s4, family, not_family, a1, a2, a3, a4) = params;
                     sqlx::raw_sql(SET_LIST_TIMEOUT).execute(tx.conn()).await?;
                     if let Some(alert) = alert {
                         known_alert(tx, alert).await?;
@@ -270,9 +395,21 @@ impl Service {
                         r#"SELECT count(*) AS "count!" FROM (
                            SELECT FROM analysis.detections d
                            JOIN analysis.roots r ON r.id = d.root_id
+                           LEFT JOIN analysis.detection_verdicts v ON v.detection_id = d.id
+                           CROSS JOIN LATERAL (
+                             SELECT analysis.detection_verdict(r.disposition, $14, $15, v.verdict) AS verdict,
+                                    analysis.detection_verdict_source(
+                                      r.disposition, $14, $15, v.verdict,
+                                      EXISTS (SELECT FROM analysis.detections x
+                                              WHERE x.root_id = d.root_id
+                                                AND x.signature_uuid IS DISTINCT FROM d.signature_uuid))
+                                      AS source) e
                            WHERE r.alerted_at IS NOT NULL
                              AND ($2::uuid IS NULL OR d.root_id = $2)
-                             AND ($3::timestamptz IS NULL OR d.created_at >= $3 OR r.alerted_at >= $3)
+                             AND ($3::timestamptz IS NULL OR d.created_at >= $3 OR r.alerted_at >= $3
+                                  OR r.dispositioned_at >= $3
+                                  OR EXISTS (SELECT FROM analysis.detection_verdict_history h
+                                             WHERE h.detection_id = d.id AND h.changed_at >= $3))
                              AND ($4::text[] IS NULL OR EXISTS (
                                    SELECT FROM unnest($4::text[], $5::text[]) g(u, v)
                                    WHERE lower(d.signature_uuid) = g.u
@@ -290,20 +427,38 @@ impl Service {
                              AND ($12::timestamptz[] IS NULL OR NOT EXISTS (
                                    SELECT FROM unnest($12::timestamptz[], $13::timestamptz[]) w(s, e)
                                    WHERE r.alerted_at BETWEEN w.s AND w.e))
+                             AND ($16::text[] IS NULL OR e.verdict = ANY ($16::text[])
+                                  OR ($17::boolean AND e.verdict IS NULL))
+                             AND ($18::text[] IS NULL OR NOT COALESCE(e.verdict = ANY ($18::text[])
+                                  OR ($19::boolean AND e.verdict IS NULL), false))
+                             AND ($20::text[] IS NULL OR e.source = ANY ($20::text[]))
+                             AND ($21::text[] IS NULL OR NOT COALESCE(e.source = ANY ($21::text[]), false))
+                             AND ($22::text[] IS NULL OR (v.verdict IS NOT NULL)::text = ANY ($22::text[]))
+                             AND ($23::text[] IS NULL OR NOT (v.verdict IS NOT NULL)::text = ANY ($23::text[]))
                            LIMIT $1) counted"#,
                         cap.saturating_add(1),
                         alert,
                         changed_since,
-                        s1.as_deref(),
-                        s2.as_deref(),
-                        s3.as_deref(),
-                        s4.as_deref(),
-                        family.as_deref(),
-                        not_family.as_deref(),
-                        a1.as_deref(),
-                        a2.as_deref(),
-                        a3.as_deref(),
-                        a4.as_deref(),
+                        p.signed.0.as_deref(),
+                        p.signed.1.as_deref(),
+                        p.not_signed.0.as_deref(),
+                        p.not_signed.1.as_deref(),
+                        p.family.as_deref(),
+                        p.not_family.as_deref(),
+                        p.alerted.0.as_deref(),
+                        p.alerted.1.as_deref(),
+                        p.not_alerted.0.as_deref(),
+                        p.not_alerted.1.as_deref(),
+                        &p.tp,
+                        &p.fp,
+                        p.verdict.0.as_deref(),
+                        p.verdict.1,
+                        p.not_verdict.0.as_deref(),
+                        p.not_verdict.1,
+                        p.source.as_deref(),
+                        p.not_source.as_deref(),
+                        p.has_override.as_deref(),
+                        p.not_has_override.as_deref(),
                     )
                     .fetch_one(tx.conn())
                     .await

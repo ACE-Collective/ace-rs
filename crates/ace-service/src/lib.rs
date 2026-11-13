@@ -41,7 +41,8 @@
 //! `detection` keeps the observables ACE detects wherever they appear, entries of 5.14's
 //! `observable_detection` list, for 5.6's `detection` router and 5.11's admin page (7.6).
 //!
-//! `detection_points` lists every alert's detections for 5.6's `detection_points` router.
+//! `detection_points` lists every alert's detections for 5.6's `detection_points` router, each with its
+//! verdict, and `detection_verdicts` writes the verdicts (7.14), which SVS reads for its labels.
 //!
 //! `yara_qa` reads the rules in QA mode and what they matched for 5.6's `yara_qa` router, audits a download
 //! of the files as a read, and purges matches as a write.
@@ -92,6 +93,7 @@ mod commands;
 mod crashes;
 mod detection;
 mod detection_points;
+mod detection_verdicts;
 mod email_archive;
 mod events;
 mod file_collections;
@@ -153,6 +155,10 @@ pub use detection::{
 };
 pub use detection_points::{
     DetectionPoint, DetectionPointFilter, DetectionPointPage, MAX_DETECTIONS_PAGE,
+};
+pub use detection_verdicts::{
+    BatchRules, DispositionClass, DispositionClasses, MAX_VERDICT_TARGETS, SkipCause,
+    SkippedDetection, Verdict, VerdictBatch, VerdictSource, effective_verdict,
 };
 pub use email_archive::ArchivedEmail;
 pub use events::{
@@ -383,6 +389,8 @@ pub struct Service {
     /// The action handlers the binary has (PLAN.md 7.9): what remediates and collects, and what it
     /// acts on.
     actions: ace_core::actions::ActionCatalog,
+    /// Which dispositions classify how, which the detection verdicts are derived from (PLAN.md 7.14).
+    classes: std::sync::Arc<detection_verdicts::DispositionClasses>,
 }
 
 impl Service {
@@ -393,6 +401,7 @@ impl Service {
             passwords: auth::Passwords::new(),
             feed: std::sync::Arc::default(),
             actions: ace_core::actions::ActionCatalog::default(),
+            classes: std::sync::Arc::default(),
         }
     }
 

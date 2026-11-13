@@ -1,0 +1,64 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT d.id, d.root_id, d.signature_uuid, r.disposition\n               FROM analysis.detections d\n               JOIN analysis.roots r ON r.id = d.root_id\n               WHERE d.id = ANY ($1) AND r.alerted_at IS NOT NULL\n               ORDER BY d.root_id, d.id\n               FOR NO KEY UPDATE OF d",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "analysis.detections",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "root_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "analysis.detections",
+            "name": "root_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "signature_uuid",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "analysis.detections",
+            "name": "signature_uuid"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "disposition",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "analysis.roots",
+            "name": "disposition"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8Array"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "cc575fd6f360ac0cdd4f75cceacb39306a3f44efa9b6108c63e6aa7114cf58d8"
+}

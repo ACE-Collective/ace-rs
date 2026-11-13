@@ -1,0 +1,39 @@
+{#- An alert's detections with their verdicts (PLAN.md 7.14, src/verdicts.rs): ace3's verdict chips as a
+    list, and its menu as small forms for an analyst who may change them. -#}
+<details class="section verdicts" id="detections" open>
+  <summary>Detection Verdicts ({{ verdicts.rows.len() }}{% if verdicts.more %}+{% endif %})</summary>
+  {%- if let Some(note) = verdicts.note %}
+  <p class="muted">{{ note }}</p>
+  {%- endif %}
+  {%- if verdicts.rows.is_empty() %}
+  <p class="muted">The alert has no detections.</p>
+  {%- else %}
+  <table class="details">
+    <tr><th>Detection</th><th>On</th><th>Verdict</th><th></th></tr>
+    {%- for row in verdicts.rows %}
+    <tr id="d{{ row.id }}">
+      <td>{{ row.description }}</td>
+      <td class="muted">{{ row.on }}</td>
+      <td>{% if !row.badge.is_empty() %}<span class="badge verdict-{{ row.verdict }}" title="{{ row.title }}">{{ row.badge }}</span>{% endif %}
+        {%- if let Some(stored) = row.stored %} <span class="muted">{{ stored }}</span>{% endif %}</td>
+      <td>
+        {%- for action in row.actions %}
+        <form method="post" action="/alerts/{{ verdicts.alert }}/detections/{{ row.id }}/verdict" class="inline">
+          <input type="hidden" name="verdict" value="{{ action.value }}">
+          <button type="submit">{{ action.label }}</button>
+        </form>
+        {%- endfor %}
+      </td>
+    </tr>
+    {%- endfor %}
+  </table>
+  {%- if verdicts.more %}
+  <p class="muted">The alert has more detections than this list shows: the API's detection list has them all.</p>
+  {%- endif %}
+  {%- endif %}
+  {%- if verdicts.editable && verdicts.unconfirmed > 0 %}
+  <form method="post" action="/alerts/{{ verdicts.alert }}/detections/confirm" class="inline">
+    <button type="submit">Confirm the others as TP ({{ verdicts.unconfirmed }})</button>
+  </form>
+  {%- endif %}
+</details>

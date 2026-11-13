@@ -405,6 +405,293 @@
         }
       }
     },
+    "/api/alerts/v1/alerts/{id}/detections/confirm": {
+      "post": {
+        "tags": [
+          "alerts"
+        ],
+        "summary": "Confirms every unconfirmed inherited TP of the alert (source `inherited_multi`): each becomes an explicit\nTP, which weighs more when signature changes are tested.",
+        "operationId": "confirm",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The alert's id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "How many it confirmed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfirmedBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "An id that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold alert:write, or a session's request came from another site",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such alert",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The alert's disposition doesn't take the actor's verdicts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/alerts/v1/alerts/{id}/detections/{detection}/verdict": {
+      "put": {
+        "tags": [
+          "alerts"
+        ],
+        "summary": "Stores a verdict on one detection of a TP alert: `fp` marks it as noise, `tp` confirms it. Storing what's\nstored already changes nothing and writes no audit row.",
+        "operationId": "set_verdict",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The alert's id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "detection",
+            "in": "path",
+            "description": "The detection's id",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerdictRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The detection, with its verdict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DetectionPointBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A verdict that isn't `tp` or `fp`, a body that isn't one, or an id that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold alert:write, or a session's request came from another site",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such alert, or the alert has no such detection",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The alert's disposition doesn't take the actor's verdicts: an FP or unclassified alert, whose disposition is what to correct, or one only ACE sets",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The body is too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "alerts"
+        ],
+        "summary": "Removes the stored verdict on one detection, so it inherits from the alert again. Removing none changes\nnothing and writes no audit row.",
+        "operationId": "clear_verdict",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The alert's id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "detection",
+            "in": "path",
+            "description": "The detection's id",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The detection, with its verdict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DetectionPointBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "An id that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold alert:write, or a session's request came from another site",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such alert, or the alert has no such detection",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The alert's disposition doesn't take the actor's verdicts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/alerts/v1/alerts/{id}/disposition": {
       "put": {
         "tags": [
@@ -783,7 +1070,7 @@
           {
             "name": "changed_since",
             "in": "query",
-            "description": "Only detections made, or whose alert became one, at or after this time, UTC when it has no offset.\nPass the time the previous pull started.",
+            "description": "Only detections made, whose alert became one or was dispositioned, or whose stored verdict was set or\ncleared, at or after this time, UTC when it has no offset. Pass the time the previous pull started.",
             "required": false,
             "schema": {
               "type": "string"
@@ -9815,6 +10102,20 @@
           }
         }
       },
+      "ConfirmedBody": {
+        "type": "object",
+        "description": "What a confirm did.",
+        "required": [
+          "confirmed"
+        ],
+        "properties": {
+          "confirmed": {
+            "type": "integer",
+            "description": "How many unconfirmed (inherited_multi) detections were confirmed.",
+            "minimum": 0
+          }
+        }
+      },
       "CrashBody": {
         "type": "object",
         "description": "A task that failed: its module raised, panicked, hung past its deadline or was killed, or its lease\nexpired on every attempt.",
@@ -10197,6 +10498,35 @@
               }
             ]
           },
+          "override": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/VerdictBody",
+                "description": "The stored verdict, if any; masked on an FP alert."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "override_by": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ActorBody",
+                "description": "Who stored it."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "override_set_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
           "queue": {
             "type": [
               "string",
@@ -10221,6 +10551,28 @@
             "type": [
               "string",
               "null"
+            ]
+          },
+          "verdict": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/VerdictBody",
+                "description": "The effective verdict, `tp` or `fp`; null when the alert's disposition is unclassified."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "verdict_source": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/VerdictSourceBody",
+                "description": "`explicit`: set or confirmed by someone. `inherited_single`: inherited from the alert, which\ncovered this detection directly (an FP alert, or a TP alert with one signature). `inherited_multi`:\nan inherited TP on an alert where several signatures fired, unconfirmed."
+              },
+              {
+                "type": "null"
+              }
             ]
           }
         }
@@ -13697,6 +14049,34 @@
         }
       },
       "Value": {},
+      "VerdictBody": {
+        "type": "string",
+        "enum": [
+          "tp",
+          "fp"
+        ]
+      },
+      "VerdictRequest": {
+        "type": "object",
+        "description": "A verdict to store.",
+        "required": [
+          "verdict"
+        ],
+        "properties": {
+          "verdict": {
+            "$ref": "#/components/schemas/VerdictBody"
+          }
+        },
+        "additionalProperties": false
+      },
+      "VerdictSourceBody": {
+        "type": "string",
+        "enum": [
+          "explicit",
+          "inherited_single",
+          "inherited_multi"
+        ]
+      },
       "ZipBody": {
         "type": "string",
         "format": "binary",

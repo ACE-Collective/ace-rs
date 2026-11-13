@@ -36,6 +36,9 @@
     </ul>
   </section>
   {%- endif %}
+  {%- if let Some(verdicts) = verdicts %}
+  {%- include "alert_verdicts.html" %}
+  {%- endif %}
   {%- if !modifier_rules.is_empty() %}
   {#- ace3's Observable Modifier Rules card: collapsed, but find-in-page opens it, and an observable the
       tree no longer draws can be found here -#}

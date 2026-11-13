@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT verdict FROM analysis.detection_verdicts WHERE detection_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "verdict",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "analysis.detection_verdicts",
+            "name": "verdict"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "db786e9fc608a2124ce20a2ab58672d758b7ac7bd5e9bdc2f5d3739a5cf164ba"
+}

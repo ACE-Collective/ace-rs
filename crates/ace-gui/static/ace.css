@@ -514,6 +514,17 @@ form.inline {
   color: var(--muted);
 }
 
+/* a detection's verdict (PLAN.md 7.14), ace3's text-bg-warning for TP and text-bg-success for FP */
+.badge.verdict-tp {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.badge.verdict-fp {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
 .warning {
   color: var(--accent);
 }

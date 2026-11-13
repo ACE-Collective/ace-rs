@@ -33,6 +33,10 @@
 //! PLAN.md 7.9: remediations and file collections listed through their screens' filters, the targets of
 //! alerts and observables, an alert's remediation coverage, and each write's audit row.
 //!
+//! PLAN.md 7.14: ace3's `tests/saq/detection_verdicts/` cases as Rust tests, each named for its case: the
+//! effective rule in Rust and in SQL, the writes with their history and audit rows, batches and confirms,
+//! and the verdict filters.
+//!
 //! PLAN.md 5.11's events (6c): the event list's filters checked, each filter and each order both ways
 //! through the keyset, the filters' choices, and an event's alerts with their state and tags.
 
@@ -1589,6 +1593,10 @@ async fn every_write_function_has_an_audit_test() {
         retry_file_collection_records_its_row(db).await,
         delete_file_collection_records_its_row(db).await,
         prune_file_collections_records_its_row(db).await,
+        set_detection_verdict_records_its_row(db).await,
+        clear_detection_verdict_records_its_row(db).await,
+        set_detection_verdicts_records_its_row(db).await,
+        confirm_detections_records_its_row(db).await,
     ]);
     assert_eq!(covered, write_functions(), "{WRITES_NEED_A_TEST}");
 }
@@ -3307,6 +3315,15 @@ async fn every_write_fails_when_its_audit_fails() {
     let archive = email_archive(&bucket, db);
     archived(&archive, b"an archived email", "<audit-fails@example.com>").await;
     let acted = action_fixtures(db, &service, &actor).await;
+    let (graded, graded_ids) = verdict_alert(db, MULTI, Some("DELIVERY")).await;
+    service
+        .set_detection_verdict(&actor, graded, graded_ids[0], Verdict::Fp)
+        .await
+        .expect("sets a verdict to clear");
+    let verdicts_before = (
+        stored_verdicts(db, graded).await,
+        verdict_history(db, graded).await,
+    );
     let actions_before = action_rows(db).await;
     let lists_before = list_rows(db).await;
     let commands_before = command_rows(db).await;
@@ -3958,6 +3975,43 @@ async fn every_write_fails_when_its_audit_fails() {
                 .map(|_| ())
                 .expect_err("refused"),
         ),
+        (
+            "set_detection_verdict",
+            service
+                .set_detection_verdict(&actor, graded, graded_ids[1], Verdict::Fp)
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
+        (
+            "clear_detection_verdict",
+            service
+                .clear_detection_verdict(&actor, graded, graded_ids[0])
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
+        (
+            "set_detection_verdicts",
+            service
+                .set_detection_verdicts(
+                    &actor,
+                    &targets(graded, &graded_ids),
+                    Some(Verdict::Tp),
+                    &BatchRules::default(),
+                )
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
+        (
+            "confirm_detections",
+            service
+                .confirm_detections(&actor, graded)
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
     ];
     let mut covered = BTreeSet::new();
     for (function, error) in &attempts {
@@ -3981,6 +4035,14 @@ async fn every_write_fails_when_its_audit_fails() {
         event_rows(db).await,
     );
     assert_eq!(after, before);
+    assert_eq!(
+        (
+            stored_verdicts(db, graded).await,
+            verdict_history(db, graded).await,
+        ),
+        verdicts_before,
+        "no verdict changed"
+    );
     assert_eq!(action_rows(db).await, actions_before);
     assert_eq!(command_rows(db).await, commands_before);
     assert_eq!(
@@ -8704,9 +8766,9 @@ async fn detection_points_filter_and_count() {
     ));
     assert!(matches!(
         service
-            .detection_point_count(&actor, &filtered(vec![text("Verdict", false, &["tp"])]), 10)
+            .detection_point_count(&actor, &filtered(vec![text("Queue", false, &["external"])]), 10)
             .await,
-        Err(ServiceError::InvalidRequest(why)) if why.contains("7.14")
+        Err(ServiceError::InvalidRequest(why)) if why.contains("7.13")
     ));
     let outsider = user(UserId(Uuid::from_u128(0xDE8)));
     exists(db, &Holder::User(UserId(Uuid::from_u128(0xDE8)))).await;
@@ -14867,4 +14929,1139 @@ fn coverage_sums_up_as_ace3_s() {
         "{}",
         many.tooltip()
     );
+}
+
+// PLAN.md 7.14: detection verdicts. Each test below is one of ace3's `tests/saq/detection_verdicts/`
+// cases, named for it; the module docs of `ace_service`'s `detection_verdicts` say what differs.
+
+use ace_service::{
+    BatchRules, DispositionClass, DispositionClasses, SkipCause, Verdict, VerdictSource,
+    effective_verdict,
+};
+
+const SIG_A: &str = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
+const SIG_B: &str = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb";
+
+/// A detection of a fixture: the fqdn it's on, None for one on the alert itself, its signature and its
+/// description.
+type Detected = (Option<&'static str>, &'static str, &'static str);
+
+/// test_store.py's `MULTI`: one generic rule on two fqdns, and a phish kit's on the alert itself.
+const MULTI: &[Detected] = &[
+    (Some("one.example.com"), SIG_A, "generic logo rule"),
+    (Some("two.example.com"), SIG_A, "generic logo rule"),
+    (None, SIG_B, "phish kit"),
+];
+/// test_effective.py's `SINGLE` and `MULTI`.
+const ONE_SIGNATURE: &[Detected] = &[
+    (Some("one.example.com"), SIG_A, "d1"),
+    (Some("two.example.com"), SIG_A, "d1"),
+];
+const TWO_SIGNATURES: &[Detected] = &[(Some("one.example.com"), SIG_A, "d1"), (None, SIG_B, "d2")];
+
+const TEST_ACTOR_JSON: &str = r#"{"kind": "internal", "id": "test"}"#;
+
+/// ace3's `insert_alert_with_detections`: an alert with these detections, in order, and this disposition.
+async fn verdict_alert(
+    db: &Db,
+    detections: &[Detected],
+    disposition: Option<&str>,
+) -> (Uuid, Vec<i64>) {
+    let root = NewRoot::new("correlation");
+    let mut tx = db.begin().await.expect("begins");
+    tree::create_root(&mut tx, &root).await.expect("creates");
+    let mut ids = Vec::new();
+    for (fqdn, signature, description) in detections {
+        let observable = match fqdn {
+            Some(fqdn) => Some(
+                tree::upsert_observable(
+                    &mut tx,
+                    root.id,
+                    &NewObservable::new(ObservableKind::Fqdn, *fqdn),
+                )
+                .await
+                .expect("adds")
+                .id
+                .0,
+            ),
+            None => None,
+        };
+        let id: i64 = sqlx::query_scalar(
+            "INSERT INTO analysis.detections (root_id, observable_id, description, signature_uuid)
+             VALUES ($1, $2, $3, $4) RETURNING id",
+        )
+        .bind(root.id)
+        .bind(observable)
+        .bind(description)
+        .bind(signature)
+        .fetch_one(tx.conn())
+        .await
+        .expect("a detection");
+        ids.push(id);
+    }
+    tx.commit().await.expect("commits");
+    sqlx::query("UPDATE analysis.roots SET alerted_at = now() WHERE id = $1")
+        .bind(root.id)
+        .execute(db.pool())
+        .await
+        .expect("makes it an alert");
+    set_disposition_row(db, root.id, disposition).await;
+    (root.id, ids)
+}
+
+/// Sets a disposition as a row, without the service, for a fixture.
+async fn set_disposition_row(db: &Db, root: Uuid, disposition: Option<&str>) {
+    sqlx::query(
+        "UPDATE analysis.roots SET disposition = $2,
+             dispositioned_by = CASE WHEN $2::text IS NULL THEN NULL ELSE $3::jsonb END
+         WHERE id = $1",
+    )
+    .bind(root)
+    .bind(disposition)
+    .bind(TEST_ACTOR_JSON)
+    .execute(db.pool())
+    .await
+    .expect("sets the disposition");
+}
+
+/// ace3's `_override`: a stored verdict written directly, past every check.
+async fn store_verdict(db: &Db, root: Uuid, detection: i64, verdict: &str) {
+    sqlx::query(
+        "INSERT INTO analysis.detection_verdicts (detection_id, root_id, signature_uuid, verdict, set_by)
+         VALUES ($1, $2, 'x', $3, $4::jsonb)",
+    )
+    .bind(detection)
+    .bind(root)
+    .bind(verdict)
+    .bind(TEST_ACTOR_JSON)
+    .execute(db.pool())
+    .await
+    .expect("stores a verdict");
+}
+
+/// ace3's `_stored`: the alert's stored verdicts by detection.
+async fn stored_verdicts(db: &Db, root: Uuid) -> BTreeSet<(i64, String)> {
+    sqlx::query_as(
+        "SELECT detection_id, verdict FROM analysis.detection_verdicts WHERE root_id = $1",
+    )
+    .bind(root)
+    .fetch_all(db.pool())
+    .await
+    .expect("reads")
+    .into_iter()
+    .collect()
+}
+
+/// ace3's `_history`: (detection, old, new) in order.
+async fn verdict_history(db: &Db, root: Uuid) -> Vec<(i64, Option<String>, Option<String>)> {
+    sqlx::query_as(
+        "SELECT detection_id, old_verdict, new_verdict FROM analysis.detection_verdict_history
+         WHERE root_id = $1 ORDER BY id",
+    )
+    .bind(root)
+    .fetch_all(db.pool())
+    .await
+    .expect("reads")
+}
+
+/// ace3's `list_alert_detection_points`.
+async fn verdict_rows(
+    service: &Service,
+    actor: &Actor,
+    root: Uuid,
+) -> Vec<ace_service::DetectionPoint> {
+    service
+        .detection_points(
+            actor,
+            &DetectionPointFilter {
+                alert: Some(root),
+                ..DetectionPointFilter::default()
+            },
+            None,
+            None,
+        )
+        .await
+        .expect("lists")
+        .detections
+}
+
+fn targets(root: Uuid, ids: &[i64]) -> Vec<(Uuid, i64)> {
+    ids.iter().map(|id| (root, *id)).collect()
+}
+
+fn conflict(result: Result<impl std::fmt::Debug, ServiceError>) -> String {
+    match result {
+        Err(ServiceError::Conflict(why)) => why,
+        other => panic!("not a conflict: {other:?}"),
+    }
+}
+
+/// test_effective.py's `test_compute_effective`, every case of its table.
+#[test]
+fn compute_effective() {
+    use DispositionClass::{Fp, Tp};
+    use VerdictSource::{Explicit, InheritedMulti, InheritedSingle};
+    let (tp, fp) = (Some(Verdict::Tp), Some(Verdict::Fp));
+    for (class, stored, multi, unreviewed, expected) in [
+        // unclassified: no verdict, stored ones included
+        (None, None, false, false, (None, None)),
+        (None, fp, true, false, (None, None)),
+        // a test run that isn't reviewed: no verdict
+        (Some(Tp), fp, true, true, (None, None)),
+        (Some(Fp), None, false, true, (None, None)),
+        // FP alert: every detection FP, stored verdicts masked, never unconfirmed
+        (Some(Fp), None, false, false, (fp, Some(InheritedSingle))),
+        (Some(Fp), None, true, false, (fp, Some(InheritedSingle))),
+        (Some(Fp), tp, true, false, (fp, Some(InheritedSingle))),
+        // TP alert: a stored verdict wins
+        (Some(Tp), fp, true, false, (fp, Some(Explicit))),
+        (Some(Tp), tp, true, false, (tp, Some(Explicit))),
+        (Some(Tp), fp, false, false, (fp, Some(Explicit))),
+        // TP alert, inherited: by the number of signatures
+        (Some(Tp), None, false, false, (tp, Some(InheritedSingle))),
+        (Some(Tp), None, true, false, (tp, Some(InheritedMulti))),
+    ] {
+        assert_eq!(
+            effective_verdict(class, stored, multi, unreviewed),
+            expected,
+            "{class:?} {stored:?} {multi} {unreviewed}"
+        );
+    }
+}
+
+/// test_effective.py's `test_disposition_class_lists_follow_the_configuration`.
+#[test]
+fn disposition_class_lists_follow_the_configuration() {
+    let (tp, fp) = DispositionClasses::ace3().lists();
+    assert!(fp.contains(&"FALSE_POSITIVE".to_owned()) && tp.contains(&"DELIVERY".to_owned()));
+    assert!(!tp.contains(&"OPEN".to_owned()) && !fp.contains(&"OPEN".to_owned()));
+    let mut classes: Vec<(String, DispositionClass)> = tp
+        .into_iter()
+        .map(|name| (name, DispositionClass::Tp))
+        .chain(fp.into_iter().map(|name| (name, DispositionClass::Fp)))
+        .collect();
+    classes.push(("REVIEWED".to_owned(), DispositionClass::Fp));
+    let (_, fp) = DispositionClasses::new(classes, []).lists();
+    assert!(fp.contains(&"REVIEWED".to_owned()));
+}
+
+/// test_effective.py's `test_sql_agrees_with_python`: the SQL the list reads agrees with
+/// `effective_verdict` for one disposition of each class (and none), one and two signatures, with and
+/// without a stored verdict. ace3's run states wait for SVS's attributions (7.10).
+#[tokio::test]
+async fn sql_agrees_with_rust() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let service = service(db);
+    let actor = admin(db).await;
+    let classes = DispositionClasses::ace3();
+    for disposition in [None, Some("OPEN"), Some("FALSE_POSITIVE"), Some("DELIVERY")] {
+        for detections in [ONE_SIGNATURE, TWO_SIGNATURES] {
+            for with_override in [false, true] {
+                let (root, ids) = verdict_alert(db, detections, disposition).await;
+                if with_override {
+                    store_verdict(db, root, ids[0], "fp").await;
+                }
+                let rows = verdict_rows(&service, &actor, root).await;
+                assert_eq!(rows.len(), 2);
+                let multi = rows
+                    .iter()
+                    .map(|row| row.signature_uuid.clone())
+                    .collect::<BTreeSet<_>>()
+                    .len()
+                    > 1;
+                for row in rows {
+                    let expected = effective_verdict(
+                        classes.class(disposition),
+                        row.override_verdict,
+                        multi,
+                        false,
+                    );
+                    assert_eq!(
+                        (row.verdict, row.verdict_source),
+                        expected,
+                        "{disposition:?} {detections:?} {with_override} {row:?}"
+                    );
+                    assert_eq!(
+                        row.override_verdict,
+                        (with_override && row.id == ids[0]).then_some(Verdict::Fp),
+                        "a stored verdict is listed even where it's masked"
+                    );
+                }
+            }
+        }
+    }
+}
+
+/// test_effective.py's `test_a_classification_change_relabels_at_read_time`.
+#[tokio::test]
+async fn a_classification_change_relabels_at_read_time() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let actor = admin(db).await;
+    let (root, _) = verdict_alert(db, ONE_SIGNATURE, Some("REVIEWED")).await;
+    let verdicts = |rows: Vec<ace_service::DetectionPoint>| {
+        rows.into_iter()
+            .map(|row| row.verdict)
+            .collect::<BTreeSet<_>>()
+    };
+    assert_eq!(
+        verdicts(verdict_rows(&service(db), &actor, root).await),
+        BTreeSet::from([None])
+    );
+    let (tp, fp) = DispositionClasses::ace3().lists();
+    let classes = DispositionClasses::new(
+        tp.into_iter()
+            .map(|name| (name, DispositionClass::Tp))
+            .chain(fp.into_iter().map(|name| (name, DispositionClass::Fp)))
+            .chain([("REVIEWED".to_owned(), DispositionClass::Fp)]),
+        [],
+    );
+    let relabelled = service(db).with_disposition_classes(classes);
+    assert_eq!(
+        verdicts(verdict_rows(&relabelled, &actor, root).await),
+        BTreeSet::from([Some(Verdict::Fp)])
+    );
+}
+
+/// test_effective.py's `test_override_survives_an_fp_round_trip`: TP to FP masks the stored verdict without
+/// deleting it, and back to TP restores it.
+#[tokio::test]
+async fn an_override_survives_an_fp_round_trip() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let service = service(db);
+    let actor = admin(db).await;
+    let (root, ids) = verdict_alert(db, TWO_SIGNATURES, Some("DELIVERY")).await;
+    store_verdict(db, root, ids[0], "fp").await;
+    for (disposition, expected) in [
+        ("FALSE_POSITIVE", VerdictSource::InheritedSingle),
+        ("DELIVERY", VerdictSource::Explicit),
+    ] {
+        service
+            .disposition(&actor, root, disposition)
+            .await
+            .expect("dispositions");
+        let first = verdict_rows(&service, &actor, root).await.remove(0);
+        assert_eq!(
+            (first.verdict, first.verdict_source),
+            (Some(Verdict::Fp), Some(expected))
+        );
+        assert_eq!(first.override_verdict, Some(Verdict::Fp));
+    }
+}
+
+/// test_store.py's `test_set_change_and_clear_record_history`.
+#[tokio::test]
+async fn set_change_and_clear_record_history() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let service = service(db);
+    let actor = admin(db).await;
+    let (root, ids) = verdict_alert(db, MULTI, Some("DELIVERY")).await;
+    let id = ids[0];
+    assert!(
+        service
+            .set_detection_verdict(&actor, root, id, Verdict::Fp)
+            .await
+            .expect("sets")
+    );
+    assert_eq!(
+        stored_verdicts(db, root).await,
+        BTreeSet::from([(id, "fp".to_owned())])
+    );
+    let (signature, by): (Option<String>, Value) = sqlx::query_as(
+        "SELECT signature_uuid, set_by::jsonb FROM analysis.detection_verdicts WHERE detection_id = $1",
+    )
+    .bind(id)
+    .fetch_one(db.pool())
+    .await
+    .expect("reads");
+    assert_eq!(signature.as_deref(), Some(SIG_A));
+    assert_eq!(by, boss_json());
+    // writing what's stored changes nothing and records nothing
+    assert!(
+        !service
+            .set_detection_verdict(&actor, root, id, Verdict::Fp)
+            .await
+            .expect("finds it")
+    );
+    assert!(
+        service
+            .set_detection_verdict(&actor, root, id, Verdict::Tp)
+            .await
+            .expect("changes")
+    );
+    assert!(
+        service
+            .clear_detection_verdict(&actor, root, id)
+            .await
+            .expect("clears")
+    );
+    assert!(
+        !service
+            .clear_detection_verdict(&actor, root, id)
+            .await
+            .expect("finds none")
+    );
+    assert_eq!(stored_verdicts(db, root).await, BTreeSet::new());
+    let some = |v: &str| Some(v.to_owned());
+    assert_eq!(
+        verdict_history(db, root).await,
+        [
+            (id, None, some("fp")),
+            (id, some("fp"), some("tp")),
+            (id, some("tp"), None),
+        ]
+    );
+}
+
+/// test_store.py's `test_the_effective_verdict_follows_the_override`, on a detection on the alert itself
+/// too, which has no observable (7.6).
+#[tokio::test]
+async fn the_effective_verdict_follows_the_override() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let service = service(db);
+    let actor = admin(db).await;
+    let (root, ids) = verdict_alert(db, MULTI, Some("DELIVERY")).await;
+    for id in [ids[0], ids[2]] {
+        service
+            .set_detection_verdict(&actor, root, id, Verdict::Fp)
+            .await
+            .expect("sets");
+        let row = service
+            .detection_point(&actor, root, id)
+            .await
+            .expect("reads");
+        assert_eq!(
+            (row.verdict, row.verdict_source, row.override_verdict),
+            (
+                Some(Verdict::Fp),
+                Some(VerdictSource::Explicit),
+                Some(Verdict::Fp)
+            )
+        );
+        assert_eq!(
+            row.override_by.and_then(|by| by.name).as_deref(),
+            Some("alice")
+        );
+        assert!(row.override_set_at.is_some());
+    }
+    assert!(
+        service
+            .detection_point(&actor, root, ids[2])
+            .await
+            .expect("reads")
+            .observable
+            .is_none(),
+        "the phish kit's is on the alert itself"
+    );
+}
+
+/// test_store.py's `test_only_a_tp_alert_takes_verdicts`, for an FP alert and an open one.
+#[tokio::test]
+async fn only_a_tp_alert_takes_verdicts() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let service = service(db);
+    let actor = admin(db).await;
+    for (disposition, why) in [
+        (Some("FALSE_POSITIVE"), "correct its disposition"),
+        (None, "the alert's disposition OPEN is unclassified"),
+    ] {
+        let (root, ids) = verdict_alert(db, MULTI, disposition).await;
+        let refused = conflict(
+            service
+                .set_detection_verdict(&actor, root, ids[0], Verdict::Fp)
+                .await,
+        );
+        assert!(refused.contains(why), "{refused}");
+        conflict(service.confirm_detections(&actor, root).await);
+        assert_eq!(stored_verdicts(db, root).await, BTreeSet::new());
+        assert_eq!(verdict_history(db, root).await, []);
+    }
+}
+
+/// test_store.py's `test_a_disposition_only_ace_sets_is_not_for_analysts`: ACE itself, here a component,
+/// may.
+#[tokio::test]
+async fn a_disposition_only_ace_sets_is_not_for_analysts() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let service = service(db);
+    let actor = admin(db).await;
+    let (root, ids) = verdict_alert(db, MULTI, Some("SIMULATED")).await;
+    let refused = conflict(
+        service
+            .set_detection_verdict(&actor, root, ids[0], Verdict::Fp)
+            .await,
+    );
+    assert!(refused.contains("set by ACE, not by analysts"), "{refused}");
+    let svs = Holder::Component(Component::new("svs").expect("a name"));
+    grant(db, &svs, "alert", "write", Effect::Allow).await;
+    assert!(
+        service
+            .set_detection_verdict(&component("svs"), root, ids[0], Verdict::Fp)
+            .await
+            .expect("ACE may")
+    );
+}
+
+/// test_store.py's `test_unknown_detection`. A verdict that isn't one can't be passed; its text isn't one.
+#[tokio::test]
+async fn unknown_detection() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let service = service(db);
+    let actor = admin(db).await;
+    let (root, ids) = verdict_alert(db, MULTI, Some("DELIVERY")).await;
+    let (other, _) = verdict_alert(db, MULTI, Some("DELIVERY")).await;
+    for (alert, id) in [(root, i64::MAX), (other, ids[0]), (Uuid::nil(), ids[0])] {
+        assert!(
+            matches!(
+                service
+                    .set_detection_verdict(&actor, alert, id, Verdict::Fp)
+                    .await,
+                Err(ServiceError::NotFound(_))
+            ),
+            "{alert} {id}"
+        );
+    }
+    assert!(matches!(
+        service.confirm_detections(&actor, Uuid::nil()).await,
+        Err(ServiceError::NotFound(_))
+    ));
+    assert_eq!(Verdict::parse("maybe"), None);
+    assert_eq!(Verdict::parse("fp"), Some(Verdict::Fp));
+}
+
+/// test_store.py's `test_a_failed_write_leaves_nothing_behind`: the history's insert fails, and the verdict
+/// written before it in the transaction goes with it.
+#[tokio::test]
+async fn a_failed_write_leaves_nothing_behind() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let service = service(db);
+    let actor = admin(db).await;
+    let (root, ids) = verdict_alert(db, MULTI, Some("DELIVERY")).await;
+    sqlx::raw_sql(
+        "ALTER TABLE analysis.detection_verdict_history ADD CONSTRAINT broken CHECK (false) NOT VALID",
+    )
+    .execute(db.pool())
+    .await
+    .expect("breaks the history");
+    let audits = audit_rows(db).await.len();
+    service
+        .set_detection_verdict(&actor, root, ids[0], Verdict::Fp)
+        .await
+        .expect_err("fails");
+    assert_eq!(stored_verdicts(db, root).await, BTreeSet::new());
+    assert_eq!(audit_rows(db).await.len(), audits);
+}
+
+/// test_store.py's `test_confirm_upgrades_every_unconfirmed_detection`.
+#[tokio::test]
+async fn confirm_upgrades_every_unconfirmed_detection() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let service = service(db);
+    let actor = admin(db).await;
+    let (root, ids) = verdict_alert(db, MULTI, Some("DELIVERY")).await;
+    assert_eq!(ids.len(), 3);
+    let sources = |rows: Vec<ace_service::DetectionPoint>| {
+        rows.into_iter()
+            .map(|row| (row.id, (row.verdict, row.verdict_source)))
+            .collect::<std::collections::BTreeMap<_, _>>()
+    };
+    assert!(
+        sources(verdict_rows(&service, &actor, root).await)
+            .values()
+            .all(|v| *v == (Some(Verdict::Tp), Some(VerdictSource::InheritedMulti)))
+    );
+    // one was marked as noise: confirm leaves it alone
+    service
+        .set_detection_verdict(&actor, root, ids[0], Verdict::Fp)
+        .await
+        .expect("sets");
+    assert_eq!(
+        service
+            .confirm_detections(&actor, root)
+            .await
+            .expect("confirms"),
+        2
+    );
+    assert_eq!(
+        service
+            .confirm_detections(&actor, root)
+            .await
+            .expect("confirms"),
+        0
+    );
+    let rows = sources(verdict_rows(&service, &actor, root).await);
+    assert_eq!(
+        rows[&ids[0]],
+        (Some(Verdict::Fp), Some(VerdictSource::Explicit))
+    );
+    for id in &ids[1..] {
+        assert_eq!(rows[id], (Some(Verdict::Tp), Some(VerdictSource::Explicit)));
+    }
+    let tp = Some("tp".to_owned());
+    assert_eq!(
+        verdict_history(db, root).await,
+        [
+            (ids[0], None, Some("fp".to_owned())),
+            (ids[1], None, tp.clone()),
+            (ids[2], None, tp)
+        ]
+    );
+}
+
+/// test_store.py's `test_confirm_on_a_single_signature_alert_confirms_nothing`.
+#[tokio::test]
+async fn confirm_on_a_single_signature_alert_confirms_nothing() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let service = service(db);
+    let actor = admin(db).await;
+    let (root, _) = verdict_alert(db, &MULTI[..2], Some("DELIVERY")).await;
+    let audits = audit_rows(db).await.len();
+    assert_eq!(
+        service
+            .confirm_detections(&actor, root)
+            .await
+            .expect("confirms"),
+        0
+    );
+    assert_eq!(verdict_history(db, root).await, []);
+    assert_eq!(audit_rows(db).await.len(), audits, "nothing changed");
+}
+
+/// test_store.py's `test_verdicts_and_history_go_with_the_alert`.
+#[tokio::test]
+async fn verdicts_and_history_go_with_the_alert() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let service = service(db);
+    let actor = admin(db).await;
+    let (root, ids) = verdict_alert(db, MULTI, Some("DELIVERY")).await;
+    service
+        .set_detection_verdict(&actor, root, ids[0], Verdict::Fp)
+        .await
+        .expect("sets");
+    sqlx::query("DELETE FROM analysis.roots WHERE id = $1")
+        .bind(root)
+        .execute(db.pool())
+        .await
+        .expect("deletes the alert");
+    let left: (i64, i64) = sqlx::query_as(
+        "SELECT (SELECT count(*) FROM analysis.detection_verdicts WHERE root_id = $1),
+                (SELECT count(*) FROM analysis.detection_verdict_history WHERE root_id = $1)",
+    )
+    .bind(root)
+    .fetch_one(db.pool())
+    .await
+    .expect("counts");
+    assert_eq!(left, (0, 0));
+}
+
+/// test_store.py's `test_a_batch_writes_what_it_can_and_says_why_not_the_rest`.
+#[tokio::test]
+async fn a_batch_writes_what_it_can_and_says_why_not_the_rest() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let service = service(db);
+    let actor = admin(db).await;
+    let rules = BatchRules::default();
+    let (tp_alert, tp_ids) = verdict_alert(db, MULTI, Some("DELIVERY")).await;
+    let (fp_alert, fp_ids) = verdict_alert(db, &MULTI[..1], Some("FALSE_POSITIVE")).await;
+    let gone = (tp_alert, i64::MAX);
+    let mut all = targets(fp_alert, &fp_ids);
+    all.extend(targets(tp_alert, &tp_ids));
+    all.push(gone);
+    let batch = service
+        .set_detection_verdicts(&actor, &all, Some(Verdict::Fp), &rules)
+        .await
+        .expect("writes");
+    assert_eq!((batch.changed, batch.unchanged), (3, 0));
+    let mut skipped: Vec<_> = batch.skipped.iter().map(|s| (s.alert, s.cause)).collect();
+    skipped.sort();
+    let mut expected = vec![(tp_alert, SkipCause::Gone), (fp_alert, SkipCause::Alert)];
+    expected.sort();
+    assert_eq!(skipped, expected);
+    let refused = batch
+        .skipped
+        .iter()
+        .find(|s| s.cause == SkipCause::Alert)
+        .expect("the FP alert's");
+    assert!(
+        refused.reason.contains("correct its disposition"),
+        "{refused:?}"
+    );
+    assert!(
+        stored_verdicts(db, tp_alert)
+            .await
+            .iter()
+            .all(|(_, v)| v == "fp")
+    );
+    assert_eq!(stored_verdicts(db, tp_alert).await.len(), 3);
+    assert_eq!(stored_verdicts(db, fp_alert).await, BTreeSet::new());
+
+    // again: nothing changes, and nothing is recorded twice
+    let batch = service
+        .set_detection_verdicts(
+            &actor,
+            &targets(tp_alert, &tp_ids),
+            Some(Verdict::Fp),
+            &rules,
+        )
+        .await
+        .expect("writes");
+    assert_eq!((batch.changed, batch.unchanged), (0, 3));
+    assert_eq!(verdict_history(db, tp_alert).await.len(), 3);
+
+    // None clears
+    let batch = service
+        .set_detection_verdicts(&actor, &targets(tp_alert, &tp_ids), None, &rules)
+        .await
+        .expect("clears");
+    assert_eq!(batch.changed, 3);
+    assert_eq!(stored_verdicts(db, tp_alert).await, BTreeSet::new());
+
+    // a batch is bounded
+    let many = vec![(tp_alert, 1); ace_service::MAX_VERDICT_TARGETS + 1];
+    assert!(matches!(
+        service
+            .set_detection_verdicts(&actor, &many, None, &rules)
+            .await,
+        Err(ServiceError::InvalidRequest(_))
+    ));
+}
+
+/// test_store.py's `test_a_failed_batch_writes_nothing`: the fourth write fails, and the three before it go.
+#[tokio::test]
+async fn a_failed_batch_writes_nothing() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let service = service(db);
+    let actor = admin(db).await;
+    let (first, first_ids) = verdict_alert(db, MULTI, Some("DELIVERY")).await;
+    let (second, second_ids) = verdict_alert(db, MULTI, Some("DELIVERY")).await;
+    let mut all = targets(first, &first_ids);
+    all.extend(targets(second, &second_ids));
+    // the batch writes in (alert, id) order, so the fourth is the first detection of the later alert
+    let mut ordered = all.clone();
+    ordered.sort();
+    let fourth = ordered[3].1;
+    // the id is a number this test read, so it can't inject anything
+    sqlx::raw_sql(sqlx::AssertSqlSafe(format!(
+        "ALTER TABLE analysis.detection_verdict_history
+         ADD CONSTRAINT broken CHECK (detection_id <> {fourth}) NOT VALID"
+    )))
+    .execute(db.pool())
+    .await
+    .expect("breaks the fourth write");
+    service
+        .set_detection_verdicts(&actor, &all, Some(Verdict::Fp), &BatchRules::default())
+        .await
+        .expect_err("fails");
+    for root in [first, second] {
+        assert_eq!(stored_verdicts(db, root).await, BTreeSet::new());
+        assert_eq!(verdict_history(db, root).await, []);
+    }
+}
+
+/// test_store.py's `test_only_source_never_overwrites_a_verdict_set_meanwhile`.
+#[tokio::test]
+async fn only_source_never_overwrites_a_verdict_set_meanwhile() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let service = service(db);
+    let actor = admin(db).await;
+    let (root, ids) = verdict_alert(db, MULTI, Some("DELIVERY")).await;
+    // the caller read the three as unconfirmed; one was marked as noise before the batch locked it
+    service
+        .set_detection_verdict(&actor, root, ids[0], Verdict::Fp)
+        .await
+        .expect("sets");
+    let rules = BatchRules {
+        only_source: Some(VerdictSource::InheritedMulti),
+        ..BatchRules::default()
+    };
+    let batch = service
+        .set_detection_verdicts(&actor, &targets(root, &ids), Some(Verdict::Tp), &rules)
+        .await
+        .expect("writes");
+    assert_eq!(batch.changed, 2);
+    let skipped: Vec<_> = batch
+        .skipped
+        .iter()
+        .map(|s| (s.detection, s.cause, s.reason.clone()))
+        .collect();
+    assert_eq!(
+        skipped,
+        [(
+            ids[0],
+            SkipCause::Source,
+            "its verdict source is explicit, not inherited_multi".to_owned()
+        )]
+    );
+    assert!(
+        stored_verdicts(db, root)
+            .await
+            .contains(&(ids[0], "fp".to_owned()))
+    );
+}
+
+/// test_store.py's `test_a_refused_cause_fails_the_whole_batch`, with the alert's disposition as the cause,
+/// since ace4 has no detection that predates detection identity (the module's docs).
+#[tokio::test]
+async fn a_refused_cause_fails_the_whole_batch() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let service = service(db);
+    let actor = admin(db).await;
+    let (root, ids) = verdict_alert(db, MULTI, Some("DELIVERY")).await;
+    let (open, open_ids) = verdict_alert(db, &MULTI[..1], None).await;
+    let mut all = targets(root, &ids);
+    all.extend(targets(open, &open_ids));
+    let refuse = BatchRules {
+        refuse: BTreeSet::from([SkipCause::Alert]),
+        ..BatchRules::default()
+    };
+    conflict(
+        service
+            .set_detection_verdicts(&actor, &all, Some(Verdict::Fp), &refuse)
+            .await,
+    );
+    assert_eq!(stored_verdicts(db, root).await, BTreeSet::new());
+    let batch = service
+        .set_detection_verdicts(&actor, &all, Some(Verdict::Fp), &BatchRules::default())
+        .await
+        .expect("writes");
+    assert_eq!(batch.changed, 3);
+    let skipped: Vec<_> = batch
+        .skipped
+        .iter()
+        .map(|s| (s.detection, s.cause))
+        .collect();
+    assert_eq!(skipped, [(open_ids[0], SkipCause::Alert)]);
+}
+
+/// The detection points screen's verdict filters, each and its inverse, the alert list's Unconfirmed
+/// Detections, and `changed_since` catching a verdict's change.
+#[tokio::test]
+async fn verdict_filters_match_what_they_say() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let service = service(db);
+    let actor = admin(db).await;
+    // a multi-signature TP alert with one detection marked FP, an FP alert and an open one
+    let (multi, multi_ids) = verdict_alert(db, MULTI, Some("DELIVERY")).await;
+    let (fp, fp_ids) = verdict_alert(db, &MULTI[..1], Some("FALSE_POSITIVE")).await;
+    let (open, open_ids) = verdict_alert(db, &MULTI[..1], None).await;
+    let before = Utc::now();
+    service
+        .set_detection_verdict(&actor, multi, multi_ids[0], Verdict::Fp)
+        .await
+        .expect("sets");
+    let listed = |filters: Vec<FilterEntry>, changed_since: Option<chrono::DateTime<Utc>>| {
+        let service = &service;
+        let actor = &actor;
+        async move {
+            let filter = DetectionPointFilter {
+                filters,
+                changed_since,
+                ..DetectionPointFilter::default()
+            };
+            let ids: BTreeSet<i64> = service
+                .detection_points(actor, &filter, None, None)
+                .await
+                .expect("lists")
+                .detections
+                .into_iter()
+                .map(|d| d.id)
+                .collect();
+            let count = service
+                .detection_point_count(actor, &filter, 100)
+                .await
+                .expect("counts");
+            assert_eq!(count, ids.len() as i64, "{filter:?}");
+            ids
+        }
+    };
+    let every: BTreeSet<i64> = multi_ids
+        .iter()
+        .chain(&fp_ids)
+        .chain(&open_ids)
+        .copied()
+        .collect();
+    let set = |ids: &[i64]| ids.iter().copied().collect::<BTreeSet<_>>();
+    for (name, values, matched) in [
+        ("Verdict", vec!["TP"], set(&multi_ids[1..])),
+        ("Verdict", vec!["fp"], set(&[multi_ids[0], fp_ids[0]])),
+        ("Verdict", vec!["none"], set(&open_ids)),
+        (
+            "Verdict",
+            vec!["fp", "none"],
+            set(&[multi_ids[0], fp_ids[0], open_ids[0]]),
+        ),
+        ("Source", vec!["explicit"], set(&multi_ids[..1])),
+        ("Source", vec!["inherited_multi"], set(&multi_ids[1..])),
+        ("Source", vec!["inherited_single"], set(&fp_ids)),
+        ("Has Override", vec!["true"], set(&multi_ids[..1])),
+        (
+            "Has Override",
+            vec!["false"],
+            &every - &set(&multi_ids[..1]),
+        ),
+        ("Has Override", vec!["true", "false"], every.clone()),
+    ] {
+        assert_eq!(
+            listed(vec![text(name, false, &values)], None).await,
+            matched,
+            "{name} {values:?}"
+        );
+        let inverted = listed(vec![text(name, true, &values)], None).await;
+        let expected = if values.len() == 2 && name == "Has Override" {
+            // ace3's: both values match everything, so the inverse matches nothing
+            BTreeSet::new()
+        } else {
+            &every - &matched
+        };
+        assert_eq!(inverted, expected, "!{name} {values:?}");
+    }
+    assert!(matches!(
+        service
+            .detection_point_count(
+                &actor,
+                &filtered_points(vec![text("Verdict", false, &["maybe"])]),
+                10
+            )
+            .await,
+        Err(ServiceError::InvalidRequest(_))
+    ));
+    // changed_since: a verdict's change counts, and so does a disposition
+    assert_eq!(listed(Vec::new(), Some(Utc::now())).await, BTreeSet::new());
+    let since = Utc::now();
+    service
+        .clear_detection_verdict(&actor, multi, multi_ids[0])
+        .await
+        .expect("clears");
+    assert_eq!(
+        listed(Vec::new(), Some(since)).await,
+        set(&multi_ids[..1]),
+        "a cleared verdict has only its history to say so"
+    );
+    let since = Utc::now();
+    service
+        .disposition(&actor, open, "DELIVERY")
+        .await
+        .expect("dispositions");
+    assert_eq!(listed(Vec::new(), Some(since)).await, set(&open_ids));
+    assert!(
+        listed(Vec::new(), Some(before))
+            .await
+            .is_superset(&set(&multi_ids[..1]))
+    );
+
+    // the alert list's Unconfirmed Detections: the multi-signature alert has two
+    let alerts = |values: &[&str], inverted: bool| {
+        let service = &service;
+        let actor = &actor;
+        let filters = vec![text("Unconfirmed Detections", inverted, values)];
+        async move {
+            matching(service, actor, filters)
+                .await
+                .into_iter()
+                .collect::<BTreeSet<_>>()
+        }
+    };
+    let roots = BTreeSet::from([multi, fp, open]);
+    assert_eq!(alerts(&["True"], false).await, BTreeSet::from([multi]));
+    assert_eq!(alerts(&["false"], false).await, BTreeSet::from([fp, open]));
+    assert_eq!(alerts(&["True", "False"], false).await, roots);
+    assert_eq!(alerts(&["True"], true).await, BTreeSet::from([fp, open]));
+    service
+        .confirm_detections(&actor, multi)
+        .await
+        .expect("confirms");
+    assert_eq!(alerts(&["True"], false).await, BTreeSet::new());
+}
+
+fn filtered_points(filters: Vec<FilterEntry>) -> DetectionPointFilter {
+    DetectionPointFilter {
+        filters,
+        ..DetectionPointFilter::default()
+    }
+}
+
+async fn set_detection_verdict_records_its_row(db: &Db) -> String {
+    let actor = admin(db).await;
+    let service = service(db);
+    let (root, ids) = verdict_alert(db, MULTI, Some("DELIVERY")).await;
+    service
+        .set_detection_verdict(&actor, root, ids[0], Verdict::Fp)
+        .await
+        .expect("sets");
+    let row = last_audit(db).await;
+    let state = |verdict: Value| json!({"detection": ids[0], "alert": root, "signature_uuid": SIG_A, "verdict": verdict});
+    assert_eq!(
+        row,
+        AuditRow {
+            actor: boss_json(),
+            action: "set_detection_verdict".to_owned(),
+            target: ("detection".to_owned(), ids[0].to_string()),
+            before: Some(state(Value::Null)),
+            after: Some(state(json!("fp"))),
+            details: json!({}),
+        }
+    );
+    // what's stored already has no row
+    let rows = audit_rows(db).await.len();
+    service
+        .set_detection_verdict(&actor, root, ids[0], Verdict::Fp)
+        .await
+        .expect("finds it");
+    assert_eq!(audit_rows(db).await.len(), rows);
+    row.action
+}
+
+async fn clear_detection_verdict_records_its_row(db: &Db) -> String {
+    let actor = admin(db).await;
+    let service = service(db);
+    let (root, ids) = verdict_alert(db, MULTI, Some("DELIVERY")).await;
+    service
+        .set_detection_verdict(&actor, root, ids[2], Verdict::Tp)
+        .await
+        .expect("sets");
+    service
+        .clear_detection_verdict(&actor, root, ids[2])
+        .await
+        .expect("clears");
+    let row = last_audit(db).await;
+    let state = |verdict: Value| json!({"detection": ids[2], "alert": root, "signature_uuid": SIG_B, "verdict": verdict});
+    assert_eq!(
+        row,
+        AuditRow {
+            actor: boss_json(),
+            action: "clear_detection_verdict".to_owned(),
+            target: ("detection".to_owned(), ids[2].to_string()),
+            before: Some(state(json!("tp"))),
+            after: Some(state(Value::Null)),
+            details: json!({}),
+        }
+    );
+    row.action
+}
+
+async fn set_detection_verdicts_records_its_row(db: &Db) -> String {
+    let actor = admin(db).await;
+    let service = service(db);
+    let (root, ids) = verdict_alert(db, MULTI, Some("DELIVERY")).await;
+    let mut all = targets(root, &ids[..2]);
+    all.push((root, i64::MAX));
+    service
+        .set_detection_verdicts(&actor, &all, Some(Verdict::Fp), &BatchRules::default())
+        .await
+        .expect("writes");
+    let row = last_audit(db).await;
+    let states = |verdict: Value| {
+        json!({"verdicts": ids[..2].iter().map(|id| json!({
+            "detection": id, "alert": root, "signature_uuid": SIG_A, "verdict": verdict,
+        })).collect::<Vec<_>>()})
+    };
+    assert_eq!(
+        row,
+        AuditRow {
+            actor: boss_json(),
+            action: "set_detection_verdicts".to_owned(),
+            target: ("detections".to_owned(), format!("{},{}", ids[0], ids[1])),
+            before: Some(states(Value::Null)),
+            after: Some(states(json!("fp"))),
+            details: json!({"unchanged": 0, "skipped": 1}),
+        }
+    );
+    row.action
+}
+
+async fn confirm_detections_records_its_row(db: &Db) -> String {
+    let actor = admin(db).await;
+    let service = service(db);
+    let (root, ids) = verdict_alert(db, MULTI, Some("DELIVERY")).await;
+    assert_eq!(
+        service
+            .confirm_detections(&actor, root)
+            .await
+            .expect("confirms"),
+        3
+    );
+    let row = last_audit(db).await;
+    let states = |verdict: Value| {
+        json!({"verdicts": ids.iter().zip([SIG_A, SIG_A, SIG_B]).map(|(id, signature)| json!({
+            "detection": id, "alert": root, "signature_uuid": signature, "verdict": verdict,
+        })).collect::<Vec<_>>()})
+    };
+    assert_eq!(
+        row,
+        AuditRow {
+            actor: boss_json(),
+            action: "confirm_detections".to_owned(),
+            target: ("root".to_owned(), root.to_string()),
+            before: Some(states(Value::Null)),
+            after: Some(states(json!("tp"))),
+            details: json!({}),
+        }
+    );
+    row.action
+}
+
+/// Every verdict write needs `alert:write`, as ace3's routes do: a reader is refused before anything is
+/// read, with no row, and learns nothing of the alert.
+#[tokio::test]
+async fn verdict_writes_need_alert_write() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let service = service(db);
+    let (root, ids) = verdict_alert(db, MULTI, Some("DELIVERY")).await;
+    let reader = Holder::User(UserId(Uuid::from_u128(0x7E1)));
+    grant(db, &reader, "alert", "read", Effect::Allow).await;
+    let reader = user(UserId(Uuid::from_u128(0x7E1)));
+    let audits = audit_rows(db).await.len();
+    for alert in [root, Uuid::nil()] {
+        let refusals = [
+            service
+                .set_detection_verdict(&reader, alert, ids[0], Verdict::Fp)
+                .await
+                .map(|_| ()),
+            service
+                .clear_detection_verdict(&reader, alert, ids[0])
+                .await
+                .map(|_| ()),
+            service
+                .set_detection_verdicts(
+                    &reader,
+                    &targets(alert, &ids),
+                    Some(Verdict::Fp),
+                    &BatchRules::default(),
+                )
+                .await
+                .map(|_| ()),
+            service.confirm_detections(&reader, alert).await.map(|_| ()),
+        ];
+        for refused in refusals {
+            assert!(
+                matches!(
+                    &refused,
+                    Err(ServiceError::PermissionDenied { permission, .. }) if *permission == ALERT_WRITE
+                ),
+                "{refused:?}"
+            );
+        }
+    }
+    assert_eq!(audit_rows(db).await.len(), audits);
+    assert_eq!(stored_verdicts(db, root).await, BTreeSet::new());
+    assert_eq!(verdict_history(db, root).await, []);
+    // the reader still reads them
+    assert_eq!(verdict_rows(&service, &reader, root).await.len(), 3);
 }

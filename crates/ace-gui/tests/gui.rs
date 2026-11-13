@@ -40,6 +40,10 @@
 //! through the server under `remediation:read`/`write` and `file_collection:read`/`write`, each write from
 //! this site only with its audit row; and the event page's remediation coverage badges.
 //!
+//! PLAN.md 7.14: an alert's detection verdicts on its page, drawn directly with hostile text and ace3's menu,
+//! and through the server under `alert:read` and `alert:write`, each form one audited write from this site
+//! only, and each refusal changing nothing.
+//!
 //! PLAN.md 5.12: Administration's CLI, the console and a run's page and fragment, drawn directly with a
 //! run's hostile command and output, and through the server under `admin:read` and `cli:execute`: a start
 //! and a cancel from this site only, each with its audit row, the fragment's poll that stops once a run
@@ -10790,4 +10794,343 @@ async fn remediations_and_collections_are_worked_through_the_gui() {
     .await;
     assert!(!hidden.contains("coverage-"), "{hidden}");
     assert!(!hidden.contains("/remediations/targets"), "{hidden}");
+}
+
+// PLAN.md 7.14: an alert's detection verdicts on its page.
+
+use ace_gui::verdicts::VerdictsView;
+use ace_service::{DetectionPoint, Verdict, VerdictSource};
+
+fn verdict_fixture(
+    id: i64,
+    description: &str,
+    verdict: Option<(Verdict, VerdictSource)>,
+    stored: Option<Verdict>,
+) -> DetectionPoint {
+    DetectionPoint {
+        id,
+        alert: uuid::Uuid::from_u128(0x5800),
+        observable: (id % 2 == 1).then(|| (id, "fqdn".to_owned(), format!("{HOSTILE}.example"))),
+        module: None,
+        description: description.to_owned(),
+        details: None,
+        queue: None,
+        signature_uuid: None,
+        signature_version: None,
+        signature_family: None,
+        created_at: chrono::DateTime::from_timestamp(1_790_000_000, 0).expect("a time"),
+        verdict: verdict.map(|(v, _)| v),
+        verdict_source: verdict.map(|(_, s)| s),
+        override_verdict: stored,
+        override_by: stored.map(|_| RecordedActor {
+            kind: "user".to_owned(),
+            id: "u".to_owned(),
+            name: Some(HOSTILE.to_owned()),
+        }),
+        override_set_at: stored
+            .map(|_| chrono::DateTime::from_timestamp(1_790_000_100, 0).expect("a time")),
+    }
+}
+
+/// The list drawn directly: ace3's badges, its menu only where it applies, hostile text escaped, and on an
+/// alert that doesn't take verdicts, why instead of the forms.
+#[test]
+fn the_verdicts_view_draws_ace3_s_badges_and_menu() {
+    let alert = uuid::Uuid::from_u128(0x5800);
+    let detections = [
+        verdict_fixture(
+            1,
+            HOSTILE,
+            Some((Verdict::Fp, VerdictSource::Explicit)),
+            Some(Verdict::Fp),
+        ),
+        verdict_fixture(
+            2,
+            "kit",
+            Some((Verdict::Tp, VerdictSource::InheritedMulti)),
+            None,
+        ),
+        verdict_fixture(
+            3,
+            "confirmed",
+            Some((Verdict::Tp, VerdictSource::Explicit)),
+            Some(Verdict::Tp),
+        ),
+    ];
+    let (tree, comments) = fixture_tree();
+    let layout = Layout::signed_out("nonce");
+    let view = VerdictsView::new(alert, &detections, None, true, false);
+    assert_eq!(view.unconfirmed, 1);
+    let page = AlertPage::new(
+        layout.clone(),
+        &tree,
+        &comments,
+        &ObservableActions::empty(),
+        &std::collections::BTreeMap::new(),
+    )
+    .expect("a page")
+    .with_verdicts(view);
+    let html = drawn_safely(&page);
+    assert!(!html.contains(HOSTILE), "{html}");
+    contains_all(
+        &html,
+        &[
+            r#"<details class="section verdicts" id="detections" open>"#,
+            "<summary>Detection Verdicts (3)</summary>",
+            &format!("<td>{HOSTILE_ESCAPED}</td>"),
+            &format!(r#"<td class="muted">fqdn: {HOSTILE_ESCAPED}.example</td>"#),
+            r#"<span class="badge verdict-fp" title="set by an analyst">FP · explicit</span>"#,
+            &format!(
+                r#"<span class="muted">FP stored by {HOSTILE_ESCAPED} at 2026-09-21 14:15:00 UTC</span>"#
+            ),
+            r#"<span class="badge verdict-tp" title="inherited from the alert&#39;s disposition, on an alert where several signatures fired; nobody has confirmed it">TP · unconfirmed</span>"#,
+            r#"<td class="muted">the alert</td>"#,
+            &format!(
+                r#"<form method="post" action="/alerts/{alert}/detections/2/verdict" class="inline">"#
+            ),
+            &format!(
+                r#"<form method="post" action="/alerts/{alert}/detections/confirm" class="inline">"#
+            ),
+            "Confirm the others as TP (1)",
+        ],
+    );
+    let forms = |id: i64| {
+        let start = html.find(&format!(r#"<tr id="d{id}">"#)).expect("its row");
+        let row = &html[start..start + html[start..].find("</tr>").expect("its end")];
+        ["fp", "tp", "inherit"]
+            .into_iter()
+            .filter(|value| row.contains(&format!(r#"name="verdict" value="{value}""#)))
+            .collect::<Vec<_>>()
+    };
+    // ace3's menu: no "noise" on an explicit FP, no "confirm" on an explicit TP, "inherit" only when stored
+    assert_eq!(forms(1), ["tp", "inherit"]);
+    assert_eq!(forms(2), ["fp", "tp"]);
+    assert_eq!(forms(3), ["fp", "inherit"]);
+
+    // an FP alert, or a viewer without alert:write: the badges and no forms
+    let why = "every detection on a false positive alert is FP; if the alert was wrong, correct its disposition";
+    for (refusal, can_write) in [(Some(why.to_owned()), true), (None, false)] {
+        let view = VerdictsView::new(alert, &detections, refusal.clone(), can_write, true);
+        let page = AlertPage::new(
+            layout.clone(),
+            &tree,
+            &comments,
+            &ObservableActions::empty(),
+            &std::collections::BTreeMap::new(),
+        )
+        .expect("a page")
+        .with_verdicts(view);
+        let html = page.render().expect("renders");
+        assert!(!html.contains(r#"name="verdict""#), "{html}");
+        assert!(!html.contains("/detections/confirm"), "{html}");
+        assert!(html.contains("<summary>Detection Verdicts (3+)</summary>"));
+        assert!(html.contains("more detections than this list shows"));
+        assert_eq!(
+            html.contains("correct its disposition"),
+            refusal.is_some(),
+            "{html}"
+        );
+    }
+}
+
+/// A detection of `root`, of `signature`, on its first observable, or on the alert itself.
+async fn gui_detection(stack: &Stack, root: uuid::Uuid, on_root: bool, signature: &str) -> i64 {
+    let db = stack.test_db.db().pool();
+    sqlx::query_scalar(
+        "INSERT INTO analysis.detections (root_id, observable_id, description, signature_uuid)
+         SELECT $1, CASE WHEN $2 THEN NULL ELSE (SELECT min(id) FROM analysis.observables WHERE root_id = $1) END,
+                'a <b>generic</b> rule', $3
+         RETURNING id",
+    )
+    .bind(root)
+    .bind(on_root)
+    .bind(signature)
+    .fetch_one(db)
+    .await
+    .expect("a detection")
+}
+
+async fn gui_disposition(stack: &Stack, root: uuid::Uuid, disposition: &str) {
+    sqlx::query(
+        "UPDATE analysis.roots SET disposition = $2,
+             dispositioned_by = '{\"kind\": \"internal\", \"id\": \"test\"}' WHERE id = $1",
+    )
+    .bind(root)
+    .bind(disposition)
+    .execute(stack.test_db.db().pool())
+    .await
+    .expect("dispositions");
+}
+
+async fn gui_verdicts(stack: &Stack, root: uuid::Uuid) -> Vec<(i64, String)> {
+    sqlx::query_as(
+        "SELECT detection_id, verdict FROM analysis.detection_verdicts WHERE root_id = $1 ORDER BY 1",
+    )
+    .bind(root)
+    .fetch_all(stack.test_db.db().pool())
+    .await
+    .expect("reads")
+}
+
+/// Through the server: the page lists the verdicts under `alert:read`, offers the forms to a holder of
+/// `alert:write`, and each form is one audited write from this site only; a refusal changes nothing.
+#[tokio::test]
+async fn detection_verdicts_are_set_through_the_alert_page() {
+    let stack = stack().await;
+    let alice = user(&stack, "alice").await;
+    grant_alert_read(&stack, &alice).await;
+    let carol = user(&stack, "carol").await;
+    grant_alert_read(&stack, &carol).await;
+    grant_to(&stack, &carol, "alert", "write").await;
+    let _bob = user(&stack, "bob").await;
+    let (root, _) = splunk_alert(&stack).await;
+    let first = gui_detection(&stack, root, false, "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa").await;
+    let second = gui_detection(&stack, root, true, "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb").await;
+    gui_disposition(&stack, root, "DELIVERY").await;
+    let (alice_session, carol_session, bob_session) = (
+        session_of(&stack, "alice").await,
+        session_of(&stack, "carol").await,
+        session_of(&stack, "bob").await,
+    );
+    let page_for = |session: &str| {
+        let request = stack
+            .get(&format!("/alerts/{root}"))
+            .header("cookie", cookie(session));
+        async move {
+            let response = request.send().await.expect("answered");
+            (response.status(), response.text().await.expect("a page"))
+        }
+    };
+    let (status, page) = page_for(&alice_session).await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(inline_free(&page));
+    assert!(page.contains("TP · unconfirmed"), "{page}");
+    assert!(
+        page.contains("a &#60;b&#62;generic&#60;/b&#62; rule"),
+        "{page}"
+    );
+    assert!(!page.contains(r#"name="verdict""#), "a reader has no forms");
+    let (_, page) = page_for(&carol_session).await;
+    let path = format!("/alerts/{root}/detections/{first}/verdict");
+    assert!(
+        page.contains(&format!(
+            r#"<form method="post" action="{path}" class="inline">"#
+        )),
+        "{page}"
+    );
+
+    // alice can read but not grade
+    let audits = stack.audit_count().await;
+    let refused = stack
+        .post(&path, &[("verdict", "fp")])
+        .header("cookie", cookie(&alice_session))
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(refused.status(), StatusCode::FORBIDDEN);
+    assert_eq!(stack.audit_count().await, audits);
+
+    let marked = stack
+        .post(&path, &[("verdict", "fp")])
+        .header("cookie", cookie(&carol_session))
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(marked.status(), StatusCode::SEE_OTHER);
+    assert_eq!(location(&marked), format!("/alerts/{root}#detections"));
+    assert_eq!(stack.audit_count().await, audits + 1);
+    assert_eq!(gui_verdicts(&stack, root).await, [(first, "fp".to_owned())]);
+    let (_, page) = page_for(&carol_session).await;
+    assert!(page.contains("FP · explicit"), "{page}");
+    assert!(page.contains("FP stored by carol at "), "{page}");
+    let confirmed = stack
+        .post(&format!("/alerts/{root}/detections/confirm"), &[])
+        .header("cookie", cookie(&carol_session))
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(confirmed.status(), StatusCode::SEE_OTHER);
+    assert_eq!(
+        gui_verdicts(&stack, root).await,
+        [(first, "fp".to_owned()), (second, "tp".to_owned())]
+    );
+    let inherited = stack
+        .post(&path, &[("verdict", "inherit")])
+        .header("cookie", cookie(&carol_session))
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(inherited.status(), StatusCode::SEE_OTHER);
+    assert_eq!(
+        gui_verdicts(&stack, root).await,
+        [(second, "tp".to_owned())]
+    );
+    assert_eq!(stack.audit_count().await, audits + 3);
+
+    // a verdict that isn't one, a form that isn't one, no such detection, another site, no session
+    let audits = stack.audit_count().await;
+    for (form, status) in [
+        (vec![("verdict", "maybe")], StatusCode::BAD_REQUEST),
+        (vec![("other", "x")], StatusCode::BAD_REQUEST),
+    ] {
+        let response = stack
+            .post(&path, &form)
+            .header("cookie", cookie(&carol_session))
+            .send()
+            .await
+            .expect("answered");
+        assert_eq!(response.status(), status, "{form:?}");
+    }
+    for missing in [
+        format!("/alerts/{root}/detections/999999999/verdict"),
+        format!("/alerts/{root}/detections/x/verdict"),
+        format!("/alerts/x/detections/{first}/verdict"),
+        format!("/alerts/{}/detections/{first}/verdict", uuid::Uuid::nil()),
+    ] {
+        let response = stack
+            .post(&missing, &[("verdict", "fp")])
+            .header("cookie", cookie(&carol_session))
+            .send()
+            .await
+            .expect("answered");
+        assert_eq!(response.status(), StatusCode::NOT_FOUND, "{missing}");
+    }
+    let cross_site = stack
+        .post(&path, &[("verdict", "fp")])
+        .header("cookie", cookie(&carol_session))
+        .header("sec-fetch-site", "cross-site")
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(cross_site.status(), StatusCode::FORBIDDEN);
+    let anonymous = stack
+        .post(&path, &[("verdict", "fp")])
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(anonymous.status(), StatusCode::SEE_OTHER);
+    assert_eq!(location(&anonymous), "/login");
+    let (status, _) = page_for(&bob_session).await;
+    assert_eq!(status, StatusCode::FORBIDDEN, "bob can't read the alert");
+
+    // an FP alert: the page says why, and a form posted anyway is refused
+    gui_disposition(&stack, root, "FALSE_POSITIVE").await;
+    let (_, page) = page_for(&carol_session).await;
+    assert!(page.contains("correct its disposition"), "{page}");
+    assert!(!page.contains(r#"name="verdict""#));
+    let refused = stack
+        .post(&path, &[("verdict", "fp")])
+        .header("cookie", cookie(&carol_session))
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(refused.status(), StatusCode::CONFLICT);
+    let refused = stack
+        .post(&format!("/alerts/{root}/detections/confirm"), &[])
+        .header("cookie", cookie(&carol_session))
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(refused.status(), StatusCode::CONFLICT);
+    assert_eq!(stack.audit_count().await, audits);
 }

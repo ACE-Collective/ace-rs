@@ -87,6 +87,7 @@ pub mod saved_filters;
 mod session;
 pub mod signatures;
 pub mod templates;
+pub mod verdicts;
 
 pub use actions::{ObservableAction, ObservableActions};
 pub use alert::LiveLimits;
@@ -303,6 +304,11 @@ impl Gui {
             .route("/alerts/{id}/live", get(alert::live))
             .route("/alerts/{id}/graph", get(alert::graph_page))
             .route("/alerts/{id}/results/{result}", get(alert::result_page))
+            .route(
+                "/alerts/{id}/detections/{detection}/verdict",
+                post(verdicts::set),
+            )
+            .route("/alerts/{id}/detections/confirm", post(verdicts::confirm))
             .route(
                 "/alerts/{id}/observables/{observable}/comment",
                 get(actions::comment_page)

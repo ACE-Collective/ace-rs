@@ -250,19 +250,26 @@
 //! |---|---|
 //! | `GET /detection-points/?cursor=&limit=` | `GET /api/alerts/v1/detections?after=&limit=`, oldest first, a page at a time |
 //! | `GET /alerts/{uuid}/detection-points` | `GET /api/alerts/v1/detections?alert={id}`, paged the same way |
+//! | `PUT /alerts/{uuid}/detection-points/{content_hash}/verdict`, `{verdict}` | `PUT /api/alerts/v1/alerts/{id}/detections/{detection}/verdict`, `{verdict}`, audited (7.14) |
+//! | `DELETE /alerts/{uuid}/detection-points/{content_hash}/verdict` | `DELETE /api/alerts/v1/alerts/{id}/detections/{detection}/verdict`, audited |
+//! | `POST /alerts/{uuid}/detection-points/confirm` | `POST /api/alerts/v1/alerts/{id}/detections/confirm`, audited |
+//!
+//! The writes need `alert:write`, as ace3's do (`ace_service`'s `detection_verdicts` docs).
 //!
 //! What differs, or is left out, and why:
 //! - The path is under `alerts`, since a detection is an alert's. ace3's `detection` router, its list of
 //!   observables to detect, is another thing and comes with 7.6.
 //! - The `f` filters (5.10) are the detection points screen's that ace4 has fields for: `alert_date`,
-//!   `family` and `signature`. `queue`, `verdict`, `source` and `has_override` come with alert routing
-//!   (7.13) and verdicts (7.14). `changed_since` is a detection made, or whose root became an alert, at or
-//!   after the time, where ace3 also counts a verdict's change. The exports, `export/csv` and
-//!   `export/ndjson`, page through this list to the end, and refuse more than 100,000 rows with 413.
-//! - `verdict`, `verdict_source`, `override`, `override_user` and `override_set_at`, the verdict writes
-//!   under `/alerts/{uuid}/detection-points/{content_hash}/verdict` and the alert's `confirm` come with
-//!   detection verdicts in 7.14.
-//! - ace3's `content_hash` keys verdicts, so it comes with 7.14 too. A detection is named by its `id` here.
+//!   `family`, `signature`, and 7.14's `verdict`, `source` and `has_override`. `queue` comes with alert
+//!   routing (7.13). `changed_since` is a detection made, whose root became an alert or was dispositioned,
+//!   or whose stored verdict was set or cleared, at or after the time; ace3 also counts any other change to
+//!   the alert's row. The exports, `export/csv` and `export/ndjson`, page through this list to the end, and
+//!   refuse more than 100,000 rows with 413.
+//! - A detection is named by its `id`, which keys its verdict, where ace3 names it by its `content_hash`
+//!   (7.14's choice, in `ace_service`'s `detection_verdicts` docs). `override_user` is `override_by`, the
+//!   actor who stored it. Setting a verdict doesn't need a user: ace3 answers 422 to a key without one.
+//! - A verdict write answers 409 as ace3's does, and a verdict that isn't `tp` or `fp` 400 where FastAPI
+//!   answers 422.
 //! - ace3's `node_kind`, `node_type`, `node_value_sha256` and `node_module_path` become `observable`, the
 //!   one it's on with its type and value, and `module`, the module whose result raised it. ace4 stores a
 //!   detection on an analysis on the observable that was analyzed (`ace_core::normal`'s docs), so ace3's
@@ -558,6 +565,16 @@ impl Web {
                 put(alerts::disposition).layer(json_limit),
             )
             .route(
+                "/api/alerts/v1/alerts/{id}/detections/{detection}/verdict",
+                put(detection_points::set_verdict)
+                    .delete(detection_points::clear_verdict)
+                    .layer(json_limit),
+            )
+            .route(
+                "/api/alerts/v1/alerts/{id}/detections/confirm",
+                post(detection_points::confirm),
+            )
+            .route(
                 "/api/analysis/v1/submit",
                 post(analysis::submit)
                     .layer(DefaultBodyLimit::max(self.config.max_submission_bytes)),
@@ -834,6 +851,9 @@ impl Web {
         detection_points::list,
         detection_points::export_csv,
         detection_points::export_ndjson,
+        detection_points::set_verdict,
+        detection_points::clear_verdict,
+        detection_points::confirm,
         filters::screen,
         filters::encode,
         filters::decode,

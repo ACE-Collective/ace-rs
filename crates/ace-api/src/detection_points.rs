@@ -1,17 +1,20 @@
-//! `/api/alerts/v1/detections`: every alert's detections, filtered, a page at a time, and their exports.
+//! `/api/alerts/v1/detections`: every alert's detections with their verdicts, filtered, a page at a time,
+//! and their exports; and the verdict writes under `/api/alerts/v1/alerts/{id}/detections` (PLAN.md 7.14).
 
 use ace_service::filters::{FilterScreen, decode};
-use ace_service::{Actor, DetectionPoint, DetectionPointFilter};
+use ace_service::{Actor, DetectionPoint, DetectionPointFilter, Verdict, VerdictSource};
 use axum::Json;
-use axum::extract::{RawQuery, State};
+use axum::extract::rejection::{JsonRejection, PathRejection};
+use axum::extract::{Path, RawQuery, State};
 use axum::response::Response;
 use chrono::{DateTime, Utc};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use utoipa::{IntoParams, ToSchema};
 use uuid::Uuid;
 
 use crate::Web;
+use crate::alerts::ActorBody;
 use crate::auth::Authenticated;
 use crate::error::{ApiError, ErrorBody};
 use crate::export::{self, EXPORT_PAGE, ExportRow, Format, time_cell};
@@ -49,6 +52,61 @@ pub(crate) struct DetectionPointBody {
     /// The kind of signature, such as `yara`.
     signature_family: Option<String>,
     created_at: DateTime<Utc>,
+    /// The effective verdict, `tp` or `fp`; null when the alert's disposition is unclassified.
+    verdict: Option<VerdictBody>,
+    /// `explicit`: set or confirmed by someone. `inherited_single`: inherited from the alert, which
+    /// covered this detection directly (an FP alert, or a TP alert with one signature). `inherited_multi`:
+    /// an inherited TP on an alert where several signatures fired, unconfirmed.
+    verdict_source: Option<VerdictSourceBody>,
+    /// The stored verdict, if any; masked on an FP alert.
+    #[serde(rename = "override")]
+    override_verdict: Option<VerdictBody>,
+    /// Who stored it.
+    override_by: Option<ActorBody>,
+    override_set_at: Option<DateTime<Utc>>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "snake_case")]
+pub(crate) enum VerdictBody {
+    Tp,
+    Fp,
+}
+
+impl From<Verdict> for VerdictBody {
+    fn from(verdict: Verdict) -> Self {
+        match verdict {
+            Verdict::Tp => VerdictBody::Tp,
+            Verdict::Fp => VerdictBody::Fp,
+        }
+    }
+}
+
+impl From<VerdictBody> for Verdict {
+    fn from(verdict: VerdictBody) -> Self {
+        match verdict {
+            VerdictBody::Tp => Verdict::Tp,
+            VerdictBody::Fp => Verdict::Fp,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, Serialize, ToSchema)]
+#[serde(rename_all = "snake_case")]
+pub(crate) enum VerdictSourceBody {
+    Explicit,
+    InheritedSingle,
+    InheritedMulti,
+}
+
+impl From<VerdictSource> for VerdictSourceBody {
+    fn from(source: VerdictSource) -> Self {
+        match source {
+            VerdictSource::Explicit => VerdictSourceBody::Explicit,
+            VerdictSource::InheritedSingle => VerdictSourceBody::InheritedSingle,
+            VerdictSource::InheritedMulti => VerdictSourceBody::InheritedMulti,
+        }
+    }
 }
 
 impl From<DetectionPoint> for DetectionPointBody {
@@ -67,6 +125,11 @@ impl From<DetectionPoint> for DetectionPointBody {
             signature_version: detection.signature_version,
             signature_family: detection.signature_family,
             created_at: detection.created_at,
+            verdict: detection.verdict.map(VerdictBody::from),
+            verdict_source: detection.verdict_source.map(VerdictSourceBody::from),
+            override_verdict: detection.override_verdict.map(VerdictBody::from),
+            override_by: detection.override_by.map(ActorBody::from),
+            override_set_at: detection.override_set_at,
         }
     }
 }
@@ -86,6 +149,11 @@ impl ExportRow for DetectionPointBody {
         "signature_version",
         "signature_family",
         "created_at",
+        "verdict",
+        "verdict_source",
+        "override",
+        "override_by",
+        "override_set_at",
     ];
 
     fn cells(&self) -> Vec<String> {
@@ -115,6 +183,25 @@ impl ExportRow for DetectionPointBody {
             self.signature_version.clone().unwrap_or_default(),
             self.signature_family.clone().unwrap_or_default(),
             time_cell(Some(self.created_at)),
+            self.verdict
+                .map(|v| Verdict::from(v).as_str().to_owned())
+                .unwrap_or_default(),
+            self.verdict_source
+                .map(|s| match s {
+                    VerdictSourceBody::Explicit => "explicit",
+                    VerdictSourceBody::InheritedSingle => "inherited_single",
+                    VerdictSourceBody::InheritedMulti => "inherited_multi",
+                })
+                .unwrap_or_default()
+                .to_owned(),
+            self.override_verdict
+                .map(|v| Verdict::from(v).as_str().to_owned())
+                .unwrap_or_default(),
+            self.override_by
+                .as_ref()
+                .map(ActorBody::shown)
+                .unwrap_or_default(),
+            time_cell(self.override_set_at),
         ]
     }
 }
@@ -137,8 +224,8 @@ pub(crate) struct DetectionPointsQuery {
     /// screen's slugs (`GET /api/filters/v1/screens/detection_points`); repeat it for more.
     #[param(style = Form, explode)]
     f: Option<Vec<String>>,
-    /// Only detections made, or whose alert became one, at or after this time, UTC when it has no offset.
-    /// Pass the time the previous pull started.
+    /// Only detections made, whose alert became one or was dispositioned, or whose stored verdict was set or
+    /// cleared, at or after this time, UTC when it has no offset. Pass the time the previous pull started.
     changed_since: Option<String>,
     /// The IANA timezone relative date filters resolve in; UTC when left out.
     tz: Option<String>,
@@ -307,4 +394,117 @@ pub(crate) async fn export_ndjson(
     raw: RawQuery,
 ) -> Result<Response, ApiError> {
     export_detections(Format::Ndjson, actor, web, raw).await
+}
+
+/// A verdict to store.
+#[derive(Debug, Deserialize, ToSchema)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct VerdictRequest {
+    verdict: VerdictBody,
+}
+
+/// What a confirm did.
+#[derive(Debug, Serialize, ToSchema)]
+pub(crate) struct ConfirmedBody {
+    /// How many unconfirmed (inherited_multi) detections were confirmed.
+    confirmed: usize,
+}
+
+/// Stores a verdict on one detection of a TP alert: `fp` marks it as noise, `tp` confirms it. Storing what's
+/// stored already changes nothing and writes no audit row.
+#[utoipa::path(
+    put,
+    path = "/api/alerts/v1/alerts/{id}/detections/{detection}/verdict",
+    tag = "alerts",
+    params(
+        ("id" = Uuid, Path, description = "The alert's id"),
+        ("detection" = i64, Path, description = "The detection's id"),
+    ),
+    request_body = VerdictRequest,
+    responses(
+        (status = 200, description = "The detection, with its verdict", body = DetectionPointBody),
+        (status = 400, description = "A verdict that isn't `tp` or `fp`, a body that isn't one, or an id that isn't one", body = ErrorBody),
+        (status = 401, description = "No credential, or one that isn't valid", body = ErrorBody),
+        (status = 403, description = "The actor doesn't hold alert:write, or a session's request came from another site", body = ErrorBody),
+        (status = 404, description = "No such alert, or the alert has no such detection", body = ErrorBody),
+        (status = 409, description = "The alert's disposition doesn't take the actor's verdicts: an FP or unclassified alert, whose disposition is what to correct, or one only ACE sets", body = ErrorBody),
+        (status = 413, description = "The body is too large", body = ErrorBody),
+    )
+)]
+pub(crate) async fn set_verdict(
+    Authenticated(actor): Authenticated,
+    State(web): State<Web>,
+    path: Result<Path<(Uuid, i64)>, PathRejection>,
+    body: Result<Json<VerdictRequest>, JsonRejection>,
+) -> Result<Json<DetectionPointBody>, ApiError> {
+    let (Path((alert, detection)), Json(body)) = (path?, body?);
+    web.service
+        .set_detection_verdict(&actor, alert, detection, body.verdict.into())
+        .await?;
+    let detection = web
+        .service
+        .detection_point(&actor, alert, detection)
+        .await?;
+    Ok(Json(detection.into()))
+}
+
+/// Removes the stored verdict on one detection, so it inherits from the alert again. Removing none changes
+/// nothing and writes no audit row.
+#[utoipa::path(
+    delete,
+    path = "/api/alerts/v1/alerts/{id}/detections/{detection}/verdict",
+    tag = "alerts",
+    params(
+        ("id" = Uuid, Path, description = "The alert's id"),
+        ("detection" = i64, Path, description = "The detection's id"),
+    ),
+    responses(
+        (status = 200, description = "The detection, with its verdict", body = DetectionPointBody),
+        (status = 400, description = "An id that isn't one", body = ErrorBody),
+        (status = 401, description = "No credential, or one that isn't valid", body = ErrorBody),
+        (status = 403, description = "The actor doesn't hold alert:write, or a session's request came from another site", body = ErrorBody),
+        (status = 404, description = "No such alert, or the alert has no such detection", body = ErrorBody),
+        (status = 409, description = "The alert's disposition doesn't take the actor's verdicts", body = ErrorBody),
+    )
+)]
+pub(crate) async fn clear_verdict(
+    Authenticated(actor): Authenticated,
+    State(web): State<Web>,
+    path: Result<Path<(Uuid, i64)>, PathRejection>,
+) -> Result<Json<DetectionPointBody>, ApiError> {
+    let Path((alert, detection)) = path?;
+    web.service
+        .clear_detection_verdict(&actor, alert, detection)
+        .await?;
+    let detection = web
+        .service
+        .detection_point(&actor, alert, detection)
+        .await?;
+    Ok(Json(detection.into()))
+}
+
+/// Confirms every unconfirmed inherited TP of the alert (source `inherited_multi`): each becomes an explicit
+/// TP, which weighs more when signature changes are tested.
+#[utoipa::path(
+    post,
+    path = "/api/alerts/v1/alerts/{id}/detections/confirm",
+    tag = "alerts",
+    params(("id" = Uuid, Path, description = "The alert's id")),
+    responses(
+        (status = 200, description = "How many it confirmed", body = ConfirmedBody),
+        (status = 400, description = "An id that isn't one", body = ErrorBody),
+        (status = 401, description = "No credential, or one that isn't valid", body = ErrorBody),
+        (status = 403, description = "The actor doesn't hold alert:write, or a session's request came from another site", body = ErrorBody),
+        (status = 404, description = "No such alert", body = ErrorBody),
+        (status = 409, description = "The alert's disposition doesn't take the actor's verdicts", body = ErrorBody),
+    )
+)]
+pub(crate) async fn confirm(
+    Authenticated(actor): Authenticated,
+    State(web): State<Web>,
+    path: Result<Path<Uuid>, PathRejection>,
+) -> Result<Json<ConfirmedBody>, ApiError> {
+    let Path(alert) = path?;
+    let confirmed = web.service.confirm_detections(&actor, alert).await?;
+    Ok(Json(ConfirmedBody { confirmed }))
 }

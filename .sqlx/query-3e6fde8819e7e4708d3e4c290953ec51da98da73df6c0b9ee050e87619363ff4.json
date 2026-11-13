@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO analysis.detection_verdicts\n                             (detection_id, root_id, signature_uuid, verdict, set_by)\n                         VALUES ($1, $2, $3, $4, $5::jsonb)\n                         ON CONFLICT (detection_id) DO UPDATE\n                         SET verdict = excluded.verdict, set_by = excluded.set_by, set_at = now()",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Uuid",
+        "Text",
+        "Text",
+        "Jsonb"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "3e6fde8819e7e4708d3e4c290953ec51da98da73df6c0b9ee050e87619363ff4"
+}

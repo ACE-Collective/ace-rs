@@ -48,6 +48,9 @@
 //! it and does nothing more, where ace3's swapped its label for its details and opened an analysis's page
 //! in a new window; and relationships are edges, which ace3's graph didn't draw.
 //!
+//! Below the details, the alert's detections with their verdicts and, for an analyst who may, the forms that
+//! change them (PLAN.md 7.14, `crate::verdicts`).
+//!
 //! From ace3, and what differs: the section ids, the tree's shape and the jump links are ace3's. Not here
 //! yet: observable actions (#1032), the pruned
 //! "Critical Analysis Overview", tag levels and colours, pivot links, summary details, and the other
@@ -79,6 +82,7 @@ use crate::analysis::{DrawnView, Views};
 use crate::places::{Place, Places};
 use crate::session::{Failure, SignedIn, render};
 use crate::templates::Layout;
+use crate::verdicts::VerdictsView;
 
 /// The shortest time between two draws a stream sends, so a burst of landings is drawn once.
 const MIN_REDRAW: Duration = Duration::from_millis(250);
@@ -540,6 +544,8 @@ pub struct AlertPage {
     pub tree: TreeView,
     /// The tree's version, which the stream starts from.
     pub version: String,
+    /// The alert's detections with their verdicts (PLAN.md 7.14, `crate::verdicts`).
+    pub verdicts: Option<VerdictsView>,
 }
 
 impl AlertPage {
@@ -635,7 +641,14 @@ impl AlertPage {
             ignored_count,
             tree: view,
             version,
+            verdicts: None,
         })
+    }
+
+    /// The page with its detections' verdicts.
+    pub fn with_verdicts(mut self, verdicts: VerdictsView) -> Self {
+        self.verdicts = Some(verdicts);
+        self
     }
 }
 
@@ -668,8 +681,15 @@ pub(crate) async fn page(
         tracing::warn!(%actor, "reading alert_sections failed, so the page has the defaults: {error}");
         BTreeMap::new()
     });
+    let verdicts =
+        match crate::verdicts::read(&gui, &viewer, id, tree.alert.summary.disposition.as_deref())
+            .await
+        {
+            Ok(verdicts) => verdicts,
+            Err(error) => return Failure::from_service(error, &parts).into_response(),
+        };
     match AlertPage::new(viewer.layout, &tree, &comments, &gui.actions, &sections) {
-        Ok(page) => render(&page),
+        Ok(page) => render(&page.with_verdicts(verdicts)),
         Err(error) => {
             tracing::error!("an alert page couldn't be drawn: {error}");
             (StatusCode::INTERNAL_SERVER_ERROR, "internal error").into_response()

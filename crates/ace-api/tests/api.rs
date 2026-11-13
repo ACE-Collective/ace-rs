@@ -451,6 +451,8 @@ const QA_MATCH_DOWNLOAD: &str = "/api/yara-qa/v1/matches/{id}/download";
 const COMMENTS: &str = "/api/observables/v1/comments";
 const COMMENT: &str = "/api/observables/v1/comments/{id}";
 const DETECTIONS: &str = "/api/alerts/v1/detections";
+const VERDICT: &str = "/api/alerts/v1/alerts/{id}/detections/{detection}/verdict";
+const CONFIRM: &str = "/api/alerts/v1/alerts/{id}/detections/confirm";
 const PREFERENCES: &str = "/api/users/v1/me/preferences";
 const PREFERENCE: &str = "/api/users/v1/me/preferences/{key}";
 const ALERT_CSV: &str = "/api/alerts/v1/alerts/export/csv";
@@ -540,6 +542,7 @@ fn fill(route: &str, id: Uuid, observable: i64) -> String {
     route
         .replace("{id}", &id.to_string())
         .replace("{observable}", &observable.to_string())
+        .replace("{detection}", &observable.to_string())
         .replace("{user}", &id.to_string())
         .replace("{key}", "theme")
         .replace("{screen}", "alerts")
@@ -570,6 +573,7 @@ fn scope_body(name: &str, scope: &[(&str, &str)]) -> Value {
 fn good_body(route: &str) -> Send {
     match route {
         DISPOSITION => Send::Json(json!({"disposition": "FALSE_POSITIVE"})),
+        VERDICT => Send::Json(json!({"verdict": "fp"})),
         SUBMIT => Send::Form(form(&json!({"description": "x"}), &[])),
         LOOKUP => Send::Json(json!({"observables": [{"type": "fqdn", "value": "a.example"}]})),
         USERS => Send::Json(json!({"username": "refused", "password": PASSWORD})),
@@ -633,7 +637,7 @@ async fn refuses_without_a_credential_or_a_permission(
         .map(|(method, route, _)| (method, route))
         .filter(|route| !public.contains(route))
         .collect();
-    assert_eq!(routes.len(), 117, "{routes:?}");
+    assert_eq!(routes.len(), 120, "{routes:?}");
     for (method, route) in routes {
         let method: Method = method.to_uppercase().parse().expect("a method");
         let path = fill(&route, id, file);
@@ -1207,6 +1211,276 @@ async fn detection_points(client: &mut Client<'_>, token: &str, earlier: Uuid) {
             .await;
         assert_eq!(body["error"], format!("no alert {missing}"));
     }
+}
+
+/// ace3's verdict writes under `/alerts/{uuid}/detection-points` (PLAN.md 7.14): set, clear and confirm,
+/// each answering with what the list says, and refused on an alert whose disposition doesn't take them.
+async fn verdicts(client: &mut Client<'_>, token: &str) {
+    let db = client.stack.test_db.db().pool();
+    let target = alert(
+        client.stack,
+        "graded",
+        &[(ObservableKind::Fqdn, "graded.example")],
+    )
+    .await;
+    let first = detection(client.stack, target, "first", None).await;
+    let second: i64 = sqlx::query_scalar(
+        "INSERT INTO analysis.detections (root_id, description, signature_uuid)
+         VALUES ($1, 'tag phish is configured to be alertable', '14564014-a223-440a-914f-03a1f322e1bf')
+         RETURNING id",
+    )
+    .bind(target)
+    .fetch_one(db)
+    .await
+    .expect("a detection");
+    let disposition = |name: &'static str| async move {
+        sqlx::query(
+            "UPDATE analysis.roots SET disposition = $2,
+                 dispositioned_by = '{\"kind\": \"internal\", \"id\": \"test\"}'
+             WHERE id = $1",
+        )
+        .bind(target)
+        .bind(name)
+        .execute(db)
+        .await
+        .expect("dispositions");
+    };
+    disposition("DELIVERY").await;
+    let at = |detection: &dyn std::fmt::Display| {
+        VERDICT
+            .replace("{id}", &target.to_string())
+            .replace("{detection}", &detection.to_string())
+    };
+    let confirm = CONFIRM.replace("{id}", &target.to_string());
+
+    let set = client
+        .json(
+            Method::PUT,
+            VERDICT,
+            &at(&first),
+            Some(token),
+            Send::Json(json!({"verdict": "fp"})),
+            StatusCode::OK,
+        )
+        .await;
+    assert_eq!(set["id"], first);
+    assert_eq!(set["verdict"], "fp");
+    assert_eq!(set["verdict_source"], "explicit");
+    assert_eq!(set["override"], "fp");
+    assert_eq!(set["override_by"]["kind"], "api_key");
+    assert!(set["override_set_at"].is_string());
+    let listed = client
+        .json(
+            Method::GET,
+            DETECTIONS,
+            &format!("{DETECTIONS}?alert={target}&f=verdict:fp"),
+            Some(token),
+            Send::Nothing,
+            StatusCode::OK,
+        )
+        .await;
+    assert_eq!(listed["detections"].as_array().map(Vec::len), Some(1));
+    assert_eq!(listed["detections"][0]["id"], first);
+    let unconfirmed = client
+        .json(
+            Method::GET,
+            DETECTIONS,
+            &format!("{DETECTIONS}?alert={target}&f=source:inherited_multi"),
+            Some(token),
+            Send::Nothing,
+            StatusCode::OK,
+        )
+        .await;
+    assert_eq!(unconfirmed["detections"][0]["id"], second);
+    assert_eq!(unconfirmed["detections"][0]["verdict"], "tp");
+    assert_eq!(unconfirmed["detections"][0]["override"], Value::Null);
+
+    let cleared = client
+        .json(
+            Method::DELETE,
+            VERDICT,
+            &at(&first),
+            Some(token),
+            Send::Nothing,
+            StatusCode::OK,
+        )
+        .await;
+    assert_eq!(cleared["verdict"], "tp");
+    assert_eq!(cleared["verdict_source"], "inherited_multi");
+    assert_eq!(cleared["override"], Value::Null);
+    assert_eq!(cleared["override_by"], Value::Null);
+    let confirmed = client
+        .json(
+            Method::POST,
+            CONFIRM,
+            &confirm,
+            Some(token),
+            Send::Nothing,
+            StatusCode::OK,
+        )
+        .await;
+    assert_eq!(confirmed, json!({"confirmed": 2}));
+    let again = client
+        .json(
+            Method::POST,
+            CONFIRM,
+            &confirm,
+            Some(token),
+            Send::Nothing,
+            StatusCode::OK,
+        )
+        .await;
+    assert_eq!(again, json!({"confirmed": 0}));
+
+    for bad in [
+        json!({"verdict": "maybe"}),
+        json!({"verdict": "TP"}),
+        json!({}),
+        json!({"verdict": "fp", "user": "x"}),
+    ] {
+        client
+            .json(
+                Method::PUT,
+                VERDICT,
+                &at(&first),
+                Some(token),
+                Send::Json(bad),
+                StatusCode::BAD_REQUEST,
+            )
+            .await;
+    }
+    client
+        .json(
+            Method::PUT,
+            VERDICT,
+            &at(&"x"),
+            Some(token),
+            Send::Json(json!({"verdict": "fp"})),
+            StatusCode::BAD_REQUEST,
+        )
+        .await;
+    client
+        .json(
+            Method::DELETE,
+            VERDICT,
+            &at(&"x"),
+            Some(token),
+            Send::Nothing,
+            StatusCode::BAD_REQUEST,
+        )
+        .await;
+    client
+        .json(
+            Method::POST,
+            CONFIRM,
+            &CONFIRM.replace("{id}", "x"),
+            Some(token),
+            Send::Nothing,
+            StatusCode::BAD_REQUEST,
+        )
+        .await;
+    let elsewhere = VERDICT
+        .replace("{id}", &Uuid::nil().to_string())
+        .replace("{detection}", &first.to_string());
+    for path in [at(&i64::MAX), elsewhere] {
+        client
+            .json(
+                Method::PUT,
+                VERDICT,
+                &path,
+                Some(token),
+                Send::Json(json!({"verdict": "fp"})),
+                StatusCode::NOT_FOUND,
+            )
+            .await;
+        client
+            .json(
+                Method::DELETE,
+                VERDICT,
+                &path,
+                Some(token),
+                Send::Nothing,
+                StatusCode::NOT_FOUND,
+            )
+            .await;
+    }
+    client
+        .json(
+            Method::POST,
+            CONFIRM,
+            &CONFIRM.replace("{id}", &Uuid::nil().to_string()),
+            Some(token),
+            Send::Nothing,
+            StatusCode::NOT_FOUND,
+        )
+        .await;
+    let big = format!("{{\"verdict\": \"{}\"}}", "f".repeat(MAX_JSON));
+    client
+        .json(
+            Method::PUT,
+            VERDICT,
+            &at(&first),
+            Some(token),
+            Send::Bytes(big.into_bytes()),
+            StatusCode::PAYLOAD_TOO_LARGE,
+        )
+        .await;
+
+    // an FP alert: correct its disposition instead
+    disposition("FALSE_POSITIVE").await;
+    let refused = client
+        .json(
+            Method::PUT,
+            VERDICT,
+            &at(&first),
+            Some(token),
+            Send::Json(json!({"verdict": "tp"})),
+            StatusCode::CONFLICT,
+        )
+        .await;
+    assert!(
+        refused["error"]
+            .as_str()
+            .is_some_and(|e| e.contains("correct its disposition")),
+        "{refused}"
+    );
+    client
+        .json(
+            Method::DELETE,
+            VERDICT,
+            &at(&first),
+            Some(token),
+            Send::Nothing,
+            StatusCode::CONFLICT,
+        )
+        .await;
+    client
+        .json(
+            Method::POST,
+            CONFIRM,
+            &confirm,
+            Some(token),
+            Send::Nothing,
+            StatusCode::CONFLICT,
+        )
+        .await;
+    let (status, _, csv) = client
+        .text(
+            DETECTION_CSV,
+            &format!("{DETECTION_CSV}?alert={target}"),
+            token,
+        )
+        .await;
+    assert_eq!(status, StatusCode::OK);
+    let header = csv.lines().next().unwrap_or_default();
+    assert!(
+        header.ends_with(",verdict,verdict_source,override,override_by,override_set_at"),
+        "{header}"
+    );
+    assert!(
+        csv.contains(",fp,inherited_single,tp,"),
+        "the stored TP is masked: {csv}"
+    );
 }
 
 async fn reads_observables(client: &mut Client<'_>, token: &str, id: Uuid, file: i64) {
@@ -3966,6 +4240,7 @@ async fn every_documented_status_is_tested() {
     reads_observables(&mut client, &token, id, file).await;
     reads_graph(&mut client, &token).await;
     detection_points(&mut client, &token, id).await;
+    verdicts(&mut client, &token).await;
     downloads(&mut client, &token, id, file, &bytes).await;
     dispositions(&mut client, &token).await;
     looks_up(&mut client, &token, id, &bytes).await;
@@ -4381,7 +4656,13 @@ async fn filters_and_exports(client: &mut Client<'_>, token: &str) {
             "{query}"
         );
     }
-    for bad in ["f=tag:x", "f=verdict:tp", "changed_since=yesterday", "tz=x"] {
+    for bad in [
+        "f=tag:x",
+        "f=verdict:maybe",
+        "f=queue:x",
+        "changed_since=yesterday",
+        "tz=x",
+    ] {
         client
             .json(
                 Method::GET,

@@ -215,6 +215,13 @@ const ALERT_FILTERS: &[FilterSpec] = &[
         &[],
         "a tag, with * matching anything",
     ),
+    spec(
+        "Unconfirmed Detections",
+        "unconfirmed_detections",
+        FilterKind::Multi,
+        UNCONFIRMED_DETECTIONS,
+        "True",
+    ),
 ];
 
 const ALERT_LEFT_OUT: &[LeftOut] = &[
@@ -238,12 +245,16 @@ const ALERT_LEFT_OUT: &[LeftOut] = &[
         slug: "reviewed",
         why: "a disposition has no review yet, and no step in PLAN.md adds one",
     },
-    LeftOut {
-        name: "Unconfirmed Detections",
-        slug: "unconfirmed_detections",
-        why: "it reads detection verdicts (7.14)",
-    },
 ];
+
+/// The Unconfirmed Detections filter's values, ace3's `UNCONFIRMED_DETECTIONS_OPTIONS`.
+pub const UNCONFIRMED_DETECTIONS: &[&str] = &["True", "False"];
+/// The Verdict filter's values: a verdict, or `none` for a detection with none (PLAN.md 7.14).
+pub const VERDICT_VALUES: &[&str] = &["tp", "fp", "none"];
+/// The Source filter's values.
+pub const VERDICT_SOURCES: &[&str] = &["explicit", "inherited_single", "inherited_multi"];
+/// The Has Override filter's values.
+pub const BOOLEANS: &[&str] = &["true", "false"];
 
 /// The detection points screen's filters, ace3's `DETECTION_POINTS_SCREEN`.
 const DETECTION_POINT_FILTERS: &[FilterSpec] = &[
@@ -268,30 +279,34 @@ const DETECTION_POINT_FILTERS: &[FilterSpec] = &[
         &[],
         "signature-uuid[:version]",
     ),
+    spec(
+        "Verdict",
+        "verdict",
+        FilterKind::Multi,
+        VERDICT_VALUES,
+        "tp, fp, or none",
+    ),
+    spec(
+        "Source",
+        "source",
+        FilterKind::Multi,
+        VERDICT_SOURCES,
+        "explicit",
+    ),
+    spec(
+        "Has Override",
+        "has_override",
+        FilterKind::Multi,
+        BOOLEANS,
+        "true",
+    ),
 ];
 
-const DETECTION_POINT_LEFT_OUT: &[LeftOut] = &[
-    LeftOut {
-        name: "Queue",
-        slug: "queue",
-        why: "ace3 filters on the alert's queue, which comes with alert routing (7.13)",
-    },
-    LeftOut {
-        name: "Verdict",
-        slug: "verdict",
-        why: "detection verdicts come with 7.14",
-    },
-    LeftOut {
-        name: "Source",
-        slug: "source",
-        why: "a verdict's source comes with 7.14",
-    },
-    LeftOut {
-        name: "Has Override",
-        slug: "has_override",
-        why: "a verdict's override comes with 7.14",
-    },
-];
+const DETECTION_POINT_LEFT_OUT: &[LeftOut] = &[LeftOut {
+    name: "Queue",
+    slug: "queue",
+    why: "ace3 filters on the alert's queue, which comes with alert routing (7.13)",
+}];
 
 /// ace3's remediation actions, statuses and remediator results, which the remediations screen offers.
 pub const REMEDIATION_ACTIONS: &[&str] = &["remove", "restore"];

@@ -48,6 +48,13 @@ pub(crate) struct ActorBody {
     name: Option<String>,
 }
 
+impl ActorBody {
+    /// Its name, or its id when it has none, as a cell of an export.
+    pub(crate) fn shown(&self) -> String {
+        self.name.clone().unwrap_or_else(|| self.id.clone())
+    }
+}
+
 impl From<RecordedActor> for ActorBody {
     fn from(actor: RecordedActor) -> Self {
         ActorBody {

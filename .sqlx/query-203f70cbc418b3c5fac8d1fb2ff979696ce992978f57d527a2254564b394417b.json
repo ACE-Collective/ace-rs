@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM analysis.detection_verdicts WHERE detection_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "203f70cbc418b3c5fac8d1fb2ff979696ce992978f57d527a2254564b394417b"
+}

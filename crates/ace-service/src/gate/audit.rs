@@ -83,6 +83,22 @@ impl Target {
         }
     }
 
+    /// A detection, by its id (PLAN.md 7.14).
+    pub(crate) fn detection(id: i64) -> Self {
+        Target {
+            kind: "detection",
+            id: id.to_string(),
+        }
+    }
+
+    /// Several detections changed in one write, by their ids in order.
+    pub(crate) fn detections(ids: &[i64]) -> Self {
+        Target {
+            kind: "detections",
+            id: ids.iter().map(i64::to_string).collect::<Vec<_>>().join(","),
+        }
+    }
+
     /// A task in the queue, by its id.
     pub(crate) fn task(id: i64) -> Self {
         Target {

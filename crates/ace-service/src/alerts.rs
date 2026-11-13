@@ -476,6 +476,12 @@ impl Service {
             f.patterns("tag", true, true),
         );
         let (analysis, not_analysis) = (f.names("analysis", false), f.names("analysis", true));
+        let (unconfirmed, not_unconfirmed) = (
+            f.names("unconfirmed_detections", false),
+            f.names("unconfirmed_detections", true),
+        );
+        let (tp, fp) = self.disposition_classes().lists();
+        let verdicts = (&unconfirmed, &not_unconfirmed, &tp, &fp);
         let sort = query.sort;
         let descending = query.descending;
         let after_id = after.map(|cursor| cursor.id);
@@ -512,6 +518,7 @@ impl Service {
                         (s1, s2, s3, s4),
                     ) = params;
                     let (described, not_described, disposition, not_disposition, by, not_by, tagged, not_tagged, analysis, not_analysis) = texts;
+                    let (unconfirmed, not_unconfirmed, tp, fp) = verdicts;
                     sqlx::raw_sql(SET_LIST_TIMEOUT).execute(tx.conn()).await?;
                     if let Some(after) = after_id {
                         let known = sqlx::query_scalar!(
@@ -614,6 +621,49 @@ impl Service {
                                        ON lower(d.signature_uuid) = g.u
                                       AND (g.v = '' OR d.signature_version = g.v)
                                      WHERE d.root_id = r.id))
+                               -- Unconfirmed Detections: an inherited TP of several signatures' (7.14)
+                               AND ($38::text[] IS NULL
+                                    OR ('True' = ANY ($38::text[]) AND EXISTS (
+                                     SELECT FROM analysis.detections d
+                                     LEFT JOIN analysis.detection_verdicts v ON v.detection_id = d.id
+                                     WHERE d.root_id = r.id
+                                       AND analysis.detection_verdict_source(
+                                             r.disposition, $40, $41, v.verdict,
+                                             EXISTS (SELECT FROM analysis.detections x
+                                                     WHERE x.root_id = d.root_id
+                                                       AND x.signature_uuid IS DISTINCT FROM d.signature_uuid))
+                                           = 'inherited_multi'))
+                                    OR ('False' = ANY ($38::text[]) AND NOT EXISTS (
+                                     SELECT FROM analysis.detections d
+                                     LEFT JOIN analysis.detection_verdicts v ON v.detection_id = d.id
+                                     WHERE d.root_id = r.id
+                                       AND analysis.detection_verdict_source(
+                                             r.disposition, $40, $41, v.verdict,
+                                             EXISTS (SELECT FROM analysis.detections x
+                                                     WHERE x.root_id = d.root_id
+                                                       AND x.signature_uuid IS DISTINCT FROM d.signature_uuid))
+                                           = 'inherited_multi')))
+                               AND ($39::text[] IS NULL OR NOT (
+                                    ('True' = ANY ($39::text[]) AND EXISTS (
+                                     SELECT FROM analysis.detections d
+                                     LEFT JOIN analysis.detection_verdicts v ON v.detection_id = d.id
+                                     WHERE d.root_id = r.id
+                                       AND analysis.detection_verdict_source(
+                                             r.disposition, $40, $41, v.verdict,
+                                             EXISTS (SELECT FROM analysis.detections x
+                                                     WHERE x.root_id = d.root_id
+                                                       AND x.signature_uuid IS DISTINCT FROM d.signature_uuid))
+                                           = 'inherited_multi'))
+                                    OR ('False' = ANY ($39::text[]) AND NOT EXISTS (
+                                     SELECT FROM analysis.detections d
+                                     LEFT JOIN analysis.detection_verdicts v ON v.detection_id = d.id
+                                     WHERE d.root_id = r.id
+                                       AND analysis.detection_verdict_source(
+                                             r.disposition, $40, $41, v.verdict,
+                                             EXISTS (SELECT FROM analysis.detections x
+                                                     WHERE x.root_id = d.root_id
+                                                       AND x.signature_uuid IS DISTINCT FROM d.signature_uuid))
+                                           = 'inherited_multi'))))
                            )
                            SELECT r.id, r.description, r.analysis_mode, r.event_time,
                                   r.event_time_source::text AS "event_time_source!",
@@ -680,6 +730,10 @@ impl Service {
                         s2.as_deref(),
                         s3.as_deref(),
                         s4.as_deref(),
+                        unconfirmed.as_deref(),
+                        not_unconfirmed.as_deref(),
+                        tp,
+                        fp,
                     )
                     .fetch_all(tx.conn())
                     .await
