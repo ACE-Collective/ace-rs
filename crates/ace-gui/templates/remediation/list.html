@@ -1,0 +1,43 @@
+{#- ace3's remediation/manage.html (PLAN.md 7.9, 5.11's remediation area): the remediations with the
+    remediations screen's filters, and each row's forms (src/remediation.rs). -#}
+{% extends "base.html" %}
+{% block title %}Remediations · ACE{% endblock %}
+{% block content %}
+<section class="admin remediations">
+  <h1>Remediations</h1>
+  <p class="muted">What the remediators have been asked to remove or restore, and how it went. A remediation is tried again until it completes; its page has every try.</p>
+  {%- if let Some(notice) = view.notice %}
+  <p class="notice" role="status">{{ notice }}</p>
+  {%- endif %}
+  {%- if view.can_write %}
+  <p><a href="/remediations/targets">Add Remediation</a></p>
+  {%- endif %}
+  {%- let action = "/remediations" %}
+  {%- include "remediation/filters.html" %}
+  <table class="keys">
+    <thead><tr><th>ID</th><th>Remediator</th><th>Type</th><th>Value</th><th>Action</th><th>Status</th><th>Result</th><th>Analyst</th><th>Created (UTC)</th><th>Updated (UTC)</th><th></th></tr></thead>
+    <tbody>
+      {%- for row in view.rows %}
+      <tr>
+        <td><a href="{{ row.href }}">{{ row.id }}</a></td>
+        <td>{{ row.remediator }}</td>
+        <td>{{ row.observable_type }}</td>
+        <td><code>{{ row.value }}</code></td>
+        <td>{{ row.action }}</td>
+        <td>{{ row.status }}</td>
+        <td>{{ row.result }}</td>
+        <td>{{ row.analyst }}</td>
+        <td class="nowrap">{{ row.created }}</td>
+        <td class="nowrap">{{ row.updated }}</td>
+        <td>
+          {%- let back = view.back.as_str() %}
+          {%- include "remediation/forms.html" %}
+        </td>
+      </tr>
+      {%- else %}
+      <tr><td colspan="11" class="muted">No remediations.</td></tr>
+      {%- endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

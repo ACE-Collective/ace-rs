@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT root_id FROM queue.action_roots WHERE action_id = $1 ORDER BY created_at, root_id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "root_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "queue.action_roots",
+            "name": "root_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "a948bbae049c0838d98e692f0a233b67dd840c4a0c0d4810f6de5d1d1dc3e5c4"
+}

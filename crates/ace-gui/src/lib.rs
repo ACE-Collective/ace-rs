@@ -51,6 +51,12 @@
 //!   dispositioned, and its own tags (6d). The base layout links to the list for whoever holds
 //!   `event:read`.
 //!
+//! - `remediation`: the remediations and file collections areas (5.11, brought by 7.9), ace3's
+//!   `remediation/manage.html` and `file_collection/manage.html`: each list with its screen's filters, a
+//!   row's page with its tries, its forms, and Add Remediation, over the `remediation` and
+//!   `file_collections` services, and the event page's remediation coverage badges. The base layout links
+//!   to each for whoever holds its `:read`.
+//!
 //! From ace3's `app/templates/base.html` and `core.html`, and what differs: the layout keeps ace3's
 //! theme attribute on `<html>`, its five themes and its log out by POST. It has none of ace3's jQuery,
 //! Bootstrap, Google Fonts or CDN links: the stylesheet is this crate's own, and Datastar is the only
@@ -76,6 +82,7 @@ mod headers;
 pub mod list;
 mod places;
 pub mod preferences;
+pub mod remediation;
 pub mod saved_filters;
 mod session;
 pub mod signatures;
@@ -301,6 +308,22 @@ impl Gui {
                 get(actions::comment_page)
                     .post(actions::add_comment)
                     .layer(DefaultBodyLimit::max(actions::MAX_COMMENT_FORM_BYTES)),
+            )
+            .route(
+                "/remediations",
+                get(remediation::remediations).post(remediation::queue),
+            )
+            .route("/remediations/targets", get(remediation::targets))
+            .route("/remediations/{id}", get(remediation::remediation))
+            .route(
+                "/remediations/{id}/{what}",
+                post(remediation::remediation_write),
+            )
+            .route("/file-collections", get(remediation::collections))
+            .route("/file-collections/{id}", get(remediation::collection))
+            .route(
+                "/file-collections/{id}/{what}",
+                post(remediation::collection_write),
             )
             .route("/static/{name}", get(assets::serve))
             .layer(DefaultBodyLimit::max(MAX_FORM_BYTES))

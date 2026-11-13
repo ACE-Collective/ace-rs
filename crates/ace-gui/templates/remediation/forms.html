@@ -1,0 +1,7 @@
+{#- A row's forms (src/remediation.rs), each coming back to the list it was on. -#}
+          {%- for (path, label) in row.forms %}
+          <form method="post" action="{{ path }}" class="inline">
+            <input type="hidden" name="back" value="{{ back }}">
+            <button type="submit">{{ label }}</button>
+          </form>
+          {%- endfor %}

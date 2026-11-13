@@ -83,6 +83,10 @@ pub struct Layout {
     pub signatures: bool,
     /// Whether the viewer holds `event:read`, for the link to the event list.
     pub events: bool,
+    /// Whether the viewer holds `remediation:read` and `file_collection:read`, for the links to those
+    /// areas (PLAN.md 7.9).
+    pub remediations: bool,
+    pub file_collections: bool,
     pub stylesheet: String,
     pub datastar: String,
     /// The page's own scripts, after Datastar, each loaded with the nonce and deferred. Only the graph's
@@ -101,6 +105,8 @@ impl Layout {
             admin: false,
             signatures: false,
             events: false,
+            remediations: false,
+            file_collections: false,
             stylesheet: STYLESHEET.url(),
             datastar: DATASTAR.url(),
             scripts: Vec::new(),

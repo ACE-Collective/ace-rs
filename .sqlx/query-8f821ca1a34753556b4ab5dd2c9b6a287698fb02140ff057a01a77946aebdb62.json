@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO queue.action_attempts (action_id, status, result, message)\n         VALUES ($1, 'COMPLETED', $2, $3)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "8f821ca1a34753556b4ab5dd2c9b6a287698fb02140ff057a01a77946aebdb62"
+}

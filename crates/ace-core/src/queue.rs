@@ -1202,6 +1202,10 @@ pub async fn run_reaper(db: Db, interval: Duration, stop: CancellationToken) {
         if let Err(e) = crate::scans::reap_scans(&db).await {
             tracing::error!("the reaper failed on scans: {e}");
         }
+        // an action whose pool went away is tried again (PLAN.md 7.9)
+        if let Err(e) = crate::actions::reap_actions(&db).await {
+            tracing::error!("the reaper failed on actions: {e}");
+        }
         tokio::select! {
             () = stop.cancelled() => return,
             () = tokio::time::sleep(interval) => {}

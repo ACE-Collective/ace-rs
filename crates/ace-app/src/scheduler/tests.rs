@@ -316,6 +316,94 @@ async fn yara_qa_prune_removes_the_expired_matches_with_their_holds_and_an_audit
     );
 }
 
+/// ace3's `daily/file-collection-prune` (PLAN.md 7.9): a collection that completed past its retention lets
+/// go of its file, which the alert that asked for it keeps; a newer one's stays, and the run has its audit
+/// row as `scheduler:file_collection_prune`.
+#[tokio::test]
+async fn file_collection_prune_lets_go_of_old_collections_files() {
+    let fixture = Fixture::new().await;
+    let db = fixture.db();
+    let root = ace_core::tree::NewRoot::new("analysis");
+    let mut tx = db.begin().await.expect("begins");
+    ace_core::tree::create_root(&mut tx, &root)
+        .await
+        .expect("creates");
+    tx.commit().await.expect("commits");
+    let mut ids = Vec::new();
+    for (sha256, days) in [("a".repeat(64), 8), ("b".repeat(64), 1)] {
+        sqlx::query(
+            "INSERT INTO store.objects (pool, sha256, size, mime_type) VALUES ('alert_files', $1, 1, 'x')",
+        )
+        .bind(&sha256)
+        .execute(db.pool())
+        .await
+        .expect("an object");
+        let id: i64 = sqlx::query_scalar(
+            "INSERT INTO queue.actions
+                 (kind, handler, observable_type, observable_value, status, result, updated_at,
+                  file_sha256, file_size, file_name)
+             VALUES ('file_collection', 'edr', 'file_location', 'h@c:\\x', 'COMPLETED', 'SUCCESS',
+                     now() - make_interval(days => $2), $1, 1, 'x')
+             RETURNING id",
+        )
+        .bind(&sha256)
+        .bind(days)
+        .fetch_one(db.pool())
+        .await
+        .expect("a collection");
+        for (kind, holder) in [
+            ("file_collection", id.to_string()),
+            ("root", root.id.to_string()),
+        ] {
+            sqlx::query(
+                "INSERT INTO store.holds (pool, sha256, holder_kind, holder_id) VALUES ('alert_files', $1, $2, $3)",
+            )
+            .bind(&sha256)
+            .bind(kind)
+            .bind(holder)
+            .execute(db.pool())
+            .await
+            .expect("a hold");
+        }
+        ids.push((id, sha256));
+    }
+    let task = builtin("file_collection_prune");
+    make_due(db, &task).await;
+
+    let run = run_once(&fixture, vec![task], "file_collection_prune").await;
+
+    assert_eq!(run.outcome.as_deref(), Some("succeeded"), "{run:?}");
+    assert_eq!(run.summary, Some(json!({"released": 1, "batches": 1})));
+    let holds: Vec<(String, String)> = sqlx::query_as(
+        "SELECT holder_kind, holder_id FROM store.holds ORDER BY holder_kind, holder_id",
+    )
+    .fetch_all(db.pool())
+    .await
+    .expect("reads");
+    let mut expected = vec![
+        ("file_collection".to_owned(), ids[1].0.to_string()),
+        ("root".to_owned(), root.id.to_string()),
+        ("root".to_owned(), root.id.to_string()),
+    ];
+    expected.sort();
+    assert_eq!(holds, expected);
+    let audit: (serde_json::Value, String, String, serde_json::Value) =
+        sqlx::query_as("SELECT actor::jsonb, action, target_kind, before FROM service.audit")
+            .fetch_one(db.pool())
+            .await
+            .expect("one audit row");
+    assert_eq!(
+        (audit.0, audit.1.as_str(), audit.2.as_str()),
+        (
+            json!({"kind": "internal", "id": "scheduler:file_collection_prune"}),
+            "prune_file_collections",
+            "file_collections"
+        )
+    );
+    assert_eq!(audit.3["retention_days"], 7);
+    assert_eq!(audit.3["collections"][0]["id"], ids[0].0);
+}
+
 /// The partitions of an email archive table, by name, the catchall's left out.
 async fn archive_weeks(db: &Db, table: &str) -> Vec<String> {
     sqlx::query_scalar(
@@ -548,6 +636,7 @@ async fn each_task_acts_as_its_own_component_with_only_its_grant() {
         ace_service::SIGNATURE_QA_PURGE,
         ace_service::NRD_REFRESH,
         ace_service::EMAIL_ARCHIVE_MAINTAIN,
+        ace_service::FILE_COLLECTION_PRUNE,
         ace_service::ALERT_READ,
     ];
     for (task, holds) in [
@@ -560,6 +649,7 @@ async fn each_task_acts_as_its_own_component_with_only_its_grant() {
             "email_archive_partitions",
             ace_service::EMAIL_ARCHIVE_MAINTAIN,
         ),
+        ("file_collection_prune", ace_service::FILE_COLLECTION_PRUNE),
     ] {
         let actor = builtin(task).actor;
         for name in &names {
@@ -869,6 +959,7 @@ fn the_overlay_s_scheduler_section_sets_each_task_over_its_defaults() {
             ("bucket_orphans", "0 5 * * 1", 14400, true),
             ("bucket_verify", "0 5 * * 1", 14400, true),
             ("email_archive_partitions", "0 5 * * *", 3600, true),
+            ("file_collection_prune", "0 5 * * *", 3600, true),
             ("nrd_refresh", "*/30 * * * *", 1500, true),
         ]
     );
@@ -881,6 +972,7 @@ fn the_overlay_s_scheduler_section_sets_each_task_over_its_defaults() {
             "internal:scheduler:bucket_orphans",
             "internal:scheduler:bucket_verify",
             "internal:scheduler:email_archive_partitions",
+            "internal:scheduler:file_collection_prune",
             "internal:scheduler:nrd_refresh",
         ]
     );
@@ -902,7 +994,7 @@ fn the_overlay_s_scheduler_section_sets_each_task_over_its_defaults() {
         "scheduler:\n  bucket_gc:\n    schedule: '*/15 * * * *'\n    timeout_seconds: 600\n  \
          bucket_verify:\n    enabled: false\n  cas_node_stats:\n    enabled: true\n",
     );
-    assert_eq!(set.len(), 6, "the removed task is skipped");
+    assert_eq!(set.len(), 7, "the removed task is skipped");
     assert_eq!(
         (
             set[0].schedule.as_str(),

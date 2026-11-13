@@ -102,13 +102,19 @@ async fn serve(app: &App) -> Result<ExitCode> {
     }
     let orchestrator = Orchestrator::new(Catalog::of(components), modes).with_hooks(hooks);
     // a pool that lists a module leases its overlay instances too
+    // the remediators, probes and collectors the pools host decide their actions' tries (PLAN.md 7.9)
+    let actions = app
+        .action_catalog()
+        .map_err(anyhow::Error::msg)
+        .context("the action handlers")?;
     let config = ApiConfig::from_env(&app.pool_list())
         .with_instances(orchestrator.catalog())
-        .archive(archive_config.clone());
+        .archive(archive_config.clone())
+        .actions(actions.clone());
     for pool in &config.pools {
         tracing::info!(pool = %pool.name, modules = ?pool.modules, "serving a pool");
     }
-    let service = ace_service::Service::new(db.clone(), orchestrator.clone());
+    let service = ace_service::Service::new(db.clone(), orchestrator.clone()).with_actions(actions);
     let scheduler =
         crate::scheduler::Scheduler::new(db.clone(), service.clone(), bucket.clone(), scheduled)
             .with_overlay(overlay.clone())

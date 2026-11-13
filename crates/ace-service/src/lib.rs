@@ -66,6 +66,11 @@
 //! verify, each under its own permission, which only the scheduler's components hold. `yara_qa` holds the
 //! prune of expired QA matches.
 //!
+//! `remediation` queues, stops, retries, restores and deletes remediations, finds the remediation targets
+//! of alerts and observables, and sums up an alert's remediation coverage, and `file_collections` lists,
+//! stops, retries, deletes and prunes file collections (7.9), each an action of `ace_core::actions`, which
+//! network pools run from the queue.
+//!
 //! `filters` is the filter model of a list screen (5.10), ace3's filter language and share links, which the
 //! alert list (`alerts`) and the detection points (`detection_points`) take, and `saved_filters` keeps an
 //! analyst's saved filters, ace3's `saved_filters` router.
@@ -89,6 +94,7 @@ mod detection;
 mod detection_points;
 mod email_archive;
 mod events;
+mod file_collections;
 pub mod filters;
 mod gate;
 mod hunts;
@@ -98,6 +104,7 @@ mod observable_comments;
 mod observables;
 mod permission;
 mod preferences;
+mod remediation;
 mod saved_filters;
 mod source;
 mod submit;
@@ -115,6 +122,7 @@ use uuid::Uuid;
 
 use gate::{Audited, Change, Gate, Recorded, TITLE_LIMIT, Target};
 
+pub use ace_sdk::actions::{ActionKind, RemediationAction};
 pub use ace_sdk::lists::MatchKind;
 pub use actor::{Actor, ApiKeyId, Component, InvalidComponent, UserId};
 pub use alert_graph::{
@@ -156,6 +164,7 @@ pub use events::{
     MAX_EVENTS_PAGE, MAX_EXPORT_EVENTS, MAX_NEW_MALWARE_THREATS, MAX_THREAT_TYPE_CHARS,
     MalwareChoice, NewEvent, RemovedAlerts, Threat, ThreatType, disposition_rank, rolled_up,
 };
+pub use file_collections::{CollectionsPruned, FileCollection, FileCollectionPage};
 pub use filters::events::{
     EventFilters, EventOwnerFilter, EventQuery, EventSort, MAX_EVENT_FILTER_IDS,
     MAX_EVENT_FILTER_VALUES,
@@ -176,15 +185,22 @@ pub use observables::{
 pub use permission::{
     ADMIN_READ, ALERT_CREATE, ALERT_READ, ALERT_WRITE, BUCKET_GC, BUCKET_VERIFY, CATALOG,
     CLI_EXECUTE, CRASH_READ, CatalogEntry, DETECTION_READ, DETECTION_WRITE, EMAIL_ARCHIVE_MAINTAIN,
-    EMAIL_READ, EVENT_READ, EVENT_WRITE, Effect, HUNT_READ, HUNT_WRITE, InvalidPermission,
-    LIST_READ, LIST_WRITE, NRD_REFRESH, OBSERVABLE_READ, OBSERVABLE_WRITE, PermissionName,
-    PermissionPattern, SIGNATURE_DOWNLOAD, SIGNATURE_QA_PURGE, SIGNATURE_READ, USER_READ,
-    USER_SELF, USER_WRITE,
+    EMAIL_READ, EVENT_READ, EVENT_WRITE, Effect, FILE_COLLECTION_PRUNE, FILE_COLLECTION_READ,
+    FILE_COLLECTION_WRITE, HUNT_READ, HUNT_WRITE, InvalidPermission, LIST_READ, LIST_WRITE,
+    NRD_REFRESH, OBSERVABLE_READ, OBSERVABLE_WRITE, PermissionName, PermissionPattern,
+    REMEDIATION_READ, REMEDIATION_WRITE, SIGNATURE_DOWNLOAD, SIGNATURE_QA_PURGE, SIGNATURE_READ,
+    USER_READ, USER_SELF, USER_WRITE,
 };
 pub use preferences::{
     AlertSectionsPreference, MANAGE_COLUMNS, MAX_ALERT_SECTIONS, ManageColumn,
     ManageColumnsPreference, Preference, PreferenceKey, PreferenceValue, Theme, ThemePreference,
     is_section_id,
+};
+pub use remediation::{
+    ACE_SOURCE, ActionAttempt, ActionQuery, ActionSummary, COVERAGE_TYPE, Coverage, CoverageCheck,
+    CoverageRemediation, CoverageState, MAX_ACTIONS_PAGE, MAX_HISTORY, MAX_TARGET_ALERTS,
+    MAX_TARGETS, Remediation, RemediationPage, RemediationTarget, TOOLTIP_TARGET_LIMIT,
+    TargetCoverage, TargetKey, assemble_coverage,
 };
 pub use saved_filters::{
     MAX_SAVED_FILTER_DESCRIPTION_CHARS, MAX_SAVED_FILTER_NAME_CHARS, MAX_SAVED_FILTERS,
@@ -364,6 +380,9 @@ pub struct Service {
     passwords: auth::Passwords,
     /// The result listener, which the alert view's watches share.
     feed: std::sync::Arc<alert_view::Feed>,
+    /// The action handlers the binary has (PLAN.md 7.9): what remediates and collects, and what it
+    /// acts on.
+    actions: ace_core::actions::ActionCatalog,
 }
 
 impl Service {
@@ -373,7 +392,20 @@ impl Service {
             orchestrator,
             passwords: auth::Passwords::new(),
             feed: std::sync::Arc::default(),
+            actions: ace_core::actions::ActionCatalog::default(),
         }
+    }
+
+    /// The service with the binary's action handlers (PLAN.md 7.9), which a remediation names and
+    /// whose observable types make an alert's remediation targets.
+    pub fn with_actions(mut self, actions: ace_core::actions::ActionCatalog) -> Self {
+        self.actions = actions;
+        self
+    }
+
+    /// The binary's action handlers.
+    pub fn actions(&self) -> &ace_core::actions::ActionCatalog {
+        &self.actions
     }
 
     /// Whether the actor holds a permission, for an adapter deciding what to show. A write doesn't

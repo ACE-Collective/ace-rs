@@ -99,6 +99,30 @@ impl Target {
         }
     }
 
+    /// An action (PLAN.md 7.9): a remediation, a remediation check or a file collection, by its id.
+    pub(crate) fn action(id: i64) -> Self {
+        Target {
+            kind: "action",
+            id: id.to_string(),
+        }
+    }
+
+    /// Several actions queued in one write, by their ids in order.
+    pub(crate) fn actions(ids: &[i64]) -> Self {
+        Target {
+            kind: "actions",
+            id: ids.iter().map(i64::to_string).collect::<Vec<_>>().join(","),
+        }
+    }
+
+    /// The collections whose files a prune let go of.
+    pub(crate) fn expired_collection_files() -> Self {
+        Target {
+            kind: "file_collections",
+            id: "expired".to_owned(),
+        }
+    }
+
     /// A YARA rule, by its uuid meta, as the QA matches name it.
     pub(crate) fn qa_rule(uuid: &str) -> Self {
         Target {

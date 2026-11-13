@@ -264,6 +264,18 @@ pub const EMAIL_ARCHIVE_MAINTAIN: PermissionName =
 pub const DETECTION_READ: PermissionName = PermissionName::known("detection", "read");
 /// Add and remove the observables ACE detects, and set when each expires: ace3's `detection:write`.
 pub const DETECTION_WRITE: PermissionName = PermissionName::known("detection", "write");
+/// Read file collection requests and their tries: ace3's `file_collection:read`.
+pub const FILE_COLLECTION_READ: PermissionName = PermissionName::known("file_collection", "read");
+/// Stop, retry and delete file collection requests: ace3's `file_collection:write`.
+pub const FILE_COLLECTION_WRITE: PermissionName = PermissionName::known("file_collection", "write");
+/// Let go of the files of collections past their retention, as ace3's `ace file-collection prune` does.
+/// ace3 has no such permission. Only the scheduler's `scheduler:file_collection_prune` holds it.
+pub const FILE_COLLECTION_PRUNE: PermissionName = PermissionName::known("file_collection", "prune");
+/// Read remediations, their tries, the remediation targets of alerts and observables, and alerts'
+/// remediation coverage: ace3's `remediation:read`.
+pub const REMEDIATION_READ: PermissionName = PermissionName::known("remediation", "read");
+/// Queue, stop, retry, restore and delete remediations: ace3's `remediation:write`.
+pub const REMEDIATION_WRITE: PermissionName = PermissionName::known("remediation", "write");
 /// Read events, their alerts, malware and threat types, and export them: ace3's `event:read`.
 pub const EVENT_READ: PermissionName = PermissionName::known("event", "read");
 /// Change events, and the threat types and malware's threats they record: ace3's `event:write`.
@@ -382,6 +394,19 @@ pub static CATALOG: &[CatalogEntry] = &[
                       types and malware's threats.",
     },
     CatalogEntry {
+        name: FILE_COLLECTION_PRUNE,
+        description: "Let go of the files of collections that completed past their retention; the alerts that \
+                      asked for a file keep it. The scheduler holds it.",
+    },
+    CatalogEntry {
+        name: FILE_COLLECTION_READ,
+        description: "Read file collection requests and their history.",
+    },
+    CatalogEntry {
+        name: FILE_COLLECTION_WRITE,
+        description: "Stop, retry and delete file collection requests on the File Collections page.",
+    },
+    CatalogEntry {
         name: HUNT_READ,
         description: "List the hunts the hunter loaded, and read a hunt's state: when it last ran, the window \
                       it last searched and when it last alerted.",
@@ -412,6 +437,17 @@ pub static CATALOG: &[CatalogEntry] = &[
         name: OBSERVABLE_WRITE,
         description: "Comment on observables, and change or delete your own comments. Only the author \
                       changes a comment.",
+    },
+    CatalogEntry {
+        name: REMEDIATION_READ,
+        description: "View remediation actions and history, the remediation targets of alerts and \
+                      observables, and alerts' remediation coverage.",
+    },
+    CatalogEntry {
+        name: REMEDIATION_WRITE,
+        description: "Queue, stop, retry, restore and clear remediations: the event page's remediation \
+                      links and the Remediations page. A remediator acts outside ACE, such as removing an \
+                      email from a mailbox.",
     },
     CatalogEntry {
         name: SIGNATURE_DOWNLOAD,

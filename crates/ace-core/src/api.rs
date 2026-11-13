@@ -38,6 +38,15 @@
 //!   uploaded first; the core checks its bytes against its sha256, puts it in `alert_files` held by
 //!   the root, and wakes the task. A task's delay can carry the scan it waits for (`TaskEnd::Delay`):
 //!   each input the module wrote is uploaded first, as a result's files are.
+//! - `POST /api/worker/v1/actions/lease`: an action (PLAN.md 7.9, `actions.rs`) of a handler the pool's
+//!   list in `ACE4_POOLS` names as `@<kind>/<name>`, or 204 after waiting. An action past its deadline,
+//!   or a check another source confirmed first, is ended here without being handed out.
+//! - `POST /api/worker/v1/actions/<id>/renew`: extends the action's lease; the answer says whether
+//!   someone cancelled it, in which case the pool sends no end.
+//! - `POST /api/worker/v1/actions/<id>/upload`: a presigned URL to upload the file a collection fetched.
+//! - `POST /api/worker/v1/actions/<id>/end`: how the try went, an `ActionEnd`. A collected file must be
+//!   uploaded first; the core checks its bytes against its sha256 and puts it in `alert_files`, held by
+//!   the collection and by each alert it's for.
 //! - `GET /api/admin/v1/tasks/<id>/replay`: any task in its leased form, with a fresh download
 //!   URL, for `ace task replay`. It takes the admin token, and takes no lease.
 //! - `GET /healthz`: 200 when the database answers, for the stack's healthcheck. It takes no
@@ -86,6 +95,7 @@ use tokio::sync::broadcast;
 use tokio::task::JoinHandle;
 use tracing::Instrument;
 
+use crate::actions::{ActionCatalog, ActionError, ActionWorker};
 use crate::bucket::{ALERT_FILES, Bucket, BucketError, Hold};
 use crate::commands::{CommandState, CommandWorker};
 use crate::db::{Db, DbError, Isolation, Retryable};
@@ -132,6 +142,8 @@ pub struct PoolAccess {
     pub commands: bool,
     /// The scanners it runs (PLAN.md 7.7): its list has `@scan/<scanner>` for each.
     pub scanners: Vec<String>,
+    /// The action handlers it runs (PLAN.md 7.9): its list has `@<kind>/<name>` for each.
+    pub actions: Vec<(ace_sdk::actions::ActionKind, String)>,
 }
 
 impl PoolAccess {
@@ -145,12 +157,18 @@ impl PoolAccess {
             .map(str::to_owned)
             .collect();
         modules.retain(|m| !m.starts_with(SCAN_PREFIX));
+        let actions = modules
+            .iter()
+            .filter_map(|m| ace_sdk::actions::parse_pool_entry(m))
+            .collect();
+        modules.retain(|m| ace_sdk::actions::parse_pool_entry(m).is_none());
         PoolAccess {
             name: name.into(),
             token_sha256: sha256(token),
             modules,
             commands,
             scanners,
+            actions,
         }
     }
 }
@@ -162,6 +180,7 @@ impl std::fmt::Debug for PoolAccess {
             .field("modules", &self.modules)
             .field("commands", &self.commands)
             .field("scanners", &self.scanners)
+            .field("actions", &self.actions)
             .finish_non_exhaustive()
     }
 }
@@ -192,6 +211,8 @@ pub struct ApiConfig {
     /// The email archive's key and retention (PLAN.md 7.5 batch 9), which its reads and its write
     /// use. The default has no key: the core archives and opens nothing.
     pub archive: crate::email_archive::ArchiveConfig,
+    /// The action handlers the binary has (PLAN.md 7.9), which decide an action's tries.
+    pub actions: ActionCatalog,
 }
 
 impl ApiConfig {
@@ -205,7 +226,13 @@ impl ApiConfig {
             url_expiry: Duration::from_secs(900),
             snort_rules: None,
             archive: crate::email_archive::ArchiveConfig::default(),
+            actions: ActionCatalog::default(),
         }
+    }
+
+    pub fn actions(mut self, actions: ActionCatalog) -> Self {
+        self.actions = actions;
+        self
     }
 
     pub fn archive(mut self, archive: crate::email_archive::ArchiveConfig) -> Self {
@@ -397,6 +424,13 @@ impl Api {
             .route("/api/worker/v1/scans/{id}/renew", post(renew_scan))
             .route("/api/worker/v1/scans/{id}/upload", post(upload_scan))
             .route("/api/worker/v1/scans/{id}/end", post(end_scan))
+            .route(ace_sdk::actions::paths::LEASE, post(lease_action))
+            .route("/api/worker/v1/actions/{id}/renew", post(renew_action))
+            .route("/api/worker/v1/actions/{id}/upload", post(upload_action))
+            .route(
+                "/api/worker/v1/actions/{id}/end",
+                post(end_action).layer(axum::extract::DefaultBodyLimit::max(MAX_ACTION_END_BYTES)),
+            )
             .route(paths::RULESET, get(current_ruleset))
             .route("/api/admin/v1/tasks/{id}/replay", get(replay))
             .route("/healthz", get(health))
@@ -496,6 +530,82 @@ impl Api {
             ),
             pool.scanners.clone(),
         ))
+    }
+
+    /// The pool an action request comes from, as an action worker named by `x-ace4-worker` or `name`,
+    /// and the handlers it runs.
+    #[allow(clippy::type_complexity)]
+    fn action_worker(
+        &self,
+        headers: &HeaderMap,
+        name: Option<&str>,
+    ) -> Result<(ActionWorker, Vec<(ace_sdk::actions::ActionKind, String)>), Failure> {
+        let pool = self.pool(headers)?;
+        if pool.actions.is_empty() {
+            return Err(Failure::Forbidden(format!(
+                "pool {} runs no action handler",
+                pool.name
+            )));
+        }
+        let name = match name {
+            Some(name) => name,
+            None => headers
+                .get(WORKER_HEADER)
+                .and_then(|v| v.to_str().ok())
+                .ok_or_else(|| Failure::BadRequest(format!("no {WORKER_HEADER} header")))?,
+        };
+        if name.is_empty() {
+            return Err(Failure::BadRequest("no worker name".to_owned()));
+        }
+        Ok((
+            ActionWorker::new(
+                self.inner.db.clone(),
+                format!("{}/{name}", pool.name),
+                self.inner.config.lease,
+                self.inner.config.actions.clone(),
+            ),
+            pool.actions.clone(),
+        ))
+    }
+
+    /// Claims an action of `handlers` for `worker`, waiting up to `wait` for one.
+    async fn lease_action_for(
+        &self,
+        worker: &ActionWorker,
+        handlers: &[(ace_sdk::actions::ActionKind, String)],
+        wait: Duration,
+    ) -> Result<Option<ace_sdk::actions::LeasedAction>, Failure> {
+        let mut wakeups = self.inner.wakeups.subscribe();
+        let deadline = tokio::time::Instant::now() + wait;
+        let payloads: Vec<String> = handlers
+            .iter()
+            .map(|(kind, name)| ace_sdk::actions::pool_entry(*kind, name))
+            .collect();
+        loop {
+            if let Some(action) = worker.claim(handlers).await? {
+                return Ok(Some(action));
+            }
+            if self.inner.stopping.is_cancelled() {
+                return Ok(None);
+            }
+            let sleep = tokio::time::sleep_until(deadline);
+            tokio::pin!(sleep);
+            loop {
+                tokio::select! {
+                    () = &mut sleep => return Ok(None),
+                    () = self.inner.stopping.cancelled() => return Ok(None),
+                    woken = wakeups.recv() => match woken {
+                        Ok(payload) if payload == "*" || payloads.contains(&payload) => break,
+                        Ok(_) => {}
+                        Err(broadcast::error::RecvError::Lagged(_)) => break,
+                        Err(broadcast::error::RecvError::Closed) => {
+                            (&mut sleep).await;
+                            return Ok(None);
+                        }
+                    },
+                }
+            }
+        }
     }
 
     /// Claims a scan of `scanners` for `worker`, waiting up to `wait` for one.
@@ -1528,6 +1638,9 @@ async fn lease_in(
 /// characters can make six times as long.
 const MAX_COMMAND_BODY: usize = 8 * crate::commands::MAX_OUTPUT_BYTES;
 
+/// The largest action end: a confirmation's events at most, each a few lines of a vendor's record.
+const MAX_ACTION_END_BYTES: usize = 8 << 20;
+
 async fn lease_command(
     State(api): State<Api>,
     headers: HeaderMap,
@@ -1678,6 +1791,156 @@ async fn end_scan(
         bucket.remove_upload(task.0, &output.sha256).await?;
     }
     Ok(StatusCode::NO_CONTENT)
+}
+
+async fn lease_action(
+    State(api): State<Api>,
+    headers: HeaderMap,
+    Json(request): Json<ace_sdk::actions::ActionLeaseRequest>,
+) -> Result<Response, Failure> {
+    let (worker, handlers) = api.action_worker(&headers, Some(&request.worker))?;
+    let wait = Duration::from_secs(request.wait_seconds).min(api.inner.config.max_wait);
+    match api.lease_action_for(&worker, &handlers, wait).await? {
+        Some(action) => Ok(Json(action).into_response()),
+        None => Ok(StatusCode::NO_CONTENT.into_response()),
+    }
+}
+
+async fn renew_action(
+    State(api): State<Api>,
+    Path(id): Path<i64>,
+    headers: HeaderMap,
+) -> Result<Json<ace_sdk::actions::ActionRenewal>, Failure> {
+    let (worker, _) = api.action_worker(&headers, None)?;
+    let cancelled = worker.renew(id).await?;
+    Ok(Json(ace_sdk::actions::ActionRenewal { cancelled }))
+}
+
+/// A URL to upload the file a collection fetched to, under the action's own key in the bucket.
+async fn upload_action(
+    State(api): State<Api>,
+    Path(id): Path<i64>,
+    headers: HeaderMap,
+    Json(request): Json<ace_sdk::actions::ActionUploadRequest>,
+) -> Result<Json<Presigned>, Failure> {
+    let (worker, _) = api.action_worker(&headers, None)?;
+    let (kind, _) = worker.owned(id).await?;
+    if kind != ace_sdk::actions::ActionKind::FileCollection {
+        return Err(Failure::BadRequest(format!(
+            "action {id} is a {kind}, which uploads nothing"
+        )));
+    }
+    let key = ace_store::Store::action_upload_key(id, &request.sha256);
+    let presigned = api
+        .inner
+        .bucket
+        .store()
+        .presign_put(&key, request.size, api.inner.config.url_expiry)
+        .await
+        .map_err(BucketError::from)?;
+    Ok(Json(wire_presigned(presigned)))
+}
+
+/// How a try of an action went. A collected file is fetched from its upload and checked before the
+/// transaction that records the end puts it in `alert_files`, held by the collection and its alerts.
+async fn end_action(
+    State(api): State<Api>,
+    Path(id): Path<i64>,
+    headers: HeaderMap,
+    body: Result<Json<ace_sdk::actions::ActionEnd>, JsonRejection>,
+) -> Result<StatusCode, Failure> {
+    let Json(end) = body.map_err(|e| Failure::BadRequest(e.body_text()))?;
+    let (worker, _) = api.action_worker(&headers, None)?;
+    // the lease first, so a stranger's end can't make the core read an upload
+    worker.owned(id).await?;
+    let file = match &end {
+        ace_sdk::actions::ActionEnd::FileCollection {
+            file: Some(file), ..
+        } => Some(file.clone()),
+        _ => None,
+    };
+    let bucket = &api.inner.bucket;
+    let spooled = match &file {
+        Some(file) => Some(bucket.fetch_action_upload(id, &file.sha256).await?),
+        None => None,
+    };
+    let (worker, end, spooled, file) = (&worker, &end, &spooled, &file);
+    api.inner
+        .db
+        .transaction(Isolation::ReadCommitted, |tx| {
+            Box::pin(async move {
+                if let Some(spooled) = spooled {
+                    bucket
+                        .put_in(
+                            tx,
+                            ALERT_FILES,
+                            spooled,
+                            Some(&crate::actions::collection_hold(id)),
+                        )
+                        .await?;
+                }
+                let roots = worker.end_in(tx, id, end).await?;
+                if let Some(file) = file {
+                    for root in roots {
+                        bucket
+                            .hold_in(tx, ALERT_FILES, &file.sha256, &Hold::root(root))
+                            .await?;
+                    }
+                }
+                Ok::<_, ActionLandError>(())
+            })
+        })
+        .await?;
+    if let Some(file) = file {
+        bucket.remove_action_upload(id, &file.sha256).await?;
+    }
+    Ok(StatusCode::NO_CONTENT)
+}
+
+/// An action end's transaction failing: the action's rules or the bucket.
+#[derive(Debug, thiserror::Error)]
+enum ActionLandError {
+    #[error(transparent)]
+    Action(#[from] ActionError),
+    #[error(transparent)]
+    Bucket(#[from] BucketError),
+}
+
+impl Retryable for ActionLandError {
+    fn is_retryable(&self) -> bool {
+        match self {
+            ActionLandError::Action(e) => e.is_retryable(),
+            ActionLandError::Bucket(BucketError::Db(e)) => e.is_retryable(),
+            ActionLandError::Bucket(_) => false,
+        }
+    }
+}
+
+impl From<DbError> for ActionLandError {
+    fn from(error: DbError) -> Self {
+        ActionLandError::Action(ActionError::Db(error))
+    }
+}
+
+impl From<ActionLandError> for Failure {
+    fn from(error: ActionLandError) -> Self {
+        match error {
+            ActionLandError::Action(e) => Failure::from(e),
+            ActionLandError::Bucket(e) => Failure::from(e),
+        }
+    }
+}
+
+impl From<ActionError> for Failure {
+    fn from(error: ActionError) -> Self {
+        match error {
+            ActionError::LeaseLost(id) => {
+                Failure::Conflict(format!("action {id} is no longer leased to this worker"))
+            }
+            ActionError::Invalid(why) => Failure::BadRequest(why),
+            ActionError::Db(e) => Failure::from(e),
+        }
+    }
 }
 
 async fn renew(
@@ -2004,6 +2267,8 @@ pub enum Failure {
     LeaseLost(TaskId),
     /// The task's root was cancelled.
     Cancelled(TaskId),
+    /// The worker doesn't hold what it names any more, such as an action's lease.
+    Conflict(String),
     /// A result that failed its check, with each field that failed. Its task has failed.
     Invalid(ApiError),
     /// Something to try again shortly.
@@ -2069,6 +2334,7 @@ impl IntoResponse for Failure {
                 StatusCode::GONE,
                 api_error(&format!("{task} was cancelled")),
             ),
+            Failure::Conflict(why) => (StatusCode::CONFLICT, api_error(&why)),
             Failure::Invalid(body) => (StatusCode::UNPROCESSABLE_ENTITY, body),
             Failure::Unavailable(why) => (StatusCode::SERVICE_UNAVAILABLE, api_error(&why)),
             Failure::Internal(why) => {

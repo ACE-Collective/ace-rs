@@ -493,6 +493,27 @@ form.inline {
   font-size: 0.85em;
 }
 
+/* an alert's remediation coverage (PLAN.md 7.9), ace3's text-bg-success, -warning, -danger and -secondary */
+.badge.coverage-remediated {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.badge.coverage-partial {
+  border-style: dashed;
+  border-color: var(--accent);
+}
+
+.badge.coverage-failed {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.badge.coverage-pending,
+.badge.coverage-unremediated {
+  color: var(--muted);
+}
+
 .warning {
   color: var(--accent);
 }

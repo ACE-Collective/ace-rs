@@ -1,0 +1,40 @@
+{#- ace3's file_collection/manage.html (PLAN.md 7.9, 5.11's file_collection area): the file collections
+    with the file collections screen's filters, and each row's forms (src/remediation.rs). -#}
+{% extends "base.html" %}
+{% block title %}File Collections · ACE{% endblock %}
+{% block content %}
+<section class="admin remediations">
+  <h1>File Collections</h1>
+  <p class="muted">The files the file collectors have been asked to fetch from hosts, and how it went. A request whose host is offline is tried again until it completes or runs out of tries; its page has every try. A file belongs to each alert that asked for it.</p>
+  {%- if let Some(notice) = view.notice %}
+  <p class="notice" role="status">{{ notice }}</p>
+  {%- endif %}
+  {%- let action = "/file-collections" %}
+  {%- include "remediation/filters.html" %}
+  <table class="keys">
+    <thead><tr><th>ID</th><th>Collector</th><th>Type</th><th>Value</th><th>Status</th><th>Result</th><th>Tries</th><th>Alerts</th><th>File</th><th>Created (UTC)</th><th></th></tr></thead>
+    <tbody>
+      {%- for row in view.rows %}
+      <tr>
+        <td><a href="{{ row.href }}">{{ row.id }}</a></td>
+        <td>{{ row.collector }}</td>
+        <td>{{ row.observable_type }}</td>
+        <td><code>{{ row.value }}</code></td>
+        <td>{{ row.status }}</td>
+        <td>{{ row.result }}</td>
+        <td>{{ row.attempts }}</td>
+        <td>{% for (href, id) in row.alerts %}<a href="{{ href }}">{{ id }}</a> {% endfor %}</td>
+        <td>{% if let Some((name, sha256)) = row.file %}{{ name }}<br><code>{{ sha256 }}</code>{% endif %}</td>
+        <td class="nowrap">{{ row.created }}</td>
+        <td>
+          {%- let back = view.back.as_str() %}
+          {%- include "remediation/forms.html" %}
+        </td>
+      </tr>
+      {%- else %}
+      <tr><td colspan="11" class="muted">No file collections.</td></tr>
+      {%- endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

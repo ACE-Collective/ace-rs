@@ -2701,6 +2701,652 @@
         }
       }
     },
+    "/api/file-collections/v1/collections": {
+      "get": {
+        "tags": [
+          "file_collections"
+        ],
+        "summary": "File collections the filters match, newest first, a page at a time. Follow `next` until it's null.",
+        "operationId": "list",
+        "parameters": [
+          {
+            "name": "f",
+            "in": "query",
+            "description": "A filter in the share-link encoding, `[!]<slug>:<value>,<value>`, with the screen's slugs\n(`GET /api/filters/v1/screens/{screen}`); repeat it for more.",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "style": "form",
+            "explode": true
+          },
+          {
+            "name": "tz",
+            "in": "query",
+            "description": "The IANA timezone relative date filters resolve in; UTC when left out.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "How many, 1 to 1000; 100 when left out.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "description": "The `next` of the previous page.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of collections",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileCollectionPageBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A filter, timezone, limit or cursor that isn't one, or filters that took too long",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold file_collection:read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/file-collections/v1/collections/export/csv": {
+      "get": {
+        "tags": [
+          "file_collections"
+        ],
+        "summary": "Every collection the list's filters match, newest first, as CSV, a cell a spreadsheet would read as a\nformula behind a `'`. A failure part-way ends the file there.",
+        "operationId": "export_csv",
+        "parameters": [
+          {
+            "name": "f",
+            "in": "query",
+            "description": "A filter, as the list takes it; repeat it for more.",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "style": "form",
+            "explode": true
+          },
+          {
+            "name": "tz",
+            "in": "query",
+            "description": "The IANA timezone relative date filters resolve in; UTC when left out.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The collections",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A filter or timezone that isn't one, or filters that took too long",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold file_collection:read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "More collections than an export holds",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/file-collections/v1/collections/export/ndjson": {
+      "get": {
+        "tags": [
+          "file_collections"
+        ],
+        "summary": "Every collection the list's filters match, newest first, as NDJSON. A failure part-way ends it with an\n`{\"error\": ...}` line.",
+        "operationId": "export_ndjson",
+        "parameters": [
+          {
+            "name": "f",
+            "in": "query",
+            "description": "A filter, as the list takes it; repeat it for more.",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "style": "form",
+            "explode": true
+          },
+          {
+            "name": "tz",
+            "in": "query",
+            "description": "The IANA timezone relative date filters resolve in; UTC when left out.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The collections",
+            "content": {
+              "application/x-ndjson": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A filter or timezone that isn't one, or filters that took too long",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold file_collection:read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "More collections than an export holds",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/file-collections/v1/collections/{id}": {
+      "get": {
+        "tags": [
+          "file_collections"
+        ],
+        "summary": "One file collection.",
+        "operationId": "one",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The collection's id",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The collection",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileCollectionBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "An id that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold file_collection:read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such collection",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "file_collections"
+        ],
+        "summary": "Deletes a collection and its history, and its own hold on its file, which its alerts keep. Audited.",
+        "operationId": "delete",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The collection's id",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "It's gone"
+          },
+          "400": {
+            "description": "An id that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold file_collection:write, or a session's request came from another site",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such collection",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/file-collections/v1/collections/{id}/cancel": {
+      "post": {
+        "tags": [
+          "file_collections"
+        ],
+        "summary": "Stops a collection that hasn't completed; it completes `CANCELLED`. Audited.",
+        "operationId": "cancel",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The collection's id",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The collection as it is now",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionSummaryBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "An id that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold file_collection:write, or a session's request came from another site",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such collection",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "It has completed: its result stands",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/file-collections/v1/collections/{id}/history": {
+      "get": {
+        "tags": [
+          "file_collections"
+        ],
+        "summary": "Each try at a collection, newest first.",
+        "operationId": "history",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The collection's id",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "At most this many of the latest tries, 1 to 1000; 100 when left out.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Its tries",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HistoryBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "An id or a limit that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold file_collection:read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such collection",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/file-collections/v1/collections/{id}/retry": {
+      "post": {
+        "tags": [
+          "file_collections"
+        ],
+        "summary": "Starts a collection over: queued again with no tries counted, whatever its state. Audited.",
+        "operationId": "retry",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The collection's id",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The collection as it is now",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionSummaryBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "An id that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold file_collection:write, or a session's request came from another site",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such collection",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/filters/v1/saved": {
       "get": {
         "tags": [
@@ -4922,6 +5568,895 @@
           },
           "403": {
             "description": "The actor doesn't hold observable:read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/remediation/v1/remediations": {
+      "get": {
+        "tags": [
+          "remediation"
+        ],
+        "summary": "Remediations the filters match, newest first, a page at a time. Follow `next` until it's null.",
+        "operationId": "list",
+        "parameters": [
+          {
+            "name": "f",
+            "in": "query",
+            "description": "A filter in the share-link encoding, `[!]<slug>:<value>,<value>`, with the screen's slugs\n(`GET /api/filters/v1/screens/{screen}`); repeat it for more.",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "style": "form",
+            "explode": true
+          },
+          {
+            "name": "tz",
+            "in": "query",
+            "description": "The IANA timezone relative date filters resolve in; UTC when left out.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "How many, 1 to 1000; 100 when left out.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "description": "The `next` of the previous page.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of remediations",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RemediationPageBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A filter, timezone, limit or cursor that isn't one, or filters that took too long",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold remediation:read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "remediation"
+        ],
+        "summary": "Queues a removal or a restore of each target, every one checked before any is queued, attributed to the\nperson asking. Audited as one write.",
+        "operationId": "queue",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QueueBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "The remediations, in the targets' order",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueuedBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "No targets or too many, a remediator this server hasn't, a type it doesn't remediate, a value its type refuses, or a body that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold remediation:write, is a key with no owner, or a session's request came from another site",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The body is too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/remediation/v1/remediations/export/csv": {
+      "get": {
+        "tags": [
+          "remediation"
+        ],
+        "summary": "Every remediation the list's filters match, newest first, as CSV, a cell a spreadsheet would read as a\nformula behind a `'`. A failure part-way ends the file there.",
+        "operationId": "export_csv",
+        "parameters": [
+          {
+            "name": "f",
+            "in": "query",
+            "description": "A filter, as the list takes it; repeat it for more.",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "style": "form",
+            "explode": true
+          },
+          {
+            "name": "tz",
+            "in": "query",
+            "description": "The IANA timezone relative date filters resolve in; UTC when left out.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The remediations",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A filter or timezone that isn't one, or filters that took too long",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold remediation:read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "More remediations than an export holds",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/remediation/v1/remediations/export/ndjson": {
+      "get": {
+        "tags": [
+          "remediation"
+        ],
+        "summary": "Every remediation the list's filters match, newest first, as NDJSON. A failure part-way ends it with an\n`{\"error\": ...}` line.",
+        "operationId": "export_ndjson",
+        "parameters": [
+          {
+            "name": "f",
+            "in": "query",
+            "description": "A filter, as the list takes it; repeat it for more.",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "style": "form",
+            "explode": true
+          },
+          {
+            "name": "tz",
+            "in": "query",
+            "description": "The IANA timezone relative date filters resolve in; UTC when left out.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The remediations",
+            "content": {
+              "application/x-ndjson": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A filter or timezone that isn't one, or filters that took too long",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold remediation:read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "More remediations than an export holds",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/remediation/v1/remediations/{id}": {
+      "get": {
+        "tags": [
+          "remediation"
+        ],
+        "summary": "One remediation.",
+        "operationId": "one",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The remediation's id",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The remediation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RemediationBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "An id that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold remediation:read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such remediation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "remediation"
+        ],
+        "summary": "Deletes a remediation's record and its history. Its audit row keeps what it was.",
+        "operationId": "delete",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The remediation's id",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "It's gone"
+          },
+          "400": {
+            "description": "An id that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold remediation:write, or a session's request came from another site",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such remediation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/remediation/v1/remediations/{id}/cancel": {
+      "post": {
+        "tags": [
+          "remediation"
+        ],
+        "summary": "Stops a remediation that hasn't completed; it completes `CANCELLED`. Audited.",
+        "operationId": "cancel",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The remediation's id",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The remediation as it is now",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionSummaryBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "An id that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold remediation:write, or a session's request came from another site",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such remediation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "It has completed: its result stands",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/remediation/v1/remediations/{id}/history": {
+      "get": {
+        "tags": [
+          "remediation"
+        ],
+        "summary": "Each try at a remediation, newest first.",
+        "operationId": "history",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The remediation's id",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "At most this many of the latest tries, 1 to 1000; 100 when left out.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Its tries",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HistoryBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "An id or a limit that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold remediation:read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such remediation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/remediation/v1/remediations/{id}/restore": {
+      "post": {
+        "tags": [
+          "remediation"
+        ],
+        "summary": "Queues a restore of what a successful removal removed, with the restore key it gave back, attributed to\nthe person asking. Audited.",
+        "operationId": "restore",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The removal's id",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "The restore",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionSummaryBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "An id that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold remediation:write, is a key with no owner, or a session's request came from another site",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such remediation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "It isn't a removal that succeeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/remediation/v1/remediations/{id}/retry": {
+      "post": {
+        "tags": [
+          "remediation"
+        ],
+        "summary": "Queues a completed remediation again, as it was. Audited.",
+        "operationId": "retry",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The remediation's id",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The remediation as it is now",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionSummaryBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "An id that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold remediation:write, or a session's request came from another site",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such remediation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "It hasn't completed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/remediation/v1/targets": {
+      "post": {
+        "tags": [
+          "remediation"
+        ],
+        "summary": "The remediation targets of the observables in these alerts, or of these observables, each with its\nlatest remediation. A POST so that a long selection fits in the body.",
+        "operationId": "targets",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LookupBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The targets, by remediator, type and value",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TargetsBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Both alerts and observables or neither, too many, a type this server hasn't, a value its type refuses, or a body that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold remediation:read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "An alert that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The body is too large, or the targets too many",
             "content": {
               "application/json": {
                 "schema": {
@@ -7633,6 +9168,38 @@
   },
   "components": {
     "schemas": {
+      "ActionSummaryBody": {
+        "type": "object",
+        "description": "A remediation's state, in short.",
+        "required": [
+          "id",
+          "status"
+        ],
+        "properties": {
+          "action": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "`remove` or `restore`; null for a file collection."
+          },
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "result": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "How a completed one ended, or how its last try went, such as `SUCCESS` or `DELAYED`."
+          },
+          "status": {
+            "type": "string",
+            "description": "`NEW`, `IN_PROGRESS` or `COMPLETED`."
+          }
+        }
+      },
       "ActorBody": {
         "type": "object",
         "description": "Who did something, as the row recorded them then.",
@@ -7904,6 +9471,31 @@
           }
         }
       },
+      "AttemptBody": {
+        "type": "object",
+        "description": "One try. Times are UTC.",
+        "required": [
+          "created_at",
+          "status",
+          "result",
+          "message"
+        ],
+        "properties": {
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "message": {
+            "type": "string"
+          },
+          "result": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
+        }
+      },
       "AuthorBody": {
         "type": "object",
         "description": "The user a comment is by, as they're called now.",
@@ -7955,6 +9547,28 @@
         "properties": {
           "changed": {
             "type": "boolean"
+          }
+        }
+      },
+      "CollectedFileBody": {
+        "type": "object",
+        "description": "A collected file.",
+        "required": [
+          "sha256",
+          "size",
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Its name as the collector saved it. Show it as text."
+          },
+          "sha256": {
+            "type": "string"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int64"
           }
         }
       },
@@ -9244,6 +10858,136 @@
           }
         }
       },
+      "FileCollectionBody": {
+        "type": "object",
+        "description": "One file collection, as the list gives it. Times are UTC.",
+        "required": [
+          "id",
+          "collector",
+          "observable_type",
+          "observable_value",
+          "status",
+          "attempts",
+          "alerts",
+          "created_at"
+        ],
+        "properties": {
+          "alerts": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "The alerts it belongs to, each holding its file."
+          },
+          "attempts": {
+            "type": "integer",
+            "format": "int32",
+            "description": "The tries so far."
+          },
+          "collector": {
+            "type": "string"
+          },
+          "collector_display_name": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Null when this server has no collector by that name."
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "file": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/CollectedFileBody",
+                "description": "The file, once collected."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "max_attempts": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32"
+          },
+          "observable_type": {
+            "type": "string"
+          },
+          "observable_value": {
+            "type": "string"
+          },
+          "requested_by": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Who asked for it when no alert did."
+          },
+          "result": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "How the latest try ended, such as `SUCCESS` or `HOST_OFFLINE`."
+          },
+          "result_message": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "description": "`NEW`, `IN_PROGRESS` (waiting to be tried again) or `COMPLETED`."
+          },
+          "updated_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "FileCollectionPageBody": {
+        "type": "object",
+        "required": [
+          "collections",
+          "total"
+        ],
+        "properties": {
+          "collections": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FileCollectionBody"
+            }
+          },
+          "next": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "Pass as `after` for the next page; null on the last."
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64",
+            "description": "How many the filters match, on every page."
+          }
+        }
+      },
       "FilterDescriptorBody": {
         "type": "object",
         "description": "One filter a screen has.",
@@ -9542,6 +11286,21 @@
         },
         "additionalProperties": false
       },
+      "HistoryBody": {
+        "type": "object",
+        "required": [
+          "attempts"
+        ],
+        "properties": {
+          "attempts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AttemptBody"
+            },
+            "description": "Newest first."
+          }
+        }
+      },
       "HolderBody": {
         "type": "object",
         "description": "Who a grant is for. A component's grants come with the migration that adds it.",
@@ -9786,17 +11545,25 @@
       },
       "LookupBody": {
         "type": "object",
-        "required": [
-          "results"
-        ],
+        "description": "The alerts, or the observables, to find the targets of: exactly one of the two.",
         "properties": {
-          "results": {
+          "alerts": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/PrevalenceBody"
-            }
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Every observable of a remediator's type in these alerts, at most 200."
+          },
+          "observables": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ObservableKeyBody"
+            },
+            "description": "These observables, at most 1000."
           }
-        }
+        },
+        "additionalProperties": false
       },
       "LookupRequest": {
         "type": "object",
@@ -10140,6 +11907,22 @@
             "description": "A file's value is its sha256."
           }
         }
+      },
+      "ObservableKeyBody": {
+        "type": "object",
+        "required": [
+          "type",
+          "value"
+        ],
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
       },
       "ObservablePageBody": {
         "type": "object",
@@ -10912,6 +12695,42 @@
           }
         }
       },
+      "QueueBody": {
+        "type": "object",
+        "description": "One remediation of each target.",
+        "required": [
+          "action",
+          "targets"
+        ],
+        "properties": {
+          "action": {
+            "type": "string",
+            "description": "`remove` or `restore`. A restore takes the restore key of the target's latest successful removal."
+          },
+          "targets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TargetBody"
+            },
+            "description": "1 to 1000 targets, each checked before any is queued."
+          }
+        },
+        "additionalProperties": false
+      },
+      "QueuedBody": {
+        "type": "object",
+        "required": [
+          "remediations"
+        ],
+        "properties": {
+          "remediations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ActionSummaryBody"
+            }
+          }
+        }
+      },
       "QuickFiltersRequest": {
         "type": "object",
         "required": [
@@ -10983,6 +12802,115 @@
           },
           "target_value": {
             "type": "string"
+          }
+        }
+      },
+      "RemediationBody": {
+        "type": "object",
+        "description": "One remediation, as the list gives it. Times are UTC.",
+        "required": [
+          "id",
+          "remediator",
+          "observable_type",
+          "observable_value",
+          "action",
+          "status",
+          "attempts",
+          "created_at"
+        ],
+        "properties": {
+          "action": {
+            "type": "string",
+            "description": "`remove` or `restore`."
+          },
+          "analyst": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The person it's attributed to."
+          },
+          "attempts": {
+            "type": "integer",
+            "format": "int32",
+            "description": "The tries so far."
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "observable_type": {
+            "type": "string"
+          },
+          "observable_value": {
+            "type": "string"
+          },
+          "remediator": {
+            "type": "string"
+          },
+          "remediator_display_name": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Null when this server has no remediator by that name."
+          },
+          "result": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "How the latest try ended, such as `SUCCESS` or `DELAYED`."
+          },
+          "result_message": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "description": "`NEW`, `IN_PROGRESS` or `COMPLETED`."
+          },
+          "updated_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "The end of the latest try, a cancel or a retry; null before the first try."
+          }
+        }
+      },
+      "RemediationPageBody": {
+        "type": "object",
+        "required": [
+          "remediations",
+          "total"
+        ],
+        "properties": {
+          "next": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "Pass as `after` for the next page; null on the last."
+          },
+          "remediations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RemediationBody"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64",
+            "description": "How many the filters match, on every page."
           }
         }
       },
@@ -11443,6 +13371,80 @@
           "duplicate"
         ]
       },
+      "TargetBody": {
+        "type": "object",
+        "description": "What a remediator acts on.",
+        "required": [
+          "remediator",
+          "observable_type",
+          "observable_value"
+        ],
+        "properties": {
+          "observable_type": {
+            "type": "string"
+          },
+          "observable_value": {
+            "type": "string"
+          },
+          "remediator": {
+            "type": "string",
+            "description": "The remediator's name, such as `test`."
+          }
+        },
+        "additionalProperties": false
+      },
+      "TargetReadBody": {
+        "type": "object",
+        "description": "A target, with its remediator's display name and its latest remediation.",
+        "required": [
+          "remediator",
+          "observable_type",
+          "observable_value"
+        ],
+        "properties": {
+          "current": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ActionSummaryBody",
+                "description": "The target's latest remediation, which cancel and delete act on."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "observable_type": {
+            "type": "string"
+          },
+          "observable_value": {
+            "type": "string"
+          },
+          "remediator": {
+            "type": "string"
+          },
+          "remediator_display_name": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Null when this server has no remediator by that name."
+          }
+        }
+      },
+      "TargetsBody": {
+        "type": "object",
+        "required": [
+          "targets"
+        ],
+        "properties": {
+          "targets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TargetReadBody"
+            }
+          }
+        }
+      },
       "ThreatBody": {
         "type": "object",
         "description": "One of a malware's threat types.",
@@ -11771,6 +13773,14 @@
     {
       "name": "hunts",
       "description": "The hunts the hunter loaded, their state, and validating a hunt"
+    },
+    {
+      "name": "remediation",
+      "description": "Remediations: removing what an alert found, such as an email from a mailbox, and restoring it"
+    },
+    {
+      "name": "file_collections",
+      "description": "Files fetched from hosts for alerts, and their tries"
     },
     {
       "name": "lists",

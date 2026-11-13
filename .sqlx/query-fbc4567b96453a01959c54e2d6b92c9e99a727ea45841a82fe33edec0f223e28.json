@@ -1,0 +1,30 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT restore_key FROM queue.actions\n         WHERE kind = 'remediation' AND handler = $1 AND observable_type = $2 AND observable_value = $3\n           AND action = 'remove' AND result = 'SUCCESS'\n         ORDER BY id DESC LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "restore_key",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "queue.actions",
+            "name": "restore_key"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "fbc4567b96453a01959c54e2d6b92c9e99a727ea45841a82fe33edec0f223e28"
+}

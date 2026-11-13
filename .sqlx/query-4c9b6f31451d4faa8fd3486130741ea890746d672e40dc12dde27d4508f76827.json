@@ -1,0 +1,53 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT a.id, a.file_sha256 AS \"file_sha256!\", a.updated_at\n           FROM queue.actions a\n           JOIN store.holds h ON h.pool = 'alert_files' AND h.sha256 = a.file_sha256\n                             AND h.holder_kind = 'file_collection' AND h.holder_id = a.id::text\n           WHERE a.kind = 'file_collection' AND a.status = 'COMPLETED'\n             AND a.updated_at < now() - make_interval(secs => $1)\n           ORDER BY a.id\n           LIMIT $2\n           FOR UPDATE OF a",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "queue.actions",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "file_sha256!",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "queue.actions",
+            "name": "file_sha256"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "updated_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "queue.actions",
+            "name": "updated_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Float8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "4c9b6f31451d4faa8fd3486130741ea890746d672e40dc12dde27d4508f76827"
+}

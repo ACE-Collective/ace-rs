@@ -30,6 +30,9 @@
 //! list, listed, searched and paged as ace3 does, with ace3's default lifetimes, and audited as list
 //! writes are.
 //!
+//! PLAN.md 7.9: remediations and file collections listed through their screens' filters, the targets of
+//! alerts and observables, an alert's remediation coverage, and each write's audit row.
+//!
 //! PLAN.md 5.11's events (6c): the event list's filters checked, each filter and each order both ways
 //! through the keyset, the filters' choices, and an event's alerts with their state and tags.
 
@@ -48,18 +51,20 @@ use ace_core::testing::TestDb;
 use ace_core::tree::{self, NewRoot};
 use ace_core::{Db, queue};
 use ace_results::{AlertPath, AnalysisType, NewObservable, ObservableKind};
+use ace_sdk::actions::RemediationAction;
 use ace_sdk::lists::{ListSpec, MAX_ENTRIES};
 use ace_sdk::{Lookup, Manifest, Module, ModuleError, Outcome, TaskContext};
 use ace_service::{
-    ALERT_WRITE, Actor, ApiKeyId, CATALOG, CampaignChoice, CommandState, Component, CrashFilter,
-    CrashInput, DetectionExpiry, DetectionFilter, DetectionPage, DetectionPointFilter,
-    DetectionStatus, Effect, EventChoice, EventEdit, EventRef, EventTimes, GroupId,
-    GroupSuppressed, Holder, HuntRun, HuntState, HuntSubmission, HuntValidation, ListEntry,
-    LoadedHuntRow, MAX_CRASHES_PAGE, MIN_PASSWORD_CHARS, MalwareChoice, MatchKind, NewDetection,
-    NewEvent, NewListEntry, NewSession, Password, PermissionName, PermissionPattern, PreferenceKey,
-    PreferenceValue, Profile, QaPruned, QaPurge, QaRuleFilter, QaSort, QaStatus, RequestParts,
-    SESSION_LIFETIME_SECONDS, Service, ServiceError, SessionCookie, SuppressionReason, Theme,
-    ThemePreference, Transport, USER_SELF, USER_WRITE, UserId, Username, with_source_ip,
+    ALERT_WRITE, ActionQuery, Actor, ApiKeyId, CATALOG, CampaignChoice, CommandState, Component,
+    CoverageState, CrashFilter, CrashInput, DetectionExpiry, DetectionFilter, DetectionPage,
+    DetectionPointFilter, DetectionStatus, Effect, EventChoice, EventEdit, EventRef, EventTimes,
+    GroupId, GroupSuppressed, Holder, HuntRun, HuntState, HuntSubmission, HuntValidation,
+    ListEntry, LoadedHuntRow, MAX_CRASHES_PAGE, MIN_PASSWORD_CHARS, MalwareChoice, MatchKind,
+    NewDetection, NewEvent, NewListEntry, NewSession, Password, PermissionName, PermissionPattern,
+    PreferenceKey, PreferenceValue, Profile, QaPruned, QaPurge, QaRuleFilter, QaSort, QaStatus,
+    RequestParts, SESSION_LIFETIME_SECONDS, Service, ServiceError, SessionCookie,
+    SuppressionReason, TargetKey, Theme, ThemePreference, Transport, USER_SELF, USER_WRITE, UserId,
+    Username, with_source_ip,
 };
 use ace_store::{BucketConfig, NodeCache, Store};
 use schemars::JsonSchema;
@@ -167,7 +172,26 @@ fn orchestrator() -> Orchestrator {
 }
 
 fn service(db: &Db) -> Service {
-    Service::new(db.clone(), orchestrator())
+    Service::new(db.clone(), orchestrator()).with_actions(test_actions())
+}
+
+/// A file collector that collects nothing, for the file collections' tests (PLAN.md 7.9).
+static TEST_COLLECTOR: ace_sdk::actions::ActionSpec = ace_sdk::actions::ActionSpec {
+    kind: ace_sdk::actions::ActionKind::FileCollection,
+    name: "edr",
+    display_name: "Test EDR",
+    description: "Collects files in tests.",
+    observable_type: "file_location",
+    tcp_ports: &[],
+    secrets: &[],
+    retry: ace_sdk::actions::Retry::FILE_COLLECTION,
+    supersede_grace_seconds: 0,
+};
+
+/// ace3's test remediator and a test collector.
+fn test_actions() -> ace_core::actions::ActionCatalog {
+    ace_core::actions::ActionCatalog::new(&[&ace_sdk::actions::TEST_REMEDIATOR, &TEST_COLLECTOR])
+        .expect("a catalog")
 }
 
 /// The stack's bucket, with a node cache of the test's own, which goes when the directory does.
@@ -1556,6 +1580,15 @@ async fn every_write_function_has_an_audit_test() {
         sync_hunts_records_its_row(db).await,
         record_hunt_run_records_its_row(db).await,
         validate_hunt_records_its_row(db).await,
+        queue_remediations_records_its_row(db).await,
+        cancel_remediation_records_its_row(db).await,
+        retry_remediation_records_its_row(db).await,
+        restore_remediation_records_its_row(db).await,
+        delete_remediation_records_its_row(db).await,
+        cancel_file_collection_records_its_row(db).await,
+        retry_file_collection_records_its_row(db).await,
+        delete_file_collection_records_its_row(db).await,
+        prune_file_collections_records_its_row(db).await,
     ]);
     assert_eq!(covered, write_functions(), "{WRITES_NEED_A_TEST}");
 }
@@ -3273,6 +3306,8 @@ async fn every_write_fails_when_its_audit_fails() {
         .expect("adds a detection");
     let archive = email_archive(&bucket, db);
     archived(&archive, b"an archived email", "<audit-fails@example.com>").await;
+    let acted = action_fixtures(db, &service, &actor).await;
+    let actions_before = action_rows(db).await;
     let lists_before = list_rows(db).await;
     let commands_before = command_rows(db).await;
     let before = (
@@ -3851,6 +3886,78 @@ async fn every_write_fails_when_its_audit_fails() {
                 .map(|_| ())
                 .expect_err("refused"),
         ),
+        (
+            "queue_remediations",
+            service
+                .queue_remediations(&actor, RemediationAction::Remove, &[test_target("SUCCESS")])
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
+        (
+            "cancel_remediation",
+            service
+                .cancel_remediation(&actor, acted.pending)
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
+        (
+            "retry_remediation",
+            service
+                .retry_remediation(&actor, acted.removed)
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
+        (
+            "restore_remediation",
+            service
+                .restore_remediation(&actor, acted.removed)
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
+        (
+            "delete_remediation",
+            service
+                .delete_remediation(&actor, acted.removed)
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
+        (
+            "cancel_file_collection",
+            service
+                .cancel_file_collection(&actor, acted.collection)
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
+        (
+            "retry_file_collection",
+            service
+                .retry_file_collection(&actor, acted.collection)
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
+        (
+            "delete_file_collection",
+            service
+                .delete_file_collection(&actor, acted.collection)
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
+        (
+            "prune_file_collections",
+            service
+                .prune_file_collections(&component("scheduler:file_collection_prune"))
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
     ];
     let mut covered = BTreeSet::new();
     for (function, error) in &attempts {
@@ -3874,6 +3981,7 @@ async fn every_write_fails_when_its_audit_fails() {
         event_rows(db).await,
     );
     assert_eq!(after, before);
+    assert_eq!(action_rows(db).await, actions_before);
     assert_eq!(command_rows(db).await, commands_before);
     assert_eq!(
         list_rows(db).await,
@@ -13737,5 +13845,1026 @@ fn a_detection_value_is_checked_for_its_type() {
     assert_eq!(
         identity("fqdn", " Evil.example ").expect("an fqdn").1,
         " Evil.example "
+    );
+}
+
+// PLAN.md 7.9: remediations and file collections.
+
+fn test_target(value: &str) -> TargetKey {
+    TargetKey {
+        remediator: "test".to_owned(),
+        observable_type: "test".to_owned(),
+        observable_value: value.to_owned(),
+    }
+}
+
+/// Every action's row and its tries, for a write that must change nothing.
+async fn action_rows(db: &Db) -> (Vec<(i64, String, Option<String>)>, i64, i64) {
+    let rows = sqlx::query_as("SELECT id, status, result FROM queue.actions ORDER BY id")
+        .fetch_all(db.pool())
+        .await
+        .expect("reads");
+    let attempts: i64 = sqlx::query_scalar("SELECT count(*) FROM queue.action_attempts")
+        .fetch_one(db.pool())
+        .await
+        .expect("reads");
+    let holds: i64 = sqlx::query_scalar(
+        "SELECT count(*) FROM store.holds WHERE holder_kind = 'file_collection'",
+    )
+    .fetch_one(db.pool())
+    .await
+    .expect("reads");
+    (rows, attempts, holds)
+}
+
+/// Ends an action's try as a pool would have, by hand.
+async fn complete(db: &Db, id: i64, result: &str) {
+    sqlx::query(
+        "UPDATE queue.actions SET status = 'COMPLETED', result = $2, updated_at = now(),
+                attempts = attempts + 1, restore_key = CASE WHEN kind = 'remediation' THEN 'key-' || id END
+         WHERE id = $1",
+    )
+    .bind(id)
+    .bind(result)
+    .execute(db.pool())
+    .await
+    .expect("completes");
+}
+
+struct ActionFixtures {
+    pending: i64,
+    removed: i64,
+    collection: i64,
+}
+
+/// A pending remediation, a removal that succeeded, a pending collection, and a collection past its
+/// retention whose file a prune would let go.
+async fn action_fixtures(db: &Db, service: &Service, actor: &Actor) -> ActionFixtures {
+    let queued = service
+        .queue_remediations(
+            actor,
+            RemediationAction::Remove,
+            &[test_target("DELAYED"), test_target("SUCCESS")],
+        )
+        .await
+        .expect("queues");
+    complete(db, queued[1].id, "SUCCESS").await;
+    let collection = collection(db, None, "h1@C:\\a.exe").await;
+    let old = collection_with_file(db, "h2@C:\\b.exe", &"c".repeat(64), 8).await;
+    let _ = old;
+    ActionFixtures {
+        pending: queued[0].id,
+        removed: queued[1].id,
+        collection,
+    }
+}
+
+/// A file collection requested by `root`, or by no alert.
+async fn collection(db: &Db, root: Option<Uuid>, value: &str) -> i64 {
+    let mut tx = db.begin().await.expect("begins");
+    let requested = ace_core::actions::request_collection(
+        &mut tx,
+        &test_actions(),
+        &ace_core::actions::NewCollection {
+            handler: "edr",
+            observable_type: "file_location",
+            observable_value: value,
+            root,
+            requested_by: None,
+            user: None,
+        },
+    )
+    .await
+    .expect("requests");
+    tx.commit().await.expect("commits");
+    requested.id()
+}
+
+/// A collection that completed `days` ago with a file it and nothing else holds.
+async fn collection_with_file(db: &Db, value: &str, sha256: &str, days: i32) -> i64 {
+    let id = collection(db, None, value).await;
+    sqlx::query(
+        "INSERT INTO store.objects (pool, sha256, size, mime_type) VALUES ('alert_files', $1, 1, 'x')
+         ON CONFLICT DO NOTHING",
+    )
+    .bind(sha256)
+    .execute(db.pool())
+    .await
+    .expect("an object");
+    sqlx::query(
+        "UPDATE queue.actions SET status = 'COMPLETED', result = 'SUCCESS', attempts = 1,
+                updated_at = now() - make_interval(days => $2), file_sha256 = $3, file_size = 1,
+                file_name = 'b.exe'
+         WHERE id = $1",
+    )
+    .bind(id)
+    .bind(days)
+    .bind(sha256)
+    .execute(db.pool())
+    .await
+    .expect("completes");
+    sqlx::query(
+        "INSERT INTO store.holds (pool, sha256, holder_kind, holder_id)
+         VALUES ('alert_files', $1, 'file_collection', $2)",
+    )
+    .bind(sha256)
+    .bind(id.to_string())
+    .execute(db.pool())
+    .await
+    .expect("a hold");
+    id
+}
+
+fn action_state_json(action: &str, status: &str, result: Option<&str>, value: &str) -> Value {
+    json!({
+        "kind": "remediation", "handler": "test", "observable_type": "test",
+        "observable_value": value, "action": action, "status": status, "result": result,
+    })
+}
+
+async fn queue_remediations_records_its_row(db: &Db) -> String {
+    let actor = admin(db).await;
+    let service = service(db);
+    let queued = service
+        .queue_remediations(
+            &actor,
+            RemediationAction::Remove,
+            &[test_target("SUCCESS"), test_target("FAILED")],
+        )
+        .await
+        .expect("queues");
+    assert_eq!(queued.len(), 2);
+    assert_eq!(
+        (queued[0].status.as_str(), queued[0].action.as_deref()),
+        ("NEW", Some("remove"))
+    );
+    let row = last_audit(db).await;
+    assert_eq!(
+        row,
+        AuditRow {
+            actor: boss_json(),
+            action: "queue_remediations".to_owned(),
+            target: (
+                "actions".to_owned(),
+                format!("{},{}", queued[0].id, queued[1].id)
+            ),
+            before: None,
+            after: Some(json!({"action": "remove", "remediations": [
+                {"id": queued[0].id, "remediator": "test", "observable_type": "test", "observable_value": "SUCCESS"},
+                {"id": queued[1].id, "remediator": "test", "observable_type": "test", "observable_value": "FAILED"},
+            ]})),
+            details: json!({}),
+        }
+    );
+    // attributed to the person who asked
+    let attributed: Option<Uuid> =
+        sqlx::query_scalar("SELECT user_id FROM queue.actions WHERE id = $1")
+            .bind(queued[0].id)
+            .fetch_one(db.pool())
+            .await
+            .expect("reads");
+    assert_eq!(attributed, Some(Uuid::from_u128(0xAD)));
+
+    // a refusal, a remediator this server hasn't, a type it doesn't remediate or a key with no owner has
+    // no row and queues nothing
+    let rows = audit_rows(db).await.len();
+    let reader = UserId(Uuid::from_u128(0x7E));
+    grant(
+        db,
+        &Holder::User(reader),
+        "remediation",
+        "read",
+        Effect::Allow,
+    )
+    .await;
+    let rows = rows + 1;
+    let before = action_rows(db).await;
+    assert!(matches!(
+        service
+            .queue_remediations(&user(reader), RemediationAction::Remove, &[test_target("SUCCESS")])
+            .await,
+        Err(ServiceError::PermissionDenied { ref permission, .. })
+            if permission.to_string() == "remediation:write"
+    ));
+    let nobody = TargetKey {
+        remediator: "office365_email".to_owned(),
+        ..test_target("x")
+    };
+    assert!(matches!(
+        service
+            .queue_remediations(
+                &actor,
+                RemediationAction::Remove,
+                &[test_target("SUCCESS"), nobody]
+            )
+            .await,
+        Err(ServiceError::InvalidRequest(_))
+    ));
+    let wrong_type = TargetKey {
+        observable_type: "fqdn".to_owned(),
+        ..test_target("x")
+    };
+    assert!(matches!(
+        service
+            .queue_remediations(&actor, RemediationAction::Remove, &[wrong_type])
+            .await,
+        Err(ServiceError::InvalidRequest(_))
+    ));
+    let made = service
+        .create_api_key(&actor, "service", None, &[])
+        .await
+        .expect("makes a key");
+    grant(
+        db,
+        &Holder::ApiKey(made.id),
+        "remediation",
+        "write",
+        Effect::Allow,
+    )
+    .await;
+    let rows = rows + 2;
+    let ownerless = Actor::ApiKey {
+        id: made.id,
+        name: "service".to_owned(),
+        owner: None,
+    };
+    assert!(matches!(
+        service
+            .queue_remediations(
+                &ownerless,
+                RemediationAction::Remove,
+                &[test_target("SUCCESS")]
+            )
+            .await,
+        Err(ServiceError::Forbidden(_))
+    ));
+    assert_eq!(action_rows(db).await, before);
+    assert_eq!(audit_rows(db).await.len(), rows);
+    row.action
+}
+
+async fn cancel_remediation_records_its_row(db: &Db) -> String {
+    let actor = admin(db).await;
+    let service = service(db);
+    let queued = service
+        .queue_remediations(&actor, RemediationAction::Remove, &[test_target("DELAYED")])
+        .await
+        .expect("queues");
+    let id = queued[0].id;
+    let cancelled = service
+        .cancel_remediation(&actor, id)
+        .await
+        .expect("cancels");
+    assert_eq!(
+        (cancelled.status.as_str(), cancelled.result.as_deref()),
+        ("COMPLETED", Some("CANCELLED"))
+    );
+    let row = last_audit(db).await;
+    assert_eq!(
+        row,
+        AuditRow {
+            actor: boss_json(),
+            action: "cancel_remediation".to_owned(),
+            target: ("action".to_owned(), id.to_string()),
+            before: Some(action_state_json("remove", "NEW", None, "DELAYED")),
+            after: Some(action_state_json(
+                "remove",
+                "COMPLETED",
+                Some("CANCELLED"),
+                "DELAYED"
+            )),
+            details: json!({}),
+        }
+    );
+    let history = service
+        .remediation_history(&actor, id, 10)
+        .await
+        .expect("reads");
+    assert_eq!(history[0].message, "cancelled by alice");
+    // a completed one is a conflict, and a missing one isn't found
+    assert!(matches!(
+        service.cancel_remediation(&actor, id).await,
+        Err(ServiceError::Conflict(_))
+    ));
+    assert!(matches!(
+        service.cancel_remediation(&actor, i64::MAX).await,
+        Err(ServiceError::NotFound(_))
+    ));
+    row.action
+}
+
+async fn retry_remediation_records_its_row(db: &Db) -> String {
+    let actor = admin(db).await;
+    let service = service(db);
+    let queued = service
+        .queue_remediations(&actor, RemediationAction::Remove, &[test_target("ERROR")])
+        .await
+        .expect("queues");
+    let id = queued[0].id;
+    assert!(matches!(
+        service.retry_remediation(&actor, id).await,
+        Err(ServiceError::Conflict(_))
+    ));
+    complete(db, id, "ERROR").await;
+    let retried = service
+        .retry_remediation(&actor, id)
+        .await
+        .expect("retries");
+    assert_eq!((retried.status.as_str(), retried.result), ("NEW", None));
+    let row = last_audit(db).await;
+    assert_eq!(
+        row,
+        AuditRow {
+            actor: boss_json(),
+            action: "retry_remediation".to_owned(),
+            target: ("action".to_owned(), id.to_string()),
+            before: Some(action_state_json(
+                "remove",
+                "COMPLETED",
+                Some("ERROR"),
+                "ERROR"
+            )),
+            after: Some(action_state_json("remove", "NEW", None, "ERROR")),
+            details: json!({}),
+        }
+    );
+    row.action
+}
+
+async fn restore_remediation_records_its_row(db: &Db) -> String {
+    let actor = admin(db).await;
+    let service = service(db);
+    let queued = service
+        .queue_remediations(&actor, RemediationAction::Remove, &[test_target("SUCCESS")])
+        .await
+        .expect("queues");
+    let id = queued[0].id;
+    assert!(matches!(
+        service.restore_remediation(&actor, id).await,
+        Err(ServiceError::Conflict(_))
+    ));
+    complete(db, id, "SUCCESS").await;
+    let restore = service
+        .restore_remediation(&actor, id)
+        .await
+        .expect("restores");
+    assert_eq!(restore.action.as_deref(), Some("restore"));
+    let key: Option<String> =
+        sqlx::query_scalar("SELECT restore_key FROM queue.actions WHERE id = $1")
+            .bind(restore.id)
+            .fetch_one(db.pool())
+            .await
+            .expect("reads");
+    assert_eq!(key, Some(format!("key-{id}")), "the removal's restore key");
+    let row = last_audit(db).await;
+    assert_eq!(
+        row,
+        AuditRow {
+            actor: boss_json(),
+            action: "restore_remediation".to_owned(),
+            target: ("action".to_owned(), restore.id.to_string()),
+            before: None,
+            after: Some(json!({"action": "restore", "remediations": [
+                {"id": restore.id, "remediator": "test", "observable_type": "test", "observable_value": "SUCCESS"},
+            ]})),
+            details: json!({"removal": id}),
+        }
+    );
+    // queueing a restore of the target takes the same key
+    let again = service
+        .queue_remediations(
+            &actor,
+            RemediationAction::Restore,
+            &[test_target("SUCCESS")],
+        )
+        .await
+        .expect("queues");
+    let key: Option<String> =
+        sqlx::query_scalar("SELECT restore_key FROM queue.actions WHERE id = $1")
+            .bind(again[0].id)
+            .fetch_one(db.pool())
+            .await
+            .expect("reads");
+    assert_eq!(key, Some(format!("key-{id}")));
+    row.action
+}
+
+async fn delete_remediation_records_its_row(db: &Db) -> String {
+    let actor = admin(db).await;
+    let service = service(db);
+    let queued = service
+        .queue_remediations(&actor, RemediationAction::Remove, &[test_target("IGNORE")])
+        .await
+        .expect("queues");
+    let id = queued[0].id;
+    service
+        .delete_remediation(&actor, id)
+        .await
+        .expect("deletes");
+    let row = last_audit(db).await;
+    assert_eq!(
+        row,
+        AuditRow {
+            actor: boss_json(),
+            action: "delete_remediation".to_owned(),
+            target: ("action".to_owned(), id.to_string()),
+            before: Some(action_state_json("remove", "NEW", None, "IGNORE")),
+            after: None,
+            details: json!({}),
+        }
+    );
+    assert!(matches!(
+        service.delete_remediation(&actor, id).await,
+        Err(ServiceError::NotFound(_))
+    ));
+    row.action
+}
+
+fn collection_state_json(status: &str, result: Option<&str>, value: &str) -> Value {
+    json!({
+        "kind": "file_collection", "handler": "edr", "observable_type": "file_location",
+        "observable_value": value, "action": null, "status": status, "result": result,
+    })
+}
+
+async fn cancel_file_collection_records_its_row(db: &Db) -> String {
+    let actor = admin(db).await;
+    let service = service(db);
+    let id = collection(db, None, "h3@C:\\c.exe").await;
+    service
+        .cancel_file_collection(&actor, id)
+        .await
+        .expect("cancels");
+    let row = last_audit(db).await;
+    assert_eq!(
+        row,
+        AuditRow {
+            actor: boss_json(),
+            action: "cancel_file_collection".to_owned(),
+            target: ("action".to_owned(), id.to_string()),
+            before: Some(collection_state_json("NEW", None, "h3@C:\\c.exe")),
+            after: Some(collection_state_json(
+                "COMPLETED",
+                Some("CANCELLED"),
+                "h3@C:\\c.exe"
+            )),
+            details: json!({}),
+        }
+    );
+    assert!(matches!(
+        service.cancel_file_collection(&actor, id).await,
+        Err(ServiceError::Conflict(_))
+    ));
+    // a remediation isn't a collection
+    let remediation = service
+        .queue_remediations(&actor, RemediationAction::Remove, &[test_target("SUCCESS")])
+        .await
+        .expect("queues");
+    assert!(matches!(
+        service
+            .cancel_file_collection(&actor, remediation[0].id)
+            .await,
+        Err(ServiceError::NotFound(_))
+    ));
+    row.action
+}
+
+async fn retry_file_collection_records_its_row(db: &Db) -> String {
+    let actor = admin(db).await;
+    let service = service(db);
+    let id = collection(db, None, "h4@C:\\d.exe").await;
+    complete(db, id, "HOST_OFFLINE").await;
+    let retried = service
+        .retry_file_collection(&actor, id)
+        .await
+        .expect("retries");
+    assert_eq!((retried.status.as_str(), retried.result), ("NEW", None));
+    let row = last_audit(db).await;
+    assert_eq!(
+        row,
+        AuditRow {
+            actor: boss_json(),
+            action: "retry_file_collection".to_owned(),
+            target: ("action".to_owned(), id.to_string()),
+            before: Some(collection_state_json(
+                "COMPLETED",
+                Some("HOST_OFFLINE"),
+                "h4@C:\\d.exe"
+            )),
+            after: Some(collection_state_json("NEW", None, "h4@C:\\d.exe")),
+            details: json!({}),
+        }
+    );
+    let attempts: i32 = sqlx::query_scalar("SELECT attempts FROM queue.actions WHERE id = $1")
+        .bind(id)
+        .fetch_one(db.pool())
+        .await
+        .expect("reads");
+    assert_eq!(attempts, 0, "a retry starts over");
+    row.action
+}
+
+async fn delete_file_collection_records_its_row(db: &Db) -> String {
+    let actor = admin(db).await;
+    let service = service(db);
+    let sha256 = "d".repeat(64);
+    let id = collection_with_file(db, "h5@C:\\e.exe", &sha256, 1).await;
+    service
+        .delete_file_collection(&actor, id)
+        .await
+        .expect("deletes");
+    let row = last_audit(db).await;
+    assert_eq!(
+        row,
+        AuditRow {
+            actor: boss_json(),
+            action: "delete_file_collection".to_owned(),
+            target: ("action".to_owned(), id.to_string()),
+            before: Some(collection_state_json(
+                "COMPLETED",
+                Some("SUCCESS"),
+                "h5@C:\\e.exe"
+            )),
+            after: None,
+            details: json!({}),
+        }
+    );
+    let held: i64 = sqlx::query_scalar("SELECT count(*) FROM store.holds WHERE sha256 = $1")
+        .bind(&sha256)
+        .fetch_one(db.pool())
+        .await
+        .expect("reads");
+    assert_eq!(held, 0, "its own hold went with it");
+    row.action
+}
+
+async fn prune_file_collections_records_its_row(db: &Db) -> String {
+    let service = service(db);
+    let pruner = component("scheduler:file_collection_prune");
+    let sha256 = "e".repeat(64);
+    let old = collection_with_file(db, "h6@C:\\f.exe", &sha256, 8).await;
+    let fresh = collection_with_file(db, "h7@C:\\g.exe", &"f".repeat(64), 1).await;
+    let pruned = service
+        .prune_file_collections(&pruner)
+        .await
+        .expect("prunes");
+    assert!(pruned.released >= 1 && pruned.batches == 1, "{pruned:?}");
+    let row = last_audit(db).await;
+    assert_eq!(
+        (row.actor.clone(), row.action.as_str(), row.target.clone()),
+        (
+            json!({"kind": "internal", "id": "scheduler:file_collection_prune"}),
+            "prune_file_collections",
+            ("file_collections".to_owned(), "expired".to_owned())
+        )
+    );
+    let before = row.before.clone().expect("a before");
+    assert_eq!(before["retention_days"], 7);
+    assert!(
+        before["collections"]
+            .as_array()
+            .expect("a list")
+            .iter()
+            .any(|c| c["id"] == old && c["sha256"] == sha256.as_str())
+    );
+    let held: Vec<String> = sqlx::query_scalar(
+        "SELECT holder_id FROM store.holds WHERE holder_kind = 'file_collection' ORDER BY holder_id",
+    )
+    .fetch_all(db.pool())
+    .await
+    .expect("reads");
+    assert!(held.contains(&fresh.to_string()) && !held.contains(&old.to_string()));
+    // nothing left to prune is no row; an analyst can't prune
+    let rows = audit_rows(db).await.len();
+    assert_eq!(
+        service
+            .prune_file_collections(&pruner)
+            .await
+            .expect("prunes"),
+        ace_service::CollectionsPruned::default()
+    );
+    assert!(matches!(
+        service
+            .prune_file_collections(&user(UserId(Uuid::from_u128(0x7D))))
+            .await,
+        Err(ServiceError::PermissionDenied { .. })
+    ));
+    assert_eq!(audit_rows(db).await.len(), rows);
+    row.action
+}
+
+/// PLAN.md 7.9: the remediations and the file collections are listed newest first through their screens'
+/// filters, each filter and its inverse, with the filters' total and a keyset; the targets of an alert are
+/// its observables of a remediator's type; and coverage sums up ACE's removals and the checks' findings.
+#[tokio::test]
+async fn remediations_and_collections_list_through_their_screens_filters() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let service = service(db);
+    let actor = admin(db).await;
+    let queued = service
+        .queue_remediations(
+            &actor,
+            RemediationAction::Remove,
+            &[
+                test_target("SUCCESS"),
+                test_target("FAILED"),
+                test_target("evil%_\\"),
+            ],
+        )
+        .await
+        .expect("queues");
+    complete(db, queued[0].id, "SUCCESS").await;
+    let query = |filters: Vec<ace_service::FilterEntry>| ActionQuery {
+        filters,
+        ..ActionQuery::default()
+    };
+    let ids = |page: ace_service::RemediationPage| {
+        page.remediations.iter().map(|r| r.id).collect::<Vec<_>>()
+    };
+    let all = service
+        .remediations(&actor, &query(vec![]), None, None)
+        .await
+        .expect("lists");
+    assert_eq!(all.total, 3);
+    assert_eq!(
+        ids(all.clone()),
+        [queued[2].id, queued[1].id, queued[0].id],
+        "newest first"
+    );
+    assert_eq!(
+        all.remediations[0].display_name.as_deref(),
+        Some("Test Remediator")
+    );
+    assert_eq!(
+        all.remediations[0].analyst.as_deref(),
+        Some(&*format!("u{}", Uuid::from_u128(0xAD).simple()))
+    );
+    let first = service
+        .remediations(&actor, &query(vec![]), Some(2), None)
+        .await
+        .expect("lists");
+    assert_eq!((first.total, first.next), (3, Some(queued[1].id)));
+    let second = service
+        .remediations(&actor, &query(vec![]), Some(2), first.next)
+        .await
+        .expect("lists");
+    assert_eq!(ids(second), [queued[0].id]);
+    for (entry, expected) in [
+        (text("Result", false, &["SUCCESS"]), vec![queued[0].id]),
+        (
+            text("Result", true, &["SUCCESS"]),
+            vec![queued[2].id, queued[1].id],
+        ),
+        (
+            text("Status", false, &["new"]),
+            vec![queued[2].id, queued[1].id],
+        ),
+        (text("Value", false, &["%_\\"]), vec![queued[2].id]),
+        (
+            text("Value", true, &["fail"]),
+            vec![queued[2].id, queued[0].id],
+        ),
+        (
+            text("ID", false, &[&queued[1].id.to_string()]),
+            vec![queued[1].id],
+        ),
+        (text("Action", false, &["restore"]), vec![]),
+        (
+            text("Remediator", false, &["TES"]),
+            vec![queued[2].id, queued[1].id, queued[0].id],
+        ),
+        (text("Analyst", true, &["u"]), vec![]),
+        (
+            text("Created", false, &["-1d"]),
+            vec![queued[2].id, queued[1].id, queued[0].id],
+        ),
+        (text("Created", true, &["-1d"]), vec![]),
+    ] {
+        let name = format!("{entry:?}");
+        assert_eq!(
+            ids(service
+                .remediations(&actor, &query(vec![entry]), None, None)
+                .await
+                .expect("lists")),
+            expected,
+            "{name}"
+        );
+    }
+    for bad in [
+        text("Result", false, &["HOST_OFFLINE"]),
+        text("ID", false, &["x"]),
+        text("Collector", false, &["x"]),
+    ] {
+        assert!(matches!(
+            service
+                .remediations(&actor, &query(vec![bad]), None, None)
+                .await,
+            Err(ServiceError::InvalidRequest(_))
+        ));
+    }
+    assert_eq!(
+        service
+            .remediation(&actor, queued[0].id)
+            .await
+            .expect("reads")
+            .result
+            .as_deref(),
+        Some("SUCCESS")
+    );
+    // remediation:read is what reads them
+    let outsider = user(UserId(Uuid::from_u128(0x7C)));
+    assert!(matches!(
+        service
+            .remediations(&outsider, &query(vec![]), None, None)
+            .await,
+        Err(ServiceError::PermissionDenied { .. })
+    ));
+
+    // an alert's targets are its observables of a remediator's type, each with its latest remediation
+    let root = alert(db).await;
+    let mut tx = db.begin().await.expect("begins");
+    for (kind, value) in [
+        (ObservableKind::Test, "SUCCESS"),
+        (ObservableKind::Test, "NEW_ONE"),
+        (ObservableKind::EmailDelivery, "<a@b>|x@example.com"),
+        (ObservableKind::EmailDelivery, "<c@d>|y@example.com"),
+    ] {
+        tree::upsert_observable(&mut tx, root, &NewObservable::new(kind, value))
+            .await
+            .expect("adds");
+    }
+    tx.commit().await.expect("commits");
+    assert!(matches!(
+        service.remediation_targets_of_alerts(&actor, &[root]).await,
+        Err(ServiceError::NotFound(_))
+    ));
+    sqlx::query("UPDATE analysis.roots SET alerted_at = now() WHERE id = $1")
+        .bind(root)
+        .execute(db.pool())
+        .await
+        .expect("makes it an alert");
+    let targets = service
+        .remediation_targets_of_alerts(&actor, &[root])
+        .await
+        .expect("finds them");
+    let found: Vec<(&str, Option<i64>)> = targets
+        .iter()
+        .map(|t| {
+            (
+                t.key.observable_value.as_str(),
+                t.current.as_ref().map(|c| c.id),
+            )
+        })
+        .collect();
+    assert_eq!(found, [("NEW_ONE", None), ("SUCCESS", Some(queued[0].id))]);
+    let looked_up = service
+        .remediation_targets_of_observables(
+            &actor,
+            &[
+                ("test".to_owned(), "SUCCESS".to_owned()),
+                ("fqdn".to_owned(), "x.example".to_owned()),
+            ],
+        )
+        .await
+        .expect("finds them");
+    assert_eq!(looked_up.len(), 1);
+    assert!(matches!(
+        service
+            .remediation_targets_of_observables(
+                &actor,
+                &[("no_such_type".to_owned(), "x".to_owned())]
+            )
+            .await,
+        Err(ServiceError::InvalidRequest(_))
+    ));
+
+    // coverage: one delivery ACE removed, one a check is still watching
+    sqlx::query(
+        "INSERT INTO queue.actions (kind, handler, observable_type, observable_value, action, status, result)
+         VALUES ('remediation', 'test', 'email_delivery', '<a@b>|x@example.com', 'remove', 'COMPLETED', 'SUCCESS')",
+    )
+    .execute(db.pool())
+    .await
+    .expect("a removal");
+    let check: i64 = sqlx::query_scalar(
+        "INSERT INTO queue.actions (kind, handler, observable_type, observable_value)
+         VALUES ('remediation_check', 'vendor', 'email_delivery', '<c@d>|y@example.com') RETURNING id",
+    )
+    .fetch_one(db.pool())
+    .await
+    .expect("a check");
+    sqlx::query("INSERT INTO queue.action_roots (action_id, root_id) VALUES ($1, $2)")
+        .bind(check)
+        .bind(root)
+        .execute(db.pool())
+        .await
+        .expect("attaches");
+    let other = alert(db).await;
+    let coverage = service
+        .remediation_coverage(&actor, &[root, other])
+        .await
+        .expect("reads");
+    assert_eq!(coverage[&root].state(), CoverageState::Partial);
+    assert_eq!(coverage[&root].label(), "remediated 1/2 · ACE");
+    assert_eq!(
+        coverage[&root].tooltip(),
+        "x@example.com: ACE\ny@example.com: watching"
+    );
+    assert_eq!(coverage[&other].state(), CoverageState::None);
+
+    // the file collections, and the alerts each belongs to
+    let shared = collection(db, Some(root), "h@C:\\x.exe").await;
+    assert_eq!(
+        collection(db, Some(other), "h@C:\\x.exe").await,
+        shared,
+        "joined"
+    );
+    let lone = collection(db, None, "h@C:\\y.exe").await;
+    let collections = |filters| {
+        let service = service.clone();
+        let actor = actor.clone();
+        async move {
+            service
+                .file_collections(&actor, &query(filters), None, None)
+                .await
+                .expect("lists")
+        }
+    };
+    let page = collections(vec![]).await;
+    assert_eq!(page.total, 2);
+    assert_eq!(page.collections[1].alerts, [root, other]);
+    assert_eq!(
+        page.collections[1].display_name.as_deref(),
+        Some("Test EDR")
+    );
+    let by_alert = collections(vec![text("Alert", false, &[&other.to_string()])]).await;
+    assert_eq!(
+        by_alert
+            .collections
+            .iter()
+            .map(|c| c.id)
+            .collect::<Vec<_>>(),
+        [shared]
+    );
+    let not_alert = collections(vec![text("Alert", true, &[&other.to_string()])]).await;
+    assert_eq!(
+        not_alert
+            .collections
+            .iter()
+            .map(|c| c.id)
+            .collect::<Vec<_>>(),
+        [lone]
+    );
+    assert!(matches!(
+        service
+            .file_collections(
+                &actor,
+                &query(vec![text("Alert", false, &["not-a-uuid"])]),
+                None,
+                None
+            )
+            .await,
+        Err(ServiceError::InvalidRequest(_))
+    ));
+    assert!(matches!(
+        service.file_collection_history(&actor, shared, 0).await,
+        Err(ServiceError::InvalidRequest(_))
+    ));
+    assert!(
+        service
+            .file_collection_history(&actor, shared, 10)
+            .await
+            .expect("reads")
+            .is_empty()
+    );
+}
+
+// PLAN.md 7.9: the coverage badge's sums, from ace3's coverage tests.
+
+fn ace(action: &str, status: &str, result: Option<&str>) -> ace_service::CoverageRemediation {
+    ace_service::CoverageRemediation {
+        action: Some(action.to_owned()),
+        status: status.to_owned(),
+        result: result.map(str::to_owned),
+    }
+}
+
+/// ace3's `tests/saq/remediation/test_coverage.py` cases, over rows rather than ORM objects.
+#[test]
+fn coverage_sums_up_as_ace3_s() {
+    let values = |v: &[&str]| v.iter().map(|s| (*s).to_owned()).collect::<BTreeSet<_>>();
+    let none = ace_service::assemble_coverage(
+        values(&["<a>|x@y"]),
+        &std::collections::BTreeMap::new(),
+        &[],
+    );
+    assert_eq!(none.state(), CoverageState::None);
+    assert!(!none.visible());
+
+    let mut rows = std::collections::BTreeMap::new();
+    rows.insert(
+        "<a>|x@y".to_owned(),
+        vec![ace("remove", "COMPLETED", Some("SUCCESS"))],
+    );
+    let done = ace_service::assemble_coverage(values(&["<a>|x@y"]), &rows, &[]);
+    assert_eq!(done.state(), CoverageState::Remediated);
+    assert_eq!(done.label(), "remediated 1/1 · ACE");
+    assert_eq!(done.tooltip(), "x@y: ACE");
+
+    // a restore after the removal puts it back
+    rows.get_mut("<a>|x@y")
+        .expect("a row")
+        .push(ace("restore", "COMPLETED", Some("SUCCESS")));
+    let restored = ace_service::assemble_coverage(values(&["<a>|x@y", "<b>|z@y"]), &rows, &[]);
+    assert_eq!(restored.state(), CoverageState::Unremediated);
+    assert_eq!(restored.status_label(), "not remediated 0/2");
+
+    let check = |value: &str, status: &str, result: Option<&str>, events: Option<Value>| {
+        ace_service::CoverageCheck {
+            value: value.to_owned(),
+            handler: "mail_vendor".to_owned(),
+            status: status.to_owned(),
+            result: result.map(str::to_owned),
+            result_message: None,
+            events,
+        }
+    };
+    let watching = ace_service::assemble_coverage(
+        values(&["<b>|z@y"]),
+        &std::collections::BTreeMap::new(),
+        &[check("<b>|z@y", "NEW", None, None)],
+    );
+    assert_eq!(watching.state(), CoverageState::Pending);
+    assert_eq!(watching.status_label(), "watching 0/1");
+    let events = serde_json::json!([{
+        "source": "MailVendor", "event_type": "remediated", "timestamp": "2026-11-01T00:00:00Z",
+        "description": "moved"
+    }]);
+    let partial = ace_service::assemble_coverage(
+        values(&["<b>|z@y", "<c>|w@y"]),
+        &std::collections::BTreeMap::new(),
+        &[check(
+            "<b>|z@y",
+            "COMPLETED",
+            Some("CONFIRMED"),
+            Some(events),
+        )],
+    );
+    assert_eq!(partial.state(), CoverageState::Partial);
+    assert_eq!(partial.label(), "remediated 1/2 · MailVendor");
+
+    let mut failed = std::collections::BTreeMap::new();
+    failed.insert(
+        "<c>|w@y".to_owned(),
+        vec![ace("remove", "COMPLETED", Some("ERROR"))],
+    );
+    assert_eq!(
+        ace_service::assemble_coverage(values(&["<c>|w@y"]), &failed, &[]).state(),
+        CoverageState::Failed
+    );
+    let mut missing = std::collections::BTreeMap::new();
+    missing.insert(
+        "<c>|w@y".to_owned(),
+        vec![ace("remove", "COMPLETED", Some("NOT_FOUND"))],
+    );
+    let not_found = ace_service::assemble_coverage(values(&["<c>|w@y"]), &missing, &[]);
+    assert_eq!(not_found.state(), CoverageState::NotFound);
+    assert_eq!(not_found.label(), "not in mailbox 1/1");
+    let mut pending = std::collections::BTreeMap::new();
+    pending.insert(
+        "<c>|w@y".to_owned(),
+        vec![ace("remove", "IN_PROGRESS", Some("DELAYED"))],
+    );
+    assert_eq!(
+        ace_service::assemble_coverage(values(&["<c>|w@y"]), &pending, &[]).status_label(),
+        "remediating 0/1"
+    );
+    let superseded = ace_service::CoverageCheck {
+        result_message: Some(ace_core::actions::probe_supersede_reason(
+            "msmail_filter",
+            None,
+        )),
+        ..check("<c>|w@y", "COMPLETED", Some("SUPERSEDED"), None)
+    };
+    assert_eq!(
+        ace_service::assemble_coverage(
+            values(&["<c>|w@y"]),
+            &std::collections::BTreeMap::new(),
+            &[superseded]
+        )
+        .label(),
+        "remediated 1/1 · msmail_filter"
+    );
+    let many: Vec<String> = (0..30).map(|i| format!("<m>|u{i}@y")).collect();
+    let many = ace_service::assemble_coverage(
+        many.iter().cloned().collect(),
+        &std::collections::BTreeMap::new(),
+        &[check("<m>|u0@y", "NEW", None, None)],
+    );
+    assert!(
+        many.tooltip().ends_with("... and 5 more"),
+        "{}",
+        many.tooltip()
     );
 }

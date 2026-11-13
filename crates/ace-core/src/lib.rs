@@ -9,7 +9,10 @@
 //! `scheduler` holds the tables through which `ace serve`'s replicas share out the scheduled
 //! maintenance tasks (PLAN.md 6.7). `hooks` runs ace3's `observable_modifier` and
 //! `configuration_defined_tagging` in the core, over the whole tree, at the end of a pass (PLAN.md 7.6).
+//! `actions` holds remediations, remediation checks and file collections, which network pools lease
+//! through the lease API as they lease tasks (PLAN.md 7.9).
 
+pub mod actions;
 pub mod api;
 pub mod bucket;
 pub mod commands;

@@ -35,6 +35,11 @@
 //! the list's filters, sorts and pages by its URL, the export sent on to the API's, and Close Event from
 //! this site only with its audit row, each refusal changing nothing.
 //!
+//! PLAN.md 7.9 (5.11's remediation and file_collection areas): the remediations, a remediation's page,
+//! Add Remediation, the file collections and a collection's page, drawn directly with hostile values, and
+//! through the server under `remediation:read`/`write` and `file_collection:read`/`write`, each write from
+//! this site only with its audit row; and the event page's remediation coverage badges.
+//!
 //! PLAN.md 5.12: Administration's CLI, the console and a run's page and fragment, drawn directly with a
 //! run's hostile command and output, and through the server under `admin:read` and `cli:execute`: a start
 //! and a cancel from this site only, each with its audit row, the fragment's poll that stops once a run
@@ -98,7 +103,7 @@ async fn stack_from(build: impl FnOnce(Service) -> Gui) -> Stack {
 async fn stack_of(catalog: Catalog, build: impl FnOnce(Service) -> Gui) -> Stack {
     let test_db = TestDb::new().await;
     let orchestrator = Orchestrator::new(catalog, Modes::ace3());
-    let service = Service::new(test_db.db().clone(), orchestrator);
+    let service = Service::new(test_db.db().clone(), orchestrator).with_actions(test_actions());
     let gui = build(service.clone());
     let router = gui.router();
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
@@ -10294,4 +10299,495 @@ async fn detections_are_added_expired_and_removed_through_the_admin_area() {
     let bad = post("/admin/detection/abc/delete".to_owned(), Vec::new()).await;
     assert_eq!(bad.status(), StatusCode::BAD_REQUEST);
     assert_eq!(stack.audit_count().await, rows + 4);
+}
+
+// PLAN.md 7.9: the remediation and file_collection areas, and the event page's coverage.
+
+static TEST_COLLECTOR: ace_sdk::actions::ActionSpec = ace_sdk::actions::ActionSpec {
+    kind: ace_sdk::actions::ActionKind::FileCollection,
+    name: "edr",
+    display_name: "Test EDR",
+    description: "Collects files in tests.",
+    observable_type: "file_location",
+    tcp_ports: &[],
+    secrets: &[],
+    retry: ace_sdk::actions::Retry::FILE_COLLECTION,
+    supersede_grace_seconds: 0,
+};
+
+/// ace3's test remediator and a test collector.
+fn test_actions() -> ace_core::actions::ActionCatalog {
+    ace_core::actions::ActionCatalog::new(&[&ace_sdk::actions::TEST_REMEDIATOR, &TEST_COLLECTOR])
+        .expect("a catalog")
+}
+
+fn remediation_fixture(
+    id: i64,
+    value: &str,
+    status: &str,
+    result: Option<&str>,
+) -> ace_service::Remediation {
+    ace_service::Remediation {
+        id,
+        remediator: "test".to_owned(),
+        display_name: Some("Test Remediator".to_owned()),
+        observable_type: "test".to_owned(),
+        observable_value: value.to_owned(),
+        action: "remove".to_owned(),
+        status: status.to_owned(),
+        result: result.map(str::to_owned),
+        result_message: Some(HOSTILE.to_owned()),
+        analyst: Some(HOSTILE.to_owned()),
+        attempts: 1,
+        created_at: "2026-11-01T10:00:00Z".parse().expect("a time"),
+        updated_at: None,
+    }
+}
+
+/// The areas' pages, drawn directly: a value, a message and an analyst are text; a writer gets each row's
+/// forms and a reader none; the filters come back as the form's fields and as the pager's share links.
+#[test]
+fn the_remediation_areas_draw_hostile_values_as_text() {
+    use ace_gui::remediation::{
+        CollectionPage, CollectionsPage, RemediationPage, RemediationsPage, TargetsPage,
+        TargetsView, collection_view, collections_view, list_request, remediation_view,
+        remediations_view, target_key, target_row,
+    };
+    use ace_service::filters::FilterScreen;
+    let layout = |path: &str| Layout::new("n0nce", Theme::Dark, Some("alice".to_owned()), path);
+    let request = list_request(
+        FilterScreen::Remediations,
+        Some("f=value:a%2Cb&f=!result:FAILED&after=9"),
+    )
+    .expect("reads");
+    assert!(!request.folded);
+    let page = || ace_service::RemediationPage {
+        remediations: vec![
+            remediation_fixture(8, HOSTILE, "COMPLETED", Some("SUCCESS")),
+            remediation_fixture(7, "DELAYED", "IN_PROGRESS", Some("DELAYED")),
+        ],
+        total: 12,
+        next: Some(7),
+    };
+    let html = drawn_safely(&RemediationsPage {
+        layout: layout("/remediations"),
+        view: remediations_view(&request, page(), true),
+    });
+    for part in [
+        &format!("<code>{HOSTILE_ESCAPED}</code>") as &str,
+        r#"action="/remediations/8/restore""#,
+        r#"action="/remediations/8/retry""#,
+        r#"action="/remediations/7/cancel""#,
+        r#"action="/remediations/7/delete""#,
+        r#"<a href="/remediations/targets">Add Remediation</a>"#,
+        r#"name="value" value="a,b""#,
+        "12 matching",
+        r#"href="/remediations?f=value%3Aa%2Cb&#38;f=%21result%3AFAILED">First</a>"#,
+        r#"href="/remediations?f=value%3Aa%2Cb&#38;f=%21result%3AFAILED&#38;after=7">Next</a>"#,
+        r#"href="/api/remediation/v1/remediations/export/csv?f=value%3Aa%2Cb&#38;f=%21result%3AFAILED""#,
+    ] {
+        assert!(html.contains(part), "{part}: {html}");
+    }
+    let read = drawn_safely(&RemediationsPage {
+        layout: layout("/remediations"),
+        view: remediations_view(&request, page(), false),
+    });
+    assert!(
+        !read.contains(r#"method="post""#.trim_end_matches('"'))
+            || !read.contains("/remediations/8/retry"),
+        "{read}"
+    );
+    assert!(!read.contains("Add Remediation"));
+
+    // a remediation's page with its tries
+    let attempt = ace_service::ActionAttempt {
+        status: "COMPLETED".to_owned(),
+        result: "SUCCESS".to_owned(),
+        message: HOSTILE.to_owned(),
+        created_at: "2026-11-01T10:01:00Z".parse().expect("a time"),
+    };
+    let html = drawn_safely(&RemediationPage {
+        layout: layout("/remediations/8"),
+        view: remediation_view(
+            remediation_fixture(8, HOSTILE, "COMPLETED", Some("SUCCESS")),
+            vec![attempt.clone()],
+            true,
+        ),
+    });
+    assert!(html.contains("2026-11-01 10:01:00"), "{html}");
+    assert!(
+        html.contains(r#"name="back" value="/remediations""#),
+        "{html}"
+    );
+
+    // the add form's targets, whose checkbox carries the target
+    let target = ace_service::RemediationTarget {
+        key: ace_service::TargetKey {
+            remediator: "test".to_owned(),
+            observable_type: "test".to_owned(),
+            observable_value: format!("a:b{HOSTILE}"),
+        },
+        display_name: Some("Test Remediator".to_owned()),
+        current: None,
+    };
+    let row = target_row(target.clone());
+    assert_eq!(
+        target_key(&row.key),
+        Some(target.key.clone()),
+        "a value's colons stay"
+    );
+    let html = drawn_safely(&TargetsPage {
+        layout: layout("/remediations/targets"),
+        view: TargetsView {
+            types: vec!["test"],
+            selected_type: "test".to_owned(),
+            values: HOSTILE.to_owned(),
+            alerts: Vec::new(),
+            targets: Some(vec![row]),
+            can_write: true,
+            problem: Some(HOSTILE.to_owned()),
+        },
+    });
+    assert!(
+        html.contains(r#"<button type="submit" name="action" value="restore">Restore</button>"#)
+    );
+    assert!(
+        html.contains(&format!("{HOSTILE_ESCAPED}</textarea>")),
+        "{html}"
+    );
+
+    // the file collections, each with its alerts and file
+    let collection = || ace_service::FileCollection {
+        id: 3,
+        collector: "edr".to_owned(),
+        display_name: Some("Test EDR".to_owned()),
+        observable_type: "file_location".to_owned(),
+        observable_value: HOSTILE.to_owned(),
+        status: "COMPLETED".to_owned(),
+        result: Some("SUCCESS".to_owned()),
+        result_message: None,
+        attempts: 2,
+        max_attempts: Some(10),
+        alerts: vec![uuid::Uuid::from_u128(1), uuid::Uuid::from_u128(2)],
+        requested_by: None,
+        file: Some(("a".repeat(64), 5, HOSTILE.to_owned())),
+        created_at: "2026-11-01T10:00:00Z".parse().expect("a time"),
+        updated_at: None,
+    };
+    let crequest = list_request(FilterScreen::FileCollections, None).expect("reads");
+    let html = drawn_safely(&CollectionsPage {
+        layout: layout("/file-collections"),
+        view: collections_view(
+            &crequest,
+            ace_service::FileCollectionPage {
+                collections: vec![collection()],
+                total: 1,
+                next: None,
+            },
+            true,
+        ),
+    });
+    for part in [
+        r#"<a href="/alerts/00000000-0000-0000-0000-000000000001">"#,
+        r#"<a href="/alerts/00000000-0000-0000-0000-000000000002">"#,
+        "2/10",
+        r#"action="/file-collections/3/retry""#,
+        r#"action="/file-collections/3/delete""#,
+    ] {
+        assert!(html.contains(part), "{part}: {html}");
+    }
+    assert!(
+        !html.contains("/file-collections/3/cancel"),
+        "a completed one isn't cancelled"
+    );
+    drawn_safely(&CollectionPage {
+        layout: layout("/file-collections/3"),
+        view: collection_view(collection(), vec![attempt], false),
+    });
+
+    // a filter the screen hasn't, or a value of the wrong shape, isn't a list
+    for bad in ["f=nope:x", "f=id:x", "after=x", "status=WHENEVER"] {
+        assert!(
+            list_request(FilterScreen::Remediations, Some(bad)).is_err(),
+            "{bad}"
+        );
+    }
+    let folded = list_request(
+        FilterScreen::FileCollections,
+        Some("collector=edr&alert=&status=new"),
+    )
+    .expect("reads");
+    assert!(folded.folded);
+    assert_eq!(folded.filters.len(), 2, "{folded:?}");
+}
+
+/// The areas through the server: signed out goes to the login; reading needs each area's `:read` and
+/// each form its `:write`; Add Remediation queues the ticked targets as one audited write; a row's form
+/// cancels, retries, restores and deletes, each audited, and comes back to the list it was on; the
+/// filter form folds into a share link; a cross-site post writes nothing; and an event's page shows its
+/// alerts' coverage badges to whoever holds `remediation:read`.
+#[tokio::test]
+async fn remediations_and_collections_are_worked_through_the_gui() {
+    let stack = stack().await;
+    let page = stack.get("/remediations").send().await.expect("answered");
+    assert_eq!(page.status(), StatusCode::SEE_OTHER);
+    assert_eq!(location(&page), "/login?next=%2Fremediations");
+    let editor = user(&stack, "editor").await;
+    for (major, minor) in [
+        ("remediation", "read"),
+        ("remediation", "write"),
+        ("file_collection", "read"),
+        ("file_collection", "write"),
+        ("event", "read"),
+        ("alert", "read"),
+    ] {
+        grant_to(&stack, &editor, major, minor).await;
+    }
+    let reader = user(&stack, "reader").await;
+    grant_to(&stack, &reader, "remediation", "read").await;
+    grant_to(&stack, &reader, "event", "read").await;
+    user(&stack, "nobody").await;
+    let (ed, rd, none) = (
+        session_of(&stack, "editor").await,
+        session_of(&stack, "reader").await,
+        session_of(&stack, "nobody").await,
+    );
+    let get = |session: &str, path: &str| stack.get(path).header("cookie", cookie(session)).send();
+    let text = |response: reqwest::Response| async move { response.text().await.expect("a page") };
+
+    let refused = get(&none, "/remediations").await.expect("answered");
+    assert_eq!(refused.status(), StatusCode::FORBIDDEN);
+    assert!(text(refused).await.contains("remediation:read"));
+    let refused = get(&rd, "/file-collections").await.expect("answered");
+    assert_eq!(refused.status(), StatusCode::FORBIDDEN);
+    let refused = get(&none, "/remediations/targets").await.expect("answered");
+    assert_eq!(refused.status(), StatusCode::FORBIDDEN);
+    let listed = text(get(&rd, "/remediations").await.expect("answered")).await;
+    assert!(listed.contains("No remediations."), "{listed}");
+    assert!(
+        listed.contains(r#"<a href="/remediations">Remediations</a>"#),
+        "the nav links it"
+    );
+    assert!(!listed.contains(r#"href="/file-collections""#), "{listed}");
+
+    // Add Remediation: find the targets of values, tick them, remove
+    let found = get(
+        &ed,
+        "/remediations/targets?type=test&values=SUCCESS%0ADELAYED",
+    )
+    .await
+    .expect("answered");
+    assert_eq!(found.status(), StatusCode::OK);
+    let found = text(found).await;
+    assert!(found.contains(r#"value="test:test:SUCCESS""#), "{found}");
+    let bad = get(&ed, "/remediations/targets?type=no_such_type&values=x")
+        .await
+        .expect("answered");
+    assert_eq!(bad.status(), StatusCode::BAD_REQUEST);
+    let rows = stack.audit_count().await;
+    let form = [
+        ("action", "remove"),
+        ("target", "test:test:SUCCESS"),
+        ("target", "test:test:DELAYED"),
+    ];
+    for (session, origin, status) in [
+        (&rd, None, StatusCode::FORBIDDEN),
+        (&ed, Some("https://evil.example"), StatusCode::FORBIDDEN),
+    ] {
+        let request = stack
+            .http
+            .post(format!("{}/remediations", stack.url))
+            .header("origin", origin.unwrap_or(&stack.url))
+            .header("cookie", cookie(session))
+            .form(&form);
+        assert_eq!(request.send().await.expect("answered").status(), status);
+    }
+    assert_eq!(stack.audit_count().await, rows, "nothing refused has a row");
+    let queued = stack
+        .post("/remediations", &form)
+        .header("cookie", cookie(&ed))
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(queued.status(), StatusCode::SEE_OTHER);
+    assert_eq!(location(&queued), "/remediations?done=queued");
+    assert_eq!(last_action(&stack).await, "queue_remediations");
+    let none_ticked = stack
+        .post("/remediations", &[("action", "remove")])
+        .header("cookie", cookie(&ed))
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(none_ticked.status(), StatusCode::BAD_REQUEST);
+    let ids: Vec<i64> = sqlx::query_scalar("SELECT id FROM queue.actions ORDER BY id")
+        .fetch_all(stack.test_db.db().pool())
+        .await
+        .expect("reads");
+    let list = text(
+        get(&ed, "/remediations?done=queued")
+            .await
+            .expect("answered"),
+    )
+    .await;
+    assert!(list.contains("The remediations are queued."), "{list}");
+    assert!(
+        list.contains(&format!(r#"action="/remediations/{}/cancel""#, ids[0])),
+        "{list}"
+    );
+
+    // the filter form folds into a share link, and a bad one is refused
+    let folded = get(&ed, "/remediations?value=SUCC&status=")
+        .await
+        .expect("answered");
+    assert_eq!(folded.status(), StatusCode::SEE_OTHER);
+    assert_eq!(location(&folded), "/remediations?f=value%3ASUCC");
+    let bad = get(&ed, "/remediations?f=nope:x").await.expect("answered");
+    assert_eq!(bad.status(), StatusCode::BAD_REQUEST);
+
+    // a row's forms, back to the list they were on
+    let write = |path: String, back: &'static str| {
+        let stack = &stack;
+        let ed = ed.clone();
+        async move {
+            stack
+                .post(&path, &[("back", back)])
+                .header("cookie", cookie(&ed))
+                .send()
+                .await
+                .expect("answered")
+        }
+    };
+    let cancelled = write(
+        format!("/remediations/{}/cancel", ids[1]),
+        "/remediations?f=value%3ADELAYED",
+    )
+    .await;
+    assert_eq!(cancelled.status(), StatusCode::SEE_OTHER);
+    assert_eq!(
+        location(&cancelled),
+        "/remediations?f=value%3ADELAYED&done=cancelled"
+    );
+    let elsewhere = write(
+        format!("/remediations/{}/retry", ids[1]),
+        "https://evil.example/",
+    )
+    .await;
+    assert_eq!(
+        location(&elsewhere),
+        "/remediations?done=retried",
+        "only its own list"
+    );
+    let again = write(format!("/remediations/{}/cancel", ids[0]), "/remediations").await;
+    assert_eq!(again.status(), StatusCode::SEE_OTHER);
+    let conflict = write(format!("/remediations/{}/cancel", ids[0]), "/remediations").await;
+    assert_eq!(conflict.status(), StatusCode::CONFLICT);
+    let missing = write("/remediations/999999/delete".to_owned(), "/remediations").await;
+    assert_eq!(missing.status(), StatusCode::NOT_FOUND);
+    let nonsense = write("/remediations/x/delete".to_owned(), "/remediations").await;
+    assert_eq!(nonsense.status(), StatusCode::BAD_REQUEST);
+    let deleted = write(format!("/remediations/{}/delete", ids[0]), "/remediations").await;
+    assert_eq!(location(&deleted), "/remediations?done=deleted");
+    let one = get(&ed, &format!("/remediations/{}", ids[1]))
+        .await
+        .expect("answered");
+    assert_eq!(one.status(), StatusCode::OK);
+    assert!(text(one).await.contains("cancelled by editor"));
+    assert_eq!(
+        get(&ed, "/remediations/999999")
+            .await
+            .expect("answered")
+            .status(),
+        StatusCode::NOT_FOUND
+    );
+
+    // the file collections
+    let alert = list_alert(&stack, "an alert", "2026-11-01T10:00:00Z", None).await;
+    let mut tx = stack.test_db.db().begin().await.expect("begins");
+    let collection = ace_core::actions::request_collection(
+        &mut tx,
+        &test_actions(),
+        &ace_core::actions::NewCollection {
+            handler: "edr",
+            observable_type: "file_location",
+            observable_value: "host@C:\\evil.ps1",
+            root: Some(alert),
+            requested_by: None,
+            user: None,
+        },
+    )
+    .await
+    .expect("requests")
+    .id();
+    tx.commit().await.expect("commits");
+    let collections = text(get(&ed, "/file-collections").await.expect("answered")).await;
+    assert!(
+        collections.contains(&format!(r#"<a href="/alerts/{alert}">"#)),
+        "{collections}"
+    );
+    let cancelled = write(
+        format!("/file-collections/{collection}/cancel"),
+        "/file-collections",
+    )
+    .await;
+    assert_eq!(location(&cancelled), "/file-collections?done=cancelled");
+    let page = text(
+        get(&ed, &format!("/file-collections/{collection}"))
+            .await
+            .expect("answered"),
+    )
+    .await;
+    assert!(page.contains("CANCELLED"), "{page}");
+
+    // an event's page: the coverage badge, to whoever reads remediations
+    let event = gui_event(&stack, "remediated", "2026-11-01", "OPEN").await;
+    sqlx::query("INSERT INTO events.event_alerts (event_id, root_id) VALUES ($1, $2)")
+        .bind(event)
+        .bind(alert)
+        .execute(stack.test_db.db().pool())
+        .await
+        .expect("adds");
+    let mut tx = stack.test_db.db().begin().await.expect("begins");
+    ace_core::tree::upsert_observable(
+        &mut tx,
+        alert,
+        &ace_results::NewObservable::new(
+            ace_results::ObservableKind::EmailDelivery,
+            "<m@x>|bob@example.com",
+        ),
+    )
+    .await
+    .expect("adds");
+    tx.commit().await.expect("commits");
+    sqlx::query(
+        "INSERT INTO queue.actions (kind, handler, observable_type, observable_value, action, status, result)
+         VALUES ('remediation', 'test', 'email_delivery', '<m@x>|bob@example.com', 'remove', 'COMPLETED', 'SUCCESS')",
+    )
+    .execute(stack.test_db.db().pool())
+    .await
+    .expect("a removal");
+    let shown = text(
+        get(&rd, &format!("/events/{event}"))
+            .await
+            .expect("answered"),
+    )
+    .await;
+    assert!(
+        shown.contains(r#"<span class="badge coverage-remediated" title="bob@example.com: ACE">remediated 1/1 · ACE</span>"#),
+        "{shown}"
+    );
+    assert!(
+        shown.contains(&format!(r#"href="/remediations/targets?alert={alert}""#)),
+        "{shown}"
+    );
+    let viewer = user(&stack, "viewer").await;
+    grant_to(&stack, &viewer, "event", "read").await;
+    let vw = session_of(&stack, "viewer").await;
+    let hidden = text(
+        get(&vw, &format!("/events/{event}"))
+            .await
+            .expect("answered"),
+    )
+    .await;
+    assert!(!hidden.contains("coverage-"), "{hidden}");
+    assert!(!hidden.contains("/remediations/targets"), "{hidden}");
 }

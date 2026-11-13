@@ -4225,3 +4225,674 @@ async fn the_scanner_pool_kills_a_cancelled_scanner_and_reaps_what_a_crash_left(
     stop.cancel();
     running.await.expect("joins");
 }
+
+/// A remediation check whose probe answers pending once and then finds the vendor's event, as ace3's
+/// probes do for a vendor that acts minutes later.
+struct FakeProbe;
+
+static FAKE_PROBE: ace_sdk::actions::ActionSpec = ace_sdk::actions::ActionSpec {
+    kind: ace_sdk::actions::ActionKind::RemediationCheck,
+    name: "fake_vendor",
+    display_name: "Fake Vendor",
+    description: "Answers pending, then confirms.",
+    observable_type: "email_delivery",
+    tcp_ports: &[],
+    secrets: &[],
+    retry: ace_sdk::actions::Retry {
+        initial_delay_seconds: 1,
+        max_delay_seconds: 1,
+        max_attempts: Some(5),
+        deadline_seconds: Some(3600),
+    },
+    supersede_grace_seconds: 0,
+};
+
+impl ace_sdk::actions::RemediationProbe for FakeProbe {
+    fn spec(&self) -> &'static ace_sdk::actions::ActionSpec {
+        &FAKE_PROBE
+    }
+
+    fn probe<'a>(
+        &'a self,
+        target: &'a ace_sdk::actions::LeasedAction,
+    ) -> ace_sdk::actions::ActionFuture<'a, ace_sdk::actions::ProbeOutcome> {
+        Box::pin(async move {
+            if target.attempts == 0 {
+                return ace_sdk::actions::ProbeOutcome::Pending {
+                    message: Some("nothing yet".to_owned()),
+                };
+            }
+            ace_sdk::actions::ProbeOutcome::FoundEvents {
+                events: vec![ace_sdk::actions::RemediationEvent {
+                    source: "Fake Vendor".to_owned(),
+                    event_type: "moved_to_junk".to_owned(),
+                    timestamp: chrono::Utc::now(),
+                    description: format!("moved {}", target.observable_value),
+                    event_time: None,
+                    actor: None,
+                    target: None,
+                    folder: Some("Junk".to_owned()),
+                    portal_url: None,
+                    metadata: serde_json::Map::new(),
+                }],
+                message: None,
+            }
+        })
+    }
+}
+
+/// A file collector whose host is offline at the first try and gives the file at the second.
+struct FakeCollector;
+
+static FAKE_COLLECTOR: ace_sdk::actions::ActionSpec = ace_sdk::actions::ActionSpec {
+    kind: ace_sdk::actions::ActionKind::FileCollection,
+    name: "fake_edr",
+    display_name: "Fake EDR",
+    description: "Offline, then collects.",
+    observable_type: "file_location",
+    tcp_ports: &[],
+    secrets: &[],
+    retry: ace_sdk::actions::Retry {
+        initial_delay_seconds: 1,
+        max_delay_seconds: 1,
+        max_attempts: Some(3),
+        deadline_seconds: Some(3600),
+    },
+    supersede_grace_seconds: 0,
+};
+
+impl ace_sdk::actions::FileCollector for FakeCollector {
+    fn spec(&self) -> &'static ace_sdk::actions::ActionSpec {
+        &FAKE_COLLECTOR
+    }
+
+    fn collect<'a>(
+        &'a self,
+        target: &'a ace_sdk::actions::LeasedAction,
+        dir: &'a Path,
+    ) -> ace_sdk::actions::ActionFuture<'a, ace_sdk::actions::CollectorResult> {
+        Box::pin(async move {
+            if target.attempts == 0 {
+                return ace_sdk::actions::CollectorResult {
+                    status: ace_sdk::actions::CollectorStatus::HostOffline,
+                    message: Some("the host is offline".to_owned()),
+                    file: None,
+                };
+            }
+            let path = dir.join("evil.ps1");
+            std::fs::write(&path, format!("collected from {}", target.observable_value))
+                .expect("writes");
+            ace_sdk::actions::CollectorResult {
+                status: ace_sdk::actions::CollectorStatus::Success,
+                message: None,
+                file: Some(path),
+            }
+        })
+    }
+}
+
+/// A core whose test pool runs the test remediator, the fake probe and the fake collector.
+async fn actions_core() -> (Core, ace_core::actions::ActionCatalog) {
+    let specs: [&'static ace_sdk::actions::ActionSpec; 3] = [
+        &ace_sdk::actions::TEST_REMEDIATOR,
+        &FAKE_PROBE,
+        &FAKE_COLLECTOR,
+    ];
+    let catalog = ace_core::actions::ActionCatalog::new(&specs).expect("a catalog");
+    let entries: Vec<String> = specs.iter().map(|s| s.pool_entry()).collect();
+    let entries: Vec<&str> = entries.iter().map(String::as_str).collect();
+    let configured = catalog.clone();
+    let core = Core::start_configured(
+        ace_core::eligibility::Catalog::new([]),
+        ace_core::modes::Modes::ace3(),
+        &entries,
+        Duration::from_secs(30),
+        move |config| config.actions(configured),
+    )
+    .await;
+    (core, catalog)
+}
+
+fn action_pool(core: &Core) -> ace_pool::actions::ActionPool {
+    let handlers = ace_pool::actions::Handlers::new()
+        .with(ace_pool::actions::Handler::Remediator(std::sync::Arc::new(
+            ace_sdk::actions::TestRemediator,
+        )))
+        .and_then(|h| {
+            h.with(ace_pool::actions::Handler::Probe(std::sync::Arc::new(
+                FakeProbe,
+            )))
+        })
+        .and_then(|h| {
+            h.with(ace_pool::actions::Handler::Collector(std::sync::Arc::new(
+                FakeCollector,
+            )))
+        })
+        .expect("handlers");
+    let client =
+        ace_pool::client::LeaseClient::new(&core.url, common::TOKEN, "actions").expect("a client");
+    ace_pool::actions::ActionPool::new(client, std::sync::Arc::new(handlers), 4)
+        .lease_wait(Duration::from_secs(1))
+}
+
+async fn plain_root(core: &Core) -> uuid::Uuid {
+    let root = ace_core::tree::NewRoot::new("analysis");
+    let mut tx = core.test_db.db().begin().await.expect("begins");
+    ace_core::tree::create_root(&mut tx, &root)
+        .await
+        .expect("creates");
+    tx.commit().await.expect("commits");
+    root.id
+}
+
+/// An action's status, result and tries.
+async fn action_state(core: &Core, id: i64) -> (String, Option<String>, i32) {
+    sqlx::query_as("SELECT status, result, attempts FROM queue.actions WHERE id = $1")
+        .bind(id)
+        .fetch_one(core.test_db.db().pool())
+        .await
+        .expect("reads")
+}
+
+/// Waits up to 30 seconds for an action to complete, making one that waits for its backoff due at once.
+async fn wait_completed(core: &Core, id: i64) -> (String, Option<String>, i32) {
+    let deadline = tokio::time::Instant::now() + Duration::from_secs(30);
+    loop {
+        let state = action_state(core, id).await;
+        if state.0 == "COMPLETED" {
+            return state;
+        }
+        assert!(
+            tokio::time::Instant::now() < deadline,
+            "action {id} is still {state:?}"
+        );
+        sqlx::query(
+            "UPDATE queue.actions SET run_after = now() WHERE id = $1 AND lease_owner IS NULL",
+        )
+        .bind(id)
+        .execute(core.test_db.db().pool())
+        .await
+        .expect("updates");
+        tokio::time::sleep(Duration::from_millis(100)).await;
+    }
+}
+
+/// PLAN.md 7.9's Done check: a remediation, a remediation check and a file collection each run from the
+/// queue, through the lease API, on a pool that holds only its token. Two alerts that ask for one file
+/// share one collection, which belongs to each of them (#1101).
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn remediation_checks_and_file_collections_run_from_the_queue() {
+    let (core, catalog) = actions_core().await;
+    let db = core.test_db.db();
+    let (first, second) = (plain_root(&core).await, plain_root(&core).await);
+    let analyst = serde_json::json!({"kind": "user", "id": uuid::Uuid::new_v4(), "name": "alice"});
+    let mut tx = db.begin().await.expect("begins");
+    let remediation = ace_core::actions::queue_remediation(
+        &mut tx,
+        &catalog,
+        &ace_core::actions::NewRemediation {
+            handler: "test",
+            observable_type: "test",
+            observable_value: "SUCCESS",
+            action: ace_sdk::actions::RemediationAction::Remove,
+            restore_key: None,
+            requested_by: &analyst,
+            user: None,
+        },
+    )
+    .await
+    .expect("queues");
+    let context = serde_json::json!({"recipient": "bob@example.com"});
+    let (check, new) = ace_core::actions::request_check(
+        &mut tx,
+        &catalog,
+        &ace_core::actions::NewCheck {
+            handler: "fake_vendor",
+            observable_type: "email_delivery",
+            observable_value: "<m@example.com>|bob@example.com",
+            root: first,
+            context: Some(&context),
+        },
+    )
+    .await
+    .expect("queues");
+    assert!(new);
+    let collection = |root| ace_core::actions::NewCollection {
+        handler: "fake_edr",
+        observable_type: "file_location",
+        observable_value: "host1@C:\\Users\\bob\\evil.ps1",
+        root: Some(root),
+        requested_by: None,
+        user: None,
+    };
+    let queued = ace_core::actions::request_collection(&mut tx, &catalog, &collection(first))
+        .await
+        .expect("queues");
+    let joined = ace_core::actions::request_collection(&mut tx, &catalog, &collection(second))
+        .await
+        .expect("joins");
+    assert!(matches!(queued, ace_core::actions::Requested::Queued(_)));
+    assert_eq!(
+        joined,
+        ace_core::actions::Requested::Joined(queued.id()),
+        "the second alert joins the first's collection"
+    );
+    // a pending check for the same alert and target isn't queued twice
+    let (again, new) = ace_core::actions::request_check(
+        &mut tx,
+        &catalog,
+        &ace_core::actions::NewCheck {
+            handler: "fake_vendor",
+            observable_type: "email_delivery",
+            observable_value: "<m@example.com>|bob@example.com",
+            root: first,
+            context: None,
+        },
+    )
+    .await
+    .expect("finds it");
+    assert_eq!((again, new), (check, false));
+    // a handler this server hasn't, or a type its handler doesn't act on, is refused
+    assert!(
+        ace_core::actions::request_collection(
+            &mut tx,
+            &catalog,
+            &ace_core::actions::NewCollection {
+                observable_type: "ipv4",
+                ..collection(first)
+            }
+        )
+        .await
+        .is_err()
+    );
+    tx.commit().await.expect("commits");
+
+    let stop = tokio_util::sync::CancellationToken::new();
+    let pool = action_pool(&core);
+    let running = {
+        let stop = stop.clone();
+        tokio::spawn(async move { pool.run(stop).await })
+    };
+    assert_eq!(
+        wait_completed(&core, remediation).await,
+        ("COMPLETED".to_owned(), Some("SUCCESS".to_owned()), 1)
+    );
+    assert_eq!(
+        wait_completed(&core, check).await,
+        ("COMPLETED".to_owned(), Some("CONFIRMED".to_owned()), 2)
+    );
+    assert_eq!(
+        wait_completed(&core, queued.id()).await,
+        ("COMPLETED".to_owned(), Some("SUCCESS".to_owned()), 2)
+    );
+    stop.cancel();
+    let stats = running.await.expect("joins");
+    assert_eq!(stats.errors, 0, "{stats:?}");
+    assert_eq!(stats.ended, 5, "{stats:?}");
+
+    // each try is recorded, as ace3's history tables record them
+    let attempts: Vec<(i64, String, String)> = sqlx::query_as(
+        "SELECT action_id, status, result FROM queue.action_attempts ORDER BY action_id, id",
+    )
+    .fetch_all(db.pool())
+    .await
+    .expect("reads");
+    assert_eq!(
+        attempts,
+        [
+            (remediation, "COMPLETED".to_owned(), "SUCCESS".to_owned()),
+            (check, "NEW".to_owned(), "PENDING".to_owned()),
+            (check, "COMPLETED".to_owned(), "CONFIRMED".to_owned()),
+            (
+                queued.id(),
+                "IN_PROGRESS".to_owned(),
+                "HOST_OFFLINE".to_owned()
+            ),
+            (queued.id(), "COMPLETED".to_owned(), "SUCCESS".to_owned()),
+        ]
+    );
+    let events: serde_json::Value =
+        sqlx::query_scalar("SELECT events FROM queue.actions WHERE id = $1")
+            .bind(check)
+            .fetch_one(db.pool())
+            .await
+            .expect("reads");
+    assert_eq!(events[0]["source"], "Fake Vendor");
+    assert_eq!(events[0]["folder"], "Junk");
+
+    // the collected file is in the bucket, held by the collection and by both alerts
+    let (sha256, size, name): (String, i64, String) =
+        sqlx::query_as("SELECT file_sha256, file_size, file_name FROM queue.actions WHERE id = $1")
+            .bind(queued.id())
+            .fetch_one(db.pool())
+            .await
+            .expect("reads");
+    let expected = "collected from host1@C:\\Users\\bob\\evil.ps1".to_owned();
+    assert_eq!(sha256, hex(&sha2::Sha256::digest(expected.as_bytes())));
+    assert_eq!((size, name.as_str()), (expected.len() as i64, "evil.ps1"));
+    let mut holds: Vec<(String, String)> = sqlx::query_as(
+        "SELECT holder_kind, holder_id FROM store.holds WHERE pool = $1 AND sha256 = $2",
+    )
+    .bind(ALERT_FILES)
+    .bind(&sha256)
+    .fetch_all(db.pool())
+    .await
+    .expect("reads");
+    holds.sort();
+    let mut expected_holds = vec![
+        ("file_collection".to_owned(), queued.id().to_string()),
+        ("root".to_owned(), first.to_string()),
+        ("root".to_owned(), second.to_string()),
+    ];
+    expected_holds.sort();
+    assert_eq!(holds, expected_holds);
+    // the upload is gone once the core moved it into the pool
+    let uploads = core
+        .bucket
+        .store()
+        .list("uploads/actions/")
+        .await
+        .expect("lists");
+    assert!(!uploads.iter().any(|k| k.ends_with(&sha256)), "{uploads:?}");
+    // the first alert going leaves the second's collection as it was (#1101)
+    sqlx::query("DELETE FROM analysis.roots WHERE id = $1")
+        .bind(first)
+        .execute(db.pool())
+        .await
+        .expect("deletes");
+    let roots: Vec<uuid::Uuid> =
+        sqlx::query_scalar("SELECT root_id FROM queue.action_roots WHERE action_id = $1")
+            .bind(queued.id())
+            .fetch_all(db.pool())
+            .await
+            .expect("reads");
+    assert_eq!(roots, [second]);
+    // the second alert asking again gets its own collection back
+    let mut tx = db.begin().await.expect("begins");
+    assert_eq!(
+        ace_core::actions::request_collection(&mut tx, &catalog, &collection(second))
+            .await
+            .expect("finds it"),
+        ace_core::actions::Requested::Collected(queued.id())
+    );
+    tx.rollback().await.expect("rolls back");
+
+    // a prune lets go of the collection's own hold once its retention passed; the alert's stays
+    let mut tx = db.begin().await.expect("begins");
+    assert!(
+        ace_core::actions::prune_collections_in(&mut tx, Duration::from_secs(3600))
+            .await
+            .expect("prunes")
+            .is_empty()
+    );
+    let pruned = ace_core::actions::prune_collections_in(&mut tx, Duration::ZERO)
+        .await
+        .expect("prunes");
+    tx.commit().await.expect("commits");
+    assert_eq!(
+        pruned.iter().map(|p| p.id).collect::<Vec<_>>(),
+        [queued.id()]
+    );
+    let holds: Vec<(String, String)> = sqlx::query_as(
+        "SELECT holder_kind, holder_id FROM store.holds WHERE pool = $1 AND sha256 = $2
+         ORDER BY holder_kind, holder_id",
+    )
+    .bind(ALERT_FILES)
+    .bind(&sha256)
+    .fetch_all(db.pool())
+    .await
+    .expect("reads");
+    assert!(
+        holds.contains(&("root".to_owned(), second.to_string())),
+        "{holds:?}"
+    );
+    assert!(
+        !holds.iter().any(|(kind, _)| kind == "file_collection"),
+        "{holds:?}"
+    );
+    let sha: Sha256 = sha256.parse().expect("a sha256");
+    core.bucket
+        .store()
+        .delete(ALERT_FILES, &sha)
+        .await
+        .expect("deletes");
+}
+
+fn hex(bytes: &[u8]) -> String {
+    bytes.iter().map(|b| format!("{b:02x}")).collect()
+}
+
+/// A delayed remediation runs again until it completes, a cancel stops one between tries, and a check past
+/// its deadline or confirmed by ACE's own removal ends without a try, as ace3's worker finalizes it.
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn the_queue_retries_cancels_expires_and_supersedes_actions() {
+    let (core, catalog) = actions_core().await;
+    let db = core.test_db.db();
+    let root = plain_root(&core).await;
+    let analyst = serde_json::json!({"kind": "user", "id": uuid::Uuid::new_v4(), "name": "alice"});
+    let remove = |value: &'static str| ace_core::actions::NewRemediation {
+        handler: "test",
+        observable_type: "test",
+        observable_value: value,
+        action: ace_sdk::actions::RemediationAction::Remove,
+        restore_key: None,
+        requested_by: &analyst,
+        user: None,
+    };
+    let delivery = "<n@example.com>|carol@example.com";
+    let mut tx = db.begin().await.expect("begins");
+    let delayed = ace_core::actions::queue_remediation(&mut tx, &catalog, &remove("DELAYED"))
+        .await
+        .expect("queues");
+    let check = |value| ace_core::actions::NewCheck {
+        handler: "fake_vendor",
+        observable_type: "email_delivery",
+        observable_value: value,
+        root,
+        context: None,
+    };
+    let (expired, _) = ace_core::actions::request_check(&mut tx, &catalog, &check(delivery))
+        .await
+        .expect("queues");
+    tx.commit().await.expect("commits");
+    sqlx::query("UPDATE queue.actions SET deadline_at = now() - interval '1 second' WHERE id = $1")
+        .bind(expired)
+        .execute(db.pool())
+        .await
+        .expect("updates");
+
+    // a pool gets the remediation, and the next ask ends the expired check without giving it out
+    let client =
+        ace_pool::client::LeaseClient::new(&core.url, common::TOKEN, "w").expect("a client");
+    let leased = client
+        .lease_action(Duration::ZERO)
+        .await
+        .expect("leases")
+        .expect("an action");
+    assert_eq!(leased.id, delayed);
+    assert!(
+        client
+            .as_worker("w2")
+            .lease_action(Duration::ZERO)
+            .await
+            .expect("leases")
+            .is_none()
+    );
+    assert_eq!(
+        action_state(&core, expired).await,
+        ("COMPLETED".to_owned(), Some("EXPIRED".to_owned()), 0)
+    );
+    // another worker can't end or renew it
+    let other = client.as_worker("x");
+    let end = ace_sdk::actions::ActionEnd::Remediation {
+        result: ace_sdk::actions::RemediatorResult::new(
+            ace_sdk::actions::RemediatorStatus::Delayed,
+            "later",
+        ),
+    };
+    assert!(matches!(
+        other.end_action(delayed, &end).await,
+        Err(ace_pool::client::ClientError::LeaseLost(_))
+    ));
+    // a check's end isn't a remediation's
+    let wrong = ace_sdk::actions::ActionEnd::RemediationCheck {
+        outcome: ace_sdk::actions::ProbeOutcome::Pending { message: None },
+    };
+    assert!(matches!(
+        client.end_action(delayed, &wrong).await,
+        Err(ace_pool::client::ClientError::Api { status: 400, .. })
+    ));
+    client.end_action(delayed, &end).await.expect("ends");
+    assert_eq!(
+        action_state(&core, delayed).await,
+        ("IN_PROGRESS".to_owned(), Some("DELAYED".to_owned()), 1)
+    );
+    let wait: f64 = sqlx::query_scalar(
+        "SELECT extract(epoch FROM run_after - now())::float8 FROM queue.actions WHERE id = $1",
+    )
+    .bind(delayed)
+    .fetch_one(db.pool())
+    .await
+    .expect("reads");
+    assert!((55.0..=60.0).contains(&wait), "{wait}");
+    // a cancel while it waits completes it, and a pool holding it learns at its renewal
+    let mut tx = db.begin().await.expect("begins");
+    assert!(
+        ace_core::actions::cancel_in(&mut tx, delayed, "cancelled by alice")
+            .await
+            .expect("cancels")
+    );
+    assert!(
+        !ace_core::actions::cancel_in(&mut tx, delayed, "again")
+            .await
+            .expect("cancels")
+    );
+    tx.commit().await.expect("commits");
+    assert_eq!(
+        action_state(&core, delayed).await,
+        ("COMPLETED".to_owned(), Some("CANCELLED".to_owned()), 1)
+    );
+    // a retry queues it again as it was
+    let mut tx = db.begin().await.expect("begins");
+    assert!(
+        ace_core::actions::retry_in(&mut tx, &catalog, delayed)
+            .await
+            .expect("retries")
+    );
+    tx.commit().await.expect("commits");
+    let leased = client
+        .lease_action(Duration::ZERO)
+        .await
+        .expect("leases")
+        .expect("the retry");
+    assert_eq!(leased.id, delayed);
+    let mut tx = db.begin().await.expect("begins");
+    ace_core::actions::cancel_in(&mut tx, delayed, "cancelled by alice")
+        .await
+        .expect("cancels");
+    tx.commit().await.expect("commits");
+    let renewal = client.renew_action(delayed).await.expect("renews");
+    assert!(renewal.cancelled);
+    assert!(matches!(
+        client.end_action(delayed, &end).await,
+        Err(ace_pool::client::ClientError::LeaseLost(_))
+    ));
+
+    // what an action acts on doesn't change once it's queued
+    let mut tx = db.begin().await.expect("begins");
+    let removal = ace_core::actions::queue_remediation(&mut tx, &catalog, &remove("SUCCESS"))
+        .await
+        .expect("queues");
+    tx.commit().await.expect("commits");
+    sqlx::query("UPDATE queue.actions SET observable_type = 'email_delivery' WHERE id = $1")
+        .bind(removal)
+        .execute(db.pool())
+        .await
+        .expect_err("an action's target doesn't change");
+    let leased = client
+        .lease_action(Duration::ZERO)
+        .await
+        .expect("leases")
+        .expect("the removal");
+    assert_eq!(leased.id, removal);
+    client
+        .end_action(
+            removal,
+            &ace_sdk::actions::ActionEnd::Remediation {
+                result: ace_sdk::actions::RemediatorResult::new(
+                    ace_sdk::actions::RemediatorStatus::Success,
+                    "removed",
+                ),
+            },
+        )
+        .await
+        .expect("ends");
+    // a check of an email_delivery ACE removed a minute ago, past the probe's grace of none
+    sqlx::query(
+        "INSERT INTO queue.actions (kind, handler, observable_type, observable_value, action, status, result, updated_at)
+         VALUES ('remediation', 'test', 'email_delivery', $1, 'remove', 'COMPLETED', 'SUCCESS', now() - interval '1 minute')",
+    )
+    .bind(delivery)
+    .execute(db.pool())
+    .await
+    .expect("inserts");
+    let mut tx = db.begin().await.expect("begins");
+    let (fresh, new) = ace_core::actions::request_check(&mut tx, &catalog, &check(delivery))
+        .await
+        .expect("queues");
+    assert!(new, "the expired one completed, so a new one is queued");
+    tx.commit().await.expect("commits");
+    assert!(
+        client
+            .lease_action(Duration::ZERO)
+            .await
+            .expect("leases")
+            .is_none()
+    );
+    let (status, result, _) = action_state(&core, fresh).await;
+    assert_eq!(
+        (status.as_str(), result.as_deref()),
+        ("COMPLETED", Some("SUPERSEDED"))
+    );
+    let message: String =
+        sqlx::query_scalar("SELECT result_message FROM queue.actions WHERE id = $1")
+            .bind(fresh)
+            .fetch_one(db.pool())
+            .await
+            .expect("reads");
+    assert_eq!(
+        ace_core::actions::superseding_source(Some(&message)).as_deref(),
+        Some("ACE")
+    );
+
+    // a lease that lapses is taken back and given again
+    let mut tx = db.begin().await.expect("begins");
+    let lost = ace_core::actions::queue_remediation(&mut tx, &catalog, &remove("SUCCESS"))
+        .await
+        .expect("queues");
+    tx.commit().await.expect("commits");
+    assert_eq!(
+        client
+            .lease_action(Duration::ZERO)
+            .await
+            .expect("leases")
+            .map(|a| a.id),
+        Some(lost)
+    );
+    sqlx::query(
+        "UPDATE queue.actions SET lease_expires_at = now() - interval '1 second' WHERE id = $1",
+    )
+    .bind(lost)
+    .execute(db.pool())
+    .await
+    .expect("updates");
+    assert_eq!(ace_core::actions::reap_actions(db).await.expect("reaps"), 1);
+    assert_eq!(
+        client
+            .lease_action(Duration::ZERO)
+            .await
+            .expect("leases")
+            .map(|a| (a.id, a.attempts)),
+        Some((lost, 0))
+    );
+}

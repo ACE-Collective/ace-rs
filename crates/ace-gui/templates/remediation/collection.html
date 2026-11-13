@@ -1,0 +1,27 @@
+{#- A file collection and each try, ace3's history modal as a page (src/remediation.rs). -#}
+{% extends "base.html" %}
+{% block title %}File Collection {{ view.row.id }} · ACE{% endblock %}
+{% block content %}
+<section class="admin remediations">
+  <p><a href="/file-collections">File Collections</a></p>
+  <h1>File Collection {{ view.row.id }}</h1>
+  <table class="keys">
+    <tbody>
+      <tr><th>Collector</th><td>{{ view.row.collector }}</td></tr>
+      <tr><th>Target</th><td>{{ view.row.observable_type }} <code>{{ view.row.value }}</code></td></tr>
+      <tr><th>Status</th><td>{{ view.row.status }} {{ view.row.result }}</td></tr>
+      <tr><th>Message</th><td>{{ view.row.message }}</td></tr>
+      <tr><th>Tries</th><td>{{ view.row.attempts }}</td></tr>
+      <tr><th>Alerts</th><td>{% for (href, id) in view.row.alerts %}<a href="{{ href }}">{{ id }}</a> {% endfor %}</td></tr>
+      <tr><th>Requested by</th><td>{{ view.row.requested_by }}</td></tr>
+      <tr><th>File</th><td>{% if let Some((name, sha256)) = view.row.file %}{{ name }} <code>{{ sha256 }}</code>{% endif %}</td></tr>
+      <tr><th>Created (UTC)</th><td>{{ view.row.created }}</td></tr>
+      <tr><th>Updated (UTC)</th><td>{{ view.row.updated }}</td></tr>
+    </tbody>
+  </table>
+  {%- let row = view.row %}
+  {%- let back = "/file-collections" %}
+  {%- include "remediation/forms.html" %}
+  {%- include "remediation/history.html" %}
+</section>
+{% endblock %}

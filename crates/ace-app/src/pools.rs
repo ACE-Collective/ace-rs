@@ -23,9 +23,10 @@
 //! with no paths and no ports (`ace_pool::commands`), on `ace`'s own command line (`cli::run_contained`).
 //!
 //! A network pool reads `ACE4_API_URL`, `ACE4_POOL_TOKEN`, `ACE4_OVERLAY`, the variables and
-//! files the overlay's `secrets:` names for its modules' secrets, `ACE4_CONCURRENCY` (16) and
+//! files the overlay's `secrets:` names for its modules' and its action handlers' secrets,
+//! `ACE4_CONCURRENCY` (16), `ACE4_ACTION_CONCURRENCY` (4, the actions it runs at once, PLAN.md 7.9) and
 //! `ACE4_HEALTH_FILE`. It contains itself before its runtime starts a thread: it may connect only
-//! to its modules' TCP ports, the lease API's and the collector's.
+//! to its modules' and its handlers' TCP ports, the lease API's and the collector's.
 //!
 //! A scanner pool (PLAN.md 7.7) reads `ACE4_API_URL`, `ACE4_POOL_TOKEN`, `ACE4_STACK` (`ace4`), which
 //! its containers' labels and names carry, `ACE4_DOCKER_SOCKET` (`/var/run/docker.sock`),
@@ -384,22 +385,61 @@ fn supervisor(pool: &ParserPool) -> ExitCode {
     })
 }
 
+/// Builds a network pool's action handlers (PLAN.md 7.9): each with its overlay entry's settings and the
+/// secrets its spec declares, read through `env`.
+fn handlers(
+    pool: &LookupPool,
+    overlay: &Overlay,
+    env: &dyn Fn(&str) -> Option<String>,
+) -> Result<ace_pool::actions::Handlers, String> {
+    let mut handlers = ace_pool::actions::Handlers::new();
+    for (spec, build) in &pool.actions {
+        let entry = format!("{}/{}", spec.kind, spec.name);
+        let secrets = ace_pool::secrets::resolve_names(&pool.name, spec.secrets, overlay, env);
+        let setup = crate::ActionSetup {
+            settings: overlay.actions.get(&entry).and_then(|a| a.settings.clone()),
+            secrets,
+        };
+        let handler = build(&setup).map_err(|e| format!("{entry}: {e}"))?;
+        let built = handler.spec();
+        if built.kind != spec.kind || built.name != spec.name {
+            return Err(format!(
+                "{entry} built a handler for {}",
+                built.pool_entry()
+            ));
+        }
+        handlers = handlers.with(handler)?;
+    }
+    if let Some(unknown) = overlay.actions.keys().find(|key| {
+        !pool
+            .actions
+            .iter()
+            .any(|(spec, _)| **key == format!("{}/{}", spec.kind, spec.name))
+    }) {
+        tracing::warn!(pool = %pool.name, "the overlay has settings for {unknown}, which this pool doesn't host");
+    }
+    Ok(handlers)
+}
+
 /// A network pool's binary.
 pub fn lookup_main(pool: &LookupPool) -> ExitCode {
     let mut telemetry = ace_pool::telemetry::init(&format!("ace4-{}", pool.name), "info");
     // the modules, their secrets and the client before any thread starts, so containment can
     // follow
-    let modules = match overlay(overlay_path().as_deref()).and_then(|overlay| {
-        modules(
+    let built = overlay(overlay_path().as_deref()).and_then(|overlay| {
+        let modules = modules(
             &pool.name,
             &pool.registry,
             &overlay,
             None,
             &ace_pool::secrets::process_env,
         )
-        .map_err(|e| e.to_string())
-    }) {
-        Ok(modules) => Arc::new(modules),
+        .map_err(|e| e.to_string())?;
+        let handlers = handlers(pool, &overlay, &ace_pool::secrets::process_env)?;
+        Ok((modules, handlers))
+    });
+    let (modules, handlers) = match built {
+        Ok((modules, handlers)) => (Arc::new(modules), Arc::new(handlers)),
         Err(e) => {
             eprintln!("setup failed: {e}");
             return ExitCode::from(2);
@@ -416,7 +456,12 @@ pub fn lookup_main(pool: &LookupPool) -> ExitCode {
         eprintln!("no port in ACE4_API_URL");
         return ExitCode::from(2);
     };
-    let profile = PoolDefinition::lookup_sandbox(&modules, port, POOL_ADDRESS_SPACE);
+    let mut profile = PoolDefinition::lookup_sandbox(&modules, port, POOL_ADDRESS_SPACE);
+    for spec in handlers.specs() {
+        for &port in spec.tcp_ports {
+            profile = profile.allow_port(port);
+        }
+    }
     match ace_pool::contain_pool(&profile) {
         Ok(contained) => eprintln!(
             "contained: {contained:?}, TCP ports {:?}",
@@ -436,12 +481,36 @@ pub fn lookup_main(pool: &LookupPool) -> ExitCode {
         concurrency: number("ACE4_CONCURRENCY", 16),
         sandbox: profile,
     };
+    let action_concurrency = number("ACE4_ACTION_CONCURRENCY", 4);
     with_runtime(async move {
         let stop = stop_on_signal();
-        let beating = tokio::spawn(heartbeat(health_file(), stop.clone()));
+        let mut handles = vec![(
+            "heartbeat",
+            tokio::spawn(heartbeat(health_file(), stop.clone())),
+        )];
+        if !handlers.is_empty() {
+            let actions = ace_pool::actions::ActionPool::new(
+                client.as_worker(&format!("{}-actions", client.worker())),
+                handlers,
+                action_concurrency,
+            );
+            let stopping = stop.clone();
+            handles.push((
+                "action loop",
+                tokio::spawn(async move {
+                    let stats = actions.run(stopping).await;
+                    tracing::info!(
+                        ended = stats.ended,
+                        stopped = stats.stopped,
+                        errors = stats.errors,
+                        "the action loop stopped"
+                    );
+                }),
+            ));
+        }
         let stats = AsyncPool::new(client, &definition).run(stop).await;
         tracing::info!(tasks = stats.tasks, errors = stats.errors, "stopped");
-        join_all(vec![("heartbeat", beating)]).await;
+        join_all(handles).await;
         ExitCode::SUCCESS
     })
 }

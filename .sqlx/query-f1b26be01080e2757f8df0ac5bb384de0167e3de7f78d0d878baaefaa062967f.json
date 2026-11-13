@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE queue.actions\n         SET lease_owner = NULL, lease_expires_at = NULL, run_after = now(),\n             last_error = 'its pool stopped renewing its lease'\n         WHERE lease_owner IS NOT NULL AND lease_expires_at < now()",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "f1b26be01080e2757f8df0ac5bb384de0167e3de7f78d0d878baaefaa062967f"
+}

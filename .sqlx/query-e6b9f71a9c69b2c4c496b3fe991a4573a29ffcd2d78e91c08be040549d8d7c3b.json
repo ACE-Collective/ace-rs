@@ -1,0 +1,35 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM queue.actions WHERE id = $1\n           RETURNING kind::text AS \"kind!\", file_sha256",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "kind!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "file_sha256",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "queue.actions",
+            "name": "file_sha256"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      null,
+      true
+    ]
+  },
+  "hash": "e6b9f71a9c69b2c4c496b3fe991a4573a29ffcd2d78e91c08be040549d8d7c3b"
+}

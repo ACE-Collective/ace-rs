@@ -1,0 +1,33 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO queue.actions\n             (kind, handler, observable_type, observable_value, context, max_attempts, deadline_at)\n         VALUES ('remediation_check', $1, $2, $3, $4, $5,\n                 now() + make_interval(secs => $6))\n         RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "queue.actions",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text",
+        "Jsonb",
+        "Int4",
+        "Float8"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "f49b6c8154ebe60e36e049e60b446f1e8468e9069b195e43cea46cda28552c7b"
+}

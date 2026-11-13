@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE queue.actions\n                 SET status = 'NEW', result = NULL, result_message = NULL, attempts = 0,\n                     updated_at = now(), run_after = now(), lease_owner = NULL, lease_expires_at = NULL,\n                     deadline_at = now() + make_interval(secs => $2)\n                 WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Float8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "d13291ad9babe1c171bf8977e6c48f69d9f4367f93d1ff188671f8f90282a120"
+}

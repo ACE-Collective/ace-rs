@@ -1,0 +1,51 @@
+{#- ace3's Add Remediation modal as a page (src/remediation.rs): a type and values, or an event's alerts,
+    their targets, and Remove or Restore of the ticked ones. -#}
+{% extends "base.html" %}
+{% block title %}Add Remediation · ACE{% endblock %}
+{% block content %}
+<section class="admin remediations">
+  <p><a href="/remediations">Remediations</a></p>
+  <h1>Add Remediation</h1>
+  {%- if let Some(problem) = view.problem %}
+  <p class="error" role="alert">{{ problem }}</p>
+  {%- endif %}
+  <form method="get" action="/remediations/targets" class="detection-add">
+    <label for="targets-type">Type</label>
+    <select id="targets-type" name="type">
+      {%- for t in view.types %}
+      <option value="{{ t }}"{% if *t == view.selected_type %} selected{% endif %}>{{ t }}</option>
+      {%- endfor %}
+    </select>
+    <label for="targets-values">Values, one per line</label>
+    <textarea id="targets-values" name="values" rows="8">{{ view.values }}</textarea>
+    <button type="submit">Find Targets</button>
+  </form>
+  {%- if !view.alerts.is_empty() %}
+  <p class="muted">The targets of {{ view.alerts.len() }} alert(s).</p>
+  {%- endif %}
+  {%- if let Some(targets) = view.targets %}
+  <form method="post" action="/remediations" id="queue-targets">
+    <table class="keys">
+      <thead><tr><th></th><th>Remediator</th><th>Type</th><th>Value</th><th>Latest</th></tr></thead>
+      <tbody>
+        {%- for t in targets %}
+        <tr>
+          <td>{% if view.can_write %}<input type="checkbox" name="target" value="{{ t.key }}" aria-label="Tick {{ t.value }}">{% endif %}</td>
+          <td>{{ t.remediator }}</td>
+          <td>{{ t.observable_type }}</td>
+          <td><code>{{ t.value }}</code></td>
+          <td>{{ t.current }}</td>
+        </tr>
+        {%- else %}
+        <tr><td colspan="5" class="muted">No remediator acts on these.</td></tr>
+        {%- endfor %}
+      </tbody>
+    </table>
+    {%- if view.can_write && !targets.is_empty() %}
+    <button type="submit" name="action" value="remove">Remove</button>
+    <button type="submit" name="action" value="restore">Restore</button>
+    {%- endif %}
+  </form>
+  {%- endif %}
+</section>
+{% endblock %}

@@ -305,6 +305,32 @@ impl Bucket {
             .await?)
     }
 
+    /// `fetch_upload` for a file an action collected (`Store::action_upload_key`).
+    pub async fn fetch_action_upload(
+        &self,
+        action: i64,
+        sha256: &Sha256,
+    ) -> Result<Spooled, BucketError> {
+        let key = Store::action_upload_key(action, sha256);
+        let spooled = self.store.spool_key(&key, sha256).await;
+        if let Err(StoreError::Integrity { .. }) = &spooled {
+            self.store.delete_key(&key).await?;
+        }
+        Ok(spooled?)
+    }
+
+    /// `remove_upload` for a file an action collected.
+    pub async fn remove_action_upload(
+        &self,
+        action: i64,
+        sha256: &Sha256,
+    ) -> Result<(), BucketError> {
+        Ok(self
+            .store
+            .delete_key(&Store::action_upload_key(action, sha256))
+            .await?)
+    }
+
     /// Puts spooled bytes in `pool` and takes `hold` on them inside the caller's transaction:
     /// inserts the object's row if it is new, locks it, uploads the bytes while holding the
     /// lock unless the bucket has them, and takes the hold. An object GC is deleting fails with

@@ -32,6 +32,10 @@
 //! `hooks:` holds the settings of `configuration_defined_tagging` and `observable_modifier`, which the
 //! core runs over the whole tree (PLAN.md 7.6, `crate::hooks`).
 //!
+//! `actions:` holds the settings of the remediators, remediation probes and file collectors a network
+//! pool hosts (PLAN.md 7.9, `crate::actions`), by `<kind>/<name>`, such as `remediation/office365_email`.
+//! A pool gives each handler its own entry's `settings`, and the secrets its spec declares.
+//!
 //! `secrets:` says where each secret comes from, by the name modules declare in
 //! `Module::SECRETS`: `env:<VARIABLE>` or `file:<path>`, as ace3's `env:` references. Nothing
 //! is read when the overlay loads; a pool reads only the ones its modules declare (PLAN.md 2.24,
@@ -69,6 +73,16 @@ pub struct Overlay {
     /// The settings of the modules the core runs as hooks (PLAN.md 7.6), `ace_sdk::hooks`. `ace serve`
     /// reads it; a pool doesn't.
     pub hooks: crate::hooks::HooksSection,
+    /// The settings of the action handlers (PLAN.md 7.9), by `<kind>/<name>`.
+    pub actions: BTreeMap<String, ActionSection>,
+}
+
+/// What the overlay says about one action handler.
+#[derive(Debug, Clone, Default, PartialEq, Deserialize)]
+#[serde(deny_unknown_fields, default)]
+pub struct ActionSection {
+    /// What the handler's builder is given, as a module's settings are.
+    pub settings: Option<Value>,
 }
 
 /// ace3's `nrd:` section: the feeds the `nrd_refresh` task builds the newly registered domains list
@@ -281,6 +295,7 @@ impl Overlay {
             scheduler: BTreeMap::new(),
             nrd: NrdSection::default(),
             hooks: crate::hooks::HooksSection::default(),
+            actions: self.actions.clone(),
         }
     }
 

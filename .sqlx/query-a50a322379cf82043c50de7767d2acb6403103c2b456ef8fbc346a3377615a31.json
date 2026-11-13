@@ -1,0 +1,101 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT r.root_id, a.observable_value, a.handler, a.status, a.result, a.result_message, a.events\n         FROM queue.actions a JOIN queue.action_roots r ON r.action_id = a.id\n         WHERE a.kind = 'remediation_check' AND a.observable_type = $1 AND r.root_id = ANY($2)\n         ORDER BY a.id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "root_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "queue.action_roots",
+            "name": "root_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "observable_value",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "queue.actions",
+            "name": "observable_value"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "handler",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "queue.actions",
+            "name": "handler"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "status",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "queue.actions",
+            "name": "status"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "result",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "queue.actions",
+            "name": "result"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "result_message",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "queue.actions",
+            "name": "result_message"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "events",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "queue.actions",
+            "name": "events"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "UuidArray"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "a50a322379cf82043c50de7767d2acb6403103c2b456ef8fbc346a3377615a31"
+}

@@ -9,8 +9,10 @@
 //! analyst-edited lists it declares, such as whitelists, through `lists` (PLAN.md 5.14), and a
 //! lookup reads ACE's own data through `reads` and writes it through `writes` (PLAN.md 7.2). A parser
 //! runs the programs it declares through `tools` (PLAN.md 7.3), and sends its observable through the
-//! scanner images it declares through `scanners` (7.7).
+//! scanner images it declares through `scanners` (7.7). `actions` holds what remediators, remediation
+//! probes and file collectors are built on (7.9).
 
+pub mod actions;
 pub mod context;
 pub mod domains;
 pub mod email_threads;
@@ -42,5 +44,6 @@ pub use module::{
     Parser, Settings, WHITELISTED, run_lookup, run_parser,
 };
 pub use overlay::{
-    Component, NrdList, NrdSection, Overlay, OverlayError, ScheduledTaskSection, SecretSource,
+    ActionSection, Component, NrdList, NrdSection, Overlay, OverlayError, ScheduledTaskSection,
+    SecretSource,
 };

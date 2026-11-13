@@ -1,0 +1,41 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT root_id, value FROM analysis.observables WHERE root_id = ANY($1) AND type = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "root_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "analysis.observables",
+            "name": "root_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "value",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "analysis.observables",
+            "name": "value"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "UuidArray",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "eea25daa34e9582043ab41ca6b2f691aaba86794e2a697310de4f58f1fa546a4"
+}

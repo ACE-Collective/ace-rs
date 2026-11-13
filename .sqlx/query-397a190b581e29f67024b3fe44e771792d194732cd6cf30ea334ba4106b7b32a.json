@@ -1,0 +1,65 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT status, result, message, created_at FROM queue.action_attempts\n         WHERE action_id = $1 ORDER BY created_at DESC, id DESC LIMIT $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "status",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "queue.action_attempts",
+            "name": "status"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "result",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "queue.action_attempts",
+            "name": "result"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "message",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "queue.action_attempts",
+            "name": "message"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "queue.action_attempts",
+            "name": "created_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "397a190b581e29f67024b3fe44e771792d194732cd6cf30ea334ba4106b7b32a"
+}

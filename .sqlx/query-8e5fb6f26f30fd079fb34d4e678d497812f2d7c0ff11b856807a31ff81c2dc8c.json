@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE queue.actions\n         SET status = 'COMPLETED', result = 'CANCELLED', updated_at = now(),\n             lease_owner = NULL, lease_expires_at = NULL\n         WHERE id = $1 AND status <> 'COMPLETED'\n         RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "queue.actions",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "8e5fb6f26f30fd079fb34d4e678d497812f2d7c0ff11b856807a31ff81c2dc8c"
+}

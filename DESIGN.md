@@ -230,6 +230,7 @@ Kubernetes would add per-task cgroups and autoscaling on queue depth. At ACE's v
 | node manager, `nodes` table, drain state machine | workers lease from one queue; draining a node means it stops leasing |
 | `/api/v2/engine/download` and `upload` tarball transfer | files in the shared bucket |
 | Celery, RabbitMQ and Redis for phishkit and js_deobfuscator | scans on the same queue, run by one scanner pool, the only process with the Docker socket (PLAN.md 7.7) |
+| the remediation, external remediation check and file collection services, three copies of one queue-service scaffold | actions on the same queue, leased by the network pools that host their handlers (PLAN.md 7.9) |
 | yara service's unix socket and shared-path rule | a YARA pool that loads a serialized ruleset from the bucket and switches generations once the new one loads |
 | `yara_scanner_v2` over yara-python | the `ace-yara` crate over yara-x |
 | a `file -b --mime-type` subprocess per scan | libmagic, once per file |

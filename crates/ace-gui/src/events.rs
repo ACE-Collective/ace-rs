@@ -866,6 +866,8 @@ pub struct EventAlertRow {
     pub tags: Vec<String>,
     pub disposition: String,
     pub status: &'static str,
+    /// Its remediation coverage badge (PLAN.md 7.9), for a viewer with `remediation:read`.
+    pub coverage: Option<crate::remediation::CoverageBadge>,
 }
 
 /// An alert's analysis as ace3's alert `status` names it, as the alert list does.
@@ -911,6 +913,8 @@ pub struct EventView {
     /// The page's own path, where the alerts' forms come back to.
     pub here: String,
     pub max_tag: usize,
+    /// The link to the alerts' remediation targets, for a viewer with `remediation:read`.
+    pub remediate: Option<String>,
 }
 
 impl EventView {
@@ -985,6 +989,7 @@ pub fn event_view(event: &Event, may: EventMay) -> EventView {
                 tags: alert.tags.clone(),
                 disposition: alert.disposition.clone().unwrap_or_else(|| OPEN.to_owned()),
                 status: analysis_status(alert.analysis),
+                coverage: None,
             })
             .collect(),
         close: (can_write && event.status != CLOSED_STATUS).then(|| format!("{href}/close")),
@@ -994,7 +999,34 @@ pub fn event_view(event: &Event, may: EventMay) -> EventView {
         dispositions: if may.disposition { DISPOSITIONS } else { &[] },
         here: href,
         max_tag: MAX_EVENT_TAG_CHARS,
+        remediate: None,
     }
+}
+
+/// Adds each alert's remediation coverage badge, ace3's `analysis/_remediation_badge.html`, and the link
+/// to the alerts' remediation targets, to an event's view (PLAN.md 7.9).
+pub fn with_coverage(
+    mut view: EventView,
+    coverage: &std::collections::BTreeMap<Uuid, ace_service::Coverage>,
+) -> EventView {
+    for alert in &mut view.alerts {
+        alert.coverage = coverage
+            .get(&alert.id)
+            .and_then(crate::remediation::coverage_badge);
+    }
+    if !view.alerts.is_empty() {
+        let query: Vec<(&str, String)> = view
+            .alerts
+            .iter()
+            .take(ace_service::MAX_TARGET_ALERTS)
+            .map(|a| ("alert", a.id.to_string()))
+            .collect();
+        view.remediate = Some(format!(
+            "/remediations/targets?{}",
+            serde_urlencoded::to_string(&query).unwrap_or_default()
+        ));
+    }
+    view
 }
 
 /// `GET /events/{event}`, ace3's `events/index.html`.
@@ -1197,7 +1229,26 @@ pub(crate) async fn event_page(
         write: can_write(&gui, &viewer).await,
         disposition: holds(&gui, &viewer, &ALERT_WRITE).await,
     };
-    let view = event_view(&event, may);
+    let mut view = event_view(&event, may);
+    // ace3 shows the badges to whoever sees the event; here they read remediations, which need their own
+    if holds(&gui, &viewer, &ace_service::REMEDIATION_READ).await {
+        let alerts: Vec<Uuid> = view
+            .alerts
+            .iter()
+            .take(ace_service::MAX_TARGET_ALERTS)
+            .map(|a| a.id)
+            .collect();
+        match gui
+            .service
+            .remediation_coverage(&viewer.actor, &alerts)
+            .await
+        {
+            Ok(coverage) => view = with_coverage(view, &coverage),
+            Err(error) => {
+                tracing::warn!(actor = %viewer.actor, "reading the alerts' remediation coverage failed: {error}");
+            }
+        }
+    }
     render(&EventPageHtml {
         layout: viewer.layout,
         view,

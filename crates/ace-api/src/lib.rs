@@ -289,8 +289,8 @@
 //! | `PUT /saved-filters/quick-filters?screen=` | `PUT /saved/quick?screen=`, `{"ids": [...]}`, audited |
 //!
 //! What differs, or is left out, and why:
-//! - Two of ace3's eleven screens: `alerts` and `detection_points`. The SVS, remediation and file
-//!   collection screens come with their steps.
+//! - Four of ace3's eleven screens: `alerts`, `detection_points`, and 7.9's `remediations` and
+//!   `file_collections`. The SVS screens come with SVS (7.10).
 //! - A filter that isn't the screen's, or a value of the wrong shape, is 400 where ace3 answers 422 with
 //!   pydantic's errors.
 //! - `PUT /saved-filters/scratch/{kind}` and ace3's `working` and `temp` rows: the GUI's list keeps its
@@ -314,6 +314,38 @@
 //!
 //! ace3's `http_host`, `http_src_ip` and `http_dest_ip` keys have no list: nothing in ace3 read them any
 //! more. A bad entry is refused with 400, where ace3 logged a line it couldn't parse and skipped it.
+//!
+//! ace3's `remediation` and `file_collection` routers (PLAN.md 5.6, brought by 7.9), under ace3's
+//! `remediation:read`/`write` and `file_collection:read`/`write` (`ace_service`'s `remediation` and
+//! `file_collections` docs). A remediation, a remediation check and a file collection are actions on the
+//! one queue (`ace_core::actions`), which network pools run:
+//!
+//! | ace3 `/api/v2` | here |
+//! |---|---|
+//! | `POST /remediation/targets/lookup`, `{alert_uuids}` or `{observables}` | `POST /api/remediation/v1/targets`, `{alerts}` or `{observables}` |
+//! | `GET /remediation/remediations?f=&cursor=&limit=&tz=` | `GET /api/remediation/v1/remediations?f=&after=&limit=&tz=`, newest first, with `total` |
+//! | `GET /remediation/remediations/export/csv`, `/export/ndjson` | the same under `/api/remediation/v1/remediations/export/`, up to 100,000 rows, or 413 |
+//! | `GET /remediation/remediations/{id}/history?limit=` | `GET /api/remediation/v1/remediations/{id}/history?limit=` |
+//! | `POST /remediation/remediations`, `{action, targets}` | `POST /api/remediation/v1/remediations`, the same, 201, audited |
+//! | `POST /remediation/remediations/{id}/cancel`, `/retry`, `/restore` | the same under `/api/remediation/v1/remediations/{id}/`, audited |
+//! | `DELETE /remediation/remediations/{id}` | `DELETE /api/remediation/v1/remediations/{id}`, audited |
+//! | none | `GET /api/remediation/v1/remediations/{id}` |
+//! | `GET /file-collections/?f=&cursor=&limit=&tz=`, its exports | `GET /api/file-collections/v1/collections`, and `/export/csv`, `/export/ndjson` |
+//! | `GET /file-collections/{id}/history?limit=` | `GET /api/file-collections/v1/collections/{id}/history?limit=` |
+//! | `POST /file-collections/{id}/cancel`, `/retry` | the same under `/api/file-collections/v1/collections/{id}/`, audited |
+//! | `DELETE /file-collections/{id}` | `DELETE /api/file-collections/v1/collections/{id}`, audited |
+//! | none | `GET /api/file-collections/v1/collections/{id}` |
+//!
+//! What differs, or is left out, and why:
+//! - A target's key is `{remediator, observable_type, observable_value}`, as ace3's. Each write is an
+//!   audit row where ace3 logs a line; queueing several targets is one row naming each.
+//! - A remediation is a person's: a key with no owner is refused with 403, where ace3 answers 400.
+//! - A list has the filters' `total`, and pages by `after`, the last row's id, newest first.
+//! - A file collection's row names every alert it belongs to (`alerts`), where ace3's has one
+//!   `alert_uuid` (#1101), and its `file` once collected.
+//! - A value its type refuses is 400 where ace3 answers 422.
+//! - ace3's `file_collection:create`, which only an integration's API (EndpointVendor's endpoint) checks, isn't
+//!   here: nothing in this repository asks for a collection through the API.
 //!
 //! ace3's `cli` router and the `engine` router's `cli` endpoint (PLAN.md 5.6, 5.12), under `cli:execute`
 //! as in ace3 (`ace_service`'s `commands` docs). A command is queued for a parser pool, which runs it
@@ -358,6 +390,7 @@ mod email;
 mod error;
 mod events;
 mod export;
+mod file_collections;
 mod filters;
 mod health;
 mod hunts;
@@ -365,6 +398,7 @@ mod lists;
 mod observable_comments;
 mod observables;
 mod params;
+mod remediation;
 mod user_preferences;
 mod users;
 mod yara_qa;
@@ -649,6 +683,72 @@ impl Web {
                 "/api/yara-qa/v1/matches/{id}/download",
                 get(yara_qa::download_match),
             )
+            .route(
+                "/api/remediation/v1/targets",
+                post(remediation::targets).layer(json_limit),
+            )
+            .route(
+                "/api/remediation/v1/remediations",
+                get(remediation::list)
+                    .post(remediation::queue)
+                    .layer(json_limit),
+            )
+            .route(
+                "/api/remediation/v1/remediations/export/csv",
+                get(remediation::export_csv),
+            )
+            .route(
+                "/api/remediation/v1/remediations/export/ndjson",
+                get(remediation::export_ndjson),
+            )
+            .route(
+                "/api/remediation/v1/remediations/{id}",
+                get(remediation::one).delete(remediation::delete),
+            )
+            .route(
+                "/api/remediation/v1/remediations/{id}/history",
+                get(remediation::history),
+            )
+            .route(
+                "/api/remediation/v1/remediations/{id}/cancel",
+                post(remediation::cancel),
+            )
+            .route(
+                "/api/remediation/v1/remediations/{id}/retry",
+                post(remediation::retry),
+            )
+            .route(
+                "/api/remediation/v1/remediations/{id}/restore",
+                post(remediation::restore),
+            )
+            .route(
+                "/api/file-collections/v1/collections",
+                get(file_collections::list),
+            )
+            .route(
+                "/api/file-collections/v1/collections/export/csv",
+                get(file_collections::export_csv),
+            )
+            .route(
+                "/api/file-collections/v1/collections/export/ndjson",
+                get(file_collections::export_ndjson),
+            )
+            .route(
+                "/api/file-collections/v1/collections/{id}",
+                get(file_collections::one).delete(file_collections::delete),
+            )
+            .route(
+                "/api/file-collections/v1/collections/{id}/history",
+                get(file_collections::history),
+            )
+            .route(
+                "/api/file-collections/v1/collections/{id}/cancel",
+                post(file_collections::cancel),
+            )
+            .route(
+                "/api/file-collections/v1/collections/{id}/retry",
+                post(file_collections::retry),
+            )
             .merge(self.users_router())
             .layer(axum::middleware::from_fn(auth::with_source))
             .with_state(self.clone())
@@ -822,6 +922,25 @@ impl Web {
         yara_qa::one_match,
         yara_qa::record,
         yara_qa::download_match,
+        remediation::targets,
+        remediation::list,
+        remediation::export_csv,
+        remediation::export_ndjson,
+        remediation::queue,
+        remediation::one,
+        remediation::history,
+        remediation::cancel,
+        remediation::retry,
+        remediation::restore,
+        remediation::delete,
+        file_collections::list,
+        file_collections::export_csv,
+        file_collections::export_ndjson,
+        file_collections::one,
+        file_collections::history,
+        file_collections::cancel,
+        file_collections::retry,
+        file_collections::delete,
     ),
     modifiers(&Schemes),
     security(("api_key" = []), ("session" = [])),
@@ -838,6 +957,8 @@ impl Web {
         (name = "events", description = "Events, the alerts in them, threat types and malware's threats"),
         (name = "filters", description = "A list screen's filters, their share links, and the caller's saved filters"),
         (name = "hunts", description = "The hunts the hunter loaded, their state, and validating a hunt"),
+        (name = "remediation", description = "Remediations: removing what an alert found, such as an email from a mailbox, and restoring it"),
+        (name = "file_collections", description = "Files fetched from hosts for alerts, and their tries"),
         (name = "lists", description = "The analyst-edited lists, such as the email whitelists, which apply to the next task that reads them"),
     )
 )]

@@ -29,7 +29,7 @@ use chrono_tz::Tz;
 use serde::{Deserialize, Serialize};
 
 use crate::ServiceError;
-use crate::permission::{ALERT_READ, PermissionName};
+use crate::permission::{ALERT_READ, FILE_COLLECTION_READ, PermissionName, REMEDIATION_READ};
 
 mod dates;
 pub mod events;
@@ -67,14 +67,18 @@ pub const SIGNATURE_FAMILIES: &[&str] = &["yara", "hunt", "observable_modifier",
 /// The observable filter's type that matches any type.
 pub const ANY_TYPE: &str = "Any";
 
-/// A screen whose list has filters, saved filters and share links: ace3's `FilterScreen`. Only these two of
-/// ace3's eleven exist here; the rest come with their screens.
+/// A screen whose list has filters, saved filters and share links: ace3's `FilterScreen`. Four of ace3's
+/// eleven exist here; the SVS screens come with SVS (7.10).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum FilterScreen {
     /// The alert list.
     Alerts,
     /// Every alert's detections (5.6's `detection_points`).
     DetectionPoints,
+    /// The remediations (PLAN.md 7.9), ace3's `REMEDIATIONS_SCREEN`.
+    Remediations,
+    /// The file collections (PLAN.md 7.9), ace3's `FILE_COLLECTIONS_SCREEN`.
+    FileCollections,
 }
 
 /// How an editor edits one filter.
@@ -289,14 +293,155 @@ const DETECTION_POINT_LEFT_OUT: &[LeftOut] = &[
     },
 ];
 
+/// ace3's remediation actions, statuses and remediator results, which the remediations screen offers.
+pub const REMEDIATION_ACTIONS: &[&str] = &["remove", "restore"];
+pub const ACTION_STATUSES: &[&str] = &["NEW", "IN_PROGRESS", "COMPLETED"];
+pub const REMEDIATION_RESULTS: &[&str] = &[
+    "DELAYED",
+    "ERROR",
+    "FAILED",
+    "IGNORE",
+    "SUCCESS",
+    "CANCELLED",
+    "NOT_FOUND",
+];
+/// ace3's file collector results.
+pub const COLLECTION_RESULTS: &[&str] = &[
+    "DELAYED",
+    "ERROR",
+    "FAILED",
+    "SUCCESS",
+    "CANCELLED",
+    "HOST_OFFLINE",
+    "FILE_NOT_FOUND",
+];
+
+const CREATED_HINT: &str = "-7d, or MM-DD-YYYY HH:MM - MM-DD-YYYY HH:MM";
+
+/// The remediations screen's filters, ace3's `REMEDIATIONS_SCREEN`, in its order.
+const REMEDIATION_FILTERS: &[FilterSpec] = &[
+    spec("ID", "id", FilterKind::Text, &[], "a remediation's id"),
+    spec(
+        "Remediator",
+        "remediator",
+        FilterKind::Text,
+        &[],
+        "text the remediator's name contains",
+    ),
+    spec(
+        "Type",
+        "type",
+        FilterKind::Text,
+        &[],
+        "text the observable type contains",
+    ),
+    spec(
+        "Value",
+        "value",
+        FilterKind::Text,
+        &[],
+        "text the value contains",
+    ),
+    spec(
+        "Analyst",
+        "analyst",
+        FilterKind::Text,
+        &[],
+        "text the analyst's name contains",
+    ),
+    spec(
+        "Action",
+        "action",
+        FilterKind::Multi,
+        REMEDIATION_ACTIONS,
+        "remove",
+    ),
+    spec(
+        "Status",
+        "status",
+        FilterKind::Multi,
+        ACTION_STATUSES,
+        "COMPLETED",
+    ),
+    spec(
+        "Result",
+        "result",
+        FilterKind::Multi,
+        REMEDIATION_RESULTS,
+        "SUCCESS",
+    ),
+    spec(
+        "Created",
+        "created",
+        FilterKind::DateRange,
+        &[],
+        CREATED_HINT,
+    ),
+];
+
+/// The file collections screen's filters, ace3's `FILE_COLLECTIONS_SCREEN`, in its order.
+const FILE_COLLECTION_FILTERS: &[FilterSpec] = &[
+    spec("ID", "id", FilterKind::Text, &[], "a collection's id"),
+    spec(
+        "Collector",
+        "collector",
+        FilterKind::Text,
+        &[],
+        "text the collector's name contains",
+    ),
+    spec(
+        "Type",
+        "type",
+        FilterKind::Text,
+        &[],
+        "text the observable type contains",
+    ),
+    spec(
+        "Value",
+        "value",
+        FilterKind::Text,
+        &[],
+        "text the value contains",
+    ),
+    spec("Alert", "alert", FilterKind::Text, &[], "an alert's id"),
+    spec(
+        "Status",
+        "status",
+        FilterKind::Multi,
+        ACTION_STATUSES,
+        "COMPLETED",
+    ),
+    spec(
+        "Result",
+        "result",
+        FilterKind::Multi,
+        COLLECTION_RESULTS,
+        "SUCCESS",
+    ),
+    spec(
+        "Created",
+        "created",
+        FilterKind::DateRange,
+        &[],
+        CREATED_HINT,
+    ),
+];
+
 impl FilterScreen {
-    pub const ALL: &'static [FilterScreen] = &[FilterScreen::Alerts, FilterScreen::DetectionPoints];
+    pub const ALL: &'static [FilterScreen] = &[
+        FilterScreen::Alerts,
+        FilterScreen::DetectionPoints,
+        FilterScreen::Remediations,
+        FilterScreen::FileCollections,
+    ];
 
     /// Its name, ace3's `saved_filters.screen`.
     pub fn name(self) -> &'static str {
         match self {
             FilterScreen::Alerts => "alerts",
             FilterScreen::DetectionPoints => "detection_points",
+            FilterScreen::Remediations => "remediations",
+            FilterScreen::FileCollections => "file_collections",
         }
     }
 
@@ -312,6 +457,8 @@ impl FilterScreen {
     pub fn permission(self) -> PermissionName {
         match self {
             FilterScreen::Alerts | FilterScreen::DetectionPoints => ALERT_READ,
+            FilterScreen::Remediations => REMEDIATION_READ,
+            FilterScreen::FileCollections => FILE_COLLECTION_READ,
         }
     }
 
@@ -319,6 +466,8 @@ impl FilterScreen {
         match self {
             FilterScreen::Alerts => ALERT_FILTERS,
             FilterScreen::DetectionPoints => DETECTION_POINT_FILTERS,
+            FilterScreen::Remediations => REMEDIATION_FILTERS,
+            FilterScreen::FileCollections => FILE_COLLECTION_FILTERS,
         }
     }
 
@@ -327,6 +476,7 @@ impl FilterScreen {
         match self {
             FilterScreen::Alerts => ALERT_LEFT_OUT,
             FilterScreen::DetectionPoints => DETECTION_POINT_LEFT_OUT,
+            FilterScreen::Remediations | FilterScreen::FileCollections => &[],
         }
     }
 
@@ -537,6 +687,20 @@ fn canonical(
             }
             text.clone()
         }
+        ("id", _) => {
+            let id: i64 = text
+                .trim()
+                .parse()
+                .ok()
+                .filter(|id| *id > 0)
+                .ok_or_else(|| invalid(format!("{name}: {text:?} isn't an id")))?;
+            id.to_string()
+        }
+        ("alert", _) => text
+            .trim()
+            .parse::<uuid::Uuid>()
+            .map(|uuid| uuid.to_string())
+            .map_err(|_| invalid(format!("{name}: {text:?} isn't an alert's id")))?,
         ("family", _) => {
             let family = text.to_ascii_lowercase();
             if !SIGNATURE_FAMILIES.contains(&family.as_str()) {
@@ -547,6 +711,17 @@ fn canonical(
             }
             family
         }
+        (_, FilterKind::Multi) if !spec.options.is_empty() => spec
+            .options
+            .iter()
+            .find(|option| option.eq_ignore_ascii_case(text))
+            .map(|option| (*option).to_owned())
+            .ok_or_else(|| {
+                invalid(format!(
+                    "{name}: {text:?} isn't one of {}",
+                    spec.options.join(", ")
+                ))
+            })?,
         _ => text.clone(),
     };
     Ok(FilterValue::Text(text))

@@ -101,6 +101,22 @@ pub(crate) async fn layout_for(gui: &Gui, actor: Option<&Actor>, parts: &Parts) 
             tracing::warn!(%actor, "checking event:read failed, so the page has no events link: {error}");
             false
         });
+    layout.remediations = gui
+        .service
+        .allowed(actor, &ace_service::REMEDIATION_READ)
+        .await
+        .unwrap_or_else(|error| {
+            tracing::warn!(%actor, "checking remediation:read failed, so the page has no remediations link: {error}");
+            false
+        });
+    layout.file_collections = gui
+        .service
+        .allowed(actor, &ace_service::FILE_COLLECTION_READ)
+        .await
+        .unwrap_or_else(|error| {
+            tracing::warn!(%actor, "checking file_collection:read failed, so the page has no file collections link: {error}");
+            false
+        });
     layout
 }
 

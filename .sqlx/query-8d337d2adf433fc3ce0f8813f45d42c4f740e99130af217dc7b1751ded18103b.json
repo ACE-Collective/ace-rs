@@ -1,0 +1,60 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT kind::text AS \"kind!\", handler, attempts, max_attempts\n               FROM queue.actions WHERE id = $1 AND lease_owner = $2 FOR UPDATE",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "kind!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "handler",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "queue.actions",
+            "name": "handler"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "attempts",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "queue.actions",
+            "name": "attempts"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "max_attempts",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "queue.actions",
+            "name": "max_attempts"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text"
+      ]
+    },
+    "nullable": [
+      null,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "8d337d2adf433fc3ce0f8813f45d42c4f740e99130af217dc7b1751ded18103b"
+}

@@ -229,6 +229,66 @@ impl LeaseClient {
         expect_empty(response, scan).await
     }
 
+    /// Leases an action of one of the pool's handlers (PLAN.md 7.9), waiting up to `wait` for one.
+    pub async fn lease_action(
+        &self,
+        wait: Duration,
+    ) -> Result<Option<ace_sdk::actions::LeasedAction>, ClientError> {
+        let request = self
+            .post(ace_sdk::actions::paths::LEASE)
+            .json(&ace_sdk::actions::ActionLeaseRequest {
+                worker: self.worker.clone(),
+                wait_seconds: wait.as_secs(),
+            })
+            .timeout(wait + CALL_TIMEOUT);
+        let response = self.http.send(request).await?;
+        if response.status() == StatusCode::NO_CONTENT {
+            return Ok(None);
+        }
+        answer(response, 0).await.map(Some)
+    }
+
+    /// Renews an action's lease. The answer says whether someone cancelled it.
+    pub async fn renew_action(
+        &self,
+        action: i64,
+    ) -> Result<ace_sdk::actions::ActionRenewal, ClientError> {
+        let request = self.post(&ace_sdk::actions::paths::action(action, "renew"));
+        let response = self.http.send(request).await?;
+        answer(response, action).await
+    }
+
+    /// Where to upload the file a collection fetched.
+    pub async fn action_upload_url(
+        &self,
+        action: i64,
+        sha256: &Sha256,
+        size: u64,
+    ) -> Result<Presigned, ClientError> {
+        let request = self
+            .post(&ace_sdk::actions::paths::action(action, "upload"))
+            .json(&ace_sdk::actions::ActionUploadRequest {
+                sha256: *sha256,
+                size,
+            });
+        let response = self.http.send(request).await?;
+        answer(response, action).await
+    }
+
+    /// Ends a try of an action. A collected file must have been uploaded first.
+    pub async fn end_action(
+        &self,
+        action: i64,
+        end: &ace_sdk::actions::ActionEnd,
+    ) -> Result<(), ClientError> {
+        let request = self
+            .post(&ace_sdk::actions::paths::action(action, "end"))
+            .timeout(TRANSFER_TIMEOUT)
+            .json(end);
+        let response = self.http.send(request).await?;
+        expect_empty(response, action).await
+    }
+
     /// Sends a command's output so far, which renews its lease. The answer says whether it was
     /// cancelled.
     pub async fn report_command(

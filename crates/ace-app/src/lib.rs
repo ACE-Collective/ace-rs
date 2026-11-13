@@ -27,8 +27,8 @@
 //! templates and observable actions (5.9, `analysis_view`, `observable_action`), hunt types (6.2,
 //! `hunt_type`), correlation command types (6.6, `command_type`), the script command types that
 //! stand in for hunt scripts (decision 16, `hunt_script`), scheduled tasks (6.7,
-//! `scheduled_task`), collectors with the first collector (6.1), and the rest with the phases that build
-//! them.
+//! `scheduled_task`), remediators, remediation probes and file collectors (7.9, `LookupPool::action`),
+//! collectors with the first collector (6.1), and the rest with the phases that build them.
 //!
 //! Everything here reads its configuration from the environment and the site overlay at run
 //! time, and nothing from this workspace's checkout, so a binary built in another repository
@@ -102,11 +102,28 @@ pub struct ParserPool {
     tools: Vec<ace_sdk::tools::ToolSpec>,
 }
 
-/// A network pool: lookups, many at a time as async tasks in one contained process (2.16).
+/// A network pool: lookups, many at a time as async tasks in one contained process (2.16), and the
+/// remediators, remediation probes and file collectors it hosts (PLAN.md 7.9).
 pub struct LookupPool {
     name: String,
     registry: Registry,
+    actions: Vec<(&'static ace_sdk::actions::ActionSpec, ActionFactory)>,
 }
+
+/// A built action handler: a remediator, a remediation probe or a file collector.
+pub use ace_pool::actions::Handler as ActionHandler;
+
+/// What a pool gives an action handler's builder: its overlay entry's settings and the secrets its
+/// spec declares.
+#[derive(Debug, Clone, Default)]
+pub struct ActionSetup {
+    pub settings: Option<serde_json::Value>,
+    pub secrets: ace_sdk::Secrets,
+}
+
+/// What builds an action handler in its pool, or says why it can't.
+pub type ActionFactory =
+    Arc<dyn Fn(&ActionSetup) -> Result<ace_pool::actions::Handler, String> + Send + Sync>;
 
 /// A scanner pool (PLAN.md 7.7): the process that holds the Docker socket and runs the scanner images
 /// modules' scans ask for (`ace_pool::scanners`), as many at once as `ACE4_CONCURRENCY` says.
@@ -296,6 +313,21 @@ impl App {
         tasks
     }
 
+    /// Every pool's action handlers' specs (PLAN.md 7.9), which `ace serve`'s core and API decide by. A
+    /// handler two pools host is listed once.
+    pub fn action_catalog(&self) -> Result<ace_core::actions::ActionCatalog, String> {
+        let mut specs: Vec<&'static ace_sdk::actions::ActionSpec> = Vec::new();
+        for (spec, _) in self.lookup_pools.iter().flat_map(|p| &p.actions) {
+            if !specs
+                .iter()
+                .any(|s| s.kind == spec.kind && s.name == spec.name)
+            {
+                specs.push(spec);
+            }
+        }
+        ace_core::actions::ActionCatalog::new(&specs)
+    }
+
     /// The correlation command types, built: ace3's `load_command_types_from_config`.
     pub fn command_types(&self) -> ace_hunt::correlate::command::CommandTypes {
         let mut types = ace_hunt::correlate::command::CommandTypes::new();
@@ -427,7 +459,19 @@ impl App {
                     (true, false) => format!("{listed},{}", ace_sdk::wire::COMMANDS),
                 }
             })
-            .chain(self.lookup_pools.iter().map(|p| pool(&p.name, &p.registry)))
+            .chain(self.lookup_pools.iter().map(|p| {
+                let listed = pool(&p.name, &p.registry);
+                let entries: Vec<String> = p
+                    .actions
+                    .iter()
+                    .map(|(spec, _)| spec.pool_entry())
+                    .collect();
+                match (entries.is_empty(), listed.ends_with(':')) {
+                    (true, _) => listed,
+                    (false, true) => format!("{listed}{}", entries.join(",")),
+                    (false, false) => format!("{listed},{}", entries.join(",")),
+                }
+            }))
             .chain(self.scanner_pools.iter().map(|p| {
                 let scanners: Vec<String> = p
                     .scanners
@@ -494,7 +538,26 @@ impl LookupPool {
         LookupPool {
             name: name.to_owned(),
             registry: Registry::new(),
+            actions: Vec::new(),
         }
+    }
+
+    /// Hosts an action handler (PLAN.md 7.9): a remediator, a remediation probe or a file collector, which
+    /// `build` makes when the pool starts from its `ActionSetup`, as an ace3 integration's
+    /// `remediator_*`, `external_remediation_probe_*` or `file_collector_*` section loads its class. The core
+    /// lists it as `@<kind>/<name>`. One with a handler's kind and name already added takes its place.
+    pub fn action(
+        mut self,
+        spec: &'static ace_sdk::actions::ActionSpec,
+        build: impl Fn(&ActionSetup) -> Result<ace_pool::actions::Handler, String>
+        + Send
+        + Sync
+        + 'static,
+    ) -> LookupPool {
+        self.actions
+            .retain(|(s, _)| !(s.kind == spec.kind && s.name == spec.name));
+        self.actions.push((spec, Arc::new(build)));
+        self
     }
 
     pub fn module<M: Lookup>(mut self) -> LookupPool {
@@ -554,10 +617,23 @@ mod tests {
                     .module::<ace_mod_yara::YaraScanner>()
                     .commands(),
             )
-            .lookup_pool(LookupPool::new("lookups"));
+            .lookup_pool(LookupPool::new("lookups").action(
+                &ace_sdk::actions::TEST_REMEDIATOR,
+                |_| {
+                    Ok(ActionHandler::Remediator(Arc::new(
+                        ace_sdk::actions::TestRemediator,
+                    )))
+                },
+            ));
         assert_eq!(
             app.pool_list(),
-            "parsers:email_analyzer,yara_scanner_v3_4,@commands;lookups:"
+            "parsers:email_analyzer,yara_scanner_v3_4,@commands;lookups:@remediation/test"
+        );
+        let catalog = app.action_catalog().expect("a catalog");
+        assert!(
+            catalog
+                .get(ace_sdk::actions::ActionKind::Remediation, "test")
+                .is_some()
         );
         let names: Vec<&str> = app.registry().manifests().iter().map(|m| m.name).collect();
         assert_eq!(names, ["email_analyzer", "yara_scanner_v3_4"]);

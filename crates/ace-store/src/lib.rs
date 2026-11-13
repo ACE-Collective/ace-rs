@@ -134,6 +134,12 @@ impl Store {
         format!("{UPLOADS}/{task}/{}", sha256.to_hex())
     }
 
+    /// Where a pool uploads a file an action collected (PLAN.md 7.9): `uploads/actions/<id>/<sha256>`,
+    /// apart from every task's.
+    pub fn action_upload_key(action: i64, sha256: &Sha256) -> String {
+        format!("{UPLOADS}/actions/{action}/{}", sha256.to_hex())
+    }
+
     /// A URL that downloads the object until `expires`.
     pub async fn presign_get(
         &self,

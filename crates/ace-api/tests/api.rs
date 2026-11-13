@@ -154,7 +154,8 @@ async fn stack_of(archive: ace_core::email_archive::ArchiveConfig, catalog: Cata
     );
     let bucket = Bucket::new(test_db.db().clone(), store, BucketSettings::default());
     let orchestrator = Orchestrator::new(catalog, Modes::ace3());
-    let service = Service::new(test_db.db().clone(), orchestrator.clone());
+    let service =
+        Service::new(test_db.db().clone(), orchestrator.clone()).with_actions(test_actions());
     let config = ace_api::WebConfig {
         max_json_bytes: MAX_JSON,
         max_submission_bytes: MAX_SUBMISSION,
@@ -188,6 +189,25 @@ async fn stack_of(archive: ace_core::email_archive::ArchiveConfig, catalog: Cata
         task,
         _cache: cache,
     }
+}
+
+/// A file collector that collects nothing, for the file collections' routes (PLAN.md 7.9).
+static TEST_COLLECTOR: ace_sdk::actions::ActionSpec = ace_sdk::actions::ActionSpec {
+    kind: ace_sdk::actions::ActionKind::FileCollection,
+    name: "edr",
+    display_name: "Test EDR",
+    description: "Collects files in tests.",
+    observable_type: "file_location",
+    tcp_ports: &[],
+    secrets: &[],
+    retry: ace_sdk::actions::Retry::FILE_COLLECTION,
+    supersede_grace_seconds: 0,
+};
+
+/// ace3's test remediator and a test collector.
+fn test_actions() -> ace_core::actions::ActionCatalog {
+    ace_core::actions::ActionCatalog::new(&[&ace_sdk::actions::TEST_REMEDIATOR, &TEST_COLLECTOR])
+        .expect("a catalog")
 }
 
 fn bootstrap() -> Actor {
@@ -459,6 +479,22 @@ const OBSERVED: &str = "/api/observables/v1/detections";
 const OBSERVED_TYPES: &str = "/api/observables/v1/detections/types";
 const OBSERVED_ONE: &str = "/api/observables/v1/detections/{id}";
 const OBSERVED_EXPIRY: &str = "/api/observables/v1/detections/{id}/expiration";
+const TARGETS: &str = "/api/remediation/v1/targets";
+const REMEDIATIONS: &str = "/api/remediation/v1/remediations";
+const REMEDIATIONS_CSV: &str = "/api/remediation/v1/remediations/export/csv";
+const REMEDIATIONS_NDJSON: &str = "/api/remediation/v1/remediations/export/ndjson";
+const REMEDIATION: &str = "/api/remediation/v1/remediations/{id}";
+const REMEDIATION_HISTORY: &str = "/api/remediation/v1/remediations/{id}/history";
+const REMEDIATION_CANCEL: &str = "/api/remediation/v1/remediations/{id}/cancel";
+const REMEDIATION_RETRY: &str = "/api/remediation/v1/remediations/{id}/retry";
+const REMEDIATION_RESTORE: &str = "/api/remediation/v1/remediations/{id}/restore";
+const COLLECTIONS: &str = "/api/file-collections/v1/collections";
+const COLLECTIONS_CSV: &str = "/api/file-collections/v1/collections/export/csv";
+const COLLECTIONS_NDJSON: &str = "/api/file-collections/v1/collections/export/ndjson";
+const COLLECTION: &str = "/api/file-collections/v1/collections/{id}";
+const COLLECTION_HISTORY: &str = "/api/file-collections/v1/collections/{id}/history";
+const COLLECTION_CANCEL: &str = "/api/file-collections/v1/collections/{id}/cancel";
+const COLLECTION_RETRY: &str = "/api/file-collections/v1/collections/{id}/retry";
 const HUNTS: &str = "/api/hunts/v1/hunts";
 const HUNT: &str = "/api/hunts/v1/hunts/{uuid}";
 const SUPPRESSIONS: &str = "/api/hunts/v1/hunts/{uuid}/suppressions";
@@ -489,6 +525,8 @@ fn fill(route: &str, id: Uuid, observable: i64) -> String {
             .replace("{id}", &observable.to_string());
     }
     if route.starts_with("/api/crashes/")
+        || route.starts_with("/api/remediation/")
+        || route.starts_with("/api/file-collections/")
         || route.starts_with("/api/yara-qa/")
         || route.starts_with("/api/cli/")
         || route == COMMENT
@@ -566,6 +604,10 @@ fn good_body(route: &str) -> Send {
         OBSERVED => Send::Json(json!({"type": "fqdn", "value": "refused.example"})),
         OBSERVED_EXPIRY => Send::Json(json!({"expires_on": null})),
         VALIDATE => Send::Json(json!({"compiled_hunt": {"target": "x.yaml", "assets": []}})),
+        TARGETS => Send::Json(json!({"observables": [{"type": "test", "value": "SUCCESS"}]})),
+        REMEDIATIONS => Send::Json(json!({"action": "remove", "targets": [
+            {"remediator": "test", "observable_type": "test", "observable_value": "SUCCESS"},
+        ]})),
         _ => Send::Nothing,
     }
 }
@@ -591,7 +633,7 @@ async fn refuses_without_a_credential_or_a_permission(
         .map(|(method, route, _)| (method, route))
         .filter(|route| !public.contains(route))
         .collect();
-    assert_eq!(routes.len(), 98, "{routes:?}");
+    assert_eq!(routes.len(), 117, "{routes:?}");
     for (method, route) in routes {
         let method: Method = method.to_uppercase().parse().expect("a method");
         let path = fill(&route, id, file);
@@ -3945,6 +3987,7 @@ async fn every_documented_status_is_tested() {
     lists_router(&mut client).await;
     detection_router(&mut client).await;
     hunts_router(&mut client).await;
+    remediation_routers(&mut client).await;
     pings(&mut client, &token).await;
 
     assert_eq!(
@@ -6696,3 +6739,609 @@ const CORRELATE: &str = "  correlate:
             source: splunk
             query: \"search ctx user={{ _event.user }}\"
 ";
+
+/// PLAN.md 7.9: ace3's `remediation` and `file_collection` routers. Each status the document lists, the
+/// writes audited and attributed, and a key with no owner refused a remediation.
+async fn remediation_routers(client: &mut Client<'_>) {
+    use Method as M;
+    use StatusCode as S;
+    let json = Send::Json;
+    let stack = client.stack;
+    let db = stack.test_db.db();
+    let (_, analyst) = session_of(
+        stack,
+        "remediator",
+        &[
+            "remediation:read",
+            "remediation:write",
+            "file_collection:read",
+            "file_collection:write",
+        ],
+    )
+    .await;
+    let a = Some(analyst.as_str());
+    let ownerless = key(stack, &["remediation:read", "remediation:write"]).await;
+    let o = Some(ownerless.as_str());
+    let at = |route: &str, id: &Value| route.replace("{id}", &id.to_string().replace('"', ""));
+    let rows = audit_count(stack).await;
+
+    // queueing: attributed to the analyst, audited once, and refused a key with no owner
+    let queued = client
+        .json(
+            M::POST,
+            REMEDIATIONS,
+            REMEDIATIONS,
+            a,
+            json(json!({"action": "remove", "targets": [
+                {"remediator": "test", "observable_type": "test", "observable_value": "SUCCESS"},
+                {"remediator": "test", "observable_type": "test", "observable_value": "<b>DELAYED</b>"},
+                {"remediator": "test", "observable_type": "test", "observable_value": "=FAILED"},
+            ]})),
+            S::CREATED,
+        )
+        .await;
+    let ids: Vec<Value> = queued["remediations"]
+        .as_array()
+        .expect("remediations")
+        .iter()
+        .map(|r| r["id"].clone())
+        .collect();
+    assert_eq!(queued["remediations"][0]["status"], "NEW");
+    assert_eq!(audit_count(stack).await, rows + 1);
+    let refused = client
+        .json(
+            M::POST,
+            REMEDIATIONS,
+            REMEDIATIONS,
+            o,
+            good_body_json(REMEDIATIONS),
+            S::FORBIDDEN,
+        )
+        .await;
+    assert!(
+        refused["error"]
+            .as_str()
+            .is_some_and(|e| e.contains("analyst's")),
+        "{refused}"
+    );
+    for body in [
+        json!({"action": "remove", "targets": []}),
+        json!({"action": "remove", "targets": [
+            {"remediator": "office365_email", "observable_type": "test", "observable_value": "x"}]}),
+        json!({"action": "remove", "targets": [
+            {"remediator": "test", "observable_type": "fqdn", "observable_value": "x"}]}),
+        json!({"action": "explode", "targets": []}),
+    ] {
+        client
+            .json(
+                M::POST,
+                REMEDIATIONS,
+                REMEDIATIONS,
+                a,
+                json(body),
+                S::BAD_REQUEST,
+            )
+            .await;
+    }
+    let response = client
+        .call(M::POST, REMEDIATIONS, REMEDIATIONS, a, too_large())
+        .await;
+    assert_eq!(response.status(), S::PAYLOAD_TOO_LARGE);
+    assert_eq!(
+        audit_count(stack).await,
+        rows + 1,
+        "nothing refused has a row"
+    );
+
+    // targets of observables and of alerts
+    let targets = client
+        .json(
+            M::POST,
+            TARGETS,
+            TARGETS,
+            a,
+            json(json!({"observables": [{"type": "test", "value": "SUCCESS"}]})),
+            S::OK,
+        )
+        .await;
+    assert_eq!(
+        targets["targets"][0]["remediator_display_name"],
+        "Test Remediator"
+    );
+    assert_eq!(targets["targets"][0]["current"]["id"], ids[0]);
+    let alert_id = alert(stack, "with targets", &[(ObservableKind::Test, "NEW_ONE")]).await;
+    let of_alert = client
+        .json(
+            M::POST,
+            TARGETS,
+            TARGETS,
+            a,
+            json(json!({"alerts": [alert_id]})),
+            S::OK,
+        )
+        .await;
+    assert_eq!(of_alert["targets"][0]["observable_value"], "NEW_ONE");
+    assert_eq!(of_alert["targets"][0]["current"], Value::Null);
+    for body in [
+        json!({}),
+        json!({"alerts": [alert_id], "observables": [{"type": "test", "value": "x"}]}),
+        json!({"observables": [{"type": "no_such_type", "value": "x"}]}),
+    ] {
+        client
+            .json(M::POST, TARGETS, TARGETS, a, json(body), S::BAD_REQUEST)
+            .await;
+    }
+    client
+        .json(
+            M::POST,
+            TARGETS,
+            TARGETS,
+            a,
+            json(json!({"alerts": [Uuid::nil()]})),
+            S::NOT_FOUND,
+        )
+        .await;
+    let response = client.call(M::POST, TARGETS, TARGETS, a, too_large()).await;
+    assert_eq!(response.status(), S::PAYLOAD_TOO_LARGE);
+
+    // the list, one, the exports
+    let page = client
+        .json(
+            M::GET,
+            REMEDIATIONS,
+            &format!("{REMEDIATIONS}?limit=2"),
+            a,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(page["total"], 3);
+    assert_eq!(page["remediations"][0]["id"], ids[2], "newest first");
+    assert_eq!(page["remediations"][0]["analyst"], "remediator");
+    assert_eq!(page["next"], ids[1]);
+    let filtered = client
+        .json(
+            M::GET,
+            REMEDIATIONS,
+            &format!("{REMEDIATIONS}?f=value:DELAYED"),
+            a,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(
+        filtered["remediations"][0]["observable_value"], "<b>DELAYED</b>",
+        "as stored"
+    );
+    for bad in [
+        "?f=nope:x",
+        "?f=result:HOST_OFFLINE",
+        "?limit=0",
+        "?after=x",
+    ] {
+        client
+            .json(
+                M::GET,
+                REMEDIATIONS,
+                &format!("{REMEDIATIONS}{bad}"),
+                a,
+                Send::Nothing,
+                S::BAD_REQUEST,
+            )
+            .await;
+    }
+    let one = client
+        .json(
+            M::GET,
+            REMEDIATION,
+            &at(REMEDIATION, &ids[0]),
+            a,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(one["action"], "remove");
+    client
+        .json(
+            M::GET,
+            REMEDIATION,
+            &at(REMEDIATION, &json!("x")),
+            a,
+            Send::Nothing,
+            S::BAD_REQUEST,
+        )
+        .await;
+    client
+        .json(
+            M::GET,
+            REMEDIATION,
+            &at(REMEDIATION, &json!(i64::MAX)),
+            a,
+            Send::Nothing,
+            S::NOT_FOUND,
+        )
+        .await;
+    for (route, kind) in [
+        (REMEDIATIONS_CSV, "text/csv"),
+        (REMEDIATIONS_NDJSON, "application/x-ndjson"),
+    ] {
+        let (status, content, body) = client
+            .text(route, &format!("{route}?f=value:SUCCESS"), &analyst)
+            .await;
+        assert_eq!(status, S::OK, "{body}");
+        assert!(content.starts_with(kind), "{content}");
+        assert!(body.contains("SUCCESS"), "{body}");
+        let (status, _, _) = client.text(route, route, &analyst).await;
+        assert_eq!(
+            status,
+            S::PAYLOAD_TOO_LARGE,
+            "three is past the export's two"
+        );
+        let (status, _, _) = client
+            .text(route, &format!("{route}?f=nope:x"), &analyst)
+            .await;
+        assert_eq!(status, S::BAD_REQUEST);
+    }
+    let (_, _, csv) = client
+        .text(
+            REMEDIATIONS_CSV,
+            &format!("{REMEDIATIONS_CSV}?f=value:FAILED"),
+            &analyst,
+        )
+        .await;
+    assert!(csv.contains(",'=FAILED,"), "a formula is guarded: {csv}");
+
+    // cancel, retry, restore, history, delete
+    let cancelled = client
+        .json(
+            M::POST,
+            REMEDIATION_CANCEL,
+            &at(REMEDIATION_CANCEL, &ids[1]),
+            a,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(cancelled["result"], "CANCELLED");
+    client
+        .json(
+            M::POST,
+            REMEDIATION_CANCEL,
+            &at(REMEDIATION_CANCEL, &ids[1]),
+            a,
+            Send::Nothing,
+            S::CONFLICT,
+        )
+        .await;
+    let retried = client
+        .json(
+            M::POST,
+            REMEDIATION_RETRY,
+            &at(REMEDIATION_RETRY, &ids[1]),
+            a,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(retried["status"], "NEW");
+    client
+        .json(
+            M::POST,
+            REMEDIATION_RETRY,
+            &at(REMEDIATION_RETRY, &ids[1]),
+            a,
+            Send::Nothing,
+            S::CONFLICT,
+        )
+        .await;
+    client
+        .json(
+            M::POST,
+            REMEDIATION_RESTORE,
+            &at(REMEDIATION_RESTORE, &ids[0]),
+            a,
+            Send::Nothing,
+            S::CONFLICT,
+        )
+        .await;
+    sqlx::query(
+        "UPDATE queue.actions SET status = 'COMPLETED', result = 'SUCCESS', attempts = 1,
+                updated_at = now(), restore_key = 'moved' WHERE id = $1",
+    )
+    .bind(ids[0].as_i64().expect("an id"))
+    .execute(db.pool())
+    .await
+    .expect("completes");
+    let restore = client
+        .json(
+            M::POST,
+            REMEDIATION_RESTORE,
+            &at(REMEDIATION_RESTORE, &ids[0]),
+            a,
+            Send::Nothing,
+            S::CREATED,
+        )
+        .await;
+    assert_eq!(restore["action"], "restore");
+    let history = client
+        .json(
+            M::GET,
+            REMEDIATION_HISTORY,
+            &at(REMEDIATION_HISTORY, &ids[1]),
+            a,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(history["attempts"][0]["message"], "cancelled by remediator");
+    client
+        .json(
+            M::GET,
+            REMEDIATION_HISTORY,
+            &format!("{}?limit=0", at(REMEDIATION_HISTORY, &ids[1])),
+            a,
+            Send::Nothing,
+            S::BAD_REQUEST,
+        )
+        .await;
+    for (route, method) in [
+        (REMEDIATION_HISTORY, M::GET),
+        (REMEDIATION_CANCEL, M::POST),
+        (REMEDIATION_RETRY, M::POST),
+        (REMEDIATION_RESTORE, M::POST),
+    ] {
+        client
+            .json(
+                method.clone(),
+                route,
+                &at(route, &json!(i64::MAX)),
+                a,
+                Send::Nothing,
+                S::NOT_FOUND,
+            )
+            .await;
+        client
+            .json(
+                method,
+                route,
+                &at(route, &json!("x")),
+                a,
+                Send::Nothing,
+                S::BAD_REQUEST,
+            )
+            .await;
+    }
+    let response = client
+        .call(
+            M::DELETE,
+            REMEDIATION,
+            &at(REMEDIATION, &ids[2]),
+            a,
+            Send::Nothing,
+        )
+        .await;
+    assert_eq!(response.status(), S::NO_CONTENT);
+    let response = client
+        .call(
+            M::DELETE,
+            REMEDIATION,
+            &at(REMEDIATION, &ids[2]),
+            a,
+            Send::Nothing,
+        )
+        .await;
+    assert_eq!(response.status(), S::NOT_FOUND);
+    let response = client
+        .call(
+            M::DELETE,
+            REMEDIATION,
+            &at(REMEDIATION, &json!("x")),
+            a,
+            Send::Nothing,
+        )
+        .await;
+    assert_eq!(response.status(), S::BAD_REQUEST);
+    let actions: Vec<String> = sqlx::query_scalar(
+        "SELECT action FROM service.audit WHERE action LIKE '%remediation%' ORDER BY id",
+    )
+    .fetch_all(db.pool())
+    .await
+    .expect("reads");
+    assert_eq!(
+        actions,
+        [
+            "queue_remediations",
+            "cancel_remediation",
+            "retry_remediation",
+            "restore_remediation",
+            "delete_remediation"
+        ]
+    );
+
+    // the file collections: two alerts share one, which belongs to each
+    let other = alert(stack, "also asks", &[(ObservableKind::Fqdn, "x.example")]).await;
+    let catalog = test_actions();
+    let mut made = Vec::new();
+    for (root, value) in [
+        (Some(alert_id), "h@C:\\a.exe"),
+        (Some(other), "h@C:\\a.exe"),
+        (None, "h@C:\\b.exe"),
+        (None, "=h@C:\\c.exe"),
+    ] {
+        let mut tx = db.begin().await.expect("begins");
+        let requested = ace_core::actions::request_collection(
+            &mut tx,
+            &catalog,
+            &ace_core::actions::NewCollection {
+                handler: "edr",
+                observable_type: "file_location",
+                observable_value: value,
+                root,
+                requested_by: None,
+                user: None,
+            },
+        )
+        .await
+        .expect("requests");
+        tx.commit().await.expect("commits");
+        made.push(json!(requested.id()));
+    }
+    assert_eq!(made[0], made[1], "joined");
+    let page = client
+        .json(M::GET, COLLECTIONS, COLLECTIONS, a, Send::Nothing, S::OK)
+        .await;
+    assert_eq!(page["total"], 3);
+    assert_eq!(page["collections"][2]["alerts"], json!([alert_id, other]));
+    assert_eq!(page["collections"][2]["collector_display_name"], "Test EDR");
+    for bad in ["?f=alert:x", "?f=remediator:x", "?limit=x"] {
+        client
+            .json(
+                M::GET,
+                COLLECTIONS,
+                &format!("{COLLECTIONS}{bad}"),
+                a,
+                Send::Nothing,
+                S::BAD_REQUEST,
+            )
+            .await;
+    }
+    let one = client
+        .json(
+            M::GET,
+            COLLECTION,
+            &at(COLLECTION, &made[0]),
+            a,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(one["status"], "NEW");
+    client
+        .json(
+            M::GET,
+            COLLECTION,
+            &at(COLLECTION, &json!("x")),
+            a,
+            Send::Nothing,
+            S::BAD_REQUEST,
+        )
+        .await;
+    client
+        .json(
+            M::GET,
+            COLLECTION,
+            &at(COLLECTION, &ids[0]),
+            a,
+            Send::Nothing,
+            S::NOT_FOUND,
+        )
+        .await;
+    for route in [COLLECTIONS_CSV, COLLECTIONS_NDJSON] {
+        let (status, _, body) = client
+            .text(route, &format!("{route}?f=value:c.exe"), &analyst)
+            .await;
+        assert_eq!(status, S::OK, "{body}");
+        let (status, _, _) = client.text(route, route, &analyst).await;
+        assert_eq!(status, S::PAYLOAD_TOO_LARGE);
+        let (status, _, _) = client
+            .text(route, &format!("{route}?f=nope:x"), &analyst)
+            .await;
+        assert_eq!(status, S::BAD_REQUEST);
+    }
+    client
+        .json(
+            M::POST,
+            COLLECTION_CANCEL,
+            &at(COLLECTION_CANCEL, &made[2]),
+            a,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    client
+        .json(
+            M::POST,
+            COLLECTION_CANCEL,
+            &at(COLLECTION_CANCEL, &made[2]),
+            a,
+            Send::Nothing,
+            S::CONFLICT,
+        )
+        .await;
+    let retried = client
+        .json(
+            M::POST,
+            COLLECTION_RETRY,
+            &at(COLLECTION_RETRY, &made[2]),
+            a,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(retried["status"], "NEW");
+    let history = client
+        .json(
+            M::GET,
+            COLLECTION_HISTORY,
+            &at(COLLECTION_HISTORY, &made[2]),
+            a,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(history["attempts"][0]["result"], "CANCELLED");
+    client
+        .json(
+            M::GET,
+            COLLECTION_HISTORY,
+            &format!("{}?limit=x", at(COLLECTION_HISTORY, &made[2])),
+            a,
+            Send::Nothing,
+            S::BAD_REQUEST,
+        )
+        .await;
+    for (route, method) in [
+        (COLLECTION_HISTORY, M::GET),
+        (COLLECTION_CANCEL, M::POST),
+        (COLLECTION_RETRY, M::POST),
+    ] {
+        client
+            .json(
+                method.clone(),
+                route,
+                &at(route, &json!(i64::MAX)),
+                a,
+                Send::Nothing,
+                S::NOT_FOUND,
+            )
+            .await;
+        client
+            .json(
+                method,
+                route,
+                &at(route, &json!("x")),
+                a,
+                Send::Nothing,
+                S::BAD_REQUEST,
+            )
+            .await;
+    }
+    for (path, status) in [
+        (at(COLLECTION, &made[3]), S::NO_CONTENT),
+        (at(COLLECTION, &made[3]), S::NOT_FOUND),
+        (at(COLLECTION, &json!("x")), S::BAD_REQUEST),
+    ] {
+        let response = client
+            .call(M::DELETE, COLLECTION, &path, a, Send::Nothing)
+            .await;
+        assert_eq!(response.status(), status, "{path}");
+    }
+}
+
+/// `good_body`'s JSON, for a route that takes one.
+fn good_body_json(route: &str) -> Send {
+    match good_body(route) {
+        Send::Json(value) => Send::Json(value),
+        _ => panic!("{route} takes no JSON body"),
+    }
+}

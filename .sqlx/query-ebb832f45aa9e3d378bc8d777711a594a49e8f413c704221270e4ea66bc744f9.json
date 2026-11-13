@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE queue.actions\n             SET status = $2, result = $3, result_message = $4,\n                 attempts = attempts + 1, updated_at = now(),\n                 run_after = now() + make_interval(secs => $5),\n                 lease_owner = NULL, lease_expires_at = NULL,\n                 restore_key = CASE WHEN kind = 'remediation' THEN $6 ELSE restore_key END,\n                 events = coalesce($7, events), last_error = coalesce($8, last_error),\n                 file_sha256 = coalesce($9, file_sha256), file_size = coalesce($10, file_size),\n                 file_name = coalesce($11, file_name)\n             WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text",
+        "Text",
+        "Text",
+        "Float8",
+        "Text",
+        "Jsonb",
+        "Text",
+        "Text",
+        "Int8",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "ebb832f45aa9e3d378bc8d777711a594a49e8f413c704221270e4ea66bc744f9"
+}

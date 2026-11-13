@@ -1,0 +1,151 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT a.id, a.kind::text AS \"kind!\", a.handler, a.observable_type, a.observable_value,\n                      a.attempts, a.max_attempts, a.deadline_at, a.action, a.restore_key, a.context,\n                      (a.deadline_at IS NOT NULL AND a.deadline_at <= now()) AS \"expired!\"\n               FROM queue.actions a\n               WHERE a.status <> 'COMPLETED' AND a.lease_owner IS NULL AND a.run_after <= now()\n                 AND EXISTS (SELECT FROM unnest($1::text[], $2::text[]) h(k, n)\n                             WHERE h.k = a.kind::text AND h.n = a.handler)\n               ORDER BY a.run_after, a.id\n               FOR UPDATE SKIP LOCKED\n               LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "queue.actions",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "kind!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 2,
+        "name": "handler",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "queue.actions",
+            "name": "handler"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "observable_type",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "queue.actions",
+            "name": "observable_type"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "observable_value",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "queue.actions",
+            "name": "observable_value"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "attempts",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "queue.actions",
+            "name": "attempts"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "max_attempts",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "queue.actions",
+            "name": "max_attempts"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "deadline_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "queue.actions",
+            "name": "deadline_at"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "action",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "queue.actions",
+            "name": "action"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "restore_key",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "queue.actions",
+            "name": "restore_key"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "context",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "queue.actions",
+            "name": "context"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "expired!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "TextArray",
+        "TextArray"
+      ]
+    },
+    "nullable": [
+      false,
+      null,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      null
+    ]
+  },
+  "hash": "6b9e457549b55ec3eb25c79c4d972093bc82c35fd95ee9787e8770f20807264c"
+}

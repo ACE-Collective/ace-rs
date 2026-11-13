@@ -1,0 +1,42 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT DISTINCT type, value FROM analysis.observables\n                         WHERE root_id = ANY($1) AND type = ANY($2)\n                         ORDER BY type, value LIMIT $3",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "type",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "analysis.observables",
+            "name": "type"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "value",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "analysis.observables",
+            "name": "value"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "UuidArray",
+        "TextArray",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "1eb0116f1d9baee72f29ddcde3984a69fa37782d34678766422c4a095c922d18"
+}

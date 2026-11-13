@@ -1,0 +1,26 @@
+{#- A remediation and each try, ace3's history modal as a page (src/remediation.rs). -#}
+{% extends "base.html" %}
+{% block title %}Remediation {{ view.row.id }} · ACE{% endblock %}
+{% block content %}
+<section class="admin remediations">
+  <p><a href="/remediations">Remediations</a></p>
+  <h1>Remediation {{ view.row.id }}</h1>
+  <table class="keys">
+    <tbody>
+      <tr><th>Remediator</th><td>{{ view.row.remediator }}</td></tr>
+      <tr><th>Target</th><td>{{ view.row.observable_type }} <code>{{ view.row.value }}</code></td></tr>
+      <tr><th>Action</th><td>{{ view.row.action }}</td></tr>
+      <tr><th>Status</th><td>{{ view.row.status }} {{ view.row.result }}</td></tr>
+      <tr><th>Message</th><td>{{ view.row.message }}</td></tr>
+      <tr><th>Analyst</th><td>{{ view.row.analyst }}</td></tr>
+      <tr><th>Tries</th><td>{{ view.row.attempts }}</td></tr>
+      <tr><th>Created (UTC)</th><td>{{ view.row.created }}</td></tr>
+      <tr><th>Updated (UTC)</th><td>{{ view.row.updated }}</td></tr>
+    </tbody>
+  </table>
+  {%- let row = view.row %}
+  {%- let back = "/remediations" %}
+  {%- include "remediation/forms.html" %}
+  {%- include "remediation/history.html" %}
+</section>
+{% endblock %}
