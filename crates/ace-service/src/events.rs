@@ -10,9 +10,9 @@
 //! As in ace3:
 //! - An event is named by its numeric id or its uuid (`EventRef`). ace3's GUI page takes either, and its
 //!   router does too.
-//! - An event's disposition is its alerts' highest by ace3's ranks (`disposition_rank`), `OPEN` while
-//!   none is dispositioned, and `DELIVERY` for an event with no alerts, as ace3's `Event.disposition` has
-//!   it. A disposition with no rank, such as a site's own, never wins.
+//! - An event's disposition is its alerts' highest by the site's ranks (`Dispositions::rolled_up`), `OPEN`
+//!   while none is dispositioned, and `DELIVERY` for an event with no alerts, as ace3's `Event.disposition`
+//!   has it. A disposition the site's set doesn't have never wins.
 //! - A status is one of `events.statuses`' values. Setting the one an event has changes nothing.
 //! - A threat type's name is unique, and one that malware still uses can't be deleted (409).
 //!
@@ -61,7 +61,7 @@
 //! The event list (6c), ace3's `events.manage`, is `Service::event_list`, under `event:read`: the events
 //! its filters match (`crate::filters::events`, with ace3's filters and sorts), in one static query in which
 //! each filter is a fixed condition a NULL parameter turns off and every value a bound parameter, under
-//! `LIST_TIMEOUT`. The rolled-up disposition is computed in the query from `DISPOSITION_RANKS`, bound as
+//! `LIST_TIMEOUT`. The rolled-up disposition is computed in the query from the site's ranks (`Dispositions::ranks`), bound as
 //! arrays, so it filters and sorts there, where ace3 filters and sorts it in Python after reading every
 //! event. Each order breaks a tie with the id, and the list is a keyset: a cursor names its last event and
 //! that event's sort key then, so an event changed meanwhile is where its new key puts it, as in any
@@ -129,7 +129,6 @@ use crate::actor::{Actor, UserId};
 use crate::alerts::{AnalysisState, RecordedActor, SET_LIST_TIMEOUT, timed_out};
 use crate::filters::events::{EventOwnerFilter, EventQuery, EventSort};
 use crate::gate::{Audited, Change, Recorded, Target};
-use crate::observables::OPEN;
 use crate::permission::{EVENT_READ, EVENT_WRITE};
 use crate::{Service, ServiceError};
 
@@ -148,59 +147,6 @@ pub const MAX_EVENT_NAME_CHARS: usize = 128;
 pub const MAX_EVENT_COMMENT_CHARS: usize = 65535;
 /// How many closed events a page of the add-to-event form shows: ace3's `CLOSED_EVENT_LIMIT`.
 pub const CLOSED_EVENTS_PAGE: u32 = 15;
-
-/// ace3's disposition of an event with no alerts.
-const NO_ALERTS: &str = "DELIVERY";
-
-/// ace3's dispositions and their ranks from its `saq.default.yaml`, which an event's roll-up takes the
-/// highest of and the event list sorts by.
-pub const DISPOSITION_RANKS: &[(&str, u16)] = &[
-    ("OPEN", 0),
-    ("IGNORE", 10),
-    ("FALSE_POSITIVE", 20),
-    ("UNKNOWN", 40),
-    ("REVIEWED", 50),
-    ("SIMULATED", 55),
-    ("GRAYWARE", 60),
-    ("POLICY_VIOLATION", 70),
-    ("RECONNAISSANCE", 80),
-    ("WEAPONIZATION", 90),
-    ("DELIVERY", 100),
-    ("EXPLOITATION", 110),
-    ("INSTALLATION", 120),
-    ("COMMAND_AND_CONTROL", 130),
-    ("EXFIL", 150),
-    ("DAMAGE", 160),
-];
-
-/// A disposition's rank (`DISPOSITION_RANKS`). None for a name ace3 doesn't configure.
-pub fn disposition_rank(disposition: &str) -> Option<u16> {
-    DISPOSITION_RANKS
-        .iter()
-        .find(|(name, _)| *name == disposition)
-        .map(|(_, rank)| *rank)
-}
-
-/// An event's disposition from its alerts', as ace3's `Event.disposition` rolls it up. An alert with none
-/// is open.
-pub fn rolled_up<'a>(dispositions: impl IntoIterator<Item = Option<&'a str>>) -> String {
-    let mut dispositions = dispositions.into_iter().peekable();
-    if dispositions.peek().is_none() {
-        return NO_ALERTS.to_owned();
-    }
-    let mut best = OPEN;
-    for disposition in dispositions.flatten() {
-        if disposition == OPEN {
-            continue;
-        }
-        let beats = disposition_rank(disposition)
-            .is_some_and(|rank| rank > disposition_rank(best).unwrap_or(0));
-        if beats {
-            best = disposition;
-        }
-    }
-    best.to_owned()
-}
 
 /// How a request names an event: its numeric id or its uuid.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -284,7 +230,7 @@ pub struct Event {
     pub remediation_time: Option<DateTime<Utc>>,
     pub owner: Option<EventOwner>,
     pub malware: Vec<EventMalware>,
-    /// The highest of its alerts' dispositions (`rolled_up`).
+    /// The highest of its alerts' dispositions (`Dispositions::rolled_up`).
     pub disposition: String,
     /// Oldest alert first.
     pub alerts: Vec<EventAlert>,
@@ -734,7 +680,11 @@ struct EventRow {
 }
 
 /// The events with these ids, whole, in id order. An id with no event is left out.
-async fn load_events(conn: &mut PgConnection, ids: &[i64]) -> Result<Vec<Event>, ServiceError> {
+async fn load_events(
+    conn: &mut PgConnection,
+    dispositions: &crate::Dispositions,
+    ids: &[i64],
+) -> Result<Vec<Event>, ServiceError> {
     let rows = sqlx::query_as!(
         EventRow,
         r#"SELECT e.id, e.uuid, e.creation_date, e.name, s.value AS status, rm.value AS remediation,
@@ -858,7 +808,8 @@ async fn load_events(conn: &mut PgConnection, ids: &[i64]) -> Result<Vec<Event>,
         .into_iter()
         .map(|row| {
             let alerts = alerts.remove(&row.id).unwrap_or_default();
-            let disposition = rolled_up(alerts.iter().map(|a| a.disposition.as_deref()));
+            let disposition =
+                dispositions.rolled_up(alerts.iter().map(|a| a.disposition.as_deref()));
             let owner = match (row.owner_id, row.owner_username) {
                 (Some(id), Some(username)) => Some(EventOwner {
                     id: UserId(id),
@@ -915,8 +866,12 @@ async fn event_id(conn: &mut PgConnection, event: EventRef) -> Result<i64, Servi
     found.ok_or_else(|| no_event(event))
 }
 
-async fn one_event(conn: &mut PgConnection, id: i64) -> Result<Event, ServiceError> {
-    load_events(conn, &[id])
+async fn one_event(
+    conn: &mut PgConnection,
+    dispositions: &crate::Dispositions,
+    id: i64,
+) -> Result<Event, ServiceError> {
+    load_events(conn, dispositions, &[id])
         .await?
         .pop()
         .ok_or_else(|| no_event(EventRef::Id(id)))
@@ -1335,7 +1290,7 @@ impl Service {
                     let more = ids.len() > limit as usize;
                     ids.truncate(limit as usize);
                     let next = more.then(|| ids.last().copied()).flatten();
-                    let events = load_events(tx.conn(), &ids).await?;
+                    let events = load_events(tx.conn(), &self.dispositions, &ids).await?;
                     Ok(EventPage { events, next })
                 })
             })
@@ -1377,7 +1332,7 @@ impl Service {
                     let more = ids.len() > limit as usize;
                     ids.truncate(limit as usize);
                     let next = more.then(|| ids.last().copied()).flatten();
-                    let mut events = load_events(tx.conn(), &ids).await?;
+                    let mut events = load_events(tx.conn(), &self.dispositions, &ids).await?;
                     events.sort_by_key(|event| ids.iter().position(|id| *id == event.id));
                     Ok(EventPage { events, next })
                 })
@@ -1451,14 +1406,7 @@ impl Service {
         let nobody = f.owners.contains(&EventOwnerFilter::Nobody);
         let malware = (!f.malware.is_empty()).then(|| f.malware.clone());
         let campaigns = (!f.campaigns.is_empty()).then(|| f.campaigns.clone());
-        let rank_names: Vec<String> = DISPOSITION_RANKS
-            .iter()
-            .map(|(name, _)| (*name).to_owned())
-            .collect();
-        let rank_values: Vec<i32> = DISPOSITION_RANKS
-            .iter()
-            .map(|(_, rank)| i32::from(*rank))
-            .collect();
+        let (rank_names, rank_values) = self.dispositions.ranks();
         let sort = query.sort;
         let descending = query.descending;
         let after_id = after.map(|cursor| cursor.id);
@@ -1510,7 +1458,7 @@ impl Service {
                              LEFT JOIN events.campaigns c ON c.id = e.campaign_id
                              LEFT JOIN service.users u ON u.id = e.owner_id
                              -- the rolled-up disposition: DELIVERY with no alerts, else the highest
-                             -- ranked of theirs, else OPEN (crate::rolled_up)
+                             -- ranked of theirs, else OPEN (Dispositions::rolled_up)
                              CROSS JOIN LATERAL (
                                SELECT CASE
                                  WHEN NOT EXISTS (SELECT FROM events.event_alerts ea
@@ -1519,7 +1467,7 @@ impl Service {
                                                 JOIN analysis.roots r ON r.id = ea.root_id
                                                 JOIN ranks k ON k.d = r.disposition AND k.rank > 0
                                                 WHERE ea.event_id = e.id
-                                                ORDER BY k.rank DESC LIMIT 1), 'OPEN')
+                                                ORDER BY k.rank DESC, k.d COLLATE "C" LIMIT 1), 'OPEN')
                                END AS disposition
                              ) dd
                              LEFT JOIN ranks dr ON dr.d = dd.disposition
@@ -1595,7 +1543,7 @@ impl Service {
                     let more = rows.len() > take;
                     let rows: Vec<_> = rows.into_iter().take(take).collect();
                     let ids: Vec<i64> = rows.iter().map(|row| row.id).collect();
-                    let mut events = load_events(tx.conn(), &ids).await?;
+                    let mut events = load_events(tx.conn(), &self.dispositions, &ids).await?;
                     events.sort_by_key(|event| ids.iter().position(|id| *id == event.id));
                     let next = match rows.last() {
                         Some(last) if more => Some(
@@ -1772,7 +1720,7 @@ impl Service {
                         .iter()
                         .copied()
                         .partition(|id| inserted.contains(id));
-                    let event = one_event(tx.conn(), id).await?;
+                    let event = one_event(tx.conn(), &self.dispositions, id).await?;
                     let details = AddedDetails {
                         uuid: event.uuid,
                         name: &event.name,
@@ -1835,7 +1783,7 @@ impl Service {
             .read(actor, "event", &EVENT_READ, &|tx| {
                 Box::pin(async move {
                     let id = event_id(tx.conn(), event).await?;
-                    one_event(tx.conn(), id).await
+                    one_event(tx.conn(), &self.dispositions, id).await
                 })
             })
             .await
@@ -1855,7 +1803,7 @@ impl Service {
         }
         self.gate
             .read(actor, "events_for_export", &EVENT_READ, &|tx| {
-                Box::pin(async move { load_events(tx.conn(), ids).await })
+                Box::pin(async move { load_events(tx.conn(), &self.dispositions, ids).await })
             })
             .await
     }
@@ -1891,7 +1839,9 @@ impl Service {
                         ServiceError::InvalidRequest(format!("{status:?} isn't an event status"))
                     })?;
                     if found.status == status {
-                        return Ok(Audited::unchanged(one_event(tx.conn(), id).await?));
+                        return Ok(Audited::unchanged(
+                            one_event(tx.conn(), &self.dispositions, id).await?,
+                        ));
                     }
                     sqlx::query!(
                         "UPDATE events.events SET status_id = $2 WHERE id = $1",
@@ -1911,7 +1861,10 @@ impl Service {
                         uuid: found.uuid,
                         name: &found.name,
                     })?;
-                    Ok(Audited::changed(one_event(tx.conn(), id).await?, change))
+                    Ok(Audited::changed(
+                        one_event(tx.conn(), &self.dispositions, id).await?,
+                        change,
+                    ))
                 })
             })
             .await
@@ -2028,7 +1981,7 @@ impl Service {
                     )
                         .fetch_one(tx.conn())
                         .await?;
-                    let before = one_event(tx.conn(), id).await?;
+                    let before = one_event(tx.conn(), &self.dispositions, id).await?;
                     if before.edit_version() != edit.version {
                         return Err(ServiceError::Conflict(format!(
                             "event {id} has changed since this edit began: open its edit again"
@@ -2245,7 +2198,7 @@ impl Service {
                         }
                     })?;
 
-                    let after = one_event(tx.conn(), id).await?;
+                    let after = one_event(tx.conn(), &self.dispositions, id).await?;
                     let (was, is) = (EditState::of(&before), EditState::of(&after));
                     if was == is {
                         return Ok(Audited::unchanged(after));
@@ -2299,7 +2252,7 @@ impl Service {
                     .await?;
                     let (removed, not_in): (Vec<Uuid>, Vec<Uuid>) =
                         given.iter().copied().partition(|id| deleted.contains(id));
-                    let event = one_event(tx.conn(), id).await?;
+                    let event = one_event(tx.conn(), &self.dispositions, id).await?;
                     let change = if removed.is_empty() {
                         None
                     } else {
@@ -2374,7 +2327,7 @@ impl Service {
                         .filter(|tag| inserted.contains(tag))
                         .cloned()
                         .collect();
-                    let event = one_event(tx.conn(), id).await?;
+                    let event = one_event(tx.conn(), &self.dispositions, id).await?;
                     if added.is_empty() {
                         return Ok(Audited::unchanged(event));
                     }

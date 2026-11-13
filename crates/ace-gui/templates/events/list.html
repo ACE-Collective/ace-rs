@@ -127,7 +127,7 @@
         <td>{% for t in row.threat_types %}<span class="badge">{{ t }}</span> {% endfor %}</td>
         <td>{% for m in row.malware %}<span class="badge">{{ m }}</span> {% endfor %}</td>
         <td>{{ row.risk_level }}</td>
-        <td>{{ row.disposition }}</td>
+        <td><span class="badge disposition-{{ row.disposition_badge }}">{{ row.disposition }}</span></td>
         <td>{{ row.prevention_tool }}</td>
         <td>{{ row.remediation }}</td>
         <td>{{ row.status }}</td>

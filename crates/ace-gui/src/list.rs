@@ -45,7 +45,12 @@
 //! Bulk disposition is ace3's "Set Disposition" on the ticked rows. Each alert is its own
 //! `Service::disposition`, which checks `alert:write` and writes its audit row, so the result is per alert:
 //! the page lists the alerts it dispositioned and those it couldn't, with why. ace3's runs them in one
-//! transaction and skips the ones another analyst owns; ace4's alerts have no owner. At most
+//! transaction and skips the ones another analyst owns; ace4's alerts have no owner. The menu offers the
+//! site's dispositions an analyst may choose, in their order, as ace3's modal does (`Dispositions`), and the
+//! filter editor's suggestions are all of them. A disposition with `show_save_to_event`, chosen in ace3's
+//! modal, shows its Save to Event button, which opens the event modal for the alerts; here the answer page
+//! has that button, a form to the add-to-event page with the alerts dispositioned, for a viewer with
+//! `event:write`. The list's Disposition cell is a badge in the disposition's `css`. At most
 //! `MAX_BULK` alerts go in one request. "Add to Event" is the same form's other button, which opens
 //! `crate::events`' page with the ticked alerts (5.11's events area). ace3's other bulk actions (review,
 //! comment, ownership, tags, remediation, add observable) come with what they write.
@@ -56,7 +61,8 @@
 
 use std::collections::HashMap;
 
-use ace_service::filters::{self, DISPOSITIONS, FilterKind, FilterScreen};
+use ace_service::Dispositions;
+use ace_service::filters::{self, FilterKind, FilterScreen};
 use ace_service::{
     AlertPage, AlertQuery, AlertSort, AlertSummary, AnalysisState, FilterEntry, FilterValue,
     MANAGE_COLUMNS, ManageColumn, ManageColumnsPreference, PreferenceValue, SavedFilter,
@@ -322,6 +328,8 @@ pub struct Header {
 pub struct Cell {
     pub id: &'static str,
     pub text: String,
+    /// A badge's colour, one of `ace_service::BADGE_STYLES`: the Disposition cell's.
+    pub badge: Option<&'static str>,
     pub title: Option<String>,
     pub href: Option<String>,
 }
@@ -438,7 +446,10 @@ pub struct ListView {
     pub editor: Vec<EditorFilter>,
     /// ace3's filters this list doesn't have yet, with why.
     pub left_out: Vec<(&'static str, &'static str)>,
-    pub dispositions: &'static [&'static str],
+    /// The dispositions the bulk menu offers: the site's an analyst may choose, in order.
+    pub dispositions: Vec<String>,
+    /// The filter editor's suggested dispositions: every one the site has, in order.
+    pub filter_dispositions: Vec<String>,
     pub warnings: Vec<String>,
     pub error: Option<String>,
     pub refresh_seconds: u32,
@@ -469,7 +480,13 @@ fn overlaid(filters: &[FilterEntry], name: &str, value: &str) -> Vec<FilterEntry
     out
 }
 
-fn row(alert: &AlertSummary, columns: &[&ManageColumn], query: &ListQuery, tz: Tz) -> Row {
+fn row(
+    alert: &AlertSummary,
+    columns: &[&ManageColumn],
+    query: &ListQuery,
+    tz: Tz,
+    dispositions: &Dispositions,
+) -> Row {
     let disposition = alert
         .disposition
         .clone()
@@ -480,12 +497,14 @@ fn row(alert: &AlertSummary, columns: &[&ManageColumn], query: &ListQuery, tz: T
             "date" => Cell {
                 id: "date",
                 text: time_in(alert.alerted_at, tz),
+                badge: None,
                 title: Some(alert.alerted_at.to_rfc3339()),
                 href: None,
             },
             "description" => Cell {
                 id: "description",
                 text: alert.title.clone(),
+                badge: None,
                 title: None,
                 href: Some(format!("/alerts/{}", alert.id)),
             },
@@ -497,11 +516,13 @@ fn row(alert: &AlertSummary, columns: &[&ManageColumn], query: &ListQuery, tz: T
                     &disposition,
                 ))),
                 text: disposition.clone(),
+                badge: Some(dispositions.css(Some(&disposition))),
                 title: None,
             },
             _ => Cell {
                 id: "status",
                 text: status(alert.analysis).to_owned(),
+                badge: None,
                 title: None,
                 href: None,
             },
@@ -519,6 +540,7 @@ pub fn alert_list(
     query: &ListQuery,
     columns: &ManageColumnsPreference,
     tz: Tz,
+    dispositions: &Dispositions,
 ) -> AlertList {
     let visible = columns.visible();
     let zone = Utc::now().with_timezone(&tz).format("%Z").to_string();
@@ -553,7 +575,7 @@ pub fn alert_list(
     let rows = page
         .alerts
         .iter()
-        .map(|alert| row(alert, &visible, query, tz))
+        .map(|alert| row(alert, &visible, query, tz, dispositions))
         .collect();
     let ids: Vec<String> = page
         .alerts
@@ -581,6 +603,7 @@ pub fn list_view(
     tz: Tz,
     warnings: Vec<String>,
     error: Option<String>,
+    dispositions: &Dispositions,
 ) -> ListView {
     let chips = query
         .filters
@@ -659,7 +682,7 @@ pub fn list_view(
         ListQuery::url(&format!("/api/alerts/v1/alerts/export/{format}"), &pairs)
     };
     ListView {
-        list: alert_list(page, query, columns, tz),
+        list: alert_list(page, query, columns, tz, dispositions),
         chips,
         here: query.at("/"),
         manage: crate::saved_filters::manage_url(&query.at("/")),
@@ -687,7 +710,8 @@ pub fn list_view(
             .iter()
             .map(|gone| (gone.name, gone.why))
             .collect(),
-        dispositions: DISPOSITIONS,
+        dispositions: dispositions.selectable(),
+        filter_dispositions: dispositions.names(),
         warnings,
         error,
         refresh_seconds: REFRESH_SECONDS,
@@ -719,6 +743,9 @@ pub struct BulkPage {
     pub done: Vec<Uuid>,
     pub failed: Vec<(Uuid, String)>,
     pub next: String,
+    /// Whether to offer Save to Event for `done`: the disposition's `show_save_to_event`, to a viewer with
+    /// `event:write`.
+    pub save_to_event: bool,
 }
 
 /// The viewer's timezone, UTC when it can't be read.
@@ -795,6 +822,7 @@ pub(crate) async fn page(
         tz,
         parsed.warnings,
         parsed.error,
+        gui.service.dispositions(),
     );
     render(&ListPage {
         layout: viewer.layout,
@@ -840,7 +868,7 @@ pub(crate) async fn refresh(
     };
     let columns = gui.service.manage_columns(actor).await.unwrap_or_default();
     render(&AlertListFragment {
-        list: alert_list(&page, &query, &columns, tz),
+        list: alert_list(&page, &query, &columns, tz, gui.service.dispositions()),
     })
 }
 
@@ -896,7 +924,11 @@ pub(crate) async fn bulk_disposition(
             Err(ServiceError::InvalidRequest(why)) => {
                 return Failure::new(StatusCode::BAD_REQUEST, why, &parts).into_response();
             }
-            Err(error @ (ServiceError::PermissionDenied { .. } | ServiceError::NotFound(_))) => {
+            Err(
+                error @ (ServiceError::PermissionDenied { .. }
+                | ServiceError::NotFound(_)
+                | ServiceError::Conflict(_)),
+            ) => {
                 failed.push((id, error.to_string()));
             }
             Err(error) => {
@@ -905,6 +937,13 @@ pub(crate) async fn bulk_disposition(
             }
         }
     }
+    let save_to_event = !done.is_empty()
+        && gui.service.dispositions().show_save_to_event(&disposition)
+        && gui
+            .service
+            .allowed(&viewer.actor, &ace_service::EVENT_WRITE)
+            .await
+            .unwrap_or(false);
     let status = if done.is_empty() && !failed.is_empty() {
         StatusCode::FORBIDDEN
     } else {
@@ -916,6 +955,7 @@ pub(crate) async fn bulk_disposition(
         done,
         failed,
         next,
+        save_to_event,
     });
     *response.status_mut() = status;
     response

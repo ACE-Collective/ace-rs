@@ -100,25 +100,28 @@ async fn serve(app: &App) -> Result<ExitCode> {
     for name in hooks.names() {
         tracing::info!(hook = name, "running a hook in the core");
     }
-    let classes = ace_service::DispositionClasses::configured(&overlay)
+    let dispositions = ace_service::Dispositions::configured(&overlay)
         .map_err(anyhow::Error::msg)
         .context("the overlay's disposition sections")?;
-    let (tp, fp) = classes.lists();
-    let set_by_ace = classes.set_by_ace_list();
+    let (tp, fp) = dispositions.classes().lists();
+    let set_by_ace = dispositions.classes().set_by_ace_list();
+    let names = dispositions.names();
     // changing it relabels every detection at once, so a site's own is a warning, as ace3 logs it
-    if classes == ace_service::DispositionClasses::ace3() {
+    if dispositions == ace_service::Dispositions::ace3() {
         tracing::info!(
+            ?names,
             ?tp,
             ?fp,
             ?set_by_ace,
-            "disposition classification in effect: ace3's"
+            "dispositions and their classification in effect: ace3's"
         );
     } else {
         tracing::warn!(
+            ?names,
             ?tp,
             ?fp,
             ?set_by_ace,
-            "disposition classification in effect: the overlay's"
+            "dispositions and their classification in effect: the overlay's"
         );
     }
     // the run page's link to the site's log search (PLAN.md 7.10)
@@ -142,7 +145,7 @@ async fn serve(app: &App) -> Result<ExitCode> {
     }
     let service = ace_service::Service::new(db.clone(), orchestrator.clone())
         .with_actions(actions)
-        .with_disposition_classes(classes)
+        .with_dispositions(dispositions)
         .with_log_search(log_search);
     let scheduler =
         crate::scheduler::Scheduler::new(db.clone(), service.clone(), bucket.clone(), scheduled)

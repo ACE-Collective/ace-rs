@@ -4164,7 +4164,15 @@ async fn concurrent_dispositions_each_record_what_they_replaced() {
     let service = service(db);
     let root = alert(db).await;
     let actor = admin(db).await;
-    let writes = ["A", "B", "C", "D", "E", "F"].map(|disposition| {
+    let writes = [
+        "IGNORE",
+        "FALSE_POSITIVE",
+        "UNKNOWN",
+        "REVIEWED",
+        "GRAYWARE",
+        "DELIVERY",
+    ]
+    .map(|disposition| {
         let (service, actor) = (service.clone(), actor.clone());
         tokio::spawn(async move {
             service
@@ -10994,25 +11002,114 @@ async fn the_event_list_filters_sorts_and_pages_as_ace3_does() {
     }
 }
 
+/// An event's disposition by the site's ranks, in the event list's query as in Rust: the overlay puts IGNORE
+/// above DAMAGE, and a site's own ties with DAMAGE, which the name decides.
+#[tokio::test]
+async fn the_event_list_rolls_up_by_the_sites_ranks() {
+    use ace_service::{EventFilters, EventQuery, EventSort};
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let overlay = ace_sdk::Overlay::from_yaml(
+        "dispositions:\n  IGNORE: {rank: 500}\n  BREACH: {rank: 160, css: danger}\n",
+    )
+    .expect("parses");
+    let service = service(db)
+        .with_dispositions(ace_service::Dispositions::configured(&overlay).expect("good"));
+    let reader = admin(db).await;
+    let mut alerts = Vec::new();
+    for disposition in ["DAMAGE", "IGNORE", "DAMAGE", "BREACH", "FALSE_POSITIVE"] {
+        let root = alert(db).await;
+        set_disposition_row(db, root, Some(disposition)).await;
+        alerts.push(root);
+    }
+    let ignored = event_with(db, "ignored", &alerts[0..2]).await;
+    let tied = event_with(db, "tied", &alerts[2..4]).await;
+    let false_positive = event_with(db, "fp", &alerts[4..5]).await;
+    let listed = |filters: EventFilters, sort: EventSort| {
+        let query = EventQuery {
+            filters,
+            sort,
+            descending: true,
+        };
+        let (service, reader) = (&service, &reader);
+        async move {
+            service
+                .event_list(reader, &query, None, 10)
+                .await
+                .expect("lists")
+                .events
+                .into_iter()
+                .map(|event| (event.id, event.disposition))
+                .collect::<Vec<_>>()
+        }
+    };
+    assert_eq!(
+        listed(EventFilters::default(), EventSort::Disposition).await,
+        [
+            (ignored, "IGNORE".to_owned()),
+            (tied, "BREACH".to_owned()),
+            (false_positive, "FALSE_POSITIVE".to_owned()),
+        ]
+    );
+    for (wanted, expected) in [
+        ("IGNORE", vec![ignored]),
+        ("BREACH", vec![tied]),
+        ("DAMAGE", vec![]),
+    ] {
+        let found = listed(
+            EventFilters {
+                dispositions: vec![wanted.to_owned()],
+                ..EventFilters::default()
+            },
+            EventSort::Disposition,
+        )
+        .await;
+        assert_eq!(
+            found.into_iter().map(|(id, _)| id).collect::<Vec<_>>(),
+            expected,
+            "{wanted}"
+        );
+    }
+    let one = service
+        .event(&reader, ace_service::EventRef::Id(tied))
+        .await
+        .expect("reads");
+    assert_eq!(one.disposition, "BREACH");
+}
+
 // The events module's own checks, which were a `#[cfg(test)]` module in src/events.rs that never ran:
 // this crate's library tests are off (Cargo.toml), so they're here.
 
 #[test]
 fn an_event_rolls_its_alerts_dispositions_up_as_ace3_does() {
-    use ace_service::rolled_up;
-    assert_eq!(rolled_up([]), "DELIVERY", "no alerts");
-    assert_eq!(rolled_up([None, Some("OPEN")]), "OPEN");
-    assert_eq!(rolled_up([Some("IGNORE")]), "IGNORE");
+    let ace3 = ace_service::Dispositions::ace3();
+    let rolled_up = |alerts: &[Option<&str>]| ace3.rolled_up(alerts.iter().copied());
+    assert_eq!(rolled_up(&[]), "DELIVERY", "no alerts");
+    assert_eq!(rolled_up(&[None, Some("OPEN")]), "OPEN");
+    assert_eq!(rolled_up(&[Some("IGNORE")]), "IGNORE");
     assert_eq!(
-        rolled_up([Some("DAMAGE"), Some("FALSE_POSITIVE"), None]),
+        rolled_up(&[Some("DAMAGE"), Some("FALSE_POSITIVE"), None]),
         "DAMAGE"
     );
     assert_eq!(
-        rolled_up([Some("GRAYWARE"), Some("SIMULATED"), Some("REVIEWED")]),
+        rolled_up(&[Some("GRAYWARE"), Some("SIMULATED"), Some("REVIEWED")]),
         "GRAYWARE"
     );
-    assert_eq!(rolled_up([Some("SITE_OWN")]), "OPEN", "no rank never wins");
-    assert_eq!(rolled_up([Some("SITE_OWN"), Some("IGNORE")]), "IGNORE");
+    assert_eq!(rolled_up(&[Some("SITE_OWN")]), "OPEN", "no rank never wins");
+    assert_eq!(rolled_up(&[Some("SITE_OWN"), Some("IGNORE")]), "IGNORE");
+    // the site's ranks: IGNORE above DAMAGE, a disposition of its own, and a tie, which the name decides
+    let site = ace_service::Dispositions::configured(
+        &ace_sdk::Overlay::from_yaml(
+            "dispositions:\n  IGNORE: {rank: 500}\n  SITE_OWN: {rank: 160, css: dark}\n",
+        )
+        .expect("parses"),
+    )
+    .expect("good");
+    let rolled_up = |alerts: &[Option<&str>]| site.rolled_up(alerts.iter().copied());
+    assert_eq!(rolled_up(&[Some("DAMAGE"), Some("IGNORE")]), "IGNORE");
+    assert_eq!(rolled_up(&[Some("SITE_OWN"), Some("REVIEWED")]), "SITE_OWN");
+    assert_eq!(rolled_up(&[Some("SITE_OWN"), Some("DAMAGE")]), "DAMAGE");
+    assert_eq!(rolled_up(&[Some("DAMAGE"), Some("SITE_OWN")]), "DAMAGE");
 }
 
 #[test]
@@ -15155,8 +15252,8 @@ fn coverage_sums_up_as_ace3_s() {
 // cases, named for it; the module docs of `ace_service`'s `detection_verdicts` say what differs.
 
 use ace_service::{
-    BatchRules, DispositionClass, DispositionClasses, SkipCause, Verdict, VerdictSource,
-    effective_verdict,
+    BatchRules, DispositionClass, DispositionClasses, Dispositions, SkipCause, Verdict,
+    VerdictSource, effective_verdict,
 };
 
 const SIG_A: &str = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
@@ -15475,18 +15572,13 @@ async fn a_classification_change_relabels_at_read_time() {
             .chain([("REVIEWED".to_owned(), DispositionClass::Fp)]),
         [],
     );
-    let relabelled = service(db).with_disposition_classes(classes.clone());
-    assert_eq!(
-        verdicts(verdict_rows(&relabelled, &actor, root).await),
-        BTreeSet::from([Some(Verdict::Fp)])
-    );
-    // the site overlay's sections, merged over ace3's, do the same
+    // the site overlay's sections, merged over ace3's
     let overlay =
         ace_sdk::Overlay::from_yaml("disposition_classification: {REVIEWED: fp}").expect("parses");
-    let configured = DispositionClasses::configured(&overlay).expect("a good section");
-    assert_eq!(configured.lists(), classes.lists());
-    assert_eq!(configured.set_by_ace_list(), ["SIMULATED"]);
-    let relabelled = service(db).with_disposition_classes(configured);
+    let configured = Dispositions::configured(&overlay).expect("a good section");
+    assert_eq!(configured.classes().lists(), classes.lists());
+    assert_eq!(configured.classes().set_by_ace_list(), ["SIMULATED"]);
+    let relabelled = service(db).with_dispositions(configured);
     assert_eq!(
         verdicts(verdict_rows(&relabelled, &actor, root).await),
         BTreeSet::from([Some(Verdict::Fp)])
@@ -15508,57 +15600,95 @@ async fn a_classification_change_relabels_at_read_time() {
     );
     let overlay =
         ace_sdk::Overlay::from_yaml("disposition_classification: {DELIVERY: fp}").expect("parses");
-    let relabelled = service(db)
-        .with_disposition_classes(DispositionClasses::configured(&overlay).expect("good"));
+    let relabelled =
+        service(db).with_dispositions(Dispositions::configured(&overlay).expect("good"));
     assert_eq!(
         sources(verdict_rows(&relabelled, &actor, delivery).await),
         BTreeSet::from([(Some(Verdict::Fp), Some(VerdictSource::InheritedSingle))])
     );
 }
 
-/// The overlay's disposition sections: ace3's classification with none, each entry merged over it, and a
-/// section naming a disposition ace4 doesn't know, or OPEN, refused, as `ace serve` refuses to start on it.
+/// The overlay's disposition sections: ace3's dispositions and classification with none, each entry merged
+/// over them, a site's own disposition added after ace3's in the file's order, and a bad section refused, as
+/// `ace serve` refuses to start on it.
 #[test]
-fn the_overlay_configures_the_disposition_classes() {
-    let configured = |yaml: &str| {
-        DispositionClasses::configured(&ace_sdk::Overlay::from_yaml(yaml).expect("parses"))
-    };
-    assert_eq!(configured(""), Ok(DispositionClasses::ace3()));
+fn the_overlay_configures_the_dispositions() {
+    let configured =
+        |yaml: &str| Dispositions::configured(&ace_sdk::Overlay::from_yaml(yaml).expect("parses"));
+    let ace3 = Dispositions::ace3();
+    assert_eq!(configured(""), Ok(ace3.clone()));
     assert_eq!(
         configured("disposition_classification: {}\ndispositions: {}"),
-        Ok(DispositionClasses::ace3())
+        Ok(ace3.clone())
     );
-    // a merge: what isn't named keeps ace3's class
-    let classes = configured(
-        "disposition_classification: {GRAYWARE: fp, REVIEWED: tp}\n\
-         dispositions: {SIMULATED: {analyst_selectable: true}, DAMAGE: {analyst_selectable: false}, \
-         EXFIL: {}}",
+    assert_eq!(ace3.classes(), &DispositionClasses::ace3());
+    assert_eq!(ace3.names().len(), 16);
+    assert_eq!(
+        ace3.selectable(),
+        ace3.names()
+            .into_iter()
+            .filter(|name| name != "SIMULATED")
+            .collect::<Vec<_>>()
+    );
+    let delivery = ace3.get("DELIVERY").expect("ace3's");
+    assert_eq!(
+        (delivery.rank, delivery.css, delivery.show_save_to_event),
+        (100, "danger", true)
+    );
+    assert_eq!(ace3.css(None), "light", "OPEN's");
+    assert_eq!(ace3.css(Some("GONE")), ace_service::DEFAULT_BADGE);
+    // a merge: what isn't named keeps ace3's
+    let site = configured(
+        "disposition_classification: {GRAYWARE: fp, REVIEWED: tp, SITE_BAD: tp}\n\
+         dispositions:\n  \
+           SIMULATED: {analyst_selectable: true}\n  \
+           DAMAGE: {analyst_selectable: false, css: dark}\n  \
+           EXFIL: {}\n  \
+           SITE_BAD: {rank: 170, css: danger, show_save_to_event: true}\n  \
+           SITE_ARCHIVED: {rank: 1, css: light, analyst_selectable: false}\n  \
+           OPEN: {css: secondary, rank: 0}\n",
     )
-    .expect("a good section");
+    .expect("good sections");
+    let classes = site.classes();
     assert_eq!(classes.class(Some("GRAYWARE")), Some(DispositionClass::Fp));
     assert_eq!(classes.class(Some("REVIEWED")), Some(DispositionClass::Tp));
+    assert_eq!(classes.class(Some("SITE_BAD")), Some(DispositionClass::Tp));
     assert_eq!(classes.class(Some("DELIVERY")), Some(DispositionClass::Tp));
     assert_eq!(
         classes.class(Some("FALSE_POSITIVE")),
         Some(DispositionClass::Fp)
     );
     assert_eq!(classes.class(Some("IGNORE")), None);
-    assert_eq!(classes.set_by_ace_list(), ["DAMAGE"]);
+    assert_eq!(classes.class(Some("SITE_ARCHIVED")), None);
+    assert_eq!(classes.set_by_ace_list(), ["DAMAGE", "SITE_ARCHIVED"]);
     assert!(!classes.set_by_ace(Some("SIMULATED")) && !classes.set_by_ace(Some("EXFIL")));
     assert_eq!(classes.refusal(Some("SIMULATED"), true), None);
     assert!(classes.refusal(Some("DAMAGE"), true).is_some());
+    // the menus: in order, a site's own after ace3's in the file's order, without what only ACE sets
+    let names = site.names();
+    assert_eq!(names[names.len() - 2..], ["SITE_BAD", "SITE_ARCHIVED"]);
+    let selectable = site.selectable();
+    assert!(
+        selectable.contains(&"SIMULATED".to_owned()) && selectable.contains(&"SITE_BAD".to_owned())
+    );
+    assert!(
+        !selectable.contains(&"DAMAGE".to_owned())
+            && !selectable.contains(&"SITE_ARCHIVED".to_owned())
+    );
+    assert_eq!(site.css(Some("DAMAGE")), "dark");
+    assert_eq!(site.css(None), "secondary");
+    assert!(site.show_save_to_event("SITE_BAD") && !site.show_save_to_event("SITE_ARCHIVED"));
+    assert!(site.is_frozen(Some("DAMAGE")) && !site.is_frozen(Some("SIMULATED")));
+    assert!(!site.is_frozen(None) && !site.is_frozen(Some("GONE")));
+    assert_eq!(site.rank("SITE_BAD"), Some(170));
     for (yaml, said) in [
         (
             "disposition_classification: {BENIGN: fp}",
-            "disposition_classification.BENIGN: not a disposition ace4 knows",
+            "disposition_classification.BENIGN: not a disposition in dispositions",
         ),
         (
             "disposition_classification: {delivery: tp}",
-            "disposition_classification.delivery: not a disposition ace4 knows",
-        ),
-        (
-            "dispositions: {MALICIOUS: {analyst_selectable: false}}",
-            "dispositions.MALICIOUS: not a disposition ace4 knows",
+            "disposition_classification.delivery: not a disposition in dispositions",
         ),
         (
             "disposition_classification: {OPEN: fp}",
@@ -15566,18 +15696,141 @@ fn the_overlay_configures_the_disposition_classes() {
         ),
         (
             "dispositions: {OPEN: {analyst_selectable: false}}",
-            "dispositions.OPEN: OPEN is an alert with no disposition",
+            "dispositions.OPEN.analyst_selectable: OPEN is an alert with no disposition",
+        ),
+        (
+            "dispositions: {OPEN: {rank: 5}}",
+            "dispositions.OPEN.rank: OPEN is an alert with no disposition",
+        ),
+        (
+            "dispositions: {MALICIOUS: {analyst_selectable: false}}",
+            "dispositions.MALICIOUS: a new disposition needs a rank and a css",
+        ),
+        (
+            "dispositions: {MALICIOUS: {rank: 10}}",
+            "dispositions.MALICIOUS: a new disposition needs a rank and a css",
+        ),
+        (
+            "dispositions: {malicious: {rank: 10, css: danger}}",
+            "dispositions.malicious: a disposition's name is up to 64",
+        ),
+        (
+            "dispositions: {MAL-ICIOUS: {rank: 10, css: danger}}",
+            "dispositions.MAL-ICIOUS: a disposition's name is up to 64",
+        ),
+        (
+            "dispositions: {MALICIOUS: {rank: 10, css: red}}",
+            "dispositions.MALICIOUS.css: \"red\" isn't a badge colour",
+        ),
+        (
+            "dispositions: {DELIVERY: {rank: -1}}",
+            "dispositions.DELIVERY.rank: -1 isn't a rank",
+        ),
+        (
+            "dispositions: {DELIVERY: {rank: 1000000000}}",
+            "dispositions.DELIVERY.rank: 1000000000 isn't a rank",
+        ),
+        // a classification names the configured set, a site's own included only once it's configured
+        (
+            "disposition_classification: {SITE_BAD: tp}",
+            "disposition_classification.SITE_BAD: not a disposition in dispositions",
         ),
     ] {
         let err = configured(yaml).expect_err(yaml);
         assert!(err.starts_with(said), "{yaml}: {err}");
     }
-    // a disposition can't be both TP and FP: it's one key, and a key written twice doesn't parse
-    let err = ace_sdk::Overlay::from_yaml(
+    let long = "A".repeat(65);
+    let err = configured(&format!("dispositions: {{{long}: {{rank: 1, css: info}}}}"))
+        .expect_err("too long");
+    assert!(err.contains("up to 64"), "{err}");
+    // a disposition can't be both TP and FP: it's one key, and a key written twice doesn't parse; and one
+    // can't be removed, since an entry is a mapping
+    for yaml in [
         "disposition_classification:\n  DELIVERY: tp\n  DELIVERY: fp\n",
+        "dispositions: {DELIVERY: null}",
+    ] {
+        ace_sdk::Overlay::from_yaml(yaml).expect_err(yaml);
+    }
+}
+
+/// The write takes the site's dispositions: one of its own, and not one it doesn't have; from an analyst,
+/// not one only ACE sets, nor a change to an alert that has one, which ACE's own components can do (ace3's
+/// `is_selectable_disposition` and `is_frozen_disposition`).
+#[tokio::test]
+async fn the_disposition_write_takes_the_sites_set() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let overlay = ace_sdk::Overlay::from_yaml(
+        "dispositions:\n  SITE_OWN: {rank: 45, css: info}\n  \
+         SITE_SWEEP: {rank: 5, css: dark, analyst_selectable: false}\n",
     )
-    .expect_err("a key written twice");
-    assert!(err.to_string().contains("duplicate entry"), "{err}");
+    .expect("parses");
+    let service = service(db).with_dispositions(Dispositions::configured(&overlay).expect("good"));
+    let analyst = admin(db).await;
+    let ace = component("svs:maintenance");
+    may_disposition(
+        db,
+        &[Holder::Component(
+            Component::new("svs:maintenance").expect("valid"),
+        )],
+    )
+    .await;
+    let root = alert(db).await;
+    service
+        .disposition(&analyst, root, "SITE_OWN")
+        .await
+        .expect("the site's own");
+    assert_eq!(row(db, root).await.disposition.as_deref(), Some("SITE_OWN"));
+    for (disposition, said) in [
+        (
+            "MALICIOUS",
+            "MALICIOUS isn't one of this site's dispositions",
+        ),
+        ("SIMULATED", "only ACE sets the disposition SIMULATED"),
+        ("SITE_SWEEP", "only ACE sets the disposition SITE_SWEEP"),
+    ] {
+        match service.disposition(&analyst, root, disposition).await {
+            Err(ServiceError::InvalidRequest(why)) => assert!(why.starts_with(said), "{why}"),
+            other => panic!("{disposition}: {other:?}"),
+        }
+    }
+    // ace3's default isn't taken from ACE either when the site doesn't have it
+    assert!(matches!(
+        service.disposition(&ace, root, "MALICIOUS").await,
+        Err(ServiceError::InvalidRequest(_))
+    ));
+    assert_eq!(row(db, root).await.disposition.as_deref(), Some("SITE_OWN"));
+    // ACE sets one only it sets, and then an analyst can't change the alert, but ACE can
+    service
+        .disposition(&ace, root, "SITE_SWEEP")
+        .await
+        .expect("ACE sets it");
+    match service.disposition(&analyst, root, "FALSE_POSITIVE").await {
+        Err(ServiceError::Conflict(why)) => assert!(why.contains("SITE_SWEEP"), "{why}"),
+        other => panic!("{other:?}"),
+    }
+    assert_eq!(
+        row(db, root).await.disposition.as_deref(),
+        Some("SITE_SWEEP")
+    );
+    service
+        .disposition(&ace, root, "IGNORE")
+        .await
+        .expect("ACE changes it");
+    service
+        .disposition(&analyst, root, "FALSE_POSITIVE")
+        .await
+        .expect("an analyst can again");
+    // a disposition the site has stopped configuring stays on its alert, and an analyst can replace it
+    sqlx::query("UPDATE analysis.roots SET disposition = 'RETIRED' WHERE id = $1")
+        .bind(root)
+        .execute(db.pool())
+        .await
+        .expect("an old value");
+    service
+        .disposition(&analyst, root, "DELIVERY")
+        .await
+        .expect("replaces it");
 }
 
 /// test_effective.py's `test_override_survives_an_fp_round_trip`: TP to FP masks the stored verdict without

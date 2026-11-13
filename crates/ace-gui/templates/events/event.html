@@ -34,7 +34,7 @@
       </thead>
       <tbody>
         <tr>
-          <td>{{ view.disposition }}</td>
+          <td><span class="badge disposition-{{ view.disposition_badge }}">{{ view.disposition }}</span></td>
           <td>{{ view.status }}</td>
           <td>{{ view.owner }}</td>
           <td>{{ view.remediation }}</td>
@@ -80,7 +80,7 @@
         {%- endif %}
         <td class="nowrap">{{ alert.date }}</td>
         <td><a href="{{ alert.href }}">{{ alert.title }}</a>{% for tag in alert.tags %} <span class="badge">{{ tag }}</span>{% endfor %}{% if let Some(c) = alert.coverage %} <span class="badge {{ c.class }}" title="{{ c.tooltip }}">{{ c.label }}</span>{% endif %}</td>
-        <td>{{ alert.disposition }}</td>
+        <td><span class="badge disposition-{{ alert.disposition_badge }}">{{ alert.disposition }}</span></td>
         <td>{{ alert.status }}</td>
       </tr>
       {%- else %}

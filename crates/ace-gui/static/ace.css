@@ -514,6 +514,39 @@ form.inline {
   color: var(--muted);
 }
 
+/* a disposition's badge, its `css` in the site's dispositions (PLAN.md 7.14), ace3's text-bg-<css> in the
+   theme's few colours: success as the accent, danger and warning as danger, info and primary dashed */
+.badge.disposition-success {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.badge.disposition-danger {
+  border-color: var(--danger);
+  color: var(--danger);
+  font-weight: bold;
+}
+
+.badge.disposition-warning {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.badge.disposition-info,
+.badge.disposition-primary {
+  border-style: dashed;
+  border-color: var(--accent);
+}
+
+.badge.disposition-secondary,
+.badge.disposition-dark {
+  color: var(--text);
+}
+
+.badge.disposition-light {
+  color: var(--muted);
+}
+
 /* a detection's verdict (PLAN.md 7.14), ace3's text-bg-warning for TP and text-bg-success for FP */
 .badge.verdict-tp {
   border-color: var(--danger);

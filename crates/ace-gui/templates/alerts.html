@@ -58,7 +58,7 @@
       <input type="text" name="type" placeholder="type, for Observable" aria-label="Observable type">
       <input type="text" name="value" list="filter-values" placeholder="a value" aria-label="Value" required>
       <datalist id="filter-values">
-        {%- for disposition in view.dispositions %}
+        {%- for disposition in view.filter_dispositions %}
         <option value="{{ disposition }}">
         {%- endfor %}
         <option value="-24h"><option value="-7d"><option value="-30d"><option value="@d">

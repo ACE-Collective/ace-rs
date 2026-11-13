@@ -107,7 +107,15 @@ async fn stack_from(build: impl FnOnce(Service) -> Gui) -> Stack {
 async fn stack_of(catalog: Catalog, build: impl FnOnce(Service) -> Gui) -> Stack {
     let test_db = TestDb::new().await;
     let orchestrator = Orchestrator::new(catalog, Modes::ace3());
-    let service = Service::new(test_db.db().clone(), orchestrator).with_actions(test_actions());
+    // ace3's dispositions with two of the site's own, one of which only ACE sets
+    let overlay = ace_sdk::Overlay::from_yaml(
+        "dispositions:\n  SITE_CHECKED: {rank: 45, css: info, show_save_to_event: true}\n  \
+         SITE_SWEEP: {rank: 5, css: dark, analyst_selectable: false}\n  DAMAGE: {css: warning}\n",
+    )
+    .expect("the overlay parses");
+    let service = Service::new(test_db.db().clone(), orchestrator)
+        .with_actions(test_actions())
+        .with_dispositions(ace_service::Dispositions::configured(&overlay).expect("good sections"));
     let gui = build(service.clone());
     let router = gui.router();
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
@@ -247,6 +255,7 @@ async fn the_base_layout_renders_for_a_visitor_and_a_user() {
         chrono_tz::Tz::UTC,
         Vec::new(),
         None,
+        &ace_service::Dispositions::ace3(),
     );
     let signed_in = ListPage {
         layout: Layout::new("n0nce", Theme::Dark, Some("alice".to_owned()), "/"),
@@ -3789,6 +3798,7 @@ fn the_list_view_draws_a_page_of_alerts() {
         chrono_tz::Tz::UTC,
         vec!["a <warning>".to_owned()],
         None,
+        &ace_service::Dispositions::ace3(),
     );
     let ids: Vec<&str> = view.list.headers.iter().map(|header| header.id).collect();
     assert_eq!(
@@ -3813,7 +3823,11 @@ fn the_list_view_draws_a_page_of_alerts() {
     assert_eq!(row_ids(&html), [one.to_string(), two.to_string()]);
     // the disposition links narrow the list to it, the title to the alert
     assert!(html.contains(&format!(r#"<a href="/alerts/{one}">"#)));
-    assert!(html.contains(">OPEN</a>") && html.contains(">FALSE_POSITIVE</a>"));
+    assert!(
+        html.contains(r#"class="badge disposition-light">OPEN</a>"#)
+            && html.contains(r#"class="badge disposition-success">FALSE_POSITIVE</a>"#),
+        "{html}"
+    );
     // the pager: the first page, since this isn't it, and the next
     let next = view.list.next.as_deref().expect("a next page");
     assert!(
@@ -3867,7 +3881,13 @@ fn the_list_view_draws_a_page_of_alerts() {
 
     // the fragment a refresh sends is the table alone, with the id Datastar morphs by
     let fragment = AlertListFragment {
-        list: alert_list(&page, &query, &columns, chrono_tz::Tz::UTC),
+        list: alert_list(
+            &page,
+            &query,
+            &columns,
+            chrono_tz::Tz::UTC,
+            &ace_service::Dispositions::ace3(),
+        ),
     }
     .render()
     .expect("renders");
@@ -4093,6 +4113,143 @@ async fn a_bulk_disposition_is_each_alert_s_own_write() {
         let response = post(bad).await;
         assert_eq!(response.status(), StatusCode::BAD_REQUEST);
     }
+    // the site's dispositions: one it doesn't have, and one only ACE sets, are refused whole
+    for bad in ["MALICIOUS", "SIMULATED", "SITE_SWEEP"] {
+        let response = post(vec![
+            ("disposition", bad.to_owned()),
+            ("alert", one.to_string()),
+        ])
+        .await;
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST, "{bad}");
+    }
+    assert_eq!(stack.audit_count().await, audit + 2);
+    // one with show_save_to_event offers Save to Event for the alerts dispositioned, to a viewer with
+    // event:write only; and an alert whose disposition only ACE sets is refused on its own
+    let with = |disposition: &str, ids: &[uuid::Uuid]| {
+        let mut form = vec![
+            ("disposition", disposition.to_owned()),
+            ("next", "/".to_owned()),
+        ];
+        form.extend(ids.iter().map(|id| ("alert", id.to_string())));
+        form
+    };
+    let page = post(with("SITE_CHECKED", &[one]))
+        .await
+        .text()
+        .await
+        .expect("a page");
+    assert!(page.contains("1 alert dispositioned"), "{page}");
+    assert!(!page.contains("Save to Event"), "no event:write: {page}");
+    stack
+        .service
+        .grant(
+            &bootstrap(),
+            &Holder::User(*id),
+            &PermissionPattern::new("event", "write").expect("a pattern"),
+            Effect::Allow,
+        )
+        .await
+        .expect("grants");
+    sqlx::query("UPDATE analysis.roots SET disposition = 'SITE_SWEEP' WHERE id = $1")
+        .bind(two)
+        .execute(stack.test_db.db().pool())
+        .await
+        .expect("as ACE would");
+    let answer = post(with("SITE_CHECKED", &[one, two])).await;
+    assert_eq!(answer.status(), StatusCode::OK);
+    let page = answer.text().await.expect("a page");
+    assert!(page.contains("1 alert dispositioned, 1 not"), "{page}");
+    assert!(page.contains("set only by ACE"), "{page}");
+    assert!(
+        page.contains(r#"<form method="get" action="/events/add" class="save-to-event">"#),
+        "{page}"
+    );
+    assert!(
+        page.contains(&format!(
+            r#"<input type="hidden" name="alert" value="{one}">"#
+        )),
+        "{page}"
+    );
+    assert!(
+        !page.contains(&format!(r#"name="alert" value="{two}""#)),
+        "{page}"
+    );
+    let page = post(with("FALSE_POSITIVE", &[one]))
+        .await
+        .text()
+        .await
+        .expect("a page");
+    assert!(
+        !page.contains("Save to Event"),
+        "FALSE_POSITIVE doesn't offer it: {page}"
+    );
+    // the list's menu offers what an analyst may choose, the filter's suggestions every disposition
+    let list = stack
+        .http
+        .get(format!("{}/", stack.url))
+        .header("cookie", cookie(&session))
+        .send()
+        .await
+        .expect("answered")
+        .text()
+        .await
+        .expect("a page");
+    let menu = list
+        .split(r#"<select id="bulk-disposition" name="disposition">"#)
+        .nth(1)
+        .and_then(|rest| rest.split("</select>").next())
+        .expect("the bulk menu");
+    assert!(
+        menu.contains(r#"<option value="SITE_CHECKED">SITE_CHECKED</option>"#),
+        "{menu}"
+    );
+    assert!(
+        menu.contains(r#"<option value="DAMAGE">DAMAGE</option>"#),
+        "{menu}"
+    );
+    assert!(
+        !menu.contains("SIMULATED") && !menu.contains("SITE_SWEEP"),
+        "{menu}"
+    );
+    assert!(
+        menu.find("OPEN") < menu.find("FALSE_POSITIVE")
+            && menu.find("DAMAGE") < menu.find("SITE_CHECKED"),
+        "ace3's order, the site's own after: {menu}"
+    );
+    let suggested = list
+        .split(r#"<datalist id="filter-values">"#)
+        .nth(1)
+        .and_then(|rest| rest.split("</datalist>").next())
+        .expect("the suggestions");
+    assert!(
+        suggested.contains(r#"<option value="SIMULATED">"#),
+        "{suggested}"
+    );
+    assert!(
+        suggested.contains(r#"<option value="SITE_SWEEP">"#),
+        "{suggested}"
+    );
+    // a badge in the site's css: DAMAGE is warning here
+    sqlx::query("UPDATE analysis.roots SET disposition = 'DAMAGE' WHERE id = $1")
+        .bind(one)
+        .execute(stack.test_db.db().pool())
+        .await
+        .expect("dispositions");
+    let list = stack
+        .http
+        .get(format!("{}/?f=disposition:DAMAGE", stack.url))
+        .header("cookie", cookie(&session))
+        .send()
+        .await
+        .expect("answered")
+        .text()
+        .await
+        .expect("a page");
+    assert!(
+        list.contains(r#"class="badge disposition-warning">DAMAGE</a>"#),
+        "{list}"
+    );
+    let audit = stack.audit_count().await;
     // and another site can't post it
     let cross = stack
         .http
@@ -4104,7 +4261,7 @@ async fn a_bulk_disposition_is_each_alert_s_own_write() {
         .await
         .expect("answered");
     assert_eq!(cross.status(), StatusCode::FORBIDDEN);
-    assert_eq!(stack.audit_count().await, audit + 2);
+    assert_eq!(stack.audit_count().await, audit);
 }
 
 /// The saved filter forms and the column chooser write through the service, and the list draws what they
@@ -8234,7 +8391,14 @@ fn the_event_list_and_page_views_draw_ace3_s_columns() {
     };
     let html = drawn_safely(&EventListPageHtml {
         layout: Layout::signed_out("n"),
-        view: event_list_view(Some(&page), &query, &fixture_choices(), None, true),
+        view: event_list_view(
+            Some(&page),
+            &query,
+            &fixture_choices(),
+            None,
+            true,
+            &ace_service::Dispositions::ace3(),
+        ),
     });
     assert!(
         html.contains(&format!(
@@ -8250,7 +8414,7 @@ fn the_event_list_and_page_views_draw_ace3_s_columns() {
     assert!(html.contains(r#"<button type="submit" form="export">Export to CSV</button>"#));
     assert!(html.contains(r#"<a href="/events/add">Create Event</a>"#));
     assert!(html.contains("7 events."));
-    assert!(html.contains("<td>DAMAGE</td>"));
+    assert!(html.contains(r#"<td><span class="badge disposition-danger">DAMAGE</span></td>"#));
     // the current sort turns around, another starts descending, and the filters go with each
     assert!(
         html.contains(r#"<a href="/events?filtered=1&#38;type=phish&#38;"#),
@@ -8286,6 +8450,7 @@ fn the_event_list_and_page_views_draw_ace3_s_columns() {
             &fixture_choices(),
             Some(HOSTILE.to_owned()),
             false,
+            &ace_service::Dispositions::ace3(),
         ),
     });
     assert!(html.contains(&format!("The filters couldn't be read: {HOSTILE_ESCAPED}")));
@@ -8302,6 +8467,7 @@ fn the_event_list_and_page_views_draw_ace3_s_columns() {
                 write: true,
                 disposition: true,
             },
+            &ace_service::Dispositions::ace3(),
         ),
     });
     assert!(
@@ -8336,6 +8502,7 @@ fn the_event_list_and_page_views_draw_ace3_s_columns() {
                     write,
                     disposition: false,
                 },
+                &ace_service::Dispositions::ace3(),
             ),
         });
         assert!(!html.contains("Close Event"), "{html}");
@@ -8348,6 +8515,7 @@ fn the_event_list_and_page_views_draw_ace3_s_columns() {
                 write: true,
                 disposition: false,
             },
+            &ace_service::Dispositions::ace3(),
         ),
     });
     assert!(!html.contains("STILL ANALYZING"));
@@ -8576,7 +8744,7 @@ async fn the_event_list_and_an_event_s_page_through_the_server() {
             page.contains(&format!(r#"<a href="/alerts/{one}">{HOSTILE_ESCAPED}</a>"#)),
             "{page}"
         );
-        assert!(page.contains("<td>DAMAGE</td>"));
+        assert!(page.contains(r#"<td><span class="badge disposition-warning">DAMAGE</span></td>"#));
         assert!(!page.contains("Close Event"), "no event:write");
     }
     assert_eq!(
@@ -8922,6 +9090,7 @@ fn the_edit_views_draw_ace3_s_form() {
                 write: true,
                 disposition: true,
             },
+            &ace_service::Dispositions::ace3(),
         ),
     });
     assert!(
@@ -8950,6 +9119,7 @@ fn the_edit_views_draw_ace3_s_form() {
                 write: false,
                 disposition: true,
             },
+            &ace_service::Dispositions::ace3(),
         ),
     });
     assert!(html.contains("Set Disposition") && html.contains(r#"form="event-alerts""#));
@@ -8958,7 +9128,11 @@ fn the_edit_views_draw_ace3_s_form() {
     // neither: no form and no boxes
     let html = drawn_safely(&EventPageHtml {
         layout: Layout::signed_out("n"),
-        view: event_view(&event, EventMay::default()),
+        view: event_view(
+            &event,
+            EventMay::default(),
+            &ace_service::Dispositions::ace3(),
+        ),
     });
     assert!(!html.contains("event-alerts") && !html.contains("Set Disposition"));
 
@@ -8971,7 +9145,14 @@ fn the_edit_views_draw_ace3_s_form() {
     let query = EventListQuery::default();
     let html = drawn_safely(&EventListPageHtml {
         layout: Layout::signed_out("n"),
-        view: event_list_view(Some(&page), &query, &fixture_choices(), None, true),
+        view: event_list_view(
+            Some(&page),
+            &query,
+            &fixture_choices(),
+            None,
+            true,
+            &ace_service::Dispositions::ace3(),
+        ),
     });
     assert!(
         html.contains(r#"<a href="/events/7/edit" title="Edit Event">Edit</a>"#),
@@ -8988,7 +9169,14 @@ fn the_edit_views_draw_ace3_s_form() {
     );
     let html = drawn_safely(&EventListPageHtml {
         layout: Layout::signed_out("n"),
-        view: event_list_view(Some(&page), &query, &fixture_choices(), None, false),
+        view: event_list_view(
+            Some(&page),
+            &query,
+            &fixture_choices(),
+            None,
+            false,
+            &ace_service::Dispositions::ace3(),
+        ),
     });
     assert!(!html.contains("/edit") && !html.contains("Add Tag(s)"));
 
@@ -9430,7 +9618,7 @@ async fn an_event_is_edited_through_the_server() {
         .text()
         .await
         .expect("a page");
-    assert!(page.contains("<td>DAMAGE</td>"));
+    assert!(page.contains(r#"<td><span class="badge disposition-warning">DAMAGE</span></td>"#));
 
     // closed: the edit offers CLOSED and no times; by uuid too
     let uuid = event_uuid(&stack, open).await;

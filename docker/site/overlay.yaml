@@ -1,7 +1,20 @@
 # The site overlay the Compose stack's ace, parsers and lookups services read (PLAN.md 2.23),
 # mounted at /etc/ace4/overlay.yaml from ACE4_SITE (this directory by default). With no
 # sections, every module runs as itself on its defaults. A site sets its modules' settings, its
-# named instances, where its secrets come from, the core's scheduled tasks and hooks, and what
-# each disposition means for detection verdicts here (ace_sdk::overlay lists the sections). The
-# end-to-end test's overlay, tests/e2e/site/overlay.yaml (2.30), is an example.
+# named instances, where its secrets come from, the core's scheduled tasks and hooks, and its
+# alert dispositions and what each means for detection verdicts (ace_sdk::overlay lists the
+# sections). The end-to-end test's overlay, tests/e2e/site/overlay.yaml (2.30), is an example.
+#
+# The dispositions are ace3's (rank, css, show_save_to_event, analyst_selectable) unless a site
+# changes them. Each entry is merged over ace3's, so a site names only what it changes, and a new
+# disposition needs a rank and a css (primary, secondary, success, danger, warning, info, light or
+# dark). None can be removed: one a site no longer wants is set analyst_selectable: false, which
+# takes it out of the menus and refuses it from analysts. `ace serve` refuses to start on a bad
+# section. For example:
+#
+# dispositions:
+#   INSIDER_THREAT: {rank: 140, css: danger, show_save_to_event: true}
+#   UNKNOWN: {analyst_selectable: false}
+# disposition_classification:
+#   INSIDER_THREAT: tp
 modules: {}

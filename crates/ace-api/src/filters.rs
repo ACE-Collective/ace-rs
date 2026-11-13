@@ -29,19 +29,20 @@ pub(crate) struct FilterDescriptorBody {
     slug: &'static str,
     /// `text`, `multi`, `date_range` or `pair`: how an editor edits it.
     kind: &'static str,
-    /// The values a `multi` filter offers.
-    options: Vec<&'static str>,
+    /// The values a `multi` filter offers. The alert list's `Disposition` offers the site's dispositions,
+    /// which its overlay configures, in their order.
+    options: Vec<String>,
     /// What a value looks like.
     hint: &'static str,
 }
 
-impl From<&FilterSpec> for FilterDescriptorBody {
-    fn from(spec: &FilterSpec) -> Self {
+impl FilterDescriptorBody {
+    fn of(spec: &FilterSpec, dispositions: &ace_service::Dispositions) -> Self {
         FilterDescriptorBody {
             name: spec.name,
             slug: spec.slug,
             kind: spec.kind.as_str(),
-            options: spec.options.to_vec(),
+            options: ace_service::filters::options(spec, dispositions),
             hint: spec.hint,
         }
     }
@@ -224,7 +225,11 @@ pub(crate) async fn screen(
     let screen = web.service.filter_screen(&actor, &name).await?;
     Ok(Json(FilterScreenBody {
         name: screen.name(),
-        filters: screen.filters().iter().map(Into::into).collect(),
+        filters: screen
+            .filters()
+            .iter()
+            .map(|spec| FilterDescriptorBody::of(spec, web.service.dispositions()))
+            .collect(),
         left_out: screen
             .left_out()
             .iter()

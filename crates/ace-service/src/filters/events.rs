@@ -12,7 +12,7 @@
 //!   alert list's date filters take (`super::date_window`), resolved in UTC: ace3 compares the day with
 //!   the times as typed, and a creation date is a UTC day. ace3 falls back to the last 7 days, with a
 //!   flash, for a range it can't read; here that's refused, saying why.
-//! - Disposition, the rolled-up one (`crate::rolled_up`), any of those given. ace3 filters it in Python
+//! - Disposition, the rolled-up one (`Dispositions::rolled_up`), any of those given. ace3 filters it in Python
 //!   after the query; here it's in the query.
 //! - Status, any of those given. ace3 starts with `OPEN` (`EventFilters::ace3_default`).
 //! - Owner, any of the users given, or nobody (`EventOwnerFilter::Nobody`), ace3's `None`.
@@ -186,7 +186,7 @@ pub enum EventSort {
     Campaign,
     /// The risk level's value, ace3's Severity.
     RiskLevel,
-    /// The rolled-up disposition's rank, as ace3's `disposition_rank` sorts it.
+    /// The rolled-up disposition's rank, as ace3's `disposition_rank` sorts it, by the site's ranks.
     Disposition,
     Prevention,
     Remediation,

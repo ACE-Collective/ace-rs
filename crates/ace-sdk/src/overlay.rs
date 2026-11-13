@@ -36,14 +36,15 @@
 //! pool hosts (PLAN.md 7.9, `crate::actions`), by `<kind>/<name>`, such as `remediation/office365_email`.
 //! A pool gives each handler its own entry's `settings`, and the secrets its spec declares.
 //!
-//! `disposition_classification:` and `dispositions:` are ace3's sections of those names, which say what
-//! a disposition means for its alert's detections' verdicts (PLAN.md 7.14, `ace_service`'s
-//! `DispositionClasses`): `disposition_classification` maps a disposition to `tp` or `fp`, and an entry of
-//! `dispositions` takes `analyst_selectable`, false for one only ACE sets. Each entry is merged over ace3's
-//! own, as ace3 merges a site's config over its `saq.default.yaml`, so a site names only what it changes.
-//! ace4 doesn't configure the dispositions themselves, so a name must be one of ace3's, and an entry of
-//! `dispositions` takes nothing else of ace3's (`rank`, `css`, `show_save_to_event`). `ace serve` checks both
-//! when it starts; a pool doesn't read them.
+//! `dispositions:` and `disposition_classification:` are ace3's sections of those names (PLAN.md 7.14,
+//! `ace_service`'s `Dispositions`). `dispositions` is the set of alert dispositions, each with ace3's `rank`
+//! (an event takes its alerts' highest), `css` (its badge's colour), `show_save_to_event` (the disposition
+//! offers Save to Event) and `analyst_selectable` (false for one only ACE sets).
+//! `disposition_classification` maps a disposition to `tp` or `fp`. Each entry is merged over ace3's own, as
+//! ace3 merges a site's config over its `saq.default.yaml`, so a site names only what it changes, and a new
+//! disposition is a new entry with at least `rank` and `css`. A disposition can't be removed, as in ace3,
+//! whose merge only adds and replaces; one a site retires is set `analyst_selectable: false`. `ace serve`
+//! checks both when it starts; a pool doesn't read them.
 //!
 //! `svs:` is ace3's section of that name, holding the keys of SVS that are ported (PLAN.md 7.10): so far
 //! `log_search_url`, which `ace serve` checks when it starts.
@@ -93,6 +94,10 @@ pub struct Overlay {
     /// ace3's `dispositions:`, by disposition, each entry over ace3's own (PLAN.md 7.14). `ace serve` reads
     /// it; a pool doesn't.
     pub dispositions: BTreeMap<String, DispositionSection>,
+    /// The names in `dispositions` in the order the file writes them, which is where a site's own
+    /// disposition goes in the menus, after ace3's, as ace3's merge appends it. `from_yaml` sets it.
+    #[serde(skip)]
+    pub disposition_order: Vec<String>,
     /// ace3's `svs:` section, as far as SVS is ported (PLAN.md 7.10). `ace serve` reads it; a pool doesn't.
     pub svs: SvsSection,
 }
@@ -119,12 +124,20 @@ pub enum DispositionClass {
     Fp,
 }
 
-/// What the overlay says about one disposition: the one key of ace3's entry that ace4 reads.
+/// What the overlay says about one disposition, ace3's `DispositionConfig`. A key left out keeps what the
+/// disposition has; a new disposition needs `rank` and `css`, as ace3's schema requires them.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize)]
 #[serde(deny_unknown_fields, default)]
 pub struct DispositionSection {
-    /// False when only ACE sets the disposition, so only ACE grades its alerts' detections. Left out, it
-    /// keeps ace3's.
+    /// An event's disposition is its alerts' highest ranked.
+    pub rank: Option<i64>,
+    /// Its badge's colour, one of Bootstrap's names, as ace3's: `primary`, `secondary`, `success`,
+    /// `danger`, `warning`, `info`, `light` or `dark`.
+    pub css: Option<String>,
+    /// Whether choosing it offers Save to Event.
+    pub show_save_to_event: Option<bool>,
+    /// False when only ACE sets the disposition: an analyst can't choose it, or change an alert that has
+    /// it, and only ACE grades its alerts' detections.
     pub analyst_selectable: Option<bool>,
 }
 
@@ -311,17 +324,30 @@ impl Overlay {
     /// mapping is refused, where reading straight into JSON would keep the last silently.
     pub fn from_yaml(text: &str) -> Result<Overlay, OverlayError> {
         let parse_error = |path: String, message: String| OverlayError::Parse { path, message };
-        serde_norway::from_str::<serde_norway::Value>(text)
+        let yaml = serde_norway::from_str::<serde_norway::Value>(text)
             .map_err(|e| parse_error(String::new(), e.to_string()))?;
+        // JSON's map forgets the order, so the dispositions' is read here
+        let disposition_order = yaml
+            .get("dispositions")
+            .and_then(serde_norway::Value::as_mapping)
+            .map(|mapping| {
+                mapping
+                    .keys()
+                    .filter_map(|key| key.as_str().map(str::to_owned))
+                    .collect()
+            })
+            .unwrap_or_default();
         let value: Value =
             serde_norway::from_str(text).map_err(|e| parse_error(String::new(), e.to_string()))?;
         if value.is_null() {
             return Ok(Overlay::default());
         }
-        serde_path_to_error::deserialize(value).map_err(|e| {
+        let mut overlay: Overlay = serde_path_to_error::deserialize(value).map_err(|e| {
             let path = e.path().to_string();
             parse_error(path, e.into_inner().to_string())
-        })
+        })?;
+        overlay.disposition_order = disposition_order;
+        Ok(overlay)
     }
 
     /// Reads and parses the overlay at `path`.
@@ -352,6 +378,7 @@ impl Overlay {
             actions: self.actions.clone(),
             disposition_classification: BTreeMap::new(),
             dispositions: BTreeMap::new(),
+            disposition_order: Vec::new(),
             svs: SvsSection::default(),
         }
     }
@@ -565,6 +592,14 @@ mod tests {
             Some(true)
         );
         assert_eq!(overlay.dispositions["DELIVERY"].analyst_selectable, None);
+        // the file's order, which JSON's map would lose
+        let overlay = Overlay::from_yaml(
+            "dispositions:\n  ZULU: {rank: 1, css: info}\n  ALPHA: {rank: 2, css: dark}\n  OPEN: {}\n",
+        )
+        .expect("parses");
+        assert_eq!(overlay.disposition_order, ["ZULU", "ALPHA", "OPEN"]);
+        assert_eq!(overlay.dispositions["ZULU"].rank, Some(1));
+        assert_eq!(overlay.dispositions["ALPHA"].css.as_deref(), Some("dark"));
         for (yaml, path, message) in [
             (
                 "disposition_classification: {REVIEWED: benign}",
@@ -572,9 +607,19 @@ mod tests {
                 "unknown variant `benign`",
             ),
             (
-                "dispositions: {SIMULATED: {rank: 55}}",
-                "dispositions.SIMULATED.rank",
-                "unknown field `rank`",
+                "dispositions: {SIMULATED: {colour: info}}",
+                "dispositions.SIMULATED.colour",
+                "unknown field `colour`",
+            ),
+            (
+                "dispositions: {DELIVERY: null}",
+                "dispositions.DELIVERY",
+                "invalid type: null",
+            ),
+            (
+                "dispositions: {DELIVERY: {rank: high}}",
+                "dispositions.DELIVERY.rank",
+                "invalid type",
             ),
             (
                 "disposition_classifications: {REVIEWED: fp}",

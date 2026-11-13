@@ -24,7 +24,7 @@
                    data-on:change="$_sel = $_sel.filter(id => id !== el.value).concat(el.checked ? [el.value] : [])"
                    data-effect="el.checked = $_sel.includes(el.value)"></td>
         {%- for cell in row.cells %}
-        <td data-col-id="{{ cell.id }}"{% if let Some(title) = cell.title %} title="{{ title }}"{% endif %}>{% if let Some(href) = cell.href %}<a href="{{ href }}">{{ cell.text }}</a>{% else %}{{ cell.text }}{% endif %}</td>
+        <td data-col-id="{{ cell.id }}"{% if let Some(title) = cell.title %} title="{{ title }}"{% endif %}>{% if let Some(href) = cell.href %}<a href="{{ href }}"{% if let Some(badge) = cell.badge %} class="badge disposition-{{ badge }}"{% endif %}>{{ cell.text }}</a>{% else %}{{ cell.text }}{% endif %}</td>
         {%- endfor %}
       </tr>
       {%- endfor %}

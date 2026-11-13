@@ -97,6 +97,7 @@ mod crashes;
 mod detection;
 mod detection_points;
 mod detection_verdicts;
+mod dispositions;
 mod email_archive;
 mod events;
 mod file_collections;
@@ -161,18 +162,22 @@ pub use detection_points::{
     DetectionPoint, DetectionPointFilter, DetectionPointPage, MAX_DETECTIONS_PAGE,
 };
 pub use detection_verdicts::{
-    ACE_DISPOSITIONS, BatchRules, DispositionClass, DispositionClasses, MAX_VERDICT_TARGETS,
-    SkipCause, SkippedDetection, Verdict, VerdictBatch, VerdictSource, effective_verdict,
+    BatchRules, DispositionClass, DispositionClasses, MAX_VERDICT_TARGETS, SkipCause,
+    SkippedDetection, Verdict, VerdictBatch, VerdictSource, effective_verdict,
+};
+pub use dispositions::{
+    BADGE_STYLES, DEFAULT_BADGE, Disposition, Dispositions, MAX_DISPOSITION_CHARS, MAX_RANK,
+    is_disposition_name,
 };
 pub use email_archive::ArchivedEmail;
 pub use events::{
-    AddedToEvent, CLOSED_EVENTS_PAGE, CLOSED_STATUS, CampaignChoice, DISPOSITION_RANKS, Event,
-    EventAlert, EventChoice, EventChoices, EventEdit, EventEditChoices, EventListPage,
-    EventMalware, EventOwner, EventOwnerChoice, EventPage, EventRef, EventTimes, EventValue,
+    AddedToEvent, CLOSED_EVENTS_PAGE, CLOSED_STATUS, CampaignChoice, Event, EventAlert,
+    EventChoice, EventChoices, EventEdit, EventEditChoices, EventListPage, EventMalware,
+    EventOwner, EventOwnerChoice, EventPage, EventRef, EventTimes, EventValue,
     MAX_CATALOG_NAME_CHARS, MAX_EDIT_MALWARE, MAX_EVENT_ALERTS, MAX_EVENT_CHOICES,
     MAX_EVENT_COMMENT_CHARS, MAX_EVENT_NAME_CHARS, MAX_EVENT_TAG_CHARS, MAX_EVENT_TAGS,
     MAX_EVENTS_PAGE, MAX_EXPORT_EVENTS, MAX_NEW_MALWARE_THREATS, MAX_THREAT_TYPE_CHARS,
-    MalwareChoice, NewEvent, RemovedAlerts, Threat, ThreatType, disposition_rank, rolled_up,
+    MalwareChoice, NewEvent, RemovedAlerts, Threat, ThreatType,
 };
 pub use file_collections::{
     CollectionAsk, CollectionRequested, CollectionsPruned, FileCollection, FileCollectionPage,
@@ -397,8 +402,8 @@ pub struct Service {
     /// The action handlers the binary has (PLAN.md 7.9): what remediates and collects, and what it
     /// acts on.
     actions: ace_core::actions::ActionCatalog,
-    /// Which dispositions classify how, which the detection verdicts are derived from (PLAN.md 7.14).
-    classes: std::sync::Arc<detection_verdicts::DispositionClasses>,
+    /// The site's dispositions and how each classifies (PLAN.md 7.14), `dispositions`' docs.
+    dispositions: std::sync::Arc<dispositions::Dispositions>,
     /// The run page's link to the site's log search, the overlay's `svs.log_search_url` (PLAN.md 7.10).
     log_search: Option<std::sync::Arc<ace_core::svs::log_search::LogSearchTemplate>>,
 }
@@ -411,9 +416,21 @@ impl Service {
             passwords: auth::Passwords::new(),
             feed: std::sync::Arc::default(),
             actions: ace_core::actions::ActionCatalog::default(),
-            classes: std::sync::Arc::default(),
+            dispositions: std::sync::Arc::default(),
             log_search: None,
         }
+    }
+
+    /// The service with the site's dispositions (PLAN.md 7.14), `Dispositions::ace3` unless the binary sets
+    /// others.
+    pub fn with_dispositions(mut self, dispositions: Dispositions) -> Self {
+        self.dispositions = std::sync::Arc::new(dispositions);
+        self
+    }
+
+    /// The site's dispositions.
+    pub fn dispositions(&self) -> &Dispositions {
+        &self.dispositions
     }
 
     /// The service with the overlay's `svs.log_search_url`, checked (PLAN.md 7.10).
@@ -456,25 +473,36 @@ impl Service {
     /// to dispositioned mode, all in one transaction. A later disposition replaces the earlier one
     /// and its actor, as in ace3, where an analyst, an API key and SVS's maintenance timers all
     /// call `set_dispositions`. It needs `alert:write`, as ace3's route does, and an actor without
-    /// it learns nothing about the alert. A disposition is a name such as `FALSE_POSITIVE`: up to 64
-    /// uppercase ASCII letters, digits and `_`, the shape of ace3's. Which names a site uses isn't
-    /// checked yet: ace3 reads them from its configuration, which nothing here ports.
+    /// it learns nothing about the alert. A disposition is one of the site's (`Dispositions`); anything
+    /// else is `InvalidRequest`. From an analyst, anyone but ACE's own components, it must be
+    /// `analyst_selectable` (`InvalidRequest` otherwise), and an alert whose disposition isn't can't be
+    /// changed (`Conflict`), as ace3's `set_disposition` and `is_frozen_disposition` have it.
     pub async fn disposition(
         &self,
         actor: &Actor,
         root: Uuid,
         disposition: &str,
     ) -> Result<Dispositioned, ServiceError> {
-        let shaped = disposition.len() <= 64
-            && disposition.starts_with(|c: char| c.is_ascii_uppercase())
-            && disposition
-                .bytes()
-                .all(|b| b.is_ascii_uppercase() || b.is_ascii_digit() || b == b'_');
-        if !shaped {
+        if !is_disposition_name(disposition) {
             return Err(ServiceError::InvalidRequest(
                 "a disposition is up to 64 uppercase ASCII letters, digits and _, starting with a letter"
                     .to_owned(),
             ));
+        }
+        let analyst = dispositions::is_analyst(actor);
+        match self.dispositions.get(disposition) {
+            None => {
+                return Err(ServiceError::InvalidRequest(format!(
+                    "{disposition} isn't one of this site's dispositions: {}",
+                    self.dispositions.selectable().join(", ")
+                )));
+            }
+            Some(configured) if analyst && !configured.analyst_selectable => {
+                return Err(ServiceError::InvalidRequest(format!(
+                    "only ACE sets the disposition {disposition}"
+                )));
+            }
+            Some(_) => {}
         }
         self.gate
             .write(actor, "disposition", &ALERT_WRITE, &|tx| {
@@ -492,6 +520,12 @@ impl Service {
                     .fetch_optional(tx.conn())
                     .await?
                     .ok_or(OrchestratorError::NoRoot(root))?;
+                    if analyst && self.dispositions.is_frozen(found.disposition.as_deref()) {
+                        return Err(ServiceError::Conflict(format!(
+                            "the alert's disposition {} is set only by ACE, so an analyst can't change it",
+                            found.disposition.as_deref().unwrap_or_default()
+                        )));
+                    }
                     let dispositioned = self.orchestrator.stop_for_disposition(tx, root).await?;
                     let mode = sqlx::query_scalar!(
                         "UPDATE analysis.roots

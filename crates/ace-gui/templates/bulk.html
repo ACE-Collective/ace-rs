@@ -1,5 +1,6 @@
 {#- What a bulk disposition did (PLAN.md 5.10): each ticked alert went through the service on its own, so
-    some may have been refused. ace3 flashes a count on the list instead. -#}
+    some may have been refused. ace3 flashes a count on the list instead. A disposition with
+    show_save_to_event offers Save to Event for the alerts dispositioned, ace3's modal's button. -#}
 {% extends "base.html" %}
 {% block title %}Set Disposition · ACE{% endblock %}
 {% block content %}
@@ -20,6 +21,15 @@
     <li>{{ failure.0 }}: {{ failure.1 }}</li>
     {%- endfor %}
   </ul>
+  {%- endif %}
+  {%- if save_to_event %}
+  <form method="get" action="/events/add" class="save-to-event">
+    {%- for id in done %}
+    <input type="hidden" name="alert" value="{{ id }}">
+    {%- endfor %}
+    <input type="hidden" name="next" value="{{ next }}">
+    <button type="submit">Save to Event</button>
+  </form>
   {%- endif %}
   <p><a href="{{ next }}">Back to the list</a></p>
 </section>

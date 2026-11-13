@@ -41,26 +41,6 @@ pub const MAX_FILTER_VALUES: usize = 64;
 /// The longest value, in characters. A text search can't be longer, so its cost has a bound.
 pub const MAX_FILTER_VALUE_CHARS: usize = 256;
 
-/// ace3's disposition names, from its `saq.default.yaml`, which the disposition filter offers. A site's own
-/// are taken too, since ace4 doesn't configure them yet (`Service::disposition`).
-pub const DISPOSITIONS: &[&str] = &[
-    "OPEN",
-    "FALSE_POSITIVE",
-    "IGNORE",
-    "UNKNOWN",
-    "REVIEWED",
-    "GRAYWARE",
-    "POLICY_VIOLATION",
-    "RECONNAISSANCE",
-    "WEAPONIZATION",
-    "DELIVERY",
-    "EXPLOITATION",
-    "INSTALLATION",
-    "COMMAND_AND_CONTROL",
-    "EXFIL",
-    "DAMAGE",
-];
-
 /// ace3's signature families (`SignatureType`), which the detection points screen's `family` takes.
 pub const SIGNATURE_FAMILIES: &[&str] = &["yara", "hunt", "observable_modifier", "builtin"];
 
@@ -127,6 +107,19 @@ pub struct LeftOut {
     pub why: &'static str,
 }
 
+/// The values a filter offers: the site's dispositions, in their order, for the alert list's Disposition
+/// filter, and the spec's own for the rest.
+pub fn options(spec: &FilterSpec, dispositions: &crate::Dispositions) -> Vec<String> {
+    if spec.slug == "disposition" {
+        dispositions.names()
+    } else {
+        spec.options
+            .iter()
+            .map(|option| (*option).to_owned())
+            .collect()
+    }
+}
+
 const fn spec(
     name: &'static str,
     slug: &'static str,
@@ -173,11 +166,12 @@ const ALERT_FILTERS: &[FilterSpec] = &[
         &[],
         "signature-uuid[:version]",
     ),
+    // its options are the site's dispositions (`options`)
     spec(
         "Disposition",
         "disposition",
         FilterKind::Multi,
-        DISPOSITIONS,
+        &[],
         "OPEN, FALSE_POSITIVE, ...",
     ),
     spec(
@@ -686,8 +680,10 @@ fn canonical(
                 None => uuid,
             })
             .map_err(|why| invalid(format!("{name}: {why}")))?,
+        // any well-formed name, as ace3's filter takes any: an alert keeps a disposition the site no longer
+        // configures, and this still finds it (`Dispositions`)
         ("disposition", _) => {
-            if !is_disposition(text) {
+            if !crate::is_disposition_name(text) {
                 return Err(invalid(format!(
                     "{name}: {text:?} isn't a disposition, which is up to 64 of A-Z, 0-9 and _"
                 )));
@@ -740,14 +736,6 @@ fn canonical(
         _ => text.clone(),
     };
     Ok(FilterValue::Text(text))
-}
-
-fn is_disposition(text: &str) -> bool {
-    text.len() <= 64
-        && text.starts_with(|c: char| c.is_ascii_uppercase())
-        && text
-            .bytes()
-            .all(|b| b.is_ascii_uppercase() || b.is_ascii_digit() || b == b'_')
 }
 
 fn is_module_name(text: &str) -> bool {

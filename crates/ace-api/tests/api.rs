@@ -154,8 +154,15 @@ async fn stack_of(archive: ace_core::email_archive::ArchiveConfig, catalog: Cata
     );
     let bucket = Bucket::new(test_db.db().clone(), store, BucketSettings::default());
     let orchestrator = Orchestrator::new(catalog, Modes::ace3());
-    let service =
-        Service::new(test_db.db().clone(), orchestrator.clone()).with_actions(test_actions());
+    // the site's dispositions are ace3's with two of its own, one of which only ACE sets
+    let overlay = ace_sdk::Overlay::from_yaml(
+        "dispositions:\n  SITE_CHECKED: {rank: 45, css: info}\n  \
+         SITE_SWEEP: {rank: 5, css: dark, analyst_selectable: false}\n",
+    )
+    .expect("the overlay parses");
+    let service = Service::new(test_db.db().clone(), orchestrator.clone())
+        .with_actions(test_actions())
+        .with_dispositions(ace_service::Dispositions::configured(&overlay).expect("good sections"));
     let config = ace_api::WebConfig {
         max_json_bytes: MAX_JSON,
         max_submission_bytes: MAX_SUBMISSION,
@@ -1856,9 +1863,25 @@ async fn dispositions(client: &mut Client<'_>, token: &str) {
     .expect("the root");
     assert_eq!(disposition, "FALSE_POSITIVE");
     assert_eq!(by["kind"], "api_key");
+    // the site's own disposition is taken
+    client
+        .json(
+            Method::PUT,
+            DISPOSITION,
+            &fill(DISPOSITION, id, 0),
+            Some(token),
+            Send::Json(json!({"disposition": "SITE_CHECKED"})),
+            StatusCode::OK,
+        )
+        .await;
     for bad in [
         json!({"disposition": "false positive"}),
         json!({"disposition": ""}),
+        // well formed, but not one of the site's
+        json!({"disposition": "MALICIOUS"}),
+        // only ACE sets these, so an API key can't
+        json!({"disposition": "SIMULATED"}),
+        json!({"disposition": "SITE_SWEEP"}),
         json!({"verdict": "IGNORE"}),
         json!([]),
     ] {
@@ -1893,6 +1916,29 @@ async fn dispositions(client: &mut Client<'_>, token: &str) {
             StatusCode::NOT_FOUND,
         )
         .await;
+    // an alert whose disposition only ACE sets can't be changed by an API key
+    sqlx::query("UPDATE analysis.roots SET disposition = 'SIMULATED' WHERE id = $1")
+        .bind(id)
+        .execute(client.stack.test_db.db().pool())
+        .await
+        .expect("sets it as ACE would");
+    let refused = client
+        .json(
+            Method::PUT,
+            DISPOSITION,
+            &fill(DISPOSITION, id, 0),
+            Some(token),
+            Send::Json(json!({"disposition": "FALSE_POSITIVE"})),
+            StatusCode::CONFLICT,
+        )
+        .await;
+    assert!(refused.to_string().contains("set only by ACE"), "{refused}");
+    let still: String = sqlx::query_scalar("SELECT disposition FROM analysis.roots WHERE id = $1")
+        .bind(id)
+        .fetch_one(client.stack.test_db.db().pool())
+        .await
+        .expect("the root");
+    assert_eq!(still, "SIMULATED");
     let big = format!("{{\"disposition\": \"{}\"}}", "A".repeat(MAX_JSON));
     client
         .json(
@@ -4735,6 +4781,25 @@ async fn filters_and_exports(client: &mut Client<'_>, token: &str) {
             .expect("filters")
             .iter()
             .any(|f| f["slug"] == "alert_date" && f["kind"] == "date_range")
+    );
+    // the Disposition filter offers the site's dispositions, in their order, a site's own after ace3's
+    let options = screen["filters"]
+        .as_array()
+        .expect("filters")
+        .iter()
+        .find(|f| f["slug"] == "disposition")
+        .map(|f| f["options"].clone())
+        .expect("the disposition filter");
+    let options: Vec<&str> = options
+        .as_array()
+        .expect("options")
+        .iter()
+        .filter_map(Value::as_str)
+        .collect();
+    assert_eq!(options.first(), Some(&"OPEN"));
+    assert_eq!(
+        options[options.len() - 3..],
+        ["SIMULATED", "SITE_CHECKED", "SITE_SWEEP"]
     );
     assert!(
         screen["left_out"]

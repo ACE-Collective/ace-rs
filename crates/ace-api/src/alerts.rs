@@ -397,7 +397,9 @@ pub(crate) struct ObservablePageBody {
 #[derive(Debug, Deserialize, ToSchema)]
 #[serde(deny_unknown_fields)]
 pub(crate) struct DispositionRequest {
-    /// Such as `FALSE_POSITIVE`: up to 64 uppercase ASCII letters, digits and `_`.
+    /// One of the site's dispositions, such as `FALSE_POSITIVE`. The set is the site overlay's
+    /// `dispositions` over ace3's, so it's a string here, not an enum; `GET /api/filters/v1/screens/alerts`
+    /// lists it as the `Disposition` filter's options. An analyst's must be one an analyst may choose.
     disposition: String,
 }
 
@@ -805,7 +807,8 @@ pub(crate) async fn file(
 
 /// Records an analyst's verdict on the alert. Its analysis is cancelled and it moves to the
 /// dispositioned mode. A later disposition replaces the earlier one and who made it. A root that no
-/// detection made an alert can be dispositioned too, as the service allows.
+/// detection made an alert can be dispositioned too, as the service allows. The disposition is one of
+/// the site's, and one only ACE sets is refused, as is a change to an alert that has one.
 #[utoipa::path(
     put,
     path = "/api/alerts/v1/alerts/{id}/disposition",
@@ -814,10 +817,11 @@ pub(crate) async fn file(
     request_body = DispositionRequest,
     responses(
         (status = 200, description = "The disposition is recorded", body = DispositionedBody),
-        (status = 400, description = "A disposition of the wrong shape, or a body that isn't one", body = ErrorBody),
+        (status = 400, description = "Not one of the site's dispositions, one only ACE sets, or a body that isn't one", body = ErrorBody),
         (status = 401, description = "No credential, or one that isn't valid", body = ErrorBody),
         (status = 403, description = "The actor doesn't hold alert:write, or a session's request came from another site", body = ErrorBody),
         (status = 404, description = "No such root", body = ErrorBody),
+        (status = 409, description = "The alert's disposition is one only ACE sets, which an analyst can't change", body = ErrorBody),
         (status = 413, description = "The body is too large", body = ErrorBody),
     )
 )]

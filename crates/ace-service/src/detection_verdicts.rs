@@ -53,10 +53,9 @@
 //! - `confirm_detections` reads and writes in one transaction, where ace3's reads first and then calls
 //!   `set_verdicts` in a second; the result is the same, and nothing is set meanwhile.
 //! - The classification is the site overlay's `disposition_classification:` and `dispositions:`, merged over
-//!   ace3's `saq.default.yaml` and checked when `ace serve` starts (`DispositionClasses::configured`), then
-//!   held by the service (`Service::with_disposition_classes`). ace4 doesn't configure the dispositions
-//!   themselves (`Service::disposition`), so the names it takes are ace3's, and `analyst_selectable: false`
-//!   decides only who grades the alert's detections: ace3 also refuses the disposition from an analyst.
+//!   ace3's `saq.default.yaml` and checked when `ace serve` starts (`Dispositions::configured`), then held
+//!   by the service (`Service::with_dispositions`). `analyst_selectable: false` decides who grades the
+//!   alert's detections here, and in `Service::disposition` who may set the disposition, as in ace3.
 
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 
@@ -65,6 +64,7 @@ use serde::Serialize;
 use sqlx::types::Json;
 use uuid::Uuid;
 
+use crate::dispositions::is_analyst;
 use crate::permission::ALERT_WRITE;
 use crate::{Actor, Audited, Change, Recorded, Service, ServiceError, Target};
 
@@ -136,11 +136,6 @@ impl VerdictSource {
 /// What a disposition says about an alert's detections: the overlay's `tp` and `fp`.
 pub use ace_sdk::DispositionClass;
 
-/// ace3's dispositions that only ACE sets, which the analysts' list (`filters::DISPOSITIONS`) leaves out:
-/// SIMULATED, SVS's test runs' (7.10). With that list, they're the dispositions the overlay's sections may
-/// name.
-pub const ACE_DISPOSITIONS: &[&str] = &["SIMULATED"];
-
 /// Which dispositions classify how, ace3's `disposition_classification`, and which only ACE sets, ace3's
 /// `analyst_selectable: false`. A disposition in neither map is unclassified: its detections have no
 /// verdict. An alert with no disposition is OPEN, which is unclassified.
@@ -157,67 +152,9 @@ impl Default for DispositionClasses {
 }
 
 impl DispositionClasses {
-    /// ace3's, from its `saq.default.yaml`.
+    /// ace3's, from its `saq.default.yaml` (`Dispositions::ace3`).
     pub fn ace3() -> Self {
-        let tp = [
-            "GRAYWARE",
-            "POLICY_VIOLATION",
-            "RECONNAISSANCE",
-            "WEAPONIZATION",
-            "DELIVERY",
-            "EXPLOITATION",
-            "INSTALLATION",
-            "COMMAND_AND_CONTROL",
-            "EXFIL",
-            "DAMAGE",
-            "SIMULATED",
-        ];
-        DispositionClasses::new(
-            std::iter::once(("FALSE_POSITIVE".to_owned(), DispositionClass::Fp)).chain(
-                tp.into_iter()
-                    .map(|name| (name.to_owned(), DispositionClass::Tp)),
-            ),
-            ACE_DISPOSITIONS.iter().map(|name| (*name).to_owned()),
-        )
-    }
-
-    /// The classification a site's overlay sets: its `disposition_classification` and `dispositions`
-    /// entries over ace3's, as ace3 merges a site's config over its defaults. Refused, saying where: a
-    /// disposition that isn't one of ace3's (`filters::DISPOSITIONS` and `ACE_DISPOSITIONS`), and OPEN,
-    /// which is an alert with no disposition and so always unclassified. A disposition can't be both TP
-    /// and FP: each is one key of a map, and the overlay refuses a key written twice.
-    pub fn configured(overlay: &ace_sdk::Overlay) -> Result<Self, String> {
-        let check = |section: &str, name: &str| {
-            if name == crate::OPEN {
-                return Err(format!(
-                    "{section}.{name}: OPEN is an alert with no disposition yet, which is always \
-                     unclassified"
-                ));
-            }
-            let known = crate::filters::DISPOSITIONS.iter().chain(ACE_DISPOSITIONS);
-            if !known.clone().any(|known| *known == name) {
-                return Err(format!(
-                    "{section}.{name}: not a disposition ace4 knows; ace4 doesn't configure its \
-                     dispositions, so they're ace3's: {}",
-                    known.copied().collect::<Vec<_>>().join(", ")
-                ));
-            }
-            Ok(())
-        };
-        let mut classes = DispositionClasses::ace3();
-        for (name, class) in &overlay.disposition_classification {
-            check("disposition_classification", name)?;
-            classes.classes.insert(name.clone(), *class);
-        }
-        for (name, section) in &overlay.dispositions {
-            check("dispositions", name)?;
-            match section.analyst_selectable {
-                Some(false) => classes.set_by_ace.insert(name.clone()),
-                Some(true) => classes.set_by_ace.remove(name),
-                None => false,
-            };
-        }
-        Ok(classes)
+        crate::Dispositions::ace3().classes().clone()
     }
 
     /// The dispositions only ACE sets, sorted.
@@ -385,28 +322,18 @@ struct Written {
     after: Vec<VerdictState>,
 }
 
-/// Whether an actor is an analyst, whose verdicts ace3 checks against the disposition's
-/// `analyst_selectable`; ACE's own components aren't.
-fn is_analyst(actor: &Actor) -> bool {
-    !matches!(actor, Actor::Internal { .. })
-}
-
 impl Service {
-    /// The dispositions' classes the verdicts are derived from (`DispositionClasses::ace3` unless the binary
-    /// sets others).
-    pub fn with_disposition_classes(mut self, classes: DispositionClasses) -> Self {
-        self.classes = std::sync::Arc::new(classes);
-        self
-    }
-
+    /// The dispositions' classes the verdicts are derived from, the service's `Dispositions`'.
     pub fn disposition_classes(&self) -> &DispositionClasses {
-        &self.classes
+        self.dispositions.classes()
     }
 
     /// Why no detection of an alert with this disposition takes a verdict from `actor`, or None when they
     /// do. It checks no permission: an adapter uses it to offer only what will work.
     pub fn verdict_refusal(&self, actor: &Actor, disposition: Option<&str>) -> Option<String> {
-        self.classes.refusal(disposition, is_analyst(actor))
+        self.dispositions
+            .classes()
+            .refusal(disposition, is_analyst(actor))
     }
 
     /// Stores `verdict` on one detection of a TP alert, ace3's `set_verdict`. It needs `alert:write`. Returns
@@ -526,7 +453,7 @@ impl Service {
         actor: &Actor,
         alert: Uuid,
     ) -> Result<usize, ServiceError> {
-        let (tp, fp) = self.classes.lists();
+        let (tp, fp) = self.disposition_classes().lists();
         let (tp, fp) = (&tp, &fp);
         self.gate
             .write(actor, "confirm_detections", &ALERT_WRITE, &|tx| {
@@ -609,7 +536,7 @@ impl Service {
             return Ok(written);
         }
         let ids: Vec<i64> = wanted.iter().map(|(_, id)| *id).collect();
-        let (tp, fp) = self.classes.lists();
+        let (tp, fp) = self.disposition_classes().lists();
         let analyst = is_analyst(actor);
         // locking the detection's row serializes the writers of its verdict, the first insert too, which
         // has no verdict row to lock yet
@@ -658,7 +585,10 @@ impl Service {
             }
             let refusal = refusals
                 .entry(row.root_id)
-                .or_insert_with(|| self.classes.refusal(row.disposition.as_deref(), analyst))
+                .or_insert_with(|| {
+                    self.disposition_classes()
+                        .refusal(row.disposition.as_deref(), analyst)
+                })
                 .clone();
             if let Some(why) = refusal {
                 skip(&mut written, target, SkipCause::Alert, why)?;

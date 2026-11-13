@@ -86,7 +86,10 @@
 //!   list's bulk form's own route, `POST /alerts/disposition` (5.10), each alert through
 //!   `Service::disposition` under `alert:write`, with the event's page as where it goes back to. It's
 //!   offered to a viewer with `alert:write`, as ace3 offers it. ace3's comment with a disposition is left
-//!   out, as on the alert list, since alerts have no comments yet.
+//!   out, as on the alert list, since alerts have no comments yet. Its menu offers the site's dispositions
+//!   an analyst may choose (`ace_service::Dispositions`), and the event list's Disposition filter all of
+//!   them, in their order. A disposition, the event's rolled-up one and each alert's, is a badge in its
+//!   `css`, as ace3's.
 //!
 //! Every page here needs `event:read`, which the service checks, and the add page, Close Event, the edit,
 //! Remove Alert(s) and Add Tag(s) `event:write` too; a visitor who isn't signed in goes to the login. Everything an event brings, its
@@ -104,14 +107,14 @@
 //! copy-link button needs a script, and the owner filter offers the users who own an event, where ace3
 //! offers every user (`Service::event_choices`).
 
-use ace_service::filters::DISPOSITIONS;
 use ace_service::{
     ALERT_WRITE, AddedToEvent, AnalysisState, CLOSED_EVENTS_PAGE, CLOSED_STATUS, CampaignChoice,
-    EVENT_READ, EVENT_WRITE, Event, EventChoice, EventChoices, EventEdit, EventEditChoices,
-    EventFilters, EventListPage, EventOwner, EventOwnerFilter, EventQuery, EventRef, EventSort,
-    EventTimes, EventValue, MAX_CATALOG_NAME_CHARS, MAX_EDIT_MALWARE, MAX_EVENT_COMMENT_CHARS,
-    MAX_EVENT_NAME_CHARS, MAX_EVENT_TAG_CHARS, MAX_EVENT_TAGS, MAX_EVENTS_PAGE, MAX_EXPORT_EVENTS,
-    MalwareChoice, NewEvent, OPEN, PermissionName, ServiceError, UserId,
+    Dispositions, EVENT_READ, EVENT_WRITE, Event, EventChoice, EventChoices, EventEdit,
+    EventEditChoices, EventFilters, EventListPage, EventOwner, EventOwnerFilter, EventQuery,
+    EventRef, EventSort, EventTimes, EventValue, MAX_CATALOG_NAME_CHARS, MAX_EDIT_MALWARE,
+    MAX_EVENT_COMMENT_CHARS, MAX_EVENT_NAME_CHARS, MAX_EVENT_TAG_CHARS, MAX_EVENT_TAGS,
+    MAX_EVENTS_PAGE, MAX_EXPORT_EVENTS, MalwareChoice, NewEvent, OPEN, PermissionName,
+    ServiceError, UserId,
 };
 use askama::Template;
 use axum::body::Bytes;
@@ -603,6 +606,8 @@ pub struct EventRow {
     pub malware: Vec<String>,
     pub risk_level: String,
     pub disposition: String,
+    /// The disposition's badge colour (`Dispositions::css`).
+    pub disposition_badge: &'static str,
     pub prevention_tool: String,
     pub remediation: String,
     pub status: String,
@@ -610,7 +615,7 @@ pub struct EventRow {
 }
 
 impl EventRow {
-    fn of(event: &Event) -> Self {
+    fn of(event: &Event, dispositions: &Dispositions) -> Self {
         EventRow {
             id: event.id,
             href: event_href(event.id),
@@ -631,6 +636,7 @@ impl EventRow {
             malware: event.malware.iter().map(|m| m.name.clone()).collect(),
             risk_level: event.risk_level.clone(),
             disposition: event.disposition.clone(),
+            disposition_badge: dispositions.css(Some(&event.disposition)),
             prevention_tool: event.prevention_tool.clone(),
             remediation: event.remediation.clone(),
             status: event.status.clone(),
@@ -745,6 +751,7 @@ pub fn event_list_view(
     choices: &EventChoices,
     error: Option<String>,
     can_write: bool,
+    dispositions: &Dispositions,
 ) -> EventListView {
     let q = &query.query;
     let f = &q.filters;
@@ -810,14 +817,21 @@ pub fn event_list_view(
                 )
             }))
             .collect();
-    let dispositions = DISPOSITIONS
+    let rows = page
+        .map(|page| {
+            page.events
+                .iter()
+                .map(|event| EventRow::of(event, dispositions))
+                .collect()
+        })
+        .unwrap_or_default();
+    let dispositions = dispositions
+        .names()
         .iter()
-        .map(|d| FilterChoice::new(*d, *d, f.dispositions.iter().any(|c| c == d)))
+        .map(|d| FilterChoice::new(d, d, f.dispositions.iter().any(|c| c == d)))
         .collect();
     EventListView {
-        rows: page
-            .map(|page| page.events.iter().map(EventRow::of).collect())
-            .unwrap_or_default(),
+        rows,
         total: page.map_or(0, |page| page.total),
         columns,
         first: query
@@ -865,6 +879,8 @@ pub struct EventAlertRow {
     pub title: String,
     pub tags: Vec<String>,
     pub disposition: String,
+    /// The disposition's badge colour (`Dispositions::css`).
+    pub disposition_badge: &'static str,
     pub status: &'static str,
     /// Its remediation coverage badge (PLAN.md 7.9), for a viewer with `remediation:read`.
     pub coverage: Option<crate::remediation::CoverageBadge>,
@@ -889,6 +905,8 @@ pub struct EventView {
     /// The six times, labelled, in ace3's order.
     pub times: Vec<(&'static str, String)>,
     pub disposition: String,
+    /// The disposition's badge colour (`Dispositions::css`).
+    pub disposition_badge: &'static str,
     pub status: String,
     pub owner: String,
     pub remediation: String,
@@ -908,8 +926,9 @@ pub struct EventView {
     pub edit: Option<String>,
     pub add_tags: Option<String>,
     pub remove_alerts: Option<String>,
-    /// The dispositions Set Disposition offers, for a viewer with `alert:write`, else none.
-    pub dispositions: &'static [&'static str],
+    /// The dispositions Set Disposition offers, for a viewer with `alert:write`, else none: the site's an
+    /// analyst may choose, in order.
+    pub dispositions: Vec<String>,
     /// The page's own path, where the alerts' forms come back to.
     pub here: String,
     pub max_tag: usize,
@@ -933,7 +952,7 @@ pub struct EventMay {
     pub disposition: bool,
 }
 
-pub fn event_view(event: &Event, may: EventMay) -> EventView {
+pub fn event_view(event: &Event, may: EventMay, dispositions: &Dispositions) -> EventView {
     let can_write = may.write;
     let href = event_href(event.id);
     let times = [
@@ -962,6 +981,7 @@ pub fn event_view(event: &Event, may: EventMay) -> EventView {
         .map(|(label, time)| (label, utc(time)))
         .collect(),
         disposition: event.disposition.clone(),
+        disposition_badge: dispositions.css(Some(&event.disposition)),
         status: event.status.clone(),
         owner: owner_name(event.owner.as_ref()),
         remediation: event.remediation.clone(),
@@ -988,6 +1008,7 @@ pub fn event_view(event: &Event, may: EventMay) -> EventView {
                 title: alert.title.clone(),
                 tags: alert.tags.clone(),
                 disposition: alert.disposition.clone().unwrap_or_else(|| OPEN.to_owned()),
+                disposition_badge: dispositions.css(alert.disposition.as_deref()),
                 status: analysis_status(alert.analysis),
                 coverage: None,
             })
@@ -996,7 +1017,11 @@ pub fn event_view(event: &Event, may: EventMay) -> EventView {
         edit: can_write.then(|| format!("{href}/edit")),
         add_tags: can_write.then(|| format!("{href}/tags")),
         remove_alerts: can_write.then(|| format!("{href}/alerts/remove")),
-        dispositions: if may.disposition { DISPOSITIONS } else { &[] },
+        dispositions: if may.disposition {
+            dispositions.selectable()
+        } else {
+            Vec::new()
+        },
         here: href,
         max_tag: MAX_EVENT_TAG_CHARS,
         remediate: None,
@@ -1140,6 +1165,7 @@ pub(crate) async fn list_page(
         &choices,
         error,
         can_write(&gui, &viewer).await,
+        gui.service.dispositions(),
     );
     let mut response = render(&EventListPageHtml {
         layout: viewer.layout,
@@ -1229,7 +1255,7 @@ pub(crate) async fn event_page(
         write: can_write(&gui, &viewer).await,
         disposition: holds(&gui, &viewer, &ALERT_WRITE).await,
     };
-    let mut view = event_view(&event, may);
+    let mut view = event_view(&event, may, gui.service.dispositions());
     // ace3 shows the badges to whoever sees the event; here they read remediations, which need their own
     if holds(&gui, &viewer, &ace_service::REMEDIATION_READ).await {
         let alerts: Vec<Uuid> = view
