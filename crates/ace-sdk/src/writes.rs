@@ -127,5 +127,52 @@ pub struct ArchivedEmailRecord {
     pub recipients: Vec<String>,
 }
 
+/// `svs-capture`: the task's own file kept as an SVS sample for each YARA rule that matched it on an
+/// alert graded TP or FP (`svs_yara_sample_capture`, PLAN.md 7.10 batch 2). The core copies the file from
+/// the root's files into the bucket's `svs_samples` pool, held by the capture, and writes each capture's
+/// row with its match record, as ace3's `saq.svs.capture.capture` does.
+pub struct SvsCapture;
+
+impl WriteKind for SvsCapture {
+    const WRITE: Write = Write {
+        name: "svs-capture",
+    };
+    type Body = SvsCaptures;
+}
+
+/// The captures of one file, one per rule.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SvsCaptures {
+    pub captures: Vec<SvsCaptureCandidate>,
+}
+
+/// One file a YARA rule matched, and what a replay needs to scan it again: ace3's `CaptureCandidate`.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SvsCaptureCandidate {
+    /// The file's sha256, lower case: the task's own file.
+    pub sha256: String,
+    /// The rule's uuid meta, which its detection's signature is.
+    pub rule_uuid: String,
+    pub rule_name: String,
+    pub namespace: Option<String>,
+    /// The commit of the rule's repository when it matched, or `unknown`.
+    pub signature_version: String,
+    /// The file's path in the alert, one of its paths there.
+    pub file_path: String,
+    pub yara_meta_tags: Vec<String>,
+    /// The YARA result's scan_results entry for the rule, or None when the result doesn't have it.
+    pub match_record: Option<Value>,
+}
+
+/// The most captures one `svs-capture` write makes.
+pub const MAX_SVS_CAPTURES: usize = 1000;
+
 /// Every write a module can declare, by name.
-pub const ALL: &[Write] = &[SmtpLog::WRITE, EmailThread::WRITE, EmailArchive::WRITE];
+pub const ALL: &[Write] = &[
+    SmtpLog::WRITE,
+    EmailThread::WRITE,
+    EmailArchive::WRITE,
+    SvsCapture::WRITE,
+];

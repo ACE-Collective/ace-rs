@@ -5,6 +5,8 @@
 //! - `hosts`: the test hosts runs may target, how a host and user name are normalized, and how a run's
 //!   target matches a test host.
 //! - `log_search`: the link from a run to the site's own log search, `svs.log_search_url`.
+//! - `samples`: the samples, the files YARA rules matched on alerts graded TP or FP, their labels, and how
+//!   `svs_yara_sample_capture`'s captures land (batch 2).
 //! - The values every part shares: a run's states, its event log's kinds, how a detection was attributed,
 //!   and the one SVS status an alert has (`derive_status`).
 //!
@@ -24,6 +26,7 @@
 pub mod hosts;
 pub mod log_search;
 pub mod markers;
+pub mod samples;
 
 use std::collections::{BTreeMap, BTreeSet};
 

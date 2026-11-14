@@ -1,0 +1,58 @@
+{#- ace3's signatures/samples.html (PLAN.md 7.10 batch 2): the samples, with the samples screen's filters
+    folded into `f`, its sorts, its pages, the exports and the bulk download, and the captures that lack
+    something (src/svs_samples.rs). -#}
+{% extends "base.html" %}
+{% block title %}Samples · Signatures · ACE{% endblock %}
+{% block content %}
+<section class="signatures samples">
+  <p><a href="/signatures">Signatures</a> / Samples</p>
+  <h1>Samples</h1>
+  <p class="muted">The files YARA rules matched on alerts graded TP or FP, one row per file and rule over every alert it was captured from. A label comes from the verdicts on those alerts' detections.</p>
+  <form method="get" action="/signatures/samples" class="detection-filters">
+    {%- for field in view.fields %}
+    <label for="filter-{{ field.slug }}">{{ field.name }}</label>
+    <input type="text" id="filter-{{ field.slug }}" name="{{ field.slug }}" value="{{ field.value }}" placeholder="{% if field.options.is_empty() %}{{ field.hint }}{% else %}{{ field.options|join(", ") }}{% endif %}">
+    {%- endfor %}
+    <input type="hidden" name="sort" value="{{ view.sort }}">
+    <input type="hidden" name="desc" value="{{ view.descending }}">
+    <button type="submit">Apply</button>
+    <a href="/signatures/samples">Reset</a>
+  </form>
+  <form method="get" action="/signatures/samples" class="fields">
+    {%- for f in view.filters %}
+    <input type="hidden" name="f" value="{{ f }}">
+    {%- endfor %}
+    <label for="sort">Sort</label>
+    <select id="sort" name="sort">
+      {%- for sort in view.sorts %}
+      <option value="{{ sort }}"{% if *sort == view.sort %} selected{% endif %}>{{ sort }}</option>
+      {%- endfor %}
+    </select>
+    <label for="desc">Order</label>
+    <select id="desc" name="desc">
+      <option value="true"{% if view.descending %} selected{% endif %}>descending</option>
+      <option value="false"{% if !view.descending %} selected{% endif %}>ascending</option>
+    </select>
+    <button type="submit">Sort</button>
+  </form>
+  <p class="muted">Export as <a href="{{ view.csv }}">CSV</a> or <a href="{{ view.ndjson }}">NDJSON</a>{% if let Some(download) = view.download %} · <a href="{{ download }}" title="password: infected">Download files</a>{% endif %}</p>
+  {%- include "signatures/_samples_page.html" %}
+  {%- if view.first.is_some() || view.next.is_some() %}
+  <nav class="pager" aria-label="Pages">
+    {%- if let Some(first) = view.first %} <a href="{{ first }}">First</a>{% endif %}
+    {%- if let Some(next) = view.next %} <a href="{{ next }}" rel="next">Next</a>{% endif %}
+  </nav>
+  {%- endif %}
+  {%- if !view.missing.is_empty() %}
+  <h2>Captures missing something</h2>
+  <table class="keys">
+    <thead><tr><th>Rule</th><th>Rule uuid</th><th>Missing</th><th>Captures</th></tr></thead>
+    <tbody>
+      {%- for m in view.missing %}
+      <tr><td class="qa-text">{{ m.rule_name }}</td><td class="qa-text"><code>{{ m.rule_uuid }}</code></td><td>{{ m.reason }}</td><td>{{ m.count }}</td></tr>
+      {%- endfor %}
+    </tbody>
+  </table>
+  {%- endif %}
+</section>
+{% endblock %}

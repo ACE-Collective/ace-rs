@@ -29,6 +29,7 @@ dependencies = [
  "ace-mod-scripts",
  "ace-mod-snort",
  "ace-mod-splunk",
+ "ace-mod-svs",
  "ace-mod-tag",
  "ace-mod-urls",
  "ace-mod-user",
@@ -170,6 +171,7 @@ dependencies = [
  "ace-results",
  "ace-sdk",
  "ace-service",
+ "ace-store",
  "askama",
  "axum",
  "base64 0.23.1",
@@ -662,6 +664,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "ace-mod-svs"
+version = "0.1.0"
+dependencies = [
+ "ace-results",
+ "ace-sdk",
+ "ace-testkit",
+ "schemars 1.2.3",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
 name = "ace-mod-tag"
 version = "0.1.0"
 dependencies = [
@@ -792,6 +808,7 @@ dependencies = [
  "ace-mod-scripts",
  "ace-mod-snort",
  "ace-mod-splunk",
+ "ace-mod-svs",
  "ace-mod-tag",
  "ace-mod-urls",
  "ace-mod-values",

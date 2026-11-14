@@ -3,7 +3,8 @@
 //!
 //! `api.rs` checks the caller, the lease and that the task's module declares the read. Each read
 //! here then finds its subject in the task's root and answers. Built so far: `snort-signature`,
-//! `smtp-counts`, `email-thread-domains`, `email-thread` and `newly-registered` (PLAN.md 7.4).
+//! `smtp-counts`, `email-thread-domains`, `email-thread` and `newly-registered` (PLAN.md 7.4), the email
+//! archive's three (7.5 batch 9), `observable-tags` (7.6) and `svs-capture-state` (7.10 batch 2).
 
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::path::{Path, PathBuf};
@@ -18,9 +19,10 @@ use ace_sdk::reads::{
     ArchivedEmailAnswer, ArchivedEmailRequest, ArchivedUrlCountAnswer, ArchivedUrlCountRequest,
     Conversation, ConversationMessage, DecryptedArchiveAnswer, DecryptedArchiveRequest,
     EmailThreadAnswer, EmailThreadDomainsAnswer, EmailThreadDomainsRequest, EmailThreadRequest,
-    EstablishedDomain, MAX_OBSERVABLE_TAGS, MessageParticipant, NewlyRegisteredAnswer,
-    NewlyRegisteredRequest, ObservableTagsAnswer, ObservableTagsRequest, SmtpCountsAnswer,
-    SmtpCountsRequest, SnortSignatureAnswer, SnortSignatureRequest,
+    EstablishedDomain, MAX_OBSERVABLE_TAGS, MAX_SVS_DETECTIONS, MessageParticipant,
+    NewlyRegisteredAnswer, NewlyRegisteredRequest, ObservableTagsAnswer, ObservableTagsRequest,
+    SmtpCountsAnswer, SmtpCountsRequest, SnortSignatureAnswer, SnortSignatureRequest,
+    SvsCaptureRow, SvsCaptureStateAnswer, SvsCaptureStateRequest, SvsDetection, SvsFilePath,
 };
 use regex::Regex;
 use serde_json::Value;
@@ -60,6 +62,9 @@ pub struct ReadStores {
     /// The email archive, with the bucket and the key (PLAN.md 7.5 batch 9). None answers its
     /// reads as a core with no key.
     archive: Option<EmailArchive>,
+    /// The dispositions the site classifies `tp` or `fp` (PLAN.md 7.10), which `svs-capture-state`
+    /// answers with. None is ace3's.
+    classified: Option<Arc<BTreeSet<String>>>,
 }
 
 impl ReadStores {
@@ -68,6 +73,25 @@ impl ReadStores {
         ReadStores {
             snort: Arc::new(SnortRules::new(snort_rules)),
             archive: None,
+            classified: None,
+        }
+    }
+
+    pub fn with_classified(mut self, classified: BTreeSet<String>) -> Self {
+        self.classified = Some(Arc::new(classified));
+        self
+    }
+
+    /// Whether the site classifies `disposition` `tp` or `fp`.
+    fn is_classified(&self, disposition: Option<&str>) -> bool {
+        let Some(disposition) = disposition else {
+            return false;
+        };
+        match &self.classified {
+            Some(classified) => classified.contains(disposition),
+            None => ace_sdk::ACE3_DISPOSITION_CLASSES
+                .iter()
+                .any(|(name, _)| *name == disposition),
         }
     }
 
@@ -128,6 +152,10 @@ pub async fn answer(
         "observable-tags" => {
             let request: ObservableTagsRequest = parse(request)?;
             serde_json::to_value(observable_tags(db, task, request).await?)
+        }
+        "svs-capture-state" => {
+            let request: SvsCaptureStateRequest = parse(request)?;
+            serde_json::to_value(svs_capture_state(db, stores, task, request).await?)
         }
         other => {
             return Err(ReadFailure::Forbidden(format!(
@@ -1120,6 +1148,121 @@ fn index_rules(path: &Path) -> Result<HashMap<String, String>, ReadFailure> {
         path.display()
     );
     Ok(rules)
+}
+
+// ---- svs-capture-state (PLAN.md 7.10 batch 2) ----
+
+/// `svs-capture-state`: what `svs_yara_sample_capture` reads of ace3's database before it captures, for
+/// the task's own file only: the alert's disposition and whether the site classifies it (ace3's
+/// `get_disposition_class`), whether a test run that isn't reviewed holds the alert (`svs.unreviewed_run`,
+/// ace3's `unreviewed_run_condition`), the file's paths and their `yara_meta` tags, the detections on it,
+/// at most `MAX_SVS_DETECTIONS`, whether SVS deleted it, and what SVS captured of it from this root.
+async fn svs_capture_state(
+    db: &Db,
+    stores: &ReadStores,
+    task: &Task,
+    request: SvsCaptureStateRequest,
+) -> Result<SvsCaptureStateAnswer, ReadFailure> {
+    if task.observable.kind != ObservableKind::File {
+        return Err(ReadFailure::Forbidden(format!(
+            "svs-capture-state answers for a file, and task {}'s observable is a {}",
+            task.id, task.observable.kind
+        )));
+    }
+    let own = ObservableRef::new(task.observable.kind, task.observable.value.clone());
+    if let Some(subject) = request.subject
+        && subject != own
+    {
+        return Err(ReadFailure::Forbidden(format!(
+            "{}:{} isn't the task's own file, the only one this read answers for",
+            subject.kind, subject.value
+        )));
+    }
+    let root = sqlx::query!(
+        r#"SELECT alerted_at IS NOT NULL AS "alert!", disposition,
+                  svs.unreviewed_run(id) AS "unreviewed!"
+           FROM analysis.roots WHERE id = $1"#,
+        task.root,
+    )
+    .fetch_one(db.pool())
+    .await?;
+    let paths = sqlx::query!(
+        "SELECT path, yara_meta FROM analysis.files
+         WHERE root_id = $1 AND observable_id = $2 ORDER BY created_at, path",
+        task.root,
+        task.observable.id.0,
+    )
+    .fetch_all(db.pool())
+    .await?
+    .into_iter()
+    .map(|row| SvsFilePath {
+        path: row.path,
+        yara_meta: row.yara_meta,
+    })
+    .collect();
+    let limit = i64::try_from(MAX_SVS_DETECTIONS + 1).unwrap_or(i64::MAX);
+    let mut detections: Vec<SvsDetection> = sqlx::query!(
+        "SELECT description, details, signature_uuid, signature_version FROM analysis.detections
+         WHERE root_id = $1 AND observable_id = $2 ORDER BY id LIMIT $3",
+        task.root,
+        task.observable.id.0,
+        limit,
+    )
+    .fetch_all(db.pool())
+    .await?
+    .into_iter()
+    .map(|row| SvsDetection {
+        description: row.description,
+        details: row.details,
+        signature_uuid: row.signature_uuid,
+        signature_version: row.signature_version,
+    })
+    .collect();
+    let detections_truncated = detections.len() > MAX_SVS_DETECTIONS;
+    detections.truncate(MAX_SVS_DETECTIONS);
+    let deleted = sqlx::query_scalar!(
+        r#"SELECT EXISTS (SELECT FROM svs.sample_deletions WHERE sha256 = $1) AS "deleted!""#,
+        task.observable.value,
+    )
+    .fetch_one(db.pool())
+    .await?;
+    let captures = sqlx::query!(
+        "SELECT rule_uuid, state, missing_reason FROM svs.yara_captures
+         WHERE root_id = $1 AND sha256 = $2 ORDER BY rule_uuid",
+        task.root,
+        task.observable.value,
+    )
+    .fetch_all(db.pool())
+    .await?
+    .into_iter()
+    .map(|row| SvsCaptureRow {
+        rule_uuid: row.rule_uuid,
+        state: row.state,
+        missing_reason: row.missing_reason,
+    })
+    .collect();
+    let classified = stores.is_classified(root.disposition.as_deref());
+    tracing::info!(
+        task = task.id.0,
+        root = %task.root,
+        read = "svs-capture-state",
+        classified,
+        unreviewed = root.unreviewed,
+        deleted,
+        detections_truncated,
+        "read"
+    );
+    Ok(SvsCaptureStateAnswer {
+        alert: root.alert,
+        disposition: root.disposition,
+        classified,
+        unreviewed_run: root.unreviewed,
+        paths,
+        detections,
+        detections_truncated,
+        deleted,
+        captures,
+    })
 }
 
 #[cfg(test)]

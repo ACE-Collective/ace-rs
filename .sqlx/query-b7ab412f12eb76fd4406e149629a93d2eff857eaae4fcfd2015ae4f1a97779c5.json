@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM svs.sample_retirements WHERE sha256 = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b7ab412f12eb76fd4406e149629a93d2eff857eaae4fcfd2015ae4f1a97779c5"
+}

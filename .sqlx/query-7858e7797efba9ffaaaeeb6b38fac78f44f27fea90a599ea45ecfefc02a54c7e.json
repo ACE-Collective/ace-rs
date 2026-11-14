@@ -1,0 +1,115 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO svs.sample_retirements (sha256, rule_uuid, reason, retired_by)\n                           VALUES ($1, $2, $3, $4::jsonb)\n                           ON CONFLICT (sha256, rule_uuid) DO UPDATE\n                           SET reason = excluded.reason, retired_by = excluded.retired_by,\n                               retired_at = now(), unretired_by = NULL, unretired_at = NULL\n                           RETURNING sha256, rule_uuid, reason, retired_by AS \"retired_by!: Value\",\n                                     retired_at, unretired_by AS \"unretired_by?: Value\",\n                                     unretired_at, updated_at",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "sha256",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.sample_retirements",
+            "name": "sha256"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "rule_uuid",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.sample_retirements",
+            "name": "rule_uuid"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "reason",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.sample_retirements",
+            "name": "reason"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "retired_by!: Value",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "svs.sample_retirements",
+            "name": "retired_by"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "retired_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "svs.sample_retirements",
+            "name": "retired_at"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "unretired_by?: Value",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "svs.sample_retirements",
+            "name": "unretired_by"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "unretired_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "svs.sample_retirements",
+            "name": "unretired_at"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "updated_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "svs.sample_retirements",
+            "name": "updated_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text",
+        "Jsonb"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "7858e7797efba9ffaaaeeb6b38fac78f44f27fea90a599ea45ecfefc02a54c7e"
+}

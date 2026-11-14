@@ -103,20 +103,7 @@ const ACE3: &[(&str, i32, &str, bool, bool)] = &[
 ];
 
 /// ace3's `disposition_classification:`.
-const ACE3_CLASSES: &[(&str, DispositionClass)] = &[
-    ("FALSE_POSITIVE", DispositionClass::Fp),
-    ("GRAYWARE", DispositionClass::Tp),
-    ("POLICY_VIOLATION", DispositionClass::Tp),
-    ("RECONNAISSANCE", DispositionClass::Tp),
-    ("WEAPONIZATION", DispositionClass::Tp),
-    ("DELIVERY", DispositionClass::Tp),
-    ("EXPLOITATION", DispositionClass::Tp),
-    ("INSTALLATION", DispositionClass::Tp),
-    ("COMMAND_AND_CONTROL", DispositionClass::Tp),
-    ("EXFIL", DispositionClass::Tp),
-    ("DAMAGE", DispositionClass::Tp),
-    ("SIMULATED", DispositionClass::Tp),
-];
+const ACE3_CLASSES: &[(&str, DispositionClass)] = ace_sdk::ACE3_DISPOSITION_CLASSES;
 
 /// Whether a name has the shape of a disposition: up to 64 of A-Z, 0-9 and `_`, starting with a letter.
 pub fn is_disposition_name(name: &str) -> bool {

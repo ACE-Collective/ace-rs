@@ -1,0 +1,42 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT state, missing_reason FROM svs.yara_captures\n             WHERE root_id = $1 AND sha256 = $2 AND rule_uuid = $3 FOR UPDATE",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "state",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.yara_captures",
+            "name": "state"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "missing_reason",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.yara_captures",
+            "name": "missing_reason"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      true
+    ]
+  },
+  "hash": "8af0fc21beca3934b7dff72b1b8ee7d6812e63f24cb35a7a8bab2e812e16a905"
+}

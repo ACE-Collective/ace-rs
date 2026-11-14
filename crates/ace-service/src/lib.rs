@@ -115,6 +115,7 @@ mod saved_filters;
 mod source;
 mod submit;
 mod svs;
+mod svs_samples;
 mod users;
 mod yara_qa;
 
@@ -129,6 +130,10 @@ use uuid::Uuid;
 
 use gate::{Audited, Change, Gate, Recorded, TITLE_LIMIT, Target};
 
+pub use ace_core::svs::samples::{
+    CaptureState, Label as SampleLabel, MissingReason, Strength as VoteStrength,
+    Votes as SampleVotes,
+};
 pub use ace_sdk::actions::{ActionKind, RemediationAction};
 pub use ace_sdk::lists::MatchKind;
 pub use actor::{Actor, ApiKeyId, Component, InvalidComponent, UserId};
@@ -226,6 +231,12 @@ pub use saved_filters::{
 };
 pub use source::with_source_ip;
 pub use svs::{AlertSvsStatus, AlertSvsView, MarkerMismatch, RunRef, TestHost};
+pub use svs_samples::{
+    DownloadCapture, DownloadFile, LabelChange, MAX_DELETIONS_PAGE, MAX_SAMPLE_DOWNLOAD_BYTES,
+    MAX_SAMPLE_DOWNLOAD_FILES, MAX_SAMPLE_REASON, MAX_SAMPLES_PAGE, MissingCount,
+    NO_DETECTION_LEFT, Retirement, Sample, SampleCapture, SampleDeletion, SampleDetail,
+    SampleDetection, SampleDownload, SamplePage, SampleQuery, SampleSort, SkippedSampleDetection,
+};
 pub use users::{ApiKey, Grant, Group, MAX_KEY_SCOPE, Profile, User, UserDetail};
 pub use yara_qa::{
     MAX_PURGE_REASON, MAX_PURGE_VERSIONS, MAX_QA_DOWNLOAD_BYTES, MAX_QA_DOWNLOAD_FILES,
@@ -406,6 +417,9 @@ pub struct Service {
     dispositions: std::sync::Arc<dispositions::Dispositions>,
     /// The run page's link to the site's log search, the overlay's `svs.log_search_url` (PLAN.md 7.10).
     log_search: Option<std::sync::Arc<ace_core::svs::log_search::LogSearchTemplate>>,
+    /// The bucket, for an adapter whose writes reach it with no bucket of its own, such as the GUI's
+    /// deletion of an SVS sample (PLAN.md 7.10). `ace serve` sets it.
+    bucket: Option<ace_core::bucket::Bucket>,
 }
 
 impl Service {
@@ -418,6 +432,7 @@ impl Service {
             actions: ace_core::actions::ActionCatalog::default(),
             dispositions: std::sync::Arc::default(),
             log_search: None,
+            bucket: None,
         }
     }
 
@@ -434,6 +449,17 @@ impl Service {
     }
 
     /// The service with the overlay's `svs.log_search_url`, checked (PLAN.md 7.10).
+    /// The service with the node's bucket, which `bucket` hands to an adapter that has none.
+    pub fn with_bucket(mut self, bucket: ace_core::bucket::Bucket) -> Self {
+        self.bucket = Some(bucket);
+        self
+    }
+
+    /// The node's bucket, when `ace serve` gave the service one.
+    pub fn bucket(&self) -> Option<&ace_core::bucket::Bucket> {
+        self.bucket.as_ref()
+    }
+
     pub fn with_log_search(
         mut self,
         template: Option<ace_core::svs::log_search::LogSearchTemplate>,

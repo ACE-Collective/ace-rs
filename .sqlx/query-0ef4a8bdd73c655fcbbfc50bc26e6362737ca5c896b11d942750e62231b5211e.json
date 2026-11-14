@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE store.objects SET state = 'deleting' WHERE pool = $1 AND sha256 = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "0ef4a8bdd73c655fcbbfc50bc26e6362737ca5c896b11d942750e62231b5211e"
+}

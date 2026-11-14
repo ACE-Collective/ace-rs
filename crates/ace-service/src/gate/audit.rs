@@ -179,6 +179,30 @@ impl Target {
         }
     }
 
+    /// An SVS sample, a file and a rule it matched, as `<sha256>/<rule uuid>` (PLAN.md 7.10).
+    pub(crate) fn svs_sample(sha256: &str, rule_uuid: &str) -> Self {
+        Target {
+            kind: "svs_sample",
+            id: format!("{sha256}/{rule_uuid}"),
+        }
+    }
+
+    /// A file of SVS's samples, for every rule, by its sha256.
+    pub(crate) fn svs_sample_file(sha256: &str) -> Self {
+        Target {
+            kind: "svs_sample_file",
+            id: sha256.to_owned(),
+        }
+    }
+
+    /// The samples a download's filters selected.
+    pub(crate) fn svs_samples() -> Self {
+        Target {
+            kind: "svs_samples",
+            id: "download".to_owned(),
+        }
+    }
+
     /// An entry on an analyst-edited list, by its id.
     pub(crate) fn list_entry(id: i64) -> Self {
         Target {

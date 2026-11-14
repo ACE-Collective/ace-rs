@@ -1,0 +1,19 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE svs.yara_captures\n         SET state = 'stored', missing_reason = $2, record = $3, match_summary = $4,\n             file_size = $5, yara_version = $6, stored_at = COALESCE(stored_at, now())\n         WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text",
+        "Jsonb",
+        "Jsonb",
+        "Int8",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "0a6c42c12eeac0abb50db12f217997a22784f51c2e3c9404efdc51765b649b91"
+}

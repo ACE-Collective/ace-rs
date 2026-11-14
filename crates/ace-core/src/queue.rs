@@ -307,6 +307,32 @@ pub async fn requeue_cancelled(tx: &mut Tx<'_>, task: TaskId) -> Result<bool, Qu
     Ok(requeued > 0)
 }
 
+/// Queues a task that ended again, done or failed, as a new pass of its root does in ace3 for a
+/// module whose work isn't a result: its attempts start over. False when it hadn't ended.
+pub async fn requeue_ended(tx: &mut Tx<'_>, task: TaskId) -> Result<bool, QueueError> {
+    let requeued = sqlx::query!(
+        "UPDATE queue.tasks
+         SET state = 'queued', run_after = now(), attempts = 0, error = NULL,
+             delay_state = NULL, first_delayed_at = NULL, delays = 0, cancel_requested = false,
+             updated_at = now()
+         WHERE id = $1 AND state IN ('done', 'failed')",
+        task as TaskId,
+    )
+    .execute(tx.conn())
+    .await?
+    .rows_affected();
+    if requeued > 0 {
+        let root = sqlx::query_scalar!(
+            "SELECT root_id FROM queue.tasks WHERE id = $1",
+            task as TaskId
+        )
+        .fetch_one(tx.conn())
+        .await?;
+        begin_pass(tx, root).await?;
+    }
+    Ok(requeued > 0)
+}
+
 /// The observable a claimed task analyzes.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TaskObservable {

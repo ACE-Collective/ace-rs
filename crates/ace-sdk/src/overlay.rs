@@ -124,6 +124,24 @@ pub enum DispositionClass {
     Fp,
 }
 
+/// ace3's `disposition_classification:` from its `saq.default.yaml`, the default a site's overlay is
+/// merged over: `ace_service`'s `Dispositions`, and the core's SVS reads before `ace serve` hands it the
+/// site's.
+pub const ACE3_DISPOSITION_CLASSES: &[(&str, DispositionClass)] = &[
+    ("FALSE_POSITIVE", DispositionClass::Fp),
+    ("GRAYWARE", DispositionClass::Tp),
+    ("POLICY_VIOLATION", DispositionClass::Tp),
+    ("RECONNAISSANCE", DispositionClass::Tp),
+    ("WEAPONIZATION", DispositionClass::Tp),
+    ("DELIVERY", DispositionClass::Tp),
+    ("EXPLOITATION", DispositionClass::Tp),
+    ("INSTALLATION", DispositionClass::Tp),
+    ("COMMAND_AND_CONTROL", DispositionClass::Tp),
+    ("EXFIL", DispositionClass::Tp),
+    ("DAMAGE", DispositionClass::Tp),
+    ("SIMULATED", DispositionClass::Tp),
+];
+
 /// What the overlay says about one disposition, ace3's `DispositionConfig`. A key left out keeps what the
 /// disposition has; a new disposition needs `rank` and `css`, as ace3's schema requires them.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize)]

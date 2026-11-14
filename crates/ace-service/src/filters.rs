@@ -29,7 +29,9 @@ use chrono_tz::Tz;
 use serde::{Deserialize, Serialize};
 
 use crate::ServiceError;
-use crate::permission::{ALERT_READ, FILE_COLLECTION_READ, PermissionName, REMEDIATION_READ};
+use crate::permission::{
+    ALERT_READ, FILE_COLLECTION_READ, PermissionName, REMEDIATION_READ, SIGNATURE_READ,
+};
 
 mod dates;
 pub mod events;
@@ -47,8 +49,8 @@ pub const SIGNATURE_FAMILIES: &[&str] = &["yara", "hunt", "observable_modifier",
 /// The observable filter's type that matches any type.
 pub const ANY_TYPE: &str = "Any";
 
-/// A screen whose list has filters, saved filters and share links: ace3's `FilterScreen`. Four of ace3's
-/// eleven exist here; the SVS screens come with SVS (7.10).
+/// A screen whose list has filters, saved filters and share links: ace3's `FilterScreen`. Five of ace3's
+/// eleven exist here; the other SVS screens come with their batches of SVS (7.10).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum FilterScreen {
     /// The alert list.
@@ -59,6 +61,8 @@ pub enum FilterScreen {
     Remediations,
     /// The file collections (PLAN.md 7.9), ace3's `FILE_COLLECTIONS_SCREEN`.
     FileCollections,
+    /// SVS's samples (PLAN.md 7.10 batch 2), ace3's `SVS_SAMPLES_SCREEN`.
+    SvsSamples,
 }
 
 /// How an editor edits one filter.
@@ -436,12 +440,75 @@ const FILE_COLLECTION_FILTERS: &[FilterSpec] = &[
     ),
 ];
 
+/// ace3's sample labels, and the value that matches a sample with none (`LABEL_FILTER_NONE`).
+pub const SAMPLE_LABELS: &[&str] = &["tp", "fp", "conflicted", "none"];
+
+/// The SVS samples screen's filters, ace3's `SVS_SAMPLES_SCREEN`, in its order. Alert, File Name and Rule
+/// test a sample's captures: a sample matches when any of them does.
+const SVS_SAMPLE_FILTERS: &[FilterSpec] = &[
+    spec(
+        "Signature",
+        "signature",
+        FilterKind::Text,
+        &[],
+        "a rule's uuid",
+    ),
+    spec(
+        "Rule",
+        "rule",
+        FilterKind::Text,
+        &[],
+        "text the rule's name contains",
+    ),
+    spec("SHA256", "sha256", FilterKind::Text, &[], "a file's sha256"),
+    spec("Alert", "alert", FilterKind::Text, &[], "an alert's id"),
+    spec(
+        "File Name",
+        "file_name",
+        FilterKind::Text,
+        &[],
+        "text the file's path contains",
+    ),
+    spec("Label", "label", FilterKind::Multi, SAMPLE_LABELS, "tp"),
+    spec(
+        "Label Source",
+        "label_source",
+        FilterKind::Multi,
+        VERDICT_SOURCES,
+        "explicit",
+    ),
+    spec(
+        "Last Captured",
+        "last_captured",
+        FilterKind::DateRange,
+        &[],
+        CREATED_HINT,
+    ),
+    spec("Stored", "stored", FilterKind::Multi, BOOLEANS, "true"),
+    spec(
+        "Missing Data",
+        "missing_data",
+        FilterKind::Multi,
+        BOOLEANS,
+        "true",
+    ),
+    spec(
+        "Unknown Version",
+        "unknown_version",
+        FilterKind::Multi,
+        BOOLEANS,
+        "true",
+    ),
+    spec("Retired", "retired", FilterKind::Multi, BOOLEANS, "true"),
+];
+
 impl FilterScreen {
     pub const ALL: &'static [FilterScreen] = &[
         FilterScreen::Alerts,
         FilterScreen::DetectionPoints,
         FilterScreen::Remediations,
         FilterScreen::FileCollections,
+        FilterScreen::SvsSamples,
     ];
 
     /// Its name, ace3's `saved_filters.screen`.
@@ -451,6 +518,7 @@ impl FilterScreen {
             FilterScreen::DetectionPoints => "detection_points",
             FilterScreen::Remediations => "remediations",
             FilterScreen::FileCollections => "file_collections",
+            FilterScreen::SvsSamples => "svs_samples",
         }
     }
 
@@ -468,6 +536,7 @@ impl FilterScreen {
             FilterScreen::Alerts | FilterScreen::DetectionPoints => ALERT_READ,
             FilterScreen::Remediations => REMEDIATION_READ,
             FilterScreen::FileCollections => FILE_COLLECTION_READ,
+            FilterScreen::SvsSamples => SIGNATURE_READ,
         }
     }
 
@@ -477,6 +546,7 @@ impl FilterScreen {
             FilterScreen::DetectionPoints => DETECTION_POINT_FILTERS,
             FilterScreen::Remediations => REMEDIATION_FILTERS,
             FilterScreen::FileCollections => FILE_COLLECTION_FILTERS,
+            FilterScreen::SvsSamples => SVS_SAMPLE_FILTERS,
         }
     }
 
@@ -485,7 +555,9 @@ impl FilterScreen {
         match self {
             FilterScreen::Alerts => ALERT_LEFT_OUT,
             FilterScreen::DetectionPoints => DETECTION_POINT_LEFT_OUT,
-            FilterScreen::Remediations | FilterScreen::FileCollections => &[],
+            FilterScreen::Remediations
+            | FilterScreen::FileCollections
+            | FilterScreen::SvsSamples => &[],
         }
     }
 
@@ -631,7 +703,7 @@ pub fn check(
                         )));
                     }
                 }
-                let value = canonical(spec, value, now)?;
+                let value = canonical(screen, spec, value, now)?;
                 if !values.contains(&value) {
                     values.push(value);
                 }
@@ -647,6 +719,7 @@ pub fn check(
 
 /// A value of `spec`'s filter in its canonical spelling, or why it isn't one.
 fn canonical(
+    screen: FilterScreen,
     spec: &FilterSpec,
     value: &FilterValue,
     now: DateTime<Utc>,
@@ -668,6 +741,34 @@ fn canonical(
     if text.is_empty() {
         // ace3: an empty text value would match everything
         return Err(invalid(format!("a {name} value can't be empty")));
+    }
+    if screen == FilterScreen::SvsSamples {
+        match spec.slug {
+            // ace3's SIGNATURE_UUID_PATTERN: a rule's uuid meta, which needn't be a uuid
+            "signature" => {
+                let shaped = text.len() <= 36
+                    && text.starts_with(|c: char| c.is_ascii_alphanumeric())
+                    && text
+                        .bytes()
+                        .all(|b| b.is_ascii_alphanumeric() || b == b'_' || b == b'-');
+                if !shaped {
+                    return Err(invalid(format!(
+                        "{name}: {text:?} isn't a rule's uuid, which is up to 36 of A-Z, a-z, 0-9, _ and -"
+                    )));
+                }
+                return Ok(FilterValue::Text(text.clone()));
+            }
+            "sha256" => {
+                let lower = text.trim().to_ascii_lowercase();
+                if lower.len() != 64 || !lower.bytes().all(|b| b.is_ascii_hexdigit()) {
+                    return Err(invalid(format!(
+                        "{name}: {text:?} isn't a sha256, which is 64 hex characters"
+                    )));
+                }
+                return Ok(FilterValue::Text(lower));
+            }
+            _ => {}
+        }
     }
     let text = match (spec.slug, spec.kind) {
         (_, FilterKind::DateRange) => {

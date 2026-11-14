@@ -1,0 +1,21 @@
+{#- Confirming the deletion of a file from SVS (PLAN.md 7.10 batch 2), where ace3's page asks in a modal:
+    what goes, and the form that deletes it (src/svs_samples.rs). -#}
+{% extends "base.html" %}
+{% block title %}Delete · Samples · ACE{% endblock %}
+{% block content %}
+<section class="signatures">
+  <p><a href="/signatures">Signatures</a> / <a href="/signatures/samples">Samples</a></p>
+  <h1>Delete <code>{{ view.sha256 }}</code> from SVS?</h1>
+  {%- if let Some(problem) = view.problem %}
+  <p class="error" role="alert">Nothing was deleted: {{ problem }}</p>
+  {%- endif %}
+  <p>Every capture of the file, for every rule, and its retirements go, and its bytes are purged from the samples' store. A record of the deletion is kept, which also keeps the file from being captured again. The alerts' own copies aren't touched.</p>
+  {%- include "signatures/_samples_page.html" %}
+  <form method="post" action="{{ view.action }}" class="fields">
+    <label for="reason">Reason, for the audit record</label>
+    <textarea id="reason" name="reason" required maxlength="{{ view.max_reason }}" rows="3">{{ view.reason }}</textarea>
+    <button type="submit">Delete</button>
+  </form>
+  <p><a href="/signatures/samples">Cancel</a></p>
+</section>
+{% endblock %}

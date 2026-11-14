@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM store.holds WHERE pool = $1 AND sha256 = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "8f022d50e276a76848aa09c823770995c025ef9b292e28fc304e01761c786f26"
+}

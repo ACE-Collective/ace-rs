@@ -4896,3 +4896,433 @@ async fn the_queue_retries_cancels_expires_and_supersedes_actions() {
         Some((lost, 0))
     );
 }
+
+// ---- svs_yara_sample_capture: the svs-capture-state read and the svs-capture write (PLAN.md 7.10
+// batch 2) ----
+
+const SVS_RULE: &str = "7d1c2a4e-5b6f-4c3d-9e8f-0a1b2c3d4e5f";
+
+/// A core whose pools run SVS's capture and archive, which declares no read or write.
+async fn svs_core() -> Core {
+    let modules = ["svs_yara_sample_capture", "archive"];
+    Core::start_configured(
+        ace_core::eligibility::Catalog::new([ace_mod_svs::MANIFEST, ace_mod_archive::MANIFEST]),
+        ace_core::modes::Modes::ace3(),
+        &modules,
+        Duration::from_secs(30),
+        |mut config| {
+            config.pools.push(ace_core::api::PoolAccess::new(
+                "other",
+                OTHER_TOKEN,
+                modules.iter().map(|m| (*m).to_owned()).collect(),
+            ));
+            config
+        },
+    )
+    .await
+}
+
+/// An alert of `disposition` with a file the bucket holds for it at `dir/invoice.doc`, the YARA module's
+/// result and its detection of `SVS_RULE` on the file, and a task of `module` on it. Returns the root and
+/// the file's sha256.
+async fn svs_root(core: &Core, module: &str, disposition: &str) -> (uuid::Uuid, String) {
+    use ace_core::tree;
+    let db = core.test_db.db();
+    let root = tree::NewRoot::new("dispositioned");
+    let mut tx = db.begin().await.expect("begins");
+    tree::create_root(&mut tx, &root).await.expect("creates");
+    tx.commit().await.expect("commits");
+    let bytes = format!("svs sample {}", uuid::Uuid::new_v4()).into_bytes();
+    let sha256 = core
+        .bucket
+        .put_bytes(
+            ALERT_FILES,
+            &bytes,
+            Some(&ace_core::bucket::Hold::root(root.id)),
+        )
+        .await
+        .expect("puts the file")
+        .object
+        .sha256
+        .to_hex();
+    let mut tx = db.begin().await.expect("begins");
+    let id = tree::upsert_observable(
+        &mut tx,
+        root.id,
+        &ace_results::NewObservable::new(ace_results::ObservableKind::File, sha256.clone()),
+    )
+    .await
+    .expect("adds")
+    .id;
+    tree::add_file(
+        &mut tx,
+        root.id,
+        id,
+        "dir/invoice.doc",
+        &["source=email".to_owned()],
+    )
+    .await
+    .expect("records the file");
+    let scan: ace_results::types::yara::ScanResult = serde_json::from_value(serde_json::json!({
+        "rule": "svs_rule", "namespace": "unittest", "meta": {"uuid": SVS_RULE},
+        "tags": [], "commit": "c", "target": "dir/invoice.doc", "strings": [],
+        "context": [], "match_context": [],
+    }))
+    .expect("a scan result");
+    let yara = ace_results::ResultEnvelope::new(ace_results::types::yara::YaraScanResults {
+        scan_results: vec![scan],
+    })
+    .to_raw()
+    .expect("JSON");
+    tree::insert_result(&mut tx, root.id, id, "yara_scanner_v3_4", &yara)
+        .await
+        .expect("the YARA result");
+    sqlx::query(
+        "INSERT INTO analysis.detections
+             (root_id, observable_id, description, details, signature_uuid, signature_version,
+              signature_family)
+         VALUES ($1, $2, 'dir/invoice.doc matched yara rule svs_rule', $3, $4, 'c', 'yara')",
+    )
+    .bind(root.id)
+    .bind(id.0)
+    .bind(serde_json::json!({
+        "sha256": sha256, "rule": "svs_rule", "namespace": "unittest", "rule_uuid": SVS_RULE,
+    }))
+    .bind(SVS_RULE)
+    .execute(tx.conn())
+    .await
+    .expect("a detection");
+    sqlx::query(
+        "UPDATE analysis.roots SET alerted_at = now(), disposition = $2,
+             dispositioned_by = '{\"kind\": \"internal\", \"id\": \"test\"}'
+         WHERE id = $1",
+    )
+    .bind(root.id)
+    .bind(disposition)
+    .execute(tx.conn())
+    .await
+    .expect("dispositions it");
+    ace_core::queue::enqueue(&mut tx, root.id, id, module)
+        .await
+        .expect("queues");
+    tx.commit().await.expect("commits");
+    (root.id, sha256)
+}
+
+/// `svs-capture-state` answers what ace3's capture reads of its database, for the task's own file only:
+/// the disposition and its class, the unreviewed run, the file's paths and detections, the deletion and
+/// what's captured; past its bound it says it cut the detections; and the refusals every read makes.
+#[tokio::test]
+async fn svs_capture_state_answers_for_the_task_s_own_file_and_refuses_the_rest() {
+    let core = svs_core().await;
+    let (root, sha256) = svs_root(&core, "svs_yara_sample_capture", "DELIVERY").await;
+    let (_, elsewhere) = svs_root(&core, "archive", "DELIVERY").await;
+    let client =
+        ace_pool::client::LeaseClient::new(&core.url, common::TOKEN, "w1").expect("a client");
+    let task = client
+        .lease(&["svs_yara_sample_capture".to_owned()], Duration::ZERO)
+        .await
+        .expect("leases")
+        .expect("a task");
+    assert_eq!(task.root, root);
+    let answer = client
+        .read(task.id, "svs-capture-state", &serde_json::json!({}), false)
+        .await
+        .expect("answers");
+    assert_eq!(answer["alert"], true);
+    assert_eq!(answer["disposition"], "DELIVERY");
+    assert_eq!(answer["classified"], true);
+    assert_eq!(answer["unreviewed_run"], false);
+    assert_eq!(
+        answer["paths"],
+        serde_json::json!([{"path": "dir/invoice.doc", "yara_meta": ["source=email"]}])
+    );
+    assert_eq!(answer["detections"][0]["signature_uuid"], SVS_RULE);
+    assert_eq!(answer["detections"][0]["details"]["rule"], "svs_rule");
+    assert_eq!(answer["detections_truncated"], false);
+    assert_eq!(answer["deleted"], false);
+    assert_eq!(answer["captures"], serde_json::json!([]));
+
+    // an unclassified disposition, a deletion and a capture show
+    let db = core.test_db.db();
+    sqlx::query("UPDATE analysis.roots SET disposition = 'REVIEWED' WHERE id = $1")
+        .bind(root)
+        .execute(db.pool())
+        .await
+        .expect("dispositions it");
+    sqlx::query(
+        "INSERT INTO svs.yara_captures
+             (root_id, sha256, rule_uuid, rule_name, signature_version, file_path, state,
+              missing_reason)
+         VALUES ($1, $2, $3, 'svs_rule', 'c', 'dir/invoice.doc', 'missing', 'file')",
+    )
+    .bind(root)
+    .bind(&sha256)
+    .bind(SVS_RULE)
+    .execute(db.pool())
+    .await
+    .expect("a capture");
+    sqlx::query(
+        "INSERT INTO svs.sample_deletions (sha256, deleted_by, reason, rule_uuids, capture_count)
+         VALUES ($1, '{\"kind\": \"internal\", \"id\": \"test\"}', 'privacy', '{}', 0)",
+    )
+    .bind(&sha256)
+    .execute(db.pool())
+    .await
+    .expect("a deletion");
+    let answer = client
+        .read(task.id, "svs-capture-state", &serde_json::json!({}), false)
+        .await
+        .expect("answers");
+    assert_eq!(answer["classified"], false);
+    assert_eq!(answer["deleted"], true);
+    assert_eq!(
+        answer["captures"],
+        serde_json::json!([{"rule_uuid": SVS_RULE, "state": "missing", "missing_reason": "file"}])
+    );
+
+    // past the bound, the first MAX_SVS_DETECTIONS, said to be cut
+    sqlx::query(
+        "INSERT INTO analysis.detections (root_id, observable_id, description)
+         SELECT $1, o.id, 'more ' || n FROM analysis.observables o, generate_series(1, $2) n
+         WHERE o.root_id = $1",
+    )
+    .bind(root)
+    .bind(i32::try_from(ace_sdk::reads::MAX_SVS_DETECTIONS).expect("small"))
+    .execute(db.pool())
+    .await
+    .expect("inserts");
+    let answer = client
+        .read(task.id, "svs-capture-state", &serde_json::json!({}), false)
+        .await
+        .expect("answers");
+    assert_eq!(
+        answer["detections"].as_array().expect("detections").len(),
+        ace_sdk::reads::MAX_SVS_DETECTIONS
+    );
+    assert_eq!(answer["detections_truncated"], true);
+
+    let archive_task = client
+        .lease(&["archive".to_owned()], Duration::ZERO)
+        .await
+        .expect("leases")
+        .expect("a task");
+    assert_refusals(
+        &core,
+        task.id,
+        "svs-capture-state",
+        serde_json::json!({}),
+        serde_json::json!({"subject": {"type": "file", "value": elsewhere}}),
+        archive_task.id,
+    )
+    .await;
+}
+
+/// The capture run as the lookups pool runs it: its read goes through the pool's client, its write lands
+/// with its skip, the file is copied into the `svs_samples` pool held by its capture, and no result is
+/// stored.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn the_sample_capture_runs_through_the_lease_api() {
+    let core = svs_core().await;
+    let (root, sha256) = svs_root(&core, "svs_yara_sample_capture", "DELIVERY").await;
+    let client =
+        ace_pool::client::LeaseClient::new(&core.url, common::TOKEN, "pool").expect("a client");
+    let modules = std::sync::Arc::new(
+        ace_pool::modules::Modules::new().with_lookup(
+            ace_pool::modules::Entry::<ace_mod_svs::YaraSampleCapture>::lookup(
+                None,
+                &ace_sdk::Secrets::new(),
+            )
+            .expect("the module"),
+        ),
+    );
+    let task = client
+        .lease(&[], Duration::ZERO)
+        .await
+        .expect("leases")
+        .expect("a task");
+    let end = ace_pool::run::run_in_process(
+        &client,
+        &modules,
+        task,
+        &tokio_util::sync::CancellationToken::new(),
+    )
+    .await
+    .expect("runs");
+    assert!(
+        matches!(&end, ace_sdk::wire::TaskEnd::Skipped { writes, .. } if writes.len() == 1),
+        "{end:?}"
+    );
+    let db = core.test_db.db();
+    let row: (
+        uuid::Uuid,
+        String,
+        String,
+        Vec<String>,
+        String,
+        Option<serde_json::Value>,
+    ) = sqlx::query_as(
+        "SELECT root_id, rule_uuid, file_path, yara_meta_tags, state, record
+             FROM svs.yara_captures WHERE sha256 = $1",
+    )
+    .bind(&sha256)
+    .fetch_one(db.pool())
+    .await
+    .expect("a capture");
+    assert_eq!(row.0, root);
+    assert_eq!(row.1, SVS_RULE);
+    assert_eq!(row.2, "dir/invoice.doc");
+    assert_eq!(row.3, ["source=email"]);
+    assert_eq!(row.4, "stored");
+    assert_eq!(row.5.expect("a record")["rule"], "svs_rule");
+    let parsed: ace_results::Sha256 = sha256.parse().expect("a sha256");
+    assert!(
+        core.bucket
+            .object(ace_core::svs::samples::SVS_SAMPLES, &parsed)
+            .await
+            .expect("reads")
+            .is_some()
+    );
+    let results: i64 = sqlx::query_scalar(
+        "SELECT count(*) FROM analysis.results WHERE root_id = $1 AND module = 'svs_yara_sample_capture'",
+    )
+    .bind(root)
+    .fetch_one(db.pool())
+    .await
+    .expect("counts");
+    assert_eq!(results, 0);
+    let (state, _) = common::task_of(&core, root, "svs_yara_sample_capture").await;
+    assert_eq!(state, "done");
+}
+
+/// The write is refused, failing the task with nothing written, from a module that doesn't declare it,
+/// with a body that doesn't read (400), naming another file, a rule no detection on the file is of, a
+/// path that isn't the file's, a rule twice, past its bound, or twice in one end (403); a lost lease
+/// writes nothing.
+#[tokio::test]
+async fn the_capture_write_is_refused_unless_it_s_the_task_s_own_file_s_matches() {
+    let core = svs_core().await;
+    let client =
+        ace_pool::client::LeaseClient::new(&core.url, common::TOKEN, "w1").expect("a client");
+    let write = |body: serde_json::Value| ace_sdk::writes::WireWrite {
+        write: "svs-capture".to_owned(),
+        body,
+    };
+    let candidate = |sha256: &str, rule: &str, path: &str| {
+        serde_json::json!({
+            "sha256": sha256, "rule_uuid": rule, "rule_name": "svs_rule", "namespace": "unittest",
+            "signature_version": "c", "file_path": path, "yara_meta_tags": [], "match_record": null,
+        })
+    };
+    let skipped = |writes| ace_sdk::wire::TaskEnd::Skipped {
+        reason: "captured".to_owned(),
+        writes,
+    };
+    let rows = |core: &Core| {
+        let pool = core.test_db.db().pool().clone();
+        async move {
+            sqlx::query_scalar::<_, i64>("SELECT count(*) FROM svs.yara_captures")
+                .fetch_one(&pool)
+                .await
+                .expect("counts")
+        }
+    };
+    // archive declares no write, and a body that doesn't read
+    for (module, expected) in [("archive", 403), ("svs_yara_sample_capture", 400)] {
+        let (root, sha256) = svs_root(&core, module, "DELIVERY").await;
+        let task = client
+            .lease(&[module.to_owned()], Duration::ZERO)
+            .await
+            .expect("leases")
+            .expect("a task");
+        let body = if module == "archive" {
+            serde_json::json!({"captures": [candidate(&sha256, SVS_RULE, "dir/invoice.doc")]})
+        } else {
+            serde_json::json!({"captures": 5})
+        };
+        let refused = client.end(task.id, &skipped(vec![write(body)])).await;
+        assert!(
+            matches!(&refused, Err(ace_pool::client::ClientError::Api { status, .. }) if *status == expected),
+            "{module}: {refused:?}"
+        );
+        let (state, error) = common::task_of(&core, root, module).await;
+        assert_eq!(state, "failed", "{module}");
+        assert!(error.is_some(), "{module}");
+        assert_eq!(rows(&core).await, 0, "{module}: nothing written");
+    }
+    type Bodies<'a> = Box<dyn Fn(&str) -> Vec<serde_json::Value> + 'a>;
+    let refusals: Vec<Bodies> = vec![
+        // another file
+        Box::new(|_| {
+            vec![
+                serde_json::json!({"captures": [candidate(&"ab".repeat(32), SVS_RULE, "dir/invoice.doc")]}),
+            ]
+        }),
+        // a rule no detection on the file is of
+        Box::new(|s| {
+            vec![serde_json::json!({"captures": [candidate(s, "another-rule", "dir/invoice.doc")]})]
+        }),
+        // a path that isn't the file's
+        Box::new(|s| {
+            vec![serde_json::json!({"captures": [candidate(s, SVS_RULE, "elsewhere.doc")]})]
+        }),
+        // a rule twice
+        Box::new(|s| {
+            vec![serde_json::json!({"captures": [
+                candidate(s, SVS_RULE, "dir/invoice.doc"), candidate(s, SVS_RULE, "dir/invoice.doc"),
+            ]})]
+        }),
+        // past the bound
+        Box::new(|s| {
+            vec![
+                serde_json::json!({"captures": (0..=ace_sdk::writes::MAX_SVS_CAPTURES)
+                .map(|_| candidate(s, SVS_RULE, "dir/invoice.doc")).collect::<Vec<_>>()}),
+            ]
+        }),
+        // twice in one end
+        Box::new(|s| {
+            let one = serde_json::json!({"captures": [candidate(s, SVS_RULE, "dir/invoice.doc")]});
+            vec![one.clone(), one]
+        }),
+    ];
+    for (index, body) in refusals.iter().enumerate() {
+        let (root, sha256) = svs_root(&core, "svs_yara_sample_capture", "DELIVERY").await;
+        let task = client
+            .lease(&["svs_yara_sample_capture".to_owned()], Duration::ZERO)
+            .await
+            .expect("leases")
+            .expect("a task");
+        let writes = body(&sha256).into_iter().map(write).collect();
+        let refused = client.end(task.id, &skipped(writes)).await;
+        assert!(
+            matches!(
+                &refused,
+                Err(ace_pool::client::ClientError::Api { status: 403, .. })
+            ),
+            "case {index}: {refused:?}"
+        );
+        let (state, _) = common::task_of(&core, root, "svs_yara_sample_capture").await;
+        assert_eq!(state, "failed", "case {index}");
+        assert_eq!(rows(&core).await, 0, "case {index}: nothing written");
+    }
+    // a lease lost before the end writes nothing, and its own worker's end lands it
+    let (_, sha256) = svs_root(&core, "svs_yara_sample_capture", "DELIVERY").await;
+    let task = client
+        .lease(&["svs_yara_sample_capture".to_owned()], Duration::ZERO)
+        .await
+        .expect("leases")
+        .expect("a task");
+    let good = || {
+        vec![write(
+            serde_json::json!({"captures": [candidate(&sha256, SVS_RULE, "dir/invoice.doc")]}),
+        )]
+    };
+    let lost = client.as_worker("w2").end(task.id, &skipped(good())).await;
+    assert!(
+        matches!(lost, Err(ace_pool::client::ClientError::LeaseLost(_))),
+        "{lost:?}"
+    );
+    assert_eq!(rows(&core).await, 0);
+    client.end(task.id, &skipped(good())).await.expect("ends");
+    assert_eq!(rows(&core).await, 1);
+}

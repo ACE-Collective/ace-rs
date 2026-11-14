@@ -6,16 +6,21 @@
 //! isn't the task's own; `apply` then writes them in the transaction that ends the task. ace3 audits
 //! none of these writes, so they are logged, with the task and the root, and write no audit row.
 //! Built: `smtp-log` and `email-thread` (PLAN.md 7.4, `email_logger`), and `email-archive` (7.5 batch
-//! 9, `email_archiver`), which `email_archive` seals in `check` and lands in `apply`.
+//! 9, `email_archiver`), which `email_archive` seals in `check` and lands in `apply`; and `svs-capture`
+//! (7.10 batch 2, `svs_yara_sample_capture`), whose bytes `svs::samples::prepare` reads in `check` and
+//! `svs::samples::land` puts in the `svs_samples` pool in `apply`.
 
 use ace_results::AnalysisType;
 use ace_results::types::email::{EmailAnalysis, EmailDetails};
 use ace_sdk::Manifest;
 use ace_sdk::email_threads;
-use ace_sdk::writes::{ArchivedEmailRecord, SmtpLogRows, ThreadRecord, WireWrite};
+use ace_sdk::writes::{
+    ArchivedEmailRecord, MAX_SVS_CAPTURES, SmtpLogRows, SvsCaptures, ThreadRecord, WireWrite,
+};
 use chrono::NaiveDateTime;
 use sha2::{Digest, Sha256};
 
+use crate::bucket::Bucket;
 use crate::db::{Db, DbError, Tx};
 use crate::email_archive::{EmailArchive, PrepareFailure};
 use crate::queue::Task;
@@ -56,6 +61,8 @@ pub enum Checked {
     EmailThread(ThreadRecord),
     /// The email, sealed, and what it's found by (PLAN.md 7.5 batch 9).
     EmailArchive(Box<crate::email_archive::Prepared>),
+    /// The file's captures for SVS, each with its bytes found (PLAN.md 7.10 batch 2).
+    SvsCapture(Vec<crate::svs::samples::Prepared>),
 }
 
 /// What the writes gave the task's result: the archive's id for an `email-archive`, which its result
@@ -66,10 +73,12 @@ pub struct Applied {
 }
 
 /// Checks `writes` for `task`, whose module is `manifest`, before its end's transaction. An
-/// `email-archive` is sealed here, with `archive`'s key.
+/// `email-archive` is sealed here, with `archive`'s key, and an `svs-capture`'s bytes are read from
+/// `bucket`.
 pub async fn check(
     db: &Db,
     archive: Option<&EmailArchive>,
+    bucket: &Bucket,
     manifest: Option<&Manifest>,
     task: &Task,
     writes: Vec<WireWrite>,
@@ -150,6 +159,24 @@ pub async fn check(
                     }
                 }
             }
+            "svs-capture" => {
+                if checked.iter().any(|c| matches!(c, Checked::SvsCapture(_))) {
+                    return Err(WriteFailure::Forbidden(
+                        "a task captures its file once".to_owned(),
+                    ));
+                }
+                let captures: SvsCaptures = parse(write.body)?;
+                let candidates = svs_candidates(db, task, captures).await?;
+                let prepared = crate::svs::samples::prepare(
+                    db,
+                    bucket,
+                    task.root,
+                    Some(task.observable.id.0),
+                    candidates,
+                )
+                .await?;
+                checked.push(Checked::SvsCapture(prepared));
+            }
             other => {
                 return Err(WriteFailure::Forbidden(format!(
                     "write {other} isn't served by this core"
@@ -158,6 +185,81 @@ pub async fn check(
         }
     }
     Ok(checked)
+}
+
+/// The candidates of an `svs-capture` write, once each is the task's own file, for a rule uuid ace3
+/// captures, that a detection on the file names, under one of the file's paths in the root. One rule
+/// twice is refused, as ace3 makes one candidate per (file, rule).
+async fn svs_candidates(
+    db: &Db,
+    task: &Task,
+    captures: SvsCaptures,
+) -> Result<Vec<ace_sdk::writes::SvsCaptureCandidate>, WriteFailure> {
+    use crate::svs::samples::MAX_RULE_UUID;
+    if captures.captures.len() > MAX_SVS_CAPTURES {
+        return Err(WriteFailure::Forbidden(format!(
+            "svs-capture makes {} captures, past its bound of {MAX_SVS_CAPTURES}",
+            captures.captures.len()
+        )));
+    }
+    if task.observable.kind != ace_results::ObservableKind::File {
+        return Err(WriteFailure::Forbidden(format!(
+            "svs-capture captures a file, and task {}'s observable is a {}",
+            task.id, task.observable.kind
+        )));
+    }
+    let signatures: Vec<String> = sqlx::query_scalar!(
+        r#"SELECT DISTINCT signature_uuid AS "signature_uuid!" FROM analysis.detections
+           WHERE root_id = $1 AND observable_id = $2 AND signature_uuid IS NOT NULL"#,
+        task.root,
+        task.observable.id.0,
+    )
+    .fetch_all(db.pool())
+    .await?;
+    let paths: Vec<String> = sqlx::query_scalar!(
+        "SELECT path FROM analysis.files WHERE root_id = $1 AND observable_id = $2",
+        task.root,
+        task.observable.id.0,
+    )
+    .fetch_all(db.pool())
+    .await?;
+    let mut seen = std::collections::BTreeSet::new();
+    for candidate in &captures.captures {
+        let refused = if candidate.sha256 != task.observable.value {
+            Some(format!(
+                "svs-capture names the file {}, which isn't the task's own",
+                candidate.sha256
+            ))
+        } else if candidate.rule_uuid.is_empty()
+            || candidate.rule_uuid.chars().count() > MAX_RULE_UUID
+        {
+            Some(format!(
+                "svs-capture names the rule uuid {:?}, which SVS doesn't capture",
+                candidate.rule_uuid
+            ))
+        } else if !signatures.contains(&candidate.rule_uuid) {
+            Some(format!(
+                "svs-capture names the rule {}, which no detection on the file is of",
+                candidate.rule_uuid
+            ))
+        } else if !paths.contains(&candidate.file_path) {
+            Some(format!(
+                "svs-capture names the path {:?}, which isn't the file's in the root",
+                candidate.file_path
+            ))
+        } else if !seen.insert(candidate.rule_uuid.clone()) {
+            Some(format!(
+                "svs-capture names the rule {} twice",
+                candidate.rule_uuid
+            ))
+        } else {
+            None
+        };
+        if let Some(why) = refused {
+            return Err(WriteFailure::Forbidden(why));
+        }
+    }
+    Ok(captures.captures)
 }
 
 fn parse<T: serde::de::DeserializeOwned>(body: serde_json::Value) -> Result<T, WriteFailure> {
@@ -208,6 +310,7 @@ fn smtp_address(address: &str) -> &[u8] {
 pub async fn apply(
     tx: &mut Tx<'_>,
     archive: Option<&EmailArchive>,
+    bucket: &Bucket,
     task: &Task,
     writes: &[Checked],
 ) -> Result<Applied, DbError> {
@@ -252,6 +355,16 @@ pub async fn apply(
                     }
                 })?;
                 applied.archive_id = Some(id);
+            }
+            Checked::SvsCapture(prepared) => {
+                let results = crate::svs::samples::land(tx, bucket, prepared).await?;
+                tracing::info!(
+                    task = task.id.0,
+                    root = %task.root,
+                    write = "svs-capture",
+                    captures = results.len(),
+                    "write"
+                );
             }
         }
     }

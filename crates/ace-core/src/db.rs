@@ -297,4 +297,13 @@ impl Tx<'_> {
     pub fn conn(&mut self) -> &mut PgConnection {
         &mut self.inner
     }
+
+    /// A savepoint in this transaction: committing it keeps what it did, and dropping it or rolling it
+    /// back undoes only that, so one step that fails needn't fail the whole transaction.
+    pub async fn savepoint(&mut self) -> Result<Tx<'_>, DbError> {
+        use sqlx::Acquire;
+        Ok(Tx {
+            inner: (&mut *self.inner).begin().await?,
+        })
+    }
 }

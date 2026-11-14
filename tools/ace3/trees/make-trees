@@ -76,6 +76,8 @@ ENABLE = [
     "dmg_analyzer", "cve_2021_30657_analyzer", "pcap_analyzer", "pcap_dns", "pcap_tls", "pcap_http", "pcap_files",
     "pcap_tls_decryption", "tls_keylog", "user_defined_tagging", "observable_detection", "site_tagger",
     "javascript_deobfuscation", "observable_modifier", "configuration_defined_tagging",
+    # dispositioned mode only, which no sample's cli analysis reaches (PLAN.md 7.10 batch 2)
+    "svs_yara_sample_capture",
 ]
 OVERLAY = REPO / "tests" / "e2e" / "site" / "overlay.yaml"
 MODIFIER_RULES = f"{REMOTE}/trees-observable_modifier_rules.yaml"

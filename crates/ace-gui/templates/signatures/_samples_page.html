@@ -1,0 +1,20 @@
+{#- ace3's signatures/_samples_page.html: a page of the samples table (src/svs_samples.rs). -#}
+  <table class="keys">
+    <thead><tr><th>File</th><th>Rule</th><th>Label</th><th>Captures</th><th>Stored</th><th>Missing data</th><th>Last captured</th><th></th></tr></thead>
+    <tbody>
+      {%- for row in view.rows %}
+      <tr>
+        <td class="qa-text"><a href="{{ row.href }}"><code title="{{ row.sha256 }}">{{ row.short_sha256 }}</code></a><br><span class="muted">{{ row.file_path }}</span></td>
+        <td class="qa-text">{{ row.rule_name }}<br><code class="muted">{{ row.rule_uuid }}</code></td>
+        <td>{% if !row.label.is_empty() %}<span class="badge disposition-{{ row.label_class }}" title="{{ row.votes }}">{{ row.label }}</span> <span class="muted">{{ row.label_source }}</span>{% else %}<span class="muted">none</span>{% endif %}</td>
+        <td>{{ row.capture_count }}</td>
+        <td>{{ row.stored }}</td>
+        <td>{{ row.missing_data }}{% if row.unknown_version > 0 %} <span class="muted">({{ row.unknown_version }} unknown version)</span>{% endif %}</td>
+        <td class="nowrap">{{ row.last_captured }}</td>
+        <td>{% if row.retired %}<span class="badge disposition-secondary">retired</span>{% endif %}</td>
+      </tr>
+      {%- else %}
+      <tr><td colspan="8" class="muted">No samples.</td></tr>
+      {%- endfor %}
+    </tbody>
+  </table>

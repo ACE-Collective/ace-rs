@@ -498,6 +498,19 @@ const REMEDIATION_CANCEL: &str = "/api/remediation/v1/remediations/{id}/cancel";
 const REMEDIATION_RETRY: &str = "/api/remediation/v1/remediations/{id}/retry";
 const REMEDIATION_RESTORE: &str = "/api/remediation/v1/remediations/{id}/restore";
 const COLLECTIONS: &str = "/api/file-collections/v1/collections";
+const SAMPLES: &str = "/api/svs/v1/samples";
+const SAMPLES_CSV: &str = "/api/svs/v1/samples/export/csv";
+const SAMPLES_NDJSON: &str = "/api/svs/v1/samples/export/ndjson";
+const SAMPLES_MISSING: &str = "/api/svs/v1/samples/missing";
+const SAMPLE_RECORD: &str = "/api/svs/v1/samples/captures/{id}/record";
+const SAMPLE_DELETIONS: &str = "/api/svs/v1/samples/deletions";
+const SAMPLES_DOWNLOAD: &str = "/api/svs/v1/samples/download";
+const SAMPLE_FILE: &str = "/api/svs/v1/samples/{sha256}";
+const SAMPLE: &str = "/api/svs/v1/samples/{sha256}/{rule_uuid}";
+const SAMPLE_DOWNLOAD: &str = "/api/svs/v1/samples/{sha256}/{rule_uuid}/download";
+const SAMPLE_LABEL: &str = "/api/svs/v1/samples/{sha256}/{rule_uuid}/label";
+const SAMPLE_CONFIRM: &str = "/api/svs/v1/samples/{sha256}/{rule_uuid}/confirm";
+const SAMPLE_RETIREMENT: &str = "/api/svs/v1/samples/{sha256}/{rule_uuid}/retirement";
 const COLLECTIONS_CSV: &str = "/api/file-collections/v1/collections/export/csv";
 const COLLECTIONS_NDJSON: &str = "/api/file-collections/v1/collections/export/ndjson";
 const COLLECTION: &str = "/api/file-collections/v1/collections/{id}";
@@ -527,6 +540,12 @@ fn fill(route: &str, id: Uuid, observable: i64) -> String {
             .replace("{id}", "1")
             .replace("{malware}", "1")
             .replace("{threat_type}", "1");
+    }
+    if route.starts_with("/api/svs/") {
+        return route
+            .replace("{sha256}", &"ab".repeat(32))
+            .replace("{rule_uuid}", "7d1c2a4e-5b6f-4c3d-9e8f-0a1b2c3d4e5f")
+            .replace("{id}", &observable.to_string());
     }
     if route.starts_with("/api/lists/") {
         return route
@@ -619,6 +638,8 @@ fn good_body(route: &str) -> Send {
         REMEDIATIONS => Send::Json(json!({"action": "remove", "targets": [
             {"remediator": "test", "observable_type": "test", "observable_value": "SUCCESS"},
         ]})),
+        SAMPLE_LABEL => Send::Json(json!({"verdict": "fp"})),
+        SAMPLE_RETIREMENT | SAMPLE_FILE => Send::Json(json!({"reason": "refused"})),
         COLLECTIONS => Send::Json(json!({
             "collector": "edr", "observable_type": "file_location", "observable_value": "h@C:\\x.exe",
         })),
@@ -647,7 +668,7 @@ async fn refuses_without_a_credential_or_a_permission(
         .map(|(method, route, _)| (method, route))
         .filter(|route| !public.contains(route))
         .collect();
-    assert_eq!(routes.len(), 121, "{routes:?}");
+    assert_eq!(routes.len(), 136, "{routes:?}");
     for (method, route) in routes {
         let method: Method = method.to_uppercase().parse().expect("a method");
         let path = fill(&route, id, file);
@@ -4312,6 +4333,7 @@ async fn every_documented_status_is_tested() {
     detection_router(&mut client).await;
     hunts_router(&mut client).await;
     remediation_routers(&mut client).await;
+    svs_samples(&mut client, &token).await;
     pings(&mut client, &token).await;
 
     assert_eq!(
@@ -7803,5 +7825,765 @@ fn good_body_json(route: &str) -> Send {
     match good_body(route) {
         Send::Json(value) => Send::Json(value),
         _ => panic!("{route} takes no JSON body"),
+    }
+}
+
+// ---- SVS's samples (PLAN.md 7.10 batch 2) ----
+
+const SAMPLE_RULE: &str = "7d1c2a4e-5b6f-4c3d-9e8f-0a1b2c3d4e5f";
+const SAMPLE_OTHER_RULE: &str = "1e2d3c4b-5a69-4788-9a0b-1c2d3e4f5a6b";
+
+/// An alert of `disposition` with a file YARA's rules matched, its detections, and a stored capture of
+/// it per rule with its bytes in the samples' pool, as the core's capture leaves them. Returns the alert,
+/// the file's sha256 and the bytes.
+async fn sample_fixture(
+    stack: &Stack,
+    disposition: &str,
+    rules: &[&str],
+) -> (Uuid, String, Vec<u8>) {
+    let db = stack.test_db.db();
+    let bytes = format!("<b>svs</b> sample {}", Uuid::new_v4()).into_bytes();
+    let sha256 = sha256_hex(&bytes);
+    let root = NewRoot::new("correlation");
+    let mut tx = db.begin().await.expect("begins");
+    tree::create_root(&mut tx, &root).await.expect("creates");
+    let observable = tree::upsert_observable(
+        &mut tx,
+        root.id,
+        &NewObservable::new(ObservableKind::File, sha256.clone()),
+    )
+    .await
+    .expect("adds")
+    .id;
+    tree::add_file(&mut tx, root.id, observable, "mail/<b>x</b>.doc", &[])
+        .await
+        .expect("its path");
+    tx.commit().await.expect("commits");
+    let spooled = stack
+        .bucket
+        .store()
+        .spool_bytes(&bytes)
+        .await
+        .expect("spools");
+    for (index, rule) in rules.iter().enumerate() {
+        sqlx::query(
+            "INSERT INTO analysis.detections
+                 (root_id, observable_id, description, details, signature_uuid, signature_version)
+             VALUES ($1, $2, 'matched', $3, $4, 'c')",
+        )
+        .bind(root.id)
+        .bind(observable.0)
+        .bind(json!({"sha256": sha256, "rule": format!("rule_{index}"), "namespace": "ns", "rule_uuid": rule}))
+        .bind(rule)
+        .execute(db.pool())
+        .await
+        .expect("a detection");
+        let capture: i64 = sqlx::query_scalar(
+            "INSERT INTO svs.yara_captures
+                 (root_id, observable_id, sha256, rule_uuid, rule_name, namespace, signature_version,
+                  file_path, file_size, state, record, match_summary, stored_at)
+             VALUES ($1, $2, $3, $4, '<i>rule</i>', 'ns', 'c', 'mail/<b>x</b>.doc', $5, 'stored',
+                     '{\"rule\": \"<i>rule</i>\"}', '{\"string_match_count\": 1}', now())
+             RETURNING id",
+        )
+        .bind(root.id)
+        .bind(observable.0)
+        .bind(&sha256)
+        .bind(rule)
+        .bind(i64::try_from(bytes.len()).expect("small"))
+        .fetch_one(db.pool())
+        .await
+        .expect("a capture");
+        let mut tx = db.begin().await.expect("begins");
+        stack
+            .bucket
+            .put_in(
+                &mut tx,
+                "svs_samples",
+                &spooled,
+                Some(&ace_core::bucket::Hold::new(
+                    "svs_capture",
+                    capture.to_string(),
+                )),
+            )
+            .await
+            .expect("puts");
+        tx.commit().await.expect("commits");
+    }
+    sqlx::query(
+        "UPDATE analysis.roots SET alerted_at = now(), disposition = $2,
+             dispositioned_by = '{\"kind\": \"internal\", \"id\": \"test\"}'
+         WHERE id = $1",
+    )
+    .bind(root.id)
+    .bind(disposition)
+    .execute(db.pool())
+    .await
+    .expect("dispositions it");
+    (root.id, sha256, bytes)
+}
+
+fn sample_at(route: &str, sha256: &str, rule: &str) -> String {
+    route
+        .replace("{sha256}", sha256)
+        .replace("{rule_uuid}", rule)
+}
+
+/// ace3's `tests/aceapi_v2/svs/test_samples.py`: the list with its label and counts, its filters, sorts,
+/// cursors and exports, one sample with its captures and their verdicts, a capture's record, the missing
+/// counts, the downloads and their limits, relabel, reset and confirm, retire and unretire, a deletion and
+/// its audit, with each documented status.
+async fn svs_samples(client: &mut Client<'_>, token: &str) {
+    use Method as M;
+    use StatusCode as S;
+    let stack = client.stack;
+    let admin = key(stack, &["svs:admin"]).await;
+    let t = Some(token);
+    let (root, sha256, bytes) =
+        sample_fixture(stack, "DELIVERY", &[SAMPLE_RULE, SAMPLE_OTHER_RULE]).await;
+    let (_, fp_sha, _) = sample_fixture(stack, "FALSE_POSITIVE", &[SAMPLE_RULE]).await;
+    let (_, simulated, _) =
+        sample_fixture(stack, "SIMULATED", &[SAMPLE_RULE, SAMPLE_OTHER_RULE]).await;
+
+    // the list: rows carry the label and counts
+    let page = client
+        .json(
+            M::GET,
+            SAMPLES,
+            &format!("{SAMPLES}?sort=sha256&desc=false&limit=10"),
+            t,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    let rows = page["samples"].as_array().expect("samples");
+    assert_eq!(rows.len(), 5);
+    let ours = rows
+        .iter()
+        .find(|r| r["sha256"] == sha256 && r["rule_uuid"] == SAMPLE_RULE)
+        .expect("our sample");
+    assert_eq!(ours["label"], "tp");
+    assert_eq!(ours["label_source"], "inherited_multi");
+    assert_eq!(ours["capture_count"], 1);
+    assert_eq!(ours["stored"], 1);
+    assert_eq!(ours["votes"]["tp_inherited_multi"], 1);
+    assert_eq!(ours["file_path"], "mail/<b>x</b>.doc", "a path is data");
+    assert_eq!(ours["rule_name"], "<i>rule</i>");
+    assert_eq!(page["next"], Value::Null);
+    // a filter, and paging that follows next to the end
+    let filtered = client
+        .json(
+            M::GET,
+            SAMPLES,
+            &format!("{SAMPLES}?f=label%3Afp"),
+            t,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(filtered["samples"].as_array().expect("samples").len(), 1);
+    assert_eq!(filtered["samples"][0]["sha256"], fp_sha);
+    let first = client
+        .json(
+            M::GET,
+            SAMPLES,
+            &format!("{SAMPLES}?limit=2"),
+            t,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    let cursor = first["next"].as_str().expect("a next page").to_owned();
+    let second = client
+        .json(
+            M::GET,
+            SAMPLES,
+            &format!("{SAMPLES}?limit=2&cursor={cursor}"),
+            t,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(second["samples"].as_array().expect("samples").len(), 2);
+    for query in [
+        "?limit=0",
+        "?sort=size",
+        "?desc=maybe",
+        "?f=label%3Amaybe",
+        "?f=nope%3Ax",
+        "?changed_since=yesterday",
+        "?cursor=nonsense",
+    ] {
+        client
+            .json(
+                M::GET,
+                SAMPLES,
+                &format!("{SAMPLES}{query}"),
+                t,
+                Send::Nothing,
+                S::BAD_REQUEST,
+            )
+            .await;
+    }
+    // a cursor belongs to its order
+    client
+        .json(
+            M::GET,
+            SAMPLES,
+            &format!("{SAMPLES}?limit=2&sort=rule&cursor={cursor}"),
+            t,
+            Send::Nothing,
+            S::BAD_REQUEST,
+        )
+        .await;
+
+    // the exports, past their bound of 2 and within it
+    for route in [SAMPLES_CSV, SAMPLES_NDJSON] {
+        client
+            .json(M::GET, route, route, t, Send::Nothing, S::PAYLOAD_TOO_LARGE)
+            .await;
+        client
+            .json(
+                M::GET,
+                route,
+                &format!("{route}?f=bogus%3Ax"),
+                t,
+                Send::Nothing,
+                S::BAD_REQUEST,
+            )
+            .await;
+        let response = client
+            .call(
+                M::GET,
+                route,
+                &format!("{route}?f=sha256%3A{sha256}"),
+                t,
+                Send::Nothing,
+            )
+            .await;
+        assert_eq!(response.status(), S::OK);
+        let text = response.text().await.expect("text");
+        if route == SAMPLES_CSV {
+            let mut lines = text.lines();
+            assert!(
+                lines
+                    .next()
+                    .expect("a header")
+                    .starts_with("sha256,rule_uuid,rule_name")
+            );
+            assert_eq!(lines.count(), 2);
+        } else {
+            assert_eq!(text.lines().count(), 2);
+            let row: Value =
+                serde_json::from_str(text.lines().next().expect("a line")).expect("JSON");
+            assert_eq!(row["sha256"], sha256);
+        }
+    }
+
+    // one sample, its captures and their verdicts
+    let detail = client
+        .json(
+            M::GET,
+            SAMPLE,
+            &sample_at(SAMPLE, &sha256, SAMPLE_RULE),
+            t,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(detail["sample"]["sha256"], sha256);
+    let capture = &detail["captures"][0];
+    assert_eq!(capture["alert"], json!(root));
+    assert_eq!(capture["state"], "stored");
+    assert_eq!(capture["has_record"], true);
+    assert_eq!(capture["detections"][0]["verdict"], "tp");
+    assert_eq!(
+        capture["detections"][0]["verdict_source"],
+        "inherited_multi"
+    );
+    assert_eq!(detail["relabel_refusal"], Value::Null);
+    let refused = client
+        .json(
+            M::GET,
+            SAMPLE,
+            &sample_at(SAMPLE, &fp_sha, SAMPLE_RULE),
+            t,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert!(
+        refused["relabel_refusal"]
+            .as_str()
+            .is_some_and(|r| r.contains("correct its disposition")),
+        "{refused}"
+    );
+    client
+        .json(
+            M::GET,
+            SAMPLE,
+            &sample_at(SAMPLE, &sha256, "no-such-rule"),
+            t,
+            Send::Nothing,
+            S::NOT_FOUND,
+        )
+        .await;
+    client
+        .json(
+            M::GET,
+            SAMPLE,
+            &sample_at(SAMPLE, "not-a-sha", SAMPLE_RULE),
+            t,
+            Send::Nothing,
+            S::BAD_REQUEST,
+        )
+        .await;
+
+    // a capture's record, inline and never sniffed
+    let id = capture["id"].as_i64().expect("an id");
+    let response = client
+        .call(
+            M::GET,
+            SAMPLE_RECORD,
+            &SAMPLE_RECORD.replace("{id}", &id.to_string()),
+            t,
+            Send::Nothing,
+        )
+        .await;
+    assert_eq!(response.status(), S::OK);
+    assert_eq!(response.headers()["x-content-type-options"], "nosniff");
+    assert_eq!(response.headers()["content-type"], "application/json");
+    let record: Value = response.json().await.expect("JSON");
+    assert_eq!(record["rule"], "<i>rule</i>");
+    client
+        .json(
+            M::GET,
+            SAMPLE_RECORD,
+            &SAMPLE_RECORD.replace("{id}", "0"),
+            t,
+            Send::Nothing,
+            S::NOT_FOUND,
+        )
+        .await;
+    client
+        .json(
+            M::GET,
+            SAMPLE_RECORD,
+            &SAMPLE_RECORD.replace("{id}", "x"),
+            t,
+            Send::Nothing,
+            S::BAD_REQUEST,
+        )
+        .await;
+
+    // the missing counts
+    sqlx::query(
+        "INSERT INTO svs.yara_captures (root_id, sha256, rule_uuid, rule_name, signature_version,
+                                        file_path, state, missing_reason)
+         VALUES ($1, repeat('c', 64), $2, 'gone_rule', 'c', 'x', 'missing', 'file')",
+    )
+    .bind(Uuid::new_v4())
+    .bind(SAMPLE_RULE)
+    .execute(stack.test_db.db().pool())
+    .await
+    .expect("a missing capture");
+    let missing = client
+        .json(
+            M::GET,
+            SAMPLES_MISSING,
+            SAMPLES_MISSING,
+            t,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(
+        missing,
+        json!([{"rule_uuid": SAMPLE_RULE, "rule_name": "gone_rule", "reason": "file", "count": 1}])
+    );
+
+    // one sample's download: its file once and its records, in a zip with ace3's password
+    let response = client
+        .call(
+            M::GET,
+            SAMPLE_DOWNLOAD,
+            &sample_at(SAMPLE_DOWNLOAD, &sha256, SAMPLE_RULE),
+            t,
+            Send::Nothing,
+        )
+        .await;
+    assert_eq!(response.status(), S::OK);
+    let zipped = response.bytes().await.expect("the zip");
+    let (names, mut read) = unzip(&zipped);
+    let label = format!("svs-sample-{sha256}");
+    assert!(names.contains(&format!("{label}/manifest.json")));
+    assert_eq!(read(&format!("{label}/{sha256}/{sha256}")), bytes);
+    assert!(names.contains(&format!("{label}/{sha256}/match-{id}.json")));
+    client
+        .json(
+            M::GET,
+            SAMPLE_DOWNLOAD,
+            &sample_at(SAMPLE_DOWNLOAD, &sha256, "no-such-rule"),
+            t,
+            Send::Nothing,
+            S::NOT_FOUND,
+        )
+        .await;
+    client
+        .json(
+            M::GET,
+            SAMPLE_DOWNLOAD,
+            &sample_at(SAMPLE_DOWNLOAD, "nope", SAMPLE_RULE),
+            t,
+            Send::Nothing,
+            S::BAD_REQUEST,
+        )
+        .await;
+    // the bulk download: each file once, whatever its rules
+    let response = client
+        .call(
+            M::GET,
+            SAMPLES_DOWNLOAD,
+            &format!("{SAMPLES_DOWNLOAD}?f=sha256%3A{sha256}"),
+            t,
+            Send::Nothing,
+        )
+        .await;
+    assert_eq!(response.status(), S::OK);
+    let zipped = response.bytes().await.expect("the zip");
+    let (names, mut read) = unzip(&zipped);
+    let manifest: Value =
+        serde_json::from_slice(&read("svs-samples/manifest.json")).expect("a manifest");
+    assert_eq!(manifest["files"].as_array().expect("files").len(), 1);
+    assert_eq!(
+        manifest["files"][0]["rule_uuids"]
+            .as_array()
+            .expect("rules")
+            .len(),
+        2
+    );
+    assert!(names.contains(&format!("svs-samples/{sha256}/{sha256}")));
+    client
+        .json(
+            M::GET,
+            SAMPLES_DOWNLOAD,
+            &format!("{SAMPLES_DOWNLOAD}?f=rule%3Anothing"),
+            t,
+            Send::Nothing,
+            S::NOT_FOUND,
+        )
+        .await;
+    client
+        .json(
+            M::GET,
+            SAMPLES_DOWNLOAD,
+            &format!("{SAMPLES_DOWNLOAD}?f=bogus%3Ax"),
+            t,
+            Send::Nothing,
+            S::BAD_REQUEST,
+        )
+        .await;
+    // past the limit of files
+    sqlx::query(
+        "INSERT INTO svs.yara_captures (root_id, sha256, rule_uuid, rule_name, signature_version,
+                                        file_path, file_size, state, stored_at, record)
+         SELECT gen_random_uuid(), encode(sha256(n::text::bytea), 'hex'), 'bulk', 'bulk_rule', 'c',
+                'x', 1, 'stored', now(), '{}'
+         FROM generate_series(1, $1) n",
+    )
+    .bind(i32::try_from(ace_service::MAX_SAMPLE_DOWNLOAD_FILES + 1).expect("small"))
+    .execute(stack.test_db.db().pool())
+    .await
+    .expect("many captures");
+    client
+        .json(
+            M::GET,
+            SAMPLES_DOWNLOAD,
+            &format!("{SAMPLES_DOWNLOAD}?f=signature%3Abulk"),
+            t,
+            Send::Nothing,
+            S::PAYLOAD_TOO_LARGE,
+        )
+        .await;
+
+    // relabel, reset and confirm
+    let label_path = sample_at(SAMPLE_LABEL, &sha256, SAMPLE_RULE);
+    let changed = client
+        .json(
+            M::PUT,
+            SAMPLE_LABEL,
+            &label_path,
+            t,
+            Send::Json(json!({"verdict": "fp"})),
+            S::OK,
+        )
+        .await;
+    assert_eq!(changed["changed"], 1);
+    assert_eq!(
+        (changed["label"].clone(), changed["label_source"].clone()),
+        (json!("fp"), json!("explicit"))
+    );
+    let reset = client
+        .json(
+            M::DELETE,
+            SAMPLE_LABEL,
+            &label_path,
+            t,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(reset["changed"], 1);
+    assert_eq!(reset["label_source"], "inherited_multi");
+    client
+        .json(
+            M::PUT,
+            SAMPLE_LABEL,
+            &label_path,
+            t,
+            Send::Json(json!({"verdict": "maybe"})),
+            S::BAD_REQUEST,
+        )
+        .await;
+    client
+        .json(
+            M::PUT,
+            SAMPLE_LABEL,
+            &label_path,
+            t,
+            too_large(),
+            S::PAYLOAD_TOO_LARGE,
+        )
+        .await;
+    client
+        .json(
+            M::PUT,
+            SAMPLE_LABEL,
+            &sample_at(SAMPLE_LABEL, &fp_sha, SAMPLE_RULE),
+            t,
+            Send::Json(json!({"verdict": "tp"})),
+            S::CONFLICT,
+        )
+        .await;
+    for route in [SAMPLE_LABEL, SAMPLE_CONFIRM] {
+        let method = if route == SAMPLE_LABEL {
+            M::DELETE
+        } else {
+            M::POST
+        };
+        client
+            .json(
+                method.clone(),
+                route,
+                &sample_at(route, &sha256, "no-such-rule"),
+                t,
+                Send::Nothing,
+                S::NOT_FOUND,
+            )
+            .await;
+        client
+            .json(
+                method,
+                route,
+                &sample_at(route, "zz", SAMPLE_RULE),
+                t,
+                Send::Nothing,
+                S::BAD_REQUEST,
+            )
+            .await;
+    }
+    client
+        .json(
+            M::PUT,
+            SAMPLE_LABEL,
+            &sample_at(SAMPLE_LABEL, &sha256, "no-such-rule"),
+            t,
+            Send::Json(json!({"verdict": "fp"})),
+            S::NOT_FOUND,
+        )
+        .await;
+    let confirmed = client
+        .json(
+            M::POST,
+            SAMPLE_CONFIRM,
+            &sample_at(SAMPLE_CONFIRM, &sha256, SAMPLE_RULE),
+            t,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(confirmed["changed"], 1);
+    assert_eq!(confirmed["label_source"], "explicit");
+    // only ACE grades a SIMULATED alert's detections
+    client
+        .json(
+            M::POST,
+            SAMPLE_CONFIRM,
+            &sample_at(SAMPLE_CONFIRM, &simulated, SAMPLE_RULE),
+            t,
+            Send::Nothing,
+            S::CONFLICT,
+        )
+        .await;
+
+    // retire and unretire, by an admin
+    let a = Some(admin.as_str());
+    let retirement = sample_at(SAMPLE_RETIREMENT, &sha256, SAMPLE_RULE);
+    let retired = client
+        .json(
+            M::PUT,
+            SAMPLE_RETIREMENT,
+            &retirement,
+            a,
+            Send::Json(json!({"reason": "stale"})),
+            S::OK,
+        )
+        .await;
+    assert_eq!(
+        (retired["retired"].clone(), retired["reason"].clone()),
+        (json!(true), json!("stale"))
+    );
+    for body in [json!({"reason": "  "}), json!({"why": "x"})] {
+        client
+            .json(
+                M::PUT,
+                SAMPLE_RETIREMENT,
+                &retirement,
+                a,
+                Send::Json(body),
+                S::BAD_REQUEST,
+            )
+            .await;
+    }
+    client
+        .json(
+            M::PUT,
+            SAMPLE_RETIREMENT,
+            &retirement,
+            a,
+            too_large(),
+            S::PAYLOAD_TOO_LARGE,
+        )
+        .await;
+    client
+        .json(
+            M::PUT,
+            SAMPLE_RETIREMENT,
+            &sample_at(SAMPLE_RETIREMENT, &sha256, "no-such-rule"),
+            a,
+            Send::Json(json!({"reason": "x"})),
+            S::NOT_FOUND,
+        )
+        .await;
+    let unretired = client
+        .json(
+            M::DELETE,
+            SAMPLE_RETIREMENT,
+            &retirement,
+            a,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(unretired["retired"], false);
+    client
+        .json(
+            M::DELETE,
+            SAMPLE_RETIREMENT,
+            &retirement,
+            a,
+            Send::Nothing,
+            S::NOT_FOUND,
+        )
+        .await;
+    client
+        .json(
+            M::DELETE,
+            SAMPLE_RETIREMENT,
+            &sample_at(SAMPLE_RETIREMENT, "zz", SAMPLE_RULE),
+            a,
+            Send::Nothing,
+            S::BAD_REQUEST,
+        )
+        .await;
+
+    // a deletion, its audit, and the deletions page
+    let file = SAMPLE_FILE.replace("{sha256}", &sha256);
+    let deleted = client
+        .json(
+            M::DELETE,
+            SAMPLE_FILE,
+            &file,
+            a,
+            Send::Json(json!({"reason": "legal request"})),
+            S::OK,
+        )
+        .await;
+    assert_eq!(deleted["capture_count"], 2);
+    assert!(deleted["purged_at"].is_string());
+    client
+        .json(
+            M::GET,
+            SAMPLE,
+            &sample_at(SAMPLE, &sha256, SAMPLE_RULE),
+            t,
+            Send::Nothing,
+            S::NOT_FOUND,
+        )
+        .await;
+    client
+        .json(
+            M::DELETE,
+            SAMPLE_FILE,
+            &SAMPLE_FILE.replace("{sha256}", &"ef".repeat(32)),
+            a,
+            Send::Json(json!({"reason": "x"})),
+            S::NOT_FOUND,
+        )
+        .await;
+    client
+        .json(
+            M::DELETE,
+            SAMPLE_FILE,
+            &SAMPLE_FILE.replace("{sha256}", "zz"),
+            a,
+            Send::Json(json!({"reason": "x"})),
+            S::BAD_REQUEST,
+        )
+        .await;
+    client
+        .json(
+            M::DELETE,
+            SAMPLE_FILE,
+            &file,
+            a,
+            too_large(),
+            S::PAYLOAD_TOO_LARGE,
+        )
+        .await;
+    let page = client
+        .json(
+            M::GET,
+            SAMPLE_DELETIONS,
+            &format!("{SAMPLE_DELETIONS}?limit=1"),
+            t,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(page["deletions"][0]["sha256"], sha256);
+    assert_eq!(page["deletions"][0]["reason"], "legal request");
+    assert_eq!(page["next"], Value::Null);
+    for query in ["?limit=0", "?cursor=nope", "?changed_since=x"] {
+        client
+            .json(
+                M::GET,
+                SAMPLE_DELETIONS,
+                &format!("{SAMPLE_DELETIONS}{query}"),
+                t,
+                Send::Nothing,
+                S::BAD_REQUEST,
+            )
+            .await;
     }
 }

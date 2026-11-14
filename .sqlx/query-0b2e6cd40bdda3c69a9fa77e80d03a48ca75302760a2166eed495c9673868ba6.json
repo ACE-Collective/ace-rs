@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT DISTINCT signature_uuid AS \"signature_uuid!\" FROM analysis.detections\n           WHERE root_id = $1 AND observable_id = $2 AND signature_uuid IS NOT NULL",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "signature_uuid!",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "analysis.detections",
+            "name": "signature_uuid"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "0b2e6cd40bdda3c69a9fa77e80d03a48ca75302760a2166eed495c9673868ba6"
+}

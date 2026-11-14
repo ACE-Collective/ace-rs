@@ -148,6 +148,31 @@ pub mod stubs {
         }
     }
 
+    /// A stand-in for SVS's `svs_yara_sample_capture`, which runs in dispositioned mode and stores no
+    /// result.
+    pub struct SampleCapture;
+
+    impl Module for SampleCapture {
+        const NAME: &'static str = "svs_yara_sample_capture";
+        const INPUTS: &'static [ObservableKind] = &[ObservableKind::File];
+        const STORES_RESULTS: bool = false;
+        type Output = StubOutput;
+        type Settings = ();
+
+        fn init(_: &()) -> Result<Self, ModuleError> {
+            Ok(SampleCapture)
+        }
+    }
+
+    impl Lookup for SampleCapture {
+        const TCP_PORTS: &'static [u16] = &[];
+
+        async fn analyze(&self, _: &TaskContext<()>) -> Result<Outcome<StubOutput>, ModuleError> {
+            Ok(Outcome::Skipped("a stub".to_owned()))
+        }
+    }
+
+    pub const SAMPLE_CAPTURE: Manifest = Manifest::lookup::<SampleCapture>();
     pub const SETS_ROOT: Manifest = Manifest::lookup::<SetsRoot>();
     pub const DEPENDS_ON_ARCHIVE: Manifest = Manifest::lookup::<DependsOnArchive>();
     pub const ALERT_ADDED_TO_EVENT: Manifest = Manifest::lookup::<AlertAddedToEvent>();

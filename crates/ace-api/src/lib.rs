@@ -196,6 +196,38 @@
 //!   listed or served here. Deleting the rows is the scheduler's (6.7).
 //! - `ace yara-qa list` and the GUI page come with 5.11's signatures area.
 //!
+//! ace3's `svs` routers' samples (PLAN.md 7.10 batch 2), under ace3's `signature:read`, `signature:download`,
+//! `alert:write` with `signature:read` for the label actions, and `svs:admin` (`ace_service`'s
+//! `svs_samples` docs). A sample is named by its file's sha256 and its rule's uuid meta:
+//!
+//! | ace3 `/api/v2/svs/samples` | here |
+//! |---|---|
+//! | `GET /?f=&sort=&desc=&changed_since=&cursor=&limit=&tz=` | `GET /api/svs/v1/samples`, the same filters, sorts and keyset paging |
+//! | `GET /export/ndjson`, `GET /export/csv` | `GET /api/svs/v1/samples/export/ndjson`, `.../export/csv` |
+//! | `GET /missing` | `GET /api/svs/v1/samples/missing` |
+//! | `GET /captures/{capture_id}/record` | `GET /api/svs/v1/samples/captures/{id}/record`, inline JSON with `nosniff` |
+//! | `GET /deletions?changed_since=&cursor=&limit=` | `GET /api/svs/v1/samples/deletions`, the same |
+//! | `GET /download?f=&tz=` | `GET /api/svs/v1/samples/download`, audited |
+//! | `GET /{sha256}/{rule_uuid}` | `GET /api/svs/v1/samples/{sha256}/{rule_uuid}` |
+//! | `GET /{sha256}/{rule_uuid}/download` | `GET /api/svs/v1/samples/{sha256}/{rule_uuid}/download`, audited |
+//! | `PUT`, `DELETE /{sha256}/{rule_uuid}/label` | `PUT`, `DELETE /api/svs/v1/samples/{sha256}/{rule_uuid}/label`, audited |
+//! | `POST /{sha256}/{rule_uuid}/confirm` | `POST /api/svs/v1/samples/{sha256}/{rule_uuid}/confirm`, audited |
+//! | `PUT`, `DELETE /{sha256}/{rule_uuid}/retirement` | `PUT`, `DELETE /api/svs/v1/samples/{sha256}/{rule_uuid}/retirement`, audited |
+//! | `DELETE /{sha256}` | `DELETE /api/svs/v1/samples/{sha256}`, audited |
+//!
+//! What differs, or is left out, and why:
+//! - A list's page is `{samples, next}` and the deletions' `{deletions, next}`, as the API's other pages,
+//!   where ace3's are `{data, next_cursor}`; a bad request is 400 where ace3's is FastAPI's 422.
+//! - A detection is named by its id, and a capture's alert by the root's id, where ace3 names a content hash
+//!   and an alert uuid; a capture's observable is its id in the root.
+//! - `node`, `local`, the 409 `wrong_node` and `legal_hold`: every node reads one bucket, which has no
+//!   legal holds. A file the bucket no longer has is in a download's manifest with a null `file`.
+//! - A key without an owner may act, as the actor is what's recorded, where ace3 answers 422.
+//! - A download names each file by its sha256 in the zip, so nothing a sender named becomes an entry's
+//!   name, as YARA QA's downloads do.
+//! - A capture's `yara_version` is yara-x's, where ace3 has `yara_python_version` and
+//!   `yara_scanner_version`.
+//!
 //! ace3's `observable_comments` router (PLAN.md 5.6), under ace3's `observable:read` and `observable:write`
 //! (`ace_service`'s `observable_comments` docs). A comment is on a type and value, across alerts:
 //!
@@ -408,6 +440,7 @@ mod observable_comments;
 mod observables;
 mod params;
 mod remediation;
+mod svs_samples;
 mod user_preferences;
 mod users;
 mod yara_qa;
@@ -702,6 +735,53 @@ impl Web {
                 "/api/yara-qa/v1/matches/{id}/download",
                 get(yara_qa::download_match),
             )
+            .route("/api/svs/v1/samples", get(svs_samples::list))
+            .route(
+                "/api/svs/v1/samples/export/csv",
+                get(svs_samples::export_csv),
+            )
+            .route(
+                "/api/svs/v1/samples/export/ndjson",
+                get(svs_samples::export_ndjson),
+            )
+            .route("/api/svs/v1/samples/missing", get(svs_samples::missing))
+            .route(
+                "/api/svs/v1/samples/captures/{id}/record",
+                get(svs_samples::record),
+            )
+            .route("/api/svs/v1/samples/deletions", get(svs_samples::deletions))
+            .route(
+                "/api/svs/v1/samples/download",
+                get(svs_samples::download_samples),
+            )
+            .route(
+                "/api/svs/v1/samples/{sha256}",
+                delete(svs_samples::delete).layer(json_limit),
+            )
+            .route(
+                "/api/svs/v1/samples/{sha256}/{rule_uuid}",
+                get(svs_samples::sample),
+            )
+            .route(
+                "/api/svs/v1/samples/{sha256}/{rule_uuid}/download",
+                get(svs_samples::download_sample),
+            )
+            .route(
+                "/api/svs/v1/samples/{sha256}/{rule_uuid}/label",
+                put(svs_samples::relabel)
+                    .delete(svs_samples::reset_label)
+                    .layer(json_limit),
+            )
+            .route(
+                "/api/svs/v1/samples/{sha256}/{rule_uuid}/confirm",
+                post(svs_samples::confirm),
+            )
+            .route(
+                "/api/svs/v1/samples/{sha256}/{rule_uuid}/retirement",
+                put(svs_samples::retire)
+                    .delete(svs_samples::unretire)
+                    .layer(json_limit),
+            )
             .route(
                 "/api/remediation/v1/targets",
                 post(remediation::targets).layer(json_limit),
@@ -946,6 +1026,21 @@ impl Web {
         yara_qa::one_match,
         yara_qa::record,
         yara_qa::download_match,
+        svs_samples::list,
+        svs_samples::export_csv,
+        svs_samples::export_ndjson,
+        svs_samples::missing,
+        svs_samples::record,
+        svs_samples::deletions,
+        svs_samples::download_samples,
+        svs_samples::delete,
+        svs_samples::sample,
+        svs_samples::download_sample,
+        svs_samples::relabel,
+        svs_samples::reset_label,
+        svs_samples::confirm,
+        svs_samples::retire,
+        svs_samples::unretire,
         remediation::targets,
         remediation::list,
         remediation::export_csv,
@@ -979,6 +1074,7 @@ impl Web {
         (name = "email", description = "The email archive's emails, decrypted, by Message-ID"),
         (name = "cli", description = "ace commands run from the GUI, contained on a pool until their deadline"),
         (name = "yara_qa", description = "YARA rules in QA mode, the files they matched, and purges"),
+        (name = "svs", description = "SVS's samples: the files YARA rules matched on alerts graded TP or FP, their labels, retirements and deletions"),
         (name = "events", description = "Events, the alerts in them, threat types and malware's threats"),
         (name = "filters", description = "A list screen's filters, their share links, and the caller's saved filters"),
         (name = "hunts", description = "The hunts the hunter loaded, their state, and validating a hunt"),

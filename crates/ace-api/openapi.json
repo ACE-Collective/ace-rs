@@ -6854,6 +6854,1358 @@
         }
       }
     },
+    "/api/svs/v1/samples": {
+      "get": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "Samples, one per (sha256, rule uuid), with their capture counts and label, a page at a time in the\norder asked for, over the captures there were when the first page was read. Follow `next` with the same\nfilters and sort until it's null.",
+        "operationId": "list",
+        "parameters": [
+          {
+            "name": "f",
+            "in": "query",
+            "description": "A filter in the share-link encoding, `[!]<slug>:<value>,<value>`, with the samples screen's slugs\n(`GET /api/filters/v1/screens/svs_samples`); repeat it for more. Filters are ANDed, the values of\none ORed.",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "style": "form",
+            "explode": true
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "description": "`last_captured` (the default), `first_captured`, `capture_count`, `rule`, `label` or `sha256`.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "desc",
+            "in": "query",
+            "description": "Descending, the default; `false` for ascending.",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "changed_since",
+            "in": "query",
+            "description": "Only samples that may have changed at or after this time, UTC when it has no offset: a capture\nadded or changed, a retirement, a contributing alert's disposition, or a contributing detection's\nstored verdict. Pass the time the previous pull started.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tz",
+            "in": "query",
+            "description": "The IANA timezone relative date filters resolve in; UTC when left out.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "How many, 1 to 1000; 100 when left out.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "description": "The `next` of the previous page.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of samples",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SamplePageBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A filter, sort, time, timezone, limit or cursor that isn't one, a cursor of another order, or filters that took too long",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold signature:read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/svs/v1/samples/captures/{id}/record": {
+      "get": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "A capture's whole match record: the alert's YARA scan result for the rule, as its result has it. It's\nshown inline as JSON, never sniffed as anything else, since it holds bytes of the file.",
+        "operationId": "record",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The capture's id",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The record",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "An id that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold signature:read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No capture with that id, or one with no record kept",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/svs/v1/samples/deletions": {
+      "get": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "The audit of the sample files deleted from SVS, oldest change first: who deleted each, why, which rules\nit had captures for, and whether its bytes are purged yet.",
+        "operationId": "deletions",
+        "parameters": [
+          {
+            "name": "changed_since",
+            "in": "query",
+            "description": "Only deletions recorded or changed (their purge finished) at or after this time.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "How many, 1 to 1000; 100 when left out.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "description": "The `next` of the previous page.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of deletions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeletionPageBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A time, limit or cursor that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold signature:read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/svs/v1/samples/download": {
+      "get": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "The files of every sample the filters match that holds its file, with their match records and a\nmanifest, as one zip encrypted with AES-256 and the password `infected`. Each file is in it once,\nwhatever the number of rules it matched. At most 500 files and 1 GiB. The download is in the audit\nrecord.",
+        "operationId": "download_samples",
+        "parameters": [
+          {
+            "name": "f",
+            "in": "query",
+            "description": "A filter, as the list takes it; repeat it for more.",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "style": "form",
+            "explode": true
+          },
+          {
+            "name": "tz",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The zip",
+            "content": {
+              "application/zip": {
+                "schema": {
+                  "$ref": "#/components/schemas/ZipBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A filter or timezone that isn't one, or filters that took too long",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold signature:download",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No sample the filters match holds its file",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "More files or bytes than a download holds",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/svs/v1/samples/export/csv": {
+      "get": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "Every sample the list's filters match, in its order, as CSV: a header line, then a row per sample with\nits votes in their own columns, and a cell a spreadsheet would read as a formula behind a `'`. A failure\npart-way ends the file there.",
+        "operationId": "export_csv",
+        "parameters": [
+          {
+            "name": "f",
+            "in": "query",
+            "description": "A filter, as the list takes it; repeat it for more.",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "style": "form",
+            "explode": true
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "description": "As the list takes it.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "desc",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "changed_since",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tz",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The samples",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A filter, sort, time or timezone that isn't one, or filters that took too long",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold signature:read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "More samples than an export holds",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/svs/v1/samples/export/ndjson": {
+      "get": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "Every sample the list's filters match, in its order, as NDJSON: a sample as the list gives it on each\nline. A failure part-way ends it with an `{\"error\": ...}` line.",
+        "operationId": "export_ndjson",
+        "parameters": [
+          {
+            "name": "f",
+            "in": "query",
+            "description": "A filter, as the list takes it; repeat it for more.",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "style": "form",
+            "explode": true
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "description": "As the list takes it.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "desc",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "changed_since",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tz",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The samples",
+            "content": {
+              "application/x-ndjson": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A filter, sort, time or timezone that isn't one, or filters that took too long",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold signature:read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "More samples than an export holds",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/svs/v1/samples/missing": {
+      "get": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "How many captures of each rule lack something, by reason: `file`, `storage` or `match_record`. The\nrules with the most first.",
+        "operationId": "missing",
+        "responses": {
+          "200": {
+            "description": "The counts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MissingCountBody"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold signature:read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/svs/v1/samples/{sha256}": {
+      "delete": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "Deletes the file from SVS, for every rule: its captures and retirements go, its bytes are purged from\nthe samples' pool, and a row is kept (`GET /api/svs/v1/samples/deletions`) that also keeps the file\nfrom being captured again. Not reached: the alerts' own files and YARA QA's. Deleting a deleted sample\nretries a purge that didn't finish, and returns the first deletion's row.",
+        "operationId": "delete",
+        "parameters": [
+          {
+            "name": "sha256",
+            "in": "path",
+            "description": "The file's sha256",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReasonRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The deletion's row",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SampleDeletionBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A sha256, reason or body that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold svs:admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No sample of that file",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The body is too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/svs/v1/samples/{sha256}/{rule_uuid}": {
+      "get": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "One sample with every capture, newest first, and the verdicts of each capture's contributing\ndetections.",
+        "operationId": "sample",
+        "parameters": [
+          {
+            "name": "sha256",
+            "in": "path",
+            "description": "The file's sha256",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "rule_uuid",
+            "in": "path",
+            "description": "The rule's uuid meta",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The sample",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SampleDetailBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A sha256 or rule uuid that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold signature:read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No sample of that file and rule",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/svs/v1/samples/{sha256}/{rule_uuid}/confirm": {
+      "post": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "Confirms the sample's unconfirmed TP detections (source inherited_multi): an explicit TP on each, which\nmakes them weigh as a person's verdict. Nothing to confirm isn't an error.",
+        "operationId": "confirm",
+        "parameters": [
+          {
+            "name": "sha256",
+            "in": "path",
+            "description": "The file's sha256",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "rule_uuid",
+            "in": "path",
+            "description": "The rule's uuid meta",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "What was confirmed, and the label after",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LabelChangeBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A sha256 or rule uuid that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold alert:write and signature:read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No sample of that file and rule",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "No unconfirmed detection can take the verdict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/svs/v1/samples/{sha256}/{rule_uuid}/download": {
+      "get": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "One sample's file and the match records of its captures, as a zip encrypted with AES-256 and the\npassword `infected`. The download is in the audit record.",
+        "operationId": "download_sample",
+        "parameters": [
+          {
+            "name": "sha256",
+            "in": "path",
+            "description": "The file's sha256",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "rule_uuid",
+            "in": "path",
+            "description": "The rule's uuid meta",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The zip",
+            "content": {
+              "application/zip": {
+                "schema": {
+                  "$ref": "#/components/schemas/ZipBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A sha256 or rule uuid that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold signature:download",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No sample of that file and rule, or none of its captures holds the file",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/svs/v1/samples/{sha256}/{rule_uuid}/label": {
+      "put": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "Relabels the sample: stores the explicit verdict on every contributing detection that can take an\nanalyst's verdict, in one transaction. Detections on false positive, unclassified or test alerts are\nskipped and listed with why; 409 when none can take it (correct the alert's disposition instead).",
+        "operationId": "relabel",
+        "parameters": [
+          {
+            "name": "sha256",
+            "in": "path",
+            "description": "The file's sha256",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "rule_uuid",
+            "in": "path",
+            "description": "The rule's uuid meta",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LabelRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "What was written, and the label after",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LabelChangeBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A sha256, rule uuid or body that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold alert:write and signature:read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No sample of that file and rule",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "No contributing detection can take the verdict, or none is left",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The body is too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "Resets the sample's label to inherited: clears the explicit verdicts on its contributing detections,\nso they inherit from their alerts' dispositions again. Nothing to reset isn't an error.",
+        "operationId": "reset_label",
+        "parameters": [
+          {
+            "name": "sha256",
+            "in": "path",
+            "description": "The file's sha256",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "rule_uuid",
+            "in": "path",
+            "description": "The rule's uuid meta",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "What was cleared, and the label after",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LabelChangeBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A sha256 or rule uuid that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold alert:write and signature:read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No sample of that file and rule",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/svs/v1/samples/{sha256}/{rule_uuid}/retirement": {
+      "put": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "Retires the sample for its rule: it's no longer expected to match, and YARA validation only counts it.\nRetiring a retired sample changes nothing.",
+        "operationId": "retire",
+        "parameters": [
+          {
+            "name": "sha256",
+            "in": "path",
+            "description": "The file's sha256",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "rule_uuid",
+            "in": "path",
+            "description": "The rule's uuid meta",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReasonRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The retirement",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetirementBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A sha256, rule uuid, reason or body that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold svs:admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No sample of that file and rule",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The body is too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "Unretires the sample: it's expected to match its rule again. 404 when it isn't retired.",
+        "operationId": "unretire",
+        "parameters": [
+          {
+            "name": "sha256",
+            "in": "path",
+            "description": "The file's sha256",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "rule_uuid",
+            "in": "path",
+            "description": "The rule's uuid meta",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The retirement, ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetirementBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A sha256 or rule uuid that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold svs:admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The sample isn't retired",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/users/v1/catalog": {
       "get": {
         "tags": [
@@ -10424,6 +11776,28 @@
           }
         }
       },
+      "DeletionPageBody": {
+        "type": "object",
+        "description": "A page of deletions, oldest change first.",
+        "required": [
+          "deletions"
+        ],
+        "properties": {
+          "deletions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SampleDeletionBody"
+            }
+          },
+          "next": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Pass as `cursor`, with the same `changed_since`, for the next page; null on the last."
+          }
+        }
+      },
       "DetectionBody": {
         "type": "object",
         "description": "An observable ACE detects.",
@@ -11898,6 +13272,75 @@
           }
         }
       },
+      "LabelBody": {
+        "type": "string",
+        "description": "A sample's label: `tp`, `fp`, or `conflicted` when votes of the strongest strength present disagree.",
+        "enum": [
+          "tp",
+          "fp",
+          "conflicted"
+        ]
+      },
+      "LabelChangeBody": {
+        "type": "object",
+        "description": "What a relabel, reset or confirm wrote, and the sample's label afterwards.",
+        "required": [
+          "changed",
+          "unchanged",
+          "skipped"
+        ],
+        "properties": {
+          "changed": {
+            "type": "integer",
+            "description": "How many contributing detections changed, and how many were as asked already.",
+            "minimum": 0
+          },
+          "label": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/LabelBody"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "label_source": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/VerdictSourceBody"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "skipped": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SkippedDetectionBody"
+            },
+            "description": "The ones that can't take an analyst's verdict (on a false positive, unclassified or test alert),\neach with why."
+          },
+          "unchanged": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "LabelRequest": {
+        "type": "object",
+        "description": "The explicit verdict to store on every contributing detection that can take one.",
+        "required": [
+          "verdict"
+        ],
+        "properties": {
+          "verdict": {
+            "$ref": "#/components/schemas/VerdictBody"
+          }
+        },
+        "additionalProperties": false
+      },
       "LeftOutBody": {
         "type": "object",
         "description": "One of ace3's filters this screen doesn't have yet.",
@@ -12063,6 +13506,32 @@
           "substring",
           "regex"
         ]
+      },
+      "MissingCountBody": {
+        "type": "object",
+        "description": "How many captures of a rule lack something, for one reason.",
+        "required": [
+          "rule_uuid",
+          "rule_name",
+          "reason",
+          "count"
+        ],
+        "properties": {
+          "count": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "reason": {
+            "type": "string",
+            "description": "`file`: the file was gone before it could be kept; `storage`: the bucket refused it; `match_record`:\nthe file is kept, its match record was gone."
+          },
+          "rule_name": {
+            "type": "string"
+          },
+          "rule_uuid": {
+            "type": "string"
+          }
+        }
       },
       "NewApiKeyBody": {
         "type": "object",
@@ -13199,6 +14668,20 @@
         },
         "additionalProperties": false
       },
+      "ReasonRequest": {
+        "type": "object",
+        "description": "Why, recorded with the action.",
+        "required": [
+          "reason"
+        ],
+        "properties": {
+          "reason": {
+            "type": "string",
+            "description": "1 to 4000 characters."
+          }
+        },
+        "additionalProperties": false
+      },
       "RecentAlertBody": {
         "type": "object",
         "required": [
@@ -13477,10 +14960,502 @@
           }
         }
       },
+      "RetirementBody": {
+        "type": "object",
+        "description": "A sample's retirement.",
+        "required": [
+          "sha256",
+          "rule_uuid",
+          "retired",
+          "reason",
+          "retired_at",
+          "updated_at"
+        ],
+        "properties": {
+          "reason": {
+            "type": "string"
+          },
+          "retired": {
+            "type": "boolean",
+            "description": "Whether it's retired now; false once unretired."
+          },
+          "retired_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "retired_by": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ActorBody"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "rule_uuid": {
+            "type": "string"
+          },
+          "sha256": {
+            "type": "string"
+          },
+          "unretired_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "unretired_by": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ActorBody"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
       "Rfc822Body": {
         "type": "string",
         "format": "binary",
         "description": "An email as it arrived, RFC 822."
+      },
+      "SampleBody": {
+        "type": "object",
+        "description": "One sample: a file and a YARA rule it matched, over every alert it was captured from. Its rule name,\nnamespace and file path are what the rule's author and the alert's sender wrote: show them as text.",
+        "required": [
+          "sha256",
+          "rule_uuid",
+          "rule_name",
+          "file_path",
+          "capture_count",
+          "stored",
+          "missing",
+          "missing_data",
+          "unknown_version",
+          "first_captured",
+          "last_captured",
+          "updated_at",
+          "latest_capture_id",
+          "votes",
+          "retired"
+        ],
+        "properties": {
+          "capture_count": {
+            "type": "integer",
+            "format": "int64",
+            "description": "How many captures (one per alert) it has, how many hold the file, and how many couldn't."
+          },
+          "file_path": {
+            "type": "string"
+          },
+          "file_size": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          },
+          "first_captured": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "label": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/LabelBody",
+                "description": "Null when no contributing detection has a verdict."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "label_source": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/VerdictSourceBody",
+                "description": "The strength that decided the label: explicit > inherited_single > inherited_multi."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "last_captured": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "latest_capture_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "missing": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "missing_data": {
+            "type": "integer",
+            "format": "int64",
+            "description": "How many captures lack something: the file, or the match record."
+          },
+          "namespace": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "retired": {
+            "type": "boolean",
+            "description": "Whether it's retired for its rule: YARA validation only counts it."
+          },
+          "retired_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "retired_by": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ActorBody"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "retired_reason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "rule_name": {
+            "type": "string",
+            "description": "The rule's name, namespace, and the file's path and size, in the latest capture."
+          },
+          "rule_uuid": {
+            "type": "string",
+            "description": "The rule's uuid meta: the signature of its detections."
+          },
+          "sha256": {
+            "type": "string"
+          },
+          "stored": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "unknown_version": {
+            "type": "integer",
+            "format": "int64",
+            "description": "How many captures recorded the signature version `unknown`."
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The latest change of any of its captures."
+          },
+          "votes": {
+            "$ref": "#/components/schemas/VotesBody"
+          }
+        }
+      },
+      "SampleCaptureBody": {
+        "type": "object",
+        "description": "One capture of a sample: the file as one alert had it.",
+        "required": [
+          "id",
+          "alert",
+          "rule_name",
+          "signature_version",
+          "file_path",
+          "yara_meta_tags",
+          "state",
+          "has_record",
+          "created_at",
+          "updated_at",
+          "detections"
+        ],
+        "properties": {
+          "alert": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The alert it was captured from, which may since have been deleted."
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "detections": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SampleDetectionBody"
+            },
+            "description": "Its contributing detections; none once the alert is gone."
+          },
+          "file_path": {
+            "type": "string"
+          },
+          "file_size": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          },
+          "has_record": {
+            "type": "boolean",
+            "description": "Whether its match record is kept (`GET /api/svs/v1/samples/captures/{id}/record`)."
+          },
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "match_summary": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "description": "The record's rule, meta, tags and per string how many times it matched and where first."
+          },
+          "missing_reason": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "`file`, `storage` or `match_record`, when it lacks something."
+          },
+          "namespace": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "observable": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          },
+          "rule_content_hash": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "rule_name": {
+            "type": "string"
+          },
+          "signature_version": {
+            "type": "string",
+            "description": "The commit of the rule's repository when it matched, or `unknown`."
+          },
+          "state": {
+            "type": "string",
+            "description": "`stored` or `missing`."
+          },
+          "stored_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "yara_meta_tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "yara_version": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The yara-x version of the core that kept it."
+          }
+        }
+      },
+      "SampleDeletionBody": {
+        "type": "object",
+        "description": "The kept row of a file deleted from SVS.",
+        "required": [
+          "sha256",
+          "rule_uuids",
+          "capture_count",
+          "reason",
+          "deleted_at",
+          "updated_at"
+        ],
+        "properties": {
+          "capture_count": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "deleted_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "deleted_by": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ActorBody"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "purged_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "When its bytes were purged; null while they aren't, and deleting the sample again retries."
+          },
+          "reason": {
+            "type": "string"
+          },
+          "rule_uuids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The rules it had captures for, and how many captures went."
+          },
+          "sha256": {
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "SampleDetailBody": {
+        "type": "object",
+        "description": "One sample with every capture, newest first.",
+        "required": [
+          "sample",
+          "captures"
+        ],
+        "properties": {
+          "captures": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SampleCaptureBody"
+            }
+          },
+          "relabel_refusal": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Why a relabel would be refused (every contributing detection is on an FP or SIMULATED alert, say),\nor null when it can be relabeled."
+          },
+          "sample": {
+            "$ref": "#/components/schemas/SampleBody"
+          }
+        }
+      },
+      "SampleDetectionBody": {
+        "type": "object",
+        "description": "A contributing detection: a detection of the rule on the file, on the capture's alert.",
+        "required": [
+          "detection"
+        ],
+        "properties": {
+          "detection": {
+            "type": "integer",
+            "format": "int64",
+            "description": "The detection's id on its alert."
+          },
+          "override_by": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ActorBody"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "override_set_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "override_verdict": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/VerdictBody",
+                "description": "The stored verdict, who stored it and when."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "verdict": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/VerdictBody"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "verdict_source": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/VerdictSourceBody"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "SamplePageBody": {
+        "type": "object",
+        "description": "A page of samples.",
+        "required": [
+          "samples"
+        ],
+        "properties": {
+          "next": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Pass as `cursor`, with the same filters and sort, for the next page; null on the last."
+          },
+          "samples": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SampleBody"
+            }
+          }
+        }
       },
       "SavedFilterBody": {
         "type": "object",
@@ -13611,6 +15586,28 @@
           }
         },
         "additionalProperties": false
+      },
+      "SkippedDetectionBody": {
+        "type": "object",
+        "description": "A contributing detection that couldn't take the verdict, and why.",
+        "required": [
+          "alert",
+          "detection",
+          "reason"
+        ],
+        "properties": {
+          "alert": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "detection": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "reason": {
+            "type": "string"
+          }
+        }
       },
       "StatusRequest": {
         "type": "object",
@@ -14246,6 +16243,44 @@
           "inherited_multi"
         ]
       },
+      "VotesBody": {
+        "type": "object",
+        "description": "How many contributing detections vote TP or FP, at each strength (verdict source).",
+        "required": [
+          "tp_explicit",
+          "fp_explicit",
+          "tp_inherited_single",
+          "fp_inherited_single",
+          "tp_inherited_multi",
+          "fp_inherited_multi"
+        ],
+        "properties": {
+          "fp_explicit": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "fp_inherited_multi": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "fp_inherited_single": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "tp_explicit": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "tp_inherited_multi": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "tp_inherited_single": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
       "ZipBody": {
         "type": "string",
         "format": "binary",
@@ -14310,6 +16345,10 @@
     {
       "name": "yara_qa",
       "description": "YARA rules in QA mode, the files they matched, and purges"
+    },
+    {
+      "name": "svs",
+      "description": "SVS's samples: the files YARA rules matched on alerts graded TP or FP, their labels, retirements and deletions"
     },
     {
       "name": "events",

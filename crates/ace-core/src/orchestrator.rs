@@ -416,13 +416,48 @@ impl Orchestrator {
     /// mode, which queues that mode's few modules, as ace3 does when
     /// `stop_analysis_on_any_alert_disposition` is set. The disposition itself and who made it are
     /// `ace_service::Service::disposition`'s, in the same transaction.
+    ///
+    /// ace3 runs a dispositioned mode's modules on every dispositioned pass, so a disposition changed
+    /// again runs them again: `svs_yara_sample_capture` captures once the alert's disposition is graded
+    /// and retries a capture that's missing. A task here is once per (observable, module), so each
+    /// ended task of a module the mode runs that stores no result, and so has none, is queued again.
     pub async fn stop_for_disposition(
         &self,
         tx: &mut Tx<'_>,
         root: Uuid,
     ) -> Result<Dispositioned, OrchestratorError> {
         let cancelled = queue::cancel_root(tx, root).await?;
-        let queued = self.set_mode(tx, root, DISPOSITIONED).await?;
+        let mut queued = self.set_mode(tx, root, DISPOSITIONED).await?;
+        let rerun: Vec<String> = self
+            .modes
+            .modules_in(DISPOSITIONED)
+            .into_iter()
+            .filter(|key| {
+                self.catalog
+                    .get(key)
+                    .is_some_and(|manifest| !manifest.stores_results)
+            })
+            .map(str::to_owned)
+            .collect();
+        if !rerun.is_empty() {
+            let ended = sqlx::query_scalar!(
+                r#"SELECT t.id AS "id: TaskId" FROM queue.tasks t
+                   WHERE t.root_id = $1 AND t.module = ANY ($2) AND t.state IN ('done', 'failed')
+                     AND NOT EXISTS (SELECT FROM analysis.results r
+                                     WHERE r.root_id = t.root_id AND r.observable_id = t.observable_id
+                                       AND r.module = t.module)
+                   ORDER BY t.id"#,
+                root,
+                &rerun,
+            )
+            .fetch_all(tx.conn())
+            .await?;
+            for task in ended {
+                if queue::requeue_ended(tx, task).await? {
+                    queued.push(task);
+                }
+            }
+        }
         queue::check_completion(tx, root).await?;
         Ok(Dispositioned { cancelled, queued })
     }

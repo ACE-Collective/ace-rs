@@ -139,14 +139,18 @@ async fn serve(app: &App) -> Result<ExitCode> {
     let config = ApiConfig::from_env(&app.pool_list())
         .with_instances(orchestrator.catalog())
         .archive(archive_config.clone())
-        .actions(actions.clone());
+        .actions(actions.clone())
+        // what SVS's capture reads as graded (PLAN.md 7.10)
+        .classified(tp.iter().chain(&fp).cloned());
     for pool in &config.pools {
         tracing::info!(pool = %pool.name, modules = ?pool.modules, "serving a pool");
     }
     let service = ace_service::Service::new(db.clone(), orchestrator.clone())
         .with_actions(actions)
         .with_dispositions(dispositions)
-        .with_log_search(log_search);
+        .with_log_search(log_search)
+        // the GUI's deletion of an SVS sample purges its bytes (PLAN.md 7.10)
+        .with_bucket(bucket.clone());
     let scheduler =
         crate::scheduler::Scheduler::new(db.clone(), service.clone(), bucket.clone(), scheduled)
             .with_overlay(overlay.clone())

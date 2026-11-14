@@ -1,0 +1,16 @@
+{#- What a deletion from SVS did (PLAN.md 7.10 batch 2, src/svs_samples.rs). -#}
+{% extends "base.html" %}
+{% block title %}Deleted · Samples · ACE{% endblock %}
+{% block content %}
+<section class="signatures">
+  <p><a href="/signatures">Signatures</a> / <a href="/signatures/samples">Samples</a></p>
+  <h1>Deleted <code>{{ sha256 }}</code> from SVS</h1>
+  <p>{{ capture_count }} capture{% if capture_count != 1 %}s{% endif %} removed, of the rules {{ rules }}.</p>
+  {%- if purged %}
+  <p>Its bytes are purged.</p>
+  {%- else %}
+  <p class="warning">Its bytes couldn't be purged yet. Deleting it again tries again.</p>
+  {%- endif %}
+  <p><a href="/signatures/samples">Back to the samples</a></p>
+</section>
+{% endblock %}

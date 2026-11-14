@@ -32,6 +32,7 @@ pub mod scripts;
 pub mod snort;
 pub mod splunk;
 pub mod ssdeep;
+pub mod svs;
 pub mod tag;
 pub mod url_extraction;
 pub mod user;

@@ -1601,6 +1601,14 @@ async fn every_write_function_has_an_audit_test() {
         create_test_host_records_its_row(db).await,
         update_test_host_records_its_row(db).await,
         delete_test_host_records_its_row(db).await,
+        relabel_svs_sample_records_its_row(db).await,
+        reset_svs_sample_label_records_its_row(db).await,
+        confirm_svs_sample_records_its_row(db).await,
+        retire_svs_sample_records_its_row(db).await,
+        unretire_svs_sample_records_its_row(db).await,
+        delete_svs_sample_records_its_row(db).await,
+        download_svs_sample_records_its_row(db).await,
+        download_svs_samples_records_its_row(db).await,
     ]);
     assert_eq!(covered, write_functions(), "{WRITES_NEED_A_TEST}");
 }
@@ -3333,6 +3341,22 @@ async fn every_write_fails_when_its_audit_fails() {
         .await
         .expect("adds a test host");
     let hosts_before = test_host_rows(db).await;
+    // a sample for each of its actions
+    let (_, relabelled, _) = audited_sample(db).await;
+    let (_, reset, _) = audited_sample(db).await;
+    service
+        .relabel_svs_sample(&actor, &reset, RULE_UUID, Verdict::Fp)
+        .await
+        .expect("relabels to reset");
+    let (_, confirmed, _) = audited_sample(db).await;
+    let (_, retired, _) = audited_sample(db).await;
+    let (_, unretired, _) = audited_sample(db).await;
+    service
+        .retire_svs_sample(&actor, &unretired, RULE_UUID, "to unretire")
+        .await
+        .expect("retires");
+    let (_, deleted, _) = audited_sample(db).await;
+    let samples_before = sample_rows(db).await;
     let actions_before = action_rows(db).await;
     let lists_before = list_rows(db).await;
     let commands_before = command_rows(db).await;
@@ -4053,6 +4077,76 @@ async fn every_write_fails_when_its_audit_fails() {
                 .map(|_| ())
                 .expect_err("refused"),
         ),
+        (
+            "relabel_svs_sample",
+            service
+                .relabel_svs_sample(&actor, &relabelled, RULE_UUID, Verdict::Fp)
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
+        (
+            "reset_svs_sample_label",
+            service
+                .reset_svs_sample_label(&actor, &reset, RULE_UUID)
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
+        (
+            "confirm_svs_sample",
+            service
+                .confirm_svs_sample(&actor, &confirmed, RULE_UUID)
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
+        (
+            "retire_svs_sample",
+            service
+                .retire_svs_sample(&actor, &retired, RULE_UUID, "stale")
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
+        (
+            "unretire_svs_sample",
+            service
+                .unretire_svs_sample(&actor, &unretired, RULE_UUID)
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
+        (
+            "delete_svs_sample",
+            service
+                .delete_svs_sample(&actor, &bucket, &deleted, "privacy")
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
+        (
+            "download_svs_sample",
+            service
+                .download_svs_sample(&actor, &deleted, RULE_UUID)
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
+        (
+            "download_svs_samples",
+            service
+                .download_svs_samples(
+                    &actor,
+                    &SampleQuery {
+                        filters: vec![FilterEntry::text("SHA256", false, &[&deleted])],
+                        ..SampleQuery::default()
+                    },
+                )
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
     ];
     let mut covered = BTreeSet::new();
     for (function, error) in &attempts {
@@ -4091,6 +4185,7 @@ async fn every_write_fails_when_its_audit_fails() {
         "no test host changed"
     );
     assert_eq!(command_rows(db).await, commands_before);
+    assert_eq!(sample_rows(db).await, samples_before, "no sample changed");
     assert_eq!(
         list_rows(db).await,
         lists_before,
@@ -17391,4 +17486,2859 @@ async fn delete_test_host_records_its_row(db: &Db) -> String {
         }
     );
     row.action
+}
+
+// ---- SVS's samples (PLAN.md 7.10 batch 2): ace3's tests/saq/svs/test_labels.py, test_samples.py,
+// test_capture.py's integration cases and test_actions.py ----
+
+use ace_core::svs::samples::{
+    self as svs_samples, CaptureResult, CaptureStatus, Label, SVS_SAMPLES, Strength,
+    aggregate_label, capture_hold,
+};
+use ace_sdk::writes::SvsCaptureCandidate;
+use ace_service::{SampleQuery, SampleSort};
+
+const RULE_UUID: &str = "7d1c2a4e-5b6f-4c3d-9e8f-0a1b2c3d4e5f";
+const OTHER_RULE_UUID: &str = "1e2d3c4b-5a69-4788-9a0b-1c2d3e4f5a6b";
+const SVS_COMMIT: &str = "cccccccccccccccccccccccccccccccccccccccc";
+
+fn sha256_hex(bytes: &[u8]) -> String {
+    hex::encode(Sha256::digest(bytes))
+}
+
+/// The detection the YARA module leaves on a file for one match, with its structured details.
+async fn yara_detection(
+    db: &Db,
+    root: Uuid,
+    observable: i64,
+    sha256: &str,
+    rule: &str,
+    rule_uuid: &str,
+    version: &str,
+) -> i64 {
+    sqlx::query_scalar(
+        "INSERT INTO analysis.detections
+             (root_id, observable_id, description, details, signature_uuid, signature_version,
+              signature_family)
+         VALUES ($1, $2, $3, $4, $5, $6, 'yara') RETURNING id",
+    )
+    .bind(root)
+    .bind(observable)
+    .bind(format!("{sha256} matched yara rule {rule}"))
+    .bind(json!({"sha256": sha256, "rule": rule, "namespace": "unittest", "rule_uuid": rule_uuid}))
+    .bind(rule_uuid)
+    .bind(version)
+    .fetch_one(db.pool())
+    .await
+    .expect("a detection")
+}
+
+/// A file observable of `sha256` at `path` in a root, without its bytes.
+async fn file_observable(db: &Db, root: Uuid, path: &str, sha256: &str) -> i64 {
+    let mut tx = db.begin().await.expect("begins");
+    let id = tree::upsert_observable(
+        &mut tx,
+        root,
+        &NewObservable::new(ObservableKind::File, sha256),
+    )
+    .await
+    .expect("adds")
+    .id;
+    tree::add_file_at(&mut tx, root, id, path, &[], 1)
+        .await
+        .expect("adds its path");
+    tx.commit().await.expect("commits");
+    id.0
+}
+
+/// How a fixture capture differs from a stored one with a record.
+#[derive(Debug, Clone)]
+struct CaptureRow {
+    state: &'static str,
+    missing_reason: Option<&'static str>,
+    rule_name: &'static str,
+    file_path: &'static str,
+    file_size: Option<i64>,
+    signature_version: &'static str,
+    created_at: chrono::DateTime<chrono::Utc>,
+}
+
+impl Default for CaptureRow {
+    fn default() -> Self {
+        CaptureRow {
+            state: "stored",
+            missing_reason: None,
+            rule_name: "svs_rule",
+            file_path: "sample.bin",
+            file_size: Some(10),
+            signature_version: SVS_COMMIT,
+            created_at: chrono::Utc::now(),
+        }
+    }
+}
+
+/// ace3's `insert_capture`: a capture row as a capture would leave it, with no bytes in the pool unless
+/// the caller put them. Returns its id.
+async fn insert_capture(
+    db: &Db,
+    root: Uuid,
+    sha256: &str,
+    rule_uuid: &str,
+    row: CaptureRow,
+) -> i64 {
+    let stored = row.state == "stored";
+    let record = (stored && row.missing_reason.is_none()).then(|| json!({"rule": row.rule_name}));
+    sqlx::query_scalar(
+        "INSERT INTO svs.yara_captures
+             (root_id, sha256, rule_uuid, rule_name, namespace, signature_version, file_path,
+              file_size, state, missing_reason, record, created_at, stored_at)
+         VALUES ($1, $2, $3, $4, 'unittest', $5, $6, $7, $8, $9, $10, $11,
+                 CASE WHEN $8 = 'stored' THEN $11 END)
+         RETURNING id",
+    )
+    .bind(root)
+    .bind(sha256)
+    .bind(rule_uuid)
+    .bind(row.rule_name)
+    .bind(row.signature_version)
+    .bind(row.file_path)
+    .bind(row.file_size)
+    .bind(row.state)
+    .bind(row.missing_reason)
+    .bind(record)
+    .bind(row.created_at)
+    .fetch_one(db.pool())
+    .await
+    .expect("a capture")
+}
+
+/// ace3's `graded_alert`: an alert whose files YARA matched, its disposition set and, unless `capture` is
+/// false, a capture row per (file, rule). `files` names each file and the rules that matched it;
+/// `contents` gives a file's bytes (the same bytes under two names are one sha256). Returns the alert and
+/// each file's sha256 by name.
+async fn graded_alert(
+    db: &Db,
+    disposition: Option<&str>,
+    files: &[(&'static str, &[&str])],
+    contents: &[(&str, &[u8])],
+    capture: bool,
+) -> (Uuid, BTreeMap<&'static str, String>) {
+    let root = NewRoot::new("correlation");
+    let mut tx = db.begin().await.expect("begins");
+    tree::create_root(&mut tx, &root).await.expect("creates");
+    tx.commit().await.expect("commits");
+    let mut shas = BTreeMap::new();
+    let mut seen = BTreeSet::new();
+    for (name, rules) in files {
+        let bytes = contents
+            .iter()
+            .find(|(n, _)| n == name)
+            .map(|(_, b)| b.to_vec())
+            .unwrap_or_else(|| format!("svs sample {}", Uuid::new_v4()).into_bytes());
+        let sha256 = sha256_hex(&bytes);
+        let observable = file_observable(db, root.id, name, &sha256).await;
+        for (index, rule_uuid) in rules.iter().enumerate() {
+            // a second name of the same bytes is the same observable, which the YARA module scans once
+            if seen.insert((sha256.clone(), (*rule_uuid).to_owned())) {
+                yara_detection(
+                    db,
+                    root.id,
+                    observable,
+                    &sha256,
+                    &format!("svs_rule_{index}"),
+                    rule_uuid,
+                    SVS_COMMIT,
+                )
+                .await;
+                if capture {
+                    insert_capture(
+                        db,
+                        root.id,
+                        &sha256,
+                        rule_uuid,
+                        CaptureRow {
+                            file_path: name,
+                            ..CaptureRow::default()
+                        },
+                    )
+                    .await;
+                }
+            }
+        }
+        shas.insert(*name, sha256);
+    }
+    sqlx::query("UPDATE analysis.roots SET alerted_at = now() WHERE id = $1")
+        .bind(root.id)
+        .execute(db.pool())
+        .await
+        .expect("makes it an alert");
+    set_disposition_row(db, root.id, disposition).await;
+    (root.id, shas)
+}
+
+/// The detection of `rule_uuid` on the file of `sha256` in `root`: ace3's `_hash_of`.
+async fn detection_of(db: &Db, root: Uuid, sha256: &str, rule_uuid: &str) -> i64 {
+    sqlx::query_scalar(
+        "SELECT d.id FROM analysis.detections d
+         JOIN analysis.observables o ON o.root_id = d.root_id AND o.id = d.observable_id
+         WHERE d.root_id = $1 AND o.value = $2 AND d.signature_uuid = $3",
+    )
+    .bind(root)
+    .bind(sha256)
+    .bind(rule_uuid)
+    .fetch_one(db.pool())
+    .await
+    .expect("the detection")
+}
+
+async fn sample_of(db: &Db, sha256: &str, rule_uuid: &str) -> Option<ace_service::Sample> {
+    match service(db)
+        .svs_sample(&admin(db).await, sha256, rule_uuid)
+        .await
+    {
+        Ok(detail) => Some(detail.sample),
+        Err(ServiceError::NotFound(_)) => None,
+        Err(e) => panic!("reads the sample: {e}"),
+    }
+}
+
+async fn label_of(db: &Db, sha256: &str, rule_uuid: &str) -> (Option<Label>, Option<Strength>) {
+    let sample = sample_of(db, sha256, rule_uuid).await.expect("a sample");
+    (sample.label, sample.label_source)
+}
+
+/// ace3's `_assert_sql_agrees`: the SQL's label is what `aggregate_label` makes of the SQL's votes.
+fn assert_sql_agrees(sample: &ace_service::Sample) {
+    assert_eq!(
+        (sample.label, sample.label_source),
+        aggregate_label(&sample.votes),
+        "{sample:?}"
+    );
+}
+
+/// test_labels.py's `test_an_fp_alert_labels_its_samples_fp`.
+#[tokio::test]
+async fn an_fp_alert_labels_its_samples_fp() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let (_, files) = graded_alert(
+        db,
+        Some("FALSE_POSITIVE"),
+        &[("a.bin", &[RULE_UUID, OTHER_RULE_UUID])],
+        &[],
+        true,
+    )
+    .await;
+    let sample = sample_of(db, &files["a.bin"], RULE_UUID)
+        .await
+        .expect("a sample");
+    assert_eq!(
+        (sample.label, sample.label_source),
+        (Some(Label::Fp), Some(Strength::InheritedSingle))
+    );
+    assert_eq!(sample.votes.fp_inherited_single, 1);
+    assert_sql_agrees(&sample);
+}
+
+/// test_labels.py's `test_a_tp_alert_with_one_signature_labels_inherited_single`.
+#[tokio::test]
+async fn a_tp_alert_with_one_signature_labels_inherited_single() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let (_, files) =
+        graded_alert(db, Some("DELIVERY"), &[("a.bin", &[RULE_UUID])], &[], true).await;
+    let sample = sample_of(db, &files["a.bin"], RULE_UUID)
+        .await
+        .expect("a sample");
+    assert_eq!(
+        (sample.label, sample.label_source),
+        (Some(Label::Tp), Some(Strength::InheritedSingle))
+    );
+    assert_sql_agrees(&sample);
+}
+
+/// test_labels.py's `test_a_tp_alert_with_several_signatures_labels_inherited_multi`.
+#[tokio::test]
+async fn a_tp_alert_with_several_signatures_labels_inherited_multi() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let (_, files) = graded_alert(
+        db,
+        Some("DELIVERY"),
+        &[("a.bin", &[RULE_UUID, OTHER_RULE_UUID])],
+        &[],
+        true,
+    )
+    .await;
+    for rule in [RULE_UUID, OTHER_RULE_UUID] {
+        let sample = sample_of(db, &files["a.bin"], rule)
+            .await
+            .expect("a sample");
+        assert_eq!(
+            (sample.label, sample.label_source),
+            (Some(Label::Tp), Some(Strength::InheritedMulti))
+        );
+        assert_sql_agrees(&sample);
+    }
+}
+
+/// test_labels.py's `test_an_explicit_override_decides`.
+#[tokio::test]
+async fn an_explicit_override_decides() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let actor = admin(db).await;
+    let (root, files) = graded_alert(
+        db,
+        Some("DELIVERY"),
+        &[("a.bin", &[RULE_UUID, OTHER_RULE_UUID])],
+        &[],
+        true,
+    )
+    .await;
+    let detection = detection_of(db, root, &files["a.bin"], RULE_UUID).await;
+    service(db)
+        .set_detection_verdict(&actor, root, detection, Verdict::Fp)
+        .await
+        .expect("sets");
+    let sample = sample_of(db, &files["a.bin"], RULE_UUID)
+        .await
+        .expect("a sample");
+    assert_eq!(
+        (sample.label, sample.label_source),
+        (Some(Label::Fp), Some(Strength::Explicit))
+    );
+    assert_sql_agrees(&sample);
+    // the other rule's sample is untouched
+    assert_eq!(
+        label_of(db, &files["a.bin"], OTHER_RULE_UUID).await.1,
+        Some(Strength::InheritedMulti)
+    );
+}
+
+/// test_labels.py's `test_disagreeing_votes_of_one_strength_conflict`.
+#[tokio::test]
+async fn disagreeing_votes_of_one_strength_conflict() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let actor = admin(db).await;
+    let content = format!("conflicted {}", Uuid::new_v4()).into_bytes();
+    let (first, files) = graded_alert(
+        db,
+        Some("DELIVERY"),
+        &[("a.bin", &[RULE_UUID])],
+        &[("a.bin", &content)],
+        true,
+    )
+    .await;
+    graded_alert(
+        db,
+        Some("FALSE_POSITIVE"),
+        &[("b.bin", &[RULE_UUID])],
+        &[("b.bin", &content)],
+        true,
+    )
+    .await;
+    let sample = sample_of(db, &files["a.bin"], RULE_UUID)
+        .await
+        .expect("a sample");
+    assert_eq!(sample.capture_count, 2);
+    assert_eq!(
+        (sample.label, sample.label_source),
+        (Some(Label::Conflicted), Some(Strength::InheritedSingle))
+    );
+    assert_sql_agrees(&sample);
+    // an explicit vote outweighs both
+    let detection = detection_of(db, first, &files["a.bin"], RULE_UUID).await;
+    service(db)
+        .set_detection_verdict(&actor, first, detection, Verdict::Tp)
+        .await
+        .expect("sets");
+    let sample = sample_of(db, &files["a.bin"], RULE_UUID)
+        .await
+        .expect("a sample");
+    assert_eq!(
+        (sample.label, sample.label_source),
+        (Some(Label::Tp), Some(Strength::Explicit))
+    );
+    assert_sql_agrees(&sample);
+}
+
+/// test_labels.py's `test_an_fp_alert_outweighs_an_unconfirmed_tp`.
+#[tokio::test]
+async fn an_fp_alert_outweighs_an_unconfirmed_tp() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let content = format!("precedence {}", Uuid::new_v4()).into_bytes();
+    let (_, files) = graded_alert(
+        db,
+        Some("DELIVERY"),
+        &[("a.bin", &[RULE_UUID, OTHER_RULE_UUID])],
+        &[("a.bin", &content)],
+        true,
+    )
+    .await;
+    graded_alert(
+        db,
+        Some("FALSE_POSITIVE"),
+        &[("b.bin", &[RULE_UUID])],
+        &[("b.bin", &content)],
+        true,
+    )
+    .await;
+    let sample = sample_of(db, &files["a.bin"], RULE_UUID)
+        .await
+        .expect("a sample");
+    assert_eq!(
+        (
+            sample.votes.tp_inherited_multi,
+            sample.votes.fp_inherited_single
+        ),
+        (1, 1)
+    );
+    assert_eq!(
+        (sample.label, sample.label_source),
+        (Some(Label::Fp), Some(Strength::InheritedSingle))
+    );
+}
+
+/// test_labels.py's `test_an_unclassified_alert_casts_no_vote`.
+#[tokio::test]
+async fn an_unclassified_alert_casts_no_vote() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let (_, files) =
+        graded_alert(db, Some("REVIEWED"), &[("a.bin", &[RULE_UUID])], &[], true).await;
+    let sample = sample_of(db, &files["a.bin"], RULE_UUID)
+        .await
+        .expect("a sample");
+    assert_eq!(sample.capture_count, 1);
+    assert_eq!((sample.label, sample.label_source), (None, None));
+    assert_eq!(sample.votes, ace_core::svs::samples::Votes::default());
+}
+
+/// test_labels.py's `test_a_deleted_alert_casts_no_vote`.
+#[tokio::test]
+async fn a_deleted_alert_casts_no_vote() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let (root, files) = graded_alert(
+        db,
+        Some("FALSE_POSITIVE"),
+        &[("a.bin", &[RULE_UUID])],
+        &[],
+        true,
+    )
+    .await;
+    sqlx::query("DELETE FROM analysis.roots WHERE id = $1")
+        .bind(root)
+        .execute(db.pool())
+        .await
+        .expect("deletes the alert");
+    let sample = sample_of(db, &files["a.bin"], RULE_UUID)
+        .await
+        .expect("a sample");
+    assert_eq!(sample.capture_count, 1);
+    assert_eq!(sample.label, None);
+}
+
+/// test_labels.py's `test_the_same_bytes_under_two_names_are_two_votes`. Here the same bytes under two
+/// names are one file observable with two paths, which the YARA module scans once, so one detection and
+/// one vote, where ace3 has a node and a detection for each name (`ace_core::svs::samples`' docs).
+#[tokio::test]
+async fn the_same_bytes_under_two_names_are_one_vote() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let content = format!("twice {}", Uuid::new_v4()).into_bytes();
+    let (_, files) = graded_alert(
+        db,
+        Some("FALSE_POSITIVE"),
+        &[("a.bin", &[RULE_UUID]), ("b.bin", &[RULE_UUID])],
+        &[("a.bin", &content), ("b.bin", &content)],
+        true,
+    )
+    .await;
+    assert_eq!(files["a.bin"], files["b.bin"]);
+    let sample = sample_of(db, &files["a.bin"], RULE_UUID)
+        .await
+        .expect("a sample");
+    assert_eq!(sample.capture_count, 1);
+    assert_eq!(sample.votes.fp_inherited_single, 1);
+}
+
+/// test_labels.py's `test_a_detection_of_another_rule_or_file_does_not_vote`.
+#[tokio::test]
+async fn a_detection_of_another_rule_or_file_does_not_vote() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let (root, files) = graded_alert(
+        db,
+        Some("FALSE_POSITIVE"),
+        &[("a.bin", &[RULE_UUID]), ("b.bin", &[OTHER_RULE_UUID])],
+        &[],
+        true,
+    )
+    .await;
+    // a capture of b.bin's bytes for a rule that never matched it
+    insert_capture(db, root, &files["b.bin"], RULE_UUID, CaptureRow::default()).await;
+    assert_eq!(label_of(db, &files["b.bin"], RULE_UUID).await.0, None);
+    let sample = sample_of(db, &files["a.bin"], RULE_UUID)
+        .await
+        .expect("a sample");
+    assert_eq!(sample.votes.fp_inherited_single, 1);
+}
+
+/// test_labels.py's `test_an_unreviewed_test_run_casts_no_vote`.
+#[tokio::test]
+async fn an_unreviewed_test_run_casts_no_vote() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let (root, files) =
+        graded_alert(db, Some("DELIVERY"), &[("a.bin", &[RULE_UUID])], &[], true).await;
+    let detection = detection_of(db, root, &files["a.bin"], RULE_UUID).await;
+    let run = attribute_to_run(db, root, detection, RunState::Ended).await;
+    assert_eq!(label_of(db, &files["a.bin"], RULE_UUID).await.0, None);
+    sqlx::query("UPDATE svs.runs SET state = 'reviewed' WHERE id = $1")
+        .bind(run.id)
+        .execute(db.pool())
+        .await
+        .expect("reviews the run");
+    assert_eq!(
+        label_of(db, &files["a.bin"], RULE_UUID).await.0,
+        Some(Label::Tp)
+    );
+}
+
+/// test_labels.py's `test_a_disposition_change_relabels_at_read_time`.
+#[tokio::test]
+async fn a_disposition_change_relabels_at_read_time() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let (root, files) = graded_alert(
+        db,
+        Some("FALSE_POSITIVE"),
+        &[("a.bin", &[RULE_UUID])],
+        &[],
+        true,
+    )
+    .await;
+    assert_eq!(
+        label_of(db, &files["a.bin"], RULE_UUID).await.0,
+        Some(Label::Fp)
+    );
+    set_disposition_row(db, root, Some("DELIVERY")).await;
+    assert_eq!(
+        label_of(db, &files["a.bin"], RULE_UUID).await.0,
+        Some(Label::Tp)
+    );
+}
+
+async fn all_samples(db: &Db, query: &SampleQuery) -> Vec<ace_service::Sample> {
+    let service = service(db);
+    let actor = admin(db).await;
+    let mut samples = Vec::new();
+    let mut cursor: Option<String> = None;
+    loop {
+        let page = service
+            .svs_samples(&actor, query, cursor.as_deref(), Some(2))
+            .await
+            .expect("lists");
+        samples.extend(page.samples);
+        match page.next {
+            Some(next) => cursor = Some(next),
+            None => return samples,
+        }
+    }
+}
+
+/// test_labels.py's `test_sql_agrees_with_python_over_the_whole_corpus`.
+#[tokio::test]
+async fn sql_agrees_with_rust_over_the_whole_corpus() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let actor = admin(db).await;
+    let content = format!("corpus {}", Uuid::new_v4()).into_bytes();
+    let (first, files) = graded_alert(
+        db,
+        Some("DELIVERY"),
+        &[
+            ("a.bin", &[RULE_UUID, OTHER_RULE_UUID]),
+            ("c.bin", &[RULE_UUID]),
+        ],
+        &[("a.bin", &content)],
+        true,
+    )
+    .await;
+    graded_alert(
+        db,
+        Some("FALSE_POSITIVE"),
+        &[("b.bin", &[RULE_UUID])],
+        &[("b.bin", &content)],
+        true,
+    )
+    .await;
+    graded_alert(
+        db,
+        Some("REVIEWED"),
+        &[("d.bin", &[OTHER_RULE_UUID])],
+        &[],
+        true,
+    )
+    .await;
+    let detection = detection_of(db, first, &files["a.bin"], OTHER_RULE_UUID).await;
+    service(db)
+        .set_detection_verdict(&actor, first, detection, Verdict::Fp)
+        .await
+        .expect("sets");
+    let samples = all_samples(db, &SampleQuery::default()).await;
+    assert_eq!(samples.len(), 4);
+    for sample in &samples {
+        assert_sql_agrees(sample);
+    }
+}
+
+/// test_samples.py's `test_a_sample_aggregates_its_captures`.
+#[tokio::test]
+async fn a_sample_aggregates_its_captures() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let sha256 = "ab".repeat(32);
+    let now = chrono::Utc::now();
+    let day = chrono::Duration::days(1);
+    let first = insert_capture(
+        db,
+        Uuid::new_v4(),
+        &sha256,
+        RULE_UUID,
+        CaptureRow {
+            created_at: now - day * 2,
+            file_path: "old.bin",
+            rule_name: "old_name",
+            ..CaptureRow::default()
+        },
+    )
+    .await;
+    insert_capture(
+        db,
+        Uuid::new_v4(),
+        &sha256,
+        RULE_UUID,
+        CaptureRow {
+            created_at: now - day,
+            state: "missing",
+            missing_reason: Some("file"),
+            ..CaptureRow::default()
+        },
+    )
+    .await;
+    let latest = insert_capture(
+        db,
+        Uuid::new_v4(),
+        &sha256,
+        RULE_UUID,
+        CaptureRow {
+            created_at: now,
+            file_path: "dir/new.bin",
+            rule_name: "new_name",
+            file_size: Some(99),
+            missing_reason: Some("match_record"),
+            signature_version: "unknown",
+            ..CaptureRow::default()
+        },
+    )
+    .await;
+    // another rule's sample of the same file is its own sample
+    insert_capture(
+        db,
+        Uuid::new_v4(),
+        &sha256,
+        OTHER_RULE_UUID,
+        CaptureRow::default(),
+    )
+    .await;
+
+    let detail = service(db)
+        .svs_sample(&admin(db).await, &sha256, RULE_UUID)
+        .await
+        .expect("reads");
+    let sample = &detail.sample;
+    assert_eq!(sample.capture_count, 3);
+    assert_eq!(sample.stored, 2);
+    assert_eq!(sample.missing, 1);
+    assert_eq!(sample.missing_data, 2);
+    assert_eq!(sample.unknown_version, 1);
+    let micros = |t: chrono::DateTime<chrono::Utc>| t.timestamp_micros();
+    assert_eq!(micros(sample.first_captured), micros(now - day * 2));
+    assert_eq!(micros(sample.last_captured), micros(now));
+    assert_eq!(sample.latest_capture_id, latest);
+    assert_eq!(
+        (
+            sample.rule_name.as_str(),
+            sample.file_path.as_str(),
+            sample.file_size
+        ),
+        ("new_name", "dir/new.bin", Some(99))
+    );
+    assert_eq!(sample.label, None);
+    assert_eq!(detail.captures.last().map(|c| c.id), Some(first));
+    assert_eq!(
+        sample_of(db, &sha256, OTHER_RULE_UUID)
+            .await
+            .expect("a sample")
+            .capture_count,
+        1
+    );
+    assert_eq!(sample_of(db, &sha256, "no-such-rule").await, None);
+}
+
+/// test_samples.py's `test_missing_by_rule`.
+#[tokio::test]
+async fn missing_by_rule() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let sha256 = "ab".repeat(32);
+    for reason in ["file", "file", "storage"] {
+        insert_capture(
+            db,
+            Uuid::new_v4(),
+            &sha256,
+            RULE_UUID,
+            CaptureRow {
+                state: "missing",
+                missing_reason: Some(reason),
+                ..CaptureRow::default()
+            },
+        )
+        .await;
+    }
+    insert_capture(
+        db,
+        Uuid::new_v4(),
+        &sha256,
+        OTHER_RULE_UUID,
+        CaptureRow {
+            missing_reason: Some("match_record"),
+            rule_name: "other_rule",
+            ..CaptureRow::default()
+        },
+    )
+    .await;
+    insert_capture(
+        db,
+        Uuid::new_v4(),
+        &sha256,
+        RULE_UUID,
+        CaptureRow::default(),
+    )
+    .await;
+    let missing: Vec<(String, String, &str, i64)> = service(db)
+        .svs_missing(&admin(db).await)
+        .await
+        .expect("reads")
+        .into_iter()
+        .map(|m| (m.rule_uuid, m.rule_name, m.reason.as_str(), m.count))
+        .collect();
+    assert_eq!(
+        missing,
+        [
+            (RULE_UUID.to_owned(), "svs_rule".to_owned(), "file", 2),
+            (
+                OTHER_RULE_UUID.to_owned(),
+                "other_rule".to_owned(),
+                "match_record",
+                1
+            ),
+            (RULE_UUID.to_owned(), "svs_rule".to_owned(), "storage", 1),
+        ]
+    );
+}
+
+/// test_samples.py's `test_contributing_detections_of_each_capture`.
+#[tokio::test]
+async fn contributing_detections_of_each_capture() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let (root, files) = graded_alert(
+        db,
+        Some("FALSE_POSITIVE"),
+        &[("a.bin", &[RULE_UUID, OTHER_RULE_UUID])],
+        &[],
+        true,
+    )
+    .await;
+    let sha256 = &files["a.bin"];
+    let orphan = insert_capture(db, Uuid::new_v4(), sha256, RULE_UUID, CaptureRow::default()).await;
+    let detail = service(db)
+        .svs_sample(&admin(db).await, sha256, RULE_UUID)
+        .await
+        .expect("reads");
+    let ours = detail
+        .captures
+        .iter()
+        .find(|c| c.alert == root)
+        .expect("the alert's capture");
+    let [detection] = ours.detections.as_slice() else {
+        panic!("one contributing detection: {:?}", ours.detections);
+    };
+    assert_eq!(
+        detection.detection,
+        detection_of(db, root, sha256, RULE_UUID).await
+    );
+    assert_eq!(
+        (detection.verdict, detection.verdict_source),
+        (Some(Verdict::Fp), Some(VerdictSource::InheritedSingle))
+    );
+    let lonely = detail
+        .captures
+        .iter()
+        .find(|c| c.id == orphan)
+        .expect("the orphan");
+    assert_eq!(lonely.detections, []);
+}
+
+/// test_config.py's `test_the_sample_pool_is_defined`: the pool is the bucket's, held. ace3's is a
+/// node-local, encrypted directory; ace4's bucket is one, shared, and unencrypted, as every pool of it is.
+#[test]
+fn the_sample_pool_is_defined() {
+    let settings = BucketSettings::default();
+    assert_eq!(
+        settings.pools.get(SVS_SAMPLES).map(|p| p.retention),
+        Some(ace_core::bucket::Retention::Held {
+            grace: ace_core::bucket::DEFAULT_GRACE
+        })
+    );
+}
+
+// ---- capture ----
+
+fn svs_candidate(sha256: &str, path: &str, record: bool, version: &str) -> SvsCaptureCandidate {
+    SvsCaptureCandidate {
+        sha256: sha256.to_owned(),
+        rule_uuid: RULE_UUID.to_owned(),
+        rule_name: "svs_rule".to_owned(),
+        namespace: Some("unittest".to_owned()),
+        signature_version: version.to_owned(),
+        file_path: path.to_owned(),
+        yara_meta_tags: Vec::new(),
+        match_record: record.then(|| {
+            json!({
+                "rule": "svs_rule", "namespace": "unittest", "meta": {"uuid": RULE_UUID},
+                "tags": ["unittest"], "commit": version, "target": path,
+                "strings": [[0, "$a", "abc"], [10, "$a", "abc"], [5, "$b", "x"]],
+            })
+        }),
+    }
+}
+
+/// A root with a file whose bytes the bucket holds for it, and the file's observable and sha256.
+async fn captured_file(db: &Db, bucket: &Bucket) -> (Uuid, i64, String) {
+    let bytes = format!("svs sample {}", Uuid::new_v4()).into_bytes();
+    let (root, observable) = file_alert_with(db, bucket, &bytes).await;
+    (root, observable, sha256_hex(&bytes))
+}
+
+/// ace3's `capture` of one candidate: its bytes found, then its row written in a transaction.
+async fn capture_one(
+    db: &Db,
+    bucket: &Bucket,
+    root: Uuid,
+    observable: Option<i64>,
+    candidate: SvsCaptureCandidate,
+) -> CaptureResult {
+    let prepared = svs_samples::prepare(db, bucket, root, observable, vec![candidate])
+        .await
+        .expect("prepares");
+    let mut tx = db.begin().await.expect("begins");
+    let [result] = svs_samples::land(&mut tx, bucket, &prepared)
+        .await
+        .expect("lands")
+        .try_into()
+        .expect("one result");
+    tx.commit().await.expect("commits");
+    result
+}
+
+#[derive(Debug, sqlx::FromRow)]
+struct CaptureView {
+    id: i64,
+    root_id: Uuid,
+    observable_id: Option<i64>,
+    sha256: String,
+    rule_uuid: String,
+    rule_name: String,
+    namespace: Option<String>,
+    signature_version: String,
+    file_path: String,
+    file_size: Option<i64>,
+    yara_meta_tags: Vec<String>,
+    state: String,
+    missing_reason: Option<String>,
+    record: Option<Value>,
+    match_summary: Option<Value>,
+    yara_version: Option<String>,
+    stored_at: Option<chrono::DateTime<chrono::Utc>>,
+}
+
+/// ace3's `capture_rows`, of one file.
+async fn capture_rows(db: &Db, sha256: &str) -> Vec<CaptureView> {
+    sqlx::query_as(
+        "SELECT id, root_id, observable_id, sha256, rule_uuid, rule_name, namespace,
+                signature_version, file_path, file_size, yara_meta_tags, state, missing_reason,
+                record, match_summary, yara_version, stored_at
+         FROM svs.yara_captures WHERE sha256 = $1 ORDER BY id",
+    )
+    .bind(sha256)
+    .fetch_all(db.pool())
+    .await
+    .expect("reads")
+}
+
+/// The holds on a file in the samples pool, as (kind, id).
+async fn sample_holds(db: &Db, sha256: &str) -> Vec<(String, String)> {
+    sqlx::query_as(
+        "SELECT holder_kind, holder_id FROM store.holds WHERE pool = $1 AND sha256 = $2
+         ORDER BY holder_kind, holder_id",
+    )
+    .bind(SVS_SAMPLES)
+    .bind(sha256)
+    .fetch_all(db.pool())
+    .await
+    .expect("reads")
+}
+
+fn hold_of(capture: i64) -> (String, String) {
+    let hold = capture_hold(capture);
+    (hold.kind, hold.id)
+}
+
+/// A subscriber of this thread's own that keeps what's logged, as ace3's `caplog`.
+fn log_capture() -> (Captured, tracing::subscriber::DefaultGuard) {
+    let captured = Captured::default();
+    let subscriber = tracing_subscriber::fmt()
+        .with_max_level(tracing::Level::INFO)
+        .with_ansi(false)
+        .with_writer(captured.clone())
+        .finish();
+    (captured, tracing::subscriber::set_default(subscriber))
+}
+
+/// ace3's `_extras`: the ERROR lines that hold `message`.
+fn errors_with(captured: &Captured, message: &str) -> Vec<String> {
+    let text = String::from_utf8_lossy(&captured.0.lock().expect("a lock")).into_owned();
+    text.lines()
+        .filter(|line| line.contains(" ERROR ") && line.contains(message))
+        .map(str::to_owned)
+        .collect()
+}
+
+fn clear(captured: &Captured) {
+    captured.0.lock().expect("a lock").clear();
+}
+
+/// A bucket whose store can't be reached: a backend that's down.
+fn broken_bucket(db: &Db) -> (Bucket, tempfile::TempDir) {
+    let cache = tempfile::tempdir().expect("a cache directory");
+    let mut config = BucketConfig::from_env().expect("the ACE4_BUCKET_* variables");
+    config.endpoint = Some("http://127.0.0.1:9".to_owned());
+    config.path_style = true;
+    let store = Store::new(
+        &config,
+        NodeCache::new(cache.path(), 1 << 30).expect("a cache"),
+    );
+    (
+        Bucket::new(db.clone(), store, BucketSettings::default()),
+        cache,
+    )
+}
+
+/// test_capture.py's `test_capture_stores_the_file_and_the_record`.
+#[tokio::test]
+async fn capture_stores_the_file_and_the_record() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let (bucket, _cache) = bucket(db);
+    let (root, observable, sha256) = captured_file(db, &bucket).await;
+    let (captured, _logs) = log_capture();
+
+    let result = capture_one(
+        db,
+        &bucket,
+        root,
+        Some(observable),
+        svs_candidate(&sha256, "mail/a.txt", true, SVS_COMMIT),
+    )
+    .await;
+
+    assert_eq!(result.status, CaptureStatus::Stored);
+    let [row] = capture_rows(db, &sha256).await.try_into().expect("one row");
+    assert_eq!(Some(row.id), result.capture);
+    assert_eq!(row.root_id, root);
+    assert_eq!(row.observable_id, Some(observable));
+    assert_eq!(row.sha256, sha256);
+    assert_eq!(row.rule_uuid, RULE_UUID);
+    assert_eq!(row.rule_name, "svs_rule");
+    assert_eq!(row.namespace.as_deref(), Some("unittest"));
+    assert_eq!(row.signature_version, SVS_COMMIT);
+    assert_eq!(row.file_path, "mail/a.txt");
+    assert_eq!(row.file_size, Some(47));
+    assert_eq!(row.yara_meta_tags, Vec::<String>::new());
+    assert_eq!((row.state.as_str(), row.missing_reason), ("stored", None));
+    assert!(row.stored_at.is_some());
+    assert!(row.yara_version.is_some());
+    assert_eq!(
+        row.match_summary.as_ref().expect("a summary")["string_match_count"],
+        3
+    );
+    assert_eq!(row.record.as_ref().expect("a record")["rule"], "svs_rule");
+    // its signature version is known, so it isn't reported
+    assert_eq!(
+        errors_with(&captured, "unknown signature version"),
+        Vec::<String>::new()
+    );
+    // the hold is on the file in the samples pool, by the capture's id
+    assert_eq!(sample_holds(db, &sha256).await, [hold_of(row.id)]);
+    let parsed: ace_results::Sha256 = sha256.parse().expect("a sha256");
+    let kept = bucket.get(SVS_SAMPLES, &parsed).await.expect("kept");
+    assert_eq!(kept.size, 47);
+}
+
+/// test_capture.py's `test_capture_is_idempotent`.
+#[tokio::test]
+async fn capture_is_idempotent() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let (bucket, _cache) = bucket(db);
+    let (root, observable, sha256) = captured_file(db, &bucket).await;
+    let candidate = svs_candidate(&sha256, "mail/a.txt", true, SVS_COMMIT);
+    let first = capture_one(db, &bucket, root, Some(observable), candidate.clone()).await;
+    let second = capture_one(db, &bucket, root, Some(observable), candidate).await;
+    assert_eq!(second.status, CaptureStatus::Already);
+    assert_eq!(second.capture, first.capture);
+    let [row] = capture_rows(db, &sha256).await.try_into().expect("one row");
+    assert_eq!(sample_holds(db, &sha256).await, [hold_of(row.id)]);
+}
+
+/// test_capture.py's `test_a_file_already_in_the_pool_is_captured_without_its_file`: another alert of the
+/// same bytes takes only a hold on what the pool has. The bucket is one, shared by every node, so there's
+/// no node to record.
+#[tokio::test]
+async fn a_file_already_in_the_pool_is_captured_without_its_file() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let (bucket, _cache) = bucket(db);
+    let (root, observable, sha256) = captured_file(db, &bucket).await;
+    let candidate = svs_candidate(&sha256, "mail/a.txt", true, SVS_COMMIT);
+    let first = capture_one(db, &bucket, root, Some(observable), candidate.clone()).await;
+    assert_eq!(first.status, CaptureStatus::Stored);
+    let parsed: ace_results::Sha256 = sha256.parse().expect("a sha256");
+    let put = bucket
+        .object(SVS_SAMPLES, &parsed)
+        .await
+        .expect("reads")
+        .expect("kept");
+    // another alert names the same bytes, and the broken bucket shows nothing is read or put for it
+    let (other, _) = alert_with_file(db, &sha256).await;
+    let (broken, _broken_cache) = broken_bucket(db);
+    let prepared = svs_samples::prepare(db, &bucket, other, None, vec![candidate])
+        .await
+        .expect("prepares");
+    let mut tx = db.begin().await.expect("begins");
+    let [result] = svs_samples::land(&mut tx, &broken, &prepared)
+        .await
+        .expect("lands")
+        .try_into()
+        .expect("one result");
+    tx.commit().await.expect("commits");
+    assert_eq!(result.status, CaptureStatus::Stored);
+    let capture = result.capture.expect("a row");
+    assert!(sample_holds(db, &sha256).await.contains(&hold_of(capture)));
+    let again = bucket
+        .object(SVS_SAMPLES, &parsed)
+        .await
+        .expect("reads")
+        .expect("kept");
+    assert_eq!(
+        again.created_at, put.created_at,
+        "the object wasn't put again"
+    );
+}
+
+/// Another alert with a file observable of `sha256`, and the observable.
+async fn alert_with_file(db: &Db, sha256: &str) -> (Uuid, i64) {
+    let root = NewRoot::new("correlation");
+    let mut tx = db.begin().await.expect("begins");
+    tree::create_root(&mut tx, &root).await.expect("creates");
+    tx.commit().await.expect("commits");
+    let observable = file_observable(db, root.id, "mail/a.txt", sha256).await;
+    (root.id, observable)
+}
+
+/// test_capture.py's `test_a_missing_file_is_recorded_and_reported_once`.
+#[tokio::test]
+async fn a_missing_file_is_recorded_and_reported_once() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let (bucket, _cache) = bucket(db);
+    // a file whose bytes the bucket never had
+    let sha256 = sha256_hex(format!("never kept {}", Uuid::new_v4()).as_bytes());
+    let (root, observable) = alert_with_file(db, &sha256).await;
+    let candidate = svs_candidate(&sha256, "mail/a.txt", true, SVS_COMMIT);
+    let (captured, _logs) = log_capture();
+
+    let result = capture_one(db, &bucket, root, Some(observable), candidate.clone()).await;
+
+    assert_eq!(result.status, CaptureStatus::Missing);
+    let [row] = capture_rows(db, &sha256).await.try_into().expect("one row");
+    assert_eq!(
+        (row.state.as_str(), row.missing_reason.as_deref()),
+        ("missing", Some("file"))
+    );
+    let [line] = errors_with(&captured, "its file is gone")
+        .try_into()
+        .expect("reported once");
+    assert!(line.contains(&root.to_string()), "{line}");
+    assert!(line.contains(&format!("sha256={sha256}")), "{line}");
+    assert!(line.contains(&format!("rule_uuid={RULE_UUID}")), "{line}");
+    assert!(line.contains("missing_reason=\"file\""), "{line}");
+
+    // the next pass tries again, and doesn't report it again
+    clear(&captured);
+    let again = capture_one(db, &bucket, root, Some(observable), candidate).await;
+    assert_eq!(again.status, CaptureStatus::Missing);
+    assert_eq!(
+        errors_with(&captured, "its file is gone"),
+        Vec::<String>::new()
+    );
+    assert_eq!(capture_rows(db, &sha256).await.len(), 1);
+}
+
+/// Bytes that aren't `sha256`'s under its key in the root's files: a file written again since it was
+/// hashed.
+async fn rewrite_root_copy(bucket: &Bucket, sha256: &str) {
+    let parsed: ace_results::Sha256 = sha256.parse().expect("a sha256");
+    let key = Store::key(ALERT_FILES, &parsed).expect("a key");
+    bucket
+        .store()
+        .put_raw(&key, b"and more bytes".to_vec())
+        .await
+        .expect("rewrites");
+}
+
+/// test_capture.py's `test_a_file_that_no_longer_has_its_sha256_is_missing_and_reported_once`.
+#[tokio::test]
+async fn a_file_that_no_longer_has_its_sha256_is_missing_and_reported_once() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let (bucket, _cache) = bucket(db);
+    let (root, observable, sha256) = captured_file(db, &bucket).await;
+    rewrite_root_copy(&bucket, &sha256).await;
+    let candidate = svs_candidate(&sha256, "mail/a.txt", true, SVS_COMMIT);
+    let (captured, _logs) = log_capture();
+
+    let result = capture_one(db, &bucket, root, Some(observable), candidate.clone()).await;
+
+    assert_eq!(result.status, CaptureStatus::Missing);
+    let [row] = capture_rows(db, &sha256).await.try_into().expect("one row");
+    assert_eq!(
+        (row.state.as_str(), row.missing_reason.as_deref()),
+        ("missing", Some("file"))
+    );
+    assert_eq!(sample_holds(db, &sha256).await, []);
+    assert_eq!(
+        errors_with(&captured, "unable to store svs capture"),
+        Vec::<String>::new()
+    );
+    let [line] = errors_with(&captured, "its file now hashes to")
+        .try_into()
+        .expect("reported once");
+    assert!(line.contains("missing_reason=\"file\""), "{line}");
+
+    clear(&captured);
+    assert_eq!(
+        capture_one(db, &bucket, root, Some(observable), candidate)
+            .await
+            .status,
+        CaptureStatus::Missing
+    );
+    assert_eq!(
+        errors_with(&captured, "unable to capture svs sample"),
+        Vec::<String>::new()
+    );
+}
+
+/// test_capture.py's `test_a_file_that_no_longer_has_its_sha256_is_held_from_another_alert`.
+#[tokio::test]
+async fn a_file_that_no_longer_has_its_sha256_is_held_from_another_alert() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let (bucket, _cache) = bucket(db);
+    let (root, observable, sha256) = captured_file(db, &bucket).await;
+    let candidate = svs_candidate(&sha256, "mail/a.txt", true, SVS_COMMIT);
+    assert_eq!(
+        capture_one(db, &bucket, root, Some(observable), candidate.clone())
+            .await
+            .status,
+        CaptureStatus::Stored
+    );
+    // another alert names the same sha256, but the root's copy has other bytes now
+    rewrite_root_copy(&bucket, &sha256).await;
+    let (other, other_observable) = alert_with_file(db, &sha256).await;
+    let result = capture_one(db, &bucket, other, Some(other_observable), candidate).await;
+    assert_eq!(result.status, CaptureStatus::Stored);
+    assert!(
+        sample_holds(db, &sha256)
+            .await
+            .contains(&hold_of(result.capture.expect("a row")))
+    );
+}
+
+/// test_capture.py's `test_a_capture_without_its_record_keeps_the_file`.
+#[tokio::test]
+async fn a_capture_without_its_record_keeps_the_file() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let (bucket, _cache) = bucket(db);
+    let (root, observable, sha256) = captured_file(db, &bucket).await;
+    let (captured, _logs) = log_capture();
+
+    let result = capture_one(
+        db,
+        &bucket,
+        root,
+        Some(observable),
+        svs_candidate(&sha256, "mail/a.txt", false, SVS_COMMIT),
+    )
+    .await;
+
+    assert_eq!(result.status, CaptureStatus::Stored);
+    let [row] = capture_rows(db, &sha256).await.try_into().expect("one row");
+    assert_eq!(
+        (row.state.as_str(), row.missing_reason.as_deref()),
+        ("stored", Some("match_record"))
+    );
+    assert_eq!(row.record, None);
+    assert_eq!(sample_holds(db, &sha256).await, [hold_of(row.id)]);
+    let [line] = errors_with(&captured, "without its match record")
+        .try_into()
+        .expect("reported");
+    assert!(line.contains("missing_reason=\"match_record\""), "{line}");
+
+    // a later pass that has the record adds it
+    let again = capture_one(
+        db,
+        &bucket,
+        root,
+        Some(observable),
+        svs_candidate(&sha256, "mail/a.txt", true, SVS_COMMIT),
+    )
+    .await;
+    assert_eq!(again.status, CaptureStatus::Stored);
+    let [row] = capture_rows(db, &sha256).await.try_into().expect("one row");
+    assert_eq!(row.missing_reason, None);
+    assert!(row.record.is_some());
+    assert_eq!(sample_holds(db, &sha256).await, [hold_of(row.id)]);
+}
+
+/// test_capture.py's `test_a_storage_failure_releases_the_holds_and_is_retried`: the bucket is down when
+/// the bytes go in. The record is the row's here, so it can't fail apart from the file.
+#[tokio::test]
+async fn a_storage_failure_releases_the_holds_and_is_retried() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let (bucket, _cache) = bucket(db);
+    let (broken, _broken_cache) = broken_bucket(db);
+    let (root, observable, sha256) = captured_file(db, &bucket).await;
+    let candidate = svs_candidate(&sha256, "mail/a.txt", true, SVS_COMMIT);
+    let (captured, _logs) = log_capture();
+
+    let prepared =
+        svs_samples::prepare(db, &bucket, root, Some(observable), vec![candidate.clone()])
+            .await
+            .expect("prepares");
+    let mut tx = db.begin().await.expect("begins");
+    let [result] = svs_samples::land(&mut tx, &broken, &prepared)
+        .await
+        .expect("lands")
+        .try_into()
+        .expect("one result");
+    tx.commit().await.expect("commits");
+
+    assert_eq!(result.status, CaptureStatus::Missing);
+    let [row] = capture_rows(db, &sha256).await.try_into().expect("one row");
+    assert_eq!(
+        (row.state.as_str(), row.missing_reason.as_deref()),
+        ("missing", Some("storage"))
+    );
+    assert_eq!(sample_holds(db, &sha256).await, []);
+    let [line] = errors_with(&captured, "unable to store svs capture")
+        .try_into()
+        .expect("reported");
+    assert!(line.contains("missing_reason=\"storage\""), "{line}");
+
+    let again = capture_one(db, &bucket, root, Some(observable), candidate).await;
+    assert_eq!(again.status, CaptureStatus::Stored);
+    let [row] = capture_rows(db, &sha256).await.try_into().expect("one row");
+    assert_eq!((row.state.as_str(), row.missing_reason), ("stored", None));
+}
+
+/// test_capture.py's `test_an_unknown_signature_version_is_reported`.
+#[tokio::test]
+async fn an_unknown_signature_version_is_reported() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let (bucket, _cache) = bucket(db);
+    let (root, observable, sha256) = captured_file(db, &bucket).await;
+    let candidate = svs_candidate(&sha256, "mail/a.txt", true, "unknown");
+    let (captured, _logs) = log_capture();
+
+    capture_one(db, &bucket, root, Some(observable), candidate.clone()).await;
+
+    let [line] = errors_with(&captured, "unknown signature version")
+        .try_into()
+        .expect("reported");
+    assert!(line.contains(&root.to_string()), "{line}");
+    assert!(line.contains(&format!("sha256={sha256}")), "{line}");
+    assert!(line.contains(&format!("rule_uuid={RULE_UUID}")), "{line}");
+
+    // reported when it's stored, not on every pass
+    clear(&captured);
+    capture_one(db, &bucket, root, Some(observable), candidate).await;
+    assert_eq!(
+        errors_with(&captured, "unknown signature version"),
+        Vec::<String>::new()
+    );
+}
+
+// ---- actions ----
+
+/// test_actions.py's `test_relabel_writes_an_explicit_verdict_on_every_contributing_detection`.
+#[tokio::test]
+async fn relabel_writes_an_explicit_verdict_on_every_contributing_detection() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let actor = admin(db).await;
+    let content = format!("svs relabel sample {}", Uuid::new_v4()).into_bytes();
+    let (_, files) = graded_alert(
+        db,
+        Some("DELIVERY"),
+        &[("a.bin", &[RULE_UUID, OTHER_RULE_UUID])],
+        &[("a.bin", &content)],
+        true,
+    )
+    .await;
+    graded_alert(
+        db,
+        Some("DELIVERY"),
+        &[("a.bin", &[RULE_UUID])],
+        &[("a.bin", &content)],
+        true,
+    )
+    .await;
+    let sha256 = &files["a.bin"];
+    assert_eq!(
+        label_of(db, sha256, RULE_UUID).await,
+        (Some(Label::Tp), Some(Strength::InheritedSingle))
+    );
+
+    let change = service(db)
+        .relabel_svs_sample(&actor, sha256, RULE_UUID, Verdict::Fp)
+        .await
+        .expect("relabels");
+
+    assert_eq!(
+        (change.changed, change.unchanged, change.skipped),
+        (2, 0, vec![])
+    );
+    assert_eq!(
+        (change.label, change.label_source),
+        (Some(Label::Fp), Some(Strength::Explicit))
+    );
+    assert_eq!(
+        sample_of(db, sha256, RULE_UUID)
+            .await
+            .expect("a sample")
+            .votes
+            .fp_explicit,
+        2
+    );
+    // the other rule's sample of the same file is untouched
+    assert_eq!(
+        label_of(db, sha256, OTHER_RULE_UUID).await,
+        (Some(Label::Tp), Some(Strength::InheritedMulti))
+    );
+    // again: nothing to change
+    let change = service(db)
+        .relabel_svs_sample(&actor, sha256, RULE_UUID, Verdict::Fp)
+        .await
+        .expect("relabels");
+    assert_eq!((change.changed, change.unchanged), (0, 2));
+}
+
+/// test_actions.py's `test_relabel_skips_the_detections_on_a_false_positive_alert`.
+#[tokio::test]
+async fn relabel_skips_the_detections_on_a_false_positive_alert() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let actor = admin(db).await;
+    let content = format!("svs relabel across classes {}", Uuid::new_v4()).into_bytes();
+    let (fp_alert, files) = graded_alert(
+        db,
+        Some("FALSE_POSITIVE"),
+        &[("a.bin", &[RULE_UUID])],
+        &[("a.bin", &content)],
+        true,
+    )
+    .await;
+    graded_alert(
+        db,
+        Some("DELIVERY"),
+        &[("a.bin", &[RULE_UUID])],
+        &[("a.bin", &content)],
+        true,
+    )
+    .await;
+    let sha256 = &files["a.bin"];
+    assert_eq!(
+        label_of(db, sha256, RULE_UUID).await,
+        (Some(Label::Conflicted), Some(Strength::InheritedSingle))
+    );
+
+    let change = service(db)
+        .relabel_svs_sample(&actor, sha256, RULE_UUID, Verdict::Tp)
+        .await
+        .expect("relabels");
+
+    assert_eq!(change.changed, 1);
+    let [skipped] = change.skipped.as_slice() else {
+        panic!("one skipped: {:?}", change.skipped);
+    };
+    assert_eq!(skipped.alert, fp_alert);
+    assert!(
+        skipped.reason.contains("correct its disposition"),
+        "{}",
+        skipped.reason
+    );
+    // the explicit vote outweighs the FP alert's inherited one
+    assert_eq!(
+        (change.label, change.label_source),
+        (Some(Label::Tp), Some(Strength::Explicit))
+    );
+}
+
+/// test_actions.py's `test_relabel_with_nothing_writable_is_refused`.
+#[tokio::test]
+async fn relabel_with_nothing_writable_is_refused() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let actor = admin(db).await;
+    let (_, files) = graded_alert(
+        db,
+        Some("FALSE_POSITIVE"),
+        &[("a.bin", &[RULE_UUID])],
+        &[],
+        true,
+    )
+    .await;
+    let why = conflict(
+        service(db)
+            .relabel_svs_sample(&actor, &files["a.bin"], RULE_UUID, Verdict::Tp)
+            .await,
+    );
+    assert!(why.contains("correct its disposition"), "{why}");
+    assert_eq!(
+        label_of(db, &files["a.bin"], RULE_UUID).await,
+        (Some(Label::Fp), Some(Strength::InheritedSingle))
+    );
+}
+
+/// test_actions.py's `test_relabel_skips_alerts_whose_disposition_only_ace_sets`.
+#[tokio::test]
+async fn relabel_skips_alerts_whose_disposition_only_ace_sets() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let actor = admin(db).await;
+    let (_, files) =
+        graded_alert(db, Some("SIMULATED"), &[("a.bin", &[RULE_UUID])], &[], true).await;
+    let why = conflict(
+        service(db)
+            .relabel_svs_sample(&actor, &files["a.bin"], RULE_UUID, Verdict::Fp)
+            .await,
+    );
+    assert!(why.contains("set by ACE"), "{why}");
+}
+
+/// test_actions.py's `test_relabel_of_a_sample_whose_alerts_are_gone_is_refused`.
+#[tokio::test]
+async fn relabel_of_a_sample_whose_alerts_are_gone_is_refused() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let actor = admin(db).await;
+    let (root, files) =
+        graded_alert(db, Some("DELIVERY"), &[("a.bin", &[RULE_UUID])], &[], true).await;
+    sqlx::query("DELETE FROM analysis.roots WHERE id = $1")
+        .bind(root)
+        .execute(db.pool())
+        .await
+        .expect("deletes the alert");
+    let why = conflict(
+        service(db)
+            .relabel_svs_sample(&actor, &files["a.bin"], RULE_UUID, Verdict::Fp)
+            .await,
+    );
+    assert!(why.contains("deleted"), "{why}");
+}
+
+fn not_found<T: std::fmt::Debug>(result: Result<T, ServiceError>) -> String {
+    match result {
+        Err(ServiceError::NotFound(why)) => why,
+        other => panic!("not a NotFound: {other:?}"),
+    }
+}
+
+/// test_actions.py's `test_an_unknown_sample`.
+#[tokio::test]
+async fn an_unknown_sample() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let actor = admin(db).await;
+    let sha256 = "ab".repeat(32);
+    not_found(
+        service(db)
+            .relabel_svs_sample(&actor, &sha256, RULE_UUID, Verdict::Fp)
+            .await,
+    );
+    not_found(
+        service(db)
+            .confirm_svs_sample(&actor, &sha256, RULE_UUID)
+            .await,
+    );
+}
+
+/// test_actions.py's `test_reset_clears_the_explicit_verdicts`.
+#[tokio::test]
+async fn reset_clears_the_explicit_verdicts() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let actor = admin(db).await;
+    let service = service(db);
+    let (_, files) =
+        graded_alert(db, Some("DELIVERY"), &[("a.bin", &[RULE_UUID])], &[], true).await;
+    let sha256 = &files["a.bin"];
+    service
+        .relabel_svs_sample(&actor, sha256, RULE_UUID, Verdict::Fp)
+        .await
+        .expect("relabels");
+
+    let change = service
+        .reset_svs_sample_label(&actor, sha256, RULE_UUID)
+        .await
+        .expect("resets");
+    assert_eq!(change.changed, 1);
+    assert_eq!(
+        (change.label, change.label_source),
+        (Some(Label::Tp), Some(Strength::InheritedSingle))
+    );
+    // again: nothing to reset, which isn't an error
+    let change = service
+        .reset_svs_sample_label(&actor, sha256, RULE_UUID)
+        .await
+        .expect("resets");
+    assert_eq!(
+        (change.changed, change.unchanged, change.skipped),
+        (0, 0, vec![])
+    );
+}
+
+/// test_actions.py's `test_reset_leaves_out_the_detections_on_a_false_positive_alert`.
+#[tokio::test]
+async fn reset_leaves_out_the_detections_on_a_false_positive_alert() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let actor = admin(db).await;
+    let service = service(db);
+    let content = format!("svs reset across classes {}", Uuid::new_v4()).into_bytes();
+    let (_, files) = graded_alert(
+        db,
+        Some("FALSE_POSITIVE"),
+        &[("a.bin", &[RULE_UUID])],
+        &[("a.bin", &content)],
+        true,
+    )
+    .await;
+    graded_alert(
+        db,
+        Some("DELIVERY"),
+        &[("a.bin", &[RULE_UUID])],
+        &[("a.bin", &content)],
+        true,
+    )
+    .await;
+    let sha256 = &files["a.bin"];
+    service
+        .relabel_svs_sample(&actor, sha256, RULE_UUID, Verdict::Tp)
+        .await
+        .expect("relabels");
+
+    let change = service
+        .reset_svs_sample_label(&actor, sha256, RULE_UUID)
+        .await
+        .expect("resets");
+    // the FP alert's detection had nothing to clear, so it isn't listed as skipped
+    assert_eq!((change.changed, change.skipped), (1, vec![]));
+    assert_eq!(
+        (change.label, change.label_source),
+        (Some(Label::Conflicted), Some(Strength::InheritedSingle))
+    );
+}
+
+/// test_actions.py's `test_confirm_upgrades_only_the_unconfirmed_detections`.
+#[tokio::test]
+async fn confirm_upgrades_only_the_unconfirmed_detections() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let actor = admin(db).await;
+    let service = service(db);
+    let (_, files) = graded_alert(
+        db,
+        Some("DELIVERY"),
+        &[("a.bin", &[RULE_UUID, OTHER_RULE_UUID])],
+        &[],
+        true,
+    )
+    .await;
+    let sha256 = &files["a.bin"];
+    assert_eq!(
+        label_of(db, sha256, RULE_UUID).await,
+        (Some(Label::Tp), Some(Strength::InheritedMulti))
+    );
+
+    let change = service
+        .confirm_svs_sample(&actor, sha256, RULE_UUID)
+        .await
+        .expect("confirms");
+    assert_eq!(change.changed, 1);
+    assert_eq!(
+        (change.label, change.label_source),
+        (Some(Label::Tp), Some(Strength::Explicit))
+    );
+    assert_eq!(
+        label_of(db, sha256, OTHER_RULE_UUID).await,
+        (Some(Label::Tp), Some(Strength::InheritedMulti))
+    );
+    // nothing left to confirm isn't an error
+    assert_eq!(
+        service
+            .confirm_svs_sample(&actor, sha256, RULE_UUID)
+            .await
+            .expect("confirms")
+            .changed,
+        0
+    );
+}
+
+/// test_actions.py's `test_confirm_leaves_an_fp_override_alone`.
+#[tokio::test]
+async fn confirm_leaves_an_fp_override_alone() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let actor = admin(db).await;
+    let service = service(db);
+    let (_, files) = graded_alert(
+        db,
+        Some("DELIVERY"),
+        &[("a.bin", &[RULE_UUID, OTHER_RULE_UUID])],
+        &[],
+        true,
+    )
+    .await;
+    let sha256 = &files["a.bin"];
+    service
+        .relabel_svs_sample(&actor, sha256, RULE_UUID, Verdict::Fp)
+        .await
+        .expect("relabels");
+    assert_eq!(
+        service
+            .confirm_svs_sample(&actor, sha256, RULE_UUID)
+            .await
+            .expect("confirms")
+            .changed,
+        0
+    );
+    assert_eq!(
+        label_of(db, sha256, RULE_UUID).await,
+        (Some(Label::Fp), Some(Strength::Explicit))
+    );
+}
+
+/// test_actions.py's `test_retire_and_unretire`.
+#[tokio::test]
+async fn retire_and_unretire() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let actor = admin(db).await;
+    let service = service(db);
+    let (_, files) =
+        graded_alert(db, Some("DELIVERY"), &[("a.bin", &[RULE_UUID])], &[], true).await;
+    let sha256 = &files["a.bin"];
+    assert!(
+        !sample_of(db, sha256, RULE_UUID)
+            .await
+            .expect("a sample")
+            .retired
+    );
+
+    let row = service
+        .retire_svs_sample(
+            &actor,
+            sha256,
+            RULE_UUID,
+            "  the rule no longer targets this family  ",
+        )
+        .await
+        .expect("retires");
+    assert_eq!(row.reason, "the rule no longer targets this family");
+    let sample = sample_of(db, sha256, RULE_UUID).await.expect("a sample");
+    assert!(sample.retired);
+    assert_eq!(
+        sample.retired_by.map(|by| by.name),
+        Some(Some("alice".to_owned()))
+    );
+    assert_eq!(
+        sample.retired_reason.as_deref(),
+        Some("the rule no longer targets this family")
+    );
+    assert_eq!(
+        service.svs_retired_pairs(&actor).await.expect("reads"),
+        [(sha256.clone(), RULE_UUID.to_owned())]
+    );
+
+    // retiring a retired sample keeps the first reason
+    service
+        .retire_svs_sample(&actor, sha256, RULE_UUID, "another reason")
+        .await
+        .expect("retires");
+    assert_eq!(
+        sample_of(db, sha256, RULE_UUID)
+            .await
+            .expect("a sample")
+            .retired_reason
+            .as_deref(),
+        Some("the rule no longer targets this family")
+    );
+
+    let row = service
+        .unretire_svs_sample(&actor, sha256, RULE_UUID)
+        .await
+        .expect("unretires");
+    assert!(row.unretired_at.is_some() && !row.retired);
+    assert!(
+        !sample_of(db, sha256, RULE_UUID)
+            .await
+            .expect("a sample")
+            .retired
+    );
+    assert_eq!(service.svs_retired_pairs(&actor).await.expect("reads"), []);
+    not_found(service.unretire_svs_sample(&actor, sha256, RULE_UUID).await);
+
+    // the row is reused, so there's one per pair
+    service
+        .retire_svs_sample(&actor, sha256, RULE_UUID, "retired again")
+        .await
+        .expect("retires");
+    assert_eq!(
+        sample_of(db, sha256, RULE_UUID)
+            .await
+            .expect("a sample")
+            .retired_reason
+            .as_deref(),
+        Some("retired again")
+    );
+    let rows: Vec<(Option<chrono::DateTime<chrono::Utc>>,)> =
+        sqlx::query_as("SELECT unretired_at FROM svs.sample_retirements")
+            .fetch_all(db.pool())
+            .await
+            .expect("reads");
+    assert_eq!(rows, [(None,)]);
+}
+
+/// test_actions.py's `test_retire_needs_a_reason_and_a_sample`.
+#[tokio::test]
+async fn retire_needs_a_reason_and_a_sample() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let actor = admin(db).await;
+    let service = service(db);
+    let (_, files) =
+        graded_alert(db, Some("DELIVERY"), &[("a.bin", &[RULE_UUID])], &[], true).await;
+    let sha256 = &files["a.bin"];
+    assert!(matches!(
+        service
+            .retire_svs_sample(&actor, sha256, RULE_UUID, "   ")
+            .await,
+        Err(ServiceError::InvalidRequest(_))
+    ));
+    not_found(
+        service
+            .retire_svs_sample(&actor, sha256, OTHER_RULE_UUID, "no such sample")
+            .await,
+    );
+    not_found(service.unretire_svs_sample(&actor, sha256, RULE_UUID).await);
+}
+
+/// test_actions.py's `test_retirements_are_seen_by_changed_since`.
+#[tokio::test]
+async fn retirements_are_seen_by_changed_since() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let actor = admin(db).await;
+    let service = service(db);
+    let (_, files) =
+        graded_alert(db, Some("DELIVERY"), &[("a.bin", &[RULE_UUID])], &[], true).await;
+    let sha256 = files["a.bin"].clone();
+    let changed = |since: chrono::DateTime<chrono::Utc>| {
+        let sha256 = sha256.clone();
+        async move {
+            let query = SampleQuery {
+                changed_since: Some(since),
+                filters: vec![FilterEntry::text("SHA256", false, &[&sha256])],
+                ..SampleQuery::default()
+            };
+            !all_samples(db, &query).await.is_empty()
+        }
+    };
+    // nothing else about the sample changed lately
+    // the triggers set updated_at on every change, so a row is aged with its trigger off
+    sqlx::raw_sql(
+        "ALTER TABLE svs.yara_captures DISABLE TRIGGER yara_captures_touch;
+         UPDATE svs.yara_captures SET updated_at = '2020-01-01';
+         ALTER TABLE svs.yara_captures ENABLE TRIGGER yara_captures_touch;
+         UPDATE analysis.roots SET dispositioned_at = '2020-01-01';",
+    )
+    .execute(db.pool())
+    .await
+    .expect("ages it");
+    let since = chrono::Utc::now() - chrono::Duration::minutes(1);
+    assert!(!changed(since).await);
+
+    service
+        .retire_svs_sample(&actor, &sha256, RULE_UUID, "retired")
+        .await
+        .expect("retires");
+    assert!(changed(since).await);
+    sqlx::raw_sql(
+        "ALTER TABLE svs.sample_retirements DISABLE TRIGGER sample_retirements_touch;
+         UPDATE svs.sample_retirements SET updated_at = '2020-01-01';
+         ALTER TABLE svs.sample_retirements ENABLE TRIGGER sample_retirements_touch;",
+    )
+    .execute(db.pool())
+    .await
+    .expect("ages it");
+    assert!(!changed(since).await);
+    service
+        .unretire_svs_sample(&actor, &sha256, RULE_UUID)
+        .await
+        .expect("unretires");
+    assert!(changed(since).await);
+}
+
+/// A file captured for each rule, its bytes in the pool held by each capture as capture holds them, as
+/// ace3's `_stored_sample`. Returns its sha256.
+async fn stored_sample(db: &Db, bucket: &Bucket, rules: &[&str], content: &[u8]) -> String {
+    let (root, files) = graded_alert(
+        db,
+        Some("DELIVERY"),
+        &[("a.bin", rules)],
+        &[("a.bin", content)],
+        true,
+    )
+    .await;
+    let sha256 = files["a.bin"].clone();
+    let spooled = bucket.store().spool_bytes(content).await.expect("spools");
+    for row in capture_rows(db, &sha256).await {
+        if row.root_id != root {
+            continue;
+        }
+        let mut tx = db.begin().await.expect("begins");
+        bucket
+            .put_in(&mut tx, SVS_SAMPLES, &spooled, Some(&capture_hold(row.id)))
+            .await
+            .expect("puts");
+        tx.commit().await.expect("commits");
+    }
+    sha256
+}
+
+async fn pool_has(bucket: &Bucket, sha256: &str) -> bool {
+    let parsed: ace_results::Sha256 = sha256.parse().expect("a sha256");
+    bucket
+        .object(SVS_SAMPLES, &parsed)
+        .await
+        .expect("reads")
+        .is_some()
+}
+
+/// test_actions.py's `test_delete_removes_the_file_from_svs`.
+#[tokio::test]
+async fn delete_removes_the_file_from_svs() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let actor = admin(db).await;
+    let service = service(db);
+    let (bucket, _cache) = bucket(db);
+    let content = format!("svs delete sample {}", Uuid::new_v4()).into_bytes();
+    let sha256 = stored_sample(db, &bucket, &[RULE_UUID, OTHER_RULE_UUID], &content).await;
+    service
+        .retire_svs_sample(&actor, &sha256, RULE_UUID, "retired")
+        .await
+        .expect("retires");
+    let other_content = format!("another svs sample {}", Uuid::new_v4()).into_bytes();
+    let other = stored_sample(db, &bucket, &[RULE_UUID], &other_content).await;
+
+    let deletion = service
+        .delete_svs_sample(&actor, &bucket, &sha256, "legal request 42")
+        .await
+        .expect("deletes");
+
+    assert_eq!(deletion.sha256, sha256);
+    let mut rules = vec![RULE_UUID.to_owned(), OTHER_RULE_UUID.to_owned()];
+    rules.sort();
+    assert_eq!(deletion.rule_uuids, rules);
+    assert_eq!(deletion.capture_count, 2);
+    assert_eq!(deletion.reason, "legal request 42");
+    assert!(deletion.purged_at.is_some());
+    assert_eq!(capture_rows(db, &sha256).await.len(), 0);
+    let retired: i64 =
+        sqlx::query_scalar("SELECT count(*) FROM svs.sample_retirements WHERE sha256 = $1")
+            .bind(&sha256)
+            .fetch_one(db.pool())
+            .await
+            .expect("reads");
+    assert_eq!(retired, 0);
+    // the file is purged, and the bucket has no key for it
+    assert!(!pool_has(&bucket, &sha256).await);
+    let parsed: ace_results::Sha256 = sha256.parse().expect("a sha256");
+    assert!(
+        !bucket
+            .store()
+            .exists(SVS_SAMPLES, &parsed)
+            .await
+            .expect("asks")
+    );
+    // the deletion's audit row is the purge's record
+    let row = last_audit(db).await;
+    assert_eq!(row.action, "delete_svs_sample");
+    // nothing else is touched
+    assert_eq!(capture_rows(db, &other).await.len(), 1);
+    assert!(pool_has(&bucket, &other).await);
+
+    // deleting again returns the first deletion's row
+    assert_eq!(
+        service
+            .delete_svs_sample(&actor, &bucket, &sha256, "again")
+            .await
+            .expect("deletes")
+            .reason,
+        "legal request 42"
+    );
+}
+
+/// test_actions.py's `test_a_match_record_another_capture_holds_is_kept`. A record is its capture's row
+/// here, so another sample of the same record keeps its row, its record and its hold on its own file.
+#[tokio::test]
+async fn another_sample_keeps_its_record_and_its_hold() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let actor = admin(db).await;
+    let (bucket, _cache) = bucket(db);
+    let one = format!("svs delete one {}", Uuid::new_v4()).into_bytes();
+    let keep = format!("svs keep the other {}", Uuid::new_v4()).into_bytes();
+    let sha256 = stored_sample(db, &bucket, &[RULE_UUID], &one).await;
+    let other = stored_sample(db, &bucket, &[RULE_UUID], &keep).await;
+    let [kept] = capture_rows(db, &other).await.try_into().expect("one row");
+
+    service(db)
+        .delete_svs_sample(&actor, &bucket, &sha256, "privacy")
+        .await
+        .expect("deletes");
+
+    let [still] = capture_rows(db, &other).await.try_into().expect("one row");
+    assert_eq!(still.record, kept.record);
+    assert_eq!(sample_holds(db, &other).await, [hold_of(kept.id)]);
+}
+
+/// test_actions.py's `test_an_unfinished_purge_is_retried`: the bucket is down when the bytes go.
+#[tokio::test]
+async fn an_unfinished_purge_is_retried() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let actor = admin(db).await;
+    let service = service(db);
+    let (bucket, _cache) = bucket(db);
+    let (broken, _broken_cache) = broken_bucket(db);
+    let content = format!("svs purge fails {}", Uuid::new_v4()).into_bytes();
+    let sha256 = stored_sample(db, &bucket, &[RULE_UUID], &content).await;
+    let parsed: ace_results::Sha256 = sha256.parse().expect("a sha256");
+
+    let deletion = service
+        .delete_svs_sample(&actor, &broken, &sha256, "privacy")
+        .await
+        .expect("deletes");
+    assert_eq!(deletion.purged_at, None);
+    assert_eq!(capture_rows(db, &sha256).await.len(), 0);
+    assert!(
+        bucket
+            .store()
+            .exists(SVS_SAMPLES, &parsed)
+            .await
+            .expect("asks")
+    );
+
+    let deletion = service
+        .delete_svs_sample(&actor, &bucket, &sha256, "a second reason")
+        .await
+        .expect("deletes");
+    assert!(deletion.purged_at.is_some());
+    assert_eq!(deletion.reason, "privacy");
+    assert!(
+        !bucket
+            .store()
+            .exists(SVS_SAMPLES, &parsed)
+            .await
+            .expect("asks")
+    );
+    assert!(!pool_has(&bucket, &sha256).await);
+}
+
+/// test_actions.py's `test_delete_needs_a_reason_and_a_sample`.
+#[tokio::test]
+async fn delete_needs_a_reason_and_a_sample() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let actor = admin(db).await;
+    let (bucket, _cache) = bucket(db);
+    let sha256 = "ab".repeat(32);
+    assert!(matches!(
+        service(db)
+            .delete_svs_sample(&actor, &bucket, &sha256, " ")
+            .await,
+        Err(ServiceError::InvalidRequest(_))
+    ));
+    not_found(
+        service(db)
+            .delete_svs_sample(&actor, &bucket, &sha256, "privacy")
+            .await,
+    );
+}
+
+/// test_actions.py's `test_a_missing_capture_is_deleted_too`.
+#[tokio::test]
+async fn a_missing_capture_is_deleted_too() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let actor = admin(db).await;
+    let (bucket, _cache) = bucket(db);
+    let sha256 = "cd".repeat(32);
+    insert_capture(
+        db,
+        Uuid::new_v4(),
+        &sha256,
+        RULE_UUID,
+        CaptureRow {
+            state: "missing",
+            missing_reason: Some("file"),
+            ..CaptureRow::default()
+        },
+    )
+    .await;
+    let deletion = service(db)
+        .delete_svs_sample(&actor, &bucket, &sha256, "privacy")
+        .await
+        .expect("deletes");
+    assert_eq!(deletion.capture_count, 1);
+    assert!(deletion.purged_at.is_some());
+    assert_eq!(capture_rows(db, &sha256).await.len(), 0);
+}
+
+/// test_actions.py's `test_deletions_page`.
+#[tokio::test]
+async fn deletions_page() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let actor = admin(db).await;
+    let service = service(db);
+    let (bucket, _cache) = bucket(db);
+    for name in ["first deleted", "second deleted", "third deleted"] {
+        let content = format!("{name} {}", Uuid::new_v4()).into_bytes();
+        let (_, files) = graded_alert(
+            db,
+            Some("DELIVERY"),
+            &[("a.bin", &[RULE_UUID])],
+            &[("a.bin", &content)],
+            true,
+        )
+        .await;
+        service
+            .delete_svs_sample(&actor, &bucket, &files["a.bin"], "privacy")
+            .await
+            .expect("deletes");
+    }
+    let first = service
+        .svs_sample_deletions(&actor, None, None, Some(2))
+        .await
+        .expect("pages");
+    assert_eq!(first.len(), 2);
+    let last = first.last().expect("a row");
+    let rest = service
+        .svs_sample_deletions(&actor, None, Some((last.updated_at, last.id)), Some(2))
+        .await
+        .expect("pages");
+    assert_eq!(rest.len(), 1);
+    let all: BTreeSet<String> = service
+        .svs_sample_deletions(&actor, None, None, Some(10))
+        .await
+        .expect("pages")
+        .into_iter()
+        .map(|d| d.sha256)
+        .collect();
+    assert_eq!(
+        first
+            .iter()
+            .chain(&rest)
+            .map(|d| d.sha256.clone())
+            .collect::<BTreeSet<_>>(),
+        all
+    );
+    assert_eq!(
+        service
+            .svs_sample_deletions(
+                &actor,
+                Some(chrono::Utc::now() + chrono::Duration::days(1)),
+                None,
+                Some(10)
+            )
+            .await
+            .expect("pages"),
+        []
+    );
+}
+
+/// test_actions.py's `test_a_deleted_file_is_not_captured_again`.
+#[tokio::test]
+async fn a_deleted_file_is_not_captured_again() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let actor = admin(db).await;
+    let (bucket, _cache) = bucket(db);
+    let (root, observable, sha256) = captured_file(db, &bucket).await;
+    let candidate = svs_candidate(&sha256, "mail/a.txt", true, SVS_COMMIT);
+    assert_eq!(
+        capture_one(db, &bucket, root, Some(observable), candidate.clone())
+            .await
+            .status,
+        CaptureStatus::Stored
+    );
+    service(db)
+        .delete_svs_sample(&actor, &bucket, &sha256, "privacy")
+        .await
+        .expect("deletes");
+
+    let (other, other_observable) = alert_with_file(db, &sha256).await;
+    let result = capture_one(db, &bucket, other, Some(other_observable), candidate).await;
+
+    assert_eq!(
+        (result.status, result.capture),
+        (CaptureStatus::Deleted, None)
+    );
+    assert_eq!(capture_rows(db, &sha256).await.len(), 0);
+    assert!(!pool_has(&bucket, &sha256).await);
+}
+
+/// test_actions.py's `test_a_capture_that_raced_a_deletion_removes_what_it_wrote`: the deletion commits
+/// after the capture read the bytes and before it lands, so it writes nothing.
+#[tokio::test]
+async fn a_capture_that_raced_a_deletion_writes_nothing() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let actor = admin(db).await;
+    let (bucket, _cache) = bucket(db);
+    let (root, observable, sha256) = captured_file(db, &bucket).await;
+    // another capture of the file, so there's a sample to delete
+    insert_capture(
+        db,
+        Uuid::new_v4(),
+        &sha256,
+        RULE_UUID,
+        CaptureRow::default(),
+    )
+    .await;
+    let candidate = svs_candidate(&sha256, "mail/a.txt", true, SVS_COMMIT);
+    let prepared = svs_samples::prepare(db, &bucket, root, Some(observable), vec![candidate])
+        .await
+        .expect("prepares");
+
+    service(db)
+        .delete_svs_sample(&actor, &bucket, &sha256, "privacy")
+        .await
+        .expect("deletes");
+    let mut tx = db.begin().await.expect("begins");
+    let [result] = svs_samples::land(&mut tx, &bucket, &prepared)
+        .await
+        .expect("lands")
+        .try_into()
+        .expect("one result");
+    tx.commit().await.expect("commits");
+
+    assert_eq!(result.status, CaptureStatus::Deleted);
+    assert_eq!(capture_rows(db, &sha256).await.len(), 0);
+    assert!(!pool_has(&bucket, &sha256).await);
+}
+
+// ---- the samples' audit rows ----
+
+/// A DELIVERY alert's sample of two rules, and the detection of `RULE_UUID` on its file.
+async fn audited_sample(db: &Db) -> (Uuid, String, i64) {
+    let (root, files) = graded_alert(
+        db,
+        Some("DELIVERY"),
+        &[("a.bin", &[RULE_UUID, OTHER_RULE_UUID])],
+        &[],
+        true,
+    )
+    .await;
+    let sha256 = files["a.bin"].clone();
+    let detection = detection_of(db, root, &sha256, RULE_UUID).await;
+    (root, sha256, detection)
+}
+
+fn sample_states(root: Uuid, detection: i64, verdict: Value) -> Value {
+    json!({"verdicts": [{
+        "detection": detection, "alert": root, "signature_uuid": RULE_UUID, "verdict": verdict,
+    }]})
+}
+
+async fn relabel_svs_sample_records_its_row(db: &Db) -> String {
+    let actor = admin(db).await;
+    let (root, sha256, detection) = audited_sample(db).await;
+    service(db)
+        .relabel_svs_sample(&actor, &sha256, RULE_UUID, Verdict::Fp)
+        .await
+        .expect("relabels");
+    let row = last_audit(db).await;
+    assert_eq!(
+        row,
+        AuditRow {
+            actor: boss_json(),
+            action: "relabel_svs_sample".to_owned(),
+            target: ("svs_sample".to_owned(), format!("{sha256}/{RULE_UUID}")),
+            before: Some(sample_states(root, detection, Value::Null)),
+            after: Some(sample_states(root, detection, json!("fp"))),
+            details: json!({
+                "action": "relabel", "verdict": "fp", "changed": 1, "unchanged": 0, "skipped": 0,
+                "detections": [detection],
+            }),
+        }
+    );
+    // again changes nothing, and has no row
+    let rows = audit_rows(db).await.len();
+    service(db)
+        .relabel_svs_sample(&actor, &sha256, RULE_UUID, Verdict::Fp)
+        .await
+        .expect("relabels");
+    assert_eq!(audit_rows(db).await.len(), rows);
+    row.action
+}
+
+async fn reset_svs_sample_label_records_its_row(db: &Db) -> String {
+    let actor = admin(db).await;
+    let (root, sha256, detection) = audited_sample(db).await;
+    service(db)
+        .relabel_svs_sample(&actor, &sha256, RULE_UUID, Verdict::Fp)
+        .await
+        .expect("relabels");
+    service(db)
+        .reset_svs_sample_label(&actor, &sha256, RULE_UUID)
+        .await
+        .expect("resets");
+    let row = last_audit(db).await;
+    assert_eq!(
+        row,
+        AuditRow {
+            actor: boss_json(),
+            action: "reset_svs_sample_label".to_owned(),
+            target: ("svs_sample".to_owned(), format!("{sha256}/{RULE_UUID}")),
+            before: Some(sample_states(root, detection, json!("fp"))),
+            after: Some(sample_states(root, detection, Value::Null)),
+            details: json!({
+                "action": "reset", "verdict": null, "changed": 1, "unchanged": 0, "skipped": 0,
+                "detections": [detection],
+            }),
+        }
+    );
+    row.action
+}
+
+async fn confirm_svs_sample_records_its_row(db: &Db) -> String {
+    let actor = admin(db).await;
+    let (root, sha256, detection) = audited_sample(db).await;
+    service(db)
+        .confirm_svs_sample(&actor, &sha256, RULE_UUID)
+        .await
+        .expect("confirms");
+    let row = last_audit(db).await;
+    assert_eq!(
+        row,
+        AuditRow {
+            actor: boss_json(),
+            action: "confirm_svs_sample".to_owned(),
+            target: ("svs_sample".to_owned(), format!("{sha256}/{RULE_UUID}")),
+            before: Some(sample_states(root, detection, Value::Null)),
+            after: Some(sample_states(root, detection, json!("tp"))),
+            details: json!({
+                "action": "confirm", "verdict": "tp", "changed": 1, "unchanged": 0, "skipped": 0,
+                "detections": [detection],
+            }),
+        }
+    );
+    row.action
+}
+
+async fn retire_svs_sample_records_its_row(db: &Db) -> String {
+    let actor = admin(db).await;
+    let (_, sha256, _) = audited_sample(db).await;
+    service(db)
+        .retire_svs_sample(&actor, &sha256, RULE_UUID, " a stale sample ")
+        .await
+        .expect("retires");
+    let row = last_audit(db).await;
+    assert_eq!(
+        row,
+        AuditRow {
+            actor: boss_json(),
+            action: "retire_svs_sample".to_owned(),
+            target: ("svs_sample".to_owned(), format!("{sha256}/{RULE_UUID}")),
+            before: None,
+            after: Some(json!({"retired": true, "reason": "a stale sample"})),
+            details: json!({}),
+        }
+    );
+    // retiring it again changes nothing, and has no row
+    let rows = audit_rows(db).await.len();
+    service(db)
+        .retire_svs_sample(&actor, &sha256, RULE_UUID, "again")
+        .await
+        .expect("retires");
+    assert_eq!(audit_rows(db).await.len(), rows);
+    row.action
+}
+
+async fn unretire_svs_sample_records_its_row(db: &Db) -> String {
+    let actor = admin(db).await;
+    let (_, sha256, _) = audited_sample(db).await;
+    service(db)
+        .retire_svs_sample(&actor, &sha256, RULE_UUID, "stale")
+        .await
+        .expect("retires");
+    service(db)
+        .unretire_svs_sample(&actor, &sha256, RULE_UUID)
+        .await
+        .expect("unretires");
+    let row = last_audit(db).await;
+    assert_eq!(
+        row,
+        AuditRow {
+            actor: boss_json(),
+            action: "unretire_svs_sample".to_owned(),
+            target: ("svs_sample".to_owned(), format!("{sha256}/{RULE_UUID}")),
+            before: Some(json!({"retired": true, "reason": "stale"})),
+            after: Some(json!({"retired": false, "reason": "stale"})),
+            details: json!({}),
+        }
+    );
+    row.action
+}
+
+async fn delete_svs_sample_records_its_row(db: &Db) -> String {
+    let actor = admin(db).await;
+    let (bucket, _cache) = bucket(db);
+    let (_, sha256, _) = audited_sample(db).await;
+    let ids: Vec<i64> = capture_rows(db, &sha256)
+        .await
+        .iter()
+        .map(|r| r.id)
+        .collect();
+    service(db)
+        .delete_svs_sample(&actor, &bucket, &sha256, "legal request 7")
+        .await
+        .expect("deletes");
+    let row = last_audit(db).await;
+    let mut rules = vec![RULE_UUID, OTHER_RULE_UUID];
+    rules.sort_unstable();
+    assert_eq!(
+        row,
+        AuditRow {
+            actor: boss_json(),
+            action: "delete_svs_sample".to_owned(),
+            target: ("svs_sample_file".to_owned(), sha256.clone()),
+            before: Some(json!({
+                "reason": "legal request 7", "rule_uuids": rules, "capture_count": 2,
+                "captures": ids,
+            })),
+            after: None,
+            details: json!({}),
+        }
+    );
+    // deleting it again only retries the purge, and has no row
+    let rows = audit_rows(db).await.len();
+    service(db)
+        .delete_svs_sample(&actor, &bucket, &sha256, "again")
+        .await
+        .expect("deletes");
+    assert_eq!(audit_rows(db).await.len(), rows);
+    row.action
+}
+
+async fn download_svs_sample_records_its_row(db: &Db) -> String {
+    let actor = admin(db).await;
+    let (_, sha256, _) = audited_sample(db).await;
+    let download = service(db)
+        .download_svs_sample(&actor, &sha256, RULE_UUID)
+        .await
+        .expect("downloads");
+    assert_eq!(download.files.len(), 1);
+    let row = last_audit(db).await;
+    assert_eq!(
+        row,
+        AuditRow {
+            actor: boss_json(),
+            action: "download_svs_sample".to_owned(),
+            target: ("svs_sample".to_owned(), format!("{sha256}/{RULE_UUID}")),
+            before: None,
+            after: None,
+            details: json!({"filters": null, "rule_uuid": RULE_UUID, "sha256s": [sha256]}),
+        }
+    );
+    row.action
+}
+
+async fn download_svs_samples_records_its_row(db: &Db) -> String {
+    let actor = admin(db).await;
+    let (_, sha256, _) = audited_sample(db).await;
+    let query = SampleQuery {
+        filters: vec![FilterEntry::text("SHA256", false, &[&sha256])],
+        ..SampleQuery::default()
+    };
+    let download = service(db)
+        .download_svs_samples(&actor, &query)
+        .await
+        .expect("downloads");
+    // the file once, whatever the number of rules it matched
+    let [file] = download.files.as_slice() else {
+        panic!("one file: {download:?}");
+    };
+    assert_eq!(file.rule_uuids.len(), 2);
+    let row = last_audit(db).await;
+    assert_eq!(
+        row,
+        AuditRow {
+            actor: boss_json(),
+            action: "download_svs_samples".to_owned(),
+            target: ("svs_samples".to_owned(), "download".to_owned()),
+            before: None,
+            after: None,
+            details: json!({
+                "filters": [{"name": "SHA256", "inverted": false, "values": [sha256]}],
+                "rule_uuid": null, "sha256s": [sha256],
+            }),
+        }
+    );
+    row.action
+}
+
+/// Every sample's captures, retirements and deletions, and the verdicts on detections, as text.
+async fn sample_rows(db: &Db) -> Vec<String> {
+    sqlx::query_scalar(
+        "SELECT 'capture ' || row_to_json(c)::text FROM svs.yara_captures c
+         UNION ALL SELECT 'retirement ' || row_to_json(r)::text FROM svs.sample_retirements r
+         UNION ALL SELECT 'deletion ' || row_to_json(d)::text FROM svs.sample_deletions d
+         UNION ALL SELECT 'verdict ' || row_to_json(v)::text FROM analysis.detection_verdicts v
+         UNION ALL SELECT 'hold ' || row_to_json(h)::text FROM store.holds h WHERE h.pool = 'svs_samples'
+         ORDER BY 1",
+    )
+    .fetch_all(db.pool())
+    .await
+    .expect("reads")
+}
+
+fn denied<T: std::fmt::Debug>(result: Result<T, ServiceError>) -> String {
+    match result {
+        Err(ServiceError::PermissionDenied { permission, .. }) => permission.to_string(),
+        other => panic!("not refused: {other:?}"),
+    }
+}
+
+/// The samples' permissions, ace3's: `signature:read` reads them and isn't downloading
+/// (`signature:download`); relabel, reset and confirm need `alert:write` and `signature:read`, and
+/// retire and delete `svs:admin`. A refusal writes nothing and has no row.
+#[tokio::test]
+async fn sample_actions_follow_their_permissions() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let service = service(db);
+    let (bucket, _cache) = bucket(db);
+    let (_, sha256, _) = audited_sample(db).await;
+    let reader = holding(&service, db, "reader", &[("signature", "read")]).await;
+    let writer = holding(&service, db, "writer", &[("alert", "write")]).await;
+    let grader = holding(
+        &service,
+        db,
+        "grader",
+        &[("alert", "write"), ("signature", "read")],
+    )
+    .await;
+    let rows = audit_rows(db).await.len();
+
+    service
+        .svs_sample(&reader, &sha256, RULE_UUID)
+        .await
+        .expect("reads");
+    service
+        .svs_samples(&reader, &SampleQuery::default(), None, None)
+        .await
+        .expect("lists");
+    service.svs_missing(&reader).await.expect("reads");
+    assert_eq!(
+        denied(
+            service
+                .download_svs_sample(&reader, &sha256, RULE_UUID)
+                .await
+        ),
+        "signature:download"
+    );
+    assert_eq!(
+        denied(
+            service
+                .download_svs_samples(&reader, &SampleQuery::default())
+                .await
+        ),
+        "signature:download"
+    );
+    assert_eq!(
+        denied(
+            service
+                .relabel_svs_sample(&reader, &sha256, RULE_UUID, Verdict::Fp)
+                .await
+        ),
+        "alert:write"
+    );
+    assert_eq!(
+        denied(
+            service
+                .relabel_svs_sample(&writer, &sha256, RULE_UUID, Verdict::Fp)
+                .await
+        ),
+        "signature:read"
+    );
+    assert_eq!(
+        denied(
+            service
+                .reset_svs_sample_label(&writer, &sha256, RULE_UUID)
+                .await
+        ),
+        "signature:read"
+    );
+    assert_eq!(
+        denied(
+            service
+                .confirm_svs_sample(&writer, &sha256, RULE_UUID)
+                .await
+        ),
+        "signature:read"
+    );
+    assert_eq!(
+        denied(service.svs_sample(&writer, &sha256, RULE_UUID).await),
+        "signature:read"
+    );
+    for actor in [&reader, &grader] {
+        assert_eq!(
+            denied(
+                service
+                    .retire_svs_sample(actor, &sha256, RULE_UUID, "stale")
+                    .await
+            ),
+            "svs:admin"
+        );
+        assert_eq!(
+            denied(service.unretire_svs_sample(actor, &sha256, RULE_UUID).await),
+            "svs:admin"
+        );
+        assert_eq!(
+            denied(
+                service
+                    .delete_svs_sample(actor, &bucket, &sha256, "privacy")
+                    .await
+            ),
+            "svs:admin"
+        );
+    }
+    assert_eq!(audit_rows(db).await.len(), rows, "no refusal has a row");
+    service
+        .relabel_svs_sample(&grader, &sha256, RULE_UUID, Verdict::Fp)
+        .await
+        .expect("relabels");
+}
+
+/// A listing pages in every order without skipping or repeating a sample, a cursor belongs to its order,
+/// and a sample captured again between pages is neither skipped nor repeated: ace3's API cases of
+/// `TestPaging`.
+#[tokio::test]
+async fn every_sort_pages_without_skip_or_repeat() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let service = service(db);
+    let actor = admin(db).await;
+    let mut expected = BTreeSet::new();
+    for (index, disposition) in ["DELIVERY", "FALSE_POSITIVE", "REVIEWED", "DELIVERY"]
+        .into_iter()
+        .enumerate()
+    {
+        let rules: &[&str] = if index % 2 == 0 {
+            &[RULE_UUID, OTHER_RULE_UUID]
+        } else {
+            &[RULE_UUID]
+        };
+        let (_, files) = graded_alert(db, Some(disposition), &[("a.bin", rules)], &[], true).await;
+        for rule in rules {
+            expected.insert((files["a.bin"].clone(), (*rule).to_owned()));
+        }
+    }
+    for sort in SampleSort::ALL {
+        for descending in [false, true] {
+            let query = SampleQuery {
+                sort,
+                descending,
+                ..SampleQuery::default()
+            };
+            let seen: Vec<(String, String)> = all_samples(db, &query)
+                .await
+                .into_iter()
+                .map(|s| (s.sha256, s.rule_uuid))
+                .collect();
+            assert_eq!(seen.len(), expected.len(), "{sort:?} {descending}");
+            assert_eq!(
+                seen.iter().cloned().collect::<BTreeSet<_>>(),
+                expected,
+                "{sort:?} {descending}"
+            );
+        }
+    }
+    // a cursor belongs to its order
+    let first = service
+        .svs_samples(&actor, &SampleQuery::default(), None, Some(2))
+        .await
+        .expect("lists");
+    let cursor = first.next.expect("more");
+    let other = SampleQuery {
+        sort: SampleSort::Rule,
+        ..SampleQuery::default()
+    };
+    assert!(matches!(
+        service
+            .svs_samples(&actor, &other, Some(&cursor), Some(2))
+            .await,
+        Err(ServiceError::InvalidRequest(_))
+    ));
+    assert!(matches!(
+        service
+            .svs_samples(
+                &actor,
+                &SampleQuery::default(),
+                Some("not a cursor"),
+                Some(2)
+            )
+            .await,
+        Err(ServiceError::InvalidRequest(_))
+    ));
+    // a sample captured again between pages: newest first, so the first page's samples would move
+    let listed: Vec<ace_service::Sample> = first.samples;
+    insert_capture(
+        db,
+        Uuid::new_v4(),
+        &listed[0].sha256,
+        &listed[0].rule_uuid,
+        CaptureRow::default(),
+    )
+    .await;
+    let mut seen: Vec<(String, String)> = listed
+        .iter()
+        .map(|s| (s.sha256.clone(), s.rule_uuid.clone()))
+        .collect();
+    let mut next = Some(cursor);
+    while let Some(cursor) = next {
+        let page = service
+            .svs_samples(&actor, &SampleQuery::default(), Some(&cursor), Some(2))
+            .await
+            .expect("lists");
+        seen.extend(page.samples.into_iter().map(|s| (s.sha256, s.rule_uuid)));
+        next = page.next;
+    }
+    assert_eq!(seen.len(), expected.len());
+    assert_eq!(seen.into_iter().collect::<BTreeSet<_>>(), expected);
+}
+
+/// The samples screen's filters, ace3's `TestFilters`: each one, inverted, and the ones over captures.
+#[tokio::test]
+async fn sample_filters_match_what_they_say() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let actor = admin(db).await;
+    let (fp_alert, fp) = graded_alert(
+        db,
+        Some("FALSE_POSITIVE"),
+        &[("fp.bin", &[RULE_UUID])],
+        &[],
+        true,
+    )
+    .await;
+    let (_, tp) = graded_alert(
+        db,
+        Some("DELIVERY"),
+        &[("dir/tp.doc", &[OTHER_RULE_UUID])],
+        &[],
+        true,
+    )
+    .await;
+    let (_, open) = graded_alert(db, None, &[("open.exe", &[RULE_UUID])], &[], true).await;
+    insert_capture(
+        db,
+        Uuid::new_v4(),
+        &open["open.exe"],
+        RULE_UUID,
+        CaptureRow {
+            state: "missing",
+            missing_reason: Some("file"),
+            signature_version: "unknown",
+            file_path: "open.exe",
+            ..CaptureRow::default()
+        },
+    )
+    .await;
+    service(db)
+        .retire_svs_sample(&actor, &tp["dir/tp.doc"], OTHER_RULE_UUID, "stale")
+        .await
+        .expect("retires");
+    let names = |filters: Vec<FilterEntry>| async move {
+        let query = SampleQuery {
+            filters,
+            sort: SampleSort::Sha256,
+            descending: false,
+            ..SampleQuery::default()
+        };
+        all_samples(db, &query)
+            .await
+            .into_iter()
+            .map(|s| s.file_path)
+            .collect::<BTreeSet<_>>()
+    };
+    let set = |names: &[&str]| {
+        names
+            .iter()
+            .map(|n| (*n).to_owned())
+            .collect::<BTreeSet<_>>()
+    };
+    let f = FilterEntry::text;
+    assert_eq!(
+        names(vec![f("Label", false, &["fp"])]).await,
+        set(&["fp.bin"])
+    );
+    assert_eq!(
+        names(vec![f("Label", false, &["none"])]).await,
+        set(&["open.exe"])
+    );
+    assert_eq!(
+        names(vec![f("Label", true, &["none"])]).await,
+        set(&["fp.bin", "dir/tp.doc"])
+    );
+    assert_eq!(
+        names(vec![f("Label Source", false, &["inherited_single"])]).await,
+        set(&["fp.bin", "dir/tp.doc"])
+    );
+    assert_eq!(
+        names(vec![f("Signature", false, &[OTHER_RULE_UUID])]).await,
+        set(&["dir/tp.doc"])
+    );
+    assert_eq!(
+        names(vec![f("Signature", true, &[OTHER_RULE_UUID])]).await,
+        set(&["fp.bin", "open.exe"])
+    );
+    assert_eq!(
+        names(vec![f("SHA256", false, &[&fp["fp.bin"].to_uppercase()])]).await,
+        set(&["fp.bin"])
+    );
+    assert_eq!(
+        names(vec![f("Alert", false, &[&fp_alert.to_string()])]).await,
+        set(&["fp.bin"])
+    );
+    assert_eq!(
+        names(vec![f("File Name", false, &["TP.d"])]).await,
+        set(&["dir/tp.doc"])
+    );
+    assert_eq!(
+        names(vec![f("Rule", false, &["SVS_RULE"])]).await,
+        set(&["fp.bin", "dir/tp.doc", "open.exe"])
+    );
+    assert_eq!(
+        names(vec![f("Retired", false, &["true"])]).await,
+        set(&["dir/tp.doc"])
+    );
+    assert_eq!(
+        names(vec![f("Retired", true, &["true"])]).await,
+        set(&["fp.bin", "open.exe"])
+    );
+    assert_eq!(
+        names(vec![f("Retired", false, &["true", "false"])])
+            .await
+            .len(),
+        3
+    );
+    assert_eq!(
+        names(vec![f("Retired", true, &["true", "false"])]).await,
+        set(&[])
+    );
+    assert_eq!(
+        names(vec![f("Missing Data", false, &["true"])]).await,
+        set(&["open.exe"])
+    );
+    assert_eq!(
+        names(vec![f("Unknown Version", false, &["true"])]).await,
+        set(&["open.exe"])
+    );
+    assert_eq!(names(vec![f("Stored", false, &["false"])]).await, set(&[]));
+    assert_eq!(
+        names(vec![f("Last Captured", false, &["-7d"])]).await.len(),
+        3
+    );
+    assert_eq!(
+        names(vec![f("Last Captured", true, &["-7d"])]).await,
+        set(&[])
+    );
+    for bad in [
+        f("SHA256", false, &["not a sha"]),
+        f("Signature", false, &["has space"]),
+        f("Alert", false, &["not-a-uuid"]),
+        f("Label", false, &["maybe"]),
+        f("Last Captured", false, &["yesterday-ish"]),
+        f("Nope", false, &["x"]),
+    ] {
+        let query = SampleQuery {
+            filters: vec![bad.clone()],
+            ..SampleQuery::default()
+        };
+        assert!(
+            matches!(
+                service(db).svs_samples(&actor, &query, None, None).await,
+                Err(ServiceError::InvalidRequest(_))
+            ),
+            "{bad:?}"
+        );
+    }
 }

@@ -105,6 +105,11 @@ async fn stack_from(build: impl FnOnce(Service) -> Gui) -> Stack {
 
 /// A stack whose modules are `catalog`'s.
 async fn stack_of(catalog: Catalog, build: impl FnOnce(Service) -> Gui) -> Stack {
+    stack_of_db(catalog, |service, _| build(service)).await
+}
+
+/// `stack_of`, building the GUI with the stack's database too.
+async fn stack_of_db(catalog: Catalog, build: impl FnOnce(Service, &ace_core::Db) -> Gui) -> Stack {
     let test_db = TestDb::new().await;
     let orchestrator = Orchestrator::new(catalog, Modes::ace3());
     // ace3's dispositions with two of the site's own, one of which only ACE sets
@@ -116,7 +121,7 @@ async fn stack_of(catalog: Catalog, build: impl FnOnce(Service) -> Gui) -> Stack
     let service = Service::new(test_db.db().clone(), orchestrator)
         .with_actions(test_actions())
         .with_dispositions(ace_service::Dispositions::configured(&overlay).expect("good sections"));
-    let gui = build(service.clone());
+    let gui = build(service.clone(), test_db.db());
     let router = gui.router();
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
         .await
@@ -11470,4 +11475,547 @@ async fn detection_verdicts_are_set_through_the_alert_page() {
         .expect("answered");
     assert_eq!(refused.status(), StatusCode::CONFLICT);
     assert_eq!(stack.audit_count().await, audits);
+}
+
+// ---- the signatures area's samples (PLAN.md 7.10 batch 2) ----
+
+use ace_gui::svs_samples::{
+    ConfirmDeletePage, DeleteView, DeletedPage, SamplePage, SamplesPage, sample_href, sample_row,
+    sample_view, samples_view,
+};
+use ace_service::{
+    CaptureState, MissingCount, MissingReason, Sample, SampleCapture, SampleDetail,
+    SampleDetection, SampleLabel, SampleQuery, SampleVotes, VoteStrength,
+};
+
+const SVS_SHA: &str = "abababababababababababababababababababababababababababababababab";
+const SVS_RULE: &str = "7d1c2a4e-5b6f-4c3d-9e8f-0a1b2c3d4e5f";
+
+fn fixture_sample(label: Option<SampleLabel>) -> Sample {
+    let at = chrono::DateTime::from_timestamp(1_700_000_000, 0).expect("a time");
+    Sample {
+        sha256: SVS_SHA.to_owned(),
+        rule_uuid: SVS_RULE.to_owned(),
+        rule_name: HOSTILE.to_owned(),
+        namespace: Some(HOSTILE.to_owned()),
+        file_path: HOSTILE.to_owned(),
+        file_size: Some(2048),
+        capture_count: 2,
+        stored: 1,
+        missing: 1,
+        missing_data: 1,
+        unknown_version: 1,
+        first_captured: at,
+        last_captured: at,
+        updated_at: at,
+        latest_capture_id: 2,
+        label,
+        label_source: label.map(|_| VoteStrength::InheritedMulti),
+        votes: SampleVotes {
+            tp_inherited_multi: 1,
+            ..SampleVotes::default()
+        },
+        retired: true,
+        retired_by: Some(RecordedActor {
+            kind: "user".to_owned(),
+            id: "x".to_owned(),
+            name: Some(HOSTILE.to_owned()),
+        }),
+        retired_at: Some(at),
+        retired_reason: Some(HOSTILE.to_owned()),
+    }
+}
+
+fn fixture_detail(refusal: Option<&str>) -> SampleDetail {
+    let at = chrono::DateTime::from_timestamp(1_700_000_000, 0).expect("a time");
+    let alert = uuid::Uuid::from_u128(7);
+    SampleDetail {
+        sample: fixture_sample(Some(SampleLabel::Tp)),
+        captures: vec![SampleCapture {
+            id: 2,
+            alert,
+            observable: Some(3),
+            rule_name: HOSTILE.to_owned(),
+            namespace: None,
+            signature_version: HOSTILE.to_owned(),
+            rule_content_hash: None,
+            file_path: HOSTILE.to_owned(),
+            file_size: Some(10),
+            yara_meta_tags: vec![HOSTILE.to_owned()],
+            state: CaptureState::Stored,
+            missing_reason: Some(MissingReason::MatchRecord),
+            has_record: true,
+            match_summary: Some(serde_json::json!({"string_match_count": 3})),
+            yara_version: Some("1".to_owned()),
+            created_at: at,
+            stored_at: Some(at),
+            updated_at: at,
+            detections: vec![SampleDetection {
+                detection: 9,
+                verdict: Some(Verdict::Tp),
+                verdict_source: Some(VerdictSource::InheritedMulti),
+                override_verdict: None,
+                override_by: None,
+                override_set_at: None,
+            }],
+        }],
+        relabel_refusal: refusal.map(str::to_owned),
+    }
+}
+
+/// The samples views, called directly: the list with its filters, sorts, pages, exports and missing
+/// counts, a sample with its captures and the forms its viewer may use, the deletion's confirm and its
+/// answer, each with hostile text escaped and nothing inline.
+#[test]
+fn the_samples_views_draw_samples_captures_and_deletions() {
+    let layout = || {
+        Layout::new(
+            "n",
+            Theme::default(),
+            Some("analyst".to_owned()),
+            "/signatures",
+        )
+    };
+    assert_eq!(
+        sample_href(SVS_SHA, "a b/c"),
+        format!("/signatures/samples/{SVS_SHA}/a%20b%2Fc")
+    );
+    let query = SampleQuery {
+        filters: vec![FilterEntry::text("Label", false, &["tp"])],
+        ..SampleQuery::default()
+    };
+    let missing = [MissingCount {
+        rule_uuid: SVS_RULE.to_owned(),
+        rule_name: HOSTILE.to_owned(),
+        reason: MissingReason::File,
+        count: 4,
+    }];
+    let samples = [
+        fixture_sample(Some(SampleLabel::Conflicted)),
+        fixture_sample(None),
+    ];
+    let view = samples_view(
+        &query,
+        vec!["label:tp".to_owned()],
+        &samples,
+        Some("c1"),
+        Some("c2"),
+        true,
+        &missing,
+    );
+    let page = drawn_safely(&SamplesPage {
+        layout: layout(),
+        view,
+    });
+    assert!(
+        page.contains(r#"value="tp" placeholder="tp, fp, conflicted, none""#),
+        "{page}"
+    );
+    assert!(
+        page.contains(r#"<span class="badge disposition-warning""#),
+        "{page}"
+    );
+    assert!(
+        page.contains(r#"<span class="muted">none</span>"#),
+        "{page}"
+    );
+    assert!(page.contains(r#"<span class="badge disposition-secondary">retired</span>"#));
+    assert!(page.contains(r#"<a href="/signatures/samples?f=label%3Atp&#38;sort=last_captured&#38;desc=true">First</a>"#), "{page}");
+    assert!(page.contains(r#"cursor=c2" rel="next">Next</a>"#), "{page}");
+    assert!(
+        page.contains(r#"href="/api/svs/v1/samples/export/csv?f=label%3Atp"#),
+        "{page}"
+    );
+    assert!(page.contains(r#"<a href="/api/svs/v1/samples/download?f=label%3Atp" title="password: infected">Download files</a>"#), "{page}");
+    assert!(page.contains("<h2>Captures missing something</h2>"));
+    let plain = samples_view(&query, Vec::new(), &[], None, None, false, &[]);
+    let page = drawn_safely(&SamplesPage {
+        layout: layout(),
+        view: plain,
+    });
+    assert!(page.contains("No samples."));
+    assert!(
+        !page.contains("Download files") && !page.contains("Next"),
+        "{page}"
+    );
+
+    // a sample: a reader sees no forms
+    let detail = fixture_detail(None);
+    let page = drawn_safely(&SamplePage {
+        layout: layout(),
+        view: sample_view(&detail, false, false, false, None),
+    });
+    for absent in [
+        r#"<form method="post" action="/signatures/samples"#,
+        "Download the file",
+        "Delete this file",
+    ] {
+        assert!(!page.contains(absent), "{absent}: {page}");
+    }
+    assert!(page.contains(r#"<a href="/api/svs/v1/samples/captures/2/record">Match record</a>"#));
+    assert!(page.contains(r#"<a href="/alerts/00000000-0000-0000-0000-000000000007">"#));
+    assert!(
+        page.contains(r#"<span class="badge verdict-tp">tp</span> inherited_multi"#),
+        "{page}"
+    );
+    // alert:write: the label forms, Confirm with an unconfirmed detection; svs:admin and download too
+    let page = drawn_safely(&SamplePage {
+        layout: layout(),
+        view: sample_view(&detail, true, true, true, Some("relabeled")),
+    });
+    let href = sample_href(SVS_SHA, SVS_RULE);
+    for form in [
+        format!(
+            r#"<form method="post" action="{href}/label" class="inline"><input type="hidden" name="verdict" value="fp">"#
+        ),
+        format!(r#"<form method="post" action="{href}/confirm" class="inline">"#),
+        format!(r#"<form method="post" action="{href}/unretire" class="inline">"#),
+        format!(r#"<a href="/signatures/samples/{SVS_SHA}/delete">"#),
+        format!(r#"<a href="/api/svs/v1/samples/{SVS_SHA}/{SVS_RULE}/download""#),
+    ] {
+        assert!(page.contains(&form), "{form}: {page}");
+    }
+    assert!(page.contains("have the verdict"), "{page}");
+    // a relabel that would be refused shows why in place of its forms
+    let refused = drawn_safely(&SamplePage {
+        layout: layout(),
+        view: sample_view(
+            &fixture_detail(Some("every detection is <b>FP</b>")),
+            true,
+            false,
+            false,
+            None,
+        ),
+    });
+    assert!(
+        refused.contains("every detection is &#60;b&#62;FP&#60;/b&#62;"),
+        "{refused}"
+    );
+    assert!(!refused.contains("/label\""), "{refused}");
+
+    let confirm = drawn_safely(&ConfirmDeletePage {
+        layout: layout(),
+        view: DeleteView {
+            sha256: SVS_SHA.to_owned(),
+            action: format!("/signatures/samples/{SVS_SHA}/delete"),
+            rows: vec![sample_row(&fixture_sample(None))],
+            reason: HOSTILE.to_owned(),
+            max_reason: 4000,
+            problem: Some(HOSTILE.to_owned()),
+        },
+    });
+    assert!(confirm.contains(&format!(
+        r#"<form method="post" action="/signatures/samples/{SVS_SHA}/delete" class="fields">"#
+    )));
+    assert!(confirm.contains(r#"<p class="error" role="alert">Nothing was deleted: "#));
+    let deleted = drawn_safely(&DeletedPage {
+        layout: layout(),
+        sha256: SVS_SHA.to_owned(),
+        capture_count: 1,
+        rules: HOSTILE.to_owned(),
+        purged: false,
+    });
+    assert!(deleted.contains("couldn't be purged yet"), "{deleted}");
+}
+
+/// A sample in the GUI's database, as the core's capture leaves one: a DELIVERY alert's file with two
+/// rules' detections, a stored capture of each, and the bytes in the samples' pool.
+async fn gui_sample(stack: &Stack) -> uuid::Uuid {
+    let db = stack.test_db.db();
+    let root = ace_core::tree::NewRoot::new("correlation");
+    let mut tx = db.begin().await.expect("begins");
+    ace_core::tree::create_root(&mut tx, &root)
+        .await
+        .expect("creates");
+    tx.commit().await.expect("commits");
+    let observable: i64 = sqlx::query_scalar(
+        "INSERT INTO analysis.observables (root_id, type, value) VALUES ($1, 'file', $2) RETURNING id",
+    )
+    .bind(root.id)
+    .bind(SVS_SHA)
+    .fetch_one(db.pool())
+    .await
+    .expect("a file");
+    for rule in [SVS_RULE, "1e2d3c4b-5a69-4788-9a0b-1c2d3e4f5a6b"] {
+        sqlx::query(
+            "INSERT INTO analysis.detections (root_id, observable_id, description, signature_uuid)
+             VALUES ($1, $2, 'matched', $3)",
+        )
+        .bind(root.id)
+        .bind(observable)
+        .bind(rule)
+        .execute(db.pool())
+        .await
+        .expect("a detection");
+        sqlx::query(
+            "INSERT INTO svs.yara_captures (root_id, observable_id, sha256, rule_uuid, rule_name,
+                                            signature_version, file_path, state, record, stored_at)
+             VALUES ($1, $2, $3, $4, $5, 'c', $5, 'stored', '{}', now())",
+        )
+        .bind(root.id)
+        .bind(observable)
+        .bind(SVS_SHA)
+        .bind(rule)
+        .bind(HOSTILE)
+        .execute(db.pool())
+        .await
+        .expect("a capture");
+    }
+    // the samples pool's index row, which a deletion purges; the bucket goes by the index
+    sqlx::query(
+        "INSERT INTO store.objects (pool, sha256, size, mime_type) VALUES ('svs_samples', $1, 1, 'x')",
+    )
+    .bind(SVS_SHA)
+    .execute(db.pool())
+    .await
+    .expect("an object");
+    sqlx::query(
+        "UPDATE analysis.roots SET alerted_at = now(), disposition = 'DELIVERY',
+             dispositioned_by = '{\"kind\": \"internal\", \"id\": \"test\"}' WHERE id = $1",
+    )
+    .bind(root.id)
+    .execute(db.pool())
+    .await
+    .expect("dispositions it");
+    root.id
+}
+
+/// The samples pages through the server: signed out goes to the login; without `signature:read` each
+/// page and post is 403; with it the list and the sample with no forms, and the errors; `alert:write` adds
+/// the label forms, whose posts relabel and reset; `svs:admin` retires, unretires and deletes behind a
+/// confirm; a post from another site is refused; and each write has its audit row.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn the_samples_pages_need_signature_read_then_alert_write_and_svs_admin() {
+    let cache = std::env::temp_dir().join(format!("ace4-gui-cache-{}", uuid::Uuid::new_v4()));
+    std::fs::create_dir_all(&cache).expect("a cache directory");
+    let store = ace_store::Store::new(
+        &ace_store::BucketConfig::from_env().expect("the ACE4_BUCKET_* variables"),
+        ace_store::NodeCache::new(&cache, 1 << 30).expect("a cache"),
+    );
+    let stack = stack_of_db(Catalog::new(vec![]), move |service, db| {
+        let bucket = ace_core::bucket::Bucket::new(
+            db.clone(),
+            store,
+            ace_core::bucket::BucketSettings::default(),
+        );
+        Gui::new(service.with_bucket(bucket), Transport::Plain)
+    })
+    .await;
+    let alice = user(&stack, "alice").await;
+    gui_sample(&stack).await;
+    let sample = sample_href(SVS_SHA, SVS_RULE);
+
+    for path in ["/signatures/samples".to_owned(), sample.clone()] {
+        let page = stack.get(&path).send().await.expect("answered");
+        assert_eq!(page.status(), StatusCode::SEE_OTHER, "{path}");
+        assert!(location(&page).starts_with("/login?next="), "{path}");
+    }
+    let session = session_of(&stack, "alice").await;
+    let get = |path: String| stack.get(&path).header("cookie", cookie(&session)).send();
+    let post = |path: String, form: Vec<(&'static str, &'static str)>| {
+        stack
+            .post(&path, &form)
+            .header("cookie", cookie(&session))
+            .send()
+    };
+    for path in [
+        "/signatures/samples".to_owned(),
+        sample.clone(),
+        format!("/signatures/samples/{SVS_SHA}/delete"),
+    ] {
+        let page = get(path.clone()).await.expect("answered");
+        assert_eq!(page.status(), StatusCode::FORBIDDEN, "{path}");
+    }
+    let refused = post(format!("{sample}/label"), vec![("verdict", "fp")])
+        .await
+        .expect("answered");
+    assert_eq!(refused.status(), StatusCode::FORBIDDEN);
+
+    // signature:read: the pages, with no forms
+    grant_to(&stack, &alice, "signature", "read").await;
+    let audit = stack.audit_count().await;
+    let hub = get("/signatures".to_owned())
+        .await
+        .expect("answered")
+        .text()
+        .await
+        .expect("a page");
+    assert!(
+        hub.contains(r#"<a href="/signatures/samples"><b>Samples</b>"#),
+        "{hub}"
+    );
+    let list = get("/signatures/samples".to_owned())
+        .await
+        .expect("answered");
+    assert_eq!(list.status(), StatusCode::OK);
+    let list = list.text().await.expect("a page");
+    assert!(list.contains(&format!(r#"<a href="{sample}">"#)), "{list}");
+    assert!(!list.contains("<script>alert"), "{list}");
+    assert!(!list.contains("Download files"), "{list}");
+    let page = get(sample.clone()).await.expect("answered");
+    assert_eq!(page.status(), StatusCode::OK);
+    let page = page.text().await.expect("a page");
+    assert!(
+        !page.contains(r#"<form method="post" action="/signatures/samples"#)
+            && !page.contains("<script>alert"),
+        "{page}"
+    );
+    // the filter form folds into a share link
+    let folded = get("/signatures/samples?label=tp&sort=rule&desc=false".to_owned())
+        .await
+        .expect("answered");
+    assert_eq!(folded.status(), StatusCode::SEE_OTHER);
+    assert_eq!(
+        location(&folded),
+        "/signatures/samples?f=label%3Atp&sort=rule&desc=false"
+    );
+    for (path, status) in [
+        (
+            "/signatures/samples?sort=size".to_owned(),
+            StatusCode::BAD_REQUEST,
+        ),
+        (
+            "/signatures/samples?f=label%3Amaybe".to_owned(),
+            StatusCode::BAD_REQUEST,
+        ),
+        (
+            "/signatures/samples?cursor=nope".to_owned(),
+            StatusCode::BAD_REQUEST,
+        ),
+        (
+            format!("/signatures/samples/zz/{SVS_RULE}"),
+            StatusCode::BAD_REQUEST,
+        ),
+        (sample_href(SVS_SHA, "no-such-rule"), StatusCode::NOT_FOUND),
+        // the confirm needs svs:admin before anything else
+        (
+            format!("/signatures/samples/{SVS_SHA}/delete"),
+            StatusCode::FORBIDDEN,
+        ),
+    ] {
+        assert_eq!(
+            get(path.clone()).await.expect("answered").status(),
+            status,
+            "{path}"
+        );
+    }
+    for (path, form) in [
+        (format!("{sample}/label"), vec![("verdict", "fp")]),
+        (format!("{sample}/retire"), vec![("reason", "stale")]),
+        (format!("{sample}/unretire"), vec![]),
+        (
+            format!("/signatures/samples/{SVS_SHA}/delete"),
+            vec![("reason", "x")],
+        ),
+    ] {
+        let refused = post(path.clone(), form).await.expect("answered");
+        assert_eq!(refused.status(), StatusCode::FORBIDDEN, "{path}");
+    }
+    assert_eq!(stack.audit_count().await, audit, "no refusal has a row");
+
+    // alert:write: the label forms and their posts
+    grant_to(&stack, &alice, "alert", "write").await;
+    let audit = stack.audit_count().await;
+    let page = get(sample.clone())
+        .await
+        .expect("answered")
+        .text()
+        .await
+        .expect("a page");
+    assert!(
+        page.contains(&format!(r#"action="{sample}/label""#)),
+        "{page}"
+    );
+    assert!(
+        page.contains(&format!(r#"action="{sample}/confirm""#)),
+        "{page}"
+    );
+    assert!(
+        !page.contains("/retire") && !page.contains("/delete"),
+        "{page}"
+    );
+    let relabeled = post(format!("{sample}/label"), vec![("verdict", "fp")])
+        .await
+        .expect("answered");
+    assert_eq!(relabeled.status(), StatusCode::SEE_OTHER);
+    assert_eq!(location(&relabeled), format!("{sample}?done=relabeled"));
+    let reset = post(format!("{sample}/label"), vec![("verdict", "reset")])
+        .await
+        .expect("answered");
+    assert_eq!(location(&reset), format!("{sample}?done=reset"));
+    let confirmed = post(format!("{sample}/confirm"), vec![])
+        .await
+        .expect("answered");
+    assert_eq!(location(&confirmed), format!("{sample}?done=confirmed"));
+    assert_eq!(stack.audit_count().await, audit + 3);
+    let bad = post(format!("{sample}/label"), vec![("verdict", "maybe")])
+        .await
+        .expect("answered");
+    assert_eq!(bad.status(), StatusCode::BAD_REQUEST);
+    // a post from another site is refused, and writes nothing
+    let crossed = stack
+        .http
+        .post(format!("{}{sample}/label", stack.url))
+        .header("cookie", cookie(&session))
+        .header("origin", "https://evil.example")
+        .form(&[("verdict", "tp")])
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(crossed.status(), StatusCode::FORBIDDEN);
+    assert_eq!(stack.audit_count().await, audit + 3);
+
+    // svs:admin: retire, unretire, and a deletion behind its confirm
+    grant_to(&stack, &alice, "svs", "admin").await;
+    let audit = stack.audit_count().await;
+    let retired = post(format!("{sample}/retire"), vec![("reason", "stale")])
+        .await
+        .expect("answered");
+    assert_eq!(location(&retired), format!("{sample}?done=retired"));
+    let empty = post(format!("{sample}/retire"), vec![("reason", " ")])
+        .await
+        .expect("answered");
+    assert_eq!(empty.status(), StatusCode::BAD_REQUEST);
+    let unretired = post(format!("{sample}/unretire"), vec![])
+        .await
+        .expect("answered");
+    assert_eq!(location(&unretired), format!("{sample}?done=unretired"));
+    let confirm = get(format!("/signatures/samples/{SVS_SHA}/delete"))
+        .await
+        .expect("answered");
+    assert_eq!(confirm.status(), StatusCode::OK);
+    let confirm = confirm.text().await.expect("a page");
+    assert!(
+        confirm.contains(&format!("<h1>Delete <code>{SVS_SHA}</code> from SVS?</h1>")),
+        "{confirm}"
+    );
+    let again = post(
+        format!("/signatures/samples/{SVS_SHA}/delete"),
+        vec![("reason", "")],
+    )
+    .await
+    .expect("answered");
+    assert_eq!(again.status(), StatusCode::BAD_REQUEST);
+    assert!(
+        again
+            .text()
+            .await
+            .expect("a page")
+            .contains("Nothing was deleted")
+    );
+    let deleted = post(
+        format!("/signatures/samples/{SVS_SHA}/delete"),
+        vec![("reason", "legal request")],
+    )
+    .await
+    .expect("answered");
+    assert_eq!(deleted.status(), StatusCode::OK);
+    let deleted = deleted.text().await.expect("a page");
+    assert!(deleted.contains("2 captures removed"), "{deleted}");
+    assert_eq!(stack.audit_count().await, audit + 3);
+    assert_eq!(
+        get(sample.clone()).await.expect("answered").status(),
+        StatusCode::NOT_FOUND
+    );
+    std::fs::remove_dir_all(&cache).expect("removes the cache");
 }

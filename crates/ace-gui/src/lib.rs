@@ -44,6 +44,10 @@
 //!   `signatures/hub.html` and `yara_qa.html`: the YARA QA rules, their versions and kept files, the
 //!   links to the API's downloads, and purges with a confirm page, over the `yara_qa` service. The base
 //!   layout links to it for whoever holds `signature:read`.
+//! - `svs_samples`: the signatures area's samples pages (PLAN.md 7.10 batch 2), ace3's `samples.html`,
+//!   `_samples_page.html` and `sample_detail.html`: the samples with their filters and sorts, a sample with
+//!   its captures and verdicts, relabel, reset, confirm, retire, and a deletion behind a confirm, over the
+//!   `svs_samples` service.
 //! - `events`: the events area under `event:read` (5.11's events area): ace3's event list with its
 //!   filters, sorts and CSV export, an event's page with Close Event behind a confirm, and its
 //!   add-to-event modal as a page, opened from the alert list's bulk form, and Create Event, the same
@@ -86,6 +90,7 @@ pub mod remediation;
 pub mod saved_filters;
 mod session;
 pub mod signatures;
+pub mod svs_samples;
 pub mod templates;
 pub mod verdicts;
 
@@ -299,6 +304,35 @@ impl Gui {
             .route(
                 "/signatures/yara-qa/matches/{id}",
                 get(signatures::match_page),
+            )
+            .route("/signatures/samples", get(svs_samples::samples))
+            .route(
+                "/signatures/samples/{sha256}/delete",
+                get(svs_samples::confirm_delete)
+                    .post(svs_samples::delete)
+                    .layer(DefaultBodyLimit::max(svs_samples::MAX_SAMPLE_FORM_BYTES)),
+            )
+            .route(
+                "/signatures/samples/{sha256}/{rule_uuid}",
+                get(svs_samples::sample),
+            )
+            .route(
+                "/signatures/samples/{sha256}/{rule_uuid}/label",
+                post(svs_samples::label)
+                    .layer(DefaultBodyLimit::max(svs_samples::MAX_SAMPLE_FORM_BYTES)),
+            )
+            .route(
+                "/signatures/samples/{sha256}/{rule_uuid}/confirm",
+                post(svs_samples::confirm),
+            )
+            .route(
+                "/signatures/samples/{sha256}/{rule_uuid}/retire",
+                post(svs_samples::retire)
+                    .layer(DefaultBodyLimit::max(svs_samples::MAX_SAMPLE_FORM_BYTES)),
+            )
+            .route(
+                "/signatures/samples/{sha256}/{rule_uuid}/unretire",
+                post(svs_samples::unretire),
             )
             .route("/alerts/{id}", get(alert::page))
             .route("/alerts/{id}/live", get(alert::live))

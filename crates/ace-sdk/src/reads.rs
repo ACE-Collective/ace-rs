@@ -446,6 +446,86 @@ pub struct ObservableTagsAnswer {
 /// The most tags an `observable-tags` answer holds.
 pub const MAX_OBSERVABLE_TAGS: usize = 1000;
 
+/// `svs-capture-state`: what `svs_yara_sample_capture` needs to decide which of the task's file's YARA
+/// matches SVS keeps as samples (PLAN.md 7.10 batch 2): whether the root is an alert graded TP or FP that
+/// no unreviewed test run holds, the YARA detections on the file, and what SVS already has of it.
+pub struct SvsCaptureState;
+
+impl ReadKind for SvsCaptureState {
+    const READ: Read = Read {
+        name: "svs-capture-state",
+    };
+    type Request = SvsCaptureStateRequest;
+    type Answer = SvsCaptureStateAnswer;
+}
+
+/// The subject of an `svs-capture-state` read: only the task's own file, which None names.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SvsCaptureStateRequest {
+    #[serde(default)]
+    pub subject: Option<ObservableRef>,
+}
+
+/// The answer to an `svs-capture-state` read.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SvsCaptureStateAnswer {
+    /// Whether the root is an alert.
+    pub alert: bool,
+    /// The alert's disposition; None while it's open.
+    pub disposition: Option<String>,
+    /// Whether the site's classification makes the disposition `tp` or `fp`: an unclassified alert
+    /// teaches SVS nothing.
+    pub classified: bool,
+    /// Whether the alert is attributed to a test run that isn't reviewed (ace3's
+    /// `unreviewed_run_condition`): its alerts teach nothing either.
+    pub unreviewed_run: bool,
+    /// The file's paths in the root, each with its `yara_meta` tags, in the order they were added.
+    pub paths: Vec<SvsFilePath>,
+    /// The detections on the file, in the order they were made, at most `MAX_SVS_DETECTIONS`.
+    pub detections: Vec<SvsDetection>,
+    /// The file had more detections than the answer holds.
+    #[serde(default)]
+    pub detections_truncated: bool,
+    /// The file was deleted from SVS, which never captures it again.
+    pub deleted: bool,
+    /// What SVS has captured of the file from this root, by rule.
+    pub captures: Vec<SvsCaptureRow>,
+}
+
+/// One of a file's paths in its root.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SvsFilePath {
+    pub path: String,
+    pub yara_meta: Vec<String>,
+}
+
+/// A detection on the file, as it's stored.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SvsDetection {
+    pub description: String,
+    pub details: Option<Value>,
+    pub signature_uuid: Option<String>,
+    pub signature_version: Option<String>,
+}
+
+/// A capture SVS already has, of the file from this root, for one rule.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SvsCaptureRow {
+    pub rule_uuid: String,
+    /// `stored` or `missing`.
+    pub state: String,
+    /// `file`, `storage` or `match_record`, when it lacks something.
+    pub missing_reason: Option<String>,
+}
+
+/// The most detections an `svs-capture-state` answer holds.
+pub const MAX_SVS_DETECTIONS: usize = 1000;
+
 /// Every read a module can declare, by name.
 pub const ALL: &[Read] = &[
     SnortSignature::READ,
@@ -457,6 +537,7 @@ pub const ALL: &[Read] = &[
     DecryptedArchive::READ,
     ArchivedUrlCount::READ,
     ObservableTags::READ,
+    SvsCaptureState::READ,
 ];
 
 /// The reads that put a file in the task's root, which a result may add without uploading it.

@@ -1,0 +1,124 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, sha256, rule_uuids, capture_count,\n                                  deleted_by AS \"deleted_by!: Value\", reason, deleted_at, purged_at,\n                                  updated_at\n                           FROM svs.sample_deletions WHERE sha256 = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "svs.sample_deletions",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "sha256",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.sample_deletions",
+            "name": "sha256"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "rule_uuids",
+        "type_info": "TextArray",
+        "origin": {
+          "Table": {
+            "table": "svs.sample_deletions",
+            "name": "rule_uuids"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "capture_count",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "svs.sample_deletions",
+            "name": "capture_count"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "deleted_by!: Value",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "svs.sample_deletions",
+            "name": "deleted_by"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "reason",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.sample_deletions",
+            "name": "reason"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "deleted_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "svs.sample_deletions",
+            "name": "deleted_at"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "purged_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "svs.sample_deletions",
+            "name": "purged_at"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "updated_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "svs.sample_deletions",
+            "name": "updated_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "6a1c98e7f18fac01f48fdd205d6c038307bdb50e5606b3d52c7b101e21eea7c2"
+}

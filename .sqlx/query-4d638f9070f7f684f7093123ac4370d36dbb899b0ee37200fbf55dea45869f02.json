@@ -1,0 +1,57 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT g.rule_uuid AS \"rule_uuid!\", l.rule_name AS \"rule_name!\",\n                                  g.missing_reason AS \"reason!\", g.count AS \"count!\"\n                           FROM (SELECT rule_uuid, missing_reason, count(*) AS count,\n                                        max(id) AS latest\n                                 FROM svs.yara_captures WHERE missing_reason IS NOT NULL\n                                 GROUP BY rule_uuid, missing_reason) g\n                           JOIN svs.yara_captures l ON l.id = g.latest\n                           ORDER BY g.count DESC, g.rule_uuid, g.missing_reason",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "rule_uuid!",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.yara_captures",
+            "name": "rule_uuid"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "rule_name!",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.yara_captures",
+            "name": "rule_name"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "reason!",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.yara_captures",
+            "name": "missing_reason"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "count!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      null
+    ]
+  },
+  "hash": "4d638f9070f7f684f7093123ac4370d36dbb899b0ee37200fbf55dea45869f02"
+}

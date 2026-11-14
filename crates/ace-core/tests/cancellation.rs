@@ -308,6 +308,75 @@ async fn a_dispositioned_alert_runs_only_alert_added_to_event() {
     );
 }
 
+/// ace3 runs a dispositioned mode's modules on every dispositioned pass, so SVS's capture runs again on
+/// each disposition (PLAN.md 7.10 batch 2): a task of a module that stores no result is queued again,
+/// done or failed, and one whose module stores results, and has its result, isn't.
+#[tokio::test]
+async fn each_disposition_runs_a_dispositioned_module_that_stores_nothing_again() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let mut catalog = manifests();
+    catalog.push(common::stubs::SAMPLE_CAPTURE);
+    let orchestrator = Orchestrator::new(Catalog::new(catalog), Modes::ace3());
+    let (root, _) = root_with(db, "correlation", &[(ObservableKind::File, EMAIL_SHA256)]).await;
+    let dispose = || async {
+        let mut tx = db.begin().await.expect("begins");
+        let dispositioned = orchestrator
+            .stop_for_disposition(&mut tx, root)
+            .await
+            .expect("stops analysis");
+        tx.commit().await.expect("commits");
+        dispositioned.queued.len()
+    };
+    assert_eq!(dispose().await, 2, "the capture and alert_added_to_event");
+    let everyone = worker(
+        &test_db,
+        "everyone",
+        &["svs_yara_sample_capture", "alert_added_to_event"],
+        Duration::from_secs(30),
+    )
+    .await;
+    let mut ended = 0;
+    while let Some(task) = everyone.claim().await.expect("claims") {
+        let mut tx = db.begin().await.expect("begins");
+        if task.module == "svs_yara_sample_capture" {
+            // a skip: the task ends with no result
+            everyone
+                .finish_in(&mut tx, task.id, TaskState::Done, None)
+                .await
+                .expect("ends");
+        } else {
+            orchestrator
+                .land_result(
+                    &mut tx,
+                    &everyone,
+                    &task,
+                    &result(json!({
+                        "analysis_type": "test_stub",
+                        "schema_version": 1,
+                        "details": {"note": "not in an event"},
+                    })),
+                )
+                .await
+                .expect("lands");
+        }
+        tx.commit().await.expect("commits");
+        ended += 1;
+    }
+    assert_eq!(ended, 2);
+    // a disposition changed again queues the capture again, and only it
+    assert_eq!(dispose().await, 1);
+    let task = everyone.claim().await.expect("claims").expect("a task");
+    assert_eq!(task.module, "svs_yara_sample_capture");
+    everyone
+        .fail(task.id, "the core was down")
+        .await
+        .expect("fails");
+    // a failed one too
+    assert_eq!(dispose().await, 1);
+    assert!(everyone.claim().await.expect("claims").is_some());
+}
+
 #[tokio::test]
 async fn a_result_that_lands_after_the_cancel_is_kept_and_queues_nothing() {
     let test_db = TestDb::new().await;

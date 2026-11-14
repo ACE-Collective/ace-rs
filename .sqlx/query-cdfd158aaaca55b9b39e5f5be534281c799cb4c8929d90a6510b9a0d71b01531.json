@@ -1,0 +1,38 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT sha256, rule_uuid FROM svs.sample_retirements\n                         WHERE unretired_at IS NULL ORDER BY sha256, rule_uuid",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "sha256",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.sample_retirements",
+            "name": "sha256"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "rule_uuid",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.sample_retirements",
+            "name": "rule_uuid"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "cdfd158aaaca55b9b39e5f5be534281c799cb4c8929d90a6510b9a0d71b01531"
+}

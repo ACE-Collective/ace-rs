@@ -214,6 +214,9 @@ pub struct ApiConfig {
     pub archive: crate::email_archive::ArchiveConfig,
     /// The action handlers the binary has (PLAN.md 7.9), which decide an action's tries.
     pub actions: ActionCatalog,
+    /// The dispositions the site classifies `tp` or `fp`, which the `svs-capture-state` read answers
+    /// with (PLAN.md 7.10). ace3's by default; `ace serve` sets the overlay's.
+    pub classified: std::collections::BTreeSet<String>,
 }
 
 impl ApiConfig {
@@ -228,7 +231,17 @@ impl ApiConfig {
             snort_rules: None,
             archive: crate::email_archive::ArchiveConfig::default(),
             actions: ActionCatalog::default(),
+            classified: ace_sdk::ACE3_DISPOSITION_CLASSES
+                .iter()
+                .map(|(name, _)| (*name).to_owned())
+                .collect(),
         }
+    }
+
+    /// The dispositions the site classifies `tp` or `fp` (`ace_service`'s `Dispositions`).
+    pub fn classified(mut self, names: impl IntoIterator<Item = String>) -> Self {
+        self.classified = names.into_iter().collect();
+        self
     }
 
     pub fn actions(mut self, actions: ActionCatalog) -> Self {
@@ -347,6 +360,7 @@ impl Api {
         config: ApiConfig,
     ) -> Result<Api, QueueError> {
         let config_snort_rules = config.snort_rules.clone();
+        let classified = config.classified.clone();
         let archive = crate::email_archive::EmailArchive::new(
             db.clone(),
             bucket.clone(),
@@ -383,7 +397,9 @@ impl Api {
                 listener,
                 stopping: tokio_util::sync::CancellationToken::new(),
                 lists: ListCache::default(),
-                stores: crate::reads::ReadStores::new(config_snort_rules).with_archive(archive),
+                stores: crate::reads::ReadStores::new(config_snort_rules)
+                    .with_archive(archive)
+                    .with_classified(classified),
             }),
         })
     }
@@ -1339,7 +1355,7 @@ impl Api {
                     for file in files {
                         bucket.put_in(tx, ALERT_FILES, file, Some(hold)).await?;
                     }
-                    let applied = crate::writes::apply(tx, archive, task, writes).await?;
+                    let applied = crate::writes::apply(tx, archive, bucket, task, writes).await?;
                     // the archive's id, which only the core knows, goes in the archiver's result
                     let mut result = std::borrow::Cow::Borrowed(result);
                     if let Some(archive_id) = applied.archive_id
@@ -1429,6 +1445,7 @@ impl Api {
         match crate::writes::check(
             &self.inner.db,
             self.inner.stores.archive(),
+            &self.inner.bucket,
             manifest,
             &owned,
             writes,
@@ -1464,6 +1481,7 @@ impl Api {
         let owned = worker.owned(task).await?.ok_or(Failure::LeaseLost(task))?;
         let owned = &owned;
         let archive = self.inner.stores.archive();
+        let bucket = &self.inner.bucket;
         self.inner
             .db
             .transaction(Isolation::ReadCommitted, |tx| {
@@ -1471,7 +1489,7 @@ impl Api {
                     let root = worker
                         .finish_in(tx, task, crate::queue::TaskState::Done, None)
                         .await?;
-                    crate::writes::apply(tx, archive, owned, writes).await?;
+                    crate::writes::apply(tx, archive, bucket, owned, writes).await?;
                     crate::queue::check_completion(tx, root).await?;
                     Ok::<_, QueueError>(())
                 })

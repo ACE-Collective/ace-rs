@@ -85,6 +85,8 @@ ace-mod-emailarchive = { path = "../ace-mod-emailarchive" }
 ace-mod-snort = { path = "../ace-mod-snort" }
 ace-mod-tag = { path = "../ace-mod-tag" }
 ace-mod-nrd = { path = "../ace-mod-nrd" }
+# SVS's sample capture (PLAN.md 7.10 batch 2), for its read's and write's tests.
+ace-mod-svs = { path = "../ace-mod-svs" }
 # PLAN.md 7.7's modules, whose scans go through the lease API
 ace-mod-scanners = { path = "../ace-mod-scanners" }
 ace-pool = { path = ".", features = ["test-pools"] }

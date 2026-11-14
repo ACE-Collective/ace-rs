@@ -1,0 +1,90 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT c.capture_id AS \"capture_id!\", c.root_id AS \"root_id!\",\n                  c.detection_id AS \"detection_id!\", c.verdict, c.verdict_source,\n                  v.verdict AS \"stored?\", v.set_by AS \"set_by?: Value\", v.set_at AS \"set_at?\"\n           FROM svs.contributing_detections($1, $2) c\n           LEFT JOIN analysis.detection_verdicts v ON v.detection_id = c.detection_id\n           WHERE c.sha256 = $3 AND c.rule_uuid = $4\n           ORDER BY c.detection_id, c.capture_id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "capture_id!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "root_id!",
+        "type_info": "Uuid",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 2,
+        "name": "detection_id!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 3,
+        "name": "verdict",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 4,
+        "name": "verdict_source",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 5,
+        "name": "stored?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "analysis.detection_verdicts",
+            "name": "verdict"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "set_by?: Value",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "analysis.detection_verdicts",
+            "name": "set_by"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "set_at?",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "analysis.detection_verdicts",
+            "name": "set_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "TextArray",
+        "TextArray",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "87bc3b3e852aebd8371125ced4956f0b7768d35af42e0909a8ebc8318fdf5c35"
+}

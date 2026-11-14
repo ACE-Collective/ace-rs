@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT t.id AS \"id: TaskId\" FROM queue.tasks t\n                   WHERE t.root_id = $1 AND t.module = ANY ($2) AND t.state IN ('done', 'failed')\n                     AND NOT EXISTS (SELECT FROM analysis.results r\n                                     WHERE r.root_id = t.root_id AND r.observable_id = t.observable_id\n                                       AND r.module = t.module)\n                   ORDER BY t.id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id: TaskId",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "queue.tasks",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "TextArray"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "d91fc14baf8628c874567130b25e0bcd091e8d2f905082e83cfc10b29df31c92"
+}

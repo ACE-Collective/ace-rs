@@ -741,6 +741,13 @@ impl Bucket {
     }
 
     /// Deletes a claimed object's bytes, then its row.
+    /// Finishes a purge `claim_purge_in` claimed: deletes the bytes, then the object's row. A purge
+    /// that fails here leaves the object `deleting`, which a later purge, or GC, finishes.
+    pub async fn finish_purge(&self, pool: &str, sha256: &Sha256) -> Result<(), BucketError> {
+        self.pool(pool)?;
+        self.finish_deleting(pool, &sha256.to_hex()).await
+    }
+
     async fn finish_deleting(&self, pool: &str, sha256: &str) -> Result<(), BucketError> {
         let parsed: Sha256 = sha256
             .parse()
@@ -764,6 +771,37 @@ impl Bucket {
 enum ObjectState {
     Present,
     Deleting,
+}
+
+/// Claims an object for a purge inside the caller's transaction, as ace3's `CASPool.purge` does: every
+/// hold on it goes and it turns `deleting`, so nothing can hold it again, whatever held it. Its bytes go
+/// with `Bucket::finish_purge` once the transaction commits. False when the pool has no such object;
+/// one already `deleting` is claimed again, so a purge that didn't finish can be retried.
+pub async fn claim_purge_in(
+    tx: &mut Tx<'_>,
+    pool: &str,
+    sha256: &Sha256,
+) -> Result<bool, BucketError> {
+    let hex = sha256.to_hex();
+    let claimed = sqlx::query!(
+        "UPDATE store.objects SET state = 'deleting' WHERE pool = $1 AND sha256 = $2",
+        pool,
+        hex,
+    )
+    .execute(tx.conn())
+    .await?
+    .rows_affected()
+        > 0;
+    if claimed {
+        sqlx::query!(
+            "DELETE FROM store.holds WHERE pool = $1 AND sha256 = $2",
+            pool,
+            hex,
+        )
+        .execute(tx.conn())
+        .await?;
+    }
+    Ok(claimed)
 }
 
 /// `Bucket::release`, inside the caller's transaction, so a row that holds an object and its hold

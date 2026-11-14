@@ -114,7 +114,8 @@ pub fn scanner_pool() -> ScannerPool {
 /// thread, newly registered domains, user (LDAP), Splunk and Splunk clicker detection modules, the
 /// one that follows 1drv.ms links for the protected URL module, the four on the email archive
 /// (its archiver, the archived email opener, the URL pivot and the Message-ID analyzer), and the
-/// two that read what analysts flagged and tagged (observable detection and user defined tagging), and
+/// two that read what analysts flagged and tagged (observable detection and user defined tagging), SVS's
+/// sample capture (7.10), and
 /// ace3's test remediator (7.9), the one remediator ace3's open-source tree ships.
 pub fn lookup_pool() -> LookupPool {
     LookupPool::new("lookups")
@@ -135,6 +136,7 @@ pub fn lookup_pool() -> LookupPool {
         .module::<ace_mod_emailarchive::MessageIdAnalyzer>()
         .module::<ace_mod_tag::ObservableDetection>()
         .module::<ace_mod_tag::UserDefinedTagging>()
+        .module::<ace_mod_svs::YaraSampleCapture>()
         // ace3's one open-source remediator, which it ships enabled (PLAN.md 7.9)
         .action(&ace_sdk::actions::TEST_REMEDIATOR, |_| {
             Ok(ace_app::ActionHandler::Remediator(std::sync::Arc::new(

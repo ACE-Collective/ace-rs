@@ -1,0 +1,242 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH keyed AS (\n             SELECT s.*,\n                    CASE $4::text\n                      WHEN 'last_captured' THEN to_char(s.last_captured AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US')\n                      WHEN 'first_captured' THEN to_char(s.first_captured AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US')\n                      WHEN 'capture_count' THEN lpad(s.capture_count::text, 20, '0')\n                      WHEN 'rule' THEN s.rule_name\n                      WHEN 'label' THEN coalesce(s.label, '')\n                      ELSE s.sha256 END COLLATE \"C\" AS sort_key\n             FROM svs.samples($1, $2, $3) s\n             WHERE ($9::text[] IS NULL OR s.rule_uuid = ANY ($9))\n               AND ($10::text[] IS NULL OR NOT s.rule_uuid = ANY ($10))\n               AND ($11::text[] IS NULL OR s.sha256 = ANY ($11))\n               AND ($12::text[] IS NULL OR NOT s.sha256 = ANY ($12))\n               -- File Name, Rule and Alert: any of its captures\n               AND ($13::text[] IS NULL OR EXISTS (\n                     SELECT FROM svs.yara_captures c\n                     WHERE c.sha256 = s.sha256 AND c.rule_uuid = s.rule_uuid AND c.id <= $3\n                       AND c.file_path ILIKE ANY ($13)))\n               AND ($14::text[] IS NULL OR NOT EXISTS (\n                     SELECT FROM svs.yara_captures c\n                     WHERE c.sha256 = s.sha256 AND c.rule_uuid = s.rule_uuid AND c.id <= $3\n                       AND c.file_path ILIKE ANY ($14)))\n               AND ($15::text[] IS NULL OR EXISTS (\n                     SELECT FROM svs.yara_captures c\n                     WHERE c.sha256 = s.sha256 AND c.rule_uuid = s.rule_uuid AND c.id <= $3\n                       AND c.rule_name ILIKE ANY ($15)))\n               AND ($16::text[] IS NULL OR NOT EXISTS (\n                     SELECT FROM svs.yara_captures c\n                     WHERE c.sha256 = s.sha256 AND c.rule_uuid = s.rule_uuid AND c.id <= $3\n                       AND c.rule_name ILIKE ANY ($16)))\n               AND ($21::uuid[] IS NULL OR EXISTS (\n                     SELECT FROM svs.yara_captures c\n                     WHERE c.sha256 = s.sha256 AND c.rule_uuid = s.rule_uuid AND c.id <= $3\n                       AND c.root_id = ANY ($21)))\n               AND ($22::uuid[] IS NULL OR NOT EXISTS (\n                     SELECT FROM svs.yara_captures c\n                     WHERE c.sha256 = s.sha256 AND c.rule_uuid = s.rule_uuid AND c.id <= $3\n                       AND c.root_id = ANY ($22)))\n               -- Label, with none for no label\n               AND ($17::text[] IS NULL OR s.label = ANY ($17) OR ($23::boolean AND s.label IS NULL))\n               AND ($18::text[] IS NULL\n                    OR NOT COALESCE(s.label = ANY ($18) OR ($24::boolean AND s.label IS NULL), false))\n               AND ($19::text[] IS NULL OR s.label_source = ANY ($19))\n               AND ($20::text[] IS NULL OR NOT COALESCE(s.label_source = ANY ($20), false))\n               -- Last Captured\n               AND ($25::timestamptz[] IS NULL OR EXISTS (\n                     SELECT FROM unnest($25::timestamptz[], $26::timestamptz[]) w(b, e)\n                     WHERE s.last_captured BETWEEN w.b AND w.e))\n               AND ($27::timestamptz[] IS NULL OR NOT EXISTS (\n                     SELECT FROM unnest($27::timestamptz[], $28::timestamptz[]) w(b, e)\n                     WHERE s.last_captured BETWEEN w.b AND w.e))\n               -- Stored, Missing Data, Unknown Version and Retired: true, false or both\n               AND ($29::text[] IS NULL OR (s.stored > 0)::text = ANY ($29))\n               AND ($30::text[] IS NULL OR NOT (s.stored > 0)::text = ANY ($30))\n               AND ($31::text[] IS NULL OR (s.missing_data > 0)::text = ANY ($31))\n               AND ($32::text[] IS NULL OR NOT (s.missing_data > 0)::text = ANY ($32))\n               AND ($33::text[] IS NULL OR (s.unknown_version > 0)::text = ANY ($33))\n               AND ($34::text[] IS NULL OR NOT (s.unknown_version > 0)::text = ANY ($34))\n               AND ($35::text[] IS NULL OR s.retired::text = ANY ($35))\n               AND ($36::text[] IS NULL OR NOT s.retired::text = ANY ($36))\n               -- changed since: a capture, a retirement, a contributing alert's disposition or a verdict\n               AND ($37::timestamptz IS NULL OR s.updated_at >= $37\n                    OR EXISTS (SELECT FROM svs.sample_retirements r\n                               WHERE r.sha256 = s.sha256 AND r.rule_uuid = s.rule_uuid\n                                 AND r.updated_at >= $37)\n                    OR EXISTS (SELECT FROM svs.contributing_detections($1, $2) d\n                               JOIN analysis.roots ro ON ro.id = d.root_id\n                               WHERE d.sha256 = s.sha256 AND d.rule_uuid = s.rule_uuid\n                                 AND (ro.dispositioned_at >= $37\n                                      OR EXISTS (SELECT FROM analysis.detection_verdict_history h\n                                                 WHERE h.detection_id = d.detection_id\n                                                   AND h.changed_at >= $37))))\n           )\n           SELECT k.sha256, k.rule_uuid, k.capture_count, k.stored, k.missing, k.missing_data,\n                  k.unknown_version, k.first_captured, k.last_captured, k.updated_at,\n                  k.latest_capture_id, k.rule_name, k.namespace, k.file_path, k.file_size,\n                  k.tp_explicit, k.fp_explicit, k.tp_inherited_single, k.fp_inherited_single,\n                  k.tp_inherited_multi, k.fp_inherited_multi, k.label, k.label_source, k.retired,\n                  k.retired_by, k.retired_at, k.retired_reason\n           FROM keyed k\n           WHERE $6::text IS NULL\n              OR ($5 AND (k.sort_key, k.sha256 COLLATE \"C\", k.rule_uuid COLLATE \"C\")\n                         < ($6 COLLATE \"C\", $7 COLLATE \"C\", $8 COLLATE \"C\"))\n              OR (NOT $5 AND (k.sort_key, k.sha256 COLLATE \"C\", k.rule_uuid COLLATE \"C\")\n                             > ($6 COLLATE \"C\", $7 COLLATE \"C\", $8 COLLATE \"C\"))\n           ORDER BY CASE WHEN $5 THEN k.sort_key END DESC,\n                    CASE WHEN NOT $5 THEN k.sort_key END ASC,\n                    CASE WHEN $5 THEN k.sha256 COLLATE \"C\" END DESC,\n                    CASE WHEN NOT $5 THEN k.sha256 COLLATE \"C\" END ASC,\n                    CASE WHEN $5 THEN k.rule_uuid COLLATE \"C\" END DESC,\n                    CASE WHEN NOT $5 THEN k.rule_uuid COLLATE \"C\" END ASC\n           LIMIT $38",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "sha256",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "rule_uuid",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 2,
+        "name": "capture_count",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 3,
+        "name": "stored",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 4,
+        "name": "missing",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 5,
+        "name": "missing_data",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 6,
+        "name": "unknown_version",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 7,
+        "name": "first_captured",
+        "type_info": "Timestamptz",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 8,
+        "name": "last_captured",
+        "type_info": "Timestamptz",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 9,
+        "name": "updated_at",
+        "type_info": "Timestamptz",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 10,
+        "name": "latest_capture_id",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 11,
+        "name": "rule_name",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 12,
+        "name": "namespace",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 13,
+        "name": "file_path",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 14,
+        "name": "file_size",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 15,
+        "name": "tp_explicit",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 16,
+        "name": "fp_explicit",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 17,
+        "name": "tp_inherited_single",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 18,
+        "name": "fp_inherited_single",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 19,
+        "name": "tp_inherited_multi",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 20,
+        "name": "fp_inherited_multi",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 21,
+        "name": "label",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 22,
+        "name": "label_source",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 23,
+        "name": "retired",
+        "type_info": "Bool",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 24,
+        "name": "retired_by",
+        "type_info": "Jsonb",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 25,
+        "name": "retired_at",
+        "type_info": "Timestamptz",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 26,
+        "name": "retired_reason",
+        "type_info": "Text",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "TextArray",
+        "TextArray",
+        "Int8",
+        "Text",
+        "Bool",
+        "Text",
+        "Text",
+        "Text",
+        "TextArray",
+        "TextArray",
+        "TextArray",
+        "TextArray",
+        "TextArray",
+        "TextArray",
+        "TextArray",
+        "TextArray",
+        "TextArray",
+        "TextArray",
+        "TextArray",
+        "TextArray",
+        "UuidArray",
+        "UuidArray",
+        "Bool",
+        "Bool",
+        "TimestamptzArray",
+        "TimestamptzArray",
+        "TimestamptzArray",
+        "TimestamptzArray",
+        "TextArray",
+        "TextArray",
+        "TextArray",
+        "TextArray",
+        "TextArray",
+        "TextArray",
+        "TextArray",
+        "TextArray",
+        "Timestamptz",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "9909dd7779444e3ebefe609d21eeb8466224613cd6a76f147cebc4ebaee33e51"
+}

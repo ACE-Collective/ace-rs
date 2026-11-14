@@ -288,7 +288,7 @@ const GONE: &str = "the detection is gone from its alert";
 
 /// One detection's stored verdict, before or after a write, as its audit row keeps it.
 #[derive(Debug, Clone, Serialize)]
-struct VerdictState {
+pub(crate) struct VerdictState {
     detection: i64,
     alert: Uuid,
     signature_uuid: Option<String>,
@@ -299,8 +299,8 @@ impl Recorded for VerdictState {}
 
 /// Several detections' stored verdicts.
 #[derive(Debug, Serialize)]
-struct VerdictStates {
-    verdicts: Vec<VerdictState>,
+pub(crate) struct VerdictStates {
+    pub(crate) verdicts: Vec<VerdictState>,
 }
 
 impl Recorded for VerdictStates {}
@@ -316,10 +316,10 @@ impl Recorded for BatchDetails {}
 
 /// What a write changed: each detection's stored verdict before and after.
 #[derive(Debug, Default)]
-struct Written {
-    batch: VerdictBatch,
-    before: Vec<VerdictState>,
-    after: Vec<VerdictState>,
+pub(crate) struct Written {
+    pub(crate) batch: VerdictBatch,
+    pub(crate) before: Vec<VerdictState>,
+    pub(crate) after: Vec<VerdictState>,
 }
 
 impl Service {
@@ -520,9 +520,9 @@ impl Service {
             .await
     }
 
-    /// The writes of every function above, in the caller's transaction, which `Gate::write` checked
-    /// `alert:write` in.
-    async fn write_verdicts(
+    /// The writes of every function above, and of SVS's sample actions, in the caller's transaction,
+    /// which `Gate::write` checked `alert:write` in.
+    pub(crate) async fn write_verdicts(
         &self,
         tx: &mut Tx<'_>,
         actor: &Actor,

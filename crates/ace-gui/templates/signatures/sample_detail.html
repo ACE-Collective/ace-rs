@@ -1,0 +1,80 @@
+{#- ace3's signatures/sample_detail.html (PLAN.md 7.10 batch 2): one sample, its label and retirement, every
+    capture with its contributing detections, and the forms its viewer may use (src/svs_samples.rs). -#}
+{% extends "base.html" %}
+{% block title %}Sample · Signatures · ACE{% endblock %}
+{% block content %}
+<section class="signatures sample">
+  <p><a href="/signatures">Signatures</a> / <a href="/signatures/samples">Samples</a></p>
+  <h1 class="qa-text">{{ view.sample.rule_name }} <span class="muted">on</span> <code>{{ view.sample.short_sha256 }}</code></h1>
+  {%- if let Some(notice) = view.notice %}
+  <p class="notice" role="status">{{ notice }}</p>
+  {%- endif %}
+  <table class="keys">
+    <tbody>
+      <tr><th>SHA256</th><td class="qa-text"><code>{{ view.sample.sha256 }}</code></td></tr>
+      <tr><th>Rule</th><td class="qa-text">{{ view.sample.rule_name }} <code class="muted">{{ view.sample.rule_uuid }}</code>{% if !view.sample.namespace.is_empty() %} <span class="muted">{{ view.sample.namespace }}</span>{% endif %}</td></tr>
+      <tr><th>File</th><td class="qa-text">{{ view.sample.file_path }} {{ view.sample.size }}</td></tr>
+      <tr><th>Label</th><td>{% if !view.sample.label.is_empty() %}<span class="badge disposition-{{ view.sample.label_class }}">{{ view.sample.label }}</span> {{ view.sample.label_source }}{% else %}<span class="muted">none: no contributing detection has a verdict</span>{% endif %}</td></tr>
+      <tr><th>Votes (TP/FP)</th><td>{{ view.sample.votes }}</td></tr>
+      <tr><th>Captures</th><td>{{ view.sample.capture_count }}, {{ view.sample.stored }} stored, {{ view.sample.missing }} missing</td></tr>
+      <tr><th>Captured</th><td class="nowrap">{{ view.sample.first_captured }} to {{ view.sample.last_captured }}</td></tr>
+      <tr><th>Retired</th><td>{% if view.sample.retired %}by {{ view.sample.retired_by }} at {{ view.sample.retired_at }}: {{ view.sample.retired_reason }}{% else %}no{% endif %}</td></tr>
+    </tbody>
+  </table>
+  {%- if let Some(download) = view.download %}
+  <p><a href="{{ download }}" title="password: infected">Download the file and its match records</a></p>
+  {%- endif %}
+  {%- if view.can_label %}
+  <h2>Label</h2>
+  {%- if let Some(refusal) = view.relabel_refusal %}
+  <p class="muted">{{ refusal }}</p>
+  {%- else %}
+  <form method="post" action="{{ view.action("label") }}" class="inline"><input type="hidden" name="verdict" value="tp"><button type="submit">Mark TP</button></form>
+  <form method="post" action="{{ view.action("label") }}" class="inline"><input type="hidden" name="verdict" value="fp"><button type="submit">Mark FP</button></form>
+  <form method="post" action="{{ view.action("label") }}" class="inline"><input type="hidden" name="verdict" value="reset"><button type="submit">Reset label</button></form>
+  {%- if view.can_confirm %}
+  <form method="post" action="{{ view.action("confirm") }}" class="inline"><button type="submit">Confirm TP</button></form>
+  {%- endif %}
+  {%- endif %}
+  {%- endif %}
+  {%- if view.can_admin %}
+  <h2>Retirement and deletion</h2>
+  {%- if view.sample.retired %}
+  <form method="post" action="{{ view.action("unretire") }}" class="inline"><button type="submit">Unretire</button></form>
+  {%- else %}
+  <form method="post" action="{{ view.action("retire") }}" class="fields">
+    <label for="reason">Why it's no longer expected to match its rule</label>
+    <input type="text" id="reason" name="reason" required maxlength="{{ view.max_reason }}">
+    <button type="submit">Retire</button>
+  </form>
+  {%- endif %}
+  <p><a href="{{ view.delete_href() }}">Delete this file from SVS…</a></p>
+  {%- endif %}
+  <h2>Captures</h2>
+  <table class="keys">
+    <thead><tr><th>ID</th><th>Alert</th><th>Path</th><th>State</th><th>Version</th><th>yara_meta</th><th>Strings</th><th>Detections (verdict, source, override)</th><th>Captured</th><th></th></tr></thead>
+    <tbody>
+      {%- for c in view.captures %}
+      <tr>
+        <td>{{ c.id }}</td>
+        <td><a href="{{ c.alert_href }}"><code>{{ c.alert }}</code></a></td>
+        <td class="qa-text">{{ c.file_path }} {{ c.size }}</td>
+        <td>{{ c.state }}{% if !c.missing_reason.is_empty() %} ({{ c.missing_reason }}){% endif %}</td>
+        <td class="qa-text"><code>{{ c.signature_version }}</code></td>
+        <td class="qa-text">{{ c.yara_meta_tags }}</td>
+        <td>{{ c.string_matches }}</td>
+        <td>
+          {%- for d in c.detections %}
+          <span class="badge verdict-{{ d.verdict }}">{{ d.verdict }}</span> {{ d.source }}{% if !d.overridden.is_empty() %} (override {{ d.overridden }}){% endif %}<br>
+          {%- else %}
+          <span class="muted">none: the alert is gone</span>
+          {%- endfor %}
+        </td>
+        <td class="nowrap">{{ c.captured }}</td>
+        <td>{% if let Some(record) = c.record %}<a href="{{ record }}">Match record</a>{% endif %}</td>
+      </tr>
+      {%- endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

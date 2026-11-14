@@ -21,19 +21,19 @@ Versions are those of ace3's image: Python packages from `installer/requirements
 | Pool | Modules | Ported |
 |---|---|---|
 | parser | 53 | 53 |
-| lookup | 17 | 15 |
+| lookup | 17 | 16 |
 | core | 3 | 2 |
 | sandbox | 15 | 15 |
 | scanner | 2 | 2 |
-| all | 90 | 87 |
+| all | 90 | 88 |
 
 | Step | Modules |
 |---|---|
-| done | 87 |
-| 7.10 | 2 |
+| done | 88 |
+| 7.10 | 1 |
 | owner | 1 |
 
-No ace3 module goes to 7.8 or 7.9: 7.8's integrations are a site's (below), and remediation and file collection are services, not modules. "done" is the ten modules phases 1 to 4 ported and those 7.4, 7.5, 7.6 and 7.7 have ported since. "owner" is a module no step names.
+No ace3 module goes to 7.8 or 7.9: 7.8's integrations are a site's (below), and remediation and file collection are services, not modules. "done" is the ten modules phases 1 to 4 ported and those 7.4, 7.5, 7.6, 7.7 and 7.10 have ported since. "owner" is a module no step names.
 
 ## 7.5's batches
 
@@ -274,7 +274,7 @@ In the config's order. ace4 is the crate a ported module is in.
 | `rar_encryption_analyzer` | `RarEncryptionAnalyzer` | `ace-mod-encrypted` | parser | done | file | analysis, binary, cli, correlation, email, file |
 | `pdf_encryption_analyzer` | `PDFEncryptionAnalyzer` | `ace-mod-encrypted` | parser | done | file | analysis, binary, cli, correlation, email, file |
 | `alert_added_to_event` | `AlertAddedToEventAnalyzer` | not yet | core | owner | - | dispositioned |
-| `svs_yara_sample_capture` | `YaraSampleCapture` | not yet | lookup | 7.10 | - | dispositioned |
+| `svs_yara_sample_capture` | `YaraSampleCapture` | `ace-mod-svs` | lookup | done | - | dispositioned |
 | `svs_alert_tagger` | `SVSAlertTagger` | not yet | lookup | 7.10 | - | correlation |
 | `dhash` | `DHashImageAnalyzer` | `ace-mod-files` | parser | done | file | analysis, binary, cli, correlation, email, file |
 | `observable_detection` | `ObservableDetectionAnalyzer` | `ace-mod-tag` | lookup | done | common | analysis, binary, cli, correlation, email, file |
@@ -2077,9 +2077,9 @@ In the config's order. ace4 is the crate a ported module is in.
 ### svs_yara_sample_capture
 
 - **Section**: `analysis_module_svs_yara_sample_capture`, class `YaraSampleCapture` in `saq/modules/svs.py`, enabled by default.
-- **ace4**: not yet.
+- **ace4**: ported in `ace-mod-svs`. PLAN.md 7.10 batch 2 ported it: a lookup module on each file of a dispositioned root, which the core queues again on each disposition, as ace3 reruns it on each dispositioned pass (`Orchestrator::stop_for_disposition`, for a dispositioned module that stores no result). It reads the alert's disposition and class, its unreviewed test run, the file's paths and detections, its deletion and its captures with `svs-capture-state` (7.2), finds a candidate per YARA detection with a rule uuid of 1 to 36 characters, with its scan result from the YARA result that comes with the task (`Module::DEPENDS_ON`) as the match record, and hands them to the core as its `svs-capture` write, which lands with its end and stores no result. The core copies the file from the root's files into the bucket's `svs_samples` pool, held by the capture, and writes migration 0048's row with the match record in it (`ace_core::svs::samples`). What differs from ace3: the record is the row's, as 2.27's QA matches keep theirs, where ace3 puts it in its CAS pool; the bucket is shared, so there's no node; the version recorded is yara-x's; the rule's content hash is left NULL for batch 3, since the ruleset records none per rule; and the same bytes under two names are one observable here, so one candidate and one vote per rule. ace3's module creates no analysis and changes nothing in the tree, so there are no reference dumps to compare: its output is its database rows and CAS objects, which `run_module.py`'s single-module run has no alert row, SVS tables or CAS pool for. Its cases are `test_capture.py`'s, ported in `ace-mod-svs` and `ace-service`'s `tests/service.rs`, and its read and write have the lease API's tests (`reads.md`).
 - **Pool**: lookup. Database and bucket writes at disposition; its git calls are for the rule inventory, which ace4's ruleset already records.
-- **Step**: 7.10.
+- **Step**: done.
 - **Does**: In post-analysis of an alert dispositioned tp or fp (and not attributed to an unreviewed SVS test run), stores every file a uuid'd YARA rule matched, plus its match record, in the svs_samples CAS pool and records it in svs_yara_captures.
 - **Input**: none (post-analysis over the root's YARA detection points on file observables).
 - **Groups and modes**: groups none; modes dispositioned.

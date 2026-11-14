@@ -38,6 +38,8 @@ uuid = "1.29.0"
 
 [dev-dependencies]
 ace-core = { path = "../ace-core", features = ["testing"] }
+# The bucket a sample's deletion purges from (PLAN.md 7.10 batch 2).
+ace-store = { path = "../ace-store" }
 # A module declaring the observable_detection list, for the Observables page's tests.
 ace-sdk = { path = "../ace-sdk" }
 # Bytes in a hostile result, written as ace-results writes them.
