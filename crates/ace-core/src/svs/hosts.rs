@@ -24,7 +24,7 @@ pub const MAX_IPS: usize = 100;
 pub struct InvalidTestHost(pub String);
 
 /// Python's `repr` of a str, as ace3's messages quote what they refuse.
-fn repr(value: &str) -> String {
+pub fn repr(value: &str) -> String {
     ace_pycompat::repr::repr(value)
 }
 

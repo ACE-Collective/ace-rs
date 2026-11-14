@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE svs.registration_refusals SET root_id = $2 WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "037dcc67c217747c4bbd9e92d8642bc7225815fd2686f96bc0ec2de4f8355c14"
+}

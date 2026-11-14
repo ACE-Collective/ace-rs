@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM svs.registration_refusals WHERE hour < $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "887a7260ec0ecba5c77b2f7ceec651e2066f12dd6549cb3e1b41b462089afa4d"
+}

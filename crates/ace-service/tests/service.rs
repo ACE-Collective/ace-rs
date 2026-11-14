@@ -1621,6 +1621,15 @@ async fn every_write_function_has_an_audit_test() {
         svs_catalog_tests::record_svs_catalog_error_records_its_row(db).await,
         svs_catalog_tests::retire_svs_catalog_repository_records_its_row(db).await,
         routing_tests::route_due_records_its_row(db).await,
+        svs_runs_tests::register_svs_run_records_its_row(db).await,
+        svs_runs_tests::start_svs_run_records_its_row(db).await,
+        svs_runs_tests::svs_run_executed_records_its_row(db).await,
+        svs_runs_tests::svs_run_cleanup_records_its_row(db).await,
+        svs_runs_tests::cancel_svs_run_records_its_row(db).await,
+        svs_runs_tests::end_svs_run_records_its_row(db).await,
+        svs_runs_tests::run_svs_timers_records_its_row(db).await,
+        svs_runs_tests::open_svs_maintenance_records_its_row(db).await,
+        svs_runs_tests::end_svs_maintenance_records_its_row(db).await,
     ]);
     assert_eq!(covered, write_functions(), "{WRITES_NEED_A_TEST}");
 }
@@ -3352,6 +3361,8 @@ async fn every_write_fails_when_its_audit_fails() {
         .create_test_host(&actor, &HostFields::new("win10-01"))
         .await
         .expect("adds a test host");
+    let runs = svs_runs_tests::before_the_audit_breaks(db).await;
+    let runs_before = svs_runs_tests::runs_rows(db, &runs).await;
     let hosts_before = test_host_rows(db).await;
     // a sample for each of its actions
     let (_, relabelled, _) = audited_sample(db).await;
@@ -4276,6 +4287,7 @@ async fn every_write_fails_when_its_audit_fails() {
         }
     };
     attempts.push(("route_due", routing_failed));
+    attempts.extend(svs_runs_tests::attempts_with_the_audit_broken(&runs, &actor).await);
     let mut covered = BTreeSet::new();
     for (function, error) in &attempts {
         assert!(error.to_string().contains("broken"), "{function}: {error}");
@@ -4311,6 +4323,11 @@ async fn every_write_fails_when_its_audit_fails() {
         test_host_rows(db).await,
         hosts_before,
         "no test host changed"
+    );
+    assert_eq!(
+        svs_runs_tests::runs_rows(db, &runs).await,
+        runs_before,
+        "no run or maintenance window changed, and no event or refusal was written"
     );
     assert_eq!(command_rows(db).await, commands_before);
     assert_eq!(sample_rows(db).await, samples_before, "no sample changed");
@@ -14103,6 +14120,7 @@ fn loaded_hunt(path: &str) -> LoadedHuntRow {
         enabled: Some(true),
         frequency: Some("00:10:00".to_owned()),
         error: None,
+        svs: None,
     }
 }
 
@@ -26209,5 +26227,3437 @@ mod svs_catalog_tests {
             }
         );
         row.action
+    }
+}
+
+/// PLAN.md 7.10 batch 5, part 5a: ace3's tests/saq/svs/test_runs.py, test_refusals.py and the half of
+/// test_maintenance.py that needs no judgment of an alert. Each test names the ace3 case it ports. What
+/// has no counterpart: `test_the_run_timer_stays_idle_off_the_primary_node` (there's no primary node: the
+/// scheduler's claim runs the timers once) and `test_a_single_threaded_service_is_finished_when_it_returns`
+/// (the timers are a scheduled task, not a service thread). `test_the_service_moves_runs` and
+/// `test_the_run_timer_runs_until_stopped_and_survives_a_failure` are `ace-app`'s scheduler tests, and
+/// `test_long_output_keeps_its_start_and_its_end` is `ace-core`'s. test_maintenance.py's `TestEvaluate`
+/// (9), `test_a_windows_matches_are_keyed_by_the_window_and_never_recorded_for_a_run`, the six cases of an
+/// alert of a window being routed, recorded and closed, `test_a_window_whose_alerts_fail_to_close_doesnt_
+/// stop_the_others`, and the judging half of `test_removing_the_test_host_ends_its_window` need batch 6's
+/// judgment of an alert.
+mod svs_runs_tests {
+    use super::*;
+    use ace_core::svs::runs::RunsConfig;
+    use ace_service::{
+        HostHolder, MaintenanceWindow, ObservationSource, Registration, RegistrationDecision, Run,
+        RunEvent, TargetSpec, TimerResult,
+    };
+    use chrono::{DateTime, TimeDelta, Utc};
+
+    const GUID: &str = "aaaaaaaa-1111-4111-8111-111111111111";
+    const LINUX_GUID: &str = "bbbbbbbb-2222-4222-8222-222222222222";
+    const REMOVED_GUID: &str = "cccccccc-3333-4333-8333-333333333333";
+    const IAAS_GUID: &str = "eeeeeeee-5555-4555-8555-555555555555";
+    const LAUNCHER_KEY: u128 = 0x5A;
+
+    fn t0() -> DateTime<Utc> {
+        "2026-10-14T12:00:00Z".parse().expect("a time")
+    }
+
+    fn minutes(n: i64) -> TimeDelta {
+        TimeDelta::minutes(n)
+    }
+
+    fn hours(n: i64) -> TimeDelta {
+        TimeDelta::hours(n)
+    }
+
+    fn launcher() -> Actor {
+        Actor::ApiKey {
+            id: ApiKeyId(Uuid::from_u128(LAUNCHER_KEY)),
+            name: "art-launcher".to_owned(),
+            owner: None,
+        }
+    }
+
+    fn launcher_json() -> Value {
+        json!({"kind": "api_key", "id": Uuid::from_u128(LAUNCHER_KEY), "name": "art-launcher", "owner": null})
+    }
+
+    fn timers() -> Actor {
+        component("scheduler:svs_run_timers")
+    }
+
+    fn timers_json() -> Value {
+        json!({"kind": "internal", "id": "scheduler:svs_run_timers"})
+    }
+
+    /// conftest.py's `add_catalog_test`, with its platforms.
+    async fn catalog_test(db: &Db, guid: &str, platforms: &[&str], removed: bool) {
+        let platforms: Vec<String> = platforms.iter().map(|p| (*p).to_owned()).collect();
+        sqlx::query(
+            "INSERT INTO svs.catalog_tests
+                 (guid, repository, technique, name, platforms, test, content_hash, commit, path, removed_at)
+             VALUES ($1::uuid, 'atomic-red-team', 'T1059.001', 'a test', $2, '{}', repeat('0', 64),
+                     repeat('a', 40), 'atomics/T1059.001/T1059.001.yaml',
+                     CASE WHEN $3 THEN '2026-10-01T00:00:00Z'::timestamptz END)",
+        )
+        .bind(guid)
+        .bind(platforms)
+        .bind(removed)
+        .execute(db.pool())
+        .await
+        .expect("adds a catalog test");
+    }
+
+    struct Fixture {
+        service: Service,
+        admin: Actor,
+        launcher: Actor,
+        _cache: tempfile::TempDir,
+    }
+
+    /// test_runs.py's `setup`: four catalog tests, four test hosts, and a launcher's key.
+    async fn fixture(db: &Db) -> Fixture {
+        let (bucket, cache) = bucket(db);
+        let service = service(db).with_bucket(bucket);
+        let admin = admin(db).await;
+        let key = Holder::ApiKey(ApiKeyId(Uuid::from_u128(LAUNCHER_KEY)));
+        exists(db, &key).await;
+        service
+            .grant(&admin, &key, &pattern("svs", "run_register"), Effect::Allow)
+            .await
+            .expect("grants");
+        catalog_test(db, GUID, &["windows"], false).await;
+        catalog_test(db, LINUX_GUID, &["linux", "macos"], false).await;
+        catalog_test(db, REMOVED_GUID, &["windows"], true).await;
+        catalog_test(db, IAAS_GUID, &["iaas:aws", "iaas:azure"], false).await;
+        for fields in [
+            host_fields("win10-01.lab.example", &["LAB\\svc_art"], Some("windows")),
+            host_fields("anyuser-01", &[], None),
+            host_fields("ubuntu-01", &[], Some("linux")),
+            host_fields("mac-01", &[], Some("macos")),
+        ] {
+            service
+                .create_test_host(&admin, &fields)
+                .await
+                .expect("adds a test host");
+        }
+        Fixture {
+            service,
+            admin,
+            launcher: launcher(),
+            _cache: cache,
+        }
+    }
+
+    fn targets(targets: &[(&str, Option<&str>)]) -> Vec<TargetSpec> {
+        targets
+            .iter()
+            .map(|(host, user)| TargetSpec::new(host, *user))
+            .collect()
+    }
+
+    fn registration() -> Registration {
+        Registration {
+            test_guid: GUID.to_owned(),
+            targets: targets(&[("WIN10-01", Some("svc_art@lab.example"))]),
+            launcher: "art".to_owned(),
+            batch_id: Some("batch-1".to_owned()),
+            extra: json!({"ticket": 42}),
+        }
+    }
+
+    fn on(hosts: &[&str]) -> Registration {
+        Registration {
+            targets: hosts.iter().map(|h| TargetSpec::new(h, None)).collect(),
+            ..registration()
+        }
+    }
+
+    impl Fixture {
+        async fn register(&self, at: DateTime<Utc>) -> Run {
+            self.service
+                .register_svs_run(&self.launcher, &registration(), at)
+                .await
+                .expect("registers")
+        }
+
+        async fn started(&self, at: DateTime<Utc>) -> Run {
+            let run = self.register(at).await;
+            self.service
+                .start_svs_run(&self.launcher, run.uuid, at)
+                .await
+                .expect("starts")
+        }
+
+        async fn run(&self, uuid: Uuid) -> Run {
+            self.service
+                .svs_run(&self.admin, uuid)
+                .await
+                .expect("reads the run")
+                .run
+        }
+
+        async fn events(&self, uuid: Uuid) -> Vec<RunEvent> {
+            self.service
+                .svs_run_events(&self.admin, uuid, None, None)
+                .await
+                .expect("reads the events")
+        }
+
+        async fn timers(&self, at: DateTime<Utc>) -> TimerResult {
+            self.service
+                .run_svs_timers(&timers(), at)
+                .await
+                .expect("runs the timers")
+        }
+    }
+
+    fn moves(events: &[RunEvent]) -> Vec<(String, Option<RunState>, Option<RunState>)> {
+        events
+            .iter()
+            .map(|e| (e.kind.clone(), e.from_state, e.to_state))
+            .collect()
+    }
+
+    fn transitions(events: &[RunEvent]) -> Vec<(RunState, RunState)> {
+        events
+            .iter()
+            .filter(|e| e.kind == "transition")
+            .map(|e| (e.from_state.expect("from"), e.to_state.expect("to")))
+            .collect()
+    }
+
+    async fn count(db: &Db, table: &str) -> i64 {
+        sqlx::query_scalar(sqlx::AssertSqlSafe(format!("SELECT count(*) FROM {table}")))
+            .fetch_one(db.pool())
+            .await
+            .expect("counts")
+    }
+
+    async fn alerts(db: &Db) -> i64 {
+        count(db, "analysis.roots").await
+    }
+
+    async fn refusal_hosts(db: &Db) -> Vec<(String, i32, Option<Uuid>)> {
+        sqlx::query_as("SELECT host, count, root_id FROM svs.registration_refusals ORDER BY id")
+            .fetch_all(db.pool())
+            .await
+            .expect("reads")
+    }
+
+    fn message(error: &ServiceError) -> String {
+        error.to_string()
+    }
+
+    fn holder(run: Uuid, state: &str, until: Option<DateTime<Utc>>) -> HostHolder {
+        HostHolder {
+            host: "win10-01".to_owned(),
+            run: Some(run),
+            state: state.to_owned(),
+            until,
+            maintenance: None,
+        }
+    }
+
+    /// A test's settings, which part 5b's decisions write.
+    async fn settings(db: &Db, guid: &str, observation_minutes: Option<i32>, holds_host: bool) {
+        sqlx::query(
+            "INSERT INTO svs.test_settings (test_guid, observation_minutes, holds_host)
+             VALUES ($1::uuid, $2, $3)
+             ON CONFLICT (test_guid) DO UPDATE
+             SET observation_minutes = EXCLUDED.observation_minutes, holds_host = EXCLUDED.holds_host",
+        )
+        .bind(guid)
+        .bind(observation_minutes)
+        .bind(holds_host)
+        .execute(db.pool())
+        .await
+        .expect("sets");
+    }
+
+    /// test_runs.py's `test_register`.
+    #[tokio::test]
+    async fn register() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = fixture(db).await;
+        let run = f.register(t0()).await;
+        assert_eq!(f.run(run.uuid).await, run);
+        assert_eq!(run.state, RunState::Created);
+        assert!(ace_core::svs::markers::is_marker(&run.marker));
+        assert_eq!(run.marker, run.marker.to_lowercase());
+        assert_eq!(
+            (
+                run.test_guid.to_string().as_str(),
+                run.catalog_commit.as_str(),
+                run.launcher.as_str(),
+                run.batch_id.as_deref()
+            ),
+            (GUID, "a".repeat(40).as_str(), "art", Some("batch-1"))
+        );
+        assert_eq!(run.platform, "windows");
+        assert_eq!(run.extra, json!({"ticket": 42}));
+        assert_eq!(
+            (run.observation_seconds, run.attribution_seconds),
+            (3600, 25 * 3600)
+        );
+        assert_eq!((run.started_at, run.observation_ends_at), (None, None));
+        assert_eq!(run.created_at, t0());
+        assert_eq!(
+            run.registered_by.as_ref().map(|a| a.kind.as_str()),
+            Some("api_key")
+        );
+        let [target] = run.targets.as_slice() else {
+            panic!("one target")
+        };
+        assert_eq!(
+            (
+                target.hostname.as_str(),
+                target.username.as_deref(),
+                target.host.as_str(),
+                target.fqdn.as_deref(),
+                target.user.as_deref()
+            ),
+            (
+                "WIN10-01",
+                Some("svc_art@lab.example"),
+                "win10-01",
+                Some("win10-01.lab.example"),
+                Some("svc_art")
+            )
+        );
+        let events = f.events(run.uuid).await;
+        let [event] = events.as_slice() else {
+            panic!("one event")
+        };
+        assert_eq!(
+            (event.kind.as_str(), event.from_state, event.to_state),
+            ("registered", None, Some(RunState::Created))
+        );
+        assert_eq!(
+            event.actor.as_ref().and_then(|a| a.name.as_deref()),
+            Some("art-launcher")
+        );
+        assert_eq!(
+            event.details,
+            Some(json!({
+                "test_guid": GUID,
+                "targets": [{"hostname": "WIN10-01", "username": "svc_art@lab.example"}],
+                "launcher": "art",
+                "batch_id": "batch-1",
+                "extra": {"ticket": 42},
+                "platform": "windows",
+                "observation_source": "all_hunts",
+                "holds_host": false,
+            }))
+        );
+    }
+
+    /// test_runs.py's `test_a_run_has_one_platform`.
+    #[tokio::test]
+    async fn a_run_has_one_platform() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = fixture(db).await;
+        for (guid, hosts, platform) in [
+            // the test hosts' platform; a host without one is taken to be on the others'
+            (LINUX_GUID, &["anyuser-01", "mac-01"][..], "macos"),
+            // no host says: the test's only platform, as ATT&CK names it
+            (GUID, &["anyuser-01"][..], "windows"),
+            (IAAS_GUID, &["anyuser-01"][..], "iaas"),
+        ] {
+            let registration = Registration {
+                test_guid: guid.to_owned(),
+                ..on(hosts)
+            };
+            let run = f
+                .service
+                .register_svs_run(&f.launcher, &registration, t0())
+                .await
+                .expect("registers");
+            assert_eq!(run.platform, platform);
+            f.service
+                .cancel_svs_run(&f.launcher, run.uuid, t0())
+                .await
+                .expect("frees its hosts");
+        }
+    }
+
+    /// test_runs.py's `test_register_dedupes_targets_and_accepts_any_user`.
+    #[tokio::test]
+    async fn register_dedupes_targets_and_accepts_any_user() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = fixture(db).await;
+        let registration = Registration {
+            targets: targets(&[
+                ("anyuser-01", None),
+                ("ANYUSER-01", None),
+                ("anyuser-01", Some("bob")),
+            ]),
+            ..registration()
+        };
+        let run = f
+            .service
+            .register_svs_run(&f.launcher, &registration, t0())
+            .await
+            .expect("registers");
+        let found: Vec<(&str, Option<&str>)> = run
+            .targets
+            .iter()
+            .map(|t| (t.host.as_str(), t.user.as_deref()))
+            .collect();
+        assert_eq!(found, [("anyuser-01", None), ("anyuser-01", Some("bob"))]);
+    }
+
+    /// test_runs.py's `test_register_rejects`.
+    #[tokio::test]
+    async fn register_rejects() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = fixture(db).await;
+        let many: Vec<String> = (0..17).map(|n| format!("u{n}")).collect();
+        let cases: Vec<(Registration, &str)> = vec![
+            (
+                Registration {
+                    test_guid: "dddddddd-4444-4444-8444-444444444444".to_owned(),
+                    ..registration()
+                },
+                "is not in the catalog",
+            ),
+            (
+                Registration {
+                    test_guid: "not a guid".to_owned(),
+                    ..registration()
+                },
+                "test not a guid is not in the catalog",
+            ),
+            (
+                Registration {
+                    test_guid: REMOVED_GUID.to_owned(),
+                    ..registration()
+                },
+                "was removed from the catalog",
+            ),
+            (on(&[]), "at least one target"),
+            (
+                Registration {
+                    targets: many
+                        .iter()
+                        .map(|user| TargetSpec::new("anyuser-01", Some(user)))
+                        .collect(),
+                    ..registration()
+                },
+                "at most 16 targets",
+            ),
+            (
+                Registration {
+                    extra: json!({"blob": "x".repeat(20000)}),
+                    ..registration()
+                },
+                "larger than 16384 bytes",
+            ),
+            (
+                Registration {
+                    extra: json!(["not", "an", "object"]),
+                    ..registration()
+                },
+                "must be a JSON object",
+            ),
+            (on(&["bad host"]), "is not a host name"),
+            (
+                Registration {
+                    test_guid: LINUX_GUID.to_owned(),
+                    ..registration()
+                },
+                "test host win10-01 is windows",
+            ),
+            // a run is on one platform: hosts that disagree, or nothing that says which
+            (
+                Registration {
+                    test_guid: LINUX_GUID.to_owned(),
+                    ..on(&["ubuntu-01", "mac-01"])
+                },
+                "different platforms (linux, macos)",
+            ),
+            (
+                Registration {
+                    test_guid: LINUX_GUID.to_owned(),
+                    ..on(&["anyuser-01"])
+                },
+                "supports linux, macos and no target's test host has a platform",
+            ),
+        ];
+        for (registration, expected) in cases {
+            let error = f
+                .service
+                .register_svs_run(&f.launcher, &registration, t0())
+                .await
+                .expect_err("rejected");
+            assert!(
+                matches!(&error, ServiceError::InvalidRequest(why) if why.contains(expected)),
+                "{expected}: {error}"
+            );
+        }
+        assert_eq!(count(db, "svs.runs").await, 0);
+        assert_eq!(count(db, "svs.registration_refusals").await, 0);
+        assert_eq!(alerts(db).await, 0);
+        // a rejected registration changed nothing, so it has no audit row
+        assert!(
+            audit_rows(db)
+                .await
+                .iter()
+                .all(|row| row.action != "register_svs_run")
+        );
+    }
+
+    /// test_runs.py's `test_register_refuses_a_target_that_is_not_a_test_host`.
+    #[tokio::test]
+    async fn register_refuses_a_target_that_is_not_a_test_host() {
+        for (target, reason) in [
+            (("prod-dc-01", None), "prod-dc-01 is not a test host"),
+            (
+                ("win10-01", Some("administrator")),
+                "administrator is not a user of test host win10-01",
+            ),
+            (("win10-01", None), "lists its users and no user was given"),
+            (
+                ("win10-01.prod.example", Some("svc_art")),
+                "is not test host win10-01.lab.example",
+            ),
+        ] {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let f = fixture(db).await;
+            let registration = Registration {
+                targets: targets(&[("anyuser-01", None), target]),
+                ..registration()
+            };
+            let error = f
+                .service
+                .register_svs_run(&f.launcher, &registration, t0())
+                .await
+                .expect_err("refused");
+            let ServiceError::Forbidden(why) = &error else {
+                panic!("{error}")
+            };
+            assert!(why.starts_with("registration refused: "), "{why}");
+            assert!(why.contains(reason) && !why.contains("; "), "{why}");
+            assert_eq!(count(db, "svs.runs").await, 0);
+            let refusals = refusal_hosts(db).await;
+            assert_eq!(refusals.len(), 1);
+            assert_eq!((refusals[0].0.as_str(), refusals[0].1), (target.0, 1));
+            // the first refusal of the hour alerts
+            assert_eq!(alerts(db).await, 1);
+            let row = last_audit(db).await;
+            assert_eq!(
+                (row.action.as_str(), row.target.0.as_str(), &row.target.1),
+                ("register_svs_run", "svs_refusal", &f.launcher.to_string())
+            );
+        }
+    }
+
+    /// test_runs.py's `test_validate_decides_an_accepted_registration_as_register_would`.
+    #[tokio::test]
+    async fn validate_decides_an_accepted_registration_as_register_would() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = fixture(db).await;
+        let audited = audit_rows(db).await.len();
+        let decision = f
+            .service
+            .validate_svs_run(&f.launcher, &registration(), t0())
+            .await
+            .expect("validates");
+        assert_eq!(
+            (decision.decision, decision.message.clone()),
+            (RegistrationDecision::Accepted, None)
+        );
+        assert_eq!(
+            (decision.platform.as_deref(), decision.observation_source),
+            (Some("windows"), Some(ObservationSource::AllHunts))
+        );
+        assert_eq!(
+            (decision.observation_seconds, decision.attribution_seconds),
+            (Some(3600), Some(25 * 3600))
+        );
+        assert_eq!(decision.holds_host, Some(false));
+        let [target] = decision.targets.as_slice() else {
+            panic!("one target")
+        };
+        assert_eq!(
+            (
+                target.hostname.as_str(),
+                target.username.as_deref(),
+                target.accepted,
+                target.test_host.as_deref(),
+                target.platform.as_deref()
+            ),
+            (
+                "WIN10-01",
+                Some("svc_art@lab.example"),
+                true,
+                Some("win10-01"),
+                Some("windows")
+            )
+        );
+        // nothing written
+        assert_eq!(count(db, "svs.runs").await, 0);
+        assert_eq!(count(db, "svs.run_events").await, 0);
+        assert_eq!(count(db, "svs.registration_refusals").await, 0);
+        assert_eq!(alerts(db).await, 0);
+        assert_eq!(audit_rows(db).await.len(), audited);
+
+        let run = f.register(t0()).await;
+        assert_eq!(
+            (
+                run.platform.as_str(),
+                run.observation_seconds,
+                run.attribution_seconds
+            ),
+            ("windows", 3600, 25 * 3600)
+        );
+    }
+
+    /// test_runs.py's `test_validate_refuses_without_recording_or_alerting`.
+    #[tokio::test]
+    async fn validate_refuses_without_recording_or_alerting() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = fixture(db).await;
+        let registration = Registration {
+            targets: targets(&[
+                ("anyuser-01", None),
+                ("prod-dc-01", None),
+                ("win10-01", Some("administrator")),
+            ]),
+            ..registration()
+        };
+        let decision = f
+            .service
+            .validate_svs_run(&f.launcher, &registration, t0())
+            .await
+            .expect("validates");
+        assert_eq!(decision.decision, RegistrationDecision::Refused);
+        assert_eq!(
+            (decision.message.clone(), decision.platform.clone()),
+            (None, None)
+        );
+        let reasons: Vec<Option<&str>> = decision
+            .targets
+            .iter()
+            .map(|t| t.reason.as_deref())
+            .collect();
+        assert_eq!(
+            reasons,
+            [
+                None,
+                Some("prod-dc-01 is not a test host"),
+                Some("administrator is not a user of test host win10-01")
+            ]
+        );
+        let accepted: Vec<bool> = decision.targets.iter().map(|t| t.accepted).collect();
+        assert_eq!(accepted, [true, false, false]);
+        assert_eq!(count(db, "svs.runs").await, 0);
+        assert_eq!(count(db, "svs.registration_refusals").await, 0);
+        assert_eq!(alerts(db).await, 0);
+    }
+
+    /// test_runs.py's `test_validate_an_invalid_registration`.
+    #[tokio::test]
+    async fn validate_an_invalid_registration() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = fixture(db).await;
+        for (guid, expected, judged) in [
+            // invalid before the targets are judged
+            (
+                "dddddddd-4444-4444-8444-444444444444",
+                "is not in the catalog",
+                false,
+            ),
+            // invalid after
+            (LINUX_GUID, "test host win10-01 is windows", true),
+        ] {
+            let registration = Registration {
+                test_guid: guid.to_owned(),
+                ..registration()
+            };
+            let decision = f
+                .service
+                .validate_svs_run(&f.launcher, &registration, t0())
+                .await
+                .expect("validates");
+            assert_eq!(decision.decision, RegistrationDecision::Invalid);
+            assert!(
+                decision
+                    .message
+                    .as_deref()
+                    .is_some_and(|m| m.contains(expected)),
+                "{:?}",
+                decision.message
+            );
+            assert_eq!(!decision.targets.is_empty(), judged);
+            assert!(decision.targets.iter().all(|t| t.accepted));
+            assert_eq!(count(db, "svs.runs").await, 0);
+            assert_eq!(count(db, "svs.registration_refusals").await, 0);
+            let error = f
+                .service
+                .register_svs_run(&f.launcher, &registration, t0())
+                .await
+                .expect_err("rejected");
+            assert!(
+                matches!(&error, ServiceError::InvalidRequest(why) if why.contains(expected)),
+                "{error}"
+            );
+        }
+    }
+
+    /// The window's source, which test_runs.py leaves to test_expectations.py: a test's settings, else its
+    /// expected signatures' latency from the hunts the hunter recorded, else the slowest enabled hunt.
+    #[tokio::test]
+    async fn the_window_comes_from_the_settings_the_expectations_or_the_hunts() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = fixture(db).await;
+        let hunt = |uuid: &str, enabled: bool, latency: i64| {
+            json!({"uuid": uuid, "name": uuid, "enabled": enabled, "latency_seconds": latency,
+                   "suppression_seconds": null, "per_group": false, "content_hash": "0".repeat(64),
+                   "tags": []})
+        };
+        let rows: Vec<LoadedHuntRow> = [
+            ("a.yaml", hunt("hunt-slow", true, 3 * 3600)),
+            ("b.yaml", hunt("hunt-fast", true, 2 * 3600)),
+            // a disabled hunt never counts toward the slowest
+            ("c.yaml", hunt("hunt-off", false, 50 * 3600)),
+            // one uuid in two files: the enabled one counts
+            ("d.yaml", hunt("hunt-fast", false, 40 * 3600)),
+        ]
+        .into_iter()
+        .map(|(path, svs)| LoadedHuntRow {
+            svs: Some(serde_json::from_value(svs).expect("a recorded hunt")),
+            ..loaded_hunt(path)
+        })
+        .collect();
+        f.service
+            .sync_hunts(&hunter(), "splunk", &rows)
+            .await
+            .expect("records the hunts");
+        let validate = async |f: &Fixture| {
+            let decision = f
+                .service
+                .validate_svs_run(&f.launcher, &registration(), t0())
+                .await
+                .expect("validates");
+            (
+                decision.observation_seconds.expect("a window"),
+                decision.attribution_seconds.expect("a window"),
+                decision.observation_source.expect("a source"),
+            )
+        };
+        // no expectations: the slowest enabled hunt, plus slack
+        assert_eq!(
+            validate(&f).await,
+            (
+                3 * 3600 + 1800,
+                27 * 3600 + 1800,
+                ObservationSource::AllHunts
+            )
+        );
+        // expected signatures: the slowest of them; one that is no hunt fires at once
+        for (signature, state) in [
+            ("hunt-fast", "expected"),
+            ("a-yara-rule", "expected"),
+            ("hunt-slow", "rejected"),
+        ] {
+            sqlx::query(
+                "INSERT INTO svs.expectations (test_guid, platform, signature_uuid, state, decided_by)
+                 VALUES ($1::uuid, 'windows', $2, $3, '{\"kind\": \"internal\", \"id\": \"test\"}')",
+            )
+            .bind(GUID)
+            .bind(signature)
+            .bind(state)
+            .execute(db.pool())
+            .await
+            .expect("decides");
+        }
+        assert_eq!(
+            validate(&f).await,
+            (
+                2 * 3600 + 1800,
+                26 * 3600 + 1800,
+                ObservationSource::Expected
+            )
+        );
+        // an ignored signature isn't expected: only the rule is left, and the floor covers it
+        sqlx::query(
+            "INSERT INTO svs.ignores (test_guid, signature_uuid, created_by)
+             VALUES (NULL, 'hunt-fast', '{\"kind\": \"internal\", \"id\": \"test\"}')",
+        )
+        .execute(db.pool())
+        .await
+        .expect("ignores");
+        assert_eq!(
+            validate(&f).await,
+            (3600, 25 * 3600, ObservationSource::Expected)
+        );
+        // another platform's decisions don't count
+        sqlx::query("UPDATE svs.expectations SET platform = 'linux'")
+            .execute(db.pool())
+            .await
+            .expect("moves");
+        assert_eq!(validate(&f).await.2, ObservationSource::AllHunts);
+        // the test's settings replace the computed window, with no slack and no floor
+        settings(db, GUID, Some(5), false).await;
+        assert_eq!(
+            validate(&f).await,
+            (300, 24 * 3600 + 300, ObservationSource::Override)
+        );
+        let run = f.register(t0()).await;
+        assert_eq!(
+            (run.observation_seconds, run.attribution_seconds),
+            (300, 24 * 3600 + 300)
+        );
+        assert_eq!(
+            f.events(run.uuid).await[0]
+                .details
+                .as_ref()
+                .expect("details")["observation_source"],
+            "override"
+        );
+        // the overlay's svs.runs sets the bounds
+        let section: ace_sdk::SvsRunsSection = serde_json::from_value(json!({
+            "attribution_extra_hours": 1, "max_targets": 1,
+        }))
+        .expect("a section");
+        let strict = f
+            .service
+            .clone()
+            .with_runs(RunsConfig::from_section(&section).expect("valid"));
+        let decision = strict
+            .validate_svs_run(&f.launcher, &on(&["ubuntu-01", "mac-01"]), t0())
+            .await
+            .expect("validates");
+        assert_eq!(
+            decision.message.as_deref(),
+            Some("a run may have at most 1 targets")
+        );
+    }
+
+    /// test_runs.py's `test_a_run_not_started_holds_its_hosts`.
+    #[tokio::test]
+    async fn a_run_not_started_holds_its_hosts() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = fixture(db).await;
+        let first = f.register(t0()).await;
+        let audited = audit_rows(db).await.len();
+        let error = f
+            .service
+            .register_svs_run(&f.launcher, &registration(), t0() + minutes(5))
+            .await
+            .expect_err("busy");
+        assert!(matches!(error, ServiceError::Conflict(_)), "{error}");
+        assert_eq!(
+            message(&error),
+            format!(
+                "test host win10-01 is held by run {} (created, not started)",
+                first.uuid
+            )
+        );
+        // a lifecycle conflict: no run, no refusal, no alert, no audit row
+        assert_eq!(count(db, "svs.runs").await, 1);
+        assert_eq!(count(db, "svs.registration_refusals").await, 0);
+        assert_eq!(alerts(db).await, 0);
+        assert_eq!(audit_rows(db).await.len(), audited);
+
+        // another host is free, and a run canceled before it started never held one
+        f.service
+            .register_svs_run(&f.launcher, &on(&["anyuser-01"]), t0())
+            .await
+            .expect("another host");
+        f.service
+            .cancel_svs_run(&f.launcher, first.uuid, t0() + minutes(6))
+            .await
+            .expect("cancels");
+        f.register(t0() + minutes(7)).await;
+    }
+
+    /// test_runs.py's `test_a_started_run_holds_its_hosts_until_its_observation_window_ends`.
+    #[tokio::test]
+    async fn a_started_run_holds_its_hosts_until_its_observation_window_ends() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = fixture(db).await;
+        let first = f.started(t0()).await;
+        // in any state: it may have fired
+        f.service
+            .svs_run_executed(&f.launcher, first.uuid, 1, None, None, t0() + minutes(1))
+            .await
+            .expect("fails");
+        for now in [t0() + minutes(59), t0() + hours(1)] {
+            let decision = f
+                .service
+                .validate_svs_run(&f.launcher, &registration(), now)
+                .await
+                .expect("validates");
+            assert_eq!(decision.decision, RegistrationDecision::HostBusy);
+            assert_eq!(
+                decision.targets[0].held_by,
+                [holder(first.uuid, "error", Some(t0() + hours(1)))]
+            );
+            let error = f
+                .service
+                .register_svs_run(&f.launcher, &registration(), now)
+                .await
+                .expect_err("busy");
+            assert_eq!(
+                message(&error),
+                format!(
+                    "test host win10-01 is held by run {} (error, until 2026-10-14T13:00:00Z)",
+                    first.uuid
+                )
+            );
+        }
+        let second = f.started(t0() + hours(1) + TimeDelta::seconds(1)).await;
+        assert!(!second.holds_host);
+    }
+
+    /// test_runs.py's `test_a_test_that_holds_the_host_holds_it_for_the_attribution_window`.
+    #[tokio::test]
+    async fn a_test_that_holds_the_host_holds_it_for_the_attribution_window() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = fixture(db).await;
+        settings(db, GUID, None, true).await;
+        let first = f.started(t0()).await;
+        assert!(first.holds_host);
+        let decision = f
+            .service
+            .validate_svs_run(&f.launcher, &registration(), t0() + hours(2))
+            .await
+            .expect("validates");
+        assert_eq!(
+            decision.targets[0].held_by,
+            [holder(first.uuid, "started", Some(t0() + hours(25)))]
+        );
+        // a test's settings apply to runs registered after them: this run doesn't hold the host
+        settings(db, GUID, None, false).await;
+        let second = f.register(t0() + hours(25) + TimeDelta::seconds(1)).await;
+        assert!(!second.holds_host);
+        assert_eq!(
+            f.events(second.uuid).await[0]
+                .details
+                .as_ref()
+                .expect("details")["holds_host"],
+            false
+        );
+    }
+
+    /// A run on win10-01 that no registration decided, as one registered before one run per host was
+    /// enforced: what test_runs.py makes by patching `host_holders`.
+    async fn undecided_run(db: &Db) -> Uuid {
+        let uuid = Uuid::new_v4();
+        let id: i64 = sqlx::query_scalar(
+            "INSERT INTO svs.runs
+                 (uuid, test_guid, platform, test_content_hash, catalog_commit, state, marker, launcher,
+                  created_at, observation_seconds, attribution_seconds)
+             VALUES ($1, $2::uuid, 'windows', repeat('0', 64), repeat('a', 40), 'created', $3, 'art',
+                     $4, 3600, 90000)
+             RETURNING id",
+        )
+        .bind(uuid)
+        .bind(GUID)
+        .bind(ace_core::svs::markers::new_marker())
+        .bind(t0())
+        .fetch_one(db.pool())
+        .await
+        .expect("adds a run");
+        sqlx::query(
+            "INSERT INTO svs.run_targets (run_id, hostname, host, test_host_id)
+             SELECT $1, 'win10-01', 'win10-01', id FROM svs.test_hosts WHERE hostname = 'win10-01'",
+        )
+        .bind(id)
+        .execute(db.pool())
+        .await
+        .expect("adds its target");
+        uuid
+    }
+
+    /// test_runs.py's `test_start_refuses_a_run_whose_host_another_run_holds`.
+    #[tokio::test]
+    async fn start_refuses_a_run_whose_host_another_run_holds() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = fixture(db).await;
+        let first = f.started(t0()).await;
+        let second = undecided_run(db).await;
+        let error = f
+            .service
+            .start_svs_run(&f.launcher, second, t0() + minutes(1))
+            .await
+            .expect_err("busy");
+        assert!(matches!(error, ServiceError::Conflict(_)), "{error}");
+        assert!(
+            message(&error).contains(&format!("is held by run {} (started", first.uuid)),
+            "{error}"
+        );
+        assert_eq!(f.run(second).await.state, RunState::Created);
+        let events = f.events(second).await;
+        let event = events.last().expect("an event");
+        assert_eq!(event.kind, "launcher_call");
+        assert_eq!(
+            event.details,
+            Some(json!({"call": "start", "outcome": "host busy",
+                        "payload": {"holding_runs": [first.uuid]}}))
+        );
+        let row = last_audit(db).await;
+        assert_eq!(
+            (row.action.as_str(), row.before, row.after, row.details),
+            (
+                "start_svs_run",
+                None,
+                None,
+                json!({"call": "start", "outcome": "host busy"})
+            )
+        );
+    }
+
+    /// test_runs.py's `test_validate_reports_the_host_busy`.
+    #[tokio::test]
+    async fn validate_reports_the_host_busy() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = fixture(db).await;
+        let first = f.register(t0()).await;
+        let decision = f
+            .service
+            .validate_svs_run(&f.launcher, &registration(), t0())
+            .await
+            .expect("validates");
+        assert_eq!(
+            (decision.decision, decision.message.clone()),
+            (RegistrationDecision::HostBusy, None)
+        );
+        assert!(decision.targets.iter().all(|t| t.accepted));
+        assert_eq!(
+            decision.targets[0].held_by,
+            [holder(first.uuid, "created", None)]
+        );
+        assert_eq!(decision.observation_seconds, None);
+    }
+
+    /// test_runs.py's `test_concurrent_registrations_take_a_host_once`.
+    #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+    async fn concurrent_registrations_take_a_host_once() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = fixture(db).await;
+        for round in 0..5 {
+            let at = t0() + hours(48 * round);
+            let attempts: Vec<_> = (0..4)
+                .map(|_| {
+                    let (service, launcher) = (f.service.clone(), f.launcher.clone());
+                    tokio::spawn(async move {
+                        service
+                            .register_svs_run(&launcher, &registration(), at)
+                            .await
+                    })
+                })
+                .collect();
+            let mut registered = Vec::new();
+            for attempt in attempts {
+                match attempt.await.expect("runs") {
+                    Ok(run) => registered.push(run.uuid),
+                    Err(error) => assert!(matches!(error, ServiceError::Conflict(_)), "{error}"),
+                }
+            }
+            assert_eq!(registered.len(), 1, "round {round}");
+            f.service
+                .cancel_svs_run(&f.launcher, registered[0], at)
+                .await
+                .expect("frees the host");
+        }
+        assert_eq!(count(db, "svs.runs").await, 5);
+    }
+
+    /// test_runs.py's `test_start`.
+    #[tokio::test]
+    async fn start() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = fixture(db).await;
+        let run = f.register(t0()).await;
+        // the windows start at the whole second: an event of that second is inside them
+        let started = f
+            .service
+            .start_svs_run(
+                &f.launcher,
+                run.uuid,
+                t0() + minutes(5) + TimeDelta::milliseconds(600),
+            )
+            .await
+            .expect("starts");
+        assert_eq!(f.run(run.uuid).await, started);
+        assert_eq!(started.state, RunState::Started);
+        assert_eq!(started.started_at, Some(t0() + minutes(5)));
+        assert_eq!(started.observation_ends_at, Some(t0() + minutes(65)));
+        assert_eq!(
+            started.attribution_ends_at,
+            Some(t0() + hours(25) + minutes(5))
+        );
+        assert_eq!(
+            moves(&f.events(run.uuid).await),
+            [
+                ("registered".to_owned(), None, Some(RunState::Created)),
+                (
+                    "transition".to_owned(),
+                    Some(RunState::Created),
+                    Some(RunState::Started)
+                ),
+                ("launcher_call".to_owned(), None, None),
+            ]
+        );
+    }
+
+    /// test_runs.py's `test_a_call_that_does_not_apply_is_a_conflict_and_is_recorded`.
+    #[tokio::test]
+    async fn a_call_that_does_not_apply_is_a_conflict_and_is_recorded() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = fixture(db).await;
+        let run = f.started(t0()).await;
+        let error = f
+            .service
+            .start_svs_run(&f.launcher, run.uuid, t0())
+            .await
+            .expect_err("a conflict");
+        assert!(matches!(error, ServiceError::Conflict(_)), "{error}");
+        assert_eq!(
+            message(&error),
+            format!("run {} is started; start does not apply", run.uuid)
+        );
+        let events = f.events(run.uuid).await;
+        let event = events.last().expect("an event");
+        assert_eq!(event.kind, "launcher_call");
+        assert_eq!(
+            event.details,
+            Some(json!({"call": "start", "outcome": "conflict", "payload": {}}))
+        );
+        assert_eq!(f.run(run.uuid).await.state, RunState::Started);
+    }
+
+    /// test_runs.py's `test_unknown_run`.
+    #[tokio::test]
+    async fn unknown_run() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = fixture(db).await;
+        let unknown: Uuid = "00000000-0000-4000-8000-000000000000"
+            .parse()
+            .expect("a uuid");
+        let audited = audit_rows(db).await.len();
+        let not_found = |result: Result<Run, ServiceError>| {
+            let error = result.expect_err("unknown");
+            assert!(
+                matches!(&error, ServiceError::NotFound(why) if *why == format!("run {unknown} not found")),
+                "{error}"
+            );
+        };
+        not_found(f.service.start_svs_run(&f.launcher, unknown, t0()).await);
+        not_found(f.service.cancel_svs_run(&f.launcher, unknown, t0()).await);
+        not_found(f.service.svs_run_cleanup(&f.launcher, unknown, t0()).await);
+        not_found(
+            f.service
+                .svs_run_executed(&f.launcher, unknown, 0, None, None, t0())
+                .await,
+        );
+        not_found(
+            f.service
+                .end_svs_run(&f.admin, unknown, "nothing fired", t0())
+                .await,
+        );
+        assert!(matches!(
+            f.service.svs_run(&f.admin, unknown).await,
+            Err(ServiceError::NotFound(_))
+        ));
+        assert!(matches!(
+            f.service
+                .svs_run_events(&f.admin, unknown, None, None)
+                .await,
+            Err(ServiceError::NotFound(_))
+        ));
+        assert_eq!(audit_rows(db).await.len(), audited);
+    }
+
+    /// test_runs.py's `test_executed_records_a_success`.
+    #[tokio::test]
+    async fn executed_records_a_success() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = fixture(db).await;
+        let run = f.started(t0()).await;
+        let at = t0() + minutes(2);
+        let run = f
+            .service
+            .svs_run_executed(&f.launcher, run.uuid, 0, None, None, at)
+            .await
+            .expect("records");
+        assert_eq!(
+            (
+                run.state,
+                run.exit_code,
+                run.executed_at,
+                run.launcher_error.clone()
+            ),
+            (RunState::Started, Some(0), Some(at), None)
+        );
+        let events = f.events(run.uuid).await;
+        assert_eq!(
+            events.last().expect("an event").details,
+            Some(json!({"call": "executed", "outcome": "recorded",
+                        "payload": {"exit_code": 0, "error": null}}))
+        );
+        assert_eq!(
+            transitions(&events),
+            [(RunState::Created, RunState::Started)]
+        );
+    }
+
+    /// test_runs.py's `test_executed_keeps_what_the_test_printed`.
+    #[tokio::test]
+    async fn executed_keeps_what_the_test_printed() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = fixture(db).await;
+        let run = f.started(t0()).await;
+        let output = "Executing test: T1059.001-1\nAccess is denied.\n";
+        f.service
+            .svs_run_executed(&f.launcher, run.uuid, 1, None, Some(output), t0())
+            .await
+            .expect("records");
+        // a run doesn't carry its output; reading one run does
+        let detail = f.service.svs_run(&f.admin, run.uuid).await.expect("reads");
+        assert_eq!(
+            (detail.run.state, detail.launcher_output.as_deref()),
+            (RunState::Error, Some(output))
+        );
+        // the event log says how much, not what
+        assert_eq!(
+            f.events(run.uuid)
+                .await
+                .last()
+                .expect("an event")
+                .details
+                .as_ref()
+                .expect("details")["payload"],
+            json!({"exit_code": 1, "error": null, "output_bytes": 46, "output_truncated": false})
+        );
+        assert!(!last_audit(db).await.details.to_string().contains("denied"));
+
+        // long output keeps its start and its end
+        let second = f.started(t0() + hours(2)).await;
+        let long = format!("{}{}", "a".repeat(100_000), "the error");
+        f.service
+            .svs_run_executed(
+                &f.launcher,
+                second.uuid,
+                0,
+                None,
+                Some(&long),
+                t0() + hours(2),
+            )
+            .await
+            .expect("records");
+        let kept = f
+            .service
+            .svs_run(&f.admin, second.uuid)
+            .await
+            .expect("reads")
+            .launcher_output
+            .expect("output");
+        assert!(kept.len() <= 64 * 1024 && kept.ends_with("the error"));
+        assert_eq!(
+            f.events(second.uuid)
+                .await
+                .last()
+                .expect("an event")
+                .details
+                .as_ref()
+                .expect("details")["payload"],
+            json!({"exit_code": 0, "error": null, "output_bytes": 100_009, "output_truncated": true})
+        );
+    }
+
+    /// test_runs.py's `test_executed_with_a_failure_moves_the_run_to_error`.
+    #[tokio::test]
+    async fn executed_with_a_failure_moves_the_run_to_error() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = fixture(db).await;
+        for (round, (exit_code, error)) in [(1, None), (0, Some("Invoke-AtomicTest failed"))]
+            .into_iter()
+            .enumerate()
+        {
+            let at = t0() + hours(2 * round as i64);
+            let run = f.started(at).await;
+            let run = f
+                .service
+                .svs_run_executed(&f.launcher, run.uuid, exit_code, error, None, at)
+                .await
+                .expect("records");
+            assert_eq!(run.state, RunState::Error);
+            assert_eq!(run.launcher_error.as_deref(), error);
+            let reason = run.error_reason.clone().expect("a reason");
+            assert!(
+                reason.contains("the launcher reported a failure"),
+                "{reason}"
+            );
+            let events = f.events(run.uuid).await;
+            assert!(transitions(&events).contains(&(RunState::Started, RunState::Error)));
+            let moved = events.iter().find(|e| e.to_state == Some(RunState::Error));
+            assert_eq!(
+                moved.expect("the transition").details,
+                Some(json!({"reason": reason}))
+            );
+            let row = last_audit(db).await;
+            assert_eq!(
+                (row.before, row.after, row.details),
+                (
+                    Some(json!({"state": "started"})),
+                    Some(json!({"state": "error"})),
+                    json!({"call": "executed", "outcome": "error", "reason": reason})
+                )
+            );
+        }
+    }
+
+    /// test_runs.py's `test_executed_before_start_is_a_conflict`.
+    #[tokio::test]
+    async fn executed_before_start_is_a_conflict() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = fixture(db).await;
+        let run = f.register(t0()).await;
+        let error = f
+            .service
+            .svs_run_executed(&f.launcher, run.uuid, 0, None, Some("out"), t0())
+            .await
+            .expect_err("a conflict");
+        assert!(matches!(error, ServiceError::Conflict(_)), "{error}");
+        let detail = f.service.svs_run(&f.admin, run.uuid).await.expect("reads");
+        assert_eq!(
+            (detail.run.executed_at, detail.launcher_output),
+            (None, None)
+        );
+        assert_eq!(
+            f.events(run.uuid).await.last().expect("an event").details,
+            Some(json!({"call": "executed", "outcome": "conflict",
+                        "payload": {"exit_code": 0, "error": null, "output_bytes": 3,
+                                    "output_truncated": false}}))
+        );
+    }
+
+    /// test_runs.py's `test_cleanup_is_recorded_once_on_a_started_run`.
+    #[tokio::test]
+    async fn cleanup_is_recorded_once_on_a_started_run() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = fixture(db).await;
+        let run = f.register(t0()).await;
+        assert!(matches!(
+            f.service.svs_run_cleanup(&f.launcher, run.uuid, t0()).await,
+            Err(ServiceError::Conflict(_))
+        ));
+        f.service
+            .start_svs_run(&f.launcher, run.uuid, t0())
+            .await
+            .expect("starts");
+        // at the whole second of the call: a cleanup detection of that second is the cleanup's
+        let at = t0() + minutes(3);
+        let returned = f
+            .service
+            .svs_run_cleanup(&f.launcher, run.uuid, at + TimeDelta::milliseconds(600))
+            .await
+            .expect("records");
+        assert_eq!(returned.cleanup_at, Some(at));
+        assert_eq!(f.run(run.uuid).await.cleanup_at, Some(at));
+        let events = f.events(run.uuid).await;
+        let event = events.last().expect("an event");
+        assert_eq!(
+            (event.kind.as_str(), event.details.clone()),
+            (
+                "launcher_call",
+                Some(json!({"call": "cleanup", "outcome": "recorded",
+                            "payload": {"cleanup_at": "2026-10-14T12:03:00Z"}}))
+            )
+        );
+        // once: the second call is a conflict, recorded, and changes nothing
+        assert!(matches!(
+            f.service
+                .svs_run_cleanup(&f.launcher, run.uuid, t0() + minutes(4))
+                .await,
+            Err(ServiceError::Conflict(_))
+        ));
+        assert_eq!(f.run(run.uuid).await.cleanup_at, Some(at));
+        assert_eq!(
+            f.events(run.uuid).await.last().expect("an event").details,
+            Some(json!({"call": "cleanup", "outcome": "conflict",
+                        "payload": {"cleanup_at": "2026-10-14T12:03:00Z"}}))
+        );
+    }
+
+    /// test_runs.py's `test_cancel_a_started_run_keeps_its_windows`.
+    #[tokio::test]
+    async fn cancel_a_started_run_keeps_its_windows() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = fixture(db).await;
+        let run = f.started(t0()).await;
+        let run = f
+            .service
+            .cancel_svs_run(&f.launcher, run.uuid, t0() + minutes(1))
+            .await
+            .expect("cancels");
+        assert_eq!(run.state, RunState::Canceled);
+        assert_eq!(run.canceled_at, Some(t0() + minutes(1)));
+        assert_eq!(run.attribution_ends_at, Some(t0() + hours(25)));
+        assert_eq!(run.closed_at, None);
+        assert!(matches!(
+            f.service.cancel_svs_run(&f.launcher, run.uuid, t0()).await,
+            Err(ServiceError::Conflict(_))
+        ));
+    }
+
+    /// test_runs.py's `test_cancel_before_start_closes_the_run`.
+    #[tokio::test]
+    async fn cancel_before_start_closes_the_run() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = fixture(db).await;
+        let run = f.register(t0()).await;
+        let run = f
+            .service
+            .cancel_svs_run(&f.launcher, run.uuid, t0() + minutes(1))
+            .await
+            .expect("cancels");
+        assert_eq!(
+            (run.state, run.close_reason.as_deref(), run.closed_at),
+            (
+                RunState::Closed,
+                Some("canceled before start"),
+                Some(t0() + minutes(1))
+            )
+        );
+        assert_eq!(
+            transitions(&f.events(run.uuid).await),
+            [
+                (RunState::Created, RunState::Canceled),
+                (RunState::Canceled, RunState::Closed)
+            ]
+        );
+        let row = last_audit(db).await;
+        assert_eq!(
+            (row.before, row.after, row.details),
+            (
+                Some(json!({"state": "created"})),
+                Some(json!({"state": "closed"})),
+                json!({"call": "cancel", "outcome": "canceled", "reason": "canceled before start"})
+            )
+        );
+    }
+
+    /// test_runs.py's `test_a_person_ends_a_started_run_early`.
+    #[tokio::test]
+    async fn a_person_ends_a_started_run_early() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = fixture(db).await;
+        let run = f.started(t0()).await;
+        // to the second, as start is
+        let run = f
+            .service
+            .end_svs_run(
+                &f.admin,
+                run.uuid,
+                "  the test failed: nothing will fire ",
+                t0() + minutes(10) + TimeDelta::milliseconds(600),
+            )
+            .await
+            .expect("ends");
+        let end = t0() + minutes(10);
+        assert_eq!(
+            (
+                run.state,
+                run.ended_at,
+                run.observation_ends_at,
+                run.end_reason.as_deref()
+            ),
+            (
+                RunState::Ended,
+                Some(end),
+                Some(end),
+                Some("the test failed: nothing will fire")
+            )
+        );
+        // an alert the test causes anyway is still the run's, as late
+        assert_eq!(run.attribution_ends_at, Some(t0() + hours(25)));
+        let events = f.events(run.uuid).await;
+        let event = events.last().expect("an event");
+        assert_eq!(
+            (
+                event.kind.as_str(),
+                event.from_state,
+                event.to_state,
+                event.details.clone()
+            ),
+            (
+                "transition",
+                Some(RunState::Started),
+                Some(RunState::Ended),
+                Some(json!({"reason": "the test failed: nothing will fire"}))
+            )
+        );
+        assert_eq!(event.actor.as_ref().map(|a| a.kind.as_str()), Some("user"));
+        // its result is to compute, and the timers have nothing left to do with it
+        let stale: Vec<(i64, bool)> =
+            sqlx::query_as("SELECT generation, stale FROM svs.run_result_state")
+                .fetch_all(db.pool())
+                .await
+                .expect("reads");
+        assert_eq!(stale, [(1, true)]);
+        assert_eq!(f.timers(t0() + hours(2)).await, TimerResult::default());
+        assert_eq!(f.events(run.uuid).await.len(), events.len());
+    }
+
+    /// test_runs.py's `test_ending_a_run_early_needs_a_started_run_and_a_reason`.
+    #[tokio::test]
+    async fn ending_a_run_early_needs_a_started_run_and_a_reason() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = fixture(db).await;
+        let run = f.register(t0()).await;
+        assert!(matches!(
+            f.service
+                .end_svs_run(&f.admin, run.uuid, "nothing fired", t0())
+                .await,
+            Err(ServiceError::Conflict(_))
+        ));
+        f.service
+            .start_svs_run(&f.launcher, run.uuid, t0())
+            .await
+            .expect("starts");
+        let error = f
+            .service
+            .end_svs_run(&f.admin, run.uuid, "  ", t0() + minutes(1))
+            .await
+            .expect_err("no reason");
+        assert!(
+            matches!(&error, ServiceError::InvalidRequest(why) if why.contains("needs a reason")),
+            "{error}"
+        );
+        assert_eq!(f.run(run.uuid).await.state, RunState::Started);
+
+        f.timers(t0() + hours(1)).await;
+        assert!(matches!(
+            f.service
+                .end_svs_run(
+                    &f.admin,
+                    run.uuid,
+                    "nothing fired",
+                    t0() + hours(1) + minutes(1)
+                )
+                .await,
+            Err(ServiceError::Conflict(_))
+        ));
+        assert_eq!(f.run(run.uuid).await.end_reason, None);
+        // a launcher's key doesn't end a run
+        assert!(matches!(
+            f.service.end_svs_run(&f.launcher, run.uuid, "nothing fired", t0()).await,
+            Err(ServiceError::PermissionDenied { ref permission, .. })
+                if permission.to_string() == "svs:run_manage"
+        ));
+    }
+
+    /// test_runs.py's `test_ending_a_run_the_timers_end_meanwhile_is_a_conflict`. Each takes the run's row
+    /// lock, so one of them finds the other's end, whichever goes first: the run ends once.
+    #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+    async fn ending_a_run_the_timers_end_meanwhile_is_a_conflict() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = fixture(db).await;
+        for round in 0..5 {
+            let at = t0() + hours(48 * round);
+            let run = f.started(at).await;
+            let ends = at + hours(1);
+            let (person, timers) = tokio::join!(
+                f.service
+                    .end_svs_run(&f.admin, run.uuid, "nothing fired", ends),
+                f.timers(ends),
+            );
+            let run = f.run(run.uuid).await;
+            assert_eq!((run.state, run.ended_at), (RunState::Ended, Some(ends)));
+            let ended: Vec<RunEvent> = f
+                .events(run.uuid)
+                .await
+                .into_iter()
+                .filter(|e| e.to_state == Some(RunState::Ended))
+                .collect();
+            assert_eq!(ended.len(), 1, "round {round}");
+            let by_timers = ended[0].actor.as_ref().map(|a| a.kind.as_str()) == Some("internal");
+            match person {
+                // the person's end stands, and the timers found nothing to end
+                Ok(_) => {
+                    assert!(!by_timers);
+                    assert_eq!(timers.ended, 0);
+                    assert_eq!(run.end_reason.as_deref(), Some("nothing fired"));
+                }
+                // the timers' end stands, once
+                Err(error) => {
+                    assert!(matches!(error, ServiceError::Conflict(_)), "{error}");
+                    assert!(by_timers);
+                    assert_eq!((timers.ended, run.end_reason), (1, None));
+                }
+            }
+        }
+    }
+
+    /// test_runs.py's `test_ending_a_run_whose_window_passed_before_the_timers_ended_it_keeps_its_window`.
+    #[tokio::test]
+    async fn ending_a_run_whose_window_passed_before_the_timers_ended_it_keeps_its_window() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = fixture(db).await;
+        let run = f.started(t0()).await;
+        let at = t0() + hours(1) + minutes(5);
+        let run = f
+            .service
+            .end_svs_run(&f.admin, run.uuid, "nothing fired", at)
+            .await
+            .expect("ends");
+        assert_eq!(
+            (run.observation_ends_at, run.ended_at),
+            (Some(t0() + hours(1)), Some(at))
+        );
+    }
+
+    /// test_runs.py's `test_a_run_ended_early_frees_its_hosts`.
+    #[tokio::test]
+    async fn a_run_ended_early_frees_its_hosts() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = fixture(db).await;
+        let first = f.started(t0()).await;
+        f.service
+            .end_svs_run(&f.admin, first.uuid, "nothing fired", t0() + minutes(10))
+            .await
+            .expect("ends");
+        let second = f.started(t0() + minutes(11)).await;
+        assert_eq!(second.state, RunState::Started);
+    }
+
+    /// test_runs.py's `test_a_run_ended_early_whose_test_holds_the_host_still_holds_it`.
+    #[tokio::test]
+    async fn a_run_ended_early_whose_test_holds_the_host_still_holds_it() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = fixture(db).await;
+        settings(db, GUID, None, true).await;
+        let first = f.started(t0()).await;
+        f.service
+            .end_svs_run(&f.admin, first.uuid, "nothing fired", t0() + minutes(10))
+            .await
+            .expect("ends");
+        let decision = f
+            .service
+            .validate_svs_run(&f.launcher, &registration(), t0() + hours(2))
+            .await
+            .expect("validates");
+        assert_eq!(
+            decision.targets[0].held_by,
+            [holder(first.uuid, "ended", Some(t0() + hours(25)))]
+        );
+        assert!(matches!(
+            f.service
+                .register_svs_run(&f.launcher, &registration(), t0() + hours(2))
+                .await,
+            Err(ServiceError::Conflict(_))
+        ));
+    }
+
+    /// test_runs.py's `test_a_run_never_started_times_out_and_is_closed`.
+    #[tokio::test]
+    async fn a_run_never_started_times_out_and_is_closed() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = fixture(db).await;
+        let run = f.register(t0()).await;
+        assert_eq!(f.timers(t0() + minutes(29)).await.timed_out, 0);
+        assert_eq!(
+            f.timers(t0() + minutes(30)).await,
+            TimerResult {
+                timed_out: 1,
+                ..TimerResult::default()
+            }
+        );
+        let run = f.run(run.uuid).await;
+        assert_eq!(
+            (run.state, run.close_reason.as_deref()),
+            (RunState::Closed, Some("start timeout"))
+        );
+        assert_eq!(
+            run.error_reason.as_deref(),
+            Some("start was not called within 30 minutes")
+        );
+        let events = f.events(run.uuid).await;
+        assert_eq!(
+            transitions(&events),
+            [
+                (RunState::Created, RunState::Error),
+                (RunState::Error, RunState::Closed)
+            ]
+        );
+        assert!(events[1..].iter().all(|e| {
+            e.actor.as_ref().map(|a| a.id.as_str()) == Some("scheduler:svs_run_timers")
+        }));
+        let row = last_audit(db).await;
+        assert_eq!(
+            row,
+            AuditRow {
+                actor: timers_json(),
+                action: "run_svs_timers".to_owned(),
+                target: ("svs_run".to_owned(), run.uuid.to_string()),
+                before: Some(json!({"state": "created"})),
+                after: Some(json!({"state": "closed"})),
+                details: json!({"call": "timer", "outcome": "timed out", "reason": "start timeout"}),
+            }
+        );
+        // the overlay's start timeout
+        let section: ace_sdk::SvsRunsSection =
+            serde_json::from_value(json!({"start_timeout_minutes": 5})).expect("a section");
+        let quick = f
+            .service
+            .clone()
+            .with_runs(RunsConfig::from_section(&section).expect("valid"));
+        let second = f.register(t0() + hours(1)).await;
+        let moved = quick
+            .run_svs_timers(&timers(), t0() + hours(1) + minutes(5))
+            .await
+            .expect("runs");
+        assert_eq!(moved.timed_out, 1);
+        assert_eq!(
+            f.run(second.uuid).await.error_reason.as_deref(),
+            Some("start was not called within 5 minutes")
+        );
+    }
+
+    /// test_runs.py's `test_a_started_run_ends_after_its_observation_window`.
+    #[tokio::test]
+    async fn a_started_run_ends_after_its_observation_window() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = fixture(db).await;
+        let run = f.started(t0()).await;
+        assert_eq!(f.timers(t0() + minutes(59)).await.ended, 0);
+        assert_eq!(
+            f.timers(t0() + minutes(60)).await,
+            TimerResult {
+                ended: 1,
+                ..TimerResult::default()
+            }
+        );
+        let ended = f.run(run.uuid).await;
+        assert_eq!(
+            (ended.state, ended.ended_at),
+            (RunState::Ended, Some(t0() + minutes(60)))
+        );
+        // its result is to compute
+        let stale: Vec<bool> = sqlx::query_scalar("SELECT stale FROM svs.run_result_state")
+            .fetch_all(db.pool())
+            .await
+            .expect("reads");
+        assert_eq!(stale, [true]);
+        // an Ended run waits for a person
+        assert_eq!(
+            f.timers(t0() + TimeDelta::days(30)).await,
+            TimerResult::default()
+        );
+        assert_eq!(f.run(run.uuid).await.state, RunState::Ended);
+    }
+
+    /// test_runs.py's `test_a_canceled_or_failed_run_is_closed_after_its_attribution_window`.
+    #[tokio::test]
+    async fn a_canceled_or_failed_run_is_closed_after_its_attribution_window() {
+        for finish in ["cancel", "error"] {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let f = fixture(db).await;
+            let run = f.started(t0()).await;
+            if finish == "cancel" {
+                f.service
+                    .cancel_svs_run(&f.launcher, run.uuid, t0() + minutes(1))
+                    .await
+                    .expect("cancels");
+            } else {
+                f.service
+                    .svs_run_executed(&f.launcher, run.uuid, 1, None, None, t0() + minutes(1))
+                    .await
+                    .expect("fails");
+            }
+            // it keeps attributing past its observation window
+            assert_eq!(f.timers(t0() + hours(24)).await, TimerResult::default());
+            let state = f.run(run.uuid).await.state;
+            assert!(matches!(state, RunState::Canceled | RunState::Error));
+            assert_eq!(f.timers(t0() + hours(25)).await.closed, 1);
+            let closed = f.run(run.uuid).await;
+            assert_eq!(
+                (closed.state, closed.close_reason.as_deref()),
+                (RunState::Closed, Some("attribution window ended"))
+            );
+            assert_eq!(
+                transitions(&f.events(run.uuid).await).last(),
+                Some(&(state, RunState::Closed))
+            );
+        }
+    }
+
+    /// test_runs.py's `test_a_timer_that_fires_twice_changes_nothing`.
+    #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+    async fn a_timer_that_fires_twice_changes_nothing() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = fixture(db).await;
+        let run = f.started(t0()).await;
+        // two passes read the run while it's started; one ends it
+        let (first, second) = tokio::join!(f.timers(t0() + hours(2)), f.timers(t0() + hours(3)));
+        assert_eq!(first.ended + second.ended, 1);
+        assert_eq!((first.failed, second.failed), (0, 0));
+        let ended: Vec<RunEvent> = f
+            .events(run.uuid)
+            .await
+            .into_iter()
+            .filter(|e| e.to_state == Some(RunState::Ended))
+            .collect();
+        assert_eq!(ended.len(), 1);
+        let at = f.run(run.uuid).await.ended_at.expect("ended");
+        assert_eq!(at, t0() + hours(if first.ended == 1 { 2 } else { 3 }));
+        // and a later pass changes nothing
+        assert_eq!(f.timers(t0() + hours(4)).await, TimerResult::default());
+        assert_eq!(f.run(run.uuid).await.ended_at, Some(at));
+    }
+
+    /// Makes every update of the run fail, as a database that went away does for one run.
+    async fn break_run(db: &Db, uuid: Uuid) {
+        sqlx::raw_sql(sqlx::AssertSqlSafe(format!(
+            "CREATE OR REPLACE FUNCTION svs.broken_run() RETURNS trigger LANGUAGE plpgsql AS $$
+             BEGIN RAISE EXCEPTION 'database went away'; END $$;
+             CREATE OR REPLACE TRIGGER broken BEFORE UPDATE ON svs.runs FOR EACH ROW
+                 WHEN (OLD.uuid = '{uuid}') EXECUTE FUNCTION svs.broken_run();"
+        )))
+        .execute(db.pool())
+        .await
+        .expect("breaks the run");
+    }
+
+    /// test_runs.py's `test_a_run_that_fails_to_move_does_not_stop_the_others`.
+    #[tokio::test]
+    async fn a_run_that_fails_to_move_does_not_stop_the_others() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = fixture(db).await;
+        let first = f.started(t0()).await;
+        let second = f
+            .service
+            .register_svs_run(&f.launcher, &on(&["anyuser-01"]), t0())
+            .await
+            .expect("registers");
+        f.service
+            .start_svs_run(&f.launcher, second.uuid, t0())
+            .await
+            .expect("starts");
+        break_run(db, first.uuid).await;
+        let moved = f.timers(t0() + hours(2)).await;
+        assert_eq!((moved.ended, moved.failed), (1, 1));
+        assert!(
+            moved
+                .first_error
+                .as_deref()
+                .is_some_and(|e| e.contains("database went away")),
+            "{moved:?}"
+        );
+        assert_eq!(f.run(first.uuid).await.state, RunState::Started);
+        assert_eq!(f.run(second.uuid).await.state, RunState::Ended);
+        // the failed move wrote nothing, and the next pass tries it again
+        assert_eq!(transitions(&f.events(first.uuid).await).len(), 1);
+        sqlx::raw_sql("DROP TRIGGER broken ON svs.runs")
+            .execute(db.pool())
+            .await
+            .expect("mends");
+        assert_eq!(f.timers(t0() + hours(2)).await.ended, 1);
+        assert_eq!(f.run(first.uuid).await.state, RunState::Ended);
+    }
+
+    struct RefusalAlert {
+        root: Uuid,
+        description: String,
+        queue: String,
+        alerted: bool,
+        origin: Value,
+        observables: BTreeSet<(String, String)>,
+        detections: Vec<(Option<String>, String, String)>,
+    }
+
+    async fn refusal_alert(db: &Db, root: Uuid) -> RefusalAlert {
+        let (description, queue, alerted, origin, submitted_by): (
+            String,
+            String,
+            bool,
+            Value,
+            Value,
+        ) = sqlx::query_as(
+            "SELECT description, queue, alerted_at IS NOT NULL, origin, submitted_by::jsonb
+                 FROM analysis.roots WHERE id = $1",
+        )
+        .bind(root)
+        .fetch_one(db.pool())
+        .await
+        .expect("reads the alert");
+        assert_eq!(submitted_by, json!({"kind": "internal", "id": "svs"}));
+        let observables: Vec<(String, String)> =
+            sqlx::query_as("SELECT type, value FROM analysis.observables WHERE root_id = $1")
+                .bind(root)
+                .fetch_all(db.pool())
+                .await
+                .expect("reads its observables");
+        let detections = sqlx::query_as(
+            "SELECT d.signature_uuid, d.description, o.type
+             FROM analysis.detections d JOIN analysis.observables o ON o.id = d.observable_id
+             WHERE d.root_id = $1",
+        )
+        .bind(root)
+        .fetch_all(db.pool())
+        .await
+        .expect("reads its detections");
+        RefusalAlert {
+            root,
+            description,
+            queue,
+            alerted,
+            origin,
+            observables: observables.into_iter().collect(),
+            detections,
+        }
+    }
+
+    async fn refuse(f: &Fixture, target: (&str, Option<&str>), at: DateTime<Utc>) -> String {
+        let registration = Registration {
+            targets: targets(&[target]),
+            ..registration()
+        };
+        match f
+            .service
+            .register_svs_run(&f.launcher, &registration, at)
+            .await
+        {
+            Err(ServiceError::Forbidden(why)) => why,
+            other => panic!("not refused: {other:?}"),
+        }
+    }
+
+    /// A refusal's row: its caller, host, hour, count, first time and alert.
+    type RefusalRow = (
+        String,
+        String,
+        DateTime<Utc>,
+        i32,
+        DateTime<Utc>,
+        Option<Uuid>,
+    );
+
+    /// test_refusals.py's `test_the_first_refusal_alerts`.
+    #[tokio::test]
+    async fn the_first_refusal_alerts() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = fixture(db).await;
+        let at = t0() + minutes(10);
+        let registration = Registration {
+            targets: targets(&[("PROD-DC-01.corp.example", Some("CORP\\administrator"))]),
+            ..registration()
+        };
+        let source = "10.1.2.3".parse().expect("an address");
+        let error = with_source_ip(
+            Some(source),
+            f.service.register_svs_run(&f.launcher, &registration, at),
+        )
+        .await
+        .expect_err("refused");
+        assert_eq!(
+            message(&error),
+            "registration refused: prod-dc-01 is not a test host"
+        );
+        let rows: Vec<RefusalRow> = sqlx::query_as(
+            "SELECT caller, host, hour, count, first_at, root_id FROM svs.registration_refusals",
+        )
+        .fetch_all(db.pool())
+        .await
+        .expect("reads");
+        let [(caller, host, hour, count, first_at, root)] = rows.as_slice() else {
+            panic!("one refusal")
+        };
+        assert_eq!(
+            (caller.as_str(), host.as_str(), *hour, *count, *first_at),
+            (
+                f.launcher.to_string().as_str(),
+                "prod-dc-01.corp.example",
+                t0(),
+                1,
+                at
+            )
+        );
+        let alert = refusal_alert(db, root.expect("an alert")).await;
+        assert_eq!(alerts(db).await, 1);
+        assert_eq!(
+            (
+                alert.description.as_str(),
+                alert.queue.as_str(),
+                alert.alerted
+            ),
+            (
+                "SVS test run registration refused: art-launcher targeted PROD-DC-01.corp.example",
+                "default",
+                true
+            )
+        );
+        let pair = |kind: &str, value: &str| (kind.to_owned(), value.to_owned());
+        assert_eq!(
+            alert.observables,
+            BTreeSet::from([
+                pair("hostname", "PROD-DC-01.corp.example"),
+                pair("user", "administrator"),
+                pair("user", "art-launcher"),
+                pair("ipv4", "10.1.2.3"),
+            ])
+        );
+        assert_eq!(
+            alert.detections,
+            [(
+                Some(ace_core::svs::REGISTRATION_REFUSED_SIGNATURE.to_owned()),
+                "SVS test run registration refused: prod-dc-01 is not a test host".to_owned(),
+                "hostname".to_owned()
+            )]
+        );
+        assert_eq!(
+            (&alert.origin["alert_type"], &alert.origin["tool"]),
+            (
+                &json!(ace_service::REFUSAL_ALERT_TYPE),
+                &json!(ace_service::REFUSAL_TOOL)
+            )
+        );
+        assert_eq!(
+            alert.origin["details"],
+            json!({
+                "reason": "prod-dc-01 is not a test host",
+                "caller": "art-launcher",
+                "caller_identity": f.launcher.to_string(),
+                "caller_key_id": Uuid::from_u128(LAUNCHER_KEY),
+                "caller_address": "10.1.2.3",
+                "launcher": "art",
+                "test_guid": GUID,
+                "request": registration.payload(),
+            })
+        );
+        // the write's audit row names what was refused and the alert it made
+        let row = last_audit(db).await;
+        assert_eq!(
+            row,
+            AuditRow {
+                actor: launcher_json(),
+                action: "register_svs_run".to_owned(),
+                target: ("svs_refusal".to_owned(), f.launcher.to_string()),
+                before: None,
+                after: Some(json!({
+                    "launcher": "art",
+                    "test_guid": GUID,
+                    "refused": [{"host": "prod-dc-01.corp.example",
+                                 "reason": "prod-dc-01 is not a test host", "alert": alert.root}],
+                })),
+                details: json!({}),
+            }
+        );
+    }
+
+    /// test_refusals.py's `test_refusals_collapse_per_caller_host_and_hour`.
+    #[tokio::test]
+    async fn refusals_collapse_per_caller_host_and_hour() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = fixture(db).await;
+        let at = t0() + minutes(10);
+        refuse(&f, ("prod-dc-01", None), at).await;
+        assert_eq!(alerts(db).await, 1);
+        // the same host again this hour, in any case, is refused and doesn't alert
+        refuse(&f, ("PROD-DC-01", None), at + minutes(40)).await;
+        assert_eq!(alerts(db).await, 1);
+        let rows: Vec<(i32, DateTime<Utc>)> =
+            sqlx::query_as("SELECT count, last_at FROM svs.registration_refusals")
+                .fetch_all(db.pool())
+                .await
+                .expect("reads");
+        assert_eq!(rows, [(2, at + minutes(40))]);
+        assert_eq!(
+            last_audit(db).await.after.expect("an after")["refused"][0]["alert"],
+            Value::Null
+        );
+
+        // another host, another caller, another hour each alert again
+        refuse(&f, ("prod-dc-02", None), at).await;
+        let other = Holder::ApiKey(ApiKeyId(Uuid::from_u128(0x5B)));
+        exists(db, &other).await;
+        f.service
+            .grant(
+                &f.admin,
+                &other,
+                &pattern("svs", "run_register"),
+                Effect::Allow,
+            )
+            .await
+            .expect("grants");
+        let other = Actor::ApiKey {
+            id: ApiKeyId(Uuid::from_u128(0x5B)),
+            name: "other-launcher".to_owned(),
+            owner: None,
+        };
+        assert!(matches!(
+            f.service
+                .register_svs_run(&other, &on(&["prod-dc-01"]), at)
+                .await,
+            Err(ServiceError::Forbidden(_))
+        ));
+        refuse(&f, ("prod-dc-01", None), at + hours(1)).await;
+        assert_eq!(alerts(db).await, 4);
+        assert_eq!(count(db, "svs.registration_refusals").await, 4);
+    }
+
+    /// test_refusals.py's `test_a_host_in_another_domain_is_another_host`.
+    #[tokio::test]
+    async fn a_host_in_another_domain_is_another_host() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = fixture(db).await;
+        let at = t0() + minutes(10);
+        let why = refuse(&f, ("win10-01", Some("mallory")), at).await;
+        assert!(
+            why.contains("mallory is not a user of test host win10-01"),
+            "{why}"
+        );
+        let why = refuse(
+            &f,
+            ("WIN10-01.prod.example", Some("svc_art")),
+            at + minutes(5),
+        )
+        .await;
+        assert!(
+            why.contains("is not test host win10-01.lab.example"),
+            "{why}"
+        );
+        refuse(
+            &f,
+            ("win10-01.prod.example", Some("svc_art")),
+            at + minutes(6),
+        )
+        .await;
+        let rows: Vec<(String, i32)> = refusal_hosts(db)
+            .await
+            .into_iter()
+            .map(|(host, count, _)| (host, count))
+            .collect();
+        assert_eq!(
+            rows,
+            [
+                ("win10-01".to_owned(), 1),
+                ("win10-01.prod.example".to_owned(), 2)
+            ]
+        );
+        assert_eq!(alerts(db).await, 2);
+    }
+
+    /// test_refusals.py's `test_an_ipv6_caller_is_not_an_ipv4_observable`.
+    #[tokio::test]
+    async fn an_ipv6_caller_is_not_an_ipv4_observable() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = fixture(db).await;
+        let source = "::1".parse().expect("an address");
+        let refused = with_source_ip(
+            Some(source),
+            f.service
+                .register_svs_run(&f.launcher, &on(&["prod-dc-01"]), t0()),
+        )
+        .await;
+        assert!(matches!(refused, Err(ServiceError::Forbidden(_))));
+        let root = refusal_hosts(db).await[0].2.expect("an alert");
+        let alert = refusal_alert(db, root).await;
+        assert!(alert.observables.iter().all(|(kind, _)| kind != "ipv4"));
+        assert_eq!(alert.origin["details"]["caller_address"], "::1");
+        // a target with no user has only the caller as a user
+        let users: Vec<&str> = alert
+            .observables
+            .iter()
+            .filter(|(kind, _)| kind == "user")
+            .map(|(_, value)| value.as_str())
+            .collect();
+        assert_eq!(users, ["art-launcher"]);
+    }
+
+    /// test_refusals.py's `test_a_failed_alert_still_refuses`. A service with no bucket can't submit.
+    #[tokio::test]
+    async fn a_failed_alert_still_refuses() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = fixture(db).await;
+        let no_bucket = service(db);
+        let error = no_bucket
+            .register_svs_run(&f.launcher, &on(&["prod-dc-01"]), t0())
+            .await
+            .expect_err("refused");
+        assert_eq!(
+            message(&error),
+            "registration refused: prod-dc-01 is not a test host"
+        );
+        assert_eq!(
+            refusal_hosts(db).await,
+            [("prod-dc-01".to_owned(), 1, None)]
+        );
+        assert_eq!(alerts(db).await, 0);
+        assert_eq!(
+            last_audit(db).await.after.expect("an after")["refused"][0]["alert"],
+            Value::Null
+        );
+    }
+
+    /// test_refusals.py's `test_prune_refusals`.
+    #[tokio::test]
+    async fn prune_refusals() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = fixture(db).await;
+        let at = t0() + minutes(10);
+        refuse(&f, ("prod-dc-01", None), at - TimeDelta::days(2)).await;
+        refuse(&f, ("prod-dc-01", None), at).await;
+        assert_eq!(
+            f.timers(at).await,
+            TimerResult {
+                pruned_refusals: 1,
+                ..TimerResult::default()
+            }
+        );
+        let hours_left: Vec<DateTime<Utc>> =
+            sqlx::query_scalar("SELECT hour FROM svs.registration_refusals")
+                .fetch_all(db.pool())
+                .await
+                .expect("reads");
+        assert_eq!(hours_left, [t0()]);
+        let row = last_audit(db).await;
+        assert_eq!(
+            row,
+            AuditRow {
+                actor: timers_json(),
+                action: "run_svs_timers".to_owned(),
+                target: ("svs_refusals".to_owned(), "expired".to_owned()),
+                before: Some(json!({"refusals": 1, "before": "2026-10-13T12:10:00Z"})),
+                after: None,
+                details: json!({}),
+            }
+        );
+        // a pass with nothing to remove has no row
+        let audited = audit_rows(db).await.len();
+        assert_eq!(f.timers(at).await, TimerResult::default());
+        assert_eq!(audit_rows(db).await.len(), audited);
+    }
+
+    async fn open(f: &Fixture, host: &str, at: DateTime<Utc>) -> MaintenanceWindow {
+        f.service
+            .open_svs_maintenance(&f.launcher, host, 30, "staging", at)
+            .await
+            .expect("opens")
+    }
+
+    async fn window(
+        db: &Db,
+        uuid: Uuid,
+    ) -> (
+        Option<i64>,
+        Option<DateTime<Utc>>,
+        Option<String>,
+        Option<Value>,
+    ) {
+        sqlx::query_as(
+            "SELECT test_host_id, ended_at, end_reason, ended_by::jsonb
+             FROM svs.maintenance_windows WHERE uuid = $1",
+        )
+        .bind(uuid)
+        .fetch_one(db.pool())
+        .await
+        .expect("reads the window")
+    }
+
+    async fn host_id(db: &Db, hostname: &str) -> i64 {
+        sqlx::query_scalar("SELECT id FROM svs.test_hosts WHERE hostname = $1")
+            .bind(hostname)
+            .fetch_one(db.pool())
+            .await
+            .expect("a test host")
+    }
+
+    /// test_maintenance.py's `test_open_and_end`.
+    #[tokio::test]
+    async fn open_and_end() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = fixture(db).await;
+        let now: DateTime<Utc> = "2026-10-22T12:00:00Z".parse().expect("a time");
+        let opened = f
+            .service
+            .open_svs_maintenance(
+                &f.launcher,
+                "WIN10-01.lab.example",
+                30,
+                " staging mimikatz ",
+                now,
+            )
+            .await
+            .expect("opens");
+        assert_eq!(
+            (
+                opened.host.as_str(),
+                opened.fqdn.as_deref(),
+                opened.opened_at,
+                opened.ends_at,
+                opened.ended_at
+            ),
+            (
+                "win10-01",
+                Some("win10-01.lab.example"),
+                now,
+                now + minutes(30),
+                None
+            )
+        );
+        assert_eq!(opened.reason, "staging mimikatz");
+        assert_eq!(
+            opened.opened_by.as_ref().and_then(|a| a.name.as_deref()),
+            Some("art-launcher")
+        );
+        let host = host_id(db, "win10-01").await;
+        assert_eq!(opened.test_host_id, Some(host));
+        let row = last_audit(db).await;
+        assert_eq!(
+            row,
+            AuditRow {
+                actor: launcher_json(),
+                action: "open_svs_maintenance".to_owned(),
+                target: ("svs_maintenance_window".to_owned(), opened.uuid.to_string()),
+                before: None,
+                after: Some(json!({
+                    "host": "win10-01", "reason": "staging mimikatz",
+                    "opened_at": "2026-10-22T12:00:00Z", "ends_at": "2026-10-22T12:30:00Z",
+                    "ended_at": null, "end_reason": null,
+                })),
+                details: json!({}),
+            }
+        );
+
+        // by the test host's id too
+        let ended = f
+            .service
+            .end_svs_maintenance(&f.launcher, &host.to_string(), now + minutes(5))
+            .await
+            .expect("ends");
+        assert_eq!(ended.uuid, opened.uuid);
+        assert_eq!(
+            (ended.ended_at, ended.end_reason.as_deref()),
+            (Some(now + minutes(5)), Some("ended"))
+        );
+        assert_eq!(
+            ended.ended_by.as_ref().and_then(|a| a.name.as_deref()),
+            Some("art-launcher")
+        );
+        let row = last_audit(db).await;
+        assert_eq!(
+            (
+                row.action.as_str(),
+                &row.after.expect("an after")["end_reason"]
+            ),
+            ("end_svs_maintenance", &json!("ended"))
+        );
+        let error = f
+            .service
+            .end_svs_maintenance(&f.launcher, "win10-01", now + minutes(6))
+            .await
+            .expect_err("no window");
+        assert!(
+            matches!(&error, ServiceError::NotFound(why)
+                if why == "test host win10-01 has no open maintenance window"),
+            "{error}"
+        );
+    }
+
+    /// test_maintenance.py's `test_an_early_end_is_stored_to_the_second`.
+    #[tokio::test]
+    async fn an_early_end_is_stored_to_the_second() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = fixture(db).await;
+        let opened_at: DateTime<Utc> = "2026-10-22T12:00:00Z".parse().expect("a time");
+        let opened = open(&f, "win10-01", opened_at + TimeDelta::milliseconds(700)).await;
+        assert_eq!(opened.opened_at, opened_at);
+        f.service
+            .end_svs_maintenance(
+                &f.launcher,
+                "win10-01",
+                opened_at + minutes(5) + TimeDelta::milliseconds(900),
+            )
+            .await
+            .expect("ends");
+        assert_eq!(
+            window(db, opened.uuid).await.1,
+            Some(opened_at + minutes(5))
+        );
+    }
+
+    /// test_maintenance.py's `test_invalid`.
+    #[tokio::test]
+    async fn invalid() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = fixture(db).await;
+        for (minutes, reason, expected) in [
+            (0, "staging", "minutes must be from 1 to 240"),
+            (241, "staging", "minutes must be from 1 to 240"),
+            (-5, "staging", "minutes must be from 1 to 240"),
+            (30, "  ", "needs a reason"),
+        ] {
+            let error = f
+                .service
+                .open_svs_maintenance(&f.launcher, "win10-01", minutes, reason, t0())
+                .await
+                .expect_err("invalid");
+            assert!(
+                matches!(&error, ServiceError::InvalidRequest(why) if why.contains(expected)),
+                "{error}"
+            );
+        }
+        assert_eq!(count(db, "svs.maintenance_windows").await, 0);
+        // the overlay's cap
+        let section: ace_sdk::SvsRunsSection =
+            serde_json::from_value(json!({"max_maintenance_minutes": 10})).expect("a section");
+        let capped = f
+            .service
+            .clone()
+            .with_runs(RunsConfig::from_section(&section).expect("valid"));
+        assert!(matches!(
+            capped
+                .open_svs_maintenance(&f.launcher, "win10-01", 11, "staging", t0())
+                .await,
+            Err(ServiceError::InvalidRequest(why)) if why.contains("from 1 to 10")
+        ));
+    }
+
+    /// test_maintenance.py's `test_a_host_that_is_not_a_test_host_is_refused_and_alerts`.
+    #[tokio::test]
+    async fn a_host_that_is_not_a_test_host_is_refused_and_alerts() {
+        for (host, reason) in [
+            ("prod-dc-01", "prod-dc-01 is not a test host"),
+            ("win10 01", "'win10 01' is not a host name"),
+        ] {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let f = fixture(db).await;
+            let error = f
+                .service
+                .open_svs_maintenance(&f.launcher, host, 30, "staging", t0())
+                .await
+                .expect_err("refused");
+            assert!(
+                matches!(&error, ServiceError::Forbidden(why) if why == reason),
+                "{error}"
+            );
+            assert_eq!(count(db, "svs.maintenance_windows").await, 0);
+            let refusals = refusal_hosts(db).await;
+            assert_eq!(refusals.len(), 1);
+            assert_eq!(refusals[0].0, host);
+            let alert = refusal_alert(db, refusals[0].2.expect("an alert")).await;
+            assert_eq!(alert.queue, "default");
+            assert_eq!(
+                alert.origin["details"]["reason"],
+                format!("maintenance window refused: {reason}")
+            );
+            assert_eq!(
+                alert.origin["details"]["request"],
+                json!({"maintenance": {"host": host, "minutes": 30, "reason": "staging"}})
+            );
+        }
+    }
+
+    /// test_maintenance.py's `test_ending_on_a_host_that_is_not_a_test_host_is_refused_and_alerts`.
+    #[tokio::test]
+    async fn ending_on_a_host_that_is_not_a_test_host_is_refused_and_alerts() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = fixture(db).await;
+        let error = f
+            .service
+            .end_svs_maintenance(&f.launcher, "win10 01", t0())
+            .await
+            .expect_err("refused");
+        assert!(
+            matches!(&error, ServiceError::Forbidden(why) if why == "'win10 01' is not a host name"),
+            "{error}"
+        );
+        let refusals = refusal_hosts(db).await;
+        assert_eq!(refusals.len(), 1);
+        assert_eq!(refusals[0].0, "win10 01");
+        assert_eq!(alerts(db).await, 1);
+        let row = last_audit(db).await;
+        assert_eq!(
+            (row.action.as_str(), row.target.0.as_str()),
+            ("end_svs_maintenance", "svs_refusal")
+        );
+    }
+
+    /// test_maintenance.py's `test_an_unknown_test_host_id`.
+    #[tokio::test]
+    async fn an_unknown_test_host_id() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = fixture(db).await;
+        for result in [
+            f.service
+                .open_svs_maintenance(&f.launcher, "999999", 30, "staging", t0())
+                .await,
+            f.service
+                .end_svs_maintenance(&f.launcher, "999999", t0())
+                .await,
+            // a number no id can be
+            f.service
+                .open_svs_maintenance(&f.launcher, &"9".repeat(40), 30, "staging", t0())
+                .await,
+        ] {
+            assert!(
+                matches!(result, Err(ServiceError::NotFound(_))),
+                "{result:?}"
+            );
+        }
+        assert_eq!(count(db, "svs.registration_refusals").await, 0);
+    }
+
+    /// test_maintenance.py's `test_listing_an_unknown_or_malformed_host`.
+    #[tokio::test]
+    async fn listing_an_unknown_or_malformed_host() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = fixture(db).await;
+        // reading never alerts
+        for host in ["999999", "win10 01"] {
+            assert!(matches!(
+                f.service
+                    .svs_maintenance_windows(&f.admin, host, 10, None)
+                    .await,
+                Err(ServiceError::NotFound(_))
+            ));
+        }
+        assert_eq!(count(db, "svs.registration_refusals").await, 0);
+        assert_eq!(alerts(db).await, 0);
+    }
+
+    /// test_maintenance.py's `test_listing_pages_latest_first`.
+    #[tokio::test]
+    async fn listing_pages_latest_first() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = fixture(db).await;
+        let mut ids = Vec::new();
+        for hour in 0..3 {
+            ids.push(open(&f, "win10-01", t0() + hours(hour)).await.id);
+        }
+        let page = async |limit, before| -> Vec<i64> {
+            f.service
+                .svs_maintenance_windows(&f.admin, "win10-01", limit, before)
+                .await
+                .expect("lists")
+                .iter()
+                .map(|w| w.id)
+                .collect()
+        };
+        assert_eq!(page(2, None).await, [ids[2], ids[1]]);
+        assert_eq!(page(2, Some(ids[1])).await, [ids[0]]);
+        // by its id and its fully qualified name too
+        let host = host_id(db, "win10-01").await.to_string();
+        for name in [host.as_str(), "WIN10-01.lab.example"] {
+            let listed = f
+                .service
+                .svs_maintenance_windows(&f.admin, name, 10, None)
+                .await
+                .expect("lists");
+            assert_eq!(listed.len(), 3);
+        }
+        assert!(
+            f.service
+                .svs_maintenance_windows(&f.admin, "anyuser-01", 2, None)
+                .await
+                .expect("lists")
+                .is_empty()
+        );
+    }
+
+    /// test_maintenance.py's `test_a_window_and_a_run_never_hold_one_host_at_once`.
+    #[tokio::test]
+    async fn a_window_and_a_run_never_hold_one_host_at_once() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = fixture(db).await;
+        let now = t0();
+        let run = f.register(now).await;
+        let error = f
+            .service
+            .open_svs_maintenance(&f.launcher, "win10-01", 30, "staging", now)
+            .await
+            .expect_err("busy");
+        assert!(matches!(error, ServiceError::Conflict(_)), "{error}");
+        assert!(
+            message(&error).contains(&format!("held by run {}", run.uuid)),
+            "{error}"
+        );
+        // another host is free
+        open(&f, "anyuser-01", now).await;
+
+        f.service
+            .start_svs_run(&f.launcher, run.uuid, now)
+            .await
+            .expect("starts");
+        let later = now + hours(2);
+        let opened = open(&f, "win10-01", later).await;
+        // the other way round: the window holds the host, for runs and windows alike
+        let expected = format!(
+            "test host win10-01 is in maintenance window {} until 2026-10-14T14:30:00Z",
+            opened.uuid
+        );
+        let registered = f
+            .service
+            .register_svs_run(&f.launcher, &registration(), later + minutes(1))
+            .await
+            .expect_err("busy");
+        assert!(
+            matches!(registered, ServiceError::Conflict(_)),
+            "{registered}"
+        );
+        assert_eq!(message(&registered), expected);
+        let again = f
+            .service
+            .open_svs_maintenance(&f.launcher, "win10-01", 30, "again", later + minutes(1))
+            .await
+            .expect_err("busy");
+        assert_eq!(message(&again), expected);
+        let decision = f
+            .service
+            .validate_svs_run(&f.launcher, &registration(), later + minutes(1))
+            .await
+            .expect("validates");
+        assert_eq!(
+            decision.targets[0].held_by,
+            [HostHolder {
+                host: "win10-01".to_owned(),
+                run: None,
+                state: "maintenance".to_owned(),
+                until: Some(later + minutes(30)),
+                maintenance: Some(opened.uuid),
+            }]
+        );
+        // a run registered before the window can't start inside it
+        // once it ended, the host is free
+        f.service
+            .end_svs_maintenance(&f.launcher, "win10-01", later + minutes(2))
+            .await
+            .expect("ends");
+        f.register(later + minutes(3)).await;
+    }
+
+    /// test_maintenance.py's `test_the_timers_expire_a_window`.
+    #[tokio::test]
+    async fn the_timers_expire_a_window() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = fixture(db).await;
+        let opened = open(&f, "win10-01", t0() - hours(1)).await;
+        assert_eq!(
+            f.timers(t0()).await,
+            TimerResult {
+                expired_windows: 1,
+                ..TimerResult::default()
+            }
+        );
+        let (_, ended_at, end_reason, ended_by) = window(db, opened.uuid).await;
+        assert_eq!(
+            (ended_at, end_reason.as_deref(), ended_by),
+            (Some(opened.ends_at), Some("expired"), Some(timers_json()))
+        );
+        let row = last_audit(db).await;
+        assert_eq!(
+            row,
+            AuditRow {
+                actor: timers_json(),
+                action: "run_svs_timers".to_owned(),
+                target: ("svs_maintenance_window".to_owned(), opened.uuid.to_string()),
+                before: Some(json!({
+                    "host": "win10-01", "reason": "staging", "opened_at": "2026-10-14T11:00:00Z",
+                    "ends_at": "2026-10-14T11:30:00Z", "ended_at": null, "end_reason": null,
+                })),
+                after: Some(json!({
+                    "host": "win10-01", "reason": "staging", "opened_at": "2026-10-14T11:00:00Z",
+                    "ends_at": "2026-10-14T11:30:00Z", "ended_at": "2026-10-14T11:30:00Z",
+                    "end_reason": "expired",
+                })),
+                details: json!({}),
+            }
+        );
+        assert_eq!(f.timers(t0()).await, TimerResult::default());
+        // a window still open isn't expired
+        let open_now = open(&f, "win10-01", t0()).await;
+        assert_eq!(f.timers(t0() + minutes(30)).await, TimerResult::default());
+        assert_eq!(window(db, open_now.uuid).await.1, None);
+    }
+
+    /// The window half of test_maintenance.py's `test_removing_the_test_host_ends_its_window`; what an
+    /// alert before and after the removal is judged as comes with batch 6.
+    #[tokio::test]
+    async fn removing_the_test_host_ends_its_window() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = fixture(db).await;
+        let opened_at = whole_second_ago(10);
+        let opened = open(&f, "win10-01", opened_at).await;
+        let other = open(&f, "anyuser-01", opened_at).await;
+        let host = host_id(db, "win10-01").await;
+        f.service
+            .delete_test_host(&f.admin, host)
+            .await
+            .expect("removes");
+        let removed_at = Utc::now();
+        let (test_host, ended_at, end_reason, ended_by) = window(db, opened.uuid).await;
+        assert_eq!(test_host, None);
+        assert_eq!(
+            (end_reason.as_deref(), ended_by),
+            (Some("ended"), Some(boss_json()))
+        );
+        let ended_at = ended_at.expect("ended");
+        assert!(opened_at < ended_at && ended_at <= removed_at);
+        assert_eq!(ended_at.timestamp_subsec_nanos(), 0);
+        assert_eq!(window(db, other.uuid).await.1, None);
+        let row = last_audit(db).await;
+        assert_eq!(
+            (row.action.as_str(), row.details),
+            (
+                "delete_test_host",
+                json!({"ended_maintenance": [opened.uuid]})
+            )
+        );
+        // its windows are still listed by its name
+        let listed = f
+            .service
+            .svs_maintenance_windows(&f.admin, "win10-01", 10, None)
+            .await
+            .expect("lists");
+        assert_eq!(listed.len(), 1);
+        assert_eq!(listed[0].test_host_id, None);
+    }
+
+    fn whole_second_ago(minutes_ago: i64) -> DateTime<Utc> {
+        ace_core::svs::runs::whole_second(Utc::now()) - minutes(minutes_ago)
+    }
+
+    /// test_maintenance.py's `test_a_failed_host_removal_leaves_the_window_open`.
+    #[tokio::test]
+    async fn a_failed_host_removal_leaves_the_window_open() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = fixture(db).await;
+        let opened = open(&f, "win10-01", whole_second_ago(10)).await;
+        let host = host_id(db, "win10-01").await;
+        let audited = audit_rows(db).await.len();
+        sqlx::raw_sql(
+            "CREATE FUNCTION svs.broken_host() RETURNS trigger LANGUAGE plpgsql AS $$
+             BEGIN RAISE EXCEPTION 'database went away'; END $$;
+             CREATE TRIGGER broken BEFORE DELETE ON svs.test_hosts FOR EACH ROW
+                 EXECUTE FUNCTION svs.broken_host();",
+        )
+        .execute(db.pool())
+        .await
+        .expect("breaks the removal");
+        assert!(f.service.delete_test_host(&f.admin, host).await.is_err());
+        let (test_host, ended_at, _, _) = window(db, opened.uuid).await;
+        assert_eq!((test_host, ended_at), (Some(host), None));
+        assert_eq!(audit_rows(db).await.len(), audited);
+    }
+
+    /// test_maintenance.py's `test_a_failure_of_the_maintenance_timers_is_logged_and_the_next_pass_runs_
+    /// them`: a window that can't be expired doesn't keep the runs from moving, nor the other way round.
+    #[tokio::test]
+    async fn a_failure_of_the_maintenance_timers_does_not_stop_the_run_timers() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = fixture(db).await;
+        let run = f.started(t0()).await;
+        let opened = open(&f, "anyuser-01", t0()).await;
+        sqlx::raw_sql(
+            "CREATE FUNCTION svs.broken_window() RETURNS trigger LANGUAGE plpgsql AS $$
+             BEGIN RAISE EXCEPTION 'database went away'; END $$;
+             CREATE TRIGGER broken BEFORE UPDATE ON svs.maintenance_windows FOR EACH ROW
+                 EXECUTE FUNCTION svs.broken_window();",
+        )
+        .execute(db.pool())
+        .await
+        .expect("breaks the windows");
+        let moved = f.timers(t0() + hours(2)).await;
+        assert_eq!(
+            (moved.ended, moved.expired_windows, moved.failed),
+            (1, 0, 1)
+        );
+        assert_eq!(f.run(run.uuid).await.state, RunState::Ended);
+        assert_eq!(window(db, opened.uuid).await.1, None);
+        // the next pass expires it
+        sqlx::raw_sql("DROP TRIGGER broken ON svs.maintenance_windows")
+            .execute(db.pool())
+            .await
+            .expect("mends");
+        // and a run that can't move doesn't keep a window from expiring
+        let second = f.started(t0() + hours(3)).await;
+        break_run(db, second.uuid).await;
+        let moved = f.timers(t0() + hours(5)).await;
+        assert_eq!(
+            (moved.ended, moved.expired_windows, moved.failed),
+            (0, 1, 1)
+        );
+        assert_eq!(window(db, opened.uuid).await.2.as_deref(), Some("expired"));
+    }
+
+    /// Each call needs its permission, and a refusal says nothing of what's there.
+    #[tokio::test]
+    async fn the_runs_calls_need_their_permissions() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = fixture(db).await;
+        let run = f.started(t0()).await;
+        let outsider = UserId(Uuid::from_u128(0xC5));
+        exists(db, &Holder::User(outsider)).await;
+        let reader = UserId(Uuid::from_u128(0xC6));
+        exists(db, &Holder::User(reader)).await;
+        f.service
+            .grant(
+                &f.admin,
+                &Holder::User(reader),
+                &pattern("svs", "run_read"),
+                Effect::Allow,
+            )
+            .await
+            .expect("grants");
+        let (outsider, reader) = (user(outsider), user(reader));
+        let audited = audit_rows(db).await.len();
+        let denied = |result: Result<(), ServiceError>, needs: &str| {
+            assert!(
+                matches!(&result, Err(ServiceError::PermissionDenied { permission, .. })
+                    if permission.to_string() == needs),
+                "{needs}: {result:?}"
+            );
+        };
+        let s = &f.service;
+        let unknown = Uuid::from_u128(9);
+        for actor in [&outsider, &reader, &timers()] {
+            for uuid in [run.uuid, unknown] {
+                denied(
+                    s.start_svs_run(actor, uuid, t0()).await.map(|_| ()),
+                    "svs:run_register",
+                );
+                denied(
+                    s.svs_run_executed(actor, uuid, 0, None, None, t0())
+                        .await
+                        .map(|_| ()),
+                    "svs:run_register",
+                );
+                denied(
+                    s.svs_run_cleanup(actor, uuid, t0()).await.map(|_| ()),
+                    "svs:run_register",
+                );
+                denied(
+                    s.cancel_svs_run(actor, uuid, t0()).await.map(|_| ()),
+                    "svs:run_register",
+                );
+                denied(
+                    s.end_svs_run(actor, uuid, "why", t0()).await.map(|_| ()),
+                    "svs:run_manage",
+                );
+            }
+            denied(
+                s.register_svs_run(actor, &on(&["prod-dc-01"]), t0())
+                    .await
+                    .map(|_| ()),
+                "svs:run_register",
+            );
+            denied(
+                s.validate_svs_run(actor, &registration(), t0())
+                    .await
+                    .map(|_| ()),
+                "svs:run_register",
+            );
+            for host in ["anyuser-01", "prod-dc-01", "999999"] {
+                denied(
+                    s.open_svs_maintenance(actor, host, 30, "staging", t0())
+                        .await
+                        .map(|_| ()),
+                    "svs:run_register",
+                );
+                denied(
+                    s.end_svs_maintenance(actor, host, t0()).await.map(|_| ()),
+                    "svs:run_register",
+                );
+            }
+        }
+        for actor in [&outsider, &reader, &f.launcher] {
+            denied(
+                s.run_svs_timers(actor, t0() + hours(30)).await.map(|_| ()),
+                "svs:run_timers",
+            );
+        }
+        for actor in [&outsider, &f.launcher, &timers()] {
+            denied(s.svs_run(actor, run.uuid).await.map(|_| ()), "svs:run_read");
+            denied(
+                s.svs_run_events(actor, run.uuid, None, None)
+                    .await
+                    .map(|_| ()),
+                "svs:run_read",
+            );
+            denied(
+                s.svs_maintenance_windows(actor, "win10 01", 10, None)
+                    .await
+                    .map(|_| ()),
+                "svs:run_read",
+            );
+        }
+        // nothing changed, alerted or was recorded
+        assert_eq!(f.run(run.uuid).await, run);
+        assert_eq!(f.events(run.uuid).await.len(), 3);
+        assert_eq!(count(db, "svs.registration_refusals").await, 0);
+        assert_eq!(count(db, "svs.maintenance_windows").await, 0);
+        assert_eq!(alerts(db).await, 0);
+        assert_eq!(audit_rows(db).await.len(), audited);
+        // the reader reads
+        assert_eq!(s.svs_run(&reader, run.uuid).await.expect("reads").run, run);
+        assert_eq!(
+            s.svs_run_events(&reader, run.uuid, Some(0), Some(2))
+                .await
+                .expect("reads")
+                .len(),
+            2
+        );
+    }
+
+    /// A run's events page by their ids.
+    #[tokio::test]
+    async fn a_run_s_events_page() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = fixture(db).await;
+        let run = f.started(t0()).await;
+        let all = f.events(run.uuid).await;
+        assert_eq!(all.len(), 3);
+        let first = f
+            .service
+            .svs_run_events(&f.admin, run.uuid, None, Some(2))
+            .await
+            .expect("reads");
+        assert_eq!(first, all[..2]);
+        let rest = f
+            .service
+            .svs_run_events(&f.admin, run.uuid, Some(first[1].id), Some(2))
+            .await
+            .expect("reads");
+        assert_eq!(rest, all[2..]);
+        // the event log can't be rewritten
+        assert!(
+            sqlx::query("UPDATE svs.run_events SET kind = 'reviewed'")
+                .execute(db.pool())
+                .await
+                .is_err()
+        );
+    }
+
+    // The audit tests' rows (PLAN.md 5.3), one for each write here.
+
+    /// A catalog test of the audit tests' own: their database has the catalog tests' rows too.
+    const AUDIT_GUID: &str = "abababab-1111-4111-8111-111111111111";
+
+    fn audit_on(hosts: &[&str]) -> Registration {
+        Registration {
+            test_guid: AUDIT_GUID.to_owned(),
+            ..on(hosts)
+        }
+    }
+
+    /// A database of the audit tests has other tests' hosts; these use their own.
+    async fn audit_fixture(db: &Db, host: &str) -> (Service, Actor, tempfile::TempDir) {
+        let (bucket, cache) = bucket(db);
+        let service = service(db).with_bucket(bucket);
+        let actor = admin(db).await;
+        sqlx::query(
+            "INSERT INTO svs.catalog_tests
+                 (guid, repository, technique, name, platforms, test, content_hash, commit, path)
+             VALUES ($1::uuid, 'atomic-red-team', 'T1059.001', 'a test', '{windows}', '{}',
+                     repeat('0', 64), repeat('a', 40), 'atomics/T1059.001/T1059.001.yaml')
+             ON CONFLICT (guid) DO NOTHING",
+        )
+        .bind(AUDIT_GUID)
+        .execute(db.pool())
+        .await
+        .expect("adds a catalog test");
+        service
+            .create_test_host(&actor, &HostFields::new(host))
+            .await
+            .expect("adds a test host");
+        (service, actor, cache)
+    }
+
+    pub(super) async fn register_svs_run_records_its_row(db: &Db) -> String {
+        let (service, actor, _cache) = audit_fixture(db, "audit-run-01").await;
+        let run = service
+            .register_svs_run(&actor, &audit_on(&["audit-run-01"]), t0())
+            .await
+            .expect("registers");
+        let row = last_audit(db).await;
+        assert_eq!(
+            row,
+            AuditRow {
+                actor: boss_json(),
+                action: "register_svs_run".to_owned(),
+                target: ("svs_run".to_owned(), run.uuid.to_string()),
+                before: None,
+                after: Some(json!({
+                    "test_guid": AUDIT_GUID, "platform": "windows", "state": "created", "launcher": "art",
+                    "batch_id": "batch-1", "targets": ["audit-run-01"], "observation_seconds": 3600,
+                    "attribution_seconds": 90000, "holds_host": false,
+                })),
+                details: json!({}),
+            }
+        );
+        row.action
+    }
+
+    pub(super) async fn start_svs_run_records_its_row(db: &Db) -> String {
+        let (service, actor, _cache) = audit_fixture(db, "audit-run-02").await;
+        let run = service
+            .register_svs_run(&actor, &audit_on(&["audit-run-02"]), t0())
+            .await
+            .expect("registers");
+        service
+            .start_svs_run(&actor, run.uuid, t0())
+            .await
+            .expect("starts");
+        let row = last_audit(db).await;
+        assert_eq!(
+            row,
+            AuditRow {
+                actor: boss_json(),
+                action: "start_svs_run".to_owned(),
+                target: ("svs_run".to_owned(), run.uuid.to_string()),
+                before: Some(json!({"state": "created"})),
+                after: Some(json!({"state": "started"})),
+                details: json!({"call": "start", "outcome": "started"}),
+            }
+        );
+        // a call that doesn't apply is in the run's event log, so it has a row too
+        service
+            .start_svs_run(&actor, run.uuid, t0())
+            .await
+            .expect_err("a conflict");
+        let conflict = last_audit(db).await;
+        assert_eq!(
+            (conflict.before, conflict.after, conflict.details),
+            (None, None, json!({"call": "start", "outcome": "conflict"}))
+        );
+        row.action
+    }
+
+    pub(super) async fn svs_run_executed_records_its_row(db: &Db) -> String {
+        let (service, actor, _cache) = audit_fixture(db, "audit-run-03").await;
+        let run = service
+            .register_svs_run(&actor, &audit_on(&["audit-run-03"]), t0())
+            .await
+            .expect("registers");
+        service
+            .start_svs_run(&actor, run.uuid, t0())
+            .await
+            .expect("starts");
+        service
+            .svs_run_executed(
+                &actor,
+                run.uuid,
+                0,
+                None,
+                Some("a secret the test printed"),
+                t0(),
+            )
+            .await
+            .expect("records");
+        let row = last_audit(db).await;
+        assert_eq!(
+            row,
+            AuditRow {
+                actor: boss_json(),
+                action: "svs_run_executed".to_owned(),
+                target: ("svs_run".to_owned(), run.uuid.to_string()),
+                before: None,
+                after: None,
+                details: json!({"call": "executed", "outcome": "recorded"}),
+            }
+        );
+        row.action
+    }
+
+    pub(super) async fn svs_run_cleanup_records_its_row(db: &Db) -> String {
+        let (service, actor, _cache) = audit_fixture(db, "audit-run-04").await;
+        let run = service
+            .register_svs_run(&actor, &audit_on(&["audit-run-04"]), t0())
+            .await
+            .expect("registers");
+        service
+            .start_svs_run(&actor, run.uuid, t0())
+            .await
+            .expect("starts");
+        service
+            .svs_run_cleanup(&actor, run.uuid, t0())
+            .await
+            .expect("records");
+        let row = last_audit(db).await;
+        assert_eq!(
+            row,
+            AuditRow {
+                actor: boss_json(),
+                action: "svs_run_cleanup".to_owned(),
+                target: ("svs_run".to_owned(), run.uuid.to_string()),
+                before: None,
+                after: None,
+                details: json!({"call": "cleanup", "outcome": "recorded"}),
+            }
+        );
+        row.action
+    }
+
+    pub(super) async fn cancel_svs_run_records_its_row(db: &Db) -> String {
+        let (service, actor, _cache) = audit_fixture(db, "audit-run-05").await;
+        let run = service
+            .register_svs_run(&actor, &audit_on(&["audit-run-05"]), t0())
+            .await
+            .expect("registers");
+        service
+            .start_svs_run(&actor, run.uuid, t0())
+            .await
+            .expect("starts");
+        service
+            .cancel_svs_run(&actor, run.uuid, t0())
+            .await
+            .expect("cancels");
+        let row = last_audit(db).await;
+        assert_eq!(
+            row,
+            AuditRow {
+                actor: boss_json(),
+                action: "cancel_svs_run".to_owned(),
+                target: ("svs_run".to_owned(), run.uuid.to_string()),
+                before: Some(json!({"state": "started"})),
+                after: Some(json!({"state": "canceled"})),
+                details: json!({"call": "cancel", "outcome": "canceled"}),
+            }
+        );
+        row.action
+    }
+
+    pub(super) async fn end_svs_run_records_its_row(db: &Db) -> String {
+        let (service, actor, _cache) = audit_fixture(db, "audit-run-06").await;
+        let run = service
+            .register_svs_run(&actor, &audit_on(&["audit-run-06"]), t0())
+            .await
+            .expect("registers");
+        service
+            .start_svs_run(&actor, run.uuid, t0())
+            .await
+            .expect("starts");
+        service
+            .end_svs_run(&actor, run.uuid, "nothing fired", t0() + minutes(5))
+            .await
+            .expect("ends");
+        let row = last_audit(db).await;
+        assert_eq!(
+            row,
+            AuditRow {
+                actor: boss_json(),
+                action: "end_svs_run".to_owned(),
+                target: ("svs_run".to_owned(), run.uuid.to_string()),
+                before: Some(json!({"state": "started"})),
+                after: Some(json!({"state": "ended"})),
+                details: json!({"call": "end", "outcome": "ended", "reason": "nothing fired"}),
+            }
+        );
+        row.action
+    }
+
+    pub(super) async fn run_svs_timers_records_its_row(db: &Db) -> String {
+        let (service, actor, _cache) = audit_fixture(db, "audit-run-07").await;
+        // before every other run and window of this database, so only this run is due
+        let at = t0() - TimeDelta::days(10);
+        let run = service
+            .register_svs_run(&actor, &audit_on(&["audit-run-07"]), at)
+            .await
+            .expect("registers");
+        service
+            .start_svs_run(&actor, run.uuid, at)
+            .await
+            .expect("starts");
+        let moved = service
+            .run_svs_timers(&timers(), at + hours(1))
+            .await
+            .expect("runs");
+        assert_eq!((moved.ended, moved.failed), (1, 0));
+        let row = last_audit(db).await;
+        assert_eq!(
+            row,
+            AuditRow {
+                actor: timers_json(),
+                action: "run_svs_timers".to_owned(),
+                target: ("svs_run".to_owned(), run.uuid.to_string()),
+                before: Some(json!({"state": "started"})),
+                after: Some(json!({"state": "ended"})),
+                details: json!({"call": "timer", "outcome": "ended"}),
+            }
+        );
+        row.action
+    }
+
+    pub(super) async fn open_svs_maintenance_records_its_row(db: &Db) -> String {
+        let (service, actor, _cache) = audit_fixture(db, "audit-run-08").await;
+        let opened = service
+            .open_svs_maintenance(
+                &actor,
+                "audit-run-08",
+                30,
+                "staging",
+                t0() + TimeDelta::days(9),
+            )
+            .await
+            .expect("opens");
+        let row = last_audit(db).await;
+        assert_eq!(
+            row,
+            AuditRow {
+                actor: boss_json(),
+                action: "open_svs_maintenance".to_owned(),
+                target: ("svs_maintenance_window".to_owned(), opened.uuid.to_string()),
+                before: None,
+                after: Some(json!({
+                    "host": "audit-run-08", "reason": "staging", "opened_at": "2026-10-23T12:00:00Z",
+                    "ends_at": "2026-10-23T12:30:00Z", "ended_at": null, "end_reason": null,
+                })),
+                details: json!({}),
+            }
+        );
+        row.action
+    }
+
+    pub(super) async fn end_svs_maintenance_records_its_row(db: &Db) -> String {
+        let (service, actor, _cache) = audit_fixture(db, "audit-run-09").await;
+        let at = t0() + TimeDelta::days(9);
+        let opened = service
+            .open_svs_maintenance(&actor, "audit-run-09", 30, "staging", at)
+            .await
+            .expect("opens");
+        service
+            .end_svs_maintenance(&actor, "audit-run-09", at + minutes(5))
+            .await
+            .expect("ends");
+        let row = last_audit(db).await;
+        assert_eq!(
+            row,
+            AuditRow {
+                actor: boss_json(),
+                action: "end_svs_maintenance".to_owned(),
+                target: ("svs_maintenance_window".to_owned(), opened.uuid.to_string()),
+                before: Some(json!({
+                    "host": "audit-run-09", "reason": "staging", "opened_at": "2026-10-23T12:00:00Z",
+                    "ends_at": "2026-10-23T12:30:00Z", "ended_at": null, "end_reason": null,
+                })),
+                after: Some(json!({
+                    "host": "audit-run-09", "reason": "staging", "opened_at": "2026-10-23T12:00:00Z",
+                    "ends_at": "2026-10-23T12:30:00Z", "ended_at": "2026-10-23T12:05:00Z",
+                    "end_reason": "ended",
+                })),
+                details: json!({}),
+            }
+        );
+        row.action
+    }
+
+    /// What `every_write_fails_when_its_audit_fails` sets up before the audit breaks: a run for each call
+    /// that would move it, and a window to end.
+    pub(super) struct BeforeTheAuditBreaks {
+        service: Service,
+        _cache: tempfile::TempDir,
+        created: Uuid,
+        started: Uuid,
+        to_cancel: Uuid,
+        due: Uuid,
+    }
+
+    pub(super) async fn before_the_audit_breaks(db: &Db) -> BeforeTheAuditBreaks {
+        let (service, actor, cache) = audit_fixture(db, "broken-01").await;
+        for host in [
+            "broken-02",
+            "broken-03",
+            "broken-04",
+            "broken-05",
+            "broken-06",
+        ] {
+            service
+                .create_test_host(&actor, &HostFields::new(host))
+                .await
+                .expect("adds a test host");
+        }
+        let register = async |host: &str, at| {
+            service
+                .register_svs_run(&actor, &audit_on(&[host]), at)
+                .await
+                .expect("registers")
+                .uuid
+        };
+        let at = t0() + TimeDelta::days(20);
+        let created = register("broken-01", at).await;
+        let started = register("broken-02", at).await;
+        let to_cancel = register("broken-03", at).await;
+        // one the timers would end
+        let due = register("broken-04", at - hours(3)).await;
+        for (run, at) in [(started, at), (due, at - hours(3))] {
+            service
+                .start_svs_run(&actor, run, at)
+                .await
+                .expect("starts");
+        }
+        service
+            .open_svs_maintenance(&actor, "broken-05", 240, "staging", at)
+            .await
+            .expect("opens");
+        BeforeTheAuditBreaks {
+            service,
+            _cache: cache,
+            created,
+            started,
+            to_cancel,
+            due,
+        }
+    }
+
+    /// Each write here, with the audit broken: its name and the error it gave.
+    pub(super) async fn attempts_with_the_audit_broken(
+        before: &BeforeTheAuditBreaks,
+        actor: &Actor,
+    ) -> Vec<(&'static str, ServiceError)> {
+        let s = &before.service;
+        let at = t0() + TimeDelta::days(20) + minutes(1);
+        // the timers count a failed move and go on, so the error is the one they report
+        let moved = s
+            .run_svs_timers(&timers(), at)
+            .await
+            .expect("the pass goes on");
+        assert_eq!((moved.ended, moved.failed), (0, 1));
+        let timers_failed = ServiceError::Conflict(moved.first_error.expect("the first error"));
+        vec![
+            ("run_svs_timers", timers_failed),
+            (
+                "register_svs_run",
+                s.register_svs_run(actor, &audit_on(&["broken-06"]), at)
+                    .await
+                    .map(|_| ())
+                    .expect_err("refused"),
+            ),
+            (
+                "start_svs_run",
+                s.start_svs_run(actor, before.created, at)
+                    .await
+                    .map(|_| ())
+                    .expect_err("refused"),
+            ),
+            (
+                "svs_run_executed",
+                s.svs_run_executed(actor, before.started, 0, None, None, at)
+                    .await
+                    .map(|_| ())
+                    .expect_err("refused"),
+            ),
+            (
+                "svs_run_cleanup",
+                s.svs_run_cleanup(actor, before.started, at)
+                    .await
+                    .map(|_| ())
+                    .expect_err("refused"),
+            ),
+            (
+                "cancel_svs_run",
+                s.cancel_svs_run(actor, before.to_cancel, at)
+                    .await
+                    .map(|_| ())
+                    .expect_err("refused"),
+            ),
+            (
+                "end_svs_run",
+                s.end_svs_run(actor, before.started, "nothing fired", at)
+                    .await
+                    .map(|_| ())
+                    .expect_err("refused"),
+            ),
+            (
+                "open_svs_maintenance",
+                s.open_svs_maintenance(actor, "broken-06", 30, "staging", at)
+                    .await
+                    .map(|_| ())
+                    .expect_err("refused"),
+            ),
+            (
+                "end_svs_maintenance",
+                s.end_svs_maintenance(actor, "broken-05", at)
+                    .await
+                    .map(|_| ())
+                    .expect_err("refused"),
+            ),
+        ]
+    }
+
+    /// What the writes here would have changed, to compare before and after.
+    pub(super) async fn runs_rows(db: &Db, before: &BeforeTheAuditBreaks) -> Vec<String> {
+        let runs = [before.created, before.started, before.to_cancel, before.due];
+        let mut rows: Vec<String> = sqlx::query_scalar(
+            "SELECT uuid::text || ' ' || state::text || ' ' || updated_at::text FROM svs.runs
+             WHERE uuid = ANY ($1) ORDER BY id",
+        )
+        .bind(&runs[..])
+        .fetch_all(db.pool())
+        .await
+        .expect("reads");
+        rows.extend(
+            sqlx::query_scalar::<_, String>(
+                "SELECT 'window ' || uuid::text || ' ' || updated_at::text
+                 FROM svs.maintenance_windows ORDER BY id",
+            )
+            .fetch_all(db.pool())
+            .await
+            .expect("reads"),
+        );
+        for table in ["svs.runs", "svs.run_events", "svs.registration_refusals"] {
+            rows.push(format!("{table} {}", count(db, table).await));
+        }
+        rows
     }
 }

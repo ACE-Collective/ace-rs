@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT observation_minutes FROM svs.test_settings WHERE test_guid = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "observation_minutes",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "svs.test_settings",
+            "name": "observation_minutes"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "0c43beeb2400f20fbacd2fe201081d8e368b3beb5d5455a28c942ac35b23f08c"
+}

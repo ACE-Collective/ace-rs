@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT uuid FROM svs.runs WHERE state = 'created' AND created_at <= $1\n                         ORDER BY id LIMIT $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "uuid",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "svs.runs",
+            "name": "uuid"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Timestamptz",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "00d84061c69251e7dd0277908494fe7ad27646f49a4bc1bfa98a1a65ee38e45f"
+}

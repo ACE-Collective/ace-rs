@@ -330,6 +330,14 @@ pub const SVS_VALIDATION_PRUNE: PermissionName = PermissionName::known("svs", "v
 /// `ace svs catalog refresh` do. ace3 has no such permission. Only the scheduler's
 /// `scheduler:svs_catalog_refresh` holds it.
 pub const SVS_CATALOG_REFRESH: PermissionName = PermissionName::known("svs", "catalog_refresh");
+/// Register SVS test runs, make a launcher's calls on them, and open and end a test host's maintenance
+/// windows: ace3's `svs:run_register`.
+pub const SVS_RUN_REGISTER: PermissionName = PermissionName::known("svs", "run_register");
+/// A person's changes to SVS test runs: ace3's `svs:run_manage`.
+pub const SVS_RUN_MANAGE: PermissionName = PermissionName::known("svs", "run_manage");
+/// Move SVS test runs and maintenance windows on by time, as ace3's `service_svs` does. ace3 has no such
+/// permission. Only the scheduler's `scheduler:svs_run_timers` holds it.
+pub const SVS_RUN_TIMERS: PermissionName = PermissionName::known("svs", "run_timers");
 /// See users, groups, grants and keys: ace3's `user:read`.
 pub const USER_READ: PermissionName = PermissionName::known("user", "read");
 /// Change users, groups and grants: ace3's `user:write`.
@@ -517,6 +525,20 @@ pub static CATALOG: &[CatalogEntry] = &[
     CatalogEntry {
         name: SVS_CATALOG_REFRESH,
         description: "Read the SVS catalog repositories' tests into the catalog (audited). The scheduler \
+                      holds it.",
+    },
+    CatalogEntry {
+        name: SVS_RUN_REGISTER,
+        description: "Register SVS test runs, start, report on and cancel them, and open and end a test \
+                      host's maintenance windows (audited). A launcher's key holds it.",
+    },
+    CatalogEntry {
+        name: SVS_RUN_MANAGE,
+        description: "End an SVS test run before its observation window passes (audited).",
+    },
+    CatalogEntry {
+        name: SVS_RUN_TIMERS,
+        description: "Move SVS test runs and maintenance windows on by time (audited). The scheduler \
                       holds it.",
     },
     CatalogEntry {

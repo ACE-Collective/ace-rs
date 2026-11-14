@@ -1,0 +1,76 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT guid, platforms, content_hash, commit, removed_at\n                 FROM svs.catalog_tests WHERE guid = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "guid",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "svs.catalog_tests",
+            "name": "guid"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "platforms",
+        "type_info": "TextArray",
+        "origin": {
+          "Table": {
+            "table": "svs.catalog_tests",
+            "name": "platforms"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "content_hash",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.catalog_tests",
+            "name": "content_hash"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "commit",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.catalog_tests",
+            "name": "commit"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "removed_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "svs.catalog_tests",
+            "name": "removed_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "317e8474fd716bf5aa5d8e2746a244be67d25ec905fa7935f0e94ad0d32e9b58"
+}

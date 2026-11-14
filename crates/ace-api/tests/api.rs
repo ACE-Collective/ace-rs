@@ -163,6 +163,8 @@ async fn stack_of(archive: ace_core::email_archive::ArchiveConfig, catalog: Cata
     .expect("the overlay parses");
     let service = Service::new(test_db.db().clone(), orchestrator.clone())
         .with_actions(test_actions())
+        // what a refused SVS registration submits its alert with (PLAN.md 7.10 batch 5)
+        .with_bucket(bucket.clone())
         .with_dispositions(ace_service::Dispositions::configured(&overlay).expect("good sections"))
         // a repository the validations' requests may name; requesting doesn't fetch it (PLAN.md 7.10)
         .with_validation(
@@ -554,6 +556,17 @@ const CATALOG_TESTS_CSV: &str = "/api/svs/v1/tests/export/csv";
 const CATALOG_TESTS_NDJSON: &str = "/api/svs/v1/tests/export/ndjson";
 const CATALOG_TEST: &str = "/api/svs/v1/tests/{guid}";
 const CATALOG_REPOSITORIES: &str = "/api/svs/v1/catalog/repositories";
+const RUNS: &str = "/api/svs/v1/runs";
+const RUNS_VALIDATE: &str = "/api/svs/v1/runs/validate";
+const RUN: &str = "/api/svs/v1/runs/{run_id}";
+const RUN_EVENTS: &str = "/api/svs/v1/runs/{run_id}/events";
+const RUN_START: &str = "/api/svs/v1/runs/{run_id}/start";
+const RUN_EXECUTED: &str = "/api/svs/v1/runs/{run_id}/executed";
+const RUN_CLEANUP: &str = "/api/svs/v1/runs/{run_id}/cleanup";
+const RUN_CANCEL: &str = "/api/svs/v1/runs/{run_id}/cancel";
+const TEST_HOSTS: &str = "/api/svs/v1/test-hosts";
+const TEST_HOST: &str = "/api/svs/v1/test-hosts/{host}";
+const MAINTENANCE: &str = "/api/svs/v1/test-hosts/{host}/maintenance";
 const COLLECTIONS_CSV: &str = "/api/file-collections/v1/collections/export/csv";
 const COLLECTIONS_NDJSON: &str = "/api/file-collections/v1/collections/export/ndjson";
 const COLLECTION: &str = "/api/file-collections/v1/collections/{id}";
@@ -590,7 +603,9 @@ fn fill(route: &str, id: Uuid, observable: i64) -> String {
             .replace("{rule_uuid}", "7d1c2a4e-5b6f-4c3d-9e8f-0a1b2c3d4e5f")
             .replace("{id}", &observable.to_string())
             .replace("{uuid}", &id.to_string())
-            .replace("{guid}", &id.to_string());
+            .replace("{guid}", &id.to_string())
+            .replace("{run_id}", &id.to_string())
+            .replace("{host}", "1");
     }
     if route.starts_with("/api/lists/") {
         return route
@@ -679,6 +694,12 @@ fn good_body(route: &str) -> Send {
         OBSERVED => Send::Json(json!({"type": "fqdn", "value": "refused.example"})),
         OBSERVED_EXPIRY => Send::Json(json!({"expires_on": null})),
         VALIDATE => Send::Json(json!({"compiled_hunt": {"target": "x.yaml", "assets": []}})),
+        RUNS | RUNS_VALIDATE => Send::Json(json!({
+            "test_guid": Uuid::nil(), "targets": [{"hostname": "refused"}], "launcher": "refused",
+        })),
+        RUN_EXECUTED => Send::Json(json!({"exit_code": 0})),
+        TEST_HOSTS | TEST_HOST => Send::Json(json!({"hostname": "refused"})),
+        MAINTENANCE => Send::Json(json!({"minutes": 30, "reason": "refused"})),
         TARGETS => Send::Json(json!({"observables": [{"type": "test", "value": "SUCCESS"}]})),
         REMEDIATIONS => Send::Json(json!({"action": "remove", "targets": [
             {"remediator": "test", "observable_type": "test", "observable_value": "SUCCESS"},
@@ -714,7 +735,7 @@ async fn refuses_without_a_credential_or_a_permission(
         .map(|(method, route, _)| (method, route))
         .filter(|route| !public.contains(route))
         .collect();
-    assert_eq!(routes.len(), 152, "{routes:?}");
+    assert_eq!(routes.len(), 168, "{routes:?}");
     for (method, route) in routes {
         let method: Method = method.to_uppercase().parse().expect("a method");
         let path = fill(&route, id, file);
@@ -4482,6 +4503,7 @@ async fn every_documented_status_is_tested() {
     svs_samples(&mut client, &token).await;
     svs_validations(&mut client, &token).await;
     svs_catalog(&mut client).await;
+    svs_runs(&mut client).await;
     pings(&mut client, &token).await;
 
     assert_eq!(
@@ -8935,6 +8957,1297 @@ async fn catalog_test(
     .execute(stack.test_db.db().pool())
     .await
     .expect("seeds a test");
+}
+
+/// The runs' launcher calls and the test hosts with their maintenance windows (PLAN.md 7.10 batch 5, part
+/// 5a): ace3's `tests/aceapi_v2/svs/test_runs.py` and `test_test_hosts.py`, each case named where it's
+/// ported. `test_a_change_from_a_stale_form_is_refused`, `test_the_listing_pages_by_hostname` and
+/// `test_exports` come with part 5b's preconditions, paging and exports.
+async fn svs_runs(client: &mut Client<'_>) {
+    use Method as M;
+    use StatusCode as S;
+    let stack = client.stack;
+    let db = stack.test_db.db();
+    let launcher = key(stack, &["svs:run_register"]).await;
+    let reader = key(stack, &["svs:run_read"]).await;
+    let admin = key(stack, &["svs:admin", "svs:run_read"]).await;
+    let (l, r, a) = (
+        Some(launcher.as_str()),
+        Some(reader.as_str()),
+        Some(admin.as_str()),
+    );
+    catalog_test(
+        stack,
+        21,
+        "T1105",
+        "A run's test",
+        &["windows"],
+        "powershell",
+        false,
+    )
+    .await;
+    catalog_test(stack, 22, "T1105", "A linux test", &["linux"], "sh", false).await;
+    let guid = catalog_guid(21);
+    let at = |route: &str, id: &dyn std::fmt::Display| {
+        route
+            .replace("{run_id}", &id.to_string())
+            .replace("{host}", &id.to_string())
+    };
+
+    // test_create_read_update_delete
+    let made = client
+        .json(
+            M::POST,
+            TEST_HOSTS,
+            TEST_HOSTS,
+            a,
+            Send::Json(json!({
+                "hostname": "WIN10-01.lab.example", "usernames": ["LAB\\svc_art"],
+                "ips": ["10.0.0.5"], "platform": "Windows", "notes": "lab 3",
+            })),
+            S::CREATED,
+        )
+        .await;
+    let host_id = made["id"].as_i64().expect("an id");
+    assert_eq!(
+        (
+            &made["hostname"],
+            &made["fqdn"],
+            &made["usernames"],
+            &made["ips"],
+            &made["platform"],
+            &made["notes"],
+            &made["created_by"]["kind"]
+        ),
+        (
+            &json!("win10-01"),
+            &json!("win10-01.lab.example"),
+            &json!(["svc_art"]),
+            &json!(["10.0.0.5"]),
+            &json!("windows"),
+            &json!("lab 3"),
+            &json!("api_key")
+        )
+    );
+    let host = at(TEST_HOST, &host_id);
+    let read = client
+        .json(M::GET, TEST_HOST, &host, r, Send::Nothing, S::OK)
+        .await;
+    assert_eq!(read, made);
+    let any = client
+        .json(
+            M::POST,
+            TEST_HOSTS,
+            TEST_HOSTS,
+            a,
+            Send::Json(json!({"hostname": "anyuser-01"})),
+            S::CREATED,
+        )
+        .await;
+    let any_id = any["id"].as_i64().expect("an id");
+    let changed = client
+        .json(
+            M::PUT,
+            TEST_HOST,
+            &at(TEST_HOST, &any_id),
+            a,
+            Send::Json(json!({"hostname": "anyuser-01", "notes": "any user"})),
+            S::OK,
+        )
+        .await;
+    assert_eq!(
+        (&changed["notes"], &changed["usernames"]),
+        (&json!("any user"), &json!([]))
+    );
+    let listed = client
+        .json(M::GET, TEST_HOSTS, TEST_HOSTS, r, Send::Nothing, S::OK)
+        .await;
+    let names: Vec<&str> = listed
+        .as_array()
+        .expect("hosts")
+        .iter()
+        .map(|h| h["hostname"].as_str().expect("a name"))
+        .collect();
+    assert_eq!(names, ["anyuser-01", "win10-01"]);
+    let srv = client
+        .json(
+            M::POST,
+            TEST_HOSTS,
+            TEST_HOSTS,
+            a,
+            Send::Json(json!({"hostname": "srv-01"})),
+            S::CREATED,
+        )
+        .await;
+    let srv_id = srv["id"].as_i64().expect("an id");
+
+    // test_errors
+    let taken = client
+        .json(
+            M::POST,
+            TEST_HOSTS,
+            TEST_HOSTS,
+            a,
+            Send::Json(json!({"hostname": "win10-01.other.example"})),
+            S::CONFLICT,
+        )
+        .await;
+    assert_eq!(taken["error"], "win10-01 is already a test host");
+    for body in [
+        json!({"hostname": "not a host"}),
+        json!({"hostname": "ok", "platform": "amiga"}),
+        json!({"hostname": "ok", "surprise": 1}),
+    ] {
+        client
+            .json(
+                M::POST,
+                TEST_HOSTS,
+                TEST_HOSTS,
+                a,
+                Send::Json(body.clone()),
+                S::BAD_REQUEST,
+            )
+            .await;
+        client
+            .json(
+                M::PUT,
+                TEST_HOST,
+                &host,
+                a,
+                Send::Json(body),
+                S::BAD_REQUEST,
+            )
+            .await;
+    }
+    client
+        .json(
+            M::POST,
+            TEST_HOSTS,
+            TEST_HOSTS,
+            a,
+            too_large(),
+            S::PAYLOAD_TOO_LARGE,
+        )
+        .await;
+    client
+        .json(
+            M::PUT,
+            TEST_HOST,
+            &host,
+            a,
+            too_large(),
+            S::PAYLOAD_TOO_LARGE,
+        )
+        .await;
+    client
+        .json(
+            M::PUT,
+            TEST_HOST,
+            &host,
+            a,
+            Send::Json(json!({"hostname": "anyuser-01"})),
+            S::CONFLICT,
+        )
+        .await;
+    let nowhere = at(TEST_HOST, &999_999);
+    let not_a_number = at(TEST_HOST, &"win10-01");
+    client
+        .json(M::GET, TEST_HOST, &nowhere, r, Send::Nothing, S::NOT_FOUND)
+        .await;
+    client
+        .json(
+            M::GET,
+            TEST_HOST,
+            &not_a_number,
+            r,
+            Send::Nothing,
+            S::BAD_REQUEST,
+        )
+        .await;
+    client
+        .json(
+            M::PUT,
+            TEST_HOST,
+            &nowhere,
+            a,
+            Send::Json(json!({"hostname": "gone"})),
+            S::NOT_FOUND,
+        )
+        .await;
+    client
+        .json(
+            M::DELETE,
+            TEST_HOST,
+            &nowhere,
+            a,
+            Send::Nothing,
+            S::NOT_FOUND,
+        )
+        .await;
+    client
+        .json(
+            M::DELETE,
+            TEST_HOST,
+            &not_a_number,
+            a,
+            Send::Nothing,
+            S::BAD_REQUEST,
+        )
+        .await;
+
+    // test_reading_needs_run_read_and_writing_needs_admin
+    for (method, route, path, token, body) in [
+        (M::GET, TEST_HOSTS, TEST_HOSTS.to_owned(), l, Send::Nothing),
+        (M::GET, TEST_HOST, host.clone(), l, Send::Nothing),
+        (
+            M::POST,
+            TEST_HOSTS,
+            TEST_HOSTS.to_owned(),
+            r,
+            Send::Json(json!({"hostname": "nope"})),
+        ),
+        (
+            M::PUT,
+            TEST_HOST,
+            host.clone(),
+            r,
+            Send::Json(json!({"hostname": "nope"})),
+        ),
+        (M::DELETE, TEST_HOST, host.clone(), l, Send::Nothing),
+    ] {
+        client
+            .json(method, route, &path, token, body, S::FORBIDDEN)
+            .await;
+    }
+
+    // test_the_request_is_validated
+    let body = |targets: Value| {
+        json!({"test_guid": guid, "targets": targets, "launcher": "art",
+                                        "batch_id": "batch-1", "extra": {"ticket": 42}})
+    };
+    let on = |host: &str, user: Option<&str>| body(json!([{"hostname": host, "username": user}]));
+    for bad in [
+        json!({"test_guid": guid, "targets": [{"hostname": "anyuser-01"}]}),
+        json!({"test_guid": guid, "targets": [{"hostname": "anyuser-01"}], "launcher": ""}),
+        json!({"test_guid": guid, "targets": [{"hostname": "anyuser-01"}], "launcher": "art",
+               "batch_id": "x".repeat(257)}),
+        json!({"test_guid": guid, "targets": "anyuser-01", "launcher": "art"}),
+        json!({"test_guid": guid, "targets": [{"hostname": "anyuser-01"}], "launcher": "art",
+               "surprise": true}),
+    ] {
+        for route in [RUNS, RUNS_VALIDATE] {
+            client
+                .json(
+                    M::POST,
+                    route,
+                    route,
+                    l,
+                    Send::Json(bad.clone()),
+                    S::BAD_REQUEST,
+                )
+                .await;
+        }
+    }
+    for route in [RUNS, RUNS_VALIDATE] {
+        client
+            .json(M::POST, route, route, l, too_large(), S::PAYLOAD_TOO_LARGE)
+            .await;
+    }
+
+    // test_invalid_registrations
+    for (bad, expected) in [
+        (
+            json!({"test_guid": catalog_guid(99), "targets": [{"hostname": "anyuser-01"}], "launcher": "art"}),
+            "is not in the catalog",
+        ),
+        (
+            json!({"test_guid": catalog_guid(22), "targets": [{"hostname": "win10-01", "username": "svc_art"}],
+                   "launcher": "art"}),
+            "test host win10-01 is windows",
+        ),
+        (body(json!([])), "at least one target"),
+        (
+            json!({"test_guid": guid, "targets": [{"hostname": "anyuser-01"}], "launcher": "art",
+                   "extra": {"blob": "x".repeat(20000)}}),
+            "larger than 16384 bytes",
+        ),
+        (
+            json!({"test_guid": guid, "targets": [{"hostname": "anyuser-01"}], "launcher": "art",
+                   "extra": ["not", "an", "object"]}),
+            "must be a JSON object",
+        ),
+    ] {
+        let error = client
+            .json(
+                M::POST,
+                RUNS,
+                RUNS,
+                l,
+                Send::Json(bad.clone()),
+                S::BAD_REQUEST,
+            )
+            .await;
+        assert!(
+            error["error"]
+                .as_str()
+                .is_some_and(|e| e.contains(expected)),
+            "{expected}: {error}"
+        );
+        // a dry run says the same, as a decision
+        let decision = client
+            .json(
+                M::POST,
+                RUNS_VALIDATE,
+                RUNS_VALIDATE,
+                l,
+                Send::Json(bad),
+                S::OK,
+            )
+            .await;
+        assert_eq!(
+            (&decision["decision"], &decision["status_code"]),
+            (&json!("invalid"), &json!(400))
+        );
+        assert_eq!(decision["message"], error["error"]);
+    }
+
+    // test_validate_answers_what_registering_would_and_writes_nothing
+    let run_count = async || -> i64 {
+        sqlx::query_scalar("SELECT count(*) FROM svs.runs")
+            .fetch_one(db.pool())
+            .await
+            .expect("counts")
+    };
+    let (audited, roots) = (audit_count(stack).await, root_count(stack).await);
+    let decision = client
+        .json(
+            M::POST,
+            RUNS_VALIDATE,
+            RUNS_VALIDATE,
+            l,
+            Send::Json(on("WIN10-01", Some("svc_art@lab.example"))),
+            S::OK,
+        )
+        .await;
+    assert_eq!(
+        decision,
+        json!({
+            "decision": "accepted", "status_code": 201, "message": null,
+            "targets": [{"hostname": "WIN10-01", "username": "svc_art@lab.example", "accepted": true,
+                         "reason": null, "test_host": "win10-01", "platform": "windows", "held_by": []}],
+            "platform": "windows", "observation_seconds": 3600, "observation_source": "all_hunts",
+            "attribution_seconds": 90000, "holds_host": false,
+        })
+    );
+    let refused = client
+        .json(
+            M::POST,
+            RUNS_VALIDATE,
+            RUNS_VALIDATE,
+            l,
+            Send::Json(body(
+                json!([{"hostname": "anyuser-01"}, {"hostname": "prod-dc-01"}]),
+            )),
+            S::OK,
+        )
+        .await;
+    assert_eq!(
+        (
+            &refused["decision"],
+            &refused["status_code"],
+            &refused["platform"]
+        ),
+        (&json!("refused"), &json!(403), &Value::Null)
+    );
+    assert_eq!(
+        refused["targets"][1],
+        json!({"hostname": "prod-dc-01", "username": null, "accepted": false,
+               "reason": "prod-dc-01 is not a test host", "test_host": null, "platform": null,
+               "held_by": []})
+    );
+    assert_eq!(run_count().await, 0);
+    assert_eq!(
+        (audit_count(stack).await, root_count(stack).await),
+        (audited, roots),
+        "a dry run writes nothing and alerts nobody"
+    );
+
+    // test_the_lifecycle
+    let run = client
+        .json(
+            M::POST,
+            RUNS,
+            RUNS,
+            l,
+            Send::Json(on("WIN10-01", Some("svc_art@lab.example"))),
+            S::CREATED,
+        )
+        .await;
+    let run_id: Uuid = run["run_id"]
+        .as_str()
+        .expect("an id")
+        .parse()
+        .expect("a uuid");
+    assert_eq!(
+        (
+            &run["state"],
+            &run["test_guid"],
+            &run["platform"],
+            &run["observation_seconds"],
+            &run["attribution_seconds"],
+            &run["holds_host"],
+            &run["started_at"]
+        ),
+        (
+            &json!("created"),
+            &json!(guid),
+            &json!("windows"),
+            &json!(3600),
+            &json!(90000),
+            &json!(false),
+            &Value::Null
+        )
+    );
+    assert!(ace_core::svs::markers::is_marker(
+        run["marker"].as_str().expect("a marker")
+    ));
+    assert_eq!(
+        run["targets"],
+        json!([{"hostname": "WIN10-01", "username": "svc_art@lab.example", "host": "win10-01",
+                "fqdn": "win10-01.lab.example", "user": "svc_art"}])
+    );
+    let start = at(RUN_START, &run_id);
+    let started = client
+        .json(M::POST, RUN_START, &start, l, Send::Nothing, S::OK)
+        .await;
+    assert_eq!(started["state"], "started");
+    assert!(started["started_at"].is_string() && started["observation_ends_at"].is_string());
+    assert_eq!(started["marker"], run["marker"]);
+
+    // test_a_host_held_by_another_run_is_409
+    let busy = client
+        .json(
+            M::POST,
+            RUNS,
+            RUNS,
+            l,
+            Send::Json(on("win10-01", Some("svc_art"))),
+            S::CONFLICT,
+        )
+        .await;
+    assert!(
+        busy["error"]
+            .as_str()
+            .is_some_and(|e| e.starts_with(&format!(
+                "test host win10-01 is held by run {run_id} (started, until "
+            ))),
+        "{busy}"
+    );
+    let decision = client
+        .json(
+            M::POST,
+            RUNS_VALIDATE,
+            RUNS_VALIDATE,
+            l,
+            Send::Json(on("win10-01", Some("svc_art"))),
+            S::OK,
+        )
+        .await;
+    assert_eq!(
+        (&decision["decision"], &decision["status_code"]),
+        (&json!("host_busy"), &json!(409))
+    );
+    let held = &decision["targets"][0]["held_by"][0];
+    assert_eq!(
+        (
+            &held["host"],
+            &held["run_id"],
+            &held["state"],
+            &held["maintenance_id"]
+        ),
+        (
+            &json!("win10-01"),
+            &json!(run_id),
+            &json!("started"),
+            &Value::Null
+        )
+    );
+    assert_eq!(held["until"], started["observation_ends_at"]);
+
+    // test_start_answers_409_when_another_run_holds_the_host: a run no registration decided
+    let undecided = Uuid::new_v4();
+    sqlx::query(
+        "WITH run AS (
+             INSERT INTO svs.runs
+                 (uuid, test_guid, platform, test_content_hash, catalog_commit, state, marker, launcher,
+                  observation_seconds, attribution_seconds)
+             VALUES ($1, $2, 'windows', repeat('0', 64), repeat('a', 40), 'created', $3, 'art', 3600, 90000)
+             RETURNING id)
+         INSERT INTO svs.run_targets (run_id, hostname, host, test_host_id)
+         SELECT run.id, 'win10-01', 'win10-01', $4 FROM run",
+    )
+    .bind(undecided)
+    .bind(guid)
+    .bind(ace_core::svs::markers::new_marker())
+    .bind(host_id)
+    .execute(db.pool())
+    .await
+    .expect("adds a run");
+    let refused = client
+        .json(
+            M::POST,
+            RUN_START,
+            &at(RUN_START, &undecided),
+            l,
+            Send::Nothing,
+            S::CONFLICT,
+        )
+        .await;
+    assert!(
+        refused["error"]
+            .as_str()
+            .is_some_and(|e| e.contains(&format!("is held by run {run_id}"))),
+        "{refused}"
+    );
+    client
+        .json(
+            M::POST,
+            RUN_CANCEL,
+            &at(RUN_CANCEL, &undecided),
+            l,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+
+    // test_conflicts_and_unknown_runs
+    let conflict = client
+        .json(M::POST, RUN_START, &start, l, Send::Nothing, S::CONFLICT)
+        .await;
+    assert_eq!(
+        conflict["error"],
+        format!("run {run_id} is started; start does not apply")
+    );
+    let unknown = Uuid::new_v4();
+    for route in [RUN_START, RUN_CLEANUP, RUN_CANCEL] {
+        client
+            .json(
+                M::POST,
+                route,
+                &at(route, &unknown),
+                l,
+                Send::Nothing,
+                S::NOT_FOUND,
+            )
+            .await;
+        client
+            .json(
+                M::POST,
+                route,
+                &at(route, &"not-a-uuid"),
+                l,
+                Send::Nothing,
+                S::BAD_REQUEST,
+            )
+            .await;
+    }
+    let executed_body = Send::Json(json!({"exit_code": 0}));
+    client
+        .json(
+            M::POST,
+            RUN_EXECUTED,
+            &at(RUN_EXECUTED, &unknown),
+            l,
+            executed_body,
+            S::NOT_FOUND,
+        )
+        .await;
+    for route in [RUN, RUN_EVENTS] {
+        client
+            .json(
+                M::GET,
+                route,
+                &at(route, &unknown),
+                r,
+                Send::Nothing,
+                S::NOT_FOUND,
+            )
+            .await;
+        client
+            .json(
+                M::GET,
+                route,
+                &at(route, &"not-a-uuid"),
+                r,
+                Send::Nothing,
+                S::BAD_REQUEST,
+            )
+            .await;
+    }
+
+    // test_cleanup
+    let cleanup = at(RUN_CLEANUP, &run_id);
+    let cleaned = client
+        .json(M::POST, RUN_CLEANUP, &cleanup, l, Send::Nothing, S::OK)
+        .await;
+    assert!(cleaned["cleanup_at"].is_string());
+    client
+        .json(
+            M::POST,
+            RUN_CLEANUP,
+            &cleanup,
+            l,
+            Send::Nothing,
+            S::CONFLICT,
+        )
+        .await;
+
+    // the rest of test_the_lifecycle: executed, with what the test printed
+    let executed = at(RUN_EXECUTED, &run_id);
+    for bad in [
+        json!({}),
+        json!({"exit_code": "zero"}),
+        json!({"exit_code": 0, "error": "x".repeat(8193)}),
+    ] {
+        client
+            .json(
+                M::POST,
+                RUN_EXECUTED,
+                &executed,
+                l,
+                Send::Json(bad),
+                S::BAD_REQUEST,
+            )
+            .await;
+    }
+    client
+        .json(
+            M::POST,
+            RUN_EXECUTED,
+            &at(RUN_EXECUTED, &"not-a-uuid"),
+            l,
+            Send::Json(json!({"exit_code": 0})),
+            S::BAD_REQUEST,
+        )
+        .await;
+    client
+        .json(
+            M::POST,
+            RUN_EXECUTED,
+            &executed,
+            l,
+            too_large(),
+            S::PAYLOAD_TOO_LARGE,
+        )
+        .await;
+    let reported = client
+        .json(
+            M::POST,
+            RUN_EXECUTED,
+            &executed,
+            l,
+            Send::Json(json!({"exit_code": 0, "output": "<b>Executing</b> test\n"})),
+            S::OK,
+        )
+        .await;
+    assert_eq!(
+        (&reported["state"], &reported["error_reason"]),
+        (&json!("started"), &Value::Null)
+    );
+    let detail = client
+        .json(M::GET, RUN, &at(RUN, &run_id), r, Send::Nothing, S::OK)
+        .await;
+    assert_eq!(
+        (
+            &detail["run_id"],
+            &detail["state"],
+            &detail["launcher"],
+            &detail["batch_id"],
+            &detail["extra"],
+            &detail["exit_code"],
+            &detail["launcher_output"],
+            &detail["registered_by"]["kind"],
+            &detail["catalog_commit"]
+        ),
+        (
+            &json!(run_id),
+            &json!("started"),
+            &json!("art"),
+            &json!("batch-1"),
+            &json!({"ticket": 42}),
+            &json!(0),
+            &json!("<b>Executing</b> test\n"),
+            &json!("api_key"),
+            &json!("a".repeat(40))
+        )
+    );
+    let events = client
+        .json(
+            M::GET,
+            RUN_EVENTS,
+            &at(RUN_EVENTS, &run_id),
+            r,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    let kinds: Vec<(&str, Option<&str>)> = events["events"]
+        .as_array()
+        .expect("events")
+        .iter()
+        .map(|e| {
+            (
+                e["kind"].as_str().expect("a kind"),
+                e["details"]["outcome"].as_str(),
+            )
+        })
+        .collect();
+    assert_eq!(
+        kinds,
+        [
+            ("registered", None),
+            ("transition", None),
+            ("launcher_call", Some("started")),
+            ("launcher_call", Some("conflict")),
+            ("launcher_call", Some("recorded")),
+            ("launcher_call", Some("conflict")),
+            ("launcher_call", Some("recorded")),
+        ]
+    );
+    assert_eq!(events["next"], Value::Null);
+    let page = client
+        .json(
+            M::GET,
+            RUN_EVENTS,
+            &format!("{}?limit=2", at(RUN_EVENTS, &run_id)),
+            r,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(page["events"].as_array().map(Vec::len), Some(2));
+    let rest = client
+        .json(
+            M::GET,
+            RUN_EVENTS,
+            &format!(
+                "{}?limit=1000&after={}",
+                at(RUN_EVENTS, &run_id),
+                page["next"]
+            ),
+            r,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(rest["events"].as_array().map(Vec::len), Some(5));
+    for bad in ["limit=0", "limit=1001", "after=x", "limit=1&limit=2"] {
+        client
+            .json(
+                M::GET,
+                RUN_EVENTS,
+                &format!("{}?{bad}", at(RUN_EVENTS, &run_id)),
+                r,
+                Send::Nothing,
+                S::BAD_REQUEST,
+            )
+            .await;
+    }
+    let cancel = at(RUN_CANCEL, &run_id);
+    let canceled = client
+        .json(M::POST, RUN_CANCEL, &cancel, l, Send::Nothing, S::OK)
+        .await;
+    assert_eq!(
+        (&canceled["state"], &canceled["close_reason"]),
+        (&json!("canceled"), &Value::Null)
+    );
+    client
+        .json(M::POST, RUN_CANCEL, &cancel, l, Send::Nothing, S::CONFLICT)
+        .await;
+    client
+        .json(
+            M::POST,
+            RUN_EXECUTED,
+            &executed,
+            l,
+            Send::Json(json!({"exit_code": 0})),
+            S::CONFLICT,
+        )
+        .await;
+
+    // test_a_reported_failure_and_a_cancel_before_start
+    let second = client
+        .json(
+            M::POST,
+            RUNS,
+            RUNS,
+            l,
+            Send::Json(on("anyuser-01", None)),
+            S::CREATED,
+        )
+        .await;
+    let second_id = second["run_id"].as_str().expect("an id").to_owned();
+    client
+        .json(
+            M::POST,
+            RUN_START,
+            &at(RUN_START, &second_id),
+            l,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    let failed = client
+        .json(
+            M::POST,
+            RUN_EXECUTED,
+            &at(RUN_EXECUTED, &second_id),
+            l,
+            Send::Json(json!({"exit_code": 1, "error": "Access is denied."})),
+            S::OK,
+        )
+        .await;
+    assert_eq!(
+        (&failed["state"], &failed["error_reason"]),
+        (
+            &json!("error"),
+            &json!("the launcher reported a failure (exit code 1: Access is denied.)")
+        )
+    );
+
+    // test_every_call_needs_run_register: a reader's key makes none of the launcher's calls, and a
+    // launcher's reads nothing
+    for (method, route, path, token, body) in [
+        (
+            M::POST,
+            RUNS,
+            RUNS.to_owned(),
+            r,
+            Send::Json(on("prod-dc-01", None)),
+        ),
+        (
+            M::POST,
+            RUNS_VALIDATE,
+            RUNS_VALIDATE.to_owned(),
+            r,
+            Send::Json(on("anyuser-01", None)),
+        ),
+        (M::POST, RUN_START, start.clone(), r, Send::Nothing),
+        (
+            M::POST,
+            RUN_EXECUTED,
+            executed.clone(),
+            r,
+            Send::Json(json!({"exit_code": 0})),
+        ),
+        (M::POST, RUN_CLEANUP, cleanup.clone(), r, Send::Nothing),
+        (M::POST, RUN_CANCEL, cancel.clone(), a, Send::Nothing),
+        (M::GET, RUN, at(RUN, &run_id), l, Send::Nothing),
+        (
+            M::GET,
+            RUN_EVENTS,
+            at(RUN_EVENTS, &run_id),
+            l,
+            Send::Nothing,
+        ),
+    ] {
+        let refused = client
+            .json(method, route, &path, token, body, S::FORBIDDEN)
+            .await;
+        assert!(
+            refused["error"]
+                .as_str()
+                .is_some_and(|e| e.starts_with("this needs svs:run_re")),
+            "{route}: {refused}"
+        );
+    }
+
+    // test_a_registration_against_a_non_test_host_is_refused_and_alerts
+    let (audited, roots) = (audit_count(stack).await, root_count(stack).await);
+    let refused = client
+        .json(
+            M::POST,
+            RUNS,
+            RUNS,
+            l,
+            Send::Json(body(
+                json!([{"hostname": "ubuntu-77"}, {"hostname": "PROD-DC-01.corp.example"}]),
+            )),
+            S::FORBIDDEN,
+        )
+        .await;
+    assert_eq!(
+        refused["error"],
+        "registration refused: ubuntu-77 is not a test host; prod-dc-01 is not a test host"
+    );
+    assert_eq!(
+        root_count(stack).await,
+        roots + 2,
+        "an alert for each refused host"
+    );
+    assert_eq!(audit_count(stack).await, audited + 1);
+    let alert: (String, String, Value, Value) = sqlx::query_as(
+        "SELECT r.description, r.queue, r.origin, r.submitted_by::jsonb
+         FROM svs.registration_refusals f JOIN analysis.roots r ON r.id = f.root_id
+         WHERE f.host = 'prod-dc-01.corp.example'",
+    )
+    .fetch_one(db.pool())
+    .await
+    .expect("the refusal's alert");
+    assert_eq!(
+        (alert.0.as_str(), alert.1.as_str(), &alert.3),
+        (
+            "SVS test run registration refused: test targeted PROD-DC-01.corp.example",
+            "default",
+            &json!({"kind": "internal", "id": "svs"})
+        )
+    );
+    assert_eq!(
+        (
+            &alert.2["alert_type"],
+            &alert.2["details"]["caller_address"],
+            &alert.2["details"]["launcher"]
+        ),
+        (
+            &json!("svs - registration refused"),
+            &json!("127.0.0.1"),
+            &json!("art")
+        )
+    );
+    // again this hour: refused, and no second alert
+    client
+        .json(
+            M::POST,
+            RUNS,
+            RUNS,
+            l,
+            Send::Json(body(json!([{"hostname": "prod-dc-01.corp.example"}]))),
+            S::FORBIDDEN,
+        )
+        .await;
+    assert_eq!(root_count(stack).await, roots + 2);
+
+    // test_maintenance_windows
+    let window_of = |host: &dyn std::fmt::Display| at(MAINTENANCE, host);
+    let opened = client
+        .json(
+            M::POST,
+            MAINTENANCE,
+            &window_of(&"SRV-01"),
+            l,
+            Send::Json(json!({"minutes": 30, "reason": " staging mimikatz "})),
+            S::CREATED,
+        )
+        .await;
+    assert_eq!(
+        (
+            &opened["host"],
+            &opened["test_host_id"],
+            &opened["reason"],
+            &opened["ended_at"],
+            &opened["end_reason"],
+            &opened["opened_by"]["name"]
+        ),
+        (
+            &json!("srv-01"),
+            &json!(srv_id),
+            &json!("staging mimikatz"),
+            &Value::Null,
+            &Value::Null,
+            &json!("test")
+        )
+    );
+    // a window holds the host for runs and windows alike
+    let again = client
+        .json(
+            M::POST,
+            MAINTENANCE,
+            &window_of(&srv_id),
+            l,
+            Send::Json(json!({"minutes": 30, "reason": "again"})),
+            S::CONFLICT,
+        )
+        .await;
+    assert!(
+        again["error"].as_str().is_some_and(|e| e.contains(&format!(
+            "is in maintenance window {}",
+            opened["maintenance_id"].as_str().expect("an id")
+        ))),
+        "{again}"
+    );
+    let busy = client
+        .json(
+            M::POST,
+            RUNS,
+            RUNS,
+            l,
+            Send::Json(on("srv-01", None)),
+            S::CONFLICT,
+        )
+        .await;
+    assert!(
+        busy["error"]
+            .as_str()
+            .is_some_and(|e| e.contains("is in maintenance window"))
+    );
+    for bad in [
+        json!({"minutes": 0, "reason": "staging"}),
+        json!({"minutes": 241, "reason": "staging"}),
+        json!({"minutes": 30, "reason": "  "}),
+        json!({"minutes": 30}),
+    ] {
+        client
+            .json(
+                M::POST,
+                MAINTENANCE,
+                &window_of(&"win10-01"),
+                l,
+                Send::Json(bad),
+                S::BAD_REQUEST,
+            )
+            .await;
+    }
+    client
+        .json(
+            M::POST,
+            MAINTENANCE,
+            &window_of(&"win10-01"),
+            l,
+            too_large(),
+            S::PAYLOAD_TOO_LARGE,
+        )
+        .await;
+    client
+        .json(
+            M::POST,
+            MAINTENANCE,
+            &window_of(&999_999),
+            l,
+            Send::Json(json!({"minutes": 30, "reason": "staging"})),
+            S::NOT_FOUND,
+        )
+        .await;
+    // a host that isn't a test host is refused, which alerts
+    let roots = root_count(stack).await;
+    let refused = client
+        .json(
+            M::POST,
+            MAINTENANCE,
+            &window_of(&"prod-web-01"),
+            l,
+            Send::Json(json!({"minutes": 30, "reason": "staging"})),
+            S::FORBIDDEN,
+        )
+        .await;
+    assert_eq!(refused["error"], "prod-web-01 is not a test host");
+    let refused = client
+        .json(
+            M::DELETE,
+            MAINTENANCE,
+            &window_of(&"prod-web-02"),
+            l,
+            Send::Nothing,
+            S::FORBIDDEN,
+        )
+        .await;
+    assert_eq!(refused["error"], "prod-web-02 is not a test host");
+    assert_eq!(root_count(stack).await, roots + 2);
+    let ended = client
+        .json(
+            M::DELETE,
+            MAINTENANCE,
+            &window_of(&"srv-01"),
+            l,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(
+        (
+            &ended["maintenance_id"],
+            &ended["end_reason"],
+            &ended["ended_by"]["name"]
+        ),
+        (&opened["maintenance_id"], &json!("ended"), &json!("test"))
+    );
+    assert!(ended["ended_at"].is_string());
+    let none = client
+        .json(
+            M::DELETE,
+            MAINTENANCE,
+            &window_of(&"srv-01"),
+            l,
+            Send::Nothing,
+            S::NOT_FOUND,
+        )
+        .await;
+    assert_eq!(
+        none["error"],
+        "test host srv-01 has no open maintenance window"
+    );
+
+    // test_maintenance_listing_pages_by_window
+    for reason in ["second", "third"] {
+        client
+            .json(
+                M::POST,
+                MAINTENANCE,
+                &window_of(&srv_id),
+                l,
+                Send::Json(json!({"minutes": 5, "reason": reason})),
+                S::CREATED,
+            )
+            .await;
+        client
+            .json(
+                M::DELETE,
+                MAINTENANCE,
+                &window_of(&srv_id),
+                l,
+                Send::Nothing,
+                S::OK,
+            )
+            .await;
+    }
+    let first = client
+        .json(
+            M::GET,
+            MAINTENANCE,
+            &format!("{}?limit=2", window_of(&"srv-01")),
+            r,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    let reasons = |page: &Value| -> Vec<String> {
+        page["windows"]
+            .as_array()
+            .expect("windows")
+            .iter()
+            .map(|w| w["reason"].as_str().expect("a reason").to_owned())
+            .collect()
+    };
+    assert_eq!(reasons(&first), ["third", "second"]);
+    let rest = client
+        .json(
+            M::GET,
+            MAINTENANCE,
+            &format!("{}?limit=2&before={}", window_of(&srv_id), first["next"]),
+            r,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(reasons(&rest), ["staging mimikatz"]);
+    assert_eq!(rest["next"], Value::Null);
+    for bad in ["limit=0", "before=x"] {
+        client
+            .json(
+                M::GET,
+                MAINTENANCE,
+                &format!("{}?{bad}", window_of(&srv_id)),
+                r,
+                Send::Nothing,
+                S::BAD_REQUEST,
+            )
+            .await;
+    }
+    for host in ["999999", "win10%2001"] {
+        client
+            .json(
+                M::GET,
+                MAINTENANCE,
+                &window_of(&host),
+                r,
+                Send::Nothing,
+                S::NOT_FOUND,
+            )
+            .await;
+    }
+
+    // test_maintenance_permissions
+    for (method, token, body) in [
+        (
+            M::POST,
+            r,
+            Send::Json(json!({"minutes": 30, "reason": "staging"})),
+        ),
+        (
+            M::POST,
+            a,
+            Send::Json(json!({"minutes": 30, "reason": "staging"})),
+        ),
+        (M::DELETE, r, Send::Nothing),
+        (M::GET, l, Send::Nothing),
+    ] {
+        client
+            .json(
+                method,
+                MAINTENANCE,
+                &window_of(&"prod-web-03"),
+                token,
+                body,
+                S::FORBIDDEN,
+            )
+            .await;
+    }
+    assert_eq!(
+        root_count(stack).await,
+        roots + 2,
+        "a refused permission alerts nobody"
+    );
+
+    // test_removing_a_test_host_ends_its_maintenance_window
+    let window = client
+        .json(
+            M::POST,
+            MAINTENANCE,
+            &window_of(&srv_id),
+            l,
+            Send::Json(json!({"minutes": 30, "reason": "its host goes"})),
+            S::CREATED,
+        )
+        .await;
+    let removed = client
+        .call(
+            M::DELETE,
+            TEST_HOST,
+            &at(TEST_HOST, &srv_id),
+            a,
+            Send::Nothing,
+        )
+        .await;
+    assert_eq!(removed.status(), S::NO_CONTENT);
+    let after = client
+        .json(
+            M::GET,
+            MAINTENANCE,
+            &window_of(&"srv-01"),
+            r,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    let last = &after["windows"][0];
+    assert_eq!(
+        (
+            &last["maintenance_id"],
+            &last["end_reason"],
+            &last["test_host_id"]
+        ),
+        (&window["maintenance_id"], &json!("ended"), &Value::Null)
+    );
+    assert!(last["ended_at"].is_string());
+    client
+        .json(
+            M::GET,
+            TEST_HOST,
+            &at(TEST_HOST, &srv_id),
+            r,
+            Send::Nothing,
+            S::NOT_FOUND,
+        )
+        .await;
 }
 
 fn catalog_guid(n: u128) -> Uuid {

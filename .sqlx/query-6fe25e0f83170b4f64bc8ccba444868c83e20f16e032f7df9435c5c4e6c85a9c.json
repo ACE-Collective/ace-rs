@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE svs.maintenance_windows\n                                     SET ended_at = ends_at, ended_by = $2::jsonb, end_reason = 'expired'\n                                     WHERE id = $1 AND ended_at IS NULL\n                                     RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "svs.maintenance_windows",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Jsonb"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "6fe25e0f83170b4f64bc8ccba444868c83e20f16e032f7df9435c5c4e6c85a9c"
+}

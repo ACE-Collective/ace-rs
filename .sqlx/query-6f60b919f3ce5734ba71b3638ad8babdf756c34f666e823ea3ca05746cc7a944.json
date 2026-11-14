@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT type, path, name, uuid, enabled, frequency, error\n                         FROM hunts.hunts WHERE type = $1 ORDER BY path",
+  "query": "SELECT type, path, name, uuid, enabled, frequency, error, svs\n                         FROM hunts.hunts WHERE type = $1 ORDER BY path",
   "describe": {
     "columns": [
       {
@@ -79,6 +79,17 @@
             "name": "error"
           }
         }
+      },
+      {
+        "ordinal": 7,
+        "name": "svs",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "hunts.hunts",
+            "name": "svs"
+          }
+        }
       }
     ],
     "parameters": {
@@ -93,8 +104,9 @@
       true,
       true,
       true,
+      true,
       true
     ]
   },
-  "hash": "f7f9246ff2914d900f21f1cdc7536b07c0eec5cdce4fa6392956221e0a028441"
+  "hash": "6f60b919f3ce5734ba71b3638ad8babdf756c34f666e823ea3ca05746cc7a944"
 }

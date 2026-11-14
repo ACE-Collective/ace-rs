@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT e.signature_uuid FROM svs.expectations e\n         WHERE e.test_guid = $1 AND e.platform = $2 AND e.state = 'expected'\n           AND NOT EXISTS (SELECT FROM svs.ignores i\n                           WHERE i.signature_uuid = e.signature_uuid\n                             AND (i.test_guid IS NULL OR i.test_guid = e.test_guid))",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "signature_uuid",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.expectations",
+            "name": "signature_uuid"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "a81e98d09bf3f6ee56aac773fc6c8cd103c30e51c9c7c740f4bd9fe962d60ae6"
+}

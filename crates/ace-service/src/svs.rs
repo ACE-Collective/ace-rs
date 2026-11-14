@@ -4,9 +4,8 @@
 //! **Test hosts.** `svs:admin` adds, changes and removes them, each with an audit row holding the host's
 //! fields, where ace3 logs an AUDIT line with them; `svs:run_read` reads them, as ace3's `test-hosts`
 //! router does. A short name is one host: a second host of that name in another domain is a `Conflict`, as
-//! ace3's `DuplicateTestHost` is. What differs: ace3's delete also ends the host's open maintenance window,
-//! which batch 5 brings with the windows; a run keeps the targets it was registered with either way. ace3's
-//! `If-Match` precondition comes with the router (batch 5).
+//! ace3's `DuplicateTestHost` is. Removing a host ends its open maintenance window (`svs_runs`); a run keeps
+//! the targets it was registered with. ace3's `If-Match` precondition comes with batch 5's part 5b.
 //!
 //! **An alert's SVS status.** Derived whenever it's read from the attributions that hold, as ace3's is: an
 //! alert all of whose detections are attributed is `test` (`test?` by context alone), one some are
@@ -417,17 +416,25 @@ impl Service {
     }
 
     /// Removes a test host: ace3's `delete_host`. It needs `svs:admin`; one that isn't there is
-    /// `NotFound`. A run keeps the targets it was registered with, whose host is then none.
+    /// `NotFound`. A run keeps the targets it was registered with, whose host is then none. Its open
+    /// maintenance window ends now, in the same transaction, and the audit row names it.
     pub async fn delete_test_host(&self, actor: &Actor, id: i64) -> Result<(), ServiceError> {
         self.gate
             .write(actor, "delete_test_host", &SVS_ADMIN, &|tx| {
                 Box::pin(async move {
                     let host = host_row(tx.conn(), id, true).await?;
+                    let ended =
+                        crate::svs_runs::end_host_windows(tx.conn(), id, actor, Utc::now()).await?;
                     sqlx::query!("DELETE FROM svs.test_hosts WHERE id = $1", id)
                         .execute(tx.conn())
                         .await?;
-                    let change =
+                    let mut change =
                         Change::removed(Target::test_host(id), &HostRecord::of_host(&host))?;
+                    if !ended.is_empty() {
+                        change = change.details(&crate::svs_runs::EndedMaintenance {
+                            ended_maintenance: ended,
+                        })?;
+                    }
                     Ok(Audited::changed((), change))
                 })
             })

@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT uuid FROM svs.runs\n                         WHERE state IN ('canceled', 'error')\n                           AND (attribution_ends_at IS NULL OR attribution_ends_at <= $1)\n                         ORDER BY id LIMIT $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "uuid",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "svs.runs",
+            "name": "uuid"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Timestamptz",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "dc8edc09c096a46e271eae0a72817fc96cd56fd222eaf2b82cdc366325ab31a5"
+}

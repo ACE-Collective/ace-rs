@@ -1,0 +1,21 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO hunts.hunts\n                                 (type, path, name, uuid, enabled, frequency, error, svs, loaded_at)\n                             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, now())",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Bool",
+        "Text",
+        "Text",
+        "Jsonb"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "41159475c4a4d3de38882c314995747bc99f155c00c1cb0e0ef69342e6db8a8d"
+}

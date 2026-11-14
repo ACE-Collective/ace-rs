@@ -75,7 +75,9 @@
 //! `svs` is SVS's service side (7.10): the test hosts, under `svs:admin` to change and `svs:run_read` to
 //! read, and an alert's SVS status, read with the alert. Its model is `ace_core::svs`. `svs_catalog` is the
 //! Atomic Red Team test catalog (batch 4): its tests and repositories under `svs:run_read`, and its
-//! refresh under `svs:catalog_refresh`.
+//! refresh under `svs:catalog_refresh`. `svs_runs` is a test run's life (batch 5): registration and a
+//! launcher's calls under `svs:run_register`, the timers under `svs:run_timers`, refused registrations
+//! and the test hosts' maintenance windows.
 //!
 //! `routing` is alert routing (7.13), ace3's `saq/alert_routing/`: the routers that decide which queue an
 //! alert belongs in, run by `ace serve`'s routing worker when an alert's pass completes, and the audited move
@@ -123,6 +125,7 @@ mod source;
 mod submit;
 mod svs;
 mod svs_catalog;
+mod svs_runs;
 mod svs_samples;
 mod svs_validations;
 mod users;
@@ -142,6 +145,9 @@ use gate::{Audited, Change, Gate, Recorded, TITLE_LIMIT, Target};
 pub use ace_core::svs::catalog::{
     RefreshResult as CatalogRefresh, RepositoryStatus as CatalogRepository,
     Skipped as CatalogSkipped,
+};
+pub use ace_core::svs::runs::{
+    HostHolder, ObservationSource, Registration, RunsConfig, TargetSpec,
 };
 pub use ace_core::svs::samples::{
     CaptureState, Label as SampleLabel, MissingReason, Strength as VoteStrength,
@@ -227,8 +233,8 @@ pub use permission::{
     FILE_COLLECTION_PRUNE, FILE_COLLECTION_READ, FILE_COLLECTION_WRITE, HUNT_READ, HUNT_WRITE,
     InvalidPermission, LIST_READ, LIST_WRITE, NRD_REFRESH, OBSERVABLE_READ, OBSERVABLE_WRITE,
     PermissionName, PermissionPattern, REMEDIATION_READ, REMEDIATION_WRITE, SIGNATURE_DOWNLOAD,
-    SIGNATURE_QA_PURGE, SIGNATURE_READ, SVS_ADMIN, SVS_RUN_READ, SVS_VALIDATE,
-    SVS_VALIDATION_PRUNE, USER_READ, USER_SELF, USER_WRITE,
+    SIGNATURE_QA_PURGE, SIGNATURE_READ, SVS_ADMIN, SVS_RUN_MANAGE, SVS_RUN_READ, SVS_RUN_REGISTER,
+    SVS_RUN_TIMERS, SVS_VALIDATE, SVS_VALIDATION_PRUNE, USER_READ, USER_SELF, USER_WRITE,
 };
 pub use preferences::{
     AlertSectionsPreference, MANAGE_COLUMNS, MAX_ALERT_SECTIONS, ManageColumn,
@@ -249,6 +255,11 @@ pub use source::with_source_ip;
 pub use svs::{AlertSvsStatus, AlertSvsView, MarkerMismatch, RunRef, TestHost};
 pub use svs_catalog::{
     CatalogTest, CatalogTestDetail, CatalogTestPage, CatalogTestQuery, MAX_CATALOG_TESTS_PAGE,
+};
+pub use svs_runs::{
+    MAX_MAINTENANCE_PAGE, MAX_RUN_EVENTS_PAGE, MaintenanceWindow, REFUSAL_ALERT_TYPE, REFUSAL_TOOL,
+    RegistrationDecision, Run, RunDetail, RunEvent, RunTarget, RunValidation, TimerResult,
+    ValidatedTarget,
 };
 pub use svs_samples::{
     DownloadCapture, DownloadFile, LabelChange, MAX_DELETIONS_PAGE, MAX_SAMPLE_DOWNLOAD_BYTES,
@@ -453,6 +464,9 @@ pub struct Service {
     catalog: std::sync::Arc<ace_core::svs::catalog::CatalogConfig>,
     /// The alert routers (PLAN.md 7.13), `routing`'s docs: the built-in one unless the binary adds others.
     routers: routing::Routers,
+    /// What a launcher may register and how long a run's windows last, the overlay's `svs.runs` (PLAN.md
+    /// 7.10 batch 5). ace3's defaults unless the binary sets others.
+    runs: std::sync::Arc<ace_core::svs::runs::RunsConfig>,
 }
 
 impl Service {
@@ -469,6 +483,7 @@ impl Service {
             validation: std::sync::Arc::default(),
             catalog: std::sync::Arc::default(),
             routers: routing::Routers::builtin(),
+            runs: std::sync::Arc::default(),
         }
     }
 

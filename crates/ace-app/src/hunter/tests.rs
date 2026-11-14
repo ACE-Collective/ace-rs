@@ -426,6 +426,7 @@ impl Recorder {
             enabled: Some(hunt.config.enabled),
             frequency: Some(hunt.config.frequency.clone()),
             error: None,
+            svs: None,
         };
         let mut rows: Vec<ace_service::LoadedHuntRow> = self
             .service
@@ -539,6 +540,90 @@ fn sources_config(query_sources: Json) -> HunterConfig {
     let mut config = config("https://127.0.0.1:1", Path::new("/nowhere"), "dev");
     config.query_sources = serde_json::from_value(query_sources).expect("a query source config");
     config
+}
+
+/// The hunter records what SVS reads of each hunt file it loads, whether or not the file loaded as a hunt
+/// (PLAN.md 7.10 batch 5): a run's windows are computed by `ace serve`, which has no hunt files, from
+/// these rows.
+#[tokio::test]
+async fn a_reload_records_what_svs_reads_of_each_hunt() {
+    let work = tempfile::tempdir().expect("a directory");
+    let hunts = copy_hunts(work.path());
+    // a file that names a hunt and doesn't load as one still has its timing
+    let broken = "11111111-aaaa-4aaa-8aaa-111111111111";
+    std::fs::write(
+        hunts.join("broken.yaml"),
+        format!(
+            "rule:\n  uuid: {broken}\n  name: broken\n  enabled: true\n  type: splunk\n  \
+             frequency: '00:10:00'\n  time_range: '01:00:00'\n  suppression: '02:00:00'\n  \
+             tags: [b, a, b]\n"
+        ),
+    )
+    .expect("writes a hunt");
+    let config = config("https://127.0.0.1:8089", &hunts, "PRODUCTION");
+    let hunter = Hunter::new(config.clone(), &secrets())
+        .expect("a hunter")
+        .with_home(work.path().to_owned());
+    let app = App::new().hunt_type(ace_hunt::types::Splunk::default());
+    let recorder = Recorder::new().await;
+
+    let loaded = super::reload(&app, &hunter, &recorder.service, &recorder.actor, &config).await;
+
+    let rows = recorder
+        .service
+        .hunts(&recorder.actor)
+        .await
+        .expect("the hunts");
+    assert!(!loaded.is_empty() && rows.len() > loaded.len(), "{rows:?}");
+    for row in &rows {
+        let svs = row.hunt.svs.as_ref().unwrap_or_else(|| panic!("{row:?}"));
+        match &row.hunt.error {
+            // a hunt that loaded: SVS reads the same uuid and switch the hunter runs it by
+            None => assert_eq!(
+                (Some(&svs.uuid), Some(svs.enabled)),
+                (row.hunt.uuid.as_ref(), row.hunt.enabled),
+                "{row:?}"
+            ),
+            Some(_) => assert_eq!(row.hunt.path, "broken.yaml", "{row:?}"),
+        }
+        assert_eq!(svs.content_hash.len(), 64);
+    }
+    let failed = rows
+        .iter()
+        .find(|row| row.hunt.path == "broken.yaml")
+        .expect("the file that didn't load");
+    assert!(failed.hunt.error.is_some() && failed.hunt.name.is_none());
+    let svs = failed.hunt.svs.as_ref().expect("its svs info");
+    assert_eq!(
+        serde_json::to_value(svs).expect("JSON"),
+        json!({
+            "uuid": broken, "name": "broken", "enabled": true, "latency_seconds": 4200,
+            "suppression_seconds": 7200, "per_group": false, "content_hash": svs.content_hash,
+            "tags": ["a", "b"],
+        })
+    );
+    // and that is what a registration's windows read
+    let pool = recorder._db.db().pool();
+    let mut conn = pool.acquire().await.expect("a connection");
+    let recorded = ace_core::svs::windows::recorded_hunts(&mut conn)
+        .await
+        .expect("reads the recorded hunts");
+    assert_eq!(recorded.len(), rows.len());
+    assert_eq!(
+        ace_core::svs::windows::hunt_latencies(&recorded)[broken],
+        chrono::TimeDelta::minutes(70)
+    );
+    // loading the same files again records nothing new
+    let audited: i64 = sqlx::query_scalar("SELECT count(*) FROM service.audit")
+        .fetch_one(pool)
+        .await
+        .expect("counts");
+    super::reload(&app, &hunter, &recorder.service, &recorder.actor, &config).await;
+    let again: i64 = sqlx::query_scalar("SELECT count(*) FROM service.audit")
+        .fetch_one(pool)
+        .await
+        .expect("counts");
+    assert_eq!(again, audited);
 }
 
 /// test_sources_loader.py test_registers_configured_source: a source as configured, on the

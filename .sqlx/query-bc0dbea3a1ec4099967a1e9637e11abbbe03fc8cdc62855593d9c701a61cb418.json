@@ -1,0 +1,31 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE svs.maintenance_windows\n         SET ended_at = $3, ended_by = $2::jsonb, end_reason = 'ended'\n         WHERE test_host_id = $1 AND ended_at IS NULL AND ends_at >= $4\n         RETURNING uuid",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "uuid",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "svs.maintenance_windows",
+            "name": "uuid"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Jsonb",
+        "Timestamptz",
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "bc0dbea3a1ec4099967a1e9637e11abbbe03fc8cdc62855593d9c701a61cb418"
+}

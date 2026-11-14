@@ -14,10 +14,16 @@
 //! (`ace_hunt::loader::load_merged`, 6.2's loader), without validating it as a hunt type's config, so a
 //! hunt that wouldn't load still has its name, suppression and hash for a run's result.
 //!
-//! What differs from ace3's: ace3 finds the hunt directories in its configuration (`hunt_locations`); here
-//! the caller gives them ([`HuntCache::new`]), since the hunter's configuration names them (`ace hunter`,
-//! 6.4), and batch 5's run registration is what reads them. A cron frequency's firings are computed in UTC,
-//! as the hunter computes them, where ace3's croniter starts from the node's local time.
+//! What differs from ace3's: ace3 finds the hunt directories in its configuration (`hunt_locations`), which
+//! every one of its processes reads. Here only `ace hunter`'s configuration names them (6.4), and `ace
+//! serve`, which registers runs, may not have the signatures checkout at all. So the hunter records what
+//! SVS needs of each hunt file it loads ([`read_hunt_file`], kept in `hunts.hunts.svs` by `sync_hunts`,
+//! every `reload_seconds`), and a registration reads that ([`recorded_hunts`]) in its own transaction,
+//! with no cache: there's one copy of the setting, and a window reflects the hunts the hunter runs. Until
+//! a hunter has loaded its hunts there are none, and a window is the floor. [`read_hunts`] and
+//! [`HuntCache`] read the directories directly, as ace3 does, for a caller that has them. A cron
+//! frequency's firings are computed in UTC, as the hunter computes them, where ace3's croniter starts from
+//! the node's local time.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
@@ -222,37 +228,118 @@ pub fn read_hunts(rule_dirs: &[PathBuf], now: DateTime<Utc>) -> BTreeMap<String,
             continue;
         }
         for path in ace_hunt::hunt_files(std::slice::from_ref(dir)) {
-            let read = ace_hunt::loader::load_merged(
-                &path.to_string_lossy(),
-                None,
-                ace_hunt::yaml::Limits::default(),
-            )
-            .map_err(|e| e.to_string())
-            .and_then(|(merged, _)| {
-                std::fs::read(&path)
-                    .map(|source| (merged, source))
-                    .map_err(|e| e.to_string())
-            });
-            let (merged, source) = match read {
-                Ok(read) => read,
-                Err(e) => {
-                    tracing::warn!("unable to read hunt {} for svs: {e}", path.display());
-                    continue;
-                }
-            };
-            let Some(info) = hunt_info_of(&merged, &source, &path, now) else {
-                continue;
-            };
-            let rank = |info: &HuntInfo| (info.enabled, info.latency.unwrap_or_default());
-            match result.get(&info.uuid) {
-                Some(previous) if rank(&info) <= rank(previous) => {}
-                _ => {
-                    result.insert(info.uuid.clone(), info);
-                }
+            if let Some(info) = read_hunt_file(&path, now) {
+                keep_hunt(&mut result, info);
             }
         }
     }
     result
+}
+
+/// What SVS reads of one hunt file, or None for a file that can't be read (logged) or isn't a hunt SVS
+/// tracks. The hunter calls it for each file it loads, whether or not the file loaded as a hunt, and records
+/// what it gives (`ace_service`'s `sync_hunts`), which is how `ace serve` knows the hunts.
+pub fn read_hunt_file(path: &Path, now: DateTime<Utc>) -> Option<HuntInfo> {
+    let read = ace_hunt::loader::load_merged(
+        &path.to_string_lossy(),
+        None,
+        ace_hunt::yaml::Limits::default(),
+    )
+    .map_err(|e| e.to_string())
+    .and_then(|(merged, _)| {
+        std::fs::read(path)
+            .map(|source| (merged, source))
+            .map_err(|e| e.to_string())
+    });
+    match read {
+        Ok((merged, source)) => hunt_info_of(&merged, &source, path, now),
+        Err(e) => {
+            tracing::warn!("unable to read hunt {} for svs: {e}", path.display());
+            None
+        }
+    }
+}
+
+/// Adds a hunt to those read so far. One uuid in two files: the enabled one counts, then the slower, and
+/// of two that tie, the first.
+pub fn keep_hunt(hunts: &mut BTreeMap<String, HuntInfo>, info: HuntInfo) {
+    let rank = |info: &HuntInfo| (info.enabled, info.latency.unwrap_or_default());
+    match hunts.get(&info.uuid) {
+        Some(previous) if rank(&info) <= rank(previous) => {}
+        _ => {
+            hunts.insert(info.uuid.clone(), info);
+        }
+    }
+}
+
+/// A [`HuntInfo`] as the hunter records it beside the hunt's file in `hunts.hunts.svs`: its spans in whole
+/// seconds.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct RecordedHunt {
+    pub uuid: String,
+    pub name: String,
+    pub enabled: bool,
+    pub latency_seconds: Option<i64>,
+    pub suppression_seconds: Option<i64>,
+    pub per_group: bool,
+    pub content_hash: String,
+    pub tags: Vec<String>,
+}
+
+impl From<&HuntInfo> for RecordedHunt {
+    fn from(info: &HuntInfo) -> Self {
+        RecordedHunt {
+            uuid: info.uuid.clone(),
+            name: info.name.clone(),
+            enabled: info.enabled,
+            latency_seconds: info.latency.map(|span| span.num_seconds()),
+            suppression_seconds: info.suppression.map(|span| span.num_seconds()),
+            per_group: info.per_group,
+            content_hash: info.content_hash.clone(),
+            tags: info.tags.clone(),
+        }
+    }
+}
+
+impl From<RecordedHunt> for HuntInfo {
+    fn from(hunt: RecordedHunt) -> Self {
+        HuntInfo {
+            uuid: hunt.uuid,
+            name: hunt.name,
+            enabled: hunt.enabled,
+            latency: hunt.latency_seconds.map(TimeDelta::seconds),
+            suppression: hunt.suppression_seconds.map(TimeDelta::seconds),
+            per_group: hunt.per_group,
+            content_hash: hunt.content_hash,
+            tags: hunt.tags,
+        }
+    }
+}
+
+/// Every hunt the hunter recorded, by uuid, enabled or not: what [`read_hunts`] gives of the hunter's rule
+/// directories, read from the database, where `ace serve` has no hunt files to read. In the files' order
+/// by type and path, so two files with one uuid resolve the same way every time. A row that doesn't parse
+/// is logged and skipped.
+pub async fn recorded_hunts(
+    conn: &mut sqlx::PgConnection,
+) -> Result<BTreeMap<String, HuntInfo>, sqlx::Error> {
+    let rows = sqlx::query!(
+        r#"SELECT type, path, svs AS "svs!" FROM hunts.hunts WHERE svs IS NOT NULL ORDER BY type, path"#,
+    )
+    .fetch_all(conn)
+    .await?;
+    let mut hunts = BTreeMap::new();
+    for row in rows {
+        match serde_json::from_value::<RecordedHunt>(row.svs) {
+            Ok(hunt) => keep_hunt(&mut hunts, hunt.into()),
+            Err(e) => tracing::warn!(
+                kind = row.r#type,
+                path = row.path,
+                "a recorded hunt's svs info doesn't parse: {e}"
+            ),
+        }
+    }
+    Ok(hunts)
 }
 
 /// Every hunt by its uuid, as one read of the files gave them.
@@ -801,6 +888,56 @@ mod tests {
         assert_eq!(
             attribution_window(TimeDelta::hours(1), &WindowConfig::default()),
             TimeDelta::hours(25)
+        );
+    }
+
+    /// What the hunter records of a hunt is what a registration reads back: the spans as whole seconds,
+    /// and one uuid in two files resolved as reading the directories resolves it.
+    #[test]
+    fn a_recorded_hunt_reads_back() {
+        let info = |uuid: &str, enabled: bool, latency: Option<i64>| HuntInfo {
+            uuid: uuid.to_owned(),
+            name: format!("{uuid} hunt"),
+            enabled,
+            latency: latency.map(TimeDelta::seconds),
+            suppression: Some(TimeDelta::minutes(90)),
+            per_group: true,
+            content_hash: "0".repeat(64),
+            tags: vec!["mitre:T1059".to_owned()],
+        };
+        let one = info("a", true, Some(4200));
+        let recorded = RecordedHunt::from(&one);
+        assert_eq!(
+            serde_json::to_value(&recorded).expect("JSON"),
+            serde_json::json!({
+                "uuid": "a", "name": "a hunt", "enabled": true, "latency_seconds": 4200,
+                "suppression_seconds": 5400, "per_group": true, "content_hash": "0".repeat(64),
+                "tags": ["mitre:T1059"],
+            })
+        );
+        assert_eq!(HuntInfo::from(recorded), one);
+        let unread = info("b", true, None);
+        assert_eq!(HuntInfo::from(RecordedHunt::from(&unread)), unread);
+
+        let mut hunts = BTreeMap::new();
+        for hunt in [
+            info("a", false, Some(9000)),
+            info("a", true, Some(60)),
+            info("a", true, Some(120)),
+            // a tie keeps the first
+            HuntInfo {
+                name: "a later tie".to_owned(),
+                ..info("a", true, Some(120))
+            },
+            info("b", false, None),
+        ] {
+            keep_hunt(&mut hunts, hunt);
+        }
+        assert_eq!(hunts["a"], info("a", true, Some(120)));
+        assert_eq!(hunts.len(), 2);
+        assert_eq!(
+            hunt_latencies(&hunts),
+            BTreeMap::from([("a".to_owned(), TimeDelta::seconds(120))])
         );
     }
 }

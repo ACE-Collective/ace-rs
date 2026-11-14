@@ -1,0 +1,56 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT DISTINCT t.host, r.uuid, r.state::text AS \"state!\",\n                  CASE WHEN r.started_at IS NULL THEN NULL\n                       WHEN r.holds_host THEN r.attribution_ends_at\n                       ELSE r.observation_ends_at END AS until\n           FROM svs.run_targets t\n           JOIN svs.runs r ON r.id = t.run_id\n           WHERE t.host = ANY ($1)\n             AND (r.state = 'created'\n                  OR (r.started_at IS NOT NULL AND r.attribution_ends_at >= $2\n                      AND CASE WHEN r.holds_host THEN r.attribution_ends_at\n                               ELSE r.observation_ends_at END >= $2))\n             AND ($3::bigint IS NULL OR r.id <> $3)\n           ORDER BY t.host, r.uuid",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "host",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.run_targets",
+            "name": "host"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "uuid",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "svs.runs",
+            "name": "uuid"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "state!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 3,
+        "name": "until",
+        "type_info": "Timestamptz",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "TextArray",
+        "Timestamptz",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      null,
+      null
+    ]
+  },
+  "hash": "3a3b7bfc452f972cdba02d4c2f5cb6a0fe6a4758cff3baa0e95bef436a7e0586"
+}

@@ -255,13 +255,34 @@
 //! | `GET /tests/export/ndjson`, `GET /tests/export/csv` | `GET /api/svs/v1/tests/export/ndjson`, `.../export/csv` |
 //! | `GET /tests/{guid}` | `GET /api/svs/v1/tests/{guid}` |
 //! | `GET /catalog/repositories` | `GET /api/svs/v1/catalog/repositories` |
-//! | `PUT`/`DELETE /tests/{guid}/expectations/{platform}/{signature_uuid}`, `PUT`/`DELETE /tests/{guid}/ignores/{signature_uuid}`, `GET`/`PUT`/`DELETE /tests/{guid}/settings` | batch 5: they write a test's decisions and settings under `svs:run_manage`, which it brings with `saq/svs/expectations.py` |
+//! | `PUT`/`DELETE /tests/{guid}/expectations/{platform}/{signature_uuid}`, `PUT`/`DELETE /tests/{guid}/ignores/{signature_uuid}`, `GET`/`PUT`/`DELETE /tests/{guid}/settings` | batch 5's part 5b: they write a test's decisions and settings under `svs:run_manage`, with `saq/svs/expectations.py` |
 //!
 //! What differs: a page is `{tests, next}`; a bad request is 400 where ace3's is 422; a test's state and run
 //! history (`test_state`, `run_count`, `last_run_*`, `last_reviewed_*`, `expected_signatures`,
 //! `recent_runs*`, and the detail's `platform_states`) come with the runs and decisions of batches 5 and
 //! 8; the detail's atomic entry is `entry`, and it adds `platform_slugs`. Nothing here writes: the catalog
 //! is refreshed by the scheduler's `svs_catalog_refresh` and `ace svs catalog refresh`.
+//!
+//! ace3's `svs` routers' runs and test hosts (PLAN.md 7.10 batch 5, part 5a): a launcher's calls under
+//! ace3's `svs:run_register`, reads under `svs:run_read`, and the test hosts' writes under `svs:admin`
+//! (`ace_service`'s `svs_runs` and `svs` docs):
+//!
+//! | ace3 `/api/v2/svs` | here |
+//! |---|---|
+//! | `POST /runs/`, 201 | `POST /api/svs/v1/runs`, 201, audited; a refusal is 403 and alerts |
+//! | `POST /runs/validate` | `POST /api/svs/v1/runs/validate` |
+//! | `POST /runs/{run_id}/start`, `executed`, `cleanup`, `cancel` | `POST /api/svs/v1/runs/{run_id}/start`, `executed`, `cleanup`, `cancel`, audited |
+//! | `GET /runs/{run_id}` | `GET /api/svs/v1/runs/{run_id}`, without its result's summary, review blockers and owner yet |
+//! | `GET /runs/{run_id}/events?cursor=&limit=` | `GET /api/svs/v1/runs/{run_id}/events?after=&limit=` |
+//! | `GET /test-hosts/?changed_since=&cursor=&limit=` | `GET /api/svs/v1/test-hosts`, every host |
+//! | `POST /test-hosts/`, `GET`, `PUT`, `DELETE /test-hosts/{host_id}` | `POST /api/svs/v1/test-hosts`, `GET`, `PUT`, `DELETE /api/svs/v1/test-hosts/{host}`, audited |
+//! | `POST`, `DELETE`, `GET /test-hosts/{host}/maintenance` | `POST`, `DELETE`, `GET /api/svs/v1/test-hosts/{host}/maintenance`, audited |
+//!
+//! Part 5b brings the runs' list, count, batches, event, result and attribution feeds, their exports, a
+//! run's results, alerts, history and comments, the test hosts' `changed_since` paging and exports, and
+//! the `If-Match` preconditions (`aceapi_v2/svs/preconditions.py`); batch 7 a person's bulk actions
+//! (`/runs/bulk/*`), association (`/runs/{run_id}/alerts/*`) and review; `/runs/suppression-share` waits
+//! for batch 6's suppressed matches.
 //!
 //! ace3's `observable_comments` router (PLAN.md 5.6), under ace3's `observable:read` and `observable:write`
 //! (`ace_service`'s `observable_comments` docs). A comment is on a type and value, across alerts:
@@ -476,6 +497,7 @@ mod observables;
 mod params;
 mod remediation;
 mod svs_catalog;
+mod svs_runs;
 mod svs_samples;
 mod svs_validations;
 mod user_preferences;
@@ -870,6 +892,43 @@ impl Web {
                 get(svs_catalog::repositories),
             )
             .route(
+                "/api/svs/v1/runs",
+                post(svs_runs::register).layer(json_limit),
+            )
+            .route(
+                "/api/svs/v1/runs/validate",
+                post(svs_runs::validate).layer(json_limit),
+            )
+            .route("/api/svs/v1/runs/{run_id}", get(svs_runs::detail))
+            .route("/api/svs/v1/runs/{run_id}/events", get(svs_runs::events))
+            .route("/api/svs/v1/runs/{run_id}/start", post(svs_runs::start))
+            .route(
+                "/api/svs/v1/runs/{run_id}/executed",
+                post(svs_runs::executed).layer(json_limit),
+            )
+            .route("/api/svs/v1/runs/{run_id}/cleanup", post(svs_runs::cleanup))
+            .route("/api/svs/v1/runs/{run_id}/cancel", post(svs_runs::cancel))
+            .route(
+                "/api/svs/v1/test-hosts",
+                get(svs_runs::test_hosts)
+                    .post(svs_runs::create_test_host)
+                    .layer(json_limit),
+            )
+            .route(
+                "/api/svs/v1/test-hosts/{host}",
+                get(svs_runs::test_host)
+                    .put(svs_runs::update_test_host)
+                    .delete(svs_runs::delete_test_host)
+                    .layer(json_limit),
+            )
+            .route(
+                "/api/svs/v1/test-hosts/{host}/maintenance",
+                get(svs_runs::list_maintenance)
+                    .post(svs_runs::open_maintenance)
+                    .delete(svs_runs::end_maintenance)
+                    .layer(json_limit),
+            )
+            .route(
                 "/api/remediation/v1/targets",
                 post(remediation::targets).layer(json_limit),
             )
@@ -1144,6 +1203,22 @@ impl Web {
         svs_catalog::export_ndjson,
         svs_catalog::detail,
         svs_catalog::repositories,
+        svs_runs::register,
+        svs_runs::validate,
+        svs_runs::detail,
+        svs_runs::events,
+        svs_runs::start,
+        svs_runs::executed,
+        svs_runs::cleanup,
+        svs_runs::cancel,
+        svs_runs::test_hosts,
+        svs_runs::create_test_host,
+        svs_runs::test_host,
+        svs_runs::update_test_host,
+        svs_runs::delete_test_host,
+        svs_runs::open_maintenance,
+        svs_runs::end_maintenance,
+        svs_runs::list_maintenance,
         remediation::targets,
         remediation::list,
         remediation::export_csv,

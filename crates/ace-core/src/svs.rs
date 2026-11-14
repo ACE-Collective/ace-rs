@@ -14,6 +14,7 @@
 //! - `catalog`: the Atomic Red Team test catalog, read from SVS's mirror of each catalog repository (batch 4).
 //! - `windows`: a run's observation and attribution windows, from the hunts' latencies (batch 4).
 //! - `signatures`: what a run's result says of a signature, and the techniques `mitre:` tags claim (batch 4).
+//! - `runs`: what a run's registration and its launcher's calls decide without the database (batch 5).
 //! - The values every part shares: a run's states, its event log's kinds, how a detection was attributed,
 //!   and the one SVS status an alert has (`derive_status`).
 //!
@@ -35,6 +36,7 @@ pub mod catalog;
 pub mod hosts;
 pub mod log_search;
 pub mod markers;
+pub mod runs;
 pub mod samples;
 pub mod signatures;
 pub mod validations;

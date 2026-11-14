@@ -586,6 +586,122 @@ async fn svs_catalog_refresh_reads_the_catalog() {
     );
 }
 
+/// A run registered an hour ago whose launcher never started it, as the lifecycle leaves one, and its
+/// state now.
+async fn stale_run(db: &Db) -> uuid::Uuid {
+    sqlx::query_scalar(
+        "INSERT INTO svs.runs
+             (uuid, test_guid, platform, test_content_hash, catalog_commit, state, marker, launcher,
+              created_at, observation_seconds, attribution_seconds)
+         VALUES (gen_random_uuid(), gen_random_uuid(), 'windows', repeat('0', 64), repeat('a', 40),
+                 'created', $1, 'art', now() - interval '1 hour', 3600, 90000)
+         RETURNING uuid",
+    )
+    .bind(ace_core::svs::markers::new_marker())
+    .fetch_one(db.pool())
+    .await
+    .expect("adds a run")
+}
+
+async fn run_state(db: &Db, run: uuid::Uuid) -> String {
+    sqlx::query_scalar("SELECT state::text FROM svs.runs WHERE uuid = $1")
+        .bind(run)
+        .fetch_one(db.pool())
+        .await
+        .expect("the run")
+}
+
+/// test_runs.py's `test_the_service_moves_runs` (PLAN.md 7.10 batch 5): ace3's `service_svs` moves runs on
+/// by time every 30 seconds, as `svs_run_timers` does every minute, each move with its audit row as the
+/// task's component.
+#[tokio::test]
+async fn svs_run_timers_move_runs() {
+    let fixture = Fixture::new().await;
+    let db = fixture.db();
+    let run = stale_run(db).await;
+    let task = builtin("svs_run_timers");
+    make_due(db, &task).await;
+
+    let ran = run_once(&fixture, vec![task], "svs_run_timers").await;
+
+    assert_eq!(ran.outcome.as_deref(), Some("succeeded"), "{ran:?}");
+    assert_eq!(
+        ran.summary,
+        Some(json!({
+            "timed_out": 1, "ended": 0, "closed": 0, "expired_windows": 0, "pruned_refusals": 0,
+            "failed": 0,
+        }))
+    );
+    assert_eq!(run_state(db, run).await, "closed");
+    let audit: (serde_json::Value, String, String, String) =
+        sqlx::query_as("SELECT actor::jsonb, action, target_kind, target_id FROM service.audit")
+            .fetch_one(db.pool())
+            .await
+            .expect("one audit row");
+    assert_eq!(
+        audit,
+        (
+            json!({"kind": "internal", "id": "scheduler:svs_run_timers"}),
+            "run_svs_timers".to_owned(),
+            "svs_run".to_owned(),
+            run.to_string()
+        )
+    );
+}
+
+/// test_runs.py's `test_the_run_timer_runs_until_stopped_and_survives_a_failure`: a pass in which a run
+/// can't be moved fails, saying why, with the other run still moved; the task stays scheduled, and its
+/// next pass moves the run once it can be.
+#[tokio::test]
+async fn svs_run_timers_survive_a_failure() {
+    let fixture = Fixture::new().await;
+    let db = fixture.db();
+    let stuck = stale_run(db).await;
+    let other = stale_run(db).await;
+    sqlx::raw_sql(sqlx::AssertSqlSafe(format!(
+        "CREATE FUNCTION svs.broken_run() RETURNS trigger LANGUAGE plpgsql AS $$
+         BEGIN RAISE EXCEPTION 'database went away'; END $$;
+         CREATE TRIGGER broken BEFORE UPDATE ON svs.runs FOR EACH ROW
+             WHEN (OLD.uuid = '{stuck}') EXECUTE FUNCTION svs.broken_run();"
+    )))
+    .execute(db.pool())
+    .await
+    .expect("breaks the run");
+    let task = builtin("svs_run_timers");
+    make_due(db, &task).await;
+    let stop = CancellationToken::new();
+    let running = tokio::spawn(
+        fixture
+            .scheduler(vec![task.clone()], "test/1")
+            .run(stop.clone()),
+    );
+
+    let runs = ended_runs(db, "svs_run_timers", 1).await;
+    assert_eq!(runs[0].outcome.as_deref(), Some("failed"), "{runs:?}");
+    let error = runs[0].error.clone().expect("an error");
+    assert!(
+        error.starts_with("1 moves failed, the first: ") && error.contains("database went away"),
+        "{error}"
+    );
+    assert_eq!(runs[0].summary.as_ref().expect("a summary")["timed_out"], 1);
+    assert_eq!(
+        (run_state(db, stuck).await, run_state(db, other).await),
+        ("created".to_owned(), "closed".to_owned())
+    );
+
+    // the run can move again; the task's next pass moves it
+    sqlx::raw_sql("DROP TRIGGER broken ON svs.runs")
+        .execute(db.pool())
+        .await
+        .expect("mends the run");
+    make_due(db, &task).await;
+    let runs = ended_runs(db, "svs_run_timers", 2).await;
+    stop.cancel();
+    running.await.expect("the scheduler stops");
+    assert_eq!(runs[0].outcome.as_deref(), Some("succeeded"), "{runs:?}");
+    assert_eq!(run_state(db, stuck).await, "closed");
+}
+
 /// test_catalog.py's `test_the_refresher_runs_until_stopped_and_survives_a_failure`: a run in which a
 /// repository can't be read fails, saying which, with the other repository still read; the task stays
 /// scheduled, and its next run reads the repository once it can be.
@@ -1216,6 +1332,7 @@ fn the_overlay_s_scheduler_section_sets_each_task_over_its_defaults() {
             ("file_collection_prune", "0 5 * * *", 3600, true),
             ("svs_validations_prune", "0 5 * * *", 3600, true),
             ("svs_catalog_refresh", "*/5 * * * *", 1500, true),
+            ("svs_run_timers", "* * * * *", 600, true),
             ("nrd_refresh", "*/30 * * * *", 1500, true),
         ]
     );
@@ -1231,6 +1348,7 @@ fn the_overlay_s_scheduler_section_sets_each_task_over_its_defaults() {
             "internal:scheduler:file_collection_prune",
             "internal:scheduler:svs_validations_prune",
             "internal:scheduler:svs_catalog_refresh",
+            "internal:scheduler:svs_run_timers",
             "internal:scheduler:nrd_refresh",
         ]
     );
@@ -1252,7 +1370,7 @@ fn the_overlay_s_scheduler_section_sets_each_task_over_its_defaults() {
         "scheduler:\n  bucket_gc:\n    schedule: '*/15 * * * *'\n    timeout_seconds: 600\n  \
          bucket_verify:\n    enabled: false\n  cas_node_stats:\n    enabled: true\n",
     );
-    assert_eq!(set.len(), 9, "the removed task is skipped");
+    assert_eq!(set.len(), 10, "the removed task is skipped");
     assert_eq!(
         (
             set[0].schedule.as_str(),

@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE svs.runs SET\n             state = $3::text::svs.run_state,\n             started_at = COALESCE($4, started_at),\n             observation_ends_at = COALESCE($5, observation_ends_at),\n             attribution_ends_at = COALESCE($6, attribution_ends_at),\n             executed_at = COALESCE($7, executed_at),\n             exit_code = COALESCE($8, exit_code),\n             launcher_error = COALESCE($9, launcher_error),\n             launcher_output = COALESCE($10, launcher_output),\n             error_reason = COALESCE($11, error_reason),\n             canceled_at = COALESCE($12, canceled_at),\n             closed_at = COALESCE($13, closed_at),\n             close_reason = COALESCE($14, close_reason),\n             ended_at = COALESCE($15, ended_at),\n             end_reason = COALESCE($16, end_reason)\n         WHERE id = $1 AND state = $2::text::svs.run_state",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text",
+        "Text",
+        "Timestamptz",
+        "Timestamptz",
+        "Timestamptz",
+        "Timestamptz",
+        "Int4",
+        "Text",
+        "Text",
+        "Text",
+        "Timestamptz",
+        "Timestamptz",
+        "Text",
+        "Timestamptz",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "d39a5a93c62ba579ccb77c53f3c8b49a4dc81802155f18ab4f1d7ef0c8e31a2a"
+}

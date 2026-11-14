@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE svs.maintenance_windows\n                         SET ended_at = $2, ended_by = $3::jsonb, end_reason = 'ended'\n                         WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Timestamptz",
+        "Jsonb"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "3a0b784287ad6d2ba37cc014cd55262a586886a8c50b650b79ada2b48bf0d627"
+}

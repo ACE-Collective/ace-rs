@@ -1,0 +1,50 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT type, path, svs AS \"svs!\" FROM hunts.hunts WHERE svs IS NOT NULL ORDER BY type, path",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "type",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hunts.hunts",
+            "name": "type"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "path",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hunts.hunts",
+            "name": "path"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "svs!",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "hunts.hunts",
+            "name": "svs"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "462a4bcefa7f36e9ee32b149a06ecc1cb8f4f0fe1c9eb02558903268fbc1acd4"
+}

@@ -1,0 +1,38 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO svs.registration_refusals AS r (caller, host, hour, first_at, last_at)\n           VALUES ($1, $2, $3, $4, $4)\n           ON CONFLICT ON CONSTRAINT registration_refusals_collapse\n           DO UPDATE SET count = r.count + 1, last_at = $4\n           RETURNING r.id, (r.count = 1) AS \"first!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "svs.registration_refusals",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "first!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Timestamptz",
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      false,
+      null
+    ]
+  },
+  "hash": "2952d57e891e0231e7dedde9b450693ff1044f5aeae9f522862201fbcd2d7c37"
+}

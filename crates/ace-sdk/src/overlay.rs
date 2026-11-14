@@ -295,22 +295,36 @@ impl SvsCatalogSection {
     }
 }
 
-/// The keys of ace3's `svs.runs` that a run's windows read (PLAN.md 7.10 batch 4,
-/// `ace_core::svs::windows`).
+/// ace3's `svs.runs` (PLAN.md 7.10 batches 4 and 5): what a launcher may register and how long a run's
+/// windows last (`ace_core::svs::windows`, `ace_core::svs::runs`). ace3's `timer_interval_seconds` has no
+/// key: the run timers are the scheduler's `svs_run_timers`, whose schedule the overlay's `scheduler:`
+/// section sets.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(deny_unknown_fields, default)]
 pub struct SvsRunsSection {
+    /// A run whose launcher hasn't called start this long after registering it goes to error and is closed.
+    pub start_timeout_minutes: u32,
     /// How long a started run waits for its alerts before it ends.
     pub observation_window: SvsObservationWindow,
     /// How much longer than the observation window alerts are still attributed to the run, as late.
     pub attribution_extra_hours: u32,
+    /// The largest `extra` a registration may carry, as JSON.
+    pub max_extra_bytes: u32,
+    /// The most targets one run may have.
+    pub max_targets: u32,
+    /// The longest maintenance window a launcher may open on a test host.
+    pub max_maintenance_minutes: u32,
 }
 
 impl Default for SvsRunsSection {
     fn default() -> Self {
         SvsRunsSection {
+            start_timeout_minutes: 30,
             observation_window: SvsObservationWindow::default(),
             attribution_extra_hours: 24,
+            max_extra_bytes: 16384,
+            max_targets: 16,
+            max_maintenance_minutes: 240,
         }
     }
 }
@@ -341,6 +355,15 @@ impl Default for SvsObservationWindow {
 impl SvsRunsSection {
     /// Refuses a floor or ceiling of 0 and a floor above the ceiling, as ace3's schema does.
     pub fn check(&self) -> Result<(), String> {
+        for (key, value) in [
+            ("start_timeout_minutes", self.start_timeout_minutes),
+            ("max_targets", self.max_targets),
+            ("max_maintenance_minutes", self.max_maintenance_minutes),
+        ] {
+            if value == 0 {
+                return Err(format!("{key} must be at least 1"));
+            }
+        }
         let window = &self.observation_window;
         if window.floor_minutes == 0 {
             return Err("observation_window.floor_minutes must be at least 1".to_owned());
@@ -1331,13 +1354,30 @@ mod tests {
             ),
             (30, 60, 72, 24)
         );
+        assert_eq!(
+            (
+                svs.runs.start_timeout_minutes,
+                svs.runs.max_extra_bytes,
+                svs.runs.max_targets,
+                svs.runs.max_maintenance_minutes
+            ),
+            (30, 16384, 16, 240)
+        );
         let overlay = Overlay::from_yaml(
             "secrets: {art_key: env:ART_KEY}\n\
              svs: {attack_release: v21.1, catalog: {repositories: {\n\
                art: {url: 'https://forge.example/art.git', branch: master, ssh_key: art_key}}},\n\
-               runs: {observation_window: {floor_minutes: 5, slack_minutes: 0}}}\n",
+               runs: {observation_window: {floor_minutes: 5, slack_minutes: 0}, max_targets: 4,\n\
+                      max_extra_bytes: 0, start_timeout_minutes: 10, max_maintenance_minutes: 60}}\n",
         )
         .expect("parses");
+        assert_eq!(
+            (
+                overlay.svs.runs.max_targets,
+                overlay.svs.runs.max_extra_bytes
+            ),
+            (4, 0)
+        );
         assert_eq!(overlay.svs.attack_release, "v21.1");
         assert_eq!(overlay.svs.catalog.repositories["art"].branch, "master");
         assert_eq!(overlay.svs.runs.observation_window.floor_minutes, 5);
@@ -1392,8 +1432,25 @@ mod tests {
                 "svs.runs",
                 "must not exceed ceiling_hours",
             ),
+            // batch 5's keys, each at least 1
             (
-                "svs: {runs: {max_targets: 16}}",
+                "svs: {runs: {max_targets: 0}}",
+                "svs.runs",
+                "max_targets must be at least 1",
+            ),
+            (
+                "svs: {runs: {start_timeout_minutes: 0}}",
+                "svs.runs",
+                "start_timeout_minutes must be at least 1",
+            ),
+            (
+                "svs: {runs: {max_maintenance_minutes: 0}}",
+                "svs.runs",
+                "max_maintenance_minutes must be at least 1",
+            ),
+            // ace3's key the scheduler's own section replaces
+            (
+                "svs: {runs: {timer_interval_seconds: 30}}",
                 "svs.runs",
                 "unknown field",
             ),

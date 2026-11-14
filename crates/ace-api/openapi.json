@@ -6939,6 +6939,670 @@
         }
       }
     },
+    "/api/svs/v1/runs": {
+      "post": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "Registers a run in state created and gives its marker. A target that isn't a test host, or not a user\nits host lists, is refused, which also alerts, once an hour for each caller and host.",
+        "operationId": "register",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RunRegistrationBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "The run, created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunLifecycleBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A body that isn't one, a test that isn't in the catalog, a target whose platform the test doesn't support, or an extra that is too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold svs:run_register, or a target isn't a test host or a user its host lists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Another run or a maintenance window holds a target's test host",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The body is too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/svs/v1/runs/validate": {
+      "post": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "What registering this body would decide: accepted, with the run's platform and windows, refused, with\nthe reason for each target, invalid, or a host that is busy. It creates no run, event, refusal or alert,\nso a launcher's dry run is invisible to triage.",
+        "operationId": "validate",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RunRegistrationBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The decision",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunValidationBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A body that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold svs:run_register",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The body is too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/svs/v1/runs/{run_id}": {
+      "get": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "One run, with what its launcher sent and what its test printed.",
+        "operationId": "detail",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "description": "The run's uuid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The run",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunDetailBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "An id that isn't a uuid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold svs:run_read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No run with that id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/svs/v1/runs/{run_id}/cancel": {
+      "post": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "Created or started to canceled. A canceled run keeps attributing until its attribution window ends; one\ncanceled before it started is closed at once.",
+        "operationId": "cancel",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "description": "The run's uuid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The run",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunLifecycleBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "An id that isn't a uuid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold svs:run_register",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No run with that id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The run is neither created nor started; the call is in its event log",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/svs/v1/runs/{run_id}/cleanup": {
+      "post": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "The test's cleanup begins now, on a started run: detections whose event time is at or after it are the\ncleanup's. Once per run.",
+        "operationId": "cleanup",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "description": "The run's uuid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The run",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunLifecycleBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "An id that isn't a uuid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold svs:run_register",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No run with that id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The run isn't started, or its cleanup already began; the call is in its event log",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/svs/v1/runs/{run_id}/events": {
+      "get": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "A run's event log, oldest first: its registration, each change of state with its reason, and each of\nits launcher's calls with its outcome, a call that didn't apply included.",
+        "operationId": "events",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "description": "The run's uuid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "description": "The `next` of the page before.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "At most this many, 1 to 1000; 100 when left out.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of events",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunEventPageBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "An id that isn't a uuid, or a parameter that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold svs:run_read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No run with that id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/svs/v1/runs/{run_id}/executed": {
+      "post": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "Reports how the test executed on a started run. A non-zero exit code or an error moves it to error.",
+        "operationId": "executed",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "description": "The run's uuid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RunExecutedBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The run",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunLifecycleBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "An id that isn't a uuid, a body that isn't one, or an error or output that is too long",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold svs:run_register",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No run with that id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The run isn't started; the call is in its event log",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The body is too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/svs/v1/runs/{run_id}/start": {
+      "post": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "Created to started: the windows start now, at the whole second.",
+        "operationId": "start",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "description": "The run's uuid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The run, started",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunLifecycleBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "An id that isn't a uuid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold svs:run_register",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No run with that id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The run isn't created, or another run or a maintenance window holds one of its hosts; the call is in its event log",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/svs/v1/samples": {
       "get": {
         "tags": [
@@ -8280,6 +8944,619 @@
           },
           "404": {
             "description": "The sample isn't retired",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/svs/v1/test-hosts": {
+      "get": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "The test hosts, by host name.",
+        "operationId": "test_hosts",
+        "responses": {
+          "200": {
+            "description": "The test hosts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TestHostBody"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold svs:run_read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "Adds a test host.",
+        "operationId": "create_test_host",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TestHostRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "The test host",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestHostBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A body that isn't one, or a field that can't be used",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold svs:admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Its short name is already a test host",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The body is too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/svs/v1/test-hosts/{host}": {
+      "get": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "One test host.",
+        "operationId": "test_host",
+        "parameters": [
+          {
+            "name": "host",
+            "in": "path",
+            "description": "The test host's id",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The test host",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestHostBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "An id that isn't a number",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold svs:run_read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No test host with that id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "Replaces a test host's fields.",
+        "operationId": "update_test_host",
+        "parameters": [
+          {
+            "name": "host",
+            "in": "path",
+            "description": "The test host's id",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TestHostRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The test host",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestHostBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "An id that isn't a number, a body that isn't one, or a field that can't be used",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold svs:admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No test host with that id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Its new short name is already a test host",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The body is too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "Removes a test host. Runs already registered keep their targets, and its open maintenance window ends.",
+        "operationId": "delete_test_host",
+        "parameters": [
+          {
+            "name": "host",
+            "in": "path",
+            "description": "The test host's id",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Removed"
+          },
+          "400": {
+            "description": "An id that isn't a number",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold svs:admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No test host with that id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/svs/v1/test-hosts/{host}/maintenance": {
+      "get": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "The test host's maintenance windows, latest first.",
+        "operationId": "list_maintenance",
+        "parameters": [
+          {
+            "name": "host",
+            "in": "path",
+            "description": "The test host's id, or its short or fully qualified name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "before",
+            "in": "query",
+            "description": "The `next` of the page before.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "At most this many, 1 to 1000; 100 when left out.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of windows",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MaintenancePageBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A parameter that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold svs:run_read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No test host with that id, or a name that isn't a host name",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "Opens a maintenance window on the test host, which is named by its id or its short or fully qualified\nname. A name that isn't a test host's is refused, which also alerts.",
+        "operationId": "open_maintenance",
+        "parameters": [
+          {
+            "name": "host",
+            "in": "path",
+            "description": "The test host's id, or its short or fully qualified name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MaintenanceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "The window",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MaintenanceWindowBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A body that isn't one, no reason, or minutes out of range",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold svs:run_register, or the host isn't a test host",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No test host with that id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "A run or another window holds the host",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The body is too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "Ends the test host's open maintenance window now.",
+        "operationId": "end_maintenance",
+        "parameters": [
+          {
+            "name": "host",
+            "in": "path",
+            "description": "The test host's id, or its short or fully qualified name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The window, ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MaintenanceWindowBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold svs:run_register, or the host isn't a test host",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No test host with that id, or the host has no open window",
             "content": {
               "application/json": {
                 "schema": {
@@ -14832,6 +16109,48 @@
           "api_key"
         ]
       },
+      "HostHolderBody": {
+        "type": "object",
+        "description": "A run or a maintenance window holding a test host.",
+        "required": [
+          "host",
+          "state"
+        ],
+        "properties": {
+          "host": {
+            "type": "string",
+            "description": "The test host, by its short name."
+          },
+          "maintenance_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "The maintenance window holding it."
+          },
+          "run_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "The run holding it; null for a maintenance window."
+          },
+          "state": {
+            "type": "string",
+            "description": "The run's state, or `maintenance`."
+          },
+          "until": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "When its claim on the host ends; null while a run hasn't started."
+          }
+        }
+      },
       "HuntBody": {
         "type": "object",
         "description": "A hunt file as the hunter last loaded it.",
@@ -15177,6 +16496,136 @@
           }
         },
         "additionalProperties": false
+      },
+      "MaintenancePageBody": {
+        "type": "object",
+        "description": "A page of a test host's maintenance windows, latest first.",
+        "required": [
+          "windows"
+        ],
+        "properties": {
+          "next": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "Pass it as `before` for the next page; null on the last."
+          },
+          "windows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MaintenanceWindowBody"
+            }
+          }
+        }
+      },
+      "MaintenanceRequest": {
+        "type": "object",
+        "description": "A maintenance window to open.",
+        "required": [
+          "minutes",
+          "reason"
+        ],
+        "properties": {
+          "minutes": {
+            "type": "integer",
+            "format": "int64",
+            "description": "How long the window lasts unless it's ended sooner, 1 to `svs.runs.max_maintenance_minutes`."
+          },
+          "reason": {
+            "type": "string",
+            "description": "Why, such as what is being staged."
+          }
+        },
+        "additionalProperties": false
+      },
+      "MaintenanceWindowBody": {
+        "type": "object",
+        "description": "A maintenance window on a test host.",
+        "required": [
+          "maintenance_id",
+          "id",
+          "host",
+          "reason",
+          "opened_at",
+          "ends_at"
+        ],
+        "properties": {
+          "end_reason": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "`ended` or `expired`."
+          },
+          "ended_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "ended_by": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ActorBody"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "ends_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When it ends unless it's ended sooner."
+          },
+          "fqdn": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "host": {
+            "type": "string"
+          },
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Its place in the host's windows: the `before` of a page."
+          },
+          "maintenance_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The window's uuid."
+          },
+          "opened_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "opened_by": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ActorBody"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reason": {
+            "type": "string"
+          },
+          "test_host_id": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "The test host's id; null once the host is removed."
+          }
+        }
       },
       "MatchBody": {
         "type": "string",
@@ -16748,6 +18197,487 @@
           }
         }
       },
+      "RunDetailBody": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/RunLifecycleBody"
+          },
+          {
+            "type": "object",
+            "required": [
+              "launcher",
+              "extra",
+              "test_content_hash",
+              "catalog_commit",
+              "updated_at"
+            ],
+            "properties": {
+              "batch_id": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "canceled_at": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "date-time"
+              },
+              "catalog_commit": {
+                "type": "string"
+              },
+              "closed_at": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "date-time"
+              },
+              "end_reason": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Why a person ended it before its observation window passed."
+              },
+              "ended_at": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "date-time"
+              },
+              "executed_at": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "date-time"
+              },
+              "exit_code": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "format": "int32"
+              },
+              "extra": {
+                "type": "object",
+                "description": "What the launcher sent to be kept with the run."
+              },
+              "launcher": {
+                "type": "string"
+              },
+              "launcher_error": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "launcher_output": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "What the test printed, as kept."
+              },
+              "registered_by": {
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/ActorBody"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "test_content_hash": {
+                "type": "string",
+                "description": "The test's content hash and its repository's commit, as they were at registration."
+              },
+              "updated_at": {
+                "type": "string",
+                "format": "date-time"
+              }
+            }
+          }
+        ],
+        "description": "One run, whole."
+      },
+      "RunEventBody": {
+        "type": "object",
+        "description": "One row of a run's event log.",
+        "required": [
+          "id",
+          "kind",
+          "created_at"
+        ],
+        "properties": {
+          "actor": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ActorBody"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "details": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "description": "A registration's request, a transition's reason, or a launcher call's name, outcome and payload."
+          },
+          "from_state": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "kind": {
+            "type": "string",
+            "description": "`registered`, `transition`, `launcher_call` and the kinds later parts write."
+          },
+          "to_state": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "RunEventPageBody": {
+        "type": "object",
+        "description": "A page of a run's events, oldest first.",
+        "required": [
+          "events"
+        ],
+        "properties": {
+          "events": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RunEventBody"
+            }
+          },
+          "next": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "Pass it as `after` for the next page; null on the last."
+          }
+        }
+      },
+      "RunExecutedBody": {
+        "type": "object",
+        "description": "How the test executed.",
+        "required": [
+          "exit_code"
+        ],
+        "properties": {
+          "error": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "What went wrong, when the launcher knows; it moves the run to error. At most 8192 characters."
+          },
+          "exit_code": {
+            "type": "integer",
+            "format": "int32",
+            "description": "The test's exit code; anything but 0 moves the run to error."
+          },
+          "output": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "What the test printed (stdout and stderr), at most 4 MiB; kept up to 64 KiB, longer output as its\nstart and its last 16 KiB around a marker."
+          }
+        },
+        "additionalProperties": false
+      },
+      "RunLifecycleBody": {
+        "type": "object",
+        "description": "A run as the launcher's calls return it.",
+        "required": [
+          "run_id",
+          "marker",
+          "state",
+          "test_guid",
+          "platform",
+          "targets",
+          "observation_seconds",
+          "attribution_seconds",
+          "holds_host",
+          "created_at"
+        ],
+        "properties": {
+          "attribution_ends_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "attribution_seconds": {
+            "type": "integer",
+            "format": "int32",
+            "description": "How long after start its alerts are still attributed to it."
+          },
+          "cleanup_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "When the launcher said the test's cleanup began."
+          },
+          "close_reason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "error_reason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "holds_host": {
+            "type": "boolean",
+            "description": "The run holds its hosts until its attribution window ends, not its observation window."
+          },
+          "marker": {
+            "type": "string",
+            "description": "Put this where the test's process telemetry shows it."
+          },
+          "observation_ends_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "observation_seconds": {
+            "type": "integer",
+            "format": "int32",
+            "description": "How long after start the run waits for its alerts before it ends."
+          },
+          "platform": {
+            "type": "string",
+            "description": "The platform the run is on, an ATT&CK platform slug: its targets' test hosts' platform, else the\ntest's only supported platform."
+          },
+          "run_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The run's uuid."
+          },
+          "started_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "state": {
+            "type": "string",
+            "description": "`created`, `started`, `ended`, `reviewed`, `canceled`, `error` or `closed`."
+          },
+          "targets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RunTargetBody"
+            }
+          },
+          "test_guid": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "RunRegistrationBody": {
+        "type": "object",
+        "description": "A run to register.",
+        "required": [
+          "test_guid",
+          "targets",
+          "launcher"
+        ],
+        "properties": {
+          "batch_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "A label shared by runs registered together, 1 to 256 characters."
+          },
+          "extra": {
+            "type": "object",
+            "description": "Anything else the launcher wants kept with the run: an object, at most `svs.runs.max_extra_bytes`\nas JSON."
+          },
+          "launcher": {
+            "type": "string",
+            "description": "The name of the launcher registering the run, 1 to 256 characters."
+          },
+          "targets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RunTargetRequest"
+            },
+            "description": "The test hosts the test runs on."
+          },
+          "test_guid": {
+            "type": "string",
+            "description": "The `auto_generated_guid` of a test in the catalog (`/api/svs/v1/tests`)."
+          }
+        },
+        "additionalProperties": false
+      },
+      "RunTargetBody": {
+        "type": "object",
+        "description": "A host and user a run targets.",
+        "required": [
+          "hostname",
+          "host"
+        ],
+        "properties": {
+          "fqdn": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "host": {
+            "type": "string",
+            "description": "The short host name, lower case."
+          },
+          "hostname": {
+            "type": "string",
+            "description": "As registered."
+          },
+          "user": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The bare user name, lower case."
+          },
+          "username": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "RunTargetRequest": {
+        "type": "object",
+        "description": "A host and user to run the test on.",
+        "required": [
+          "hostname"
+        ],
+        "properties": {
+          "hostname": {
+            "type": "string",
+            "description": "A test host's short or fully qualified name."
+          },
+          "username": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The user the test runs as: required when the test host lists its users."
+          }
+        },
+        "additionalProperties": false
+      },
+      "RunValidationBody": {
+        "type": "object",
+        "description": "What registering the same body would decide, decided without changing anything.",
+        "required": [
+          "decision",
+          "status_code",
+          "targets"
+        ],
+        "properties": {
+          "attribution_seconds": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          },
+          "decision": {
+            "type": "string",
+            "description": "`accepted`, `refused`, `invalid` or `host_busy`."
+          },
+          "holds_host": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "message": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Why the registration is invalid."
+          },
+          "observation_seconds": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          },
+          "observation_source": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "platform": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "When accepted: the platform the run would be on, its windows, where its observation window comes\nfrom (`override`, `expected` or `all_hunts`) and whether it would hold its hosts until its\nattribution window ends."
+          },
+          "status_code": {
+            "type": "integer",
+            "format": "int32",
+            "description": "What registering would answer: 201, 403, 409 or 400.",
+            "minimum": 0
+          },
+          "targets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ValidatedTargetBody"
+            },
+            "description": "Every target; empty when the registration is invalid before its targets are judged."
+          }
+        }
+      },
       "SampleBody": {
         "type": "object",
         "description": "One sample: a file and a YARA rule it matched, over every alert it was captured from. Its rule name,\nnamespace and file path are what the rule's author and the alert's sender wrote: show them as text.",
@@ -17684,6 +19614,124 @@
           }
         }
       },
+      "TestHostBody": {
+        "type": "object",
+        "description": "A host test runs may target.",
+        "required": [
+          "id",
+          "hostname",
+          "usernames",
+          "ips",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "created_by": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ActorBody"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "fqdn": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "hostname": {
+            "type": "string",
+            "description": "The short host name, lower case."
+          },
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "ips": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "notes": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "platform": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "usernames": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The bare user names runs may use, lower case and sorted; none means any user."
+          }
+        }
+      },
+      "TestHostRequest": {
+        "type": "object",
+        "description": "A test host's fields.",
+        "required": [
+          "hostname"
+        ],
+        "properties": {
+          "fqdn": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "hostname": {
+            "type": "string",
+            "description": "The short or fully qualified host name; a fully qualified one sets the fqdn too."
+          },
+          "ips": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The host's addresses."
+          },
+          "notes": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "platform": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "`windows`, `linux` or `macos`, when known."
+          },
+          "usernames": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The users runs may use, in any of `CORP\\alice`, `alice@corp.example` or `alice`; none means any."
+          }
+        },
+        "additionalProperties": false
+      },
       "ThreatBody": {
         "type": "object",
         "description": "One of a malware's threat types.",
@@ -17883,6 +19931,58 @@
               {
                 "type": "null"
               }
+            ]
+          }
+        }
+      },
+      "ValidatedTargetBody": {
+        "type": "object",
+        "description": "A target of a registration, judged as registering would.",
+        "required": [
+          "hostname",
+          "accepted",
+          "held_by"
+        ],
+        "properties": {
+          "accepted": {
+            "type": "boolean",
+            "description": "The target is a test host and a user it lists."
+          },
+          "held_by": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HostHolderBody"
+            },
+            "description": "What holds that test host."
+          },
+          "hostname": {
+            "type": "string",
+            "description": "As sent."
+          },
+          "platform": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "reason": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Why the target would be refused."
+          },
+          "test_host": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The test host it names, by its short name, and that host's platform."
+          },
+          "username": {
+            "type": [
+              "string",
+              "null"
             ]
           }
         }

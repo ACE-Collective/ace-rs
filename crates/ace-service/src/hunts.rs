@@ -28,6 +28,10 @@
 //!
 //! The `hunt` router reads [`Service::hunts`], [`Service::hunt`] and [`Service::hunt_suppressions`]
 //! under `hunt:read`.
+//!
+//! **What SVS reads** (PLAN.md 7.10 batch 5). A loaded file's row also keeps what SVS's run windows and
+//! results need of the hunt ([`LoadedHuntRow::svs`], `ace_core::svs::windows::RecordedHunt`): the hunter
+//! has the hunt files and `ace serve`, which registers test runs, doesn't.
 
 use std::collections::BTreeMap;
 
@@ -54,9 +58,19 @@ pub struct LoadedHuntRow {
     pub enabled: Option<bool>,
     pub frequency: Option<String>,
     pub error: Option<String>,
+    /// What SVS reads of the file (PLAN.md 7.10 batch 5): the hunt's latency, suppression, hash and tags,
+    /// whether or not the file loaded as a hunt. A run's windows read it from here, since only the hunter
+    /// has the hunt files. None for a file that isn't a hunt SVS tracks.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub svs: Option<ace_core::svs::windows::RecordedHunt>,
 }
 
 impl Recorded for LoadedHuntRow {}
+
+/// A stored `hunts.hunts.svs`; one that doesn't parse reads as none, and the next load replaces it.
+fn recorded_svs(value: Option<serde_json::Value>) -> Option<ace_core::svs::windows::RecordedHunt> {
+    value.and_then(|value| serde_json::from_value(value).ok())
+}
 
 /// What ace3 keeps about a hunt between runs.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize)]
@@ -244,7 +258,7 @@ impl Service {
             .write(actor, "sync_hunts", &HUNT_WRITE, &|tx| {
                 Box::pin(async move {
                     let rows = sqlx::query!(
-                        "SELECT type, path, name, uuid, enabled, frequency, error
+                        "SELECT type, path, name, uuid, enabled, frequency, error, svs
                          FROM hunts.hunts WHERE type = $1 ORDER BY path",
                         kind,
                     )
@@ -260,6 +274,7 @@ impl Service {
                             enabled: r.enabled,
                             frequency: r.frequency,
                             error: r.error,
+                            svs: recorded_svs(r.svs),
                         })
                         .collect();
                     let mut after = hunts.to_vec();
@@ -272,8 +287,9 @@ impl Service {
                         .await?;
                     for hunt in &after {
                         sqlx::query!(
-                            "INSERT INTO hunts.hunts (type, path, name, uuid, enabled, frequency, error, loaded_at)
-                             VALUES ($1, $2, $3, $4, $5, $6, $7, now())",
+                            "INSERT INTO hunts.hunts
+                                 (type, path, name, uuid, enabled, frequency, error, svs, loaded_at)
+                             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, now())",
                             kind,
                             hunt.path,
                             hunt.name,
@@ -281,6 +297,7 @@ impl Service {
                             hunt.enabled,
                             hunt.frequency,
                             hunt.error,
+                            hunt.svs.as_ref().map(Json) as _,
                         )
                         .execute(tx.conn())
                         .await?;
@@ -402,7 +419,7 @@ impl Service {
             .read(actor, "hunts", &HUNT_READ, &|tx| {
                 Box::pin(async move {
                     let rows = sqlx::query!(
-                        r#"SELECT h.type, h.path, h.name, h.uuid, h.enabled, h.frequency, h.error, h.loaded_at,
+                        r#"SELECT h.type, h.path, h.name, h.uuid, h.enabled, h.frequency, h.error, h.svs, h.loaded_at,
                                   s.type AS "state_type?", s.last_executed_time, s.last_end_time,
                                   s.last_alert_time, s.last_alert_times AS "last_alert_times?"
                            FROM hunts.hunts h
@@ -431,6 +448,7 @@ impl Service {
                                     enabled: r.enabled,
                                     frequency: r.frequency,
                                     error: r.error,
+                                    svs: recorded_svs(r.svs),
                                 },
                                 loaded_at: r.loaded_at,
                                 state,

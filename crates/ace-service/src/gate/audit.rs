@@ -179,6 +179,38 @@ impl Target {
         }
     }
 
+    /// An SVS test run, by its uuid (PLAN.md 7.10 batch 5).
+    pub(crate) fn svs_run(uuid: Uuid) -> Self {
+        Target {
+            kind: "svs_run",
+            id: uuid.to_string(),
+        }
+    }
+
+    /// A maintenance window on an SVS test host, by its uuid.
+    pub(crate) fn svs_maintenance_window(uuid: Uuid) -> Self {
+        Target {
+            kind: "svs_maintenance_window",
+            id: uuid.to_string(),
+        }
+    }
+
+    /// The refused targets of one SVS registration or maintenance call, by the caller's identity.
+    pub(crate) fn svs_refusal(caller: &str) -> Self {
+        Target {
+            kind: "svs_refusal",
+            id: caller.to_owned(),
+        }
+    }
+
+    /// The refused SVS registrations past their day, which the run timers remove.
+    pub(crate) fn expired_svs_refusals() -> Self {
+        Target {
+            kind: "svs_refusals",
+            id: "expired".to_owned(),
+        }
+    }
+
     /// An SVS sample, a file and a rule it matched, as `<sha256>/<rule uuid>` (PLAN.md 7.10).
     pub(crate) fn svs_sample(sha256: &str, rule_uuid: &str) -> Self {
         Target {
@@ -365,6 +397,12 @@ impl Change {
             after: None,
             details: Some(serde_json::to_value(what)?),
         })
+    }
+
+    /// Something a write recorded about the target that changed none of the fields its rows show, such as
+    /// a launcher's call on an SVS run that didn't apply: what was recorded.
+    pub(crate) fn noted(target: Target, what: &impl Recorded) -> Result<Self, ServiceError> {
+        Change::read(target, what)
     }
 
     pub(crate) fn details(mut self, details: &impl Recorded) -> Result<Self, ServiceError> {

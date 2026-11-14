@@ -150,6 +150,9 @@ async fn serve(app: &App) -> Result<ExitCode> {
         .map_err(anyhow::Error::msg)
         .context("the overlay's svs.catalog section")?;
     let catalog = crate::svs::catalog_with_ssh_keys(catalog, &overlay);
+    let runs = ace_core::svs::runs::RunsConfig::from_section(&overlay.svs.runs)
+        .map_err(anyhow::Error::msg)
+        .context("the overlay's svs.runs section")?;
     for (name, repository) in &catalog.repositories {
         tracing::info!(repository = name, branch = %repository.branch, "svs reads its test catalog from this repository");
     }
@@ -185,6 +188,7 @@ async fn serve(app: &App) -> Result<ExitCode> {
         .with_bucket(bucket.clone())
         .with_validation(validation.clone())
         .with_catalog(catalog)
+        .with_runs(runs)
         .with_routers(routers);
     // each scan runs in this binary again, contained (`ace yara replay --contained`)
     let validators = (!validation.repositories.is_empty())

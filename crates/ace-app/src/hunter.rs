@@ -991,7 +991,12 @@ async fn reload(
             kind.as_ref()
         };
         let mut rows = Vec::new();
+        let now = chrono::Utc::now();
         for loaded in hunter.load(kind) {
+            // what SVS's run windows and results need of the file, loaded as a hunt or not (PLAN.md 7.10
+            // batch 5): `ace serve` reads it from the row, since only this process has the hunt files
+            let svs = ace_core::svs::windows::read_hunt_file(&loaded.path, now)
+                .map(|info| ace_core::svs::windows::RecordedHunt::from(&info));
             let path = loaded
                 .path
                 .strip_prefix(&config.signatures)
@@ -1008,6 +1013,7 @@ async fn reload(
                         enabled: Some(hunt.config.enabled),
                         frequency: Some(hunt.config.frequency.clone()),
                         error: None,
+                        svs,
                     });
                     hunts.push((hunt, version.clone()));
                 }
@@ -1021,6 +1027,7 @@ async fn reload(
                         enabled: None,
                         frequency: None,
                         error: Some(e.to_string()),
+                        svs,
                     });
                 }
             }

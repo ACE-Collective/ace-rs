@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT h.type, h.path, h.name, h.uuid, h.enabled, h.frequency, h.error, h.loaded_at,\n                                  s.type AS \"state_type?\", s.last_executed_time, s.last_end_time,\n                                  s.last_alert_time, s.last_alert_times AS \"last_alert_times?\"\n                           FROM hunts.hunts h\n                           LEFT JOIN hunts.state s ON s.type = h.type AND s.name = h.name\n                           ORDER BY h.type, h.path",
+  "query": "SELECT h.type, h.path, h.name, h.uuid, h.enabled, h.frequency, h.error, h.svs, h.loaded_at,\n                                  s.type AS \"state_type?\", s.last_executed_time, s.last_end_time,\n                                  s.last_alert_time, s.last_alert_times AS \"last_alert_times?\"\n                           FROM hunts.hunts h\n                           LEFT JOIN hunts.state s ON s.type = h.type AND s.name = h.name\n                           ORDER BY h.type, h.path",
   "describe": {
     "columns": [
       {
@@ -82,6 +82,17 @@
       },
       {
         "ordinal": 7,
+        "name": "svs",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "hunts.hunts",
+            "name": "svs"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
         "name": "loaded_at",
         "type_info": "Timestamptz",
         "origin": {
@@ -92,7 +103,7 @@
         }
       },
       {
-        "ordinal": 8,
+        "ordinal": 9,
         "name": "state_type?",
         "type_info": "Text",
         "origin": {
@@ -103,7 +114,7 @@
         }
       },
       {
-        "ordinal": 9,
+        "ordinal": 10,
         "name": "last_executed_time",
         "type_info": "Timestamptz",
         "origin": {
@@ -114,7 +125,7 @@
         }
       },
       {
-        "ordinal": 10,
+        "ordinal": 11,
         "name": "last_end_time",
         "type_info": "Timestamptz",
         "origin": {
@@ -125,7 +136,7 @@
         }
       },
       {
-        "ordinal": 11,
+        "ordinal": 12,
         "name": "last_alert_time",
         "type_info": "Timestamptz",
         "origin": {
@@ -136,7 +147,7 @@
         }
       },
       {
-        "ordinal": 12,
+        "ordinal": 13,
         "name": "last_alert_times?",
         "type_info": "Jsonb",
         "origin": {
@@ -158,6 +169,7 @@
       true,
       true,
       true,
+      true,
       false,
       false,
       true,
@@ -166,5 +178,5 @@
       false
     ]
   },
-  "hash": "3c7855f603a4d4964a4b371d7ac88e596b6e7fb7d8f489b5fcffe5b95e30b4b7"
+  "hash": "04fbdcb62c5c86909724f7519654253ff6e61f5e587b0971ef883309f87de1bf"
 }

@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT launcher_output FROM svs.runs WHERE uuid = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "launcher_output",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.runs",
+            "name": "launcher_output"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "a44acb66cd5134e5628c8a23d85af6b08185e4fb59f167aa646991ecd036b3bd"
+}

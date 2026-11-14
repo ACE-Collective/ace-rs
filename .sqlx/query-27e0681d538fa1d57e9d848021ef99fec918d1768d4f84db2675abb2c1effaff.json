@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO svs.run_result_state (run_id, generation, stale)\n         SELECT id, 1, true FROM svs.runs\n         WHERE id = ANY ($1) AND state IN ('started', 'ended', 'reviewed')\n         ORDER BY id\n         ON CONFLICT (run_id) DO UPDATE\n         SET generation = svs.run_result_state.generation + 1, stale = true",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8Array"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "27e0681d538fa1d57e9d848021ef99fec918d1768d4f84db2675abb2c1effaff"
+}

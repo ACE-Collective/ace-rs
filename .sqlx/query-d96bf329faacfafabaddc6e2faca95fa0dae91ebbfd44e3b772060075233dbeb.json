@@ -1,0 +1,76 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT hostname, username, host, fqdn, \"user\" FROM svs.run_targets\n           WHERE run_id = $1 ORDER BY id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "hostname",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.run_targets",
+            "name": "hostname"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "username",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.run_targets",
+            "name": "username"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "host",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.run_targets",
+            "name": "host"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "fqdn",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.run_targets",
+            "name": "fqdn"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "user",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.run_targets",
+            "name": "user"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "d96bf329faacfafabaddc6e2faca95fa0dae91ebbfd44e3b772060075233dbeb"
+}

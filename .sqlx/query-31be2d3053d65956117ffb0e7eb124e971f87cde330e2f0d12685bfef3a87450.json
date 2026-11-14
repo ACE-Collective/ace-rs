@@ -1,0 +1,92 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, kind, from_state::text AS from_state, to_state::text AS to_state,\n                                  actor AS \"actor!: Value\", details, created_at\n                           FROM svs.run_events\n                           WHERE run_id = $1 AND id > $2 ORDER BY id LIMIT $3",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "svs.run_events",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "kind",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.run_events",
+            "name": "kind"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "from_state",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 3,
+        "name": "to_state",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 4,
+        "name": "actor!: Value",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "svs.run_events",
+            "name": "actor"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "details",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "svs.run_events",
+            "name": "details"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "svs.run_events",
+            "name": "created_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      null,
+      null,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "31be2d3053d65956117ffb0e7eb124e971f87cde330e2f0d12685bfef3a87450"
+}

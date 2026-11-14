@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT uuid FROM svs.runs\n                         WHERE state = 'started' AND observation_ends_at <= $1\n                         ORDER BY id LIMIT $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "uuid",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "svs.runs",
+            "name": "uuid"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Timestamptz",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "8f0cf7bfb48dc020ec5fb1e19dc9fcf7d9d30c15f3cf889bb0aa247d8e7e2f3e"
+}
