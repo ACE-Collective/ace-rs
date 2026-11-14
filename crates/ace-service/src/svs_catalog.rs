@@ -218,6 +218,7 @@ async fn list(
     changed_since: Option<DateTime<Utc>>,
     after: Option<&ListCursor>,
     limit: i64,
+    settle: f64,
 ) -> Result<Vec<ListRow>, sqlx::Error> {
     let (after_technique, after_name, after_id) = match after {
         Some(c) => (
@@ -250,7 +251,8 @@ async fn list(
                   OR CASE $11 WHEN 'true' THEN t.removed_at IS NOT NULL ELSE t.removed_at IS NULL END)
              AND ($12::text IS NULL OR $12 <> 'both'
                   AND NOT CASE $12 WHEN 'true' THEN t.removed_at IS NOT NULL ELSE t.removed_at IS NULL END)
-             AND ($13::timestamptz IS NULL OR t.updated_at >= $13)
+             AND ($13::timestamptz IS NULL
+                  OR (t.updated_at >= $13 AND t.updated_at < now() - make_interval(secs => $18)))
              AND ($14::text IS NULL
                   OR (t.technique COLLATE "C", t.name COLLATE "C", t.id) > ($14, $15::text, $16::bigint))
            ORDER BY t.technique COLLATE "C", t.name COLLATE "C", t.id
@@ -272,6 +274,7 @@ async fn list(
         after_name,
         after_id,
         limit,
+        settle,
     )
     .fetch_all(conn)
     .await
@@ -343,12 +346,19 @@ impl Service {
         let limit = page_limit(limit, MAX_CATALOG_TESTS_PAGE)?;
         let after = &cursor.map(decode).transpose()?;
         let p = &params(query)?;
-        let changed_since = query.changed_since;
+        let (changed_since, settle) = (query.changed_since, self.feed_settle_seconds());
         self.gate
             .read(actor, "svs_catalog_tests", &SVS_RUN_READ, &|tx| {
                 Box::pin(async move {
-                    let mut rows =
-                        list(tx.conn(), p, changed_since, after.as_ref(), limit + 1).await?;
+                    let mut rows = list(
+                        tx.conn(),
+                        p,
+                        changed_since,
+                        after.as_ref(),
+                        limit + 1,
+                        settle,
+                    )
+                    .await?;
                     let next_cursor = if rows.len() as i64 > limit {
                         rows.truncate(limit as usize);
                         rows.last().map(|last| {
@@ -379,12 +389,19 @@ impl Service {
         max: i64,
     ) -> Result<i64, ServiceError> {
         let p = &params(query)?;
-        let changed_since = query.changed_since;
+        let (changed_since, settle) = (query.changed_since, self.feed_settle_seconds());
         self.gate
             .read(actor, "svs_catalog_test_count", &SVS_RUN_READ, &|tx| {
                 Box::pin(async move {
-                    let rows =
-                        list(tx.conn(), p, changed_since, None, max.saturating_add(1)).await?;
+                    let rows = list(
+                        tx.conn(),
+                        p,
+                        changed_since,
+                        None,
+                        max.saturating_add(1),
+                        settle,
+                    )
+                    .await?;
                     Ok(rows.len() as i64)
                 })
             })

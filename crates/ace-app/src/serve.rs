@@ -100,9 +100,6 @@ async fn serve(app: &App) -> Result<ExitCode> {
     let modes = app.modes_with(&components);
     let hooks = ace_core::hooks::Hooks::from_section(&overlay.hooks)
         .context("the overlay's hooks section")?;
-    for name in hooks.names() {
-        tracing::info!(hook = name, "running a hook in the core");
-    }
     let dispositions = ace_service::Dispositions::configured(&overlay)
         .map_err(anyhow::Error::msg)
         .context("the overlay's disposition sections")?;
@@ -153,6 +150,13 @@ async fn serve(app: &App) -> Result<ExitCode> {
     let runs = ace_core::svs::runs::RunsConfig::from_section(&overlay.svs.runs)
         .map_err(anyhow::Error::msg)
         .context("the overlay's svs.runs section")?;
+    // SVS's hook, ace3's `svs_alert_tagger`, judges an alert at the end of a pass (PLAN.md 7.10 batch 6)
+    let hooks = hooks.with_svs(ace_core::svs::attribution::HookConfig {
+        attribution_extra: runs.windows.attribution_extra,
+    });
+    for name in hooks.names() {
+        tracing::info!(hook = name, "running a hook in the core");
+    }
     for (name, repository) in &catalog.repositories {
         tracing::info!(repository = name, branch = %repository.branch, "svs reads its test catalog from this repository");
     }

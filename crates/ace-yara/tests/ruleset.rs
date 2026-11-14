@@ -11,7 +11,9 @@ use std::path::Path;
 use std::process::Command;
 use std::time::Duration;
 
-use ace_yara::ruleset::{Manifest, build, build_commit, resolve_commit};
+use ace_yara::ruleset::{
+    BuiltIn, Manifest, build, build_commit, build_commit_with, built_ins_sha256, resolve_commit,
+};
 use ace_yara::{LoadOptions, Ruleset, ScanRequest, Scanner};
 use common::fixture;
 
@@ -341,6 +343,72 @@ fn a_ruleset_loaded_from_its_bytes_scans_like_the_one_built() {
     };
     let outcome = Scanner::new(&loaded).scan(&untagged).unwrap();
     assert!(outcome.dropped.iter().any(|m| m.rule == "one_a"));
+}
+
+/// A built-in rule file joins the commit's export as its own namespace, replacing a file of the same
+/// name there, and the repository itself never changes (PLAN.md 7.10 batch 6: SVS's marker rule, ace3's
+/// `install_marker_rule`).
+#[test]
+fn built_ins_join_the_commit_s_export() {
+    const OURS: BuiltIn = BuiltIn {
+        namespace: "ace_own",
+        file: "ace_own.yar",
+        source: "rule ace_own_rule { strings: $a = \"OWN\" condition: $a }\n",
+    };
+    let temp = tempfile::tempdir().unwrap();
+    let repo = temp.path().join("repo");
+    let commit = repository(&repo);
+    let dir = Path::new("signatures");
+    let options = LoadOptions::default();
+    let plain = build_commit(&repo, &commit, dir, &options).expect("builds");
+    let with = build_commit_with(&repo, &commit, dir, &options, &[OURS]).expect("builds");
+    let own: Vec<_> = with
+        .manifest
+        .files
+        .iter()
+        .filter(|f| f.namespace == "ace_own")
+        .collect();
+    assert_eq!(own.len(), 1);
+    assert_eq!(own[0].path, "ace_own/ace_own.yar");
+    assert_eq!(own[0].rules, ["ace_own_rule"]);
+    assert_eq!(with.manifest.files.len(), plain.manifest.files.len() + 1);
+    assert_ne!(with.manifest.key, plain.manifest.key);
+    assert_ne!(with.manifest.sources_sha256, plain.manifest.sources_sha256);
+    // the same built-ins give the same ruleset, and nothing was written into the repository
+    let again = build_commit_with(&repo, &commit, dir, &options, &[OURS]).expect("builds");
+    assert_eq!(again.manifest.key, with.manifest.key);
+    assert!(!repo.join("signatures/ace_own").exists());
+    assert!(git(&repo, &["status", "--porcelain"]).trim().is_empty());
+
+    // the repository's own file of that name gives way to the built-in, and so does a file where the
+    // namespace's directory should be (ace3 logs that and scans without the rule)
+    std::fs::create_dir_all(repo.join("signatures/ace_own")).unwrap();
+    std::fs::write(
+        repo.join("signatures/ace_own/ace_own.yar"),
+        "rule theirs { condition: false }\n",
+    )
+    .unwrap();
+    git(&repo, &["add", "-A"]);
+    git(&repo, &["commit", "-q", "-m", "their own"]);
+    let theirs = resolve_commit(&repo, "HEAD").unwrap();
+    let replaced = build_commit_with(&repo, &theirs, dir, &options, &[OURS]).expect("builds");
+    assert_eq!(replaced.manifest.key, with.manifest.key);
+    git(&repo, &["rm", "-r", "-q", "signatures/ace_own"]);
+    std::fs::write(repo.join("signatures/ace_own"), "a file, not a directory").unwrap();
+    git(&repo, &["add", "-A"]);
+    git(&repo, &["commit", "-q", "-m", "a file in the way"]);
+    let blocked = resolve_commit(&repo, "HEAD").unwrap();
+    let cleared = build_commit_with(&repo, &blocked, dir, &options, &[OURS]).expect("builds");
+    assert_eq!(cleared.manifest.key, with.manifest.key);
+
+    // which built-ins a ruleset holds is named by a hash that follows their content
+    let changed = BuiltIn {
+        source: "rule ace_own_rule { condition: false }\n",
+        ..OURS
+    };
+    assert_eq!(built_ins_sha256(&[OURS]), built_ins_sha256(&[OURS]));
+    assert_ne!(built_ins_sha256(&[OURS]), built_ins_sha256(&[changed]));
+    assert_ne!(built_ins_sha256(&[OURS]), built_ins_sha256(&[]));
 }
 
 /// Owns every file under `path` by `uid`.

@@ -135,6 +135,8 @@ pub struct Run {
     pub observation_ends_at: Option<DateTime<Utc>>,
     pub attribution_ends_at: Option<DateTime<Utc>>,
     pub holds_host: bool,
+    /// What its registration warned of: `ace_core::svs::runs::no_hunts_warning`.
+    pub warnings: Vec<String>,
     pub updated_at: DateTime<Utc>,
     pub targets: Vec<RunTarget>,
 }
@@ -199,6 +201,8 @@ pub struct RunValidation {
     pub observation_source: Option<ObservationSource>,
     pub attribution_seconds: Option<i64>,
     pub holds_host: Option<bool>,
+    /// What registering would warn of: `ace_core::svs::runs::no_hunts_warning`.
+    pub warnings: Vec<String>,
 }
 
 /// What one pass of the timers did.
@@ -296,6 +300,7 @@ struct RunRow {
     observation_ends_at: Option<DateTime<Utc>>,
     attribution_ends_at: Option<DateTime<Utc>>,
     holds_host: bool,
+    warnings: Vec<String>,
     updated_at: DateTime<Utc>,
 }
 
@@ -323,7 +328,7 @@ async fn find_run(
                   registered_by AS "registered_by: Value", created_at, started_at, executed_at,
                   cleanup_at, exit_code, launcher_error, ended_at, end_reason, canceled_at, closed_at,
                   close_reason, error_reason, observation_seconds, attribution_seconds,
-                  observation_ends_at, attribution_ends_at, holds_host, updated_at
+                  observation_ends_at, attribution_ends_at, holds_host, warnings, updated_at
            FROM svs.runs WHERE uuid = $1"#,
         uuid,
     )
@@ -371,6 +376,7 @@ async fn find_run(
             observation_ends_at: row.observation_ends_at,
             attribution_ends_at: row.attribution_ends_at,
             holds_host: row.holds_host,
+            warnings: row.warnings,
             updated_at: row.updated_at,
             targets,
         },
@@ -549,20 +555,10 @@ async fn close(
     .await
 }
 
-/// Marks the runs' live results stale, in run id order: ace3's `mark_runs_stale` for given runs.
+/// Marks the runs' live results stale, in run id order: ace3's `mark_runs_stale` for given runs, which
+/// the core's SVS hook shares (`ace_core::svs::attribution::mark_runs_stale`).
 async fn mark_stale(conn: &mut PgConnection, runs: &[i64]) -> Result<(), ServiceError> {
-    sqlx::query!(
-        "INSERT INTO svs.run_result_state (run_id, generation, stale)
-         SELECT id, 1, true FROM svs.runs
-         WHERE id = ANY ($1) AND state IN ('started', 'ended', 'reviewed')
-         ORDER BY id
-         ON CONFLICT (run_id) DO UPDATE
-         SET generation = svs.run_result_state.generation + 1, stale = true",
-        runs,
-    )
-    .execute(conn)
-    .await?;
-    Ok(())
+    Ok(ace_core::svs::attribution::mark_runs_stale(conn, runs).await?)
 }
 
 /// Locks the test hosts' rows, in id order, so registrations, starts and maintenance windows on a host are
@@ -681,6 +677,8 @@ struct Decided {
     source: Option<ObservationSource>,
     attribution: Option<TimeDelta>,
     holds_host: bool,
+    /// What the answer warns of.
+    warnings: Vec<String>,
 }
 
 impl Decided {
@@ -789,13 +787,14 @@ async fn expected_signatures(
 
 /// The observation window of a run of the test on the platform registered now, and where it comes from:
 /// the test's settings, else the latency of its expected signatures on the platform, else the slowest
-/// enabled hunt. ace3's `observation_for_test`.
+/// enabled hunt. ace3's `observation_for_test`. The last says whether the window was computed with no
+/// hunt recorded at all, which makes it the floor (`runs::no_hunts_warning`).
 async fn observation_for_test(
     conn: &mut PgConnection,
     config: &RunsConfig,
     test: Uuid,
     platform: &str,
-) -> Result<(TimeDelta, ObservationSource), ServiceError> {
+) -> Result<(TimeDelta, ObservationSource, bool), ServiceError> {
     let minutes = sqlx::query_scalar!(
         "SELECT observation_minutes FROM svs.test_settings WHERE test_guid = $1",
         test,
@@ -807,19 +806,24 @@ async fn observation_for_test(
         return Ok((
             TimeDelta::minutes(i64::from(minutes)),
             ObservationSource::Override,
+            false,
         ));
     }
     let expected = expected_signatures(conn, test, platform).await?;
-    let latencies = hunt_latencies(&recorded_hunts(conn).await?);
+    let hunts = recorded_hunts(conn).await?;
+    let no_hunts = hunts.is_empty();
+    let latencies = hunt_latencies(&hunts);
     if expected.is_empty() {
         return Ok((
             observation_window(&latencies, None, &config.windows),
             ObservationSource::AllHunts,
+            no_hunts,
         ));
     }
     Ok((
         observation_window(&latencies, Some(&expected), &config.windows),
         ObservationSource::Expected,
+        no_hunts,
     ))
 }
 
@@ -881,8 +885,13 @@ async fn decide(
     decided.busy = host_holders(conn, &names, now, None).await?;
     decided.platform = Some(platform.clone());
     if decided.busy.is_empty() {
-        let (observation, source) =
+        let (observation, source, no_hunts) =
             observation_for_test(conn, config, test.guid, &platform).await?;
+        if no_hunts {
+            decided
+                .warnings
+                .push(runs::no_hunts_warning(config.windows.floor));
+        }
         decided.observation = Some(observation);
         decided.source = Some(source);
         decided.attribution = Some(attribution_window(observation, &config.windows));
@@ -1501,6 +1510,11 @@ impl Service {
             observation_source: decided.source,
             attribution_seconds: decided.attribution.map(|span| span.num_seconds()),
             holds_host: accepted.then_some(decided.holds_host),
+            warnings: if accepted {
+                decided.warnings.clone()
+            } else {
+                Vec::new()
+            },
         })
     }
 
@@ -1589,9 +1603,9 @@ impl Service {
                         "INSERT INTO svs.runs
                              (uuid, test_guid, platform, test_content_hash, catalog_commit, state,
                               marker, launcher, batch_id, extra, registered_by, created_at,
-                              observation_seconds, attribution_seconds, holds_host)
+                              observation_seconds, attribution_seconds, holds_host, warnings)
                          VALUES ($1, $2, $3, $4, $5, 'created', $6, $7, $8, $9, $10::jsonb, $11, $12,
-                                 $13, $14)
+                                 $13, $14, $15)
                          RETURNING id",
                         uuid,
                         test.guid,
@@ -1607,9 +1621,13 @@ impl Service {
                         seconds(observation)?,
                         seconds(attribution)?,
                         decided.holds_host,
+                        &decided.warnings,
                     )
                     .fetch_one(tx.conn())
                     .await?;
+                    for warning in &decided.warnings {
+                        tracing::warn!(svs_run = %uuid, svs_test = %test.guid, "svs registration: {warning}");
+                    }
                     let mut seen = BTreeSet::new();
                     for (target, matched) in &decided.matches {
                         let (host, fqdn) = split_hostname(&target.hostname)
@@ -1648,6 +1666,9 @@ impl Service {
                         details.insert("platform".to_owned(), json!(platform));
                         details.insert("observation_source".to_owned(), json!(source));
                         details.insert("holds_host".to_owned(), json!(decided.holds_host));
+                        if !decided.warnings.is_empty() {
+                            details.insert("warnings".to_owned(), json!(decided.warnings));
+                        }
                     }
                     add_event(
                         tx.conn(),

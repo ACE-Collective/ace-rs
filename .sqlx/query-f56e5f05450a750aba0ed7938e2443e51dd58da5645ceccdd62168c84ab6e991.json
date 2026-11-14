@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, hostname, fqdn, usernames, ips, platform, notes,\n                                  created_by AS \"created_by!: Value\", created_at, updated_at\n                           FROM svs.test_hosts\n                           WHERE ($1::timestamptz IS NULL OR updated_at >= $1)\n                             AND ($2::text IS NULL OR hostname COLLATE \"C\" > $2)\n                           ORDER BY hostname COLLATE \"C\"\n                           LIMIT $3",
+  "query": "SELECT id, hostname, fqdn, usernames, ips, platform, notes,\n                                  created_by AS \"created_by!: Value\", created_at, updated_at\n                           FROM svs.test_hosts\n                           WHERE ($1::timestamptz IS NULL\n                                  OR (updated_at >= $1\n                                      AND updated_at < now() - make_interval(secs => $4)))\n                             AND ($2::text IS NULL OR hostname COLLATE \"C\" > $2)\n                           ORDER BY hostname COLLATE \"C\"\n                           LIMIT $3",
   "describe": {
     "columns": [
       {
@@ -118,7 +118,8 @@
       "Left": [
         "Timestamptz",
         "Text",
-        "Int8"
+        "Int8",
+        "Float8"
       ]
     },
     "nullable": [
@@ -134,5 +135,5 @@
       false
     ]
   },
-  "hash": "4a5af1ac2a273c383920f72068dc9fa2deac0b832ec4da8cf518d5dd25b4f458"
+  "hash": "f56e5f05450a750aba0ed7938e2443e51dd58da5645ceccdd62168c84ab6e991"
 }

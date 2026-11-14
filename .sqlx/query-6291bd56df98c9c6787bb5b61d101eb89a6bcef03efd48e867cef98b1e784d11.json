@@ -1,0 +1,55 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT observable_id, module, details AS \"details!\" FROM analysis.results\n           WHERE root_id = $1 AND details IS NOT NULL\n             AND (details::text ~* $2 OR details @> $3)\n           ORDER BY id LIMIT $4",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "observable_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "analysis.results",
+            "name": "observable_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "module",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "analysis.results",
+            "name": "module"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "details!",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "analysis.results",
+            "name": "details"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Jsonb",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "6291bd56df98c9c6787bb5b61d101eb89a6bcef03efd48e867cef98b1e784d11"
+}

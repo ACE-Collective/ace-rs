@@ -774,6 +774,7 @@ pub fn run_of(
                 return None;
             };
             tracing::info!(hunt = %config.name, key, %until, "suppressed a group's alert");
+            let (submission, origin) = to_core(s);
             Some(ace_service::GroupSuppressed {
                 key: key.clone(),
                 group_value: s.group_value.clone(),
@@ -782,6 +783,14 @@ pub fn run_of(
                 events: s.rows.len(),
                 since,
                 until,
+                hit: ace_service::HuntSubmission {
+                    submission,
+                    origin,
+                    dedup_key: s.key.clone(),
+                    suppression_key: Some(key.clone()),
+                    group_value: s.group_value.clone(),
+                    events: s.rows.len(),
+                },
             })
         })
         .collect();
@@ -796,6 +805,11 @@ pub fn run_of(
         window_end: tick.window.map(|w| w.end),
         submissions,
         suppressed,
+        // only a grouped hunt's suppression is per group, which is what an SVS run keys
+        suppression: config
+            .group_by
+            .as_ref()
+            .and_then(|_| schedule::suppression(config)),
     }
 }
 
@@ -889,15 +903,26 @@ async fn hunt(app: &App) -> Result<ExitCode> {
     let bucket = Bucket::new(db.clone(), store, BucketSettings::default());
     let components = crate::cli::components(&app.registry(), &overlay)?;
     let modes = app.modes_with(&components);
-    // a hunt's root runs the pre rules as it's submitted; `ace serve` runs the rest
+    // SVS's settings, as `ace serve` has them: a run's record asks the core who owns each match
+    // (PLAN.md 7.10 batch 6)
+    let runs = ace_core::svs::runs::RunsConfig::from_section(&overlay.svs.runs)
+        .map_err(anyhow::Error::msg)
+        .context("the overlay's svs.runs section")?;
+    // a hunt's root runs the pre rules as it's submitted; `ace serve` runs the rest, and the hooks a
+    // pass ends with are marked due here as there, so the two have the same hooks
     let hooks = ace_core::hooks::Hooks::from_section(&overlay.hooks)
-        .context("the overlay's hooks section")?;
+        .context("the overlay's hooks section")?
+        .with_svs(ace_core::svs::attribution::HookConfig {
+            attribution_extra: runs.windows.attribution_extra,
+        });
     let orchestrator = Orchestrator::new(Catalog::of(components), modes).with_hooks(hooks);
     // the site's dispositions, as `ace serve` has them, for whatever the hunter reads through the service
     let dispositions = ace_service::Dispositions::configured(&overlay)
         .map_err(anyhow::Error::msg)
         .context("the overlay's disposition sections")?;
-    let service = ace_service::Service::new(db, orchestrator).with_dispositions(dispositions);
+    let service = ace_service::Service::new(db, orchestrator)
+        .with_dispositions(dispositions)
+        .with_runs(runs);
     let actor = ace_service::Actor::Internal {
         id: ace_service::Component::new("hunter")?,
     };

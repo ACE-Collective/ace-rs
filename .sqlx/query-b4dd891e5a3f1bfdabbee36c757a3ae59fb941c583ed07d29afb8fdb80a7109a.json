@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, sha256, rule_uuids, capture_count,\n                                  deleted_by AS \"deleted_by!: Value\", reason, deleted_at, purged_at,\n                                  updated_at\n                           FROM svs.sample_deletions\n                           WHERE ($1::timestamptz IS NULL OR updated_at >= $1)\n                             AND ($2::timestamptz IS NULL OR (updated_at, id) > ($2, $3))\n                           ORDER BY updated_at, id LIMIT $4",
+  "query": "SELECT id, sha256, rule_uuids, capture_count,\n                                  deleted_by AS \"deleted_by!: Value\", reason, deleted_at, purged_at,\n                                  updated_at\n                           FROM svs.sample_deletions\n                           WHERE ($1::timestamptz IS NULL OR updated_at >= $1)\n                             AND ($1::timestamptz IS NULL\n                                  OR updated_at < now() - make_interval(secs => $5))\n                             AND ($2::timestamptz IS NULL OR (updated_at, id) > ($2, $3))\n                           ORDER BY updated_at, id LIMIT $4",
   "describe": {
     "columns": [
       {
@@ -108,7 +108,8 @@
         "Timestamptz",
         "Timestamptz",
         "Int8",
-        "Int8"
+        "Int8",
+        "Float8"
       ]
     },
     "nullable": [
@@ -123,5 +124,5 @@
       false
     ]
   },
-  "hash": "667c1039a5699ab3590306acdb8110cb0dc2f301625f51409bb29da175956c8e"
+  "hash": "b4dd891e5a3f1bfdabbee36c757a3ae59fb941c583ed07d29afb8fdb80a7109a"
 }

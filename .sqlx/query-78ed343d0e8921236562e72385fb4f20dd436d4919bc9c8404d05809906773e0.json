@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT (EXISTS (SELECT FROM svs.runs WHERE state = 'created')\n                   OR EXISTS (SELECT FROM svs.runs\n                              WHERE state <> 'created' AND attribution_ends_at >= $1)\n                   OR EXISTS (SELECT FROM svs.maintenance_windows\n                              WHERE ends_at >= $2 AND (ended_at IS NULL OR ended_at >= $2))) AS \"open!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "open!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Timestamptz",
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "78ed343d0e8921236562e72385fb4f20dd436d4919bc9c8404d05809906773e0"
+}

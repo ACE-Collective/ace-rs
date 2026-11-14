@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO svs.run_events (run_id, kind, actor, details, created_at)\n         VALUES ($1, $2, $3::jsonb, $4, $5)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text",
+        "Jsonb",
+        "Jsonb",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "2ad046b5228d4cbe2a241550dec48879334ae15e87b1d7f917214e00bdf40ac5"
+}

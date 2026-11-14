@@ -14170,6 +14170,7 @@ fn hunt_run(read: HuntState, submissions: Vec<HuntSubmission>) -> HuntRun {
         window_end: Some(hunt_time("2026-11-01T12:00:00Z")),
         submissions,
         suppressed: vec![],
+        suppression: None,
     }
 }
 
@@ -14491,6 +14492,7 @@ async fn a_suppressed_hit_leaves_a_row() {
         events: 1,
         since: hunt_time("2026-11-01T12:00:00Z"),
         until: hunt_time("2026-11-01T13:00:00Z"),
+        hit: grouped_hit("10.9.9.9", "dave"),
     }];
     // the same run, but read before the first committed, writes neither its roots nor its rows
     let stale = HuntRun {
@@ -18662,7 +18664,9 @@ async fn a_disposition_change_relabels_at_read_time() {
 }
 
 async fn all_samples(db: &Db, query: &SampleQuery) -> Vec<ace_service::Sample> {
-    let service = service(db);
+    // a changed-since page holds nothing back here; `a_changed_since_list_holds_back_what_just_changed`
+    // has the settle window
+    let service = service(db).with_feed_settle(chrono::TimeDelta::zero());
     let actor = admin(db).await;
     let mut samples = Vec::new();
     let mut cursor: Option<String> = None;
@@ -25777,7 +25781,7 @@ mod svs_catalog_tests {
         let test_db = TestDb::new().await;
         let db = test_db.db();
         let actor = admin(db).await;
-        let service = service(db);
+        let service = service(db).with_feed_settle(chrono::TimeDelta::zero());
         seed(
             db,
             1,
@@ -26586,7 +26590,14 @@ mod svs_runs_tests {
                 "platform": "windows",
                 "observation_source": "all_hunts",
                 "holds_host": false,
+                // no hunter has recorded its hunts here, so the window is the floor, and the
+                // registration says so (batch 6)
+                "warnings": [ace_core::svs::runs::no_hunts_warning(hours(1))],
             }))
+        );
+        assert_eq!(
+            run.warnings,
+            [ace_core::svs::runs::no_hunts_warning(hours(1))]
         );
     }
 
@@ -33710,5 +33721,3436 @@ mod svs_results_tests {
             );
         }
         rows
+    }
+}
+
+/// PLAN.md 7.10 batch 6: attribution (ace3 #842). ace3's `tests/saq/svs/test_attribution.py`'s cases
+/// against the database, `test_maintenance.py`'s `TestEvaluate`, its grouped-hunt case and the judging
+/// half of its host removal, with the core's SVS hook and the hunter's side through the service. Each test
+/// names the ace3 case it ports. The cases that need no database are `ace-core`'s
+/// (`svs::attribution::tests`, `svs::marker_rule::tests`).
+///
+/// A detection here is its row's id, where ace3 names a content hash. ace3's `evaluate(root, event_time)`
+/// is `evaluate(conn, root, &event)` with the event's time set, and its runs are rows written directly
+/// (`raw_run`) wherever the case only judges, so the times are ace3's fixed ones; the cases that go through
+/// the gate, the hook or the hunter use runs registered through the service, at the real time.
+mod svs_attribution_tests {
+    use super::svs_results_tests::catalog_test;
+    use super::*;
+    use ace_core::hooks::Hooks;
+    use ace_core::svs::attribution::{
+        self as att, ContextOwner, Evaluation, Event, EventHosts, HookConfig, MarkerResult,
+        RecordedSuppression, RunSnapshot, ScanPoint, Sighting, TargetSnapshot, TimeSource,
+    };
+    use ace_core::svs::marker_rule::MARKER_RULE_NAME;
+    use ace_core::svs::{AttributionConfidence, MARKER_MISMATCH_SIGNATURE, SvsStatus};
+    use ace_service::{
+        CatalogTestQuery, GroupSuppressed, Registration, Run, RunQuery, SvsFeed, TargetSpec,
+    };
+    use chrono::{DateTime, SubsecRound, TimeDelta, Utc};
+    use std::collections::BTreeSet as Set;
+
+    const GUID: &str = "aaaaaaaa-1111-4111-8111-111111111111";
+    const MARKER: &str = "svs-aaaaaaaaaaaaaaaaaaaaaaaaaa";
+    const OTHER_MARKER: &str = "svs-bbbbbbbbbbbbbbbbbbbbbbbbbb";
+    const HUNT_UUID: &str = "11111111-aaaa-4aaa-8aaa-111111111111";
+    const REFUSED_SIGNATURE: &str = ace_core::svs::REGISTRATION_REFUSED_SIGNATURE;
+
+    fn t0() -> DateTime<Utc> {
+        "2026-10-14T12:00:00Z".parse().expect("a time")
+    }
+
+    fn minutes(n: i64) -> TimeDelta {
+        TimeDelta::minutes(n)
+    }
+
+    fn hours(n: i64) -> TimeDelta {
+        TimeDelta::hours(n)
+    }
+
+    /// The real time, to the second, as runs store theirs.
+    fn now() -> DateTime<Utc> {
+        Utc::now().trunc_subsecs(0)
+    }
+
+    struct Fx {
+        service: Service,
+        admin: Actor,
+        orchestrator: Orchestrator,
+        bucket: Bucket,
+        _cache: tempfile::TempDir,
+    }
+
+    /// The catalog test, and a service whose core runs the SVS hook, as `ace serve`'s does.
+    async fn fixture(db: &Db) -> Fx {
+        let (bucket, cache) = bucket(db);
+        let orchestrator = orchestrator().with_hooks(Hooks::none().with_svs(HookConfig::default()));
+        let service = Service::new(db.clone(), orchestrator.clone())
+            .with_actions(test_actions())
+            .with_bucket(bucket.clone())
+            .with_feed_settle(TimeDelta::zero());
+        catalog_test(db, GUID, "T1059.001", &["windows"]).await;
+        Fx {
+            service,
+            admin: admin(db).await,
+            orchestrator,
+            bucket,
+            _cache: cache,
+        }
+    }
+
+    impl Fx {
+        /// conftest.py's `add_test_host`.
+        async fn host(&self, name: &str, fqdn: Option<&str>, ips: &[&str]) -> i64 {
+            self.service
+                .create_test_host(
+                    &self.admin,
+                    &HostFields {
+                        fqdn: fqdn.map(str::to_owned),
+                        ips: ips.iter().map(|ip| (*ip).to_owned()).collect(),
+                        ..HostFields::new(name)
+                    },
+                )
+                .await
+                .expect("adds a test host")
+                .id
+        }
+
+        /// conftest.py's `started_run`: registered and started through the service, at `at`.
+        async fn started_run(&self, host: &str, at: DateTime<Utc>) -> Run {
+            let run = self
+                .service
+                .register_svs_run(
+                    &self.admin,
+                    &Registration {
+                        test_guid: GUID.to_owned(),
+                        targets: vec![TargetSpec::new(host, None)],
+                        launcher: "art".to_owned(),
+                        batch_id: None,
+                        extra: json!({}),
+                    },
+                    at,
+                )
+                .await
+                .expect("registers");
+            self.service
+                .start_svs_run(&self.admin, run.uuid, at)
+                .await
+                .expect("starts")
+        }
+
+        async fn window(&self, host: &str, at: DateTime<Utc>) -> ace_service::MaintenanceWindow {
+            self.service
+                .open_svs_maintenance(&self.admin, host, 30, "staging", at)
+                .await
+                .expect("opens a window")
+        }
+    }
+
+    /// `_run`: a run of GUID against `host`, started at `started` (None: registered and never started), as
+    /// attribution reads it, written as its row. Its windows are the floor and the default extra hours, 1
+    /// and 25 hours, unless `hours` says otherwise. A row, not a registration, so runs may overlap on a
+    /// host, as ace3's `overlapping_runs` fixture lets them.
+    async fn raw_run(
+        db: &Db,
+        host: &str,
+        started: Option<DateTime<Utc>>,
+        observation_hours: i64,
+        holds_host: bool,
+    ) -> RunSnapshot {
+        let marker = ace_core::svs::markers::new_marker();
+        let id: i64 = sqlx::query_scalar(
+            "INSERT INTO svs.runs
+                 (uuid, test_guid, platform, test_content_hash, catalog_commit, state, marker, launcher,
+                  created_at, started_at, observation_seconds, attribution_seconds,
+                  observation_ends_at, attribution_ends_at, holds_host)
+             VALUES (gen_random_uuid(), $1::uuid, 'windows', repeat('0', 64), repeat('a', 40),
+                     CASE WHEN $3::timestamptz IS NULL THEN 'created' ELSE 'started' END::svs.run_state,
+                     $2, 'art', COALESCE($3, $6), $3, $4 * 3600, ($4 + 24) * 3600,
+                     $3 + make_interval(hours => $4), $3 + make_interval(hours => $4 + 24), $5)
+             RETURNING id",
+        )
+        .bind(GUID)
+        .bind(&marker)
+        .bind(started)
+        .bind(observation_hours as i32)
+        .bind(holds_host)
+        .bind(t0())
+        .fetch_one(db.pool())
+        .await
+        .expect("adds a run");
+        sqlx::query(
+            "INSERT INTO svs.run_targets (run_id, hostname, host, fqdn, test_host_id)
+             SELECT $1, hostname, hostname, fqdn, id FROM svs.test_hosts WHERE hostname = $2",
+        )
+        .bind(id)
+        .bind(host)
+        .execute(db.pool())
+        .await
+        .expect("adds its target");
+        snapshot(db, &marker).await
+    }
+
+    async fn run_at(db: &Db, host: &str, started: Option<DateTime<Utc>>) -> RunSnapshot {
+        raw_run(db, host, started, 1, false).await
+    }
+
+    /// A run as attribution reads it, by its marker.
+    async fn snapshot(db: &Db, marker: &str) -> RunSnapshot {
+        let mut conn = db.pool().acquire().await.expect("connects");
+        att::resolve_markers(&mut conn, &[marker.to_owned()])
+            .await
+            .expect("resolves")
+            .remove(marker)
+            .expect("a run with the marker")
+    }
+
+    /// An alert: a root that became one at `alerted_at`, with these details.
+    async fn alert_root(db: &Db, details: Option<Value>, alerted_at: DateTime<Utc>) -> Uuid {
+        let root = Uuid::new_v4();
+        sqlx::query(
+            "INSERT INTO analysis.roots
+                 (id, analysis_mode, description, event_time_source, alerted_at, origin)
+             VALUES ($1, 'correlation', 'an alert', 'unset', $2,
+                     CASE WHEN $3::jsonb IS NOT NULL THEN jsonb_build_object('details', $3::jsonb) END)",
+        )
+        .bind(root)
+        .bind(alerted_at)
+        .bind(details)
+        .execute(db.pool())
+        .await
+        .expect("adds a root");
+        root
+    }
+
+    async fn set_details(db: &Db, root: Uuid, details: Value) {
+        sqlx::query("UPDATE analysis.roots SET origin = jsonb_build_object('details', $2::jsonb) WHERE id = $1")
+            .bind(root)
+            .bind(details)
+            .execute(db.pool())
+            .await
+            .expect("sets the details");
+    }
+
+    async fn observable(db: &Db, root: Uuid, kind: &str, value: &str) -> i64 {
+        sqlx::query_scalar(
+            "INSERT INTO analysis.observables (root_id, type, value) VALUES ($1, $2, $3) RETURNING id",
+        )
+        .bind(root)
+        .bind(kind)
+        .bind(value)
+        .fetch_one(db.pool())
+        .await
+        .expect("adds an observable")
+    }
+
+    /// A module's result on `on`, with the observables it added.
+    async fn analysis(
+        db: &Db,
+        root: Uuid,
+        on: i64,
+        module: &str,
+        details: Value,
+        adds: &[i64],
+    ) -> i64 {
+        let result: i64 = sqlx::query_scalar(
+            "INSERT INTO analysis.results
+                 (root_id, observable_id, module, analysis_type, schema_version, details)
+             VALUES ($1, $2, $3, $3, 1, $4) RETURNING id",
+        )
+        .bind(root)
+        .bind(on)
+        .bind(module)
+        .bind(details)
+        .fetch_one(db.pool())
+        .await
+        .expect("adds a result");
+        for added in adds {
+            sqlx::query(
+                "INSERT INTO analysis.result_additions (root_id, result_id, observable_id)
+                 VALUES ($1, $2, $3)",
+            )
+            .bind(root)
+            .bind(result)
+            .bind(added)
+            .execute(db.pool())
+            .await
+            .expect("adds an addition");
+        }
+        result
+    }
+
+    /// A detection on an observable, or on the root.
+    async fn detect(db: &Db, root: Uuid, on: Option<i64>, description: &str) -> i64 {
+        detect_as(
+            db,
+            root,
+            on,
+            description,
+            Some("5e5e5e5e-0000-4000-8000-000000000001"),
+        )
+        .await
+    }
+
+    async fn detect_as(
+        db: &Db,
+        root: Uuid,
+        on: Option<i64>,
+        description: &str,
+        signature: Option<&str>,
+    ) -> i64 {
+        sqlx::query_scalar(
+            "INSERT INTO analysis.detections
+                 (root_id, observable_id, description, signature_uuid, signature_family)
+             VALUES ($1, $2, $3, $4, 'hunt') RETURNING id",
+        )
+        .bind(root)
+        .bind(on)
+        .bind(description)
+        .bind(signature)
+        .fetch_one(db.pool())
+        .await
+        .expect("adds a detection")
+    }
+
+    /// `_tree`: a hunt-shaped root on win10-01, with an observable carrying an analysis and a sibling URL:
+    ///
+    /// ```text
+    ///     root ── hostname win10-01
+    ///          ├─ indicator "parent" ── child_analysis ── indicator "child"
+    ///          └─ url http://example.com/
+    /// ```
+    struct Tree {
+        root: Uuid,
+        parent: i64,
+        child: i64,
+        url: i64,
+    }
+
+    async fn tree_on(db: &Db, host: &str) -> Tree {
+        let root = alert_root(db, None, t0()).await;
+        observable(db, root, "hostname", host).await;
+        let parent = observable(db, root, "indicator", "parent").await;
+        let child = observable(db, root, "indicator", "child").await;
+        analysis(db, root, parent, "child_analysis", json!({}), &[child]).await;
+        let url = observable(db, root, "url", "http://example.com/").await;
+        Tree {
+            root,
+            parent,
+            child,
+            url,
+        }
+    }
+
+    async fn tree(db: &Db) -> Tree {
+        tree_on(db, "win10-01").await
+    }
+
+    /// The root's event, by the core's one derivation.
+    async fn event_of(db: &Db, root: Uuid) -> Event {
+        let mut conn = db.pool().acquire().await.expect("connects");
+        att::root_event(&mut conn, root)
+            .await
+            .expect("reads")
+            .expect("an alert")
+    }
+
+    /// ace3's `evaluate(root, event_time)`.
+    async fn evaluate(db: &Db, root: Uuid, at: DateTime<Utc>) -> Evaluation {
+        let mut event = event_of(db, root).await;
+        event.time = at;
+        event.source = TimeSource::Event;
+        evaluate_event(db, root, &event).await
+    }
+
+    async fn evaluate_event(db: &Db, root: Uuid, event: &Event) -> Evaluation {
+        let mut conn = db.pool().acquire().await.expect("connects");
+        att::evaluate(&mut conn, root, event)
+            .await
+            .expect("reads")
+            .expect("judges")
+    }
+
+    /// ace3's `write_attributions(root.uuid, evaluation)`, in a transaction of its own.
+    async fn write(db: &Db, root: Uuid, evaluation: &Evaluation) -> att::WriteResult {
+        let mut tx = db.begin().await.expect("begins");
+        let result = att::write_attributions(tx.conn(), root, evaluation, Utc::now())
+            .await
+            .expect("writes");
+        tx.commit().await.expect("commits");
+        result
+    }
+
+    fn attributed(evaluation: &Evaluation) -> Set<i64> {
+        evaluation
+            .attributions
+            .iter()
+            .map(|a| a.detection)
+            .collect()
+    }
+
+    fn user_json(id: u128, name: &str) -> Value {
+        json!({"kind": "user", "id": Uuid::from_u128(id), "name": name})
+    }
+
+    /// `_person_row`: a row a person left: a hand attribution (`manual`), or a row of the hook's a person
+    /// removed.
+    async fn person_row(
+        db: &Db,
+        run: &RunSnapshot,
+        root: Uuid,
+        detection: i64,
+        manual: bool,
+        removed: bool,
+    ) {
+        sqlx::query(
+            "INSERT INTO svs.attributions
+                 (run_id, root_id, detection_id, confidence, source, actor, removed_at, removed_by)
+             VALUES ($1, $2, $3, 'marker', $4, $5, CASE WHEN $6 THEN now() END,
+                     CASE WHEN $6 THEN $7::jsonb END)",
+        )
+        .bind(run.id)
+        .bind(root)
+        .bind(detection)
+        .bind(if manual { "manual" } else { "router" })
+        .bind(if manual {
+            user_json(0xA11CE, "unittest")
+        } else {
+            json!({"kind": "internal", "id": "svs"})
+        })
+        .bind(removed)
+        .bind(user_json(0xA11CE, "unittest"))
+        .execute(db.pool())
+        .await
+        .expect("adds a person's row");
+    }
+
+    /// The alert's attribution rows: (detection, removed, who removed it, source), by detection.
+    async fn rows(db: &Db, root: Uuid) -> Vec<(i64, bool, Option<String>, String)> {
+        sqlx::query_as(
+            "SELECT detection_id, removed_at IS NOT NULL, removed_by ->> 'id', source
+             FROM svs.attributions WHERE root_id = $1 ORDER BY detection_id",
+        )
+        .bind(root)
+        .fetch_all(db.pool())
+        .await
+        .expect("reads")
+    }
+
+    async fn generation(db: &Db, run: i64) -> Option<i64> {
+        sqlx::query_scalar("SELECT generation FROM svs.run_result_state WHERE run_id = $1")
+            .bind(run)
+            .fetch_optional(db.pool())
+            .await
+            .expect("reads")
+    }
+
+    async fn run_id(db: &Db, run: Uuid) -> i64 {
+        sqlx::query_scalar("SELECT id FROM svs.runs WHERE uuid = $1")
+            .bind(run)
+            .fetch_one(db.pool())
+            .await
+            .expect("the run")
+    }
+
+    async fn open(db: &Db, at: DateTime<Utc>) -> bool {
+        let mut conn = db.pool().acquire().await.expect("connects");
+        att::attribution_open(&mut conn, at, hours(24))
+            .await
+            .expect("reads")
+    }
+
+    //
+    // finding markers (TestFindingMarkers' cases over a tree)
+    //
+
+    /// `test_the_tree`.
+    #[tokio::test]
+    async fn the_tree() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let _f = fixture(db).await;
+        let t = tree(db).await;
+        set_details(
+            db,
+            t.root,
+            json!({"events": [{"cmd": format!("powershell <# {MARKER} #>")}]}),
+        )
+        .await;
+        let marked = observable(db, t.root, "indicator", &format!("x {OTHER_MARKER}")).await;
+        detect(db, t.root, Some(t.child), &format!("saw {OTHER_MARKER}")).await;
+        // a file's name is searched as its value is
+        let file = observable(db, t.root, "file", &"ab".repeat(32)).await;
+        sqlx::query(
+            "INSERT INTO analysis.files (root_id, observable_id, path) VALUES ($1, $2, $3)",
+        )
+        .bind(t.root)
+        .bind(file)
+        .bind(format!("C:/Temp/{}.txt", MARKER.to_uppercase()))
+        .execute(db.pool())
+        .await
+        .expect("adds a file");
+
+        let mut conn = db.pool().acquire().await.expect("connects");
+        let sightings = att::tree_sightings(&mut conn, t.root).await.expect("reads");
+        assert!(sightings.contains(&Sighting::new(MARKER, None, ScanPoint::RootDetails)));
+        assert!(sightings.contains(&Sighting::new(
+            OTHER_MARKER,
+            Some(marked),
+            ScanPoint::Observable
+        )));
+        assert!(sightings.contains(&Sighting::new(
+            OTHER_MARKER,
+            Some(t.child),
+            ScanPoint::Detection
+        )));
+        assert!(sightings.contains(&Sighting::new(MARKER, Some(file), ScanPoint::Observable)));
+        assert_eq!(sightings.len(), 4, "{sightings:?}");
+    }
+
+    /// `test_the_executor_hook_saves_what_analysis_details_carry`: ace3's executor saves the markers of
+    /// each module's details on the root as the module returns; here they're read from the results, with
+    /// the marker rule's matches as file contents, and at most `MAX_SIGHTINGS` of them.
+    #[tokio::test]
+    async fn the_results_details_carry_markers() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let _f = fixture(db).await;
+        let t = tree(db).await;
+        analysis(
+            db,
+            t.root,
+            t.parent,
+            "module_x",
+            json!({"stdout": format!("ran {MARKER}")}),
+            &[],
+        )
+        .await;
+        let matched = serde_json::to_value(ace_results::Bytes::new(
+            format!(" {OTHER_MARKER}\n").into_bytes(),
+        ))
+        .expect("bytes");
+        analysis(
+            db,
+            t.root,
+            t.child,
+            "yara_scanner_v3_4",
+            json!({"scan_results": [{"rule": MARKER_RULE_NAME, "strings": [[0, "$marker", matched]]}]}),
+            &[],
+        )
+        .await;
+        let mut conn = db.pool().acquire().await.expect("connects");
+        let sightings = att::tree_sightings(&mut conn, t.root).await.expect("reads");
+        assert_eq!(
+            sightings,
+            [
+                Sighting {
+                    module: Some("module_x".to_owned()),
+                    ..Sighting::new(MARKER, Some(t.parent), ScanPoint::Analysis)
+                },
+                Sighting {
+                    module: Some("yara_scanner_v3_4".to_owned()),
+                    ..Sighting::new(OTHER_MARKER, Some(t.child), ScanPoint::FileContents)
+                },
+            ]
+        );
+
+        // the bound: a result with more markers than an alert keeps
+        let many: Vec<String> = (0..att::MAX_SIGHTINGS + 50)
+            .map(|_| ace_core::svs::markers::new_marker())
+            .collect();
+        analysis(db, t.root, t.url, "module_y", json!({"lines": many}), &[]).await;
+        let sightings = att::tree_sightings(&mut conn, t.root).await.expect("reads");
+        assert_eq!(sightings.len(), att::MAX_SIGHTINGS);
+    }
+
+    //
+    // evaluation (TestEvaluate)
+    //
+
+    async fn evaluate_fixture(db: &Db) -> Fx {
+        let f = fixture(db).await;
+        f.host("win10-01", None, &[]).await;
+        f.host("srv-01", None, &[]).await;
+        f
+    }
+
+    /// `test_a_marker_in_the_alerts_details_attributes_everything`.
+    #[tokio::test]
+    async fn a_marker_in_the_alerts_details_attributes_everything() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let _f = evaluate_fixture(db).await;
+        let run = run_at(db, "win10-01", Some(t0())).await;
+        let t = tree(db).await;
+        set_details(
+            db,
+            t.root,
+            json!({"events": [{"cmd": format!("whoami & REM {}", run.marker)}]}),
+        )
+        .await;
+        let hit = detect(db, t.root, None, "hunt hit").await;
+        let bad = detect(db, t.root, Some(t.url), "bad url").await;
+
+        let evaluation = evaluate(db, t.root, t0() + minutes(5)).await;
+        assert_eq!(evaluation.status, Some(SvsStatus::Test));
+        assert!(evaluation.routed());
+        assert_eq!(evaluation.judgements[0].result, MarkerResult::Attributed);
+        assert_eq!(attributed(&evaluation), Set::from([hit, bad]));
+        assert!(
+            evaluation.attributions.iter().all(|a| {
+                a.run == run && a.confidence == AttributionConfidence::Marker && !a.late
+            })
+        );
+        assert!(
+            evaluation
+                .attributions
+                .iter()
+                .all(|a| a.scan_point == Some(ScanPoint::RootDetails))
+        );
+    }
+
+    /// `test_a_marker_attributes_its_own_branch`: up (the parent and the root's own detections) and down
+    /// (the grandchild), not the sibling URL.
+    #[tokio::test]
+    async fn a_marker_attributes_its_own_branch() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let _f = evaluate_fixture(db).await;
+        let run = run_at(db, "win10-01", Some(t0())).await;
+        let t = tree(db).await;
+        let grandchild = observable(db, t.root, "indicator", "grandchild").await;
+        analysis(
+            db,
+            t.root,
+            t.child,
+            "child_analysis",
+            json!({}),
+            &[grandchild],
+        )
+        .await;
+        let hunt = detect(db, t.root, None, "hunt hit").await;
+        let parent = detect(db, t.root, Some(t.parent), "parent hit").await;
+        let child = detect(db, t.root, Some(t.child), "child hit").await;
+        let below = detect(db, t.root, Some(grandchild), "grandchild hit").await;
+        detect(db, t.root, Some(t.url), "bad url").await;
+        // the marker rule matched the child's contents
+        let matched =
+            serde_json::to_value(ace_results::Bytes::new(run.marker.clone().into_bytes()))
+                .expect("bytes");
+        analysis(
+            db,
+            t.root,
+            t.child,
+            "yara_scanner_v3_4",
+            json!({"scan_results": [{"rule": MARKER_RULE_NAME, "strings": [[0, "$marker", matched]]}]}),
+            &[],
+        )
+        .await;
+
+        let evaluation = evaluate(db, t.root, t0()).await;
+        assert_eq!(evaluation.status, Some(SvsStatus::Partial));
+        assert!(!evaluation.routed());
+        assert_eq!(
+            attributed(&evaluation),
+            Set::from([hunt, parent, child, below])
+        );
+        assert!(
+            evaluation
+                .attributions
+                .iter()
+                .all(|a| a.scan_point == Some(ScanPoint::FileContents))
+        );
+    }
+
+    /// `test_a_marker_beneath_a_detection_attributes_it`.
+    #[tokio::test]
+    async fn a_marker_beneath_a_detection_attributes_it() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let _f = evaluate_fixture(db).await;
+        let run = run_at(db, "win10-01", Some(t0())).await;
+        let t = tree(db).await;
+        detect(db, t.root, Some(t.parent), "parent hit").await;
+        let deeper = observable(db, t.root, "indicator", &format!("deeper {}", run.marker)).await;
+        analysis(db, t.root, t.child, "child_analysis", json!({}), &[deeper]).await;
+        assert_eq!(
+            evaluate(db, t.root, t0()).await.status,
+            Some(SvsStatus::Test)
+        );
+    }
+
+    /// `test_a_marker_that_does_not_agree_is_a_mismatch`, its five cases: the run whose marker it is and a
+    /// run context would claim overlap on one host.
+    #[tokio::test]
+    async fn a_marker_that_does_not_agree_is_a_mismatch() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let _f = evaluate_fixture(db).await;
+        // a run on the same host whose window covers the alert: context would claim it
+        run_at(db, "win10-01", Some(t0())).await;
+        type Started = Option<DateTime<Utc>>;
+        let cases: [(Option<(&str, Started)>, MarkerResult); 5] = [
+            (None, MarkerResult::Unknown),
+            (Some(("srv-01", Some(t0()))), MarkerResult::OtherHost),
+            (Some(("win10-01", None)), MarkerResult::OutsideWindow),
+            (
+                Some(("win10-01", Some(t0() + minutes(1)))),
+                MarkerResult::OutsideWindow,
+            ),
+            (
+                Some(("win10-01", Some(t0() - hours(26)))),
+                MarkerResult::OutsideWindow,
+            ),
+        ];
+        for (run, result) in cases {
+            let marker = match run {
+                Some((host, started)) => run_at(db, host, started).await.marker,
+                None => MARKER.to_owned(),
+            };
+            let t = tree(db).await;
+            set_details(db, t.root, json!({"cmd": marker})).await;
+            detect(db, t.root, None, "hunt hit").await;
+
+            let evaluation = evaluate(db, t.root, t0()).await;
+            assert_eq!(evaluation.status, Some(SvsStatus::Mismatch), "{result}");
+            assert_eq!(
+                evaluation
+                    .mismatches()
+                    .map(|j| (j.marker.as_str(), j.result))
+                    .collect::<Vec<_>>(),
+                [(marker.as_str(), result)]
+            );
+            assert!(evaluation.attributions.is_empty());
+        }
+    }
+
+    /// `test_one_disagreeing_marker_ends_attribution_for_the_whole_alert`.
+    #[tokio::test]
+    async fn one_disagreeing_marker_ends_attribution_for_the_whole_alert() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let _f = evaluate_fixture(db).await;
+        let run = run_at(db, "win10-01", Some(t0())).await;
+        let t = tree(db).await;
+        set_details(db, t.root, json!({"a": run.marker, "b": OTHER_MARKER})).await;
+        detect(db, t.root, None, "hunt hit").await;
+
+        let evaluation = evaluate(db, t.root, t0()).await;
+        assert_eq!(evaluation.status, Some(SvsStatus::Mismatch));
+        assert!(evaluation.attributions.is_empty());
+    }
+
+    /// `test_late`.
+    #[tokio::test]
+    async fn late() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let _f = evaluate_fixture(db).await;
+        let run = run_at(db, "win10-01", Some(t0())).await;
+        let t = tree(db).await;
+        set_details(db, t.root, json!({"cmd": run.marker})).await;
+        detect(db, t.root, None, "hunt hit").await;
+
+        let evaluation = evaluate(db, t.root, t0() + hours(2)).await;
+        let [attribution] = evaluation.attributions.as_slice() else {
+            panic!("one attribution: {evaluation:?}")
+        };
+        assert!(attribution.late);
+    }
+
+    /// `test_context_with_exactly_one_candidate`.
+    #[tokio::test]
+    async fn context_with_exactly_one_candidate() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let _f = evaluate_fixture(db).await;
+        let t = tree(db).await;
+        detect(db, t.root, None, "hunt hit").await;
+        detect(db, t.root, Some(t.url), "bad url").await;
+        let run = run_at(db, "win10-01", Some(t0())).await;
+        run_at(db, "srv-01", Some(t0())).await;
+
+        let evaluation = evaluate(db, t.root, t0()).await;
+        assert_eq!(evaluation.status, Some(SvsStatus::TestContext));
+        assert!(evaluation.routed());
+        assert_eq!(
+            evaluation.confidence(),
+            Some(AttributionConfidence::Context)
+        );
+        assert!(evaluation.attributions.iter().all(|a| a.run.id == run.id));
+        assert_eq!(evaluation.attributions.len(), 2);
+        assert!(
+            evaluation
+                .attributions
+                .iter()
+                .all(|a| a.scan_point.is_none())
+        );
+    }
+
+    /// `test_the_svs_built_ins_are_never_attributed`, both signatures.
+    #[tokio::test]
+    async fn the_svs_built_ins_are_never_attributed() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let _f = evaluate_fixture(db).await;
+        run_at(db, "win10-01", Some(t0())).await;
+        for signature in [REFUSED_SIGNATURE, MARKER_MISMATCH_SIGNATURE] {
+            let t = tree(db).await;
+            detect_as(db, t.root, None, "svs built-in", Some(signature)).await;
+
+            let evaluation = evaluate(db, t.root, t0()).await;
+            assert!(evaluation.detections.is_empty());
+            assert_eq!(evaluation.status, None);
+            assert!(evaluation.attributions.is_empty());
+        }
+    }
+
+    /// `test_context_goes_to_the_run_on_the_host_after_the_one_before_released_it`.
+    #[tokio::test]
+    async fn context_goes_to_the_run_on_the_host_after_the_one_before_released_it() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let _f = evaluate_fixture(db).await;
+        let first = run_at(db, "win10-01", Some(t0())).await;
+        // the first run's claim ended with its observation window, at T0 + 1h
+        let second = run_at(db, "win10-01", Some(t0() + hours(2))).await;
+
+        for (event_time, run, late) in [
+            (t0() + minutes(30), &first, false),
+            (t0() + minutes(150), &second, false),
+            // the first run's attribution window still covers it, as late
+            (t0() + minutes(90), &first, true),
+        ] {
+            let t = tree(db).await;
+            detect(db, t.root, None, "hunt hit").await;
+            let evaluation = evaluate(db, t.root, event_time).await;
+            assert_eq!(evaluation.status, Some(SvsStatus::TestContext));
+            assert_eq!(
+                evaluation
+                    .attributions
+                    .iter()
+                    .map(|a| (a.run.id, a.late))
+                    .collect::<Vec<_>>(),
+                [(run.id, late)]
+            );
+            assert!(evaluation.candidate_runs.is_empty());
+        }
+    }
+
+    /// `test_context_refuses_runs_whose_claims_overlap`.
+    #[tokio::test]
+    async fn context_refuses_runs_whose_claims_overlap() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let _f = evaluate_fixture(db).await;
+        // a test that holds the host keeps its claim for its attribution window
+        let first = raw_run(db, "win10-01", Some(t0()), 1, true).await;
+        assert!(first.holds_host);
+        let second = run_at(db, "win10-01", Some(t0() + hours(2))).await;
+
+        let t = tree(db).await;
+        detect(db, t.root, None, "hunt hit").await;
+        let evaluation = evaluate(db, t.root, t0() + minutes(150)).await;
+        assert_eq!(evaluation.status, None);
+        assert!(evaluation.attributions.is_empty());
+        assert_eq!(
+            evaluation
+                .candidate_runs
+                .iter()
+                .map(|r| r.id)
+                .collect::<Vec<_>>(),
+            [first.id, second.id]
+        );
+    }
+
+    /// `test_no_detections_no_attribution`.
+    #[tokio::test]
+    async fn no_detections_no_attribution() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let _f = evaluate_fixture(db).await;
+        let run = run_at(db, "win10-01", Some(t0())).await;
+        let t = tree(db).await;
+        set_details(db, t.root, json!({"cmd": run.marker})).await;
+
+        let evaluation = evaluate(db, t.root, t0()).await;
+        assert_eq!(evaluation.status, None);
+        assert!(evaluation.attributions.is_empty());
+    }
+
+    /// `test_what_a_person_removed_stays_removed`.
+    #[tokio::test]
+    async fn what_a_person_removed_stays_removed() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let _f = evaluate_fixture(db).await;
+        let run = run_at(db, "win10-01", Some(t0())).await;
+        let t = tree(db).await;
+        set_details(db, t.root, json!({"cmd": run.marker})).await;
+        let hit = detect(db, t.root, None, "hunt hit").await;
+        let bad = detect(db, t.root, Some(t.url), "bad url").await;
+        // the person attributed the hunt hit by hand and removed the bad url
+        person_row(db, &run, t.root, hit, true, false).await;
+        person_row(db, &run, t.root, bad, false, true).await;
+
+        let evaluation = evaluate(db, t.root, t0()).await;
+        assert_eq!(evaluation.status, Some(SvsStatus::Partial));
+        assert!(!attributed(&evaluation).contains(&bad));
+    }
+
+    /// `test_a_run_a_person_disassociated_the_alert_from_attributes_nothing`.
+    #[tokio::test]
+    async fn a_run_a_person_disassociated_the_alert_from_attributes_nothing() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let _f = evaluate_fixture(db).await;
+        let run = run_at(db, "win10-01", Some(t0())).await;
+        let t = tree(db).await;
+        set_details(db, t.root, json!({"cmd": run.marker})).await;
+        let hit = detect(db, t.root, None, "hunt hit").await;
+        person_row(db, &run, t.root, hit, false, true).await;
+        // a detection added since the disassociation is not attributed either
+        detect(db, t.root, Some(t.url), "bad url").await;
+
+        let evaluation = evaluate(db, t.root, t0()).await;
+        assert!(evaluation.attributions.is_empty());
+        assert_eq!(evaluation.status, None);
+    }
+
+    /// `test_a_persons_association_counts`.
+    #[tokio::test]
+    async fn a_persons_association_counts() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let _f = evaluate_fixture(db).await;
+        let run = run_at(db, "win10-01", Some(t0())).await;
+        let t = tree(db).await;
+        let hit = detect(db, t.root, None, "hunt hit").await;
+        person_row(db, &run, t.root, hit, true, false).await;
+        assert_eq!(
+            evaluate(db, t.root, t0()).await.status,
+            Some(SvsStatus::Test)
+        );
+    }
+
+    //
+    // against the database (TestDatabase)
+    //
+
+    async fn database_fixture(db: &Db) -> Fx {
+        let f = fixture(db).await;
+        f.host("win10-01", Some("win10-01.lab.example"), &["10.0.0.5"])
+            .await;
+        f.host("win10-02", None, &[]).await;
+        f
+    }
+
+    /// `test_the_gate`, `test_a_registered_run_opens_the_gate_before_it_starts` and `test_the_gate_is_cached`:
+    /// ace3 trusts its answer for five seconds per process; here it's asked each time, so a run that's
+    /// gone closes it at once.
+    #[tokio::test]
+    async fn the_gate() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = database_fixture(db).await;
+        assert!(!open(db, Utc::now()).await);
+
+        // a registered run opens it before it starts
+        let run = f
+            .service
+            .register_svs_run(
+                &f.admin,
+                &Registration {
+                    test_guid: GUID.to_owned(),
+                    targets: vec![TargetSpec::new("win10-01", None)],
+                    launcher: "art".to_owned(),
+                    batch_id: None,
+                    extra: json!({}),
+                },
+                now(),
+            )
+            .await
+            .expect("registers");
+        assert!(open(db, Utc::now()).await);
+        f.service
+            .start_svs_run(&f.admin, run.uuid, now())
+            .await
+            .expect("starts");
+        assert!(open(db, Utc::now()).await);
+
+        // a run long over does not hold it open
+        sqlx::query(
+            "UPDATE svs.runs SET attribution_ends_at = now() - interval '1 minute', state = 'closed'",
+        )
+        .execute(db.pool())
+        .await
+        .expect("ends");
+        assert!(!open(db, Utc::now()).await);
+
+        // nothing is cached: open again with a run, shut as soon as it's gone
+        f.started_run("win10-02", now()).await;
+        assert!(open(db, Utc::now()).await);
+        sqlx::query("DELETE FROM svs.runs")
+            .execute(db.pool())
+            .await
+            .expect("deletes");
+        assert!(!open(db, Utc::now()).await);
+    }
+
+    /// `test_only_started_runs_are_cached`: what a marker resolves to. There is no cache to hold a miss or
+    /// a snapshot: every marker is read in the caller's transaction.
+    #[tokio::test]
+    async fn a_marker_resolves_to_its_run() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = database_fixture(db).await;
+        let mut conn = db.pool().acquire().await.expect("connects");
+        assert!(
+            att::resolve_markers(&mut conn, &[MARKER.to_owned()])
+                .await
+                .expect("reads")
+                .is_empty()
+        );
+        // a run registered after a miss is found at once
+        let created = run_at(db, "win10-01", None).await;
+        assert_eq!(created.started_at, None);
+
+        let run = f.started_run("win10-02", now()).await;
+        let found = snapshot(db, &run.marker).await;
+        assert_eq!(found.uuid, run.uuid);
+        assert_eq!(found.targets, [TargetSnapshot::new("win10-02", None, &[])]);
+        assert_eq!(
+            created.targets,
+            [TargetSnapshot::new(
+                "win10-01",
+                Some("win10-01.lab.example"),
+                &["10.0.0.5"]
+            )]
+        );
+    }
+
+    /// `test_runs_overlapping`.
+    #[tokio::test]
+    async fn runs_overlapping() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = database_fixture(db).await;
+        let run = f.started_run("win10-01", now()).await;
+        let soon = now() + minutes(1);
+        let hosts = EventHosts::of_names(&["win10-01"]);
+        let mut conn = db.pool().acquire().await.expect("connects");
+        assert_eq!(
+            att::runs_overlapping(&mut conn, soon, soon, &[&hosts])
+                .await
+                .expect("reads")
+                .iter()
+                .map(|r| r.uuid)
+                .collect::<Vec<_>>(),
+            [run.uuid]
+        );
+        let an_hour_ago = now() - hours(1);
+        assert!(
+            att::runs_overlapping(&mut conn, an_hour_ago, an_hour_ago, &[&hosts])
+                .await
+                .expect("reads")
+                .is_empty()
+        );
+        // a span that reaches into its window
+        assert_eq!(
+            att::runs_overlapping(&mut conn, an_hour_ago, soon, &[&hosts])
+                .await
+                .expect("reads")
+                .len(),
+            1
+        );
+        // only the runs on the hosts asked about are read
+        let elsewhere = EventHosts::of_names(&["win10-02"]);
+        assert!(
+            att::runs_overlapping(&mut conn, an_hour_ago, soon, &[&elsewhere])
+                .await
+                .expect("reads")
+                .is_empty()
+        );
+    }
+
+    /// `test_evaluate_by_ip`.
+    #[tokio::test]
+    async fn evaluate_by_ip() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = database_fixture(db).await;
+        let run = f.started_run("win10-01", now()).await;
+        let root = alert_root(db, None, now()).await;
+        observable(db, root, "ipv4", "10.0.0.5").await;
+        detect(db, root, None, &format!("process ran {}", run.marker)).await;
+
+        let evaluation = evaluate(db, root, now() + minutes(1)).await;
+        assert_eq!(evaluation.status, Some(SvsStatus::Test));
+        assert_eq!(
+            evaluation.attributions[0].scan_point,
+            Some(ScanPoint::Detection)
+        );
+    }
+
+    /// `_root`: an alert on win10-01 with the run's marker in its details and two detections, the second
+    /// on an observable of its own.
+    async fn marked_root(db: &Db, run: &Run) -> (Uuid, i64) {
+        let root = alert_root(db, Some(json!({"cmd": run.marker})), now()).await;
+        observable(db, root, "hostname", "win10-01").await;
+        detect(db, root, None, "one").await;
+        let other = observable(db, root, "url", "http://example.com/").await;
+        detect(db, root, Some(other), "two").await;
+        (root, other)
+    }
+
+    /// `test_writing`. A detection's row never goes here, so the second detection stops being attributed
+    /// when the marker moves off the root, onto a branch it isn't on, and is attributed again when the
+    /// marker is back.
+    #[tokio::test]
+    async fn writing() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = database_fixture(db).await;
+        let run = f.started_run("win10-01", now()).await;
+        let (root, _) = marked_root(db, &run).await;
+        // every pass judges it by the same event time, so only the detections change
+        let event_time = now() + minutes(1);
+
+        let result = write(db, root, &evaluate(db, root, event_time).await).await;
+        assert_eq!(result.written.len(), 2);
+        assert!(result.first);
+        assert_eq!(
+            rows(db, root)
+                .await
+                .iter()
+                .map(|(_, removed, _, source)| (*removed, source.as_str()))
+                .collect::<Vec<_>>(),
+            [(false, "router"), (false, "router")]
+        );
+        let actor: Value =
+            sqlx::query_scalar("SELECT actor FROM svs.attributions WHERE root_id = $1 LIMIT 1")
+                .bind(root)
+                .fetch_one(db.pool())
+                .await
+                .expect("reads");
+        assert_eq!(actor, json!({"kind": "internal", "id": "svs"}));
+
+        // the same evaluation changes nothing
+        let again = write(db, root, &evaluate(db, root, event_time).await).await;
+        assert!(again.written.is_empty() && again.removed.is_empty() && !again.first);
+
+        // an attribution that no longer holds is removed by the hook ...
+        set_details(db, root, json!({})).await;
+        let marked = observable(db, root, "indicator", &format!("ran {}", run.marker)).await;
+        let result = write(db, root, &evaluate(db, root, event_time).await).await;
+        assert_eq!(result.removed.len(), 1);
+        let mut removed: Vec<bool> = rows(db, root).await.iter().map(|row| row.1).collect();
+        removed.sort_unstable();
+        assert_eq!(removed, [false, true]);
+        let reason: Vec<Option<String>> = sqlx::query_scalar(
+            "SELECT removal_reason FROM svs.attributions WHERE root_id = $1 AND removed_at IS NOT NULL",
+        )
+        .bind(root)
+        .fetch_all(db.pool())
+        .await
+        .expect("reads");
+        assert_eq!(reason, [Some(att::REMOVAL_NO_LONGER_APPLIES.to_owned())]);
+
+        // ... and restored by it when it holds again
+        sqlx::query("DELETE FROM analysis.observables WHERE id = $1")
+            .bind(marked)
+            .execute(db.pool())
+            .await
+            .expect("removes");
+        set_details(db, root, json!({"cmd": run.marker})).await;
+        let result = write(db, root, &evaluate(db, root, event_time).await).await;
+        // the restored one, and the other one's scan point, which moved back to the root's details
+        assert_eq!(result.written.len(), 2);
+        assert!(rows(db, root).await.iter().all(|row| !row.1));
+
+        // each change is in the run's event log, and the run's result is stale
+        let kinds: Vec<String> = sqlx::query_scalar(
+            "SELECT kind FROM svs.run_events WHERE run_id = $1 AND kind LIKE 'attribut%' ORDER BY id",
+        )
+        .bind(run_id(db, run.uuid).await)
+        .fetch_all(db.pool())
+        .await
+        .expect("reads");
+        assert_eq!(
+            kinds,
+            [
+                "attributed",
+                "attributed",
+                "attribution_removed",
+                "attributed"
+            ]
+        );
+        let details: Value = sqlx::query_scalar(
+            "SELECT details FROM svs.run_events WHERE run_id = $1 AND kind = 'attribution_removed'",
+        )
+        .bind(run_id(db, run.uuid).await)
+        .fetch_one(db.pool())
+        .await
+        .expect("reads");
+        assert_eq!(details["alert_uuid"], json!(root));
+        assert_eq!(details["reason"], json!(att::REMOVAL_NO_LONGER_APPLIES));
+        assert!(generation(db, run_id(db, run.uuid).await).await.is_some());
+    }
+
+    /// `test_late_is_judged_by_the_run_as_written_not_by_a_cached_snapshot`: a person ends the run early
+    /// between the evaluation's read and the write, and the write judges by the run's row as it locks it.
+    #[tokio::test]
+    async fn late_is_judged_by_the_run_as_written() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = database_fixture(db).await;
+        let started = now() - minutes(30);
+        let run = f.started_run("win10-01", started).await;
+        let (root, _) = marked_root(db, &run).await;
+
+        // read with the observation window the run started with
+        let evaluation = evaluate(db, root, started + minutes(20)).await;
+        assert!(!evaluation.attributions.iter().any(|a| a.late));
+        f.service
+            .end_svs_run(&f.admin, run.uuid, "nothing fired", started + minutes(10))
+            .await
+            .expect("ends early");
+
+        let result = write(db, root, &evaluation).await;
+        assert_eq!(
+            result.written.iter().map(|a| a.late).collect::<Vec<_>>(),
+            [true, true]
+        );
+        let late: Vec<bool> =
+            sqlx::query_scalar("SELECT late FROM svs.attributions WHERE root_id = $1")
+                .bind(root)
+                .fetch_all(db.pool())
+                .await
+                .expect("reads");
+        assert_eq!(late, [true, true]);
+    }
+
+    async fn event_times(db: &Db, root: Uuid) -> Set<Option<DateTime<Utc>>> {
+        sqlx::query_scalar("SELECT event_time FROM svs.attributions WHERE root_id = $1")
+            .bind(root)
+            .fetch_all(db.pool())
+            .await
+            .expect("reads")
+            .into_iter()
+            .collect()
+    }
+
+    /// `test_the_event_time_is_kept_as_stored`: ace3's MySQL rounds a fraction to the second; here a time
+    /// keeps its microseconds, in the row and in the comparison.
+    #[tokio::test]
+    async fn the_event_time_is_kept_as_stored() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = database_fixture(db).await;
+        let run = f.started_run("win10-01", now()).await;
+        let (root, _) = marked_root(db, &run).await;
+        let event_time = now() + minutes(1) + TimeDelta::microseconds(400_001);
+        write(db, root, &evaluate(db, root, event_time).await).await;
+        assert_eq!(event_times(db, root).await, Set::from([Some(event_time)]));
+
+        // judged again by the same time, it is unchanged: nothing is written
+        assert!(
+            write(db, root, &evaluate(db, root, event_time).await)
+                .await
+                .written
+                .is_empty()
+        );
+
+        // a pass that judges it by another event time moves it
+        let later = now() + minutes(3);
+        assert_eq!(
+            write(db, root, &evaluate(db, root, later).await)
+                .await
+                .written
+                .len(),
+            2
+        );
+        assert_eq!(event_times(db, root).await, Set::from([Some(later)]));
+    }
+
+    async fn sources(db: &Db, root: Uuid) -> Set<Option<String>> {
+        sqlx::query_scalar("SELECT event_time_source FROM svs.attributions WHERE root_id = $1")
+            .bind(root)
+            .fetch_all(db.pool())
+            .await
+            .expect("reads")
+            .into_iter()
+            .collect()
+    }
+
+    /// `test_the_event_time_source_is_kept`, by the root's own event time and source each time.
+    #[tokio::test]
+    async fn the_event_time_source_is_kept() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = database_fixture(db).await;
+        let run = f.started_run("win10-01", now()).await;
+        let (root, _) = marked_root(db, &run).await;
+        let event_time = now() + minutes(1);
+        let set = async |source: &str| {
+            sqlx::query(
+                "UPDATE analysis.roots SET event_time = $2, event_time_source = $3::analysis.event_time_source
+                 WHERE id = $1",
+            )
+            .bind(root)
+            .bind(event_time)
+            .bind(source)
+            .execute(db.pool())
+            .await
+            .expect("sets the event time");
+        };
+        let pass = async || {
+            let event = event_of(db, root).await;
+            assert_eq!(event.time, event_time);
+            write(db, root, &evaluate_event(db, root, &event).await).await
+        };
+        let of = |source: &str| Set::from([Some(source.to_owned())]);
+
+        set("event").await;
+        pass().await;
+        assert_eq!(sources(db, root).await, of("event"));
+        // a later pass that finds the time was the hunt's query time says so
+        set("query_time").await;
+        assert_eq!(pass().await.written.len(), 2);
+        assert_eq!(sources(db, root).await, of("query_time"));
+        // and one by the time its producer created it
+        set("now").await;
+        assert_eq!(pass().await.written.len(), 2);
+        assert_eq!(sources(db, root).await, of("now"));
+        // rows written before the source was recorded get it on the next pass
+        sqlx::query("UPDATE svs.attributions SET event_time_source = NULL WHERE root_id = $1")
+            .bind(root)
+            .execute(db.pool())
+            .await
+            .expect("clears");
+        set("event").await;
+        assert_eq!(pass().await.written.len(), 2);
+        assert_eq!(sources(db, root).await, of("event"));
+        // and a pass that changes nothing writes nothing
+        assert!(pass().await.written.is_empty());
+
+        // a root with no event time is judged by when it became an alert
+        sqlx::query("UPDATE analysis.roots SET event_time = NULL, event_time_source = 'unset' WHERE id = $1")
+            .bind(root)
+            .execute(db.pool())
+            .await
+            .expect("clears");
+        let event = event_of(db, root).await;
+        assert_eq!(event.source, TimeSource::InsertTime);
+        write(db, root, &evaluate_event(db, root, &event).await).await;
+        assert_eq!(sources(db, root).await, of("insert_time"));
+    }
+
+    /// `test_alerts_of_one_run_written_at_once`: each write locks the run before its rows, so alerts of
+    /// one run arriving together wait their turn instead of deadlocking, with no retry to hide one.
+    #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+    async fn alerts_of_one_run_written_at_once() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = database_fixture(db).await;
+        let run = f.started_run("win10-01", now()).await;
+        sqlx::query(
+            "UPDATE svs.runs SET state = 'reviewed', changed_since_review = false WHERE uuid = $1",
+        )
+        .bind(run.uuid)
+        .execute(db.pool())
+        .await
+        .expect("reviews");
+        let mut writes = Vec::new();
+        for _ in 0..8 {
+            let (root, _) = marked_root(db, &run).await;
+            let evaluation = evaluate(db, root, now() + minutes(1)).await;
+            let db = db.clone();
+            writes.push((
+                root,
+                tokio::spawn(async move {
+                    let mut tx = db.begin().await.map_err(|e| e.to_string())?;
+                    att::write_attributions(tx.conn(), root, &evaluation, Utc::now())
+                        .await
+                        .map_err(|e| e.to_string())?;
+                    tx.commit().await.map_err(|e| e.to_string())
+                }),
+            ));
+        }
+        for (root, written) in writes {
+            assert_eq!(written.await.expect("joins"), Ok(()));
+            assert_eq!(rows(db, root).await.len(), 2);
+        }
+        let changed: bool =
+            sqlx::query_scalar("SELECT changed_since_review FROM svs.runs WHERE uuid = $1")
+                .bind(run.uuid)
+                .fetch_one(db.pool())
+                .await
+                .expect("reads");
+        assert!(
+            changed,
+            "a late alert after sign-off returns the run to Needs attention"
+        );
+    }
+
+    /// `test_a_person_removal_is_never_undone`.
+    #[tokio::test]
+    async fn a_person_removal_is_never_undone() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = database_fixture(db).await;
+        let run = f.started_run("win10-01", now()).await;
+        let (root, _) = marked_root(db, &run).await;
+        let soon = now() + minutes(1);
+        write(db, root, &evaluate(db, root, soon).await).await;
+        sqlx::query(
+            "UPDATE svs.attributions SET removed_at = now(), removed_by = $2
+             WHERE id = (SELECT min(id) FROM svs.attributions WHERE root_id = $1)",
+        )
+        .bind(root)
+        .bind(user_json(0xA11CE, "alice"))
+        .execute(db.pool())
+        .await
+        .expect("removes");
+
+        // a person's removal blocks the run for the whole alert: the hook removes its other row
+        let evaluation = evaluate(db, root, soon).await;
+        assert_eq!(evaluation.status, None);
+        assert!(write(db, root, &evaluation).await.written.is_empty());
+        let removers: Vec<Option<String>> = sqlx::query_scalar(
+            "SELECT removed_by ->> 'kind' FROM svs.attributions WHERE root_id = $1 ORDER BY id",
+        )
+        .bind(root)
+        .fetch_all(db.pool())
+        .await
+        .expect("reads");
+        assert_eq!(
+            removers,
+            [Some("user".to_owned()), Some("internal".to_owned())]
+        );
+    }
+
+    /// `test_a_removal_by_a_user_named_like_the_router_is_still_a_persons`.
+    #[tokio::test]
+    async fn a_removal_by_a_user_named_like_the_hook_is_still_a_persons() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = database_fixture(db).await;
+        let run = f.started_run("win10-01", now()).await;
+        let (root, _) = marked_root(db, &run).await;
+        let soon = now() + minutes(1);
+        write(db, root, &evaluate(db, root, soon).await).await;
+        sqlx::query(
+            "UPDATE svs.attributions SET removed_at = now(), removed_by = $2 WHERE root_id = $1",
+        )
+        .bind(root)
+        .bind(user_json(0x5E5, "svs"))
+        .execute(db.pool())
+        .await
+        .expect("removes");
+
+        assert!(
+            write(db, root, &evaluate(db, root, soon).await)
+                .await
+                .written
+                .is_empty()
+        );
+        assert!(rows(db, root).await.iter().all(|row| row.1));
+    }
+
+    /// `test_a_mismatch_removes_what_the_router_wrote`.
+    #[tokio::test]
+    async fn a_mismatch_removes_what_the_hook_wrote() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = database_fixture(db).await;
+        let run = f.started_run("win10-01", now()).await;
+        let (root, _) = marked_root(db, &run).await;
+        let soon = now() + minutes(1);
+        write(db, root, &evaluate(db, root, soon).await).await;
+
+        set_details(
+            db,
+            root,
+            json!({"cmd": run.marker, "other": format!("svs-{}", "z".repeat(26))}),
+        )
+        .await;
+        let evaluation = evaluate(db, root, soon).await;
+        assert_eq!(evaluation.status, Some(SvsStatus::Mismatch));
+        assert_eq!(write(db, root, &evaluation).await.removed.len(), 2);
+        assert!(
+            rows(db, root)
+                .await
+                .iter()
+                .all(|row| row.2.as_deref() == Some("svs"))
+        );
+    }
+
+    //
+    // suppressed matches (TestSuppressedMatches): the core's half, as `record_hunt_run` calls it
+    //
+
+    /// A match a hunt dropped: when, on which host, for which group, and the dedup key it repeated.
+    struct Dropped {
+        at: DateTime<Utc>,
+        host: &'static str,
+        group: Option<&'static str>,
+        dedup_key: Option<String>,
+    }
+
+    /// `_match`: a match of a grouped hunt on win10-01, at `at`.
+    fn dropped(at: DateTime<Utc>) -> Dropped {
+        Dropped {
+            at,
+            host: "win10-01",
+            group: Some("alice"),
+            dedup_key: None,
+        }
+    }
+
+    fn event_at(host: &str, at: DateTime<Utc>) -> Event {
+        Event::derive(
+            [(ObservableKind::Hostname, host)],
+            Some((at, TimeSource::Event)),
+            Utc::now(),
+        )
+    }
+
+    /// ace3's `record_suppressed_matches(hunt, matches)`, as `record_hunt_run` does it: the gate, the one
+    /// question of who owns each match, then the record, in one transaction.
+    async fn record(db: &Db, hunt: &str, matches: &[Dropped]) -> Vec<RecordedSuppression> {
+        let mut tx = db.begin().await.expect("begins");
+        if matches.is_empty()
+            || !att::attribution_open(tx.conn(), Utc::now(), hours(24))
+                .await
+                .expect("reads")
+        {
+            return Vec::new();
+        }
+        let events: Vec<Event> = matches.iter().map(|m| event_at(m.host, m.at)).collect();
+        let owners = att::context_owners(tx.conn(), &events)
+            .await
+            .expect("reads");
+        let dropped: Vec<att::DroppedMatch<'_>> = matches
+            .iter()
+            .zip(&owners)
+            .zip(&events)
+            .map(|((m, owner), event)| att::DroppedMatch {
+                owner,
+                event_time: event.time,
+                group_value: m.group.map(str::to_owned),
+                dedup_key: m.dedup_key.clone(),
+            })
+            .collect();
+        let recorded = att::record_suppressed_matches(tx.conn(), hunt, &dropped)
+            .await
+            .expect("records");
+        tx.commit().await.expect("commits");
+        recorded
+    }
+
+    /// `_suppressed`: the hunt's rows, by run.
+    async fn suppressed(db: &Db, hunt: &str) -> Vec<(i64, Option<String>, DateTime<Utc>)> {
+        sqlx::query_as(
+            "SELECT run_id, group_value, event_time FROM svs.suppressed_matches
+             WHERE hunt_uuid = $1 ORDER BY run_id",
+        )
+        .bind(hunt)
+        .fetch_all(db.pool())
+        .await
+        .expect("reads")
+    }
+
+    async fn suppressed_fixture(db: &Db) -> Fx {
+        let f = fixture(db).await;
+        f.host("win10-01", None, &[]).await;
+        f.host("win10-02", None, &[]).await;
+        f
+    }
+
+    /// When the run under test started: two hours ago, so now is inside its window too.
+    fn two_hours_ago() -> DateTime<Utc> {
+        now() - hours(2)
+    }
+
+    /// `test_a_match_on_a_runs_host_in_its_window_is_recorded`.
+    #[tokio::test]
+    async fn a_match_on_a_runs_host_in_its_window_is_recorded() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = suppressed_fixture(db).await;
+        let started = two_hours_ago();
+        let run = f.started_run("win10-01", started).await;
+        let id = run_id(db, run.uuid).await;
+        let event_time = started + minutes(10);
+
+        let written = record(db, HUNT_UUID, &[dropped(event_time)]).await;
+        assert_eq!(
+            written
+                .iter()
+                .map(|r| (r.run, r.group_value.as_deref(), r.dedup_key.as_deref()))
+                .collect::<Vec<_>>(),
+            [(run.uuid, Some("alice"), None)]
+        );
+        assert_eq!(
+            suppressed(db, HUNT_UUID).await,
+            [(id, Some("alice".to_owned()), event_time)]
+        );
+        // the run's result reads it, so it is stale
+        assert_eq!(generation(db, id).await, Some(1));
+    }
+
+    /// `test_the_event_time_decides_not_now`: a match from before the run started stays production's
+    /// although the hunt runs inside the run's window; of several matches the first inside the window is
+    /// recorded.
+    #[tokio::test]
+    async fn the_event_time_decides_not_now() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = suppressed_fixture(db).await;
+        let started = two_hours_ago();
+        let run = f.started_run("win10-01", started).await;
+        assert!(
+            record(db, HUNT_UUID, &[dropped(started - minutes(10))])
+                .await
+                .is_empty()
+        );
+        assert!(suppressed(db, HUNT_UUID).await.is_empty());
+
+        let inside = started + minutes(30);
+        record(
+            db,
+            HUNT_UUID,
+            &[
+                Dropped {
+                    group: Some("before"),
+                    ..dropped(started - minutes(10))
+                },
+                Dropped {
+                    group: Some("later"),
+                    ..dropped(inside + minutes(5))
+                },
+                Dropped {
+                    group: Some("first"),
+                    ..dropped(inside)
+                },
+            ],
+        )
+        .await;
+        assert_eq!(
+            suppressed(db, HUNT_UUID).await,
+            [(run_id(db, run.uuid).await, Some("first".to_owned()), inside)]
+        );
+    }
+
+    /// `test_an_expired_run_is_recorded_by_the_event_time`: a catch-up execution. The run's window is
+    /// over and the match's event time was inside it: recorded while some run keeps the gate open; with
+    /// none open nothing is, as for alerts.
+    #[tokio::test]
+    async fn an_expired_run_is_recorded_by_the_event_time() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = suppressed_fixture(db).await;
+        let started = now() - TimeDelta::days(3);
+        let run = f.started_run("win10-01", started).await;
+        let matched = || dropped(started + hours(1));
+        assert!(record(db, HUNT_UUID, &[matched()]).await.is_empty());
+
+        f.started_run("win10-02", now()).await;
+        record(db, HUNT_UUID, &[matched()]).await;
+        assert_eq!(
+            suppressed(db, HUNT_UUID)
+                .await
+                .iter()
+                .map(|row| row.0)
+                .collect::<Vec<_>>(),
+            [run_id(db, run.uuid).await]
+        );
+    }
+
+    /// `test_nothing_for_another_host_or_without_a_run`.
+    #[tokio::test]
+    async fn nothing_for_another_host_or_without_a_run() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = suppressed_fixture(db).await;
+        let started = two_hours_ago();
+        assert!(
+            record(db, HUNT_UUID, &[dropped(started + minutes(10))])
+                .await
+                .is_empty()
+        );
+        f.started_run("win10-01", started).await;
+        assert!(
+            record(
+                db,
+                HUNT_UUID,
+                &[Dropped {
+                    host: "win10-02",
+                    ..dropped(started + minutes(10))
+                }]
+            )
+            .await
+            .is_empty()
+        );
+        assert!(record(db, HUNT_UUID, &[]).await.is_empty());
+        assert!(suppressed(db, HUNT_UUID).await.is_empty());
+    }
+
+    /// `test_once_per_run_and_hunt`.
+    #[tokio::test]
+    async fn once_per_run_and_hunt() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = suppressed_fixture(db).await;
+        let started = two_hours_ago();
+        let run = f.started_run("win10-01", started).await;
+        let id = run_id(db, run.uuid).await;
+        record(db, HUNT_UUID, &[dropped(started + minutes(10))]).await;
+        assert!(
+            record(
+                db,
+                HUNT_UUID,
+                &[Dropped {
+                    group: Some("bob"),
+                    ..dropped(started + minutes(20))
+                }]
+            )
+            .await
+            .is_empty()
+        );
+        assert_eq!(
+            suppressed(db, HUNT_UUID).await,
+            [(id, Some("alice".to_owned()), started + minutes(10))]
+        );
+        // not marked stale again
+        assert_eq!(generation(db, id).await, Some(1));
+
+        let other_hunt = "22222222-bbbb-4bbb-8bbb-222222222222";
+        assert_eq!(
+            record(db, other_hunt, &[dropped(started + minutes(20))])
+                .await
+                .len(),
+            1
+        );
+    }
+
+    /// `test_the_run_that_claims_it_by_context`: runs one after the other on a host. The earlier run's
+    /// attribution window still covers the later run's test, but its claim on the host has ended, so the
+    /// match is the later run's.
+    #[tokio::test]
+    async fn the_run_that_claims_it_by_context() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = suppressed_fixture(db).await;
+        let started = two_hours_ago();
+        let first = f.started_run("win10-01", started).await;
+        // after the first run's observation window (the floor, an hour), which ends its claim
+        let second = f.started_run("win10-01", started + minutes(90)).await;
+        let written = record(db, HUNT_UUID, &[dropped(started + minutes(100))]).await;
+        assert_eq!(
+            written.iter().map(|r| r.run).collect::<Vec<_>>(),
+            [second.uuid]
+        );
+        assert_eq!(
+            suppressed(db, HUNT_UUID)
+                .await
+                .iter()
+                .map(|row| row.0)
+                .collect::<Vec<_>>(),
+            [run_id(db, second.uuid).await]
+        );
+        assert_eq!(generation(db, run_id(db, first.uuid).await).await, None);
+    }
+
+    /// `test_every_run_whose_claims_overlap`.
+    #[tokio::test]
+    async fn every_run_whose_claims_overlap() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let _f = suppressed_fixture(db).await;
+        let started = two_hours_ago();
+        let first = run_at(db, "win10-01", Some(started)).await;
+        let second = run_at(db, "win10-01", Some(started + minutes(5))).await;
+        record(db, HUNT_UUID, &[dropped(started + minutes(10))]).await;
+        assert_eq!(
+            suppressed(db, HUNT_UUID)
+                .await
+                .iter()
+                .map(|row| row.0)
+                .collect::<Vec<_>>(),
+            [first.id, second.id]
+        );
+    }
+
+    /// `test_a_row_another_execution_recorded_meanwhile`: another execution of the hunt recorded the run
+    /// first. The insert keeps its row, and the run is not marked stale again.
+    #[tokio::test]
+    async fn a_row_another_execution_recorded_meanwhile() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = suppressed_fixture(db).await;
+        let started = two_hours_ago();
+        let run = f.started_run("win10-01", started).await;
+        let id = run_id(db, run.uuid).await;
+        sqlx::query(
+            "INSERT INTO svs.suppressed_matches (run_id, hunt_uuid, group_value, event_time)
+             VALUES ($1, $2, 'bob', $3)",
+        )
+        .bind(id)
+        .bind(HUNT_UUID)
+        .bind(started + minutes(5))
+        .execute(db.pool())
+        .await
+        .expect("the other execution's row");
+
+        assert!(
+            record(db, HUNT_UUID, &[dropped(started + minutes(10))])
+                .await
+                .is_empty()
+        );
+        assert_eq!(
+            suppressed(db, HUNT_UUID).await,
+            [(id, Some("bob".to_owned()), started + minutes(5))]
+        );
+        assert_eq!(generation(db, id).await, None);
+    }
+
+    /// `test_a_duplicate_is_recorded_with_its_key` and `test_a_suppressed_match_records_no_key`.
+    #[tokio::test]
+    async fn a_duplicate_is_recorded_with_its_key_and_a_suppressed_match_with_none() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = suppressed_fixture(db).await;
+        let started = two_hours_ago();
+        let run = f.started_run("win10-01", started).await;
+        let id = run_id(db, run.uuid).await;
+        let key = format!("{HUNT_UUID}:win10-01");
+        // the hunter dropped it as a duplicate of its dedup key: the key is kept, and a hunt without
+        // group_by has no group value
+        let written = record(
+            db,
+            HUNT_UUID,
+            &[Dropped {
+                group: None,
+                dedup_key: Some(key.clone()),
+                ..dropped(started + minutes(10))
+            }],
+        )
+        .await;
+        assert_eq!(
+            written
+                .iter()
+                .map(|r| (r.run_id, r.dedup_key.as_deref()))
+                .collect::<Vec<_>>(),
+            [(id, Some(key.as_str()))]
+        );
+        let row: (Option<String>, Option<String>) = sqlx::query_as(
+            "SELECT group_value, dedup_key FROM svs.suppressed_matches WHERE run_id = $1",
+        )
+        .bind(id)
+        .fetch_one(db.pool())
+        .await
+        .expect("reads");
+        assert_eq!(row, (None, Some(key)));
+        assert_eq!(generation(db, id).await, Some(1));
+
+        // a grouped hunt's own suppression: a dedup key, if it has one, is not why
+        let other_hunt = "22222222-bbbb-4bbb-8bbb-222222222222";
+        record(db, other_hunt, &[dropped(started + minutes(10))]).await;
+        let row: (Option<String>, Option<String>) = sqlx::query_as(
+            "SELECT group_value, dedup_key FROM svs.suppressed_matches WHERE hunt_uuid = $1",
+        )
+        .bind(other_hunt)
+        .fetch_one(db.pool())
+        .await
+        .expect("reads");
+        assert_eq!(row, (Some("alice".to_owned()), None));
+    }
+
+    //
+    // the hunter's side, through `Service::record_hunt_run`
+    //
+
+    const HUNT_NAME_UUID: &str = "00000000-0000-0000-0000-00000000a001";
+
+    /// A hunt's match on `host`: its submission as the hunter makes one, with the host among its
+    /// observables and these details.
+    fn hit(
+        host: &str,
+        group: Option<&str>,
+        event_time: DateTime<Utc>,
+        details: Value,
+    ) -> HuntSubmission {
+        let mut hit = hunt_submission();
+        hit.submission.description = format!("hunt: {host}");
+        hit.submission.event_time = Some(event_time);
+        hit.origin.event_time_from_query = false;
+        hit.origin
+            .observables
+            .insert(0, NewObservable::new(ObservableKind::Hostname, host));
+        hit.origin.details = Some(json!({
+            "alert_type": "hunter - splunk", "queue": "default", "details": details,
+        }));
+        hit.suppression_key = group.map(str::to_owned);
+        hit.group_value = group.map(|group| json!(group));
+        hit
+    }
+
+    /// One run of the hunt, as the hunter records it: it read the stored state, decided `suppressed` by
+    /// each group's own alert time, and proposes an alert time for the group of each submission it kept.
+    async fn tick(
+        f: &Fx,
+        at: DateTime<Utc>,
+        submissions: Vec<HuntSubmission>,
+        suppressed: Vec<HuntSubmission>,
+    ) -> ace_service::RunRecorded {
+        let read = f
+            .service
+            .hunt_state(&hunter(), "splunk", "hunt")
+            .await
+            .expect("reads the state");
+        let mut state = read.clone();
+        state.last_executed_time = Some(at);
+        state.last_end_time = Some(at);
+        for hit in &submissions {
+            if let Some(key) = &hit.suppression_key {
+                state.last_alert_times.insert(key.clone(), at);
+            }
+        }
+        let suppressed = suppressed
+            .into_iter()
+            .map(|hit| {
+                let key = hit.suppression_key.clone().expect("a grouped match");
+                let since = read.last_alert_times[&key];
+                GroupSuppressed {
+                    key,
+                    group_value: hit.group_value.clone(),
+                    description: hit.submission.description.clone(),
+                    event_time: hit.submission.event_time.expect("an event time"),
+                    events: 1,
+                    since,
+                    until: since + hours(1),
+                    hit,
+                }
+            })
+            .collect();
+        let run = HuntRun {
+            at,
+            state,
+            window_start: Some(at - minutes(10)),
+            window_end: Some(at),
+            suppressed,
+            suppression: Some(hours(1)),
+            ..hunt_run(read, submissions)
+        };
+        f.service
+            .record_hunt_run(&hunter(), &f.bucket, &run)
+            .await
+            .expect("records the run")
+    }
+
+    async fn alert_times(f: &Fx) -> Vec<String> {
+        f.service
+            .hunt_state(&hunter(), "splunk", "hunt")
+            .await
+            .expect("reads the state")
+            .last_alert_times
+            .into_keys()
+            .collect()
+    }
+
+    /// ace3's `QueryHunt.key_suppression` and `record_suppressed`, which here follow from one answer to
+    /// who owns each match, in the run's transaction: during a test run on a host a match involves, the
+    /// group's suppression is keyed by the run, so the test's first match alerts although production's
+    /// alert of the group would hide it, its second is dropped and recorded for the run, and neither
+    /// hides production's next.
+    #[tokio::test]
+    async fn a_grouped_hunts_suppression_is_keyed_by_the_run() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = suppressed_fixture(db).await;
+        let base = now();
+        let run = f.started_run("win10-01", base - minutes(30)).await;
+        let id = run_id(db, run.uuid).await;
+        let key = format!("svs_run:{}:alice", run.uuid);
+
+        // production alerts for alice, on a host that isn't a test host
+        let first = tick(
+            &f,
+            base - minutes(40),
+            vec![hit("prod-01", Some("alice"), base - minutes(41), json!({}))],
+            vec![],
+        )
+        .await;
+        assert_eq!((first.roots.len(), first.svs_keys.len()), (1, 0));
+        assert_eq!(alert_times(&f).await, ["alice"]);
+
+        // the test's match of alice: the hunter drops it for alice's alert, and it alerts all the same
+        let second = tick(
+            &f,
+            base - minutes(20),
+            vec![],
+            vec![hit(
+                "win10-01",
+                Some("alice"),
+                base - minutes(25),
+                json!({}),
+            )],
+        )
+        .await;
+        assert_eq!(
+            second.roots.len(),
+            1,
+            "a test is never hidden by an earlier alert"
+        );
+        assert!(second.suppressions.is_empty() && second.svs_matches.is_empty());
+        assert_eq!(second.svs_keys, std::slice::from_ref(&key));
+        assert_eq!(alert_times(&f).await, ["alice".to_owned(), key.clone()]);
+
+        // its next match of alice is dropped, under the run's key, and recorded for the run
+        let third = tick(
+            &f,
+            base - minutes(10),
+            vec![],
+            vec![hit(
+                "win10-01",
+                Some("alice"),
+                base - minutes(12),
+                json!({}),
+            )],
+        )
+        .await;
+        assert!(third.roots.is_empty());
+        assert_eq!(third.suppressions.len(), 1);
+        assert_eq!(
+            third
+                .svs_matches
+                .iter()
+                .map(|m| (m.run, m.group_value.as_deref()))
+                .collect::<Vec<_>>(),
+            [(run.uuid, Some("alice"))]
+        );
+        let row: (String, String, Option<Uuid>) =
+            sqlx::query_as("SELECT reason, key, cause_root FROM hunts.suppressions WHERE id = $1")
+                .bind(third.suppressions[0])
+                .fetch_one(db.pool())
+                .await
+                .expect("reads");
+        assert_eq!(
+            row,
+            ("group".to_owned(), key.clone(), Some(second.roots[0]))
+        );
+        assert_eq!(
+            suppressed(db, HUNT_NAME_UUID).await,
+            [(id, Some("alice".to_owned()), base - minutes(12))]
+        );
+        assert!(generation(db, id).await.is_some());
+
+        // the test's first match of bob alerts for the run alone: bob's own alert time isn't set, so
+        // production's next match of bob alerts; a production match beside it keeps its own
+        let fourth = tick(
+            &f,
+            base - minutes(5),
+            vec![
+                hit("win10-01", Some("bob"), base - minutes(6), json!({})),
+                hit("prod-01", Some("carol"), base - minutes(6), json!({})),
+            ],
+            vec![],
+        )
+        .await;
+        assert_eq!(fourth.roots.len(), 2);
+        let mut expected = vec![
+            "alice".to_owned(),
+            "carol".to_owned(),
+            key,
+            format!("svs_run:{}:bob", run.uuid),
+        ];
+        expected.sort();
+        assert_eq!(alert_times(&f).await, expected);
+
+        // a hunt that doesn't group is recorded as the hunter decided it
+        let roots = root_count(db).await;
+        let plain = HuntRun {
+            at: base,
+            suppression: None,
+            ..hunt_run(
+                f.service
+                    .hunt_state(&hunter(), "splunk", "hunt")
+                    .await
+                    .expect("reads"),
+                vec![hit("win10-01", None, base - minutes(2), json!({}))],
+            )
+        };
+        let recorded = f
+            .service
+            .record_hunt_run(&hunter(), &f.bucket, &plain)
+            .await
+            .expect("records");
+        assert!(recorded.svs_keys.is_empty());
+        assert_eq!(root_count(db).await, roots + 1);
+    }
+
+    /// `test_a_duplicate_the_collector_drops_on_the_runs_host`: end to end. The hunter's record drops the
+    /// run's match as a duplicate of the key an earlier match took, and the run gets the row.
+    #[tokio::test]
+    async fn a_duplicate_dropped_on_the_runs_host() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = suppressed_fixture(db).await;
+        let started = two_hours_ago();
+        let run = f.started_run("win10-01", started).await;
+        let id = run_id(db, run.uuid).await;
+        let key = format!("{HUNT_NAME_UUID}:win10-01");
+        let staged = |event_time| {
+            let mut hit = hit("win10-01", None, event_time, json!({}));
+            hit.dedup_key = Some(key.clone());
+            hit
+        };
+
+        // production took the key before the run
+        let first = tick(
+            &f,
+            started - hours(1),
+            vec![staged(started - hours(1) - minutes(1))],
+            vec![],
+        )
+        .await;
+        assert_eq!((first.roots.len(), first.suppressions.len()), (1, 0));
+        assert!(first.svs_matches.is_empty());
+        let second = tick(&f, now(), vec![staged(started + minutes(10))], vec![]).await;
+        assert_eq!((second.roots.len(), second.suppressions.len()), (0, 1));
+
+        let row: (i64, String, Option<String>, Option<String>, DateTime<Utc>) = sqlx::query_as(
+            "SELECT run_id, hunt_uuid, group_value, dedup_key, event_time FROM svs.suppressed_matches",
+        )
+        .fetch_one(db.pool())
+        .await
+        .expect("one row");
+        assert_eq!(
+            row,
+            (
+                id,
+                HUNT_NAME_UUID.to_owned(),
+                None,
+                Some(key),
+                started + minutes(10)
+            )
+        );
+        assert_eq!(generation(db, id).await, Some(1));
+    }
+
+    //
+    // who owns an event (TestContextOwners)
+    //
+
+    async fn owners(db: &Db, events: &[Event]) -> Vec<ContextOwner> {
+        let mut conn = db.pool().acquire().await.expect("connects");
+        att::context_owners(&mut conn, events).await.expect("reads")
+    }
+
+    fn at_host(host: &str, at: DateTime<Utc>) -> Event {
+        Event {
+            hosts: EventHosts::of_names(&[host]),
+            time: at,
+            source: TimeSource::Event,
+        }
+    }
+
+    /// `test_each_event_by_its_hosts_and_time`.
+    #[tokio::test]
+    async fn each_event_by_its_hosts_and_time() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let _f = suppressed_fixture(db).await;
+        let run = run_at(db, "win10-01", Some(t0())).await;
+        let (before, inside) = (t0() - minutes(10), t0() + minutes(10));
+        assert_eq!(
+            owners(
+                db,
+                &[
+                    at_host("win10-01", inside),
+                    at_host("win10-02", inside),
+                    at_host("win10-01", before)
+                ]
+            )
+            .await,
+            [
+                ContextOwner {
+                    run: Some(run.clone()),
+                    candidates: vec![run],
+                    maintenance: None,
+                },
+                ContextOwner::default(),
+                ContextOwner::default(),
+            ]
+        );
+        assert!(owners(db, &[]).await.is_empty());
+    }
+
+    /// `test_no_owner_but_every_candidate_when_claims_overlap`.
+    #[tokio::test]
+    async fn no_owner_but_every_candidate_when_claims_overlap() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let _f = suppressed_fixture(db).await;
+        let first = run_at(db, "win10-01", Some(t0())).await;
+        let second = run_at(db, "win10-01", Some(t0() + minutes(5))).await;
+        let owned = owners(db, &[at_host("win10-01", t0() + minutes(10))]).await;
+        assert_eq!(owned[0].run, None);
+        assert_eq!(owned[0].candidates, [first, second]);
+    }
+
+    /// `test_attribution_and_the_hunter_all_ask_it`: ownership is decided in one place. ace3 swaps the
+    /// function out and watches its three callers follow; here the alert's context attribution, a grouped
+    /// hunt's suppression key and its dropped matches are read off one event whose owner isn't the
+    /// obvious one (two runs on the host, the earlier one's late window still covering it), and all three
+    /// are what `context_owners` says.
+    #[tokio::test]
+    async fn attribution_and_the_hunter_all_ask_it() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = suppressed_fixture(db).await;
+        let started = two_hours_ago();
+        f.started_run("win10-01", started).await;
+        let later = f.started_run("win10-01", started + minutes(90)).await;
+        let at = started + minutes(100);
+
+        let root = alert_root(db, None, at).await;
+        observable(db, root, "hostname", "win10-01").await;
+        detect(db, root, None, "hunt hit").await;
+        let mut event = event_of(db, root).await;
+        event.time = at;
+        let owner = owners(db, std::slice::from_ref(&event)).await.remove(0);
+        assert_eq!(owner.run.as_ref().map(|run| run.uuid), Some(later.uuid));
+        assert_eq!(owner.candidates.len(), 2);
+
+        let evaluation = evaluate_event(db, root, &event).await;
+        assert_eq!(
+            evaluation
+                .attributions
+                .iter()
+                .map(|a| a.run.uuid)
+                .collect::<Set<_>>(),
+            Set::from([later.uuid])
+        );
+        assert_eq!(
+            owner.suppression_owner().map(|o| o.uuid()),
+            Some(later.uuid)
+        );
+        assert_eq!(
+            record(db, HUNT_UUID, &[dropped(at)])
+                .await
+                .iter()
+                .map(|r| r.run)
+                .collect::<Vec<_>>(),
+            [later.uuid]
+        );
+        // and the hunter's own derivation of the event is the root's
+        assert_eq!(event_at("win10-01", at).hosts, event.hosts);
+    }
+
+    //
+    // maintenance windows: test_maintenance.py's TestEvaluate, its grouped-hunt case and the judging half
+    // of its host removal
+    //
+
+    async fn maintenance_fixture(db: &Db) -> Fx {
+        let f = fixture(db).await;
+        f.host("win10-01", Some("win10-01.lab.example"), &["10.0.0.5"])
+            .await;
+        f.host("srv-01", None, &[]).await;
+        f
+    }
+
+    /// test_maintenance.py's `_root`: an alert on `host` with one detection.
+    async fn staged_root(db: &Db, host: &str, details: Option<Value>) -> Uuid {
+        let root = alert_root(db, details, now()).await;
+        observable(db, root, "hostname", host).await;
+        detect(db, root, None, "staging tool downloaded").await;
+        root
+    }
+
+    /// `TestEvaluate.test_the_gate_opens_for_a_window` and
+    /// `test_the_gate_stays_open_for_a_windows_late_alerts`.
+    #[tokio::test]
+    async fn the_gate_opens_for_a_window_and_stays_open_for_its_late_alerts() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = maintenance_fixture(db).await;
+        assert!(!open(db, Utc::now()).await);
+        f.window("win10-01", now() - minutes(10)).await;
+        assert!(open(db, Utc::now()).await);
+
+        // ended early: the horizon runs from when it ended, not from its planned end
+        let ended = now() - minutes(5);
+        f.service
+            .end_svs_maintenance(&f.admin, "win10-01", ended)
+            .await
+            .expect("ends");
+        let extra = hours(24);
+        assert!(open(db, ended + extra - minutes(1)).await);
+        assert!(!open(db, ended + extra + minutes(1)).await);
+    }
+
+    /// `TestEvaluate.test_an_alert_inside_the_window`.
+    #[tokio::test]
+    async fn an_alert_inside_the_window() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = maintenance_fixture(db).await;
+        let window = f.window("win10-01", now() - minutes(10)).await;
+        let root = staged_root(db, "win10-01", None).await;
+        let evaluation = evaluate(db, root, now()).await;
+        assert_eq!(
+            evaluation.maintenance.as_ref().map(|w| w.uuid),
+            Some(window.uuid)
+        );
+        assert_eq!(evaluation.status, None);
+        assert!(evaluation.attributions.is_empty());
+
+        // by its test host's address too
+        let root = alert_root(db, None, now()).await;
+        observable(db, root, "ipv4", "10.0.0.5").await;
+        detect(db, root, None, "hit").await;
+        assert!(evaluate(db, root, now()).await.maintenance.is_some());
+    }
+
+    /// `TestEvaluate.test_an_alert_outside_the_window`, its three cases.
+    #[tokio::test]
+    async fn an_alert_outside_the_window() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = maintenance_fixture(db).await;
+        f.window("win10-01", now() - minutes(10)).await;
+        for (host, offset) in [
+            ("srv-01", minutes(0)),     // another host
+            ("win10-01", minutes(-20)), // before the window
+            ("win10-01", minutes(30)),  // after it
+        ] {
+            let root = staged_root(db, host, None).await;
+            assert_eq!(
+                evaluate(db, root, now() + offset).await.maintenance,
+                None,
+                "{host} {offset}"
+            );
+        }
+    }
+
+    /// `TestEvaluate.test_an_alert_with_a_marker_is_judged_as_any_other`.
+    #[tokio::test]
+    async fn an_alert_with_a_marker_is_judged_as_any_other() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = maintenance_fixture(db).await;
+        f.window("win10-01", now() - minutes(10)).await;
+        let root = staged_root(db, "win10-01", Some(json!({"cmd": MARKER}))).await;
+        let evaluation = evaluate(db, root, now()).await;
+        assert_eq!(evaluation.maintenance, None);
+        assert_eq!(evaluation.status, Some(SvsStatus::Mismatch));
+    }
+
+    /// `TestEvaluate.test_the_window_wins_over_a_runs_late_attribution`.
+    #[tokio::test]
+    async fn the_window_wins_over_a_runs_late_attribution() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = maintenance_fixture(db).await;
+        // a run whose claim ended before the window opened, and whose attribution window covers it
+        let run = f.started_run("win10-01", now() - hours(3)).await;
+        let window = f.window("win10-01", now()).await;
+
+        let root = staged_root(db, "win10-01", None).await;
+        let evaluation = evaluate(db, root, now() + minutes(1)).await;
+        assert_eq!(
+            evaluation.maintenance.as_ref().map(|w| w.uuid),
+            Some(window.uuid)
+        );
+        assert!(evaluation.attributions.is_empty());
+        // and after it, the run still gets its late alerts
+        let evaluation = evaluate(db, root, now() + hours(1)).await;
+        assert_eq!(
+            evaluation
+                .attributions
+                .iter()
+                .map(|a| a.run.uuid)
+                .collect::<Set<_>>(),
+            Set::from([run.uuid])
+        );
+    }
+
+    /// `TestEvaluate.test_a_run_on_another_host_the_alert_involves_wins`: the run is on its own host, so an
+    /// alert that also names the window's host is the run's: a test that reaches from srv-01 to win10-01.
+    #[tokio::test]
+    async fn a_run_on_another_host_the_alert_involves_wins() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = maintenance_fixture(db).await;
+        let window = f.window("win10-01", now() - minutes(10)).await;
+        let run = f.started_run("srv-01", now() - minutes(5)).await;
+        let root = staged_root(db, "win10-01", None).await;
+        observable(db, root, "hostname", "srv-01").await;
+        let evaluation = evaluate(db, root, now()).await;
+        assert_eq!(evaluation.maintenance, None);
+        assert_eq!(
+            evaluation
+                .attributions
+                .iter()
+                .map(|a| a.run.uuid)
+                .collect::<Set<_>>(),
+            Set::from([run.uuid])
+        );
+        // what involves only the window's host is still the window's
+        let root = staged_root(db, "win10-01", None).await;
+        assert_eq!(
+            evaluate(db, root, now()).await.maintenance.map(|w| w.uuid),
+            Some(window.uuid)
+        );
+    }
+
+    /// `TestEvaluate.test_a_persons_association_holds_over_the_window`: an analyst associated the alert
+    /// with a run by hand, which batch 7 brings; its row is written as that write will leave it. The alert
+    /// stays the run's while the association stands, and is the window's again once a person removes it.
+    #[tokio::test]
+    async fn a_persons_association_holds_over_the_window() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = maintenance_fixture(db).await;
+        let window = f.window("win10-01", now() - minutes(10)).await;
+        let run = f.started_run("srv-01", now() - minutes(5)).await;
+        let run = snapshot(db, &run.marker).await;
+        let root = staged_root(db, "win10-01", None).await;
+        let detection: i64 =
+            sqlx::query_scalar("SELECT id FROM analysis.detections WHERE root_id = $1")
+                .bind(root)
+                .fetch_one(db.pool())
+                .await
+                .expect("its detection");
+
+        person_row(db, &run, root, detection, true, false).await;
+        let evaluation = evaluate(db, root, now()).await;
+        assert_eq!(evaluation.maintenance, None);
+        assert_eq!(
+            evaluation
+                .existing
+                .iter()
+                .filter(|row| !row.removed)
+                .map(|row| row.run_id)
+                .collect::<Vec<_>>(),
+            [run.id]
+        );
+
+        sqlx::query(
+            "UPDATE svs.attributions SET removed_at = now(), removed_by = $2 WHERE root_id = $1",
+        )
+        .bind(root)
+        .bind(user_json(0xA11CE, "unittest"))
+        .execute(db.pool())
+        .await
+        .expect("disassociates");
+        assert_eq!(
+            evaluate(db, root, now()).await.maintenance.map(|w| w.uuid),
+            Some(window.uuid)
+        );
+    }
+
+    /// `TestEvaluate.test_a_window_ended_early_ends_there`.
+    #[tokio::test]
+    async fn a_window_ended_early_ends_there() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = maintenance_fixture(db).await;
+        let window = f.window("win10-01", now() - minutes(10)).await;
+        let ended = now() - minutes(5);
+        f.service
+            .end_svs_maintenance(&f.admin, "win10-01", ended)
+            .await
+            .expect("ends");
+        let root = staged_root(db, "win10-01", None).await;
+        assert_eq!(
+            evaluate(db, root, ended - minutes(1))
+                .await
+                .maintenance
+                .map(|w| w.uuid),
+            Some(window.uuid)
+        );
+        // before its planned end, after it was ended
+        assert_eq!(evaluate(db, root, now()).await.maintenance, None);
+    }
+
+    /// `test_a_windows_matches_are_keyed_by_the_window_and_never_recorded_for_a_run`: a run's late
+    /// attribution window still covers the host when the window opens. The window's matches belong to the
+    /// window for the hunter as they do for attribution.
+    #[tokio::test]
+    async fn a_windows_matches_are_keyed_by_the_window_and_never_recorded_for_a_run() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = maintenance_fixture(db).await;
+        let run = f.started_run("win10-01", now() - hours(3)).await;
+        let window = f.window("win10-01", now() - minutes(10)).await;
+        let (inside, after) = (now(), now() + hours(1));
+
+        let owned = owners(
+            db,
+            &[
+                at_host("win10-01", inside),
+                at_host("win10-01", after),
+                at_host("srv-01", inside),
+            ],
+        )
+        .await;
+        assert_eq!(
+            owned
+                .iter()
+                .map(|o| o.suppression_owner().map(|o| o.uuid()))
+                .collect::<Vec<_>>(),
+            [Some(window.uuid), Some(run.uuid), None]
+        );
+        assert_eq!(
+            owned[0].suppression_owner().map(|o| o.key("alice")),
+            Some(format!("svs_maintenance:{}:alice", window.uuid))
+        );
+        assert_eq!(
+            owned[1].suppression_owner().map(|o| o.key("alice")),
+            Some(format!("svs_run:{}:alice", run.uuid))
+        );
+
+        assert!(record(db, HUNT_UUID, &[dropped(inside)]).await.is_empty());
+        assert_eq!(
+            record(db, HUNT_UUID, &[dropped(after)])
+                .await
+                .iter()
+                .map(|r| r.run)
+                .collect::<Vec<_>>(),
+            [run.uuid]
+        );
+    }
+
+    /// The judging half of `test_removing_the_test_host_ends_its_window`: what happened before the
+    /// removal is still the window's; after it, triage's.
+    #[tokio::test]
+    async fn a_removed_hosts_window_still_owns_what_happened_in_it() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = maintenance_fixture(db).await;
+        let opened = now() - minutes(10);
+        let window = f.window("win10-01", opened).await;
+        f.window("srv-01", opened).await;
+        let host: i64 =
+            sqlx::query_scalar("SELECT id FROM svs.test_hosts WHERE hostname = 'win10-01'")
+                .fetch_one(db.pool())
+                .await
+                .expect("the host");
+        f.service
+            .delete_test_host(&f.admin, host)
+            .await
+            .expect("removes the host");
+        let ended: DateTime<Utc> =
+            sqlx::query_scalar("SELECT ended_at FROM svs.maintenance_windows WHERE uuid = $1")
+                .bind(window.uuid)
+                .fetch_one(db.pool())
+                .await
+                .expect("it ended");
+
+        let root = staged_root(db, "win10-01", None).await;
+        assert_eq!(
+            evaluate(db, root, ended - minutes(1))
+                .await
+                .maintenance
+                .map(|w| w.uuid),
+            Some(window.uuid)
+        );
+        assert_eq!(
+            evaluate(db, root, ended + TimeDelta::seconds(1))
+                .await
+                .maintenance,
+            None
+        );
+    }
+
+    //
+    // the core's SVS hook: one judgment at the end of a pass
+    //
+
+    /// Finishes what the stub modules were queued for, then runs the root's hooks task, as `ace serve`'s
+    /// hooks worker does.
+    async fn run_hooks(db: &Db, f: &Fx) -> ace_core::hooks::Ran {
+        let stubs = queue::Worker::new(
+            db.clone(),
+            "stubs",
+            vec![
+                "rdap_analyzer".to_owned(),
+                "alert_added_to_event".to_owned(),
+            ],
+            Duration::from_secs(60),
+        );
+        while let Some(task) = stubs.claim().await.expect("claims") {
+            stubs.complete(task.id).await.expect("completes");
+        }
+        let hooks = queue::Worker::new(
+            db.clone(),
+            "core/hooks",
+            vec![ace_core::hooks::HOOKS_MODULE.to_owned()],
+            Duration::from_secs(60),
+        );
+        let task = hooks.claim().await.expect("claims").expect("a hooks task");
+        f.orchestrator.run_hooks(&hooks, &task).await.expect("runs")
+    }
+
+    /// A hunt's alert on `host`, submitted as the hunter submits one, with these details.
+    async fn hunt_alert(f: &Fx, host: &str, at: DateTime<Utc>, details: Value) -> Uuid {
+        let recorded = tick(f, at, vec![hit(host, None, at, details)], vec![]).await;
+        recorded.roots[0]
+    }
+
+    async fn root_tags(db: &Db, root: Uuid) -> Vec<String> {
+        sqlx::query_scalar("SELECT tags FROM analysis.roots WHERE id = $1")
+            .bind(root)
+            .fetch_one(db.pool())
+            .await
+            .expect("reads")
+    }
+
+    async fn judge(db: &Db, root: Uuid) -> Option<att::Judged> {
+        let mut tx = db.begin().await.expect("begins");
+        let judged = att::judge(tx.conn(), root, &HookConfig::default(), Utc::now())
+            .await
+            .expect("judges");
+        tx.commit().await.expect("commits");
+        judged
+    }
+
+    /// The hook judges a root once, at the end of its pass, and its attributions, tag and the run's log
+    /// all come from that one judgment; 5b's result, lists and status then read the rows it wrote.
+    #[tokio::test]
+    async fn the_hook_attributes_an_alert_at_the_end_of_its_pass() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = suppressed_fixture(db).await;
+        let base = now();
+        let run = f.started_run("win10-01", base - minutes(30)).await;
+        let id = run_id(db, run.uuid).await;
+        let root = hunt_alert(
+            &f,
+            "win10-01",
+            base - minutes(10),
+            json!({"events": [{"cmd": format!("whoami & REM {}", run.marker.to_uppercase())}]}),
+        )
+        .await;
+        // nothing is judged until the pass ends: the hooks wait for what the modules are doing
+        assert!(rows(db, root).await.is_empty());
+
+        let ran = run_hooks(db, &f).await;
+        let judged = ran.svs.expect("the hook judged it");
+        assert_eq!(judged.status, Some(SvsStatus::Test));
+        assert_eq!(
+            (judged.written, judged.removed, judged.detected),
+            (1, 0, false)
+        );
+        assert_eq!(judged.tags, Some(vec!["svs_test".to_owned()]));
+        assert_eq!(ran.mode_changed_to, None);
+        assert_eq!(root_tags(db, root).await, ["svs_test"]);
+        assert!(
+            queue::root_is_idle(db, root).await.expect("reads"),
+            "the pass ended"
+        );
+
+        // the run's attributions, as the API lists them
+        let attributions = f
+            .service
+            .svs_run_attributions(&f.admin, run.uuid, None, None)
+            .await
+            .expect("lists");
+        let [attribution] = attributions.as_slice() else {
+            panic!("one attribution: {attributions:?}")
+        };
+        assert_eq!(
+            (
+                attribution.run,
+                attribution.alert,
+                attribution.confidence,
+                attribution.late,
+                attribution.source.as_str(),
+                attribution.scan_point.as_deref(),
+                attribution.event_time,
+                attribution.event_time_source.as_deref(),
+                attribution.fallback_time,
+                attribution.cleanup,
+                attribution.signature_uuid.as_deref(),
+                attribution.signature_family.as_deref(),
+            ),
+            (
+                run.uuid,
+                root,
+                AttributionConfidence::Marker,
+                false,
+                "router",
+                Some("root_details"),
+                Some(base - minutes(10)),
+                Some("event"),
+                false,
+                false,
+                Some(HUNT_NAME_UUID),
+                Some("hunt"),
+            )
+        );
+        assert_eq!(attribution.removed_at, None);
+        let actor = attribution.actor.as_ref().expect("an actor");
+        assert_eq!(
+            (actor.kind.as_str(), actor.id.as_str()),
+            ("internal", "svs")
+        );
+        // the feed over every run's, and the counts an export checks first
+        let all = RunQuery::default();
+        let feed = f
+            .service
+            .svs_attribution_feed(&f.admin, &all, None, None)
+            .await
+            .expect("reads");
+        assert_eq!(feed.attributions, attributions);
+        assert_eq!(feed.next_cursor, None);
+        for feed in [
+            SvsFeed::Attributions(&all),
+            SvsFeed::RunAttributions(run.uuid),
+        ] {
+            assert_eq!(
+                f.service
+                    .svs_feed_count(&f.admin, &feed, 10)
+                    .await
+                    .expect("counts"),
+                1
+            );
+        }
+        // the run's event log has it, and its result went stale
+        let details: Value = sqlx::query_scalar(
+            "SELECT details FROM svs.run_events WHERE run_id = $1 AND kind = 'attributed'",
+        )
+        .bind(id)
+        .fetch_one(db.pool())
+        .await
+        .expect("one event");
+        assert_eq!(details["alert_uuid"], json!(root));
+        assert_eq!(
+            details["detections"],
+            json!([{"detection": attribution.detection, "confidence": "marker", "late": false,
+                    "scan_point": "root_details"}])
+        );
+        assert_eq!(generation(db, id).await, Some(1));
+
+        // what batch 5b built reads the real rows: the alert's status, the verdict rule's unreviewed run,
+        // and the run's result
+        let statuses = f
+            .service
+            .alert_svs_statuses(&f.admin, &[root])
+            .await
+            .expect("reads");
+        assert_eq!(statuses[&root].status, SvsStatus::Test);
+        assert_eq!(statuses[&root].runs, [run.uuid]);
+        let unreviewed: bool = sqlx::query_scalar("SELECT svs.unreviewed_run($1)")
+            .bind(root)
+            .fetch_one(db.pool())
+            .await
+            .expect("reads");
+        assert!(unreviewed);
+        super::svs_results_tests::ended(db, run.uuid, base).await;
+        f.service
+            .compute_svs_result(&component("scheduler:svs_run_timers"), run.uuid, base)
+            .await
+            .expect("computes");
+        let result = f
+            .service
+            .svs_run_results(&f.admin, run.uuid, None, None)
+            .await
+            .expect("reads");
+        assert_eq!(
+            result
+                .results
+                .iter()
+                .map(|row| (
+                    row.signature_uuid.as_str(),
+                    row.status.as_deref(),
+                    row.alert_count
+                ))
+                .collect::<Vec<_>>(),
+            [(HUNT_NAME_UUID, Some("candidate"), 1)]
+        );
+        assert!(!result.stale);
+
+        // a second judgment of the same tree changes nothing
+        let again = judge(db, root).await.expect("judged");
+        assert_eq!((again.written, again.removed, again.tags), (0, 0, None));
+
+        // once the alert stops being a test's, the hook takes its attribution and its tag back
+        sqlx::query("UPDATE svs.run_targets SET host = 'elsewhere' WHERE run_id = $1")
+            .bind(id)
+            .execute(db.pool())
+            .await
+            .expect("moves the run");
+        let after = judge(db, root).await.expect("judged");
+        assert_eq!(after.status, Some(SvsStatus::Mismatch));
+        assert_eq!(after.removed, 1);
+        assert_eq!(
+            after.tags,
+            Some(vec!["svs:marker_mismatch".to_owned()]),
+            "svs_test goes; the mismatch stays"
+        );
+        assert!(after.detected);
+        let removed = f
+            .service
+            .svs_run_attributions(&f.admin, run.uuid, None, None)
+            .await
+            .expect("lists");
+        assert!(removed[0].removed_at.is_some());
+        assert_eq!(
+            removed[0].removal_reason.as_deref(),
+            Some(att::REMOVAL_NO_LONGER_APPLIES)
+        );
+        assert_eq!(
+            removed[0]
+                .removed_by
+                .as_ref()
+                .map(|actor| actor.id.as_str()),
+            Some("svs")
+        );
+    }
+
+    /// The tagger's half: `SVSAlertTagger`'s mismatch tag and detection, from the same judgment, and a
+    /// mismatch is never taken back.
+    #[tokio::test]
+    async fn the_hook_marks_a_mismatch() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = suppressed_fixture(db).await;
+        let base = now();
+        f.started_run("win10-01", base - minutes(30)).await;
+        let root = hunt_alert(&f, "win10-01", base - minutes(10), json!({"cmd": MARKER})).await;
+
+        let ran = run_hooks(db, &f).await;
+        let judged = ran.svs.expect("the hook judged it");
+        assert_eq!(judged.status, Some(SvsStatus::Mismatch));
+        assert!(judged.detected);
+        assert_eq!(
+            judged.written, 0,
+            "nothing is attributed, not even by context"
+        );
+        assert_eq!(root_tags(db, root).await, ["svs:marker_mismatch"]);
+        type Detected = (String, Option<Value>, Option<i64>, Option<String>);
+        let detections: Vec<Detected> = sqlx::query_as(
+            "SELECT description, details, observable_id, signature_family FROM analysis.detections
+             WHERE root_id = $1 AND signature_uuid = $2",
+        )
+        .bind(root)
+        .bind(MARKER_MISMATCH_SIGNATURE)
+        .fetch_all(db.pool())
+        .await
+        .expect("reads");
+        assert_eq!(
+            detections,
+            [(
+                format!("SVS test run marker {MARKER} does not match its run: unknown"),
+                Some(json!({"marker": MARKER, "result": "unknown"})),
+                None,
+                Some("builtin".to_owned()),
+            )]
+        );
+        // the alert's page reads the mismatch from the detection
+        let view = f
+            .service
+            .alert_svs_view(&f.admin, root)
+            .await
+            .expect("reads")
+            .expect("a view");
+        assert_eq!(view.status, SvsStatus::Mismatch);
+        assert!(rows(db, root).await.is_empty());
+
+        // idempotent: judged again, no second detection
+        let again = judge(db, root).await.expect("judged");
+        assert!(!again.detected);
+        assert_eq!(again.tags, None);
+        let count: i64 = sqlx::query_scalar(
+            "SELECT count(*) FROM analysis.detections WHERE root_id = $1 AND signature_uuid = $2",
+        )
+        .bind(root)
+        .bind(MARKER_MISMATCH_SIGNATURE)
+        .fetch_one(db.pool())
+        .await
+        .expect("counts");
+        assert_eq!(count, 1);
+
+        // a mismatch is never taken back: the marker goes from the alert's details, and its own
+        // detection still carries it, as ace3's does, so the alert stays a mismatch and out of every run
+        set_details(db, root, json!({})).await;
+        let later = judge(db, root).await.expect("judged");
+        assert_eq!(later.status, Some(SvsStatus::Mismatch));
+        assert_eq!((later.written, later.detected), (0, false));
+        assert_eq!(root_tags(db, root).await, ["svs:marker_mismatch"]);
+    }
+
+    /// The window's half: the `svs:maintenance` tag and the alert's maintenance record, which the timers
+    /// close (batch 7), written by the judgment and taken back when it no longer holds.
+    #[tokio::test]
+    async fn the_hook_records_an_alert_of_a_maintenance_window() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = maintenance_fixture(db).await;
+        let base = now();
+        let window = f.window("win10-01", base - minutes(10)).await;
+        let root = hunt_alert(&f, "win10-01", base - minutes(5), json!({})).await;
+
+        let ran = run_hooks(db, &f).await;
+        let judged = ran.svs.expect("the hook judged it");
+        assert_eq!(
+            (judged.status, judged.maintenance),
+            (None, Some(window.uuid))
+        );
+        assert_eq!(root_tags(db, root).await, ["svs:maintenance"]);
+        let records = async || -> Vec<(Uuid, bool, bool)> {
+            sqlx::query_as(
+                "SELECT w.uuid, a.removed_at IS NOT NULL, a.closed_at IS NOT NULL
+                 FROM svs.maintenance_alerts a JOIN svs.maintenance_windows w ON w.id = a.window_id
+                 WHERE a.root_id = $1 ORDER BY a.id",
+            )
+            .bind(root)
+            .fetch_all(db.pool())
+            .await
+            .expect("reads")
+        };
+        assert_eq!(records().await, [(window.uuid, false, false)]);
+        // judged again, one record still
+        judge(db, root).await;
+        assert_eq!(records().await, [(window.uuid, false, false)]);
+
+        // a person's association takes it from the window: the record and the tag go
+        let run = f.started_run("srv-01", base - minutes(5)).await;
+        let run = snapshot(db, &run.marker).await;
+        let detection: i64 =
+            sqlx::query_scalar("SELECT id FROM analysis.detections WHERE root_id = $1")
+                .bind(root)
+                .fetch_one(db.pool())
+                .await
+                .expect("its detection");
+        person_row(db, &run, root, detection, true, false).await;
+        let associated = judge(db, root).await.expect("judged");
+        assert_eq!(
+            (associated.status, associated.maintenance),
+            (Some(SvsStatus::Test), None)
+        );
+        assert_eq!(records().await, [(window.uuid, true, false)]);
+        assert_eq!(root_tags(db, root).await, ["svs_test"]);
+
+        // and they come back when the alert is the window's again
+        let disassociate = async |removed: bool| {
+            sqlx::query(
+                "UPDATE svs.attributions
+                 SET removed_at = CASE WHEN $2 THEN now() END,
+                     removed_by = CASE WHEN $2 THEN $3::jsonb END
+                 WHERE root_id = $1",
+            )
+            .bind(root)
+            .bind(removed)
+            .bind(user_json(0xA11CE, "unittest"))
+            .execute(db.pool())
+            .await
+            .expect("changes the association");
+        };
+        disassociate(true).await;
+        judge(db, root).await;
+        assert_eq!(records().await, [(window.uuid, false, false)]);
+        assert_eq!(root_tags(db, root).await, ["svs:maintenance"]);
+        // a record the timers closed is never changed
+        sqlx::query("UPDATE svs.maintenance_alerts SET closed_at = now() WHERE root_id = $1")
+            .bind(root)
+            .execute(db.pool())
+            .await
+            .expect("closes");
+        disassociate(false).await;
+        judge(db, root).await;
+        assert_eq!(records().await, [(window.uuid, false, true)]);
+    }
+
+    /// `test_the_executor_hook_does_nothing_while_the_gate_is_closed`: with no run registered or in its
+    /// window and no maintenance window lately, the hook is one query and writes nothing.
+    #[tokio::test]
+    async fn the_hook_does_nothing_while_the_gate_is_closed() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = suppressed_fixture(db).await;
+        let base = now();
+        let root = hunt_alert(&f, "win10-01", base - minutes(10), json!({"cmd": MARKER})).await;
+        let ran = run_hooks(db, &f).await;
+        assert_eq!(ran.svs, None);
+        assert!(root_tags(db, root).await.is_empty());
+        assert!(rows(db, root).await.is_empty());
+        let detections: i64 = sqlx::query_scalar(
+            "SELECT count(*) FROM analysis.detections WHERE root_id = $1 AND signature_uuid = $2",
+        )
+        .bind(root)
+        .bind(MARKER_MISMATCH_SIGNATURE)
+        .fetch_one(db.pool())
+        .await
+        .expect("counts");
+        assert_eq!(detections, 0);
+        assert!(queue::root_is_idle(db, root).await.expect("reads"));
+        // a root that isn't an alert is never judged, gate open or not
+        f.started_run("win10-01", base).await;
+        let plain = an_alert(db).await;
+        sqlx::query("UPDATE analysis.roots SET alerted_at = NULL WHERE id = $1")
+            .bind(plain)
+            .execute(db.pool())
+            .await
+            .expect("not an alert");
+        assert_eq!(judge(db, plain).await, None);
+    }
+
+    /// The hook's bounds: a hostile alert can't make it judge, or write, without limit.
+    #[tokio::test]
+    async fn the_hook_is_bounded() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = suppressed_fixture(db).await;
+        f.started_run("win10-01", now() - minutes(30)).await;
+        // more markers than one judgment judges, spread over the tree
+        let markers: Vec<String> = (0..att::MAX_MARKERS + 40)
+            .map(|_| ace_core::svs::markers::new_marker())
+            .collect();
+        let root = alert_root(db, Some(json!({"lines": markers[..100]})), now()).await;
+        observable(db, root, "hostname", "win10-01").await;
+        for marker in &markers[100..] {
+            observable(db, root, "indicator", &format!("ran {marker}")).await;
+        }
+        detect(db, root, None, "hit").await;
+        let started = Instant::now();
+        let judged = judge(db, root).await.expect("judged");
+        assert_eq!(judged.status, Some(SvsStatus::Mismatch));
+        let detections: i64 = sqlx::query_scalar(
+            "SELECT count(*) FROM analysis.detections WHERE root_id = $1 AND signature_uuid = $2",
+        )
+        .bind(root)
+        .bind(MARKER_MISMATCH_SIGNATURE)
+        .fetch_one(db.pool())
+        .await
+        .expect("counts");
+        assert_eq!(detections, att::MAX_MARKERS as i64);
+        assert!(
+            started.elapsed() < Duration::from_secs(20),
+            "{:?}",
+            started.elapsed()
+        );
+
+        // more detections than a root may have and still be judged: nothing is written for it
+        let crowded = alert_root(db, None, now()).await;
+        observable(db, crowded, "hostname", "win10-01").await;
+        sqlx::query(
+            "INSERT INTO analysis.detections (root_id, description)
+             SELECT $1, 'hit ' || n FROM generate_series(1, $2::bigint) n",
+        )
+        .bind(crowded)
+        .bind(att::MAX_DETECTIONS + 1)
+        .execute(db.pool())
+        .await
+        .expect("adds detections");
+        assert_eq!(judge(db, crowded).await, None);
+        assert!(rows(db, crowded).await.is_empty());
+
+        // an event asks only about the runs on its hosts: a run elsewhere is never read
+        let mut conn = db.pool().acquire().await.expect("connects");
+        let nowhere = att::context_owners(
+            &mut conn,
+            &[Event {
+                hosts: EventHosts::default(),
+                time: now(),
+                source: TimeSource::Event,
+            }],
+        )
+        .await
+        .expect("reads");
+        assert_eq!(nowhere, [ContextOwner::default()]);
+    }
+
+    //
+    // the owner's two additions of 2026-11-14
+    //
+
+    /// A registration, and its dry run, whose window fell back to the floor because no hunter has recorded
+    /// its hunts yet says so, and the run keeps the warning.
+    #[tokio::test]
+    async fn a_registration_with_no_recorded_hunts_says_its_window_is_the_floor() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = suppressed_fixture(db).await;
+        let on = |host: &str| Registration {
+            test_guid: GUID.to_owned(),
+            targets: vec![TargetSpec::new(host, None)],
+            launcher: "art".to_owned(),
+            batch_id: None,
+            extra: json!({}),
+        };
+        let warning = ace_core::svs::runs::no_hunts_warning(hours(1));
+        assert!(warning.contains("no hunter has recorded its hunts yet"));
+        assert!(warning.contains("60 minutes"));
+
+        let dry = f
+            .service
+            .validate_svs_run(&f.admin, &on("win10-01"), now())
+            .await
+            .expect("validates");
+        assert_eq!(dry.warnings, std::slice::from_ref(&warning));
+        assert_eq!(dry.observation_seconds, Some(3600));
+        let run = f
+            .service
+            .register_svs_run(&f.admin, &on("win10-01"), now())
+            .await
+            .expect("registers");
+        assert_eq!(run.warnings, std::slice::from_ref(&warning));
+        assert_eq!(run.observation_seconds, 3600);
+        // the run keeps it: every later read says it, and so does its log
+        let read = f
+            .service
+            .svs_run(&f.admin, run.uuid)
+            .await
+            .expect("reads")
+            .run;
+        assert_eq!(read.warnings, std::slice::from_ref(&warning));
+        let details: Value = sqlx::query_scalar(
+            "SELECT details FROM svs.run_events WHERE run_id = $1 AND kind = 'registered'",
+        )
+        .bind(run_id(db, run.uuid).await)
+        .fetch_one(db.pool())
+        .await
+        .expect("one event");
+        assert_eq!(details["warnings"], json!([warning]));
+        // a registration that isn't accepted warns of nothing: it has no window
+        let busy = f
+            .service
+            .validate_svs_run(&f.admin, &on("win10-01"), now())
+            .await
+            .expect("validates");
+        assert!(busy.warnings.is_empty());
+
+        // a test with a window of its own doesn't read the hunts, so nothing fell back
+        f.service
+            .set_svs_test_settings(&f.admin, GUID, Some(90), false)
+            .await
+            .expect("sets");
+        let own = f
+            .service
+            .validate_svs_run(&f.admin, &on("win10-02"), now())
+            .await
+            .expect("validates");
+        assert_eq!(
+            (own.warnings.len(), own.observation_seconds),
+            (0, Some(5400))
+        );
+        f.service
+            .remove_svs_test_settings(&f.admin, GUID)
+            .await
+            .expect("removes");
+
+        // once a hunter has recorded its hunts, the window is theirs and nothing is said
+        let recorded = LoadedHuntRow {
+            svs: Some(
+                serde_json::from_value(json!({
+                    "uuid": HUNT_UUID, "name": "a hunt", "enabled": true, "latency_seconds": 7200,
+                    "suppression_seconds": null, "per_group": false,
+                    "content_hash": "c".repeat(64), "tags": [],
+                }))
+                .expect("a recorded hunt"),
+            ),
+            ..loaded_hunt("hunt.yaml")
+        };
+        f.service
+            .sync_hunts(&hunter(), "splunk", &[recorded])
+            .await
+            .expect("records the hunts");
+        let dry = f
+            .service
+            .validate_svs_run(&f.admin, &on("win10-02"), now())
+            .await
+            .expect("validates");
+        assert!(dry.warnings.is_empty());
+        assert!(dry.observation_seconds > Some(3600));
+        let run = f
+            .service
+            .register_svs_run(&f.admin, &on("win10-02"), now())
+            .await
+            .expect("registers");
+        assert!(run.warnings.is_empty());
+    }
+
+    /// The changed-since lists of batches 2 to 4 (samples and their deletions, validations, catalog tests)
+    /// and the test hosts' hold a row back until its change has settled, as 5b's feeds do, so a pull
+    /// resumed from its last time can't miss a row whose transaction commits late. Without
+    /// `changed_since` a list shows every row at once.
+    #[tokio::test]
+    async fn a_changed_since_list_holds_back_what_just_changed() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let actor = admin(db).await;
+        let settling = service(db).with_feed_settle(hours(1));
+        let settled = service(db).with_feed_settle(TimeDelta::zero());
+        let since = Some(Utc::now() - TimeDelta::days(1));
+
+        // catalog tests (batch 4)
+        catalog_test(db, GUID, "T1059.001", &["windows"]).await;
+        let changed = CatalogTestQuery {
+            changed_since: since,
+            ..CatalogTestQuery::default()
+        };
+        let listed = async |service: &Service, query: &CatalogTestQuery| {
+            let page = service
+                .svs_catalog_tests(&actor, query, None, None)
+                .await
+                .expect("lists");
+            let count = service
+                .svs_catalog_test_count(&actor, query, 10)
+                .await
+                .expect("counts");
+            assert_eq!(page.tests.len() as i64, count);
+            count
+        };
+        assert_eq!(listed(&settling, &changed).await, 0);
+        assert_eq!(listed(&settled, &changed).await, 1);
+        assert_eq!(listed(&settling, &CatalogTestQuery::default()).await, 1);
+        // it shows once its change is as old as the window
+        let brief = service(db).with_feed_settle(TimeDelta::milliseconds(300));
+        tokio::time::sleep(Duration::from_millis(400)).await;
+        assert_eq!(listed(&brief, &changed).await, 1);
+
+        // samples (batch 2)
+        graded_alert(db, Some("DELIVERY"), &[("a.bin", &[RULE_UUID])], &[], true).await;
+        let changed = SampleQuery {
+            changed_since: since,
+            ..SampleQuery::default()
+        };
+        let samples = async |service: &Service, query: &SampleQuery| {
+            let page = service
+                .svs_samples(&actor, query, None, None)
+                .await
+                .expect("lists");
+            let count = service
+                .svs_sample_count(&actor, query, 10)
+                .await
+                .expect("counts");
+            assert_eq!(page.samples.len() as i64, count);
+            count
+        };
+        assert_eq!(samples(&settling, &changed).await, 0);
+        assert_eq!(samples(&settled, &changed).await, 1);
+        assert_eq!(samples(&settling, &SampleQuery::default()).await, 1);
+
+        // their deletions
+        sqlx::query(
+            "INSERT INTO svs.sample_deletions (sha256, deleted_by, reason, rule_uuids, capture_count)
+             VALUES (repeat('a', 64), '{\"kind\": \"internal\", \"id\": \"test\"}', 'a test', '{}', 0)",
+        )
+        .execute(db.pool())
+        .await
+        .expect("a deletion");
+        let deletions = async |service: &Service, since| {
+            service
+                .svs_sample_deletions(&actor, since, None, None)
+                .await
+                .expect("lists")
+                .len()
+        };
+        assert_eq!(deletions(&settling, since).await, 0);
+        assert_eq!(deletions(&settled, since).await, 1);
+        assert_eq!(deletions(&settling, None).await, 1);
+
+        // validations (batch 3)
+        sqlx::query(
+            "INSERT INTO svs.validations
+                 (uuid, repository, base_sha, head_sha, branch, requested_by, active_key)
+             VALUES (gen_random_uuid(), 'signatures', repeat('a', 40), repeat('b', 40), 'main',
+                     '{\"kind\": \"internal\", \"id\": \"test\"}', repeat('c', 64))",
+        )
+        .execute(db.pool())
+        .await
+        .expect("a validation");
+        let changed = ValidationQuery {
+            changed_since: since,
+            ..ValidationQuery::default()
+        };
+        let validations = async |service: &Service, query: &ValidationQuery| {
+            let page = service
+                .svs_validations(&actor, query, None, None)
+                .await
+                .expect("lists");
+            let count = service
+                .svs_validation_count(&actor, query, 10)
+                .await
+                .expect("counts");
+            assert_eq!(page.validations.len() as i64, count);
+            count
+        };
+        assert_eq!(validations(&settling, &changed).await, 0);
+        assert_eq!(validations(&settled, &changed).await, 1);
+        assert_eq!(validations(&settling, &ValidationQuery::default()).await, 1);
+
+        // the test hosts' page
+        settled
+            .create_test_host(&actor, &HostFields::new("win10-01"))
+            .await
+            .expect("adds a host");
+        let hosts = async |service: &Service, since| {
+            service
+                .test_hosts_page(&actor, since, None, None)
+                .await
+                .expect("lists")
+                .hosts
+                .len()
+        };
+        assert_eq!(hosts(&settling, since).await, 0);
+        assert_eq!(hosts(&settled, since).await, 1);
+        assert_eq!(hosts(&settling, None).await, 1);
+    }
+
+    /// The attribution feed: every run's attributions in (updated_at, id) order, a page at a time, behind
+    /// the runs' filters and `changed_since`, settled rows only; and one run's, in id order.
+    #[tokio::test]
+    async fn the_attribution_feed_pages_filters_and_settles() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = suppressed_fixture(db).await;
+        let base = now();
+        let first = f.started_run("win10-01", base - minutes(30)).await;
+        let second = f.started_run("win10-02", base - minutes(30)).await;
+        // three alerts of the first run, by its marker, and one of the second's, by context
+        for _ in 0..3 {
+            let root = alert_root(db, Some(json!({"cmd": first.marker})), base - minutes(5)).await;
+            observable(db, root, "hostname", "win10-01").await;
+            detect(db, root, None, "hit").await;
+            assert_eq!(judge(db, root).await.expect("judged").written, 1);
+        }
+        let root = alert_root(db, None, base - minutes(5)).await;
+        observable(db, root, "hostname", "win10-02").await;
+        detect(db, root, None, "hit").await;
+        assert_eq!(
+            judge(db, root).await.expect("judged").status,
+            Some(SvsStatus::TestContext)
+        );
+
+        let all = RunQuery::default();
+        let page = f
+            .service
+            .svs_attribution_feed(&f.admin, &all, None, Some(3))
+            .await
+            .expect("reads");
+        assert_eq!(page.attributions.len(), 3);
+        let cursor = page.next_cursor.expect("a next page");
+        let rest = f
+            .service
+            .svs_attribution_feed(&f.admin, &all, Some(&cursor), Some(3))
+            .await
+            .expect("reads");
+        assert_eq!((rest.attributions.len(), rest.next_cursor), (1, None));
+        let ordered: Vec<(DateTime<Utc>, i64)> = page
+            .attributions
+            .iter()
+            .chain(&rest.attributions)
+            .map(|a| (a.updated_at, a.id))
+            .collect();
+        let mut sorted = ordered.clone();
+        sorted.sort();
+        assert_eq!(ordered, sorted);
+        assert_eq!(
+            rest.attributions[0].confidence,
+            AttributionConfidence::Context
+        );
+        assert_eq!(rest.attributions[0].scan_point, None);
+
+        // the runs' filters, and changed_since
+        let launcher_other = RunQuery {
+            filters: vec![FilterEntry::text("Launcher", false, &["nobody"])],
+            ..RunQuery::default()
+        };
+        assert!(
+            f.service
+                .svs_attribution_feed(&f.admin, &launcher_other, None, None)
+                .await
+                .expect("reads")
+                .attributions
+                .is_empty()
+        );
+        let future = RunQuery {
+            changed_since: Some(Utc::now() + TimeDelta::days(1)),
+            ..RunQuery::default()
+        };
+        assert!(
+            f.service
+                .svs_attribution_feed(&f.admin, &future, None, None)
+                .await
+                .expect("reads")
+                .attributions
+                .is_empty()
+        );
+        // settled rows only
+        let settling = Service::new(db.clone(), f.orchestrator.clone()).with_feed_settle(hours(1));
+        assert!(
+            settling
+                .svs_attribution_feed(&f.admin, &all, None, None)
+                .await
+                .expect("reads")
+                .attributions
+                .is_empty()
+        );
+        assert_eq!(
+            settling
+                .svs_feed_count(&f.admin, &SvsFeed::Attributions(&all), 10)
+                .await
+                .expect("counts"),
+            0
+        );
+
+        // one run's, in id order, a page at a time
+        let mine = f
+            .service
+            .svs_run_attributions(&f.admin, first.uuid, None, Some(2))
+            .await
+            .expect("lists");
+        assert_eq!(mine.len(), 2);
+        let more = f
+            .service
+            .svs_run_attributions(&f.admin, first.uuid, Some(mine[1].id), Some(2))
+            .await
+            .expect("lists");
+        assert_eq!(more.len(), 1);
+        assert!(more[0].id > mine[1].id);
+        assert_eq!(
+            f.service
+                .svs_run_attributions(&f.admin, second.uuid, None, None)
+                .await
+                .expect("lists")
+                .len(),
+            1
+        );
+        // a run that isn't there, a cursor that isn't one, and an actor without svs:run_read
+        assert!(matches!(
+            f.service
+                .svs_run_attributions(&f.admin, Uuid::from_u128(0xDEAD), None, None)
+                .await,
+            Err(ServiceError::NotFound(_))
+        ));
+        assert!(matches!(
+            f.service
+                .svs_attribution_feed(&f.admin, &all, Some("garbage"), None)
+                .await,
+            Err(ServiceError::InvalidRequest(_))
+        ));
+        let outsider = user(UserId(Uuid::from_u128(0x0BAD)));
+        exists(db, &Holder::User(UserId(Uuid::from_u128(0x0BAD)))).await;
+        assert!(matches!(
+            f.service
+                .svs_attribution_feed(&outsider, &all, None, None)
+                .await,
+            Err(ServiceError::PermissionDenied { .. })
+        ));
+        assert!(matches!(
+            f.service
+                .svs_run_attributions(&outsider, first.uuid, None, None)
+                .await,
+            Err(ServiceError::PermissionDenied { .. })
+        ));
     }
 }

@@ -160,6 +160,9 @@ pub(crate) struct RunLifecycleBody {
     attribution_seconds: i32,
     /// The run holds its hosts until its attribution window ends, not its observation window.
     holds_host: bool,
+    /// What the registration warned of: that no hunter had recorded its hunts yet, so the observation
+    /// window is the floor and not the hunts' latency. Empty when there was nothing to warn of.
+    warnings: Vec<String>,
     created_at: DateTime<Utc>,
     started_at: Option<DateTime<Utc>>,
     /// When the launcher said the test's cleanup began.
@@ -182,6 +185,7 @@ impl From<Run> for RunLifecycleBody {
             observation_seconds: run.observation_seconds,
             attribution_seconds: run.attribution_seconds,
             holds_host: run.holds_host,
+            warnings: run.warnings,
             created_at: run.created_at,
             started_at: run.started_at,
             cleanup_at: run.cleanup_at,
@@ -311,6 +315,9 @@ pub(crate) struct RunValidationBody {
     observation_source: Option<String>,
     attribution_seconds: Option<i64>,
     holds_host: Option<bool>,
+    /// What registering would warn of: that no hunter has recorded its hunts yet, so the observation
+    /// window would be the floor and not the hunts' latency. Empty when there is nothing to warn of.
+    warnings: Vec<String>,
 }
 
 impl From<RunValidation> for RunValidationBody {
@@ -348,6 +355,7 @@ impl From<RunValidation> for RunValidationBody {
             observation_source: v.observation_source.map(|s| s.as_str().to_owned()),
             attribution_seconds: v.attribution_seconds,
             holds_host: v.holds_host,
+            warnings: v.warnings,
         }
     }
 }

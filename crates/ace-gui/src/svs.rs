@@ -608,6 +608,8 @@ pub fn run_view(tabs: Tabs, data: &RunPageData<'_>) -> RunView {
                 .unwrap_or_default()
         ),
     );
+    // what its registration warned of: a window that is the floor because no hunts were recorded
+    fact("Warnings", run.warnings.join("; "));
     fact(
         "Attribution window",
         format!(

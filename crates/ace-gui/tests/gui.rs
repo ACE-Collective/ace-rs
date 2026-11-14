@@ -12750,6 +12750,7 @@ fn fixture_run_row() -> RunRow {
             observation_ends_at: Some(at),
             attribution_ends_at: Some(at),
             holds_host: true,
+            warnings: vec!["no <b>hunts</b> recorded".to_owned()],
             updated_at: at,
             targets: vec![RunTarget {
                 hostname: HOSTILE.to_owned(),
@@ -13031,7 +13032,10 @@ fn the_svs_views_draw_runs_a_run_and_test_hosts() {
     );
     assert!(
         page.contains("<tr><th>Observation window</th><td class=\"qa-text\">1 h 30 min, until 2023-11-14 22:13:20 UTC</td></tr>")
-            && page.contains("25 h, until 2023-11-14 22:13:20 UTC, holding its hosts"),
+            && page.contains("25 h, until 2023-11-14 22:13:20 UTC, holding its hosts")
+            // what its registration warned of, escaped
+            && page.contains("<tr><th>Warnings</th><td class=\"qa-text\">no &#60;b&#62;hunts&#60;/b&#62; recorded</td></tr>")
+            && !page.contains("no <b>hunts</b>"),
         "{page}"
     );
     assert!(

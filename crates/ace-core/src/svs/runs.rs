@@ -82,6 +82,18 @@ impl Default for RunsConfig {
     }
 }
 
+/// What a registration, and its dry run, says when no hunter has recorded its hunts yet (`hunts.hunts.svs`)
+/// and the test has no window of its own: the observation window is then the floor, not the latency of
+/// the hunts the run waits for, so the run may end before a slow hunt has searched its time. The owner's
+/// decision of 2026-11-14; ace3 reads the hunt files itself and has no such state.
+pub fn no_hunts_warning(floor: TimeDelta) -> String {
+    format!(
+        "no hunter has recorded its hunts yet, so the observation window is the floor of {} minutes \
+         (svs.runs.observation_window.floor_minutes), not the latency of the hunts",
+        floor.num_minutes()
+    )
+}
+
 /// Where a run's observation window came from: ace3's `ObservationSource`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]

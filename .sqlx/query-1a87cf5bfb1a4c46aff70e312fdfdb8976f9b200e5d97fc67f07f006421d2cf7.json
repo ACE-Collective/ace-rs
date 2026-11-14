@@ -1,0 +1,94 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT w.id, w.uuid, w.host, w.fqdn, w.opened_at,\n                  COALESCE(w.ended_at, w.ends_at) AS \"ends_at!\", COALESCE(h.ips, '{}') AS \"ips!\"\n           FROM svs.maintenance_windows w\n           LEFT JOIN svs.test_hosts h ON h.id = w.test_host_id\n           WHERE w.ends_at >= $1 AND w.opened_at <= $2 AND (w.ended_at IS NULL OR w.ended_at >= $1)\n             AND (w.host = ANY ($3) OR h.ips && $4)\n           ORDER BY w.id DESC LIMIT $5",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "svs.maintenance_windows",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "uuid",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "svs.maintenance_windows",
+            "name": "uuid"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "host",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.maintenance_windows",
+            "name": "host"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "fqdn",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.maintenance_windows",
+            "name": "fqdn"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "opened_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "svs.maintenance_windows",
+            "name": "opened_at"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "ends_at!",
+        "type_info": "Timestamptz",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 6,
+        "name": "ips!",
+        "type_info": "TextArray",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Timestamptz",
+        "Timestamptz",
+        "TextArray",
+        "TextArray",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      false,
+      null,
+      null
+    ]
+  },
+  "hash": "1a87cf5bfb1a4c46aff70e312fdfdb8976f9b200e5d97fc67f07f006421d2cf7"
+}

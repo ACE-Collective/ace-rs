@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT CASE WHEN (origin -> 'details')::text ~* $2 THEN origin -> 'details' END AS details\n           FROM analysis.roots WHERE id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "details",
+        "type_info": "Jsonb",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "67bc7f9a53606ec2dfbd86c5ea86eea70d00d173d160e5758f395b2c21496d31"
+}

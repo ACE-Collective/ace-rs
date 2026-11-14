@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO svs.attributions\n                 (run_id, root_id, detection_id, confidence, late, event_time, event_time_source,\n                  source, scan_point, actor, created_at)\n             VALUES ($1, $2, $3, $4::text::svs.attribution_confidence, $5, $6, $7, 'router', $8,\n                     $9::jsonb, $10)\n             ON CONFLICT ON CONSTRAINT attributions_are_unique DO NOTHING",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Uuid",
+        "Int8",
+        "Text",
+        "Bool",
+        "Timestamptz",
+        "Text",
+        "Text",
+        "Jsonb",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "994ce680f03b6e2dd2927536e8874ca8d03748bf33de48fb0a96ade2889c4977"
+}

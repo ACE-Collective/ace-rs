@@ -78,9 +78,16 @@ async fn a_resolver_that_can_t_be_reached_fails_the_task_as_unavailable() {
 
 #[tokio::test]
 async fn a_truncated_answer_is_asked_again_over_tcp() {
-    let udp = UdpSocket::bind("127.0.0.1:0").await.expect("binds");
-    let addr = udp.local_addr().expect("an address");
-    let tcp = TcpListener::bind(addr).await.expect("binds");
+    // the free UDP port's TCP side can belong to another test's listener, so another port is tried
+    let (udp, addr, tcp) = loop {
+        let udp = UdpSocket::bind("127.0.0.1:0").await.expect("binds");
+        let addr = udp.local_addr().expect("an address");
+        match TcpListener::bind(addr).await {
+            Ok(tcp) => break (udp, addr, tcp),
+            Err(e) if e.kind() == std::io::ErrorKind::AddrInUse => {}
+            Err(e) => panic!("binds: {e}"),
+        }
+    };
     let full = recorded_example_com();
     let full_for_tcp = full.clone();
     // over UDP: the header and question only, marked truncated

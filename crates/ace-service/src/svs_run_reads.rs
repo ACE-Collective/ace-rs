@@ -22,13 +22,20 @@
 //!   and the batches both fold it, and a batch is shown by the first of its spellings.
 //! - A comment's author is the user, or the user an API key belongs to; a key that belongs to nobody
 //!   can't comment, as in ace3.
-//! - A run's attributions, its alerts, and its review's blockers come with batches 6 and 7, which write
-//!   them. The summary's alert counts read `svs.attributions`, which batch 6 writes.
+//! - A run's alerts and its review's blockers come with batch 7, which closes and reviews them. The
+//!   summary's alert counts read `svs.attributions`.
+//!
+//! **The attributions** (batch 6). A run's attributions, a row per (alert, detection) in id order, and
+//! the feed of every matching run's in (updated_at, id) order, settled rows only, removed ones included
+//! in both: what the core's SVS hook wrote at the end of each alert's pass
+//! (`ace_core::svs::attribution`), and what a person changes (batch 7). A row names its detection by the
+//! detection's id, where ace3's names a content hash, and reads the detection's signature from the
+//! detection rather than a copy.
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use ace_core::svs::RunState;
 use ace_core::svs::hosts::split_hostname;
+use ace_core::svs::{AttributionConfidence, RunState};
 use chrono::{DateTime, TimeDelta, Utc};
 use chrono_tz::Tz;
 use serde::Serialize;
@@ -257,6 +264,113 @@ pub struct RunResults {
     pub computed_at: Option<DateTime<Utc>>,
 }
 
+/// One detection of an alert attributed to a run, removed ones included: ace3's `Attribution`. The
+/// core's SVS hook writes the `router` rows (`ace_core::svs::attribution`, PLAN.md 7.10 batch 6) and a
+/// person's association the `manual` ones (batch 7).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RunAttribution {
+    pub id: i64,
+    pub run: Uuid,
+    /// The alert: the root the detection is on.
+    pub alert: Uuid,
+    /// The detection, `analysis.detections.id`, where ace3 names its content hash.
+    pub detection: i64,
+    pub signature_uuid: Option<String>,
+    pub signature_family: Option<String>,
+    /// `marker` or `context`; a person's association is `marker`.
+    pub confidence: AttributionConfidence,
+    /// The alert's event came after the run's observation window.
+    pub late: bool,
+    /// The event time it was judged by.
+    pub event_time: Option<DateTime<Utc>>,
+    /// Its event time is at or after the run's `cleanup_at`: the test's cleanup caused it.
+    pub cleanup: bool,
+    /// `event`, `query_time`, `now` or `insert_time`.
+    pub event_time_source: Option<String>,
+    /// The event time is a fallback, which may have put the alert in the wrong window.
+    pub fallback_time: bool,
+    /// `router` or `manual`.
+    pub source: String,
+    /// Where the agreeing marker was found; None for context or manual.
+    pub scan_point: Option<String>,
+    pub actor: Option<RecordedActor>,
+    pub created_at: DateTime<Utc>,
+    pub removed_at: Option<DateTime<Utc>>,
+    pub removed_by: Option<RecordedActor>,
+    pub removal_reason: Option<String>,
+    pub kept_at: Option<DateTime<Utc>>,
+    pub kept_by: Option<RecordedActor>,
+    /// The feed's `changed_since` key.
+    pub updated_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RunAttributionPage {
+    pub attributions: Vec<RunAttribution>,
+    pub next_cursor: Option<String>,
+}
+
+struct AttributionRowDb {
+    id: i64,
+    run: Uuid,
+    root_id: Uuid,
+    detection_id: i64,
+    signature_uuid: Option<String>,
+    signature_family: Option<String>,
+    confidence: String,
+    late: bool,
+    event_time: Option<DateTime<Utc>>,
+    cleanup: bool,
+    event_time_source: Option<String>,
+    source: String,
+    scan_point: Option<String>,
+    actor: Value,
+    created_at: DateTime<Utc>,
+    removed_at: Option<DateTime<Utc>>,
+    removed_by: Option<Value>,
+    removal_reason: Option<String>,
+    kept_at: Option<DateTime<Utc>>,
+    kept_by: Option<Value>,
+    updated_at: DateTime<Utc>,
+}
+
+impl TryFrom<AttributionRowDb> for RunAttribution {
+    type Error = ServiceError;
+
+    fn try_from(row: AttributionRowDb) -> Result<Self, ServiceError> {
+        let fallback_time = row.event_time_source.as_deref().is_some_and(|source| {
+            ace_core::svs::results::FALLBACK_EVENT_TIME_SOURCES.contains(&source)
+        });
+        Ok(RunAttribution {
+            id: row.id,
+            run: row.run,
+            alert: row.root_id,
+            detection: row.detection_id,
+            signature_uuid: row.signature_uuid,
+            signature_family: row.signature_family,
+            confidence: decode(
+                "an attribution's confidence",
+                AttributionConfidence::parse(&row.confidence),
+            )?,
+            late: row.late,
+            event_time: row.event_time,
+            cleanup: row.cleanup,
+            event_time_source: row.event_time_source,
+            fallback_time,
+            source: row.source,
+            scan_point: row.scan_point,
+            actor: RecordedActor::from_row(Some(row.actor))?,
+            created_at: row.created_at,
+            removed_at: row.removed_at,
+            removed_by: RecordedActor::from_row(row.removed_by)?,
+            removal_reason: row.removal_reason,
+            kept_at: row.kept_at,
+            kept_by: RecordedActor::from_row(row.kept_by)?,
+            updated_at: row.updated_at,
+        })
+    }
+}
+
 /// An earlier run of a run's history.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct HistoryRun {
@@ -331,9 +445,11 @@ pub enum SvsFeed<'a> {
     Batches(&'a RunQuery),
     Events(&'a RunQuery),
     Results(&'a RunQuery),
-    /// One run's event log and result.
+    Attributions(&'a RunQuery),
+    /// One run's event log, result and attributions.
     RunEvents(Uuid),
     RunResults(Uuid),
+    RunAttributions(Uuid),
     Expectations(&'a crate::svs_decisions::ExpectationQuery),
     Ignores(&'a crate::svs_decisions::IgnoreQuery),
     TestHosts(Option<DateTime<Utc>>),
@@ -489,6 +605,7 @@ struct ListRow {
     observation_ends_at: Option<DateTime<Utc>>,
     attribution_ends_at: Option<DateTime<Utc>>,
     holds_host: bool,
+    warnings: Vec<String>,
     updated_at: DateTime<Utc>,
     reviewed_at: Option<DateTime<Utc>>,
     changed_since_review: bool,
@@ -563,7 +680,7 @@ async fn list(
                   r.cleanup_at, r.exit_code, r.launcher_error, r.ended_at, r.end_reason, r.canceled_at,
                   r.closed_at, r.close_reason, r.error_reason, r.observation_seconds,
                   r.attribution_seconds, r.observation_ends_at, r.attribution_ends_at, r.holds_host,
-                  r.updated_at, r.reviewed_at, r.changed_since_review,
+                  r.warnings, r.updated_at, r.reviewed_at, r.changed_since_review,
                   c.name AS "test_name?", c.technique AS "technique?",
                   c.technique_name AS "technique_name?",
                   o.username::text AS "owner?", v.username::text AS "reviewer?",
@@ -735,6 +852,7 @@ async fn run_rows(
                     observation_ends_at: row.observation_ends_at,
                     attribution_ends_at: row.attribution_ends_at,
                     holds_host: row.holds_host,
+                    warnings: row.warnings,
                     updated_at: row.updated_at,
                     targets: targets.remove(&row.id).unwrap_or_default(),
                 },
@@ -1248,6 +1366,120 @@ impl Service {
             .await
     }
 
+    /// A page of the attributions of every run the filters match, removed ones included, in
+    /// (updated_at, id) order, settled rows only: ace3's `fetch_attribution_feed_page`. A row shows up a
+    /// few seconds after it's written, removed or kept, so a pull resumed from its last `updated_at`
+    /// never misses one, and may repeat one. It needs `svs:run_read`.
+    pub async fn svs_attribution_feed(
+        &self,
+        actor: &Actor,
+        query: &RunQuery,
+        cursor: Option<&str>,
+        limit: Option<u32>,
+    ) -> Result<RunAttributionPage, ServiceError> {
+        let limit = page_limit(limit, MAX_RUNS_PAGE)?;
+        let after = &cursor
+            .map(|cursor| FeedCursor::decode(cursor, true))
+            .transpose()?;
+        let filter = &run_filter(query, Utc::now())?;
+        let (changed_since, settle) = (query.changed_since, self.feed_settle_seconds());
+        self.gate
+            .read(actor, "svs_attribution_feed", &SVS_RUN_READ, &|tx| {
+                Box::pin(async move {
+                    let mut rows = sqlx::query_as!(
+                        AttributionRowDb,
+                        r#"SELECT a.id, r.uuid AS run, a.root_id, a.detection_id, d.signature_uuid,
+                                  d.signature_family, a.confidence::text AS "confidence!", a.late,
+                                  a.event_time,
+                                  (r.cleanup_at IS NOT NULL AND a.event_time IS NOT NULL
+                                   AND a.event_time >= r.cleanup_at) AS "cleanup!",
+                                  a.event_time_source, a.source, a.scan_point,
+                                  a.actor AS "actor!: Value", a.created_at, a.removed_at,
+                                  a.removed_by AS "removed_by: Value", a.removal_reason, a.kept_at,
+                                  a.kept_by AS "kept_by: Value", a.updated_at
+                           FROM svs.attributions a
+                           JOIN svs.runs r ON r.id = a.run_id
+                           JOIN analysis.detections d ON d.id = a.detection_id
+                           WHERE svs.run_matches(r, $1)
+                             AND ($2::timestamptz IS NULL OR a.updated_at >= $2)
+                             AND a.updated_at < now() - make_interval(secs => $3)
+                             AND ($4::bigint IS NULL
+                                  OR (a.updated_at, a.id) > ($5::timestamptz, $4))
+                           ORDER BY a.updated_at, a.id
+                           LIMIT $6"#,
+                        filter,
+                        changed_since,
+                        settle,
+                        after.as_ref().map(|c| c.id),
+                        after.as_ref().and_then(|c| c.at),
+                        limit + 1,
+                    )
+                    .fetch_all(tx.conn())
+                    .await?;
+                    let next_cursor = if rows.len() as i64 > limit {
+                        rows.truncate(limit as usize);
+                        rows.last()
+                            .map(|last| FeedCursor::encode(true, last.updated_at, last.id))
+                    } else {
+                        None
+                    };
+                    Ok(RunAttributionPage {
+                        attributions: rows
+                            .into_iter()
+                            .map(RunAttribution::try_from)
+                            .collect::<Result<_, _>>()?,
+                        next_cursor,
+                    })
+                })
+            })
+            .await
+    }
+
+    /// A run's attributions, one row per (alert, detection) in id order, removed ones included: those
+    /// after the row `after`, at most `limit` (`MAX_RUNS_PAGE` when None or more). ace3's
+    /// `fetch_run_attributions_page`. It needs `svs:run_read`; a run that isn't there is `NotFound`.
+    pub async fn svs_run_attributions(
+        &self,
+        actor: &Actor,
+        uuid: Uuid,
+        after: Option<i64>,
+        limit: Option<i64>,
+    ) -> Result<Vec<RunAttribution>, ServiceError> {
+        let max = i64::from(MAX_RUNS_PAGE);
+        let limit = limit.unwrap_or(max).clamp(1, max);
+        self.gate
+            .read(actor, "svs_run_attributions", &SVS_RUN_READ, &|tx| {
+                Box::pin(async move {
+                    let run = run_id(tx.conn(), uuid).await?;
+                    let rows = sqlx::query_as!(
+                        AttributionRowDb,
+                        r#"SELECT a.id, $2::uuid AS "run!", a.root_id, a.detection_id,
+                                  d.signature_uuid, d.signature_family,
+                                  a.confidence::text AS "confidence!", a.late, a.event_time,
+                                  (r.cleanup_at IS NOT NULL AND a.event_time IS NOT NULL
+                                   AND a.event_time >= r.cleanup_at) AS "cleanup!",
+                                  a.event_time_source, a.source, a.scan_point,
+                                  a.actor AS "actor!: Value", a.created_at, a.removed_at,
+                                  a.removed_by AS "removed_by: Value", a.removal_reason, a.kept_at,
+                                  a.kept_by AS "kept_by: Value", a.updated_at
+                           FROM svs.attributions a
+                           JOIN svs.runs r ON r.id = a.run_id
+                           JOIN analysis.detections d ON d.id = a.detection_id
+                           WHERE a.run_id = $1 AND a.id > $3
+                           ORDER BY a.id LIMIT $4"#,
+                        run,
+                        uuid,
+                        after.unwrap_or(0),
+                        limit,
+                    )
+                    .fetch_all(tx.conn())
+                    .await?;
+                    rows.into_iter().map(RunAttribution::try_from).collect()
+                })
+            })
+            .await
+    }
+
     /// A run's result, one row per signature in id order: those after the row `after`, at most `limit`
     /// (`MAX_RUNS_PAGE` when None or more), with whether the result is about to be recomputed. ace3's
     /// `fetch_run_results_page`. It needs `svs:run_read`; a run that isn't there is `NotFound`.
@@ -1468,7 +1700,8 @@ impl Service {
             SvsFeed::Runs(query)
             | SvsFeed::Batches(query)
             | SvsFeed::Events(query)
-            | SvsFeed::Results(query) => run_filter(query, now)?,
+            | SvsFeed::Results(query)
+            | SvsFeed::Attributions(query) => run_filter(query, now)?,
             _ => json!({}),
         };
         let settle = self.feed_settle_seconds();
@@ -1542,6 +1775,34 @@ impl Service {
                             .fetch_one(conn)
                             .await?
                         }
+                        SvsFeed::Attributions(query) => {
+                            sqlx::query_scalar!(
+                                r#"SELECT count(*) AS "n!" FROM (
+                                   SELECT FROM svs.attributions a
+                                   JOIN svs.runs r ON r.id = a.run_id
+                                   WHERE svs.run_matches(r, $1)
+                                     AND ($2::timestamptz IS NULL OR a.updated_at >= $2)
+                                     AND a.updated_at < now() - make_interval(secs => $3)
+                                   LIMIT $4) x"#,
+                                filter,
+                                query.changed_since,
+                                settle,
+                                cap,
+                            )
+                            .fetch_one(conn)
+                            .await?
+                        }
+                        SvsFeed::RunAttributions(uuid) => {
+                            let run = run_id(conn, *uuid).await?;
+                            sqlx::query_scalar!(
+                                r#"SELECT count(*) AS "n!" FROM (
+                                       SELECT FROM svs.attributions WHERE run_id = $1 LIMIT $2) x"#,
+                                run,
+                                cap,
+                            )
+                            .fetch_one(conn)
+                            .await?
+                        }
                         SvsFeed::RunEvents(uuid) => {
                             let run = run_id(conn, *uuid).await?;
                             sqlx::query_scalar!(
@@ -1575,10 +1836,13 @@ impl Service {
                             sqlx::query_scalar!(
                                 r#"SELECT count(*) AS "n!" FROM (
                                    SELECT FROM svs.test_hosts
-                                   WHERE $1::timestamptz IS NULL OR updated_at >= $1
+                                   WHERE $1::timestamptz IS NULL
+                                      OR (updated_at >= $1
+                                          AND updated_at < now() - make_interval(secs => $3))
                                    LIMIT $2) x"#,
                                 *changed_since,
                                 cap,
+                                settle,
                             )
                             .fetch_one(conn)
                             .await?

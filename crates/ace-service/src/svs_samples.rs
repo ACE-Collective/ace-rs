@@ -770,6 +770,7 @@ impl Service {
         }
         let p = &params(query)?;
         let (tp, fp) = &self.classes_lists();
+        let settle = self.feed_settle_seconds();
         let cursor = &cursor;
         let (samples, through) = self
             .gate
@@ -783,9 +784,19 @@ impl Service {
                             .await?
                             .unwrap_or(0),
                     };
-                    let rows = page(tx, tp, fp, through, query, cursor.as_ref(), p, limit + 1)
-                        .await
-                        .map_err(timed_out)?;
+                    let rows = page(
+                        tx,
+                        tp,
+                        fp,
+                        through,
+                        query,
+                        cursor.as_ref(),
+                        p,
+                        limit + 1,
+                        settle,
+                    )
+                    .await
+                    .map_err(timed_out)?;
                     let samples = rows
                         .into_iter()
                         .map(SampleRow::into_sample)
@@ -826,13 +837,24 @@ impl Service {
     ) -> Result<i64, ServiceError> {
         let p = &params(query)?;
         let (tp, fp) = &self.classes_lists();
+        let settle = self.feed_settle_seconds();
         self.gate
             .read(actor, "svs_sample_count", &SIGNATURE_READ, &|tx| {
                 Box::pin(async move {
                     sqlx::raw_sql(SET_LIST_TIMEOUT).execute(tx.conn()).await?;
-                    let rows = page(tx, tp, fp, i64::MAX, query, None, p, max.saturating_add(1))
-                        .await
-                        .map_err(timed_out)?;
+                    let rows = page(
+                        tx,
+                        tp,
+                        fp,
+                        i64::MAX,
+                        query,
+                        None,
+                        p,
+                        max.saturating_add(1),
+                        settle,
+                    )
+                    .await
+                    .map_err(timed_out)?;
                     Ok(i64::try_from(rows.len()).unwrap_or(i64::MAX))
                 })
             })
@@ -1004,7 +1026,9 @@ impl Service {
 
     /// The deletions, oldest change first, after the keyset `after` (a row's `updated_at` and id), changed
     /// at or after `changed_since` when it's given, of up to `limit` (100 when None): ace3's
-    /// `deletions_page`. It needs `signature:read`.
+    /// `deletions_page`. With `changed_since` a row shows up once its change has settled
+    /// (`Service::with_feed_settle`), as the samples' own changed-since list holds one back. It needs
+    /// `signature:read`.
     pub async fn svs_sample_deletions(
         &self,
         actor: &Actor,
@@ -1015,6 +1039,7 @@ impl Service {
         // one past a page, so a caller can tell there's a next
         let limit = page_limit(limit, MAX_DELETIONS_PAGE + 1)?;
         let (after_at, after_id) = (after.map(|a| a.0), after.map(|a| a.1));
+        let settle = self.feed_settle_seconds();
         self.gate
             .read(actor, "svs_sample_deletions", &SIGNATURE_READ, &|tx| {
                 Box::pin(async move {
@@ -1025,12 +1050,15 @@ impl Service {
                                   updated_at
                            FROM svs.sample_deletions
                            WHERE ($1::timestamptz IS NULL OR updated_at >= $1)
+                             AND ($1::timestamptz IS NULL
+                                  OR updated_at < now() - make_interval(secs => $5))
                              AND ($2::timestamptz IS NULL OR (updated_at, id) > ($2, $3))
                            ORDER BY updated_at, id LIMIT $4"#,
                         changed_since,
                         after_at,
                         after_id,
                         limit,
+                        settle,
                     )
                     .fetch_all(tx.conn())
                     .await?;
@@ -1550,7 +1578,7 @@ impl Service {
             .write(actor, "download_svs_samples", &SIGNATURE_DOWNLOAD, &|tx| {
                 Box::pin(async move {
                     sqlx::raw_sql(SET_LIST_TIMEOUT).execute(tx.conn()).await?;
-                    let rows = page(tx, tp, fp, i64::MAX, by_sha, None, p, i64::MAX)
+                    let rows = page(tx, tp, fp, i64::MAX, by_sha, None, p, i64::MAX, 0.0)
                         .await
                         .map_err(timed_out)?;
                     let pairs: Vec<(String, String)> = rows
@@ -1653,6 +1681,7 @@ async fn page(
     cursor: Option<&Cursor>,
     p: &Params,
     limit: i64,
+    settle: f64,
 ) -> Result<Vec<SampleRow>, sqlx::Error> {
     let [t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11] = &p.texts;
     let [a0, a1] = &p.alerts;
@@ -1727,17 +1756,24 @@ async fn page(
                AND ($35::text[] IS NULL OR s.retired::text = ANY ($35))
                AND ($36::text[] IS NULL OR NOT s.retired::text = ANY ($36))
                -- changed since: a capture, a retirement, a contributing alert's disposition or a verdict
-               AND ($37::timestamptz IS NULL OR s.updated_at >= $37
+               -- and settled: a change shows up once it's $39 seconds old, so a pull resumed from its
+               -- last time never misses one whose transaction committed late (`Service::with_feed_settle`)
+               AND ($37::timestamptz IS NULL
+                    OR (s.updated_at >= $37 AND s.updated_at < now() - make_interval(secs => $39))
                     OR EXISTS (SELECT FROM svs.sample_retirements r
                                WHERE r.sha256 = s.sha256 AND r.rule_uuid = s.rule_uuid
-                                 AND r.updated_at >= $37)
+                                 AND r.updated_at >= $37
+                                 AND r.updated_at < now() - make_interval(secs => $39))
                     OR EXISTS (SELECT FROM svs.contributing_detections($1, $2) d
                                JOIN analysis.roots ro ON ro.id = d.root_id
                                WHERE d.sha256 = s.sha256 AND d.rule_uuid = s.rule_uuid
-                                 AND (ro.dispositioned_at >= $37
+                                 AND ((ro.dispositioned_at >= $37
+                                       AND ro.dispositioned_at < now() - make_interval(secs => $39))
                                       OR EXISTS (SELECT FROM analysis.detection_verdict_history h
                                                  WHERE h.detection_id = d.detection_id
-                                                   AND h.changed_at >= $37))))
+                                                   AND h.changed_at >= $37
+                                                   AND h.changed_at
+                                                       < now() - make_interval(secs => $39)))))
            )
            SELECT k.sha256, k.rule_uuid, k.capture_count, k.stored, k.missing, k.missing_data,
                   k.unknown_version, k.first_captured, k.last_captured, k.updated_at,
@@ -1796,6 +1832,7 @@ async fn page(
         f7.as_deref(),
         query.changed_since,
         limit,
+        settle,
     )
     .fetch_all(tx.conn())
     .await

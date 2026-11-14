@@ -579,6 +579,10 @@ const RUN_EVENT_FEED_EXPORT: &str = "/api/svs/v1/runs/events/export/{format}";
 const RUN_RESULT_FEED: &str = "/api/svs/v1/runs/results";
 const RUN_RESULT_FEED_EXPORT: &str = "/api/svs/v1/runs/results/export/{format}";
 const RUN_EVENTS_EXPORT: &str = "/api/svs/v1/runs/{run_id}/events/export/{format}";
+const RUN_ATTRIBUTION_FEED: &str = "/api/svs/v1/runs/attributions";
+const RUN_ATTRIBUTION_FEED_EXPORT: &str = "/api/svs/v1/runs/attributions/export/{format}";
+const RUN_ATTRIBUTIONS: &str = "/api/svs/v1/runs/{run_id}/attributions";
+const RUN_ATTRIBUTIONS_EXPORT: &str = "/api/svs/v1/runs/{run_id}/attributions/export/{format}";
 const RUN_RESULTS: &str = "/api/svs/v1/runs/{run_id}/results";
 const RUN_RESULTS_EXPORT: &str = "/api/svs/v1/runs/{run_id}/results/export/{format}";
 const RUN_HISTORY: &str = "/api/svs/v1/runs/{run_id}/history";
@@ -767,7 +771,7 @@ async fn refuses_without_a_credential_or_a_permission(
         .map(|(method, route, _)| (method, route))
         .filter(|route| !public.contains(route))
         .collect();
-    assert_eq!(routes.len(), 200, "{routes:?}");
+    assert_eq!(routes.len(), 204, "{routes:?}");
     for (method, route) in routes {
         let method: Method = method.to_uppercase().parse().expect("a method");
         let path = fill(&route, id, file);
@@ -9371,6 +9375,8 @@ async fn svs_runs(client: &mut Client<'_>) {
                          "reason": null, "test_host": "win10-01", "platform": "windows", "held_by": []}],
             "platform": "windows", "observation_seconds": 3600, "observation_source": "all_hunts",
             "attribution_seconds": 90000, "holds_host": false,
+            // no hunter has recorded its hunts in this stack, so the answer says the window is the floor
+            "warnings": [ace_core::svs::runs::no_hunts_warning(chrono::TimeDelta::hours(1))],
         })
     );
     let refused = client
@@ -9445,6 +9451,13 @@ async fn svs_runs(client: &mut Client<'_>) {
     assert!(ace_core::svs::markers::is_marker(
         run["marker"].as_str().expect("a marker")
     ));
+    // the registration's answer says its window fell back to the floor, as its dry run did
+    assert_eq!(
+        run["warnings"],
+        json!([ace_core::svs::runs::no_hunts_warning(
+            chrono::TimeDelta::hours(1)
+        )])
+    );
     assert_eq!(
         run["targets"],
         json!([{"hostname": "WIN10-01", "username": "svc_art@lab.example", "host": "win10-01",
@@ -11580,6 +11593,7 @@ async fn svs_run_reads(client: &mut Client<'_>) {
             RUN_BATCHES,
             RUN_EVENT_FEED,
             RUN_RESULT_FEED,
+            RUN_ATTRIBUTION_FEED,
         ] {
             // a count takes no changed_since, and so refuses nothing about it
             if route == RUN_COUNT && bad.starts_with("changed_since") {
@@ -11597,7 +11611,13 @@ async fn svs_run_reads(client: &mut Client<'_>) {
                 .await;
         }
     }
-    for route in [RUNS, RUN_BATCHES, RUN_EVENT_FEED, RUN_RESULT_FEED] {
+    for route in [
+        RUNS,
+        RUN_BATCHES,
+        RUN_EVENT_FEED,
+        RUN_RESULT_FEED,
+        RUN_ATTRIBUTION_FEED,
+    ] {
         for bad in ["cursor=garbage", "limit=0", "limit=1001"] {
             client
                 .json(
@@ -11887,7 +11907,7 @@ async fn svs_run_reads(client: &mut Client<'_>) {
 
     // a run's own routes: an id that isn't one, and a run that isn't there
     let nowhere = Uuid::from_u128(0xFEED).to_string();
-    for route in [RUN_RESULTS, RUN_HISTORY, RUN_COMMENTS] {
+    for route in [RUN_RESULTS, RUN_ATTRIBUTIONS, RUN_HISTORY, RUN_COMMENTS] {
         client
             .json(
                 M::GET,
@@ -11910,11 +11930,168 @@ async fn svs_run_reads(client: &mut Client<'_>) {
             .await;
     }
 
+    // the attributions (PLAN.md 7.10 batch 6): the rows the core's SVS hook writes at the end of an
+    // alert's pass, here as it leaves them: three of the first run's, one of the second's
+    let alert = Uuid::new_v4();
+    sqlx::query(
+        "INSERT INTO analysis.roots (id, analysis_mode, description, event_time_source, alerted_at)
+         VALUES ($1, 'correlation', 'a test''s alert', 'unset', now())",
+    )
+    .bind(alert)
+    .execute(db.pool())
+    .await
+    .expect("an alert");
+    for (run, detections) in [(first, 3), (second, 1)] {
+        for n in 0..detections {
+            sqlx::query(
+                "WITH d AS (
+                     INSERT INTO analysis.detections
+                         (root_id, description, signature_uuid, signature_family)
+                     VALUES ($2, 'detection ' || $3, 'sig-hit', 'yara') RETURNING id)
+                 INSERT INTO svs.attributions
+                     (run_id, root_id, detection_id, confidence, source, scan_point, actor,
+                      event_time, event_time_source)
+                 SELECT (SELECT id FROM svs.runs WHERE uuid = $1::uuid), $2, d.id, 'marker', 'router',
+                        'root_details', '{\"kind\": \"internal\", \"id\": \"svs\"}', now(),
+                        'query_time'
+                 FROM d",
+            )
+            .bind(run)
+            .bind(alert)
+            .bind(format!("{run}-{n}"))
+            .execute(db.pool())
+            .await
+            .expect("an attribution");
+        }
+    }
+    // the feed takes the runs' filters; a row says how its detection was attributed
+    let feed = client
+        .json(
+            M::GET,
+            RUN_ATTRIBUTION_FEED,
+            &format!("{RUN_ATTRIBUTION_FEED}?{mine}&f=batch:feed-batch-2"),
+            r,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(feed["next"], Value::Null);
+    let row = &feed["attributions"][0];
+    assert_eq!(feed["attributions"].as_array().map(Vec::len), Some(1));
+    assert_eq!(
+        (
+            &row["run_id"],
+            &row["alert"],
+            &row["signature_uuid"],
+            &row["signature_family"],
+            &row["confidence"],
+            &row["late"],
+            &row["cleanup"],
+            &row["event_time_source"],
+            &row["fallback_time"],
+            &row["source"],
+            &row["scan_point"]
+        ),
+        (
+            &json!(second),
+            &json!(alert),
+            &json!("sig-hit"),
+            &json!("yara"),
+            &json!("marker"),
+            &json!(false),
+            &json!(false),
+            &json!("query_time"),
+            &json!(true),
+            &json!("router"),
+            &json!("root_details")
+        )
+    );
+    assert_eq!(
+        (
+            &row["actor"],
+            &row["removed_at"],
+            &row["removed_by"],
+            &row["kept_at"]
+        ),
+        (
+            &json!({"kind": "internal", "id": "svs", "name": null}),
+            &Value::Null,
+            &Value::Null,
+            &Value::Null
+        )
+    );
+    assert!(row["detection"].is_i64() && row["updated_at"].is_string());
+    // the feed pages by its cursor
+    let page = client
+        .json(
+            M::GET,
+            RUN_ATTRIBUTION_FEED,
+            &format!("{RUN_ATTRIBUTION_FEED}?{mine}&limit=3"),
+            r,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(page["attributions"].as_array().map(Vec::len), Some(3));
+    let next = page["next"].as_str().expect("a next page");
+    let rest = client
+        .json(
+            M::GET,
+            RUN_ATTRIBUTION_FEED,
+            &format!("{RUN_ATTRIBUTION_FEED}?{mine}&limit=3&cursor={next}"),
+            r,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(
+        (rest["attributions"].as_array().map(Vec::len), &rest["next"]),
+        (Some(1), &Value::Null)
+    );
+    // one run's, in id order, a page at a time
+    let mine_page = client
+        .json(
+            M::GET,
+            RUN_ATTRIBUTIONS,
+            &format!("{}?limit=2", run_path(RUN_ATTRIBUTIONS, first)),
+            r,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(mine_page["attributions"].as_array().map(Vec::len), Some(2));
+    let after = mine_page["next"].as_i64().expect("a next page");
+    let last = client
+        .json(
+            M::GET,
+            RUN_ATTRIBUTIONS,
+            &format!("{}?after={after}", run_path(RUN_ATTRIBUTIONS, first)),
+            r,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(
+        (last["attributions"].as_array().map(Vec::len), &last["next"]),
+        (Some(1), &Value::Null)
+    );
+    assert!(last["attributions"][0]["id"].as_i64() > Some(after));
+    client
+        .json(
+            M::GET,
+            RUN_ATTRIBUTIONS,
+            &format!("{}?limit=0", run_path(RUN_ATTRIBUTIONS, first)),
+            r,
+            Send::Nothing,
+            S::BAD_REQUEST,
+        )
+        .await;
+
     // TestExport: each export, narrowed to what the stack's exports hold, then refused wider
     let export = |route: &str, format: &str, run: &str| {
         route.replace("{format}", format).replace("{run_id}", run)
     };
-    let exports: [(&str, &str, String, usize); 6] = [
+    let exports: [(&str, &str, String, usize); 8] = [
         // (route, run, the narrow query, its rows)
         (RUNS_EXPORT, "", format!("{mine}&f=batch:feed-batch-2"), 2),
         (RUN_BATCHES_EXPORT, "", mine.to_owned(), 2),
@@ -11930,8 +12107,15 @@ async fn svs_run_reads(client: &mut Client<'_>) {
             format!("{mine}&f=batch:feed-batch-2"),
             1,
         ),
+        (
+            RUN_ATTRIBUTION_FEED_EXPORT,
+            "",
+            format!("{mine}&f=batch:feed-batch-2"),
+            1,
+        ),
         (RUN_EVENTS_EXPORT, third, String::new(), 1),
         (RUN_RESULTS_EXPORT, second, String::new(), 1),
+        (RUN_ATTRIBUTIONS_EXPORT, second, String::new(), 1),
     ];
     for (route, run, narrow, rows) in &exports {
         let path = |format: &str, query: &str| format!("{}?{query}", export(route, format, run));
@@ -12022,9 +12206,11 @@ async fn svs_run_reads(client: &mut Client<'_>) {
         (RUNS_EXPORT, "", mine),
         (RUN_EVENT_FEED_EXPORT, "", mine),
         (RUN_RESULT_FEED_EXPORT, "", mine),
+        (RUN_ATTRIBUTION_FEED_EXPORT, "", mine),
         (RUN_BATCHES_EXPORT, "", ""),
         (RUN_EVENTS_EXPORT, first, ""),
         (RUN_RESULTS_EXPORT, first, ""),
+        (RUN_ATTRIBUTIONS_EXPORT, first, ""),
     ] {
         // the batches of every run of the stack: the three of test_runs.py's too
         if route == RUN_BATCHES_EXPORT {
@@ -12045,7 +12231,11 @@ async fn svs_run_reads(client: &mut Client<'_>) {
             )
             .await;
     }
-    for route in [RUN_EVENTS_EXPORT, RUN_RESULTS_EXPORT] {
+    for route in [
+        RUN_EVENTS_EXPORT,
+        RUN_RESULTS_EXPORT,
+        RUN_ATTRIBUTIONS_EXPORT,
+    ] {
         client
             .json(
                 M::GET,

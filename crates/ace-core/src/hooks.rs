@@ -1,5 +1,6 @@
 //! The core's hooks (PLAN.md 7.6): ace3's `observable_modifier` and `configuration_defined_tagging`, which
-//! read and change the whole tree, so they run in the core, beside the tree, rather than on a pool.
+//! read and change the whole tree, so they run in the core, beside the tree, rather than on a pool. And
+//! SVS's hook (PLAN.md 7.10 batch 6), ace3's `svs_alert_tagger`, below.
 //!
 //! # When they run
 //!
@@ -26,6 +27,25 @@
 //!   detections to the root. Then the pass ends, or, when a detection made the root an alert, the
 //!   correlation pass starts, whose end runs the hooks again.
 //!
+//! # The SVS hook
+//!
+//! ace3's `svs_alert_tagger` runs in post analysis in correlation mode and tags the alert, and its marker
+//! router judges the same alert again, twice, to write its attributions. Here one judgment does both
+//! (`crate::svs::attribution::judge`, the owner's decision of 2026-11-14): once the modifier's `post` rules
+//! match nothing and the tagging has added its detections, the hooks task judges the root's SVS context
+//! once, in the modes that list `svs_alert_tagger`, and writes what follows from that one judgment in the
+//! task's transaction: the attributions of its detections to test runs (`svs.attributions`, with each
+//! change in its run's event log), the `svs_test`, `svs:marker_mismatch` and `svs:maintenance` tags on
+//! the root (`analysis.roots.tags`), a root detection for each marker that doesn't agree with its run, and
+//! its maintenance record (`svs.maintenance_alerts`). A mismatch detection can't change the mode: the hook
+//! judges alerts only. What it did is the run's `Ran::svs`, and each write is logged.
+//!
+//! It is bounded as its module says: while no run is registered or inside its attribution window and no
+//! maintenance window was open lately, it is one query; otherwise it reads only the rows that hold
+//! marker-shaped text, a capped number of each, judges a capped number of markers, an event has a capped
+//! number of hosts, and it considers only the runs and windows on those hosts whose windows overlap the
+//! event, a capped number of each.
+//!
 //! A rule matches an observable once, ever: each match is kept in the observable's
 //! `observable_modifier` result, as ace3 keeps it in its analysis, and isn't evaluated there again, so
 //! the hooks' reruns end. A root detection is added once per tag.
@@ -41,7 +61,8 @@
 //!   their signature; `reset_analysis` queues a task again that ended with no result; `ignore` sets the
 //!   observable's `ignored`, or the `ignored` of the additions of the parent results it names;
 //! - `configuration_defined_tagging`'s detections are on the root (`analysis.detections.observable_id`
-//!   NULL), with ace3's `alertable_tag` signature.
+//!   NULL), with ace3's `alertable_tag` signature;
+//! - the SVS hook's writes, above.
 //!
 //! The hooks task is a row of `queue.tasks`, so each run is recorded with its end, and one that fails
 //! keeps its error, as a module's does. None of this is an analyst's write, so no audit row is written,
@@ -121,12 +142,17 @@ const ALERTABLE_LEVELS: [&str; 3] = ["alert", "critical", "warning"];
 /// How many times `pre` rules run over what their own matches added, in one landing.
 const PRE_ROUNDS: usize = 3;
 
+/// ace3's SVS tagger's module name: the SVS hook runs in the modes that list it.
+pub const SVS_ALERT_TAGGER: &str = crate::svs::attribution::SVS_ALERT_TAGGER;
+
 /// The hooks the overlay turns on, compiled.
 #[derive(Debug, Clone, Default)]
 pub struct Hooks {
     modifier: Option<Arc<Rules>>,
     /// The tags whose level makes a detection, when `configuration_defined_tagging` is on.
     alertable: Option<Arc<BTreeSet<String>>>,
+    /// The SVS hook, when the binary runs it (`with_svs`).
+    svs: Option<crate::svs::attribution::HookConfig>,
 }
 
 impl Hooks {
@@ -152,7 +178,14 @@ impl Hooks {
         Ok(Hooks {
             modifier: modifier.map(Arc::new),
             alertable: alertable.map(Arc::new),
+            svs: None,
         })
+    }
+
+    /// These hooks with the SVS hook, `svs_alert_tagger` (the module docs), which `ace serve` runs.
+    pub fn with_svs(mut self, config: crate::svs::attribution::HookConfig) -> Hooks {
+        self.svs = Some(config);
+        self
     }
 
     /// The names of the hooks that are on, for the comparison to count as ported.
@@ -163,6 +196,9 @@ impl Hooks {
         }
         if self.modifier.is_some() {
             names.push(OBSERVABLE_MODIFIER);
+        }
+        if self.svs.is_some() {
+            names.push(SVS_ALERT_TAGGER);
         }
         names
     }
@@ -185,11 +221,18 @@ impl Hooks {
         })
     }
 
+    fn svs_in(&self, modes: &Modes, mode: &str) -> Option<&crate::svs::attribution::HookConfig> {
+        self.svs
+            .as_ref()
+            .filter(|_| modes.modules_in(mode).contains(SVS_ALERT_TAGGER))
+    }
+
     /// Whether a hook runs at the end of a pass in `mode`.
     pub fn run_in(&self, modes: &Modes, mode: &str) -> bool {
         self.modifier_in(modes, mode)
             .is_some_and(|r| r.has_phase(Phase::Post))
             || self.tagging_in(modes, mode).is_some()
+            || self.svs_in(modes, mode).is_some()
     }
 }
 
@@ -300,7 +343,8 @@ async fn load(tx: &mut Tx<'_>, root: Uuid, rules: &Rules) -> Result<Tree, DbErro
     let head = sqlx::query!(
         r#"SELECT origin ->> 'alert_type' AS alert_type, origin ->> 'queue' AS queue,
                   CASE WHEN jsonb_typeof(origin -> 'tags') = 'array'
-                       THEN ARRAY(SELECT jsonb_array_elements_text(origin -> 'tags')) END AS tags
+                       THEN ARRAY(SELECT jsonb_array_elements_text(origin -> 'tags')) END AS tags,
+                  tags AS core_tags
            FROM analysis.roots WHERE id = $1"#,
         root,
     )
@@ -310,7 +354,13 @@ async fn load(tx: &mut Tx<'_>, root: Uuid, rules: &Rules) -> Result<Tree, DbErro
     if let Some(head) = head {
         tree.alert_type = head.alert_type;
         tree.queue = head.queue;
+        // the submitter's tags, then the core's own (`analysis.roots.tags`)
         tree.root_tags = head.tags.unwrap_or_default();
+        for tag in head.core_tags {
+            if !tree.root_tags.contains(&tag) {
+                tree.root_tags.push(tag);
+            }
+        }
     }
     let limit = MAX_TREE_OBSERVABLES as i64 + 1;
     let rows = sqlx::query!(
@@ -588,7 +638,8 @@ async fn tag_detections(
                SELECT t FROM analysis.observables o, unnest(o.tags) t WHERE o.root_id = $1
                UNION SELECT t FROM analysis.results r, unnest(r.tags) t WHERE r.root_id = $1
                UNION SELECT jsonb_array_elements_text(origin -> 'tags') FROM analysis.roots
-                     WHERE id = $1 AND jsonb_typeof(origin -> 'tags') = 'array'),
+                     WHERE id = $1 AND jsonb_typeof(origin -> 'tags') = 'array'
+               UNION SELECT t FROM analysis.roots x, unnest(x.tags) t WHERE x.id = $1),
            wanted AS (
                SELECT DISTINCT 'tag ' || p.t || ' is configured to be alertable' AS description
                FROM present p WHERE p.t = ANY($2))
@@ -645,6 +696,8 @@ pub struct Ran {
     pub queued: Vec<TaskId>,
     /// The mode the root changed to, when a detection made it an alert.
     pub mode_changed_to: Option<String>,
+    /// What the SVS hook made of the root, when it judged it.
+    pub svs: Option<crate::svs::attribution::Judged>,
 }
 
 impl Orchestrator {
@@ -698,8 +751,17 @@ impl Orchestrator {
             )
             .execute(tx.conn())
             .await?;
-        } else if let Some(alertable) = self.hooks().tagging_in(self.modes(), &mode) {
-            ran.effects.detected |= tag_detections(tx, root, alertable).await?;
+        } else {
+            if let Some(alertable) = self.hooks().tagging_in(self.modes(), &mode) {
+                ran.effects.detected |= tag_detections(tx, root, alertable).await?;
+            }
+            // last, so its one judgment sees every detection the pass made
+            if let Some(config) = self.hooks().svs_in(self.modes(), &mode) {
+                ran.svs =
+                    crate::svs::attribution::judge(tx.conn(), root, config, chrono::Utc::now())
+                        .await?;
+                ran.effects.detected |= ran.svs.as_ref().is_some_and(|judged| judged.detected);
+            }
         }
         let touched = ran.effects.touched.clone();
         let (queued, changed) = self

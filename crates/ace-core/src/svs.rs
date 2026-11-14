@@ -17,6 +17,9 @@
 //! - `runs`: what a run's registration and its launcher's calls decide without the database (batch 5).
 //! - `results`: a run's result, each signature's status from what fired and what was decided, and a
 //!   write's `If-Match` precondition (batch 5).
+//! - `attribution`: who owns an event, and the core's SVS hook, which attributes an alert's detections to
+//!   test runs (batch 6).
+//! - `marker_rule`: the built-in YARA rule that finds markers in file contents (batch 6).
 //! - The values every part shares: a run's states, its event log's kinds, how a detection was attributed,
 //!   and the one SVS status an alert has (`derive_status`).
 //!
@@ -25,18 +28,21 @@
 //! `context_owners`, since its PR #844, but each caller still judges on its own, in its own process and
 //! with its own caches: the `svs_alert_tagger` module tags the alert, the marker router judges it again
 //! inside ALERT() and after each pass and writes the attributions, and the hunter asks again for a grouped
-//! hunt's suppression key and for the matches it drops. Batch 6 puts the decision in the core, here: one
-//! function over the database, in the caller's transaction and with no cache, that the core's SVS hook
-//! (which judges a root once at the end of a pass and writes its attributions, tags and mismatch
-//! detections from that one judgment) and the service's `record_hunt_run` (6.5) both call, with an event's
-//! hosts and time derived by one function too. Everything that reads afterwards (the verdicts, the samples,
-//! 7.13's router, the screens) reads the attributions rather than judging again. PLAN.md 7.10 has the
-//! whole design.
+//! hunt's suppression key and for the matches it drops. Here the decision is in the core, `attribution`: one
+//! function over the database (`attribution::context_owners`), in the caller's transaction and with no
+//! cache, that the core's SVS hook (`attribution::judge`, which judges a root once at the end of a pass and
+//! writes its attributions, tags and mismatch detections from that one judgment) and the service's
+//! `record_hunt_run` (6.5) both call, with an event's hosts and time derived by one function too
+//! (`attribution::Event::derive`). Everything that reads afterwards (the verdicts, the samples, 7.13's
+//! router, the screens) reads the attributions rather than judging again. PLAN.md 7.10 has the whole
+//! design.
 
 pub mod attack;
+pub mod attribution;
 pub mod catalog;
 pub mod hosts;
 pub mod log_search;
+pub mod marker_rule;
 pub mod markers;
 pub mod results;
 pub mod runs;

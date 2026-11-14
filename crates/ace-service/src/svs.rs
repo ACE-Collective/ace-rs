@@ -332,8 +332,9 @@ impl Service {
     }
 
     /// A page of the test hosts, by name, after where `cursor` left off: ace3's `fetch_page`. With
-    /// `changed_since`, only those added or changed at or after it. It needs `svs:run_read`. A limit out
-    /// of range, or a cursor that isn't one, is `InvalidRequest`.
+    /// `changed_since`, only those added or changed at or after it, once the change has settled
+    /// (`Service::with_feed_settle`). It needs `svs:run_read`. A limit out of range, or a cursor that
+    /// isn't one, is `InvalidRequest`.
     pub async fn test_hosts_page(
         &self,
         actor: &Actor,
@@ -354,6 +355,7 @@ impl Service {
             ),
             None => None,
         };
+        let settle = self.feed_settle_seconds();
         self.gate
             .read(actor, "test_hosts_page", &SVS_RUN_READ, &|tx| {
                 Box::pin(async move {
@@ -362,13 +364,16 @@ impl Service {
                         r#"SELECT id, hostname, fqdn, usernames, ips, platform, notes,
                                   created_by AS "created_by!: Value", created_at, updated_at
                            FROM svs.test_hosts
-                           WHERE ($1::timestamptz IS NULL OR updated_at >= $1)
+                           WHERE ($1::timestamptz IS NULL
+                                  OR (updated_at >= $1
+                                      AND updated_at < now() - make_interval(secs => $4)))
                              AND ($2::text IS NULL OR hostname COLLATE "C" > $2)
                            ORDER BY hostname COLLATE "C"
                            LIMIT $3"#,
                         changed_since,
                         after.as_deref(),
                         limit + 1,
+                        settle,
                     )
                     .fetch_all(tx.conn())
                     .await?;

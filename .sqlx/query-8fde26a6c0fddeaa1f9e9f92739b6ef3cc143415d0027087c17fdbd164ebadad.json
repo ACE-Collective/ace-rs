@@ -1,0 +1,263 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT a.id, r.uuid AS run, a.root_id, a.detection_id, d.signature_uuid,\n                                  d.signature_family, a.confidence::text AS \"confidence!\", a.late,\n                                  a.event_time,\n                                  (r.cleanup_at IS NOT NULL AND a.event_time IS NOT NULL\n                                   AND a.event_time >= r.cleanup_at) AS \"cleanup!\",\n                                  a.event_time_source, a.source, a.scan_point,\n                                  a.actor AS \"actor!: Value\", a.created_at, a.removed_at,\n                                  a.removed_by AS \"removed_by: Value\", a.removal_reason, a.kept_at,\n                                  a.kept_by AS \"kept_by: Value\", a.updated_at\n                           FROM svs.attributions a\n                           JOIN svs.runs r ON r.id = a.run_id\n                           JOIN analysis.detections d ON d.id = a.detection_id\n                           WHERE svs.run_matches(r, $1)\n                             AND ($2::timestamptz IS NULL OR a.updated_at >= $2)\n                             AND a.updated_at < now() - make_interval(secs => $3)\n                             AND ($4::bigint IS NULL\n                                  OR (a.updated_at, a.id) > ($5::timestamptz, $4))\n                           ORDER BY a.updated_at, a.id\n                           LIMIT $6",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "svs.attributions",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "run",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "svs.runs",
+            "name": "uuid"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "root_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "svs.attributions",
+            "name": "root_id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "detection_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "svs.attributions",
+            "name": "detection_id"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "signature_uuid",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "analysis.detections",
+            "name": "signature_uuid"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "signature_family",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "analysis.detections",
+            "name": "signature_family"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "confidence!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 7,
+        "name": "late",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "svs.attributions",
+            "name": "late"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "event_time",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "svs.attributions",
+            "name": "event_time"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "cleanup!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 10,
+        "name": "event_time_source",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.attributions",
+            "name": "event_time_source"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "source",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.attributions",
+            "name": "source"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "scan_point",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.attributions",
+            "name": "scan_point"
+          }
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "actor!: Value",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "svs.attributions",
+            "name": "actor"
+          }
+        }
+      },
+      {
+        "ordinal": 14,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "svs.attributions",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 15,
+        "name": "removed_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "svs.attributions",
+            "name": "removed_at"
+          }
+        }
+      },
+      {
+        "ordinal": 16,
+        "name": "removed_by: Value",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "svs.attributions",
+            "name": "removed_by"
+          }
+        }
+      },
+      {
+        "ordinal": 17,
+        "name": "removal_reason",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.attributions",
+            "name": "removal_reason"
+          }
+        }
+      },
+      {
+        "ordinal": 18,
+        "name": "kept_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "svs.attributions",
+            "name": "kept_at"
+          }
+        }
+      },
+      {
+        "ordinal": 19,
+        "name": "kept_by: Value",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "svs.attributions",
+            "name": "kept_by"
+          }
+        }
+      },
+      {
+        "ordinal": 20,
+        "name": "updated_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "svs.attributions",
+            "name": "updated_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Jsonb",
+        "Timestamptz",
+        "Float8",
+        "Int8",
+        "Timestamptz",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      null,
+      false,
+      true,
+      null,
+      true,
+      false,
+      true,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "8fde26a6c0fddeaa1f9e9f92739b6ef3cc143415d0027087c17fdbd164ebadad"
+}

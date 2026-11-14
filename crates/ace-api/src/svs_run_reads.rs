@@ -6,11 +6,18 @@
 //! refused parameter is 400 where ace3 answers 422; an export is one operation, `.../export/{format}`
 //! with `csv` or `ndjson`, at ace3's two URLs; who did something is an actor (`kind`, `id`, `name`), where
 //! ace3 gives a name; and a run's detail has no review blockers until batch 7 brings the review.
+//!
+//! Batch 6 brought the attributions, which the core's SVS hook writes (`ace_core::svs::attribution`):
+//! ace3's `GET /attributions` and `/{run_id}/attributions`, each with its export, are
+//! `GET /api/svs/v1/runs/attributions` and `/runs/{run_id}/attributions`. A row names its alert (`alert`,
+//! ace3's `alert_uuid`) and its detection by the detection's id (`detection`, ace3's content hash). A
+//! run's alerts (`/{run_id}/alerts`) come with batch 7, which closes them.
 
 use ace_service::filters::{FilterScreen, decode};
 use ace_service::{
-    HistoryRun, MAX_RUN_COMMENT_CHARS, MAX_RUNS_PAGE, RunBatch, RunComment, RunEvent, RunEventRow,
-    RunHistory, RunQuery, RunResult, RunRow, RunSummary, SuppressionShare, SvsFeed,
+    HistoryRun, MAX_RUN_COMMENT_CHARS, MAX_RUNS_PAGE, RunAttribution, RunBatch, RunComment,
+    RunEvent, RunEventRow, RunHistory, RunQuery, RunResult, RunRow, RunSummary, SuppressionShare,
+    SvsFeed,
 };
 use axum::Json;
 use axum::extract::rejection::{JsonRejection, PathRejection};
@@ -675,6 +682,157 @@ pub(crate) struct RunResultPageBody {
     computed_at: Option<DateTime<Utc>>,
 }
 
+/// One detection of an alert attributed to a run, removed ones included.
+#[derive(Debug, Serialize, ToSchema)]
+pub(crate) struct RunAttributionBody {
+    /// The row's id; a run's attributions are in id order.
+    id: i64,
+    /// The run's uuid.
+    run_id: Uuid,
+    /// The alert's uuid.
+    alert: Uuid,
+    /// The detection's id, as the alert's detections list it.
+    detection: i64,
+    signature_uuid: Option<String>,
+    /// `yara`, `hunt`, `builtin` and so on.
+    signature_family: Option<String>,
+    /// `marker` or `context`; a person's association is `marker`.
+    confidence: String,
+    /// The alert's event came after the run's observation window.
+    late: bool,
+    /// The alert's event time it was judged by.
+    event_time: Option<DateTime<Utc>>,
+    /// Its event time is at or after the run's `cleanup_at`: the test's cleanup caused it, so it is left
+    /// out of the run's candidates and expectations.
+    cleanup: bool,
+    /// Where `event_time` came from: `event` (the event's own), `query_time` (a hunt couldn't extract
+    /// it), `now` (nothing gave the alert a time, so its producer used the time it made it) or
+    /// `insert_time` (the alert has none).
+    event_time_source: Option<String>,
+    /// `event_time` is a fallback, which may have put the alert in the wrong window.
+    fallback_time: bool,
+    /// `router` (the core's SVS hook) or `manual` (a person associated the alert).
+    source: String,
+    /// Where the agreeing marker was found: `observable`, `detection`, `root_details`, `analysis` or
+    /// `file_contents`; null for context or manual.
+    scan_point: Option<String>,
+    /// Who attributed it: the component `svs` for the hook, else the person.
+    actor: Option<ActorBody>,
+    created_at: DateTime<Utc>,
+    /// When it stopped holding; null while it holds.
+    removed_at: Option<DateTime<Utc>>,
+    /// The component `svs` when the hook found it no longer applies, else the person who disassociated it.
+    removed_by: Option<ActorBody>,
+    removal_reason: Option<String>,
+    /// When a person kept this context attribution.
+    kept_at: Option<DateTime<Utc>>,
+    kept_by: Option<ActorBody>,
+    /// The feed's `changed_since` key.
+    updated_at: DateTime<Utc>,
+}
+
+impl From<RunAttribution> for RunAttributionBody {
+    fn from(row: RunAttribution) -> Self {
+        RunAttributionBody {
+            id: row.id,
+            run_id: row.run,
+            alert: row.alert,
+            detection: row.detection,
+            signature_uuid: row.signature_uuid,
+            signature_family: row.signature_family,
+            confidence: row.confidence.as_str().to_owned(),
+            late: row.late,
+            event_time: row.event_time,
+            cleanup: row.cleanup,
+            event_time_source: row.event_time_source,
+            fallback_time: row.fallback_time,
+            source: row.source,
+            scan_point: row.scan_point,
+            actor: row.actor.map(ActorBody::from),
+            created_at: row.created_at,
+            removed_at: row.removed_at,
+            removed_by: row.removed_by.map(ActorBody::from),
+            removal_reason: row.removal_reason,
+            kept_at: row.kept_at,
+            kept_by: row.kept_by.map(ActorBody::from),
+            updated_at: row.updated_at,
+        }
+    }
+}
+
+impl ExportRow for RunAttributionBody {
+    const HEADER: &'static [&'static str] = &[
+        "id",
+        "run_id",
+        "alert",
+        "detection",
+        "signature_uuid",
+        "signature_family",
+        "confidence",
+        "late",
+        "event_time",
+        "cleanup",
+        "event_time_source",
+        "fallback_time",
+        "source",
+        "scan_point",
+        "actor",
+        "created_at",
+        "removed_at",
+        "removed_by",
+        "removal_reason",
+        "kept_at",
+        "kept_by",
+        "updated_at",
+    ];
+
+    fn cells(&self) -> Vec<String> {
+        let shown =
+            |actor: &Option<ActorBody>| actor.as_ref().map(ActorBody::shown).unwrap_or_default();
+        vec![
+            self.id.to_string(),
+            self.run_id.to_string(),
+            self.alert.to_string(),
+            self.detection.to_string(),
+            cell(&self.signature_uuid),
+            cell(&self.signature_family),
+            self.confidence.clone(),
+            self.late.to_string(),
+            time_cell(self.event_time),
+            self.cleanup.to_string(),
+            cell(&self.event_time_source),
+            self.fallback_time.to_string(),
+            self.source.clone(),
+            cell(&self.scan_point),
+            shown(&self.actor),
+            time_cell(Some(self.created_at)),
+            time_cell(self.removed_at),
+            shown(&self.removed_by),
+            cell(&self.removal_reason),
+            time_cell(self.kept_at),
+            shown(&self.kept_by),
+            time_cell(Some(self.updated_at)),
+        ]
+    }
+}
+
+/// A page of the attribution feed.
+#[derive(Debug, Serialize, ToSchema)]
+pub(crate) struct RunAttributionFeedPageBody {
+    attributions: Vec<RunAttributionBody>,
+    /// Pass it as `cursor`, with the same filters and `changed_since`, for the next page; null on the
+    /// last.
+    next: Option<String>,
+}
+
+/// A page of one run's attributions.
+#[derive(Debug, Serialize, ToSchema)]
+pub(crate) struct RunAttributionPageBody {
+    attributions: Vec<RunAttributionBody>,
+    /// Pass it as `after` for the next page; null on the last.
+    next: Option<i64>,
+}
+
 /// An earlier run of a run's history.
 #[derive(Debug, Serialize, ToSchema)]
 pub(crate) struct HistoryRunBody {
@@ -1277,6 +1435,202 @@ pub(crate) async fn export_result_feed(
                 Ok((
                     page.results.into_iter().map(RunResultBody::from).collect(),
                     page.next_cursor,
+                ))
+            }
+        },
+    )
+}
+
+/// The attributions of every run the filters match, removed ones included, in (updated_at, id) order: one
+/// row per (run, alert, detection), written by the core's SVS hook at the end of an alert's pass or by a
+/// person. A row shows up a few seconds after it's written, removed or kept, so a pull resumed from its
+/// last `updated_at` never misses one, and may repeat one.
+#[utoipa::path(
+    get,
+    path = "/api/svs/v1/runs/attributions",
+    tag = "svs",
+    params(RunsQuery),
+    responses(
+        (status = 200, description = "A page of attributions", body = RunAttributionFeedPageBody),
+        (status = 400, description = "A filter, time, timezone, limit or cursor that isn't one", body = ErrorBody),
+        (status = 401, description = "No credential, or one that isn't valid", body = ErrorBody),
+        (status = 403, description = "The actor doesn't hold svs:run_read", body = ErrorBody),
+    )
+)]
+pub(crate) async fn attribution_feed(
+    Authenticated(actor): Authenticated,
+    State(web): State<Web>,
+    raw: RawQuery,
+) -> Result<Json<RunAttributionFeedPageBody>, ApiError> {
+    let params = Params::of(raw)?;
+    let query = run_query(&params)?;
+    let page = web
+        .service
+        .svs_attribution_feed(&actor, &query, params.one("cursor")?, limit_of(&params)?)
+        .await?;
+    Ok(Json(RunAttributionFeedPageBody {
+        attributions: page.attributions.into_iter().map(Into::into).collect(),
+        next: page.next_cursor,
+    }))
+}
+
+/// The attribution feed, as CSV or NDJSON.
+#[utoipa::path(
+    get,
+    path = "/api/svs/v1/runs/attributions/export/{format}",
+    tag = "svs",
+    params(("format" = String, Path, description = "`csv` or `ndjson`"), RunsFilterQuery),
+    responses(
+        (status = 200, description = "The attributions, as text/csv or application/x-ndjson", body = String),
+        (status = 400, description = "A format, filter, time or timezone that isn't one", body = ErrorBody),
+        (status = 401, description = "No credential, or one that isn't valid", body = ErrorBody),
+        (status = 403, description = "The actor doesn't hold svs:run_read", body = ErrorBody),
+        (status = 413, description = "More attributions than an export holds", body = ErrorBody),
+    )
+)]
+pub(crate) async fn export_attribution_feed(
+    Authenticated(actor): Authenticated,
+    State(web): State<Web>,
+    path: Result<Path<String>, PathRejection>,
+    raw: RawQuery,
+) -> Result<Response, ApiError> {
+    let Path(format) = path?;
+    let format = format_of(&format)?;
+    let (service, max) = (web.service, web.config.max_export_rows);
+    let query = run_query(&Params::of(raw)?)?;
+    let total = service
+        .svs_feed_count(&actor, &SvsFeed::Attributions(&query), max)
+        .await?;
+    let first = service
+        .svs_attribution_feed(&actor, &query, None, Some(EXPORT_PAGE))
+        .await?;
+    let first = (
+        first
+            .attributions
+            .into_iter()
+            .map(RunAttributionBody::from)
+            .collect(),
+        first.next_cursor,
+    );
+    export::respond(
+        format,
+        "svs-attributions",
+        max,
+        total,
+        first,
+        move |cursor: String| {
+            let (service, actor, query) = (service.clone(), actor.clone(), query.clone());
+            async move {
+                let page = service
+                    .svs_attribution_feed(&actor, &query, Some(&cursor), Some(EXPORT_PAGE))
+                    .await?;
+                Ok((
+                    page.attributions
+                        .into_iter()
+                        .map(RunAttributionBody::from)
+                        .collect(),
+                    page.next_cursor,
+                ))
+            }
+        },
+    )
+}
+
+/// A run's attributions, one row per (alert, detection) in id order, removed ones included.
+#[utoipa::path(
+    get,
+    path = "/api/svs/v1/runs/{run_id}/attributions",
+    tag = "svs",
+    params(("run_id" = String, Path, description = "The run's uuid"), RunResultsQuery),
+    responses(
+        (status = 200, description = "A page of the run's attributions", body = RunAttributionPageBody),
+        (status = 400, description = "An id that isn't a uuid, or a parameter that isn't one", body = ErrorBody),
+        (status = 401, description = "No credential, or one that isn't valid", body = ErrorBody),
+        (status = 403, description = "The actor doesn't hold svs:run_read", body = ErrorBody),
+        (status = 404, description = "No run with that id", body = ErrorBody),
+    )
+)]
+pub(crate) async fn run_attributions(
+    Authenticated(actor): Authenticated,
+    State(web): State<Web>,
+    path: Result<Path<String>, PathRejection>,
+    raw: RawQuery,
+) -> Result<Json<RunAttributionPageBody>, ApiError> {
+    let Path(run) = path?;
+    let uuid = uuid_of(&run)?;
+    let (after, limit) = after_limit(&Params::of(raw)?)?;
+    let rows = web
+        .service
+        .svs_run_attributions(&actor, uuid, after, Some(limit))
+        .await?;
+    let next = (rows.len() as i64 == limit)
+        .then(|| rows.last().map(|row| row.id))
+        .flatten();
+    Ok(Json(RunAttributionPageBody {
+        attributions: rows.into_iter().map(Into::into).collect(),
+        next,
+    }))
+}
+
+/// A run's attributions, as CSV or NDJSON.
+#[utoipa::path(
+    get,
+    path = "/api/svs/v1/runs/{run_id}/attributions/export/{format}",
+    tag = "svs",
+    params(
+        ("run_id" = String, Path, description = "The run's uuid"),
+        ("format" = String, Path, description = "`csv` or `ndjson`"),
+    ),
+    responses(
+        (status = 200, description = "The attributions, as text/csv or application/x-ndjson", body = String),
+        (status = 400, description = "An id that isn't a uuid, or a format that isn't one", body = ErrorBody),
+        (status = 401, description = "No credential, or one that isn't valid", body = ErrorBody),
+        (status = 403, description = "The actor doesn't hold svs:run_read", body = ErrorBody),
+        (status = 404, description = "No run with that id", body = ErrorBody),
+        (status = 413, description = "More attributions than an export holds", body = ErrorBody),
+    )
+)]
+pub(crate) async fn export_run_attributions(
+    Authenticated(actor): Authenticated,
+    State(web): State<Web>,
+    path: Result<Path<(String, String)>, PathRejection>,
+) -> Result<Response, ApiError> {
+    let Path((run, format)) = path?;
+    let (uuid, format) = (uuid_of(&run)?, format_of(&format)?);
+    let (service, max) = (web.service, web.config.max_export_rows);
+    let total = service
+        .svs_feed_count(&actor, &SvsFeed::RunAttributions(uuid), max)
+        .await?;
+    let page = i64::from(EXPORT_PAGE);
+    let rows = move |rows: Vec<RunAttribution>| {
+        let next = (rows.len() as i64 == page)
+            .then(|| rows.last().map(|row| row.id))
+            .flatten();
+        (
+            rows.into_iter()
+                .map(RunAttributionBody::from)
+                .collect::<Vec<_>>(),
+            next,
+        )
+    };
+    let first = rows(
+        service
+            .svs_run_attributions(&actor, uuid, None, Some(page))
+            .await?,
+    );
+    export::respond(
+        format,
+        &format!("svs-run-{uuid}-attributions"),
+        max,
+        total,
+        first,
+        move |after: i64| {
+            let (service, actor) = (service.clone(), actor.clone());
+            async move {
+                Ok(rows(
+                    service
+                        .svs_run_attributions(&actor, uuid, Some(after), Some(page))
+                        .await?,
                 ))
             }
         },

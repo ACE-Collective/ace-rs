@@ -7745,6 +7745,215 @@
         }
       }
     },
+    "/api/svs/v1/runs/attributions": {
+      "get": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "The attributions of every run the filters match, removed ones included, in (updated_at, id) order: one\nrow per (run, alert, detection), written by the core's SVS hook at the end of an alert's pass or by a\nperson. A row shows up a few seconds after it's written, removed or kept, so a pull resumed from its\nlast `updated_at` never misses one, and may repeat one.",
+        "operationId": "attribution_feed",
+        "parameters": [
+          {
+            "name": "f",
+            "in": "query",
+            "description": "A filter in the share-link encoding (`[!]slug:v1,v2`) with the runs screen's slugs:\nneeds_attention, state, test, test_name, technique (T1059 also finds its sub-techniques), target,\nplatform, launcher, batch, created, started, ended, reviewed, owner, reviewer, reason,\nchanged_since_review, has_open_alerts, has_missing, has_possibly_suppressed, has_candidates,\nhas_late, has_context_only. Repeat it for more; filters are ANDed, the values of one ORed.",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "style": "form",
+            "explode": true
+          },
+          {
+            "name": "changed_since",
+            "in": "query",
+            "description": "Only what was written or changed at or after this time; the pages are then in (updated_at, id)\norder, and hold nothing changed in the last few seconds.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tz",
+            "in": "query",
+            "description": "The timezone relative date filters (`-7d`) resolve in; UTC when left out.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "How many, 1 to 1000; 100 when left out.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "description": "The `next` of the previous page.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of attributions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunAttributionFeedPageBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A filter, time, timezone, limit or cursor that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold svs:run_read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/svs/v1/runs/attributions/export/{format}": {
+      "get": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "The attribution feed, as CSV or NDJSON.",
+        "operationId": "export_attribution_feed",
+        "parameters": [
+          {
+            "name": "format",
+            "in": "path",
+            "description": "`csv` or `ndjson`",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "f",
+            "in": "query",
+            "description": "A filter, as the runs' list takes it; repeat it for more.",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "style": "form",
+            "explode": true
+          },
+          {
+            "name": "changed_since",
+            "in": "query",
+            "description": "Only what was written or changed at or after this time, where the listing takes it.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tz",
+            "in": "query",
+            "description": "The timezone relative date filters resolve in; UTC when left out.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The attributions, as text/csv or application/x-ndjson",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A format, filter, time or timezone that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold svs:run_read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "More attributions than an export holds",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/svs/v1/runs/batches": {
       "get": {
         "tags": [
@@ -8734,6 +8943,189 @@
           },
           "404": {
             "description": "No run with that id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/svs/v1/runs/{run_id}/attributions": {
+      "get": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "A run's attributions, one row per (alert, detection) in id order, removed ones included.",
+        "operationId": "run_attributions",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "description": "The run's uuid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "description": "The `next` of the page before.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "At most this many, 1 to 1000; 100 when left out.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of the run's attributions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunAttributionPageBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "An id that isn't a uuid, or a parameter that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold svs:run_read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No run with that id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/svs/v1/runs/{run_id}/attributions/export/{format}": {
+      "get": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "A run's attributions, as CSV or NDJSON.",
+        "operationId": "export_run_attributions",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "description": "The run's uuid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "format",
+            "in": "path",
+            "description": "`csv` or `ndjson`",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The attributions, as text/csv or application/x-ndjson",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "An id that isn't a uuid, or a format that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold svs:run_read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No run with that id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "More attributions than an export holds",
             "content": {
               "application/json": {
                 "schema": {
@@ -21509,6 +21901,208 @@
           }
         }
       },
+      "RunAttributionBody": {
+        "type": "object",
+        "description": "One detection of an alert attributed to a run, removed ones included.",
+        "required": [
+          "id",
+          "run_id",
+          "alert",
+          "detection",
+          "confidence",
+          "late",
+          "cleanup",
+          "fallback_time",
+          "source",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "actor": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ActorBody",
+                "description": "Who attributed it: the component `svs` for the hook, else the person."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "alert": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The alert's uuid."
+          },
+          "cleanup": {
+            "type": "boolean",
+            "description": "Its event time is at or after the run's `cleanup_at`: the test's cleanup caused it, so it is left\nout of the run's candidates and expectations."
+          },
+          "confidence": {
+            "type": "string",
+            "description": "`marker` or `context`; a person's association is `marker`."
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "detection": {
+            "type": "integer",
+            "format": "int64",
+            "description": "The detection's id, as the alert's detections list it."
+          },
+          "event_time": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "The alert's event time it was judged by."
+          },
+          "event_time_source": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Where `event_time` came from: `event` (the event's own), `query_time` (a hunt couldn't extract\nit), `now` (nothing gave the alert a time, so its producer used the time it made it) or\n`insert_time` (the alert has none)."
+          },
+          "fallback_time": {
+            "type": "boolean",
+            "description": "`event_time` is a fallback, which may have put the alert in the wrong window."
+          },
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "description": "The row's id; a run's attributions are in id order."
+          },
+          "kept_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "When a person kept this context attribution."
+          },
+          "kept_by": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ActorBody"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "late": {
+            "type": "boolean",
+            "description": "The alert's event came after the run's observation window."
+          },
+          "removal_reason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "removed_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "When it stopped holding; null while it holds."
+          },
+          "removed_by": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ActorBody",
+                "description": "The component `svs` when the hook found it no longer applies, else the person who disassociated it."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "run_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The run's uuid."
+          },
+          "scan_point": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Where the agreeing marker was found: `observable`, `detection`, `root_details`, `analysis` or\n`file_contents`; null for context or manual."
+          },
+          "signature_family": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "`yara`, `hunt`, `builtin` and so on."
+          },
+          "signature_uuid": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "source": {
+            "type": "string",
+            "description": "`router` (the core's SVS hook) or `manual` (a person associated the alert)."
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The feed's `changed_since` key."
+          }
+        }
+      },
+      "RunAttributionFeedPageBody": {
+        "type": "object",
+        "description": "A page of the attribution feed.",
+        "required": [
+          "attributions"
+        ],
+        "properties": {
+          "attributions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RunAttributionBody"
+            }
+          },
+          "next": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Pass it as `cursor`, with the same filters and `changed_since`, for the next page; null on the\nlast."
+          }
+        }
+      },
+      "RunAttributionPageBody": {
+        "type": "object",
+        "description": "A page of one run's attributions.",
+        "required": [
+          "attributions"
+        ],
+        "properties": {
+          "attributions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RunAttributionBody"
+            }
+          },
+          "next": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "Pass it as `after` for the next page; null on the last."
+          }
+        }
+      },
       "RunBatchBody": {
         "type": "object",
         "description": "One `batch_id` over the runs the filters match: only those runs are counted.",
@@ -22021,6 +22615,7 @@
           "observation_seconds",
           "attribution_seconds",
           "holds_host",
+          "warnings",
           "created_at"
         ],
         "properties": {
@@ -22109,6 +22704,13 @@
           "test_guid": {
             "type": "string",
             "format": "uuid"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "What the registration warned of: that no hunter had recorded its hunts yet, so the observation\nwindow is the floor and not the hunts' latency. Empty when there was nothing to warn of."
           }
         }
       },
@@ -22712,7 +23314,8 @@
         "required": [
           "decision",
           "status_code",
-          "targets"
+          "targets",
+          "warnings"
         ],
         "properties": {
           "attribution_seconds": {
@@ -22771,6 +23374,13 @@
               "$ref": "#/components/schemas/ValidatedTargetBody"
             },
             "description": "Every target; empty when the registration is invalid before its targets are judged."
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "What registering would warn of: that no hunter has recorded its hunts yet, so the observation\nwindow would be the floor and not the hunts' latency. Empty when there is nothing to warn of."
           }
         }
       },

@@ -2087,3 +2087,20 @@ fn the_hooks_refuse_rules_ace3_would_skip() {
             .is_empty()
     );
 }
+
+/// PLAN.md 7.10 batch 6: SVS's hook, ace3's `svs_alert_tagger`, is one of the core's hooks, in the modes
+/// that list its module, whatever the overlay's `hooks:` section says. What it judges and writes is
+/// `ace-service`'s `svs_attribution_tests`, which run it through `Orchestrator::run_hooks`.
+#[test]
+fn the_svs_hook_runs_in_the_modes_that_list_its_module() {
+    let hooks = ace_core::hooks::Hooks::none();
+    assert!(hooks.names().is_empty());
+    let modes = Modes::ace3();
+    assert!(!hooks.run_in(&modes, "correlation"));
+    let hooks = hooks.with_svs(ace_core::svs::attribution::HookConfig::default());
+    assert_eq!(hooks.names(), ["svs_alert_tagger"]);
+    assert!(hooks.run_in(&modes, "correlation"));
+    for mode in ["analysis", "cli", "dispositioned", "email", "event"] {
+        assert!(!hooks.run_in(&modes, mode), "{mode}");
+    }
+}

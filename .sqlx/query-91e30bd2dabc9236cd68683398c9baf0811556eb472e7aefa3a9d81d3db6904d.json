@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE svs.runs SET changed_since_review = true\n             WHERE id = ANY ($1) AND state = 'reviewed' AND NOT changed_since_review\n             RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "svs.runs",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8Array"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "91e30bd2dabc9236cd68683398c9baf0811556eb472e7aefa3a9d81d3db6904d"
+}

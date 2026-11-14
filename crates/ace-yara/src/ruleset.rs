@@ -160,6 +160,43 @@ pub fn build_commit(
     dir: &Path,
     options: &LoadOptions,
 ) -> Result<Built, BuildError> {
+    build_commit_with(repo, commit, dir, options, &[])
+}
+
+/// A rule file the builder adds to every ruleset, whatever the signature directory holds: ACE's own
+/// rules, such as SVS's marker rule (PLAN.md 7.10 batch 6). ace3 writes such a file into its signature
+/// directory as a namespace of its own; here it joins the commit's export, so the repository never
+/// changes.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct BuiltIn {
+    /// The namespace: a directory of the signature directory.
+    pub namespace: &'static str,
+    /// The file's name in it, ending `.yar` or `.yara`.
+    pub file: &'static str,
+    pub source: &'static str,
+}
+
+/// The sha256 over the built-in files, which says which of them a ruleset was built with.
+pub fn built_ins_sha256(built_ins: &[BuiltIn]) -> String {
+    let mut hasher = Sha256::new();
+    for built_in in built_ins {
+        for part in [built_in.namespace, built_in.file, built_in.source] {
+            hasher.update((part.len() as u64).to_be_bytes());
+            hasher.update(part.as_bytes());
+        }
+    }
+    hex(&hasher.finalize())
+}
+
+/// `build_commit`, with `built_ins` written over the commit's export before it compiles: a file of the
+/// same namespace and name in the repository is replaced, as ace3 replaces it in its signature directory.
+pub fn build_commit_with(
+    repo: &Path,
+    commit: &str,
+    dir: &Path,
+    options: &LoadOptions,
+    built_ins: &[BuiltIn],
+) -> Result<Built, BuildError> {
     let export = tempfile::Builder::new()
         .prefix("ace4-ruleset-")
         .tempdir()
@@ -205,6 +242,15 @@ pub fn build_commit(
             std::fs::create_dir_all(parent).map_err(BuildError::Io)?;
         }
         std::fs::write(&target, bytes).map_err(BuildError::Io)?;
+    }
+    for built_in in built_ins {
+        let namespace = export.path().join(built_in.namespace);
+        // a file where the namespace's directory should be gives way to it
+        if namespace.is_file() {
+            std::fs::remove_file(&namespace).map_err(BuildError::Io)?;
+        }
+        std::fs::create_dir_all(&namespace).map_err(BuildError::Io)?;
+        std::fs::write(namespace.join(built_in.file), built_in.source).map_err(BuildError::Io)?;
     }
     build_with(export.path(), options, Some(commit.to_owned()))
 }

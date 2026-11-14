@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, guid, repository, technique, technique_name, name, platforms, executor, path, commit,\n                  content_hash, first_seen_at, removed_at, updated_at\n           FROM svs.catalog_tests t\n           WHERE ($1::text[] IS NULL OR EXISTS (\n                   SELECT FROM unnest($1::text[]) v\n                   WHERE t.technique = v OR (strpos(v, '.') = 0 AND starts_with(t.technique, v || '.'))))\n             AND ($2::text[] IS NULL OR NOT EXISTS (\n                   SELECT FROM unnest($2::text[]) v\n                   WHERE t.technique = v OR (strpos(v, '.') = 0 AND starts_with(t.technique, v || '.'))))\n             AND ($3::text[] IS NULL OR t.name ILIKE ANY ($3))\n             AND ($4::text[] IS NULL OR NOT t.name ILIKE ANY ($4))\n             AND ($5::text[] IS NULL OR t.platforms && $5)\n             AND ($6::text[] IS NULL OR NOT t.platforms && $6)\n             AND ($7::text[] IS NULL OR COALESCE(t.executor = ANY ($7), false))\n             AND ($8::text[] IS NULL OR NOT COALESCE(t.executor = ANY ($8), false))\n             AND ($9::text[] IS NULL OR t.repository ILIKE ANY ($9))\n             AND ($10::text[] IS NULL OR NOT t.repository ILIKE ANY ($10))\n             AND ($11::text IS NULL OR $11 = 'both'\n                  OR CASE $11 WHEN 'true' THEN t.removed_at IS NOT NULL ELSE t.removed_at IS NULL END)\n             AND ($12::text IS NULL OR $12 <> 'both'\n                  AND NOT CASE $12 WHEN 'true' THEN t.removed_at IS NOT NULL ELSE t.removed_at IS NULL END)\n             AND ($13::timestamptz IS NULL OR t.updated_at >= $13)\n             AND ($14::text IS NULL\n                  OR (t.technique COLLATE \"C\", t.name COLLATE \"C\", t.id) > ($14, $15::text, $16::bigint))\n           ORDER BY t.technique COLLATE \"C\", t.name COLLATE \"C\", t.id\n           LIMIT $17",
+  "query": "SELECT id, guid, repository, technique, technique_name, name, platforms, executor, path, commit,\n                  content_hash, first_seen_at, removed_at, updated_at\n           FROM svs.catalog_tests t\n           WHERE ($1::text[] IS NULL OR EXISTS (\n                   SELECT FROM unnest($1::text[]) v\n                   WHERE t.technique = v OR (strpos(v, '.') = 0 AND starts_with(t.technique, v || '.'))))\n             AND ($2::text[] IS NULL OR NOT EXISTS (\n                   SELECT FROM unnest($2::text[]) v\n                   WHERE t.technique = v OR (strpos(v, '.') = 0 AND starts_with(t.technique, v || '.'))))\n             AND ($3::text[] IS NULL OR t.name ILIKE ANY ($3))\n             AND ($4::text[] IS NULL OR NOT t.name ILIKE ANY ($4))\n             AND ($5::text[] IS NULL OR t.platforms && $5)\n             AND ($6::text[] IS NULL OR NOT t.platforms && $6)\n             AND ($7::text[] IS NULL OR COALESCE(t.executor = ANY ($7), false))\n             AND ($8::text[] IS NULL OR NOT COALESCE(t.executor = ANY ($8), false))\n             AND ($9::text[] IS NULL OR t.repository ILIKE ANY ($9))\n             AND ($10::text[] IS NULL OR NOT t.repository ILIKE ANY ($10))\n             AND ($11::text IS NULL OR $11 = 'both'\n                  OR CASE $11 WHEN 'true' THEN t.removed_at IS NOT NULL ELSE t.removed_at IS NULL END)\n             AND ($12::text IS NULL OR $12 <> 'both'\n                  AND NOT CASE $12 WHEN 'true' THEN t.removed_at IS NOT NULL ELSE t.removed_at IS NULL END)\n             AND ($13::timestamptz IS NULL\n                  OR (t.updated_at >= $13 AND t.updated_at < now() - make_interval(secs => $18)))\n             AND ($14::text IS NULL\n                  OR (t.technique COLLATE \"C\", t.name COLLATE \"C\", t.id) > ($14, $15::text, $16::bigint))\n           ORDER BY t.technique COLLATE \"C\", t.name COLLATE \"C\", t.id\n           LIMIT $17",
   "describe": {
     "columns": [
       {
@@ -176,7 +176,8 @@
         "Text",
         "Text",
         "Int8",
-        "Int8"
+        "Int8",
+        "Float8"
       ]
     },
     "nullable": [
@@ -196,5 +197,5 @@
       false
     ]
   },
-  "hash": "aca38912bfd074b8ed8930fd10e461ceb485d71abe37002ed502edbbacdd52cc"
+  "hash": "f37db03adb1bb489c8495acdc1f6de76f5b06a383f6c442344b3c77741154d67"
 }

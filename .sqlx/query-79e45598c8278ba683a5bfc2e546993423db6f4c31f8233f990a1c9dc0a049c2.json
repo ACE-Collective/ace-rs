@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO yara.rulesets AS r\n             (key, commit, tree, sources_sha256, yara_x_version, files, left_out, qa_rules,\n              signatures, built_ins)\n         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)\n         ON CONFLICT (commit, yara_x_version) DO UPDATE\n         SET key = CASE WHEN r.built_ins IS DISTINCT FROM EXCLUDED.built_ins\n                        THEN EXCLUDED.key ELSE r.key END,\n             sources_sha256 = CASE WHEN r.built_ins IS DISTINCT FROM EXCLUDED.built_ins\n                                   THEN EXCLUDED.sources_sha256 ELSE r.sources_sha256 END,\n             files = CASE WHEN r.built_ins IS DISTINCT FROM EXCLUDED.built_ins\n                          THEN EXCLUDED.files ELSE r.files END,\n             left_out = CASE WHEN r.built_ins IS DISTINCT FROM EXCLUDED.built_ins\n                             THEN EXCLUDED.left_out ELSE r.left_out END,\n             qa_rules = CASE WHEN r.built_ins IS DISTINCT FROM EXCLUDED.built_ins\n                             THEN EXCLUDED.qa_rules\n                             ELSE COALESCE(r.qa_rules, EXCLUDED.qa_rules) END,\n             signatures = CASE WHEN r.built_ins IS DISTINCT FROM EXCLUDED.built_ins\n                               THEN EXCLUDED.signatures\n                               ELSE COALESCE(r.signatures, EXCLUDED.signatures) END,\n             built_at = CASE WHEN r.built_ins IS DISTINCT FROM EXCLUDED.built_ins\n                             THEN now() ELSE r.built_at END,\n             built_ins = EXCLUDED.built_ins\n         WHERE r.qa_rules IS NULL OR r.signatures IS NULL\n            OR r.built_ins IS DISTINCT FROM EXCLUDED.built_ins",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Jsonb",
+        "Jsonb",
+        "Jsonb",
+        "Jsonb",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "79e45598c8278ba683a5bfc2e546993423db6f4c31f8233f990a1c9dc0a049c2"
+}

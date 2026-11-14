@@ -627,13 +627,20 @@ impl Service {
         let limit = page_limit(limit, MAX_VALIDATIONS_PAGE)?;
         let after = cursor.map(decode::<ListCursor>).transpose()?;
         let p = &params(query)?;
-        let changed_since = query.changed_since;
+        let (changed_since, settle) = (query.changed_since, self.feed_settle_seconds());
         let after = &after;
         self.gate
             .read(actor, "svs_validations", &SIGNATURE_READ, &|tx| {
                 Box::pin(async move {
-                    let mut rows =
-                        list(tx.conn(), p, changed_since, after.as_ref(), limit + 1).await?;
+                    let mut rows = list(
+                        tx.conn(),
+                        p,
+                        changed_since,
+                        after.as_ref(),
+                        limit + 1,
+                        settle,
+                    )
+                    .await?;
                     let next_cursor = if rows.len() as i64 > limit {
                         rows.truncate(limit as usize);
                         rows.last().map(|last| {
@@ -667,12 +674,19 @@ impl Service {
         max: i64,
     ) -> Result<i64, ServiceError> {
         let p = &params(query)?;
-        let changed_since = query.changed_since;
+        let (changed_since, settle) = (query.changed_since, self.feed_settle_seconds());
         self.gate
             .read(actor, "svs_validation_count", &SIGNATURE_READ, &|tx| {
                 Box::pin(async move {
-                    let rows =
-                        list(tx.conn(), p, changed_since, None, max.saturating_add(1)).await?;
+                    let rows = list(
+                        tx.conn(),
+                        p,
+                        changed_since,
+                        None,
+                        max.saturating_add(1),
+                        settle,
+                    )
+                    .await?;
                     Ok(rows.len() as i64)
                 })
             })
@@ -992,6 +1006,7 @@ async fn list(
     changed_since: Option<DateTime<Utc>>,
     after: Option<&ListCursor>,
     limit: i64,
+    settle: f64,
 ) -> Result<Vec<ValidationRow>, sqlx::Error> {
     let [t0, t1, t2, t3, t4, t5] = &p.texts;
     let [s0, s1] = &p.states;
@@ -1036,7 +1051,9 @@ async fn list(
              AND ($17::timestamptz[] IS NULL OR NOT EXISTS (
                    SELECT FROM unnest($17::timestamptz[], $18::timestamptz[]) w(b, e)
                    WHERE v.created_at BETWEEN w.b AND w.e))
-             AND ($19::timestamptz IS NULL OR v.updated_at >= $19 OR v.created_at >= $19)
+             AND ($19::timestamptz IS NULL
+                  OR (v.updated_at >= $19 AND v.updated_at < now() - make_interval(secs => $23))
+                  OR (v.created_at >= $19 AND v.created_at < now() - make_interval(secs => $23)))
              AND ($20::timestamptz IS NULL OR (v.created_at, v.id) < ($20, $21::bigint))
            ORDER BY v.created_at DESC, v.id DESC
            LIMIT $22"#,
@@ -1062,6 +1079,7 @@ async fn list(
         after_created,
         after_id,
         limit,
+        settle,
     )
     .fetch_all(conn)
     .await?;

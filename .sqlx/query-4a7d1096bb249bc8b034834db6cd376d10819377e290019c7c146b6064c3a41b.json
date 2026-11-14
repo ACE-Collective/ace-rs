@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO svs.suppressed_matches (run_id, hunt_uuid, group_value, dedup_key, event_time)\n             VALUES ($1, $2, $3, $4, $5)\n             ON CONFLICT ON CONSTRAINT suppressed_matches_are_unique DO NOTHING",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text",
+        "Text",
+        "Text",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "4a7d1096bb249bc8b034834db6cd376d10819377e290019c7c146b6064c3a41b"
+}

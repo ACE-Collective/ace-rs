@@ -76,9 +76,22 @@ async fn a_new_commit_gets_a_row_that_lists_the_files_left_out() {
     println!("first: {row:?}");
     assert_eq!(row.commit, first);
     assert!(row.left_out.is_empty());
-    assert_eq!(row.files.len(), 1);
+    // the repository's file, and the marker rule the builder adds to every ruleset (PLAN.md 7.10 batch 6)
+    assert_eq!(row.files.len(), 2);
     assert_eq!(row.files[0].path, "fixture/good.yar");
     assert_eq!(row.files[0].rules, ["fixture_good"]);
+    assert_eq!(
+        (
+            row.files[1].namespace.as_str(),
+            row.files[1].path.as_str(),
+            row.files[1].rules.as_slice()
+        ),
+        (
+            "svs_marker",
+            "svs_marker/svs_marker.yar",
+            ["SVS_Marker".to_owned()].as_slice()
+        )
+    );
     assert_eq!(row.yara_x_version, ace_yara::YARA_X_VERSION);
     // the bytes are in the bucket under the key, and load
     let mut object = bucket.get(RULESETS, &row.key).await.expect("in the bucket");
@@ -105,7 +118,7 @@ async fn a_new_commit_gets_a_row_that_lists_the_files_left_out() {
     assert_eq!(row2.left_out[0].path, "fixture/broken.yar");
     assert!(!row2.left_out[0].error.is_empty());
     let paths: Vec<&str> = row2.files.iter().map(|f| f.path.as_str()).collect();
-    assert_eq!(paths, ["fixture/good.yar"]);
+    assert_eq!(paths, ["fixture/good.yar", "svs_marker/svs_marker.yar"]);
     assert_ne!(row2.tree, row.tree);
     // the same rules compile to the same bytes
     assert_eq!(row2.key, row.key);
@@ -209,4 +222,93 @@ async fn a_new_commit_gets_a_row_that_lists_the_files_left_out() {
         (&row4.signatures, &row4.qa_rules)
     );
     assert!(build_new(db, &bucket, &signatures).await.unwrap().is_none());
+
+    // ace3's tests/saq/svs/test_marker_rule.py, the file's writing: the marker rule is in the ruleset
+    // the pools scan with (test_install_writes_the_rule, test_default_path_is_under_the_configured_
+    // signature_dir), and finds a marker in a file's bytes
+    let current = rulesets::current(db).await.unwrap().expect("a ruleset");
+    let mut object = bucket
+        .get(RULESETS, &current.key)
+        .await
+        .expect("in the bucket");
+    let mut bytes = Vec::new();
+    std::io::Read::read_to_end(&mut object.file, &mut bytes).unwrap();
+    let loaded = Ruleset::from_bytes(&bytes, &LoadOptions::default()).expect("loads");
+    let outcome = ace_yara::Scanner::new(&loaded)
+        .scan(&ace_yara::ScanRequest {
+            data: b"whoami & REM svs-abcdefghijklmnopqrstuvwxyz\r\n",
+            path: "run.cmd",
+            mime_type: "text/plain",
+            meta_tags: &[],
+            timeout: None,
+        })
+        .expect("scans");
+    assert!(
+        outcome
+            .matches
+            .iter()
+            .any(|m| m.rule == "SVS_Marker" && m.namespace == "svs_marker"),
+        "{:?}",
+        outcome.matches
+    );
+    // nothing is built again while the built-ins are this build's (test_install_leaves_an_unchanged_
+    // rule_alone), and a row built before the builder added any is built again, in place, with them
+    assert!(build_new(db, &bucket, &signatures).await.unwrap().is_none());
+    let recorded: Option<String> =
+        sqlx::query_scalar("SELECT built_ins FROM yara.rulesets WHERE id = $1")
+            .bind(current.id)
+            .fetch_one(db.pool())
+            .await
+            .unwrap();
+    assert_eq!(recorded, Some(rulesets::built_ins()));
+    sqlx::query("UPDATE yara.rulesets SET built_ins = NULL, key = repeat('0', 64), files = '[]'")
+        .execute(db.pool())
+        .await
+        .unwrap();
+    let rebuilt = build_new(db, &bucket, &signatures)
+        .await
+        .unwrap()
+        .expect("builds it again");
+    assert_eq!((rebuilt.id, &rebuilt.key), (current.id, &current.key));
+    assert!(
+        rebuilt
+            .files
+            .iter()
+            .any(|f| f.path == "svs_marker/svs_marker.yar")
+    );
+    assert!(build_new(db, &bucket, &signatures).await.unwrap().is_none());
+
+    // a file of the same namespace and name in the repository is replaced by ACE's
+    // (test_install_replaces_a_changed_rule); another file of the namespace stays
+    write(
+        repo,
+        "yara/svs_marker/svs_marker.yar",
+        "rule old { condition: false }\n",
+    );
+    write(
+        repo,
+        "yara/svs_marker/other.yar",
+        "rule beside { condition: false }\n",
+    );
+    commit(repo, "a marker rule of the repository's own");
+    let replaced = build_new(db, &bucket, &signatures)
+        .await
+        .unwrap()
+        .expect("a row for the commit");
+    let marker: Vec<(&str, &[String])> = replaced
+        .files
+        .iter()
+        .filter(|f| f.namespace == "svs_marker")
+        .map(|f| (f.path.as_str(), f.rules.as_slice()))
+        .collect();
+    assert_eq!(
+        marker,
+        [
+            ("svs_marker/other.yar", ["beside".to_owned()].as_slice()),
+            (
+                "svs_marker/svs_marker.yar",
+                ["SVS_Marker".to_owned()].as_slice()
+            ),
+        ]
+    );
 }

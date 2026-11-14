@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE svs.attributions\n                     SET removed_at = $2, removed_by = $3::jsonb, removal_reason = $4\n                     WHERE id = $1 AND source = 'router' AND removed_at IS NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Timestamptz",
+        "Jsonb",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "600dc924ca80731b848d984cacb2ae1291dff21d918ee628b227674f969042bc"
+}

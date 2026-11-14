@@ -1,0 +1,47 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT event_time, event_time_source::text AS \"source!\", alerted_at\n           FROM analysis.roots WHERE id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "event_time",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "analysis.roots",
+            "name": "event_time"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "source!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 2,
+        "name": "alerted_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "analysis.roots",
+            "name": "alerted_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      true,
+      null,
+      true
+    ]
+  },
+  "hash": "fe1797a17b68cfb85e9f62a9ed0d7975aa7d124a95d9df0e7c05dff0a8819d23"
+}

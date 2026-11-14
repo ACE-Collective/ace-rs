@@ -275,9 +275,10 @@ pub use svs_decisions::{
 };
 pub use svs_results::ComputedResult;
 pub use svs_run_reads::{
-    HistoryRun, MAX_RUN_COMMENT_CHARS, MAX_RUN_HISTORY, MAX_RUNS_PAGE, RunBatch, RunBatchPage,
-    RunComment, RunEventFeedPage, RunEventRow, RunHistory, RunPage, RunQuery, RunResult,
-    RunResultPage, RunResults, RunRow, RunSummary, SignatureHistory, SuppressionShare, SvsFeed,
+    HistoryRun, MAX_RUN_COMMENT_CHARS, MAX_RUN_HISTORY, MAX_RUNS_PAGE, RunAttribution,
+    RunAttributionPage, RunBatch, RunBatchPage, RunComment, RunEventFeedPage, RunEventRow,
+    RunHistory, RunPage, RunQuery, RunResult, RunResultPage, RunResults, RunRow, RunSummary,
+    SignatureHistory, SuppressionShare, SvsFeed,
 };
 pub use svs_runs::{
     MAX_MAINTENANCE_PAGE, MAX_RUN_EVENTS_PAGE, MaintenanceWindow, REFUSAL_ALERT_TYPE, REFUSAL_TOOL,

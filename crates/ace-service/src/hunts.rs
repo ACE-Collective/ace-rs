@@ -24,10 +24,33 @@
 //! (`max_result_count`, 100 by default, which Splunk applies), and a grouped hunt makes one per group,
 //! with the rows it held as `events`. Rows go after [`SUPPRESSION_RETENTION`], in each run's
 //! transaction. ace3 keeps no such rows: its SVS keeps the first dropped match per SVS run and hunt
-//! (`svs_suppressed_matches`) while a run is open, which ace4 has no SVS for yet (7.10).
+//! (`svs_suppressed_matches`) while a run is open, which is `svs.suppressed_matches` here, written from
+//! the same decisions (below).
 //!
 //! The `hunt` router reads [`Service::hunts`], [`Service::hunt`] and [`Service::hunt_suppressions`]
 //! under `hunt:read`.
+//!
+//! **Who owns a match** (PLAN.md 7.10 batch 6, ace3 #842). While an SVS test run or a test host's
+//! maintenance window is open, [`Service::record_hunt_run`] asks the core who owns each of the run's
+//! matches, by its hosts and event time: `ace_core::svs::attribution`'s `Event::derive` and
+//! `context_owners`, the same two functions the core's SVS hook judges an alert by, once for the whole
+//! run, in the run's transaction. Two things follow from that one answer, where ace3's hunter asks twice
+//! and its collector a third time:
+//!
+//! - **A grouped hunt's suppression key.** A match a run or a window owns is suppressed under
+//!   `svs_run:<run>:<group>` or `svs_maintenance:<window>:<group>`, not under its group alone, so a test
+//!   is never hidden by an earlier alert of its group and neither a test nor a host's staging hides a
+//!   later one (ace3's `key_suppression`). The hunter decides suppression by the group alone, from the
+//!   state it read, since it can't ask; the record then decides again for the matches SVS owns, against
+//!   the stored state it holds locked: one the hunter dropped is submitted when its SVS key isn't
+//!   suppressed, one it kept is dropped when it is, and the group's own alert time is left as it was. So
+//!   the state a run stores can differ from the one the hunter proposed, by those keys only.
+//! - **The dropped matches.** Each match dropped, by a group's suppression or as a duplicate, is
+//!   recorded for the run that owns it, the first per run and hunt (`svs.suppressed_matches`), which
+//!   marks the run's result stale: the result then says the hunt was suppressed, not missing.
+//!
+//! While nothing is open the core is asked one question, whether anything is, and the run is recorded
+//! as the hunter decided it.
 //!
 //! **What SVS reads** (PLAN.md 7.10 batch 5). A loaded file's row also keeps what SVS's run windows and
 //! results need of the hunt ([`LoadedHuntRow::svs`], `ace_core::svs::windows::RecordedHunt`): the hunter
@@ -37,6 +60,7 @@ use std::collections::BTreeMap;
 
 use ace_core::bucket::Bucket;
 use ace_core::submit::{Origin, Submission};
+use ace_core::svs::attribution::{self, TimeSource};
 use chrono::{DateTime, TimeDelta, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::types::Json;
@@ -112,6 +136,9 @@ pub struct HuntRun {
     pub submissions: Vec<HuntSubmission>,
     /// The submissions a group's suppression dropped.
     pub suppressed: Vec<GroupSuppressed>,
+    /// A grouped hunt's `suppression`: how long a group's alert drops the group's later ones. None for a
+    /// hunt that doesn't group or has none, whose matches no SVS run keys.
+    pub suppression: Option<TimeDelta>,
 }
 
 /// A submission of a run, with the keys ace3 drops it by.
@@ -141,6 +168,10 @@ pub struct GroupSuppressed {
     pub events: usize,
     pub since: DateTime<Utc>,
     pub until: DateTime<Utc>,
+    /// The submission it would have made: SVS reads its hosts and event time from it, and it is
+    /// submitted after all when a test run or a maintenance window owns it and its key there isn't
+    /// suppressed (the module docs).
+    pub hit: HuntSubmission,
 }
 
 /// How long a dedup key drops the submissions that repeat it: ace3's collector deletes a key 4 hours
@@ -211,6 +242,10 @@ pub struct RunRecorded {
     pub roots: Vec<Uuid>,
     /// The ids of the suppression rows it wrote, in the order it decided them.
     pub suppressions: Vec<i64>,
+    /// The dropped matches it recorded for SVS test runs (`svs.suppressed_matches`).
+    pub svs_matches: Vec<ace_core::svs::attribution::RecordedSuppression>,
+    /// The suppression keys an SVS test run or maintenance window keyed, each once.
+    pub svs_keys: Vec<String>,
 }
 
 #[derive(Serialize)]
@@ -384,7 +419,8 @@ impl Service {
                             run.name, run.kind
                         )));
                     }
-                    let recorded = record_decisions(tx, self, bucket, actor, run).await?;
+                    let (recorded, state, counts) =
+                        record_decisions(tx, self, bucket, actor, run).await?;
                     sqlx::query!(
                         "UPDATE hunts.state
                          SET last_executed_time = $3, last_end_time = $4, last_alert_time = $5,
@@ -392,20 +428,20 @@ impl Service {
                          WHERE type = $1 AND name = $2",
                         run.kind,
                         run.name,
-                        run.state.last_executed_time,
-                        run.state.last_end_time,
-                        run.state.last_alert_time,
-                        Json(&run.state.last_alert_times) as _,
+                        state.last_executed_time,
+                        state.last_end_time,
+                        state.last_alert_time,
+                        Json(&state.last_alert_times) as _,
                     )
                     .execute(tx.conn())
                     .await?;
-                    let change = Change::updated(Target::hunt(&run.kind, &run.name), &stored, &run.state)?
+                    let change = Change::updated(Target::hunt(&run.kind, &run.name), &stored, &state)?
                         .details(&RunDetails {
                             window_start: run.window_start,
                             window_end: run.window_end,
                             roots: &recorded.roots,
-                            suppressed: run.suppressed.len(),
-                            duplicates: recorded.suppressions.len() - run.suppressed.len(),
+                            suppressed: counts.suppressed,
+                            duplicates: counts.duplicates,
                         })?;
                     Ok(Audited::changed(recorded, change))
                 })
@@ -514,18 +550,71 @@ async fn decide(
     .await?)
 }
 
+/// How many of a run's matches were dropped, each way.
+struct Dropped {
+    suppressed: usize,
+    duplicates: usize,
+}
+
+/// A match's event, by the core's one derivation (`Event::derive`): the hosts among the observables it
+/// would submit, and its event time with the source the root would record.
+fn event_of(hit: &HuntSubmission, at: DateTime<Utc>) -> attribution::Event {
+    let observables = hit
+        .origin
+        .observables
+        .iter()
+        .map(|o| (o.kind, o.value.as_str()))
+        .chain(
+            hit.submission
+                .observables
+                .iter()
+                .map(|o| (o.kind, o.value.as_str())),
+        );
+    let time = match hit.submission.event_time {
+        Some(time) if hit.origin.event_time_from_query => (time, TimeSource::QueryTime),
+        Some(time) => (time, TimeSource::Event),
+        None => (at, TimeSource::Now),
+    };
+    attribution::Event::derive(observables, Some(time), at)
+}
+
+/// A match the run drops for its group's suppression.
+struct GroupDrop<'a> {
+    key: String,
+    group_value: Option<&'a serde_json::Value>,
+    /// The group as text, which SVS records.
+    group: String,
+    description: &'a str,
+    event_time: DateTime<Utc>,
+    events: usize,
+    since: DateTime<Utc>,
+    until: DateTime<Utc>,
+    /// Its place among the run's matches, the suppressed ones first.
+    index: usize,
+}
+
+/// A match the run submits, unless its dedup key drops it.
+struct Kept<'a> {
+    hit: &'a HuntSubmission,
+    /// The key its group's alert time is kept under: its own, or the one SVS keyed.
+    key: Option<String>,
+    index: usize,
+}
+
 /// A run's roots and its suppression decisions, in the run's transaction: a row for each group its
 /// suppression dropped, pointing at the root the group last alerted with, then each submission in order,
 /// dropped with a row when its dedup key made a root less than [`DEDUP_KEY_LIFETIME`] ago, as ace3's
 /// collector drops it, and submitted otherwise. Expired dedup keys and suppression rows past
-/// [`SUPPRESSION_RETENTION`] go first.
+/// [`SUPPRESSION_RETENTION`] go first. While SVS has something open, who owns each match is asked first,
+/// once, and decides a grouped match's key and which run a dropped match is recorded for (the module
+/// docs). Returns what was recorded, the hunt's state after it, and how many matches were dropped.
 async fn record_decisions(
     tx: &mut ace_core::db::Tx<'_>,
     service: &Service,
     bucket: &Bucket,
     actor: &Actor,
     run: &HuntRun,
-) -> Result<RunRecorded, ServiceError> {
+) -> Result<(RunRecorded, HuntState, Dropped), ServiceError> {
     sqlx::query!(
         "DELETE FROM hunts.dedup_keys WHERE created_at <= $1",
         run.at - DEDUP_KEY_LIFETIME,
@@ -541,8 +630,146 @@ async fn record_decisions(
     let mut recorded = RunRecorded {
         roots: Vec::with_capacity(run.submissions.len()),
         suppressions: Vec::new(),
+        svs_matches: Vec::new(),
+        svs_keys: Vec::new(),
     };
-    for group in &run.suppressed {
+
+    // who owns each match, the suppressed ones first: the one question SVS is asked about this run
+    let matches = run.suppressed.len() + run.submissions.len();
+    let extra = service.runs.windows.attribution_extra;
+    let owners: Option<(Vec<attribution::Event>, Vec<attribution::ContextOwner>)> =
+        if matches > 0 && attribution::attribution_open(tx.conn(), run.at, extra).await? {
+            let events: Vec<attribution::Event> = run
+                .suppressed
+                .iter()
+                .map(|group| event_of(&group.hit, run.at))
+                .chain(run.submissions.iter().map(|hit| event_of(hit, run.at)))
+                .collect();
+            let owners = attribution::context_owners(tx.conn(), &events).await?;
+            Some((events, owners))
+        } else {
+            None
+        };
+    // the key an SVS run or window gives a grouped match, when one owns it
+    let svs_key = |index: usize, group: &str| -> Option<String> {
+        run.suppression?;
+        let (_, owners) = owners.as_ref()?;
+        Some(owners[index].suppression_owner()?.key(group))
+    };
+    // whether a key's group alerted within the hunt's suppression, by the state the run read, which is
+    // the stored one: ace3's `is_group_suppressed`
+    let suppressed_since = |key: &str| -> Option<(DateTime<Utc>, DateTime<Utc>)> {
+        let suppression = run.suppression?;
+        let last = *run.read.last_alert_times.get(key)?;
+        (run.at < last + suppression).then_some((last, last + suppression))
+    };
+
+    let mut state = run.state.clone();
+    let mut drops: Vec<GroupDrop<'_>> = Vec::new();
+    let mut kept: Vec<Kept<'_>> = Vec::new();
+    // the groups whose own alert time the hunter set for a match SVS keys instead, and those a match
+    // nothing owns alerted for
+    let mut rekeyed: Vec<&str> = Vec::new();
+    let mut alerted: Vec<&str> = Vec::new();
+    for (index, group) in run.suppressed.iter().enumerate() {
+        let event_time = group.event_time;
+        let drop = |key: String, since, until| GroupDrop {
+            key,
+            group_value: group.group_value.as_ref(),
+            group: group.key.clone(),
+            description: &group.description,
+            event_time,
+            events: group.events,
+            since,
+            until,
+            index,
+        };
+        match svs_key(index, &group.key) {
+            None => drops.push(drop(group.key.clone(), group.since, group.until)),
+            Some(key) => match suppressed_since(&key) {
+                Some((since, until)) => drops.push(drop(key, since, until)),
+                None => {
+                    // its group alerted lately, but not for this run or window: it alerts
+                    state.last_alert_times.insert(key.clone(), run.at);
+                    recorded.svs_keys.push(key.clone());
+                    kept.push(Kept {
+                        hit: &group.hit,
+                        key: Some(key),
+                        index,
+                    });
+                }
+            },
+        }
+    }
+    for (offset, hit) in run.submissions.iter().enumerate() {
+        let index = run.suppressed.len() + offset;
+        let keyed = hit
+            .suppression_key
+            .as_deref()
+            .and_then(|group| Some((group, svs_key(index, group)?)));
+        match keyed {
+            None => {
+                if let Some(group) = hit.suppression_key.as_deref() {
+                    alerted.push(group);
+                }
+                kept.push(Kept {
+                    hit,
+                    key: hit.suppression_key.clone(),
+                    index,
+                });
+            }
+            Some((group, key)) => {
+                rekeyed.push(group);
+                match suppressed_since(&key) {
+                    Some((since, until)) => drops.push(GroupDrop {
+                        key,
+                        group_value: hit.group_value.as_ref(),
+                        group: group.to_owned(),
+                        description: &hit.submission.description,
+                        event_time: hit.submission.event_time.unwrap_or(run.at),
+                        events: hit.events,
+                        since,
+                        until,
+                        index,
+                    }),
+                    None => {
+                        state.last_alert_times.insert(key.clone(), run.at);
+                        recorded.svs_keys.push(key.clone());
+                        kept.push(Kept {
+                            hit,
+                            key: Some(key),
+                            index,
+                        });
+                    }
+                }
+            }
+        }
+    }
+    // a group whose only alerts this run were a run's or a window's didn't alert for production: its
+    // alert time stays what it was, or goes if that has expired
+    for group in rekeyed {
+        if alerted.contains(&group) {
+            continue;
+        }
+        match suppressed_since(group) {
+            Some((last, _)) => state.last_alert_times.insert(group.to_owned(), last),
+            None => state.last_alert_times.remove(group),
+        };
+    }
+    recorded.svs_keys.sort();
+    recorded.svs_keys.dedup();
+    for key in &recorded.svs_keys {
+        tracing::info!(hunt = %run.name, hunt_uuid = %run.uuid, key, "a group's suppression is keyed by svs");
+    }
+
+    let mut dropped = Dropped {
+        suppressed: drops.len(),
+        duplicates: 0,
+    };
+    // what SVS records of the dropped matches: (the match's place, its group, its dedup key)
+    let mut group_matches: Vec<(usize, Option<String>, Option<String>)> = Vec::new();
+    let mut duplicate_matches: Vec<(usize, Option<String>, Option<String>)> = Vec::new();
+    for group in &drops {
         let cause = sqlx::query_scalar!(
             "SELECT root FROM hunts.alert_keys
              WHERE type = $1 AND name = $2 AND hash = sha256(convert_to($3, 'UTF8'))",
@@ -555,8 +782,8 @@ async fn record_decisions(
         let decision = Decision {
             reason: SuppressionReason::Group,
             key: &group.key,
-            group_value: group.group_value.as_ref(),
-            description: &group.description,
+            group_value: group.group_value,
+            description: group.description,
             event_time: group.event_time,
             events: group.events,
             window_start: group.since,
@@ -566,8 +793,9 @@ async fn record_decisions(
         recorded
             .suppressions
             .push(decide(tx, run, &decision).await?);
+        group_matches.push((group.index, Some(group.group.clone()), None));
     }
-    for hit in &run.submissions {
+    for Kept { hit, key, index } in &kept {
         let seen = match &hit.dedup_key {
             None => None,
             Some(key) => sqlx::query!(
@@ -581,10 +809,10 @@ async fn record_decisions(
             .map(|r| (key, r.root, r.created_at)),
         };
         let root = match seen {
-            Some((key, cause, created_at)) => {
+            Some((dedup_key, cause, created_at)) => {
                 let decision = Decision {
                     reason: SuppressionReason::Duplicate,
-                    key,
+                    key: dedup_key,
                     group_value: hit.group_value.as_ref(),
                     description: &hit.submission.description,
                     event_time: hit.submission.event_time.unwrap_or(run.at),
@@ -596,6 +824,12 @@ async fn record_decisions(
                 recorded
                     .suppressions
                     .push(decide(tx, run, &decision).await?);
+                dropped.duplicates += 1;
+                duplicate_matches.push((
+                    *index,
+                    hit.suppression_key.clone(),
+                    Some(dedup_key.clone()),
+                ));
                 cause
             }
             None => {
@@ -627,8 +861,8 @@ async fn record_decisions(
         };
         // the root the group's alert time now points to: ace3 records a group's alert time for a
         // submission its collector then drops as a duplicate, so that one's is the earlier root
-        if let Some(key) = &hit.suppression_key
-            && run.state.last_alert_times.contains_key(key)
+        if let Some(key) = key
+            && state.last_alert_times.contains_key(key)
         {
             sqlx::query!(
                 "INSERT INTO hunts.alert_keys (type, name, hash, key, root)
@@ -643,16 +877,37 @@ async fn record_decisions(
             .await?;
         }
     }
-    let kept: Vec<String> = run.state.last_alert_times.keys().cloned().collect();
+    let kept_keys: Vec<String> = state.last_alert_times.keys().cloned().collect();
     sqlx::query!(
         "DELETE FROM hunts.alert_keys WHERE type = $1 AND name = $2 AND NOT (key = ANY($3))",
         run.kind,
         run.name,
-        &kept,
+        &kept_keys,
     )
     .execute(tx.conn())
     .await?;
-    Ok(recorded)
+
+    // the dropped matches, for the runs that own them: a group's suppression first, as ace3's hunt
+    // records them before its collector finds the duplicates
+    if let Some((events, owners)) = &owners {
+        for matches in [group_matches, duplicate_matches] {
+            let matches: Vec<attribution::DroppedMatch<'_>> = matches
+                .into_iter()
+                .map(
+                    |(index, group_value, dedup_key)| attribution::DroppedMatch {
+                        owner: &owners[index],
+                        event_time: events[index].time,
+                        group_value,
+                        dedup_key,
+                    },
+                )
+                .collect();
+            recorded.svs_matches.extend(
+                attribution::record_suppressed_matches(tx.conn(), &run.uuid, &matches).await?,
+            );
+        }
+    }
+    Ok((recorded, state, dropped))
 }
 
 impl Service {

@@ -83,6 +83,16 @@ impl SignatureRepo {
     }
 }
 
+/// The rule files the builder adds to every ruleset, whatever the signature directory holds (PLAN.md 7.10
+/// batch 6): SVS's marker rule, as its own namespace, where ace3 writes it into its signature directory.
+/// 7.16's export of the detections joins it.
+pub const BUILT_INS: &[ruleset::BuiltIn] = &[crate::svs::marker_rule::BUILT_IN];
+
+/// Which built-ins this build's rulesets hold, as `yara.rulesets.built_ins` records it.
+pub fn built_ins() -> String {
+    ruleset::built_ins_sha256(BUILT_INS)
+}
+
 /// A built ruleset's row.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RulesetRow {
@@ -162,9 +172,10 @@ pub async fn build_new(
     let built = sqlx::query_scalar!(
         "SELECT id FROM yara.rulesets
          WHERE commit = $1 AND yara_x_version = $2 AND qa_rules IS NOT NULL
-           AND signatures IS NOT NULL",
+           AND signatures IS NOT NULL AND built_ins = $3",
         commit,
         version,
+        built_ins(),
     )
     .fetch_optional(db.pool())
     .await?;
@@ -200,10 +211,11 @@ async fn build_commit(
                   signatures AS "signatures!"
            FROM yara.rulesets
            WHERE tree = $1 AND yara_x_version = $2 AND qa_rules IS NOT NULL
-             AND signatures IS NOT NULL
+             AND signatures IS NOT NULL AND built_ins = $3
            ORDER BY id DESC LIMIT 1"#,
         tree,
         version,
+        built_ins(),
     )
     .fetch_optional(db.pool())
     .await?;
@@ -223,7 +235,13 @@ async fn build_commit(
             let built = {
                 let (path, commit, dir) = (repo.repo.clone(), commit.clone(), repo.dir.clone());
                 blocking(move || {
-                    ruleset::build_commit(&path, &commit, &dir, &LoadOptions::default())
+                    ruleset::build_commit_with(
+                        &path,
+                        &commit,
+                        &dir,
+                        &LoadOptions::default(),
+                        BUILT_INS,
+                    )
                 })
                 .await?
             };
@@ -257,16 +275,33 @@ async fn build_commit(
         }
     };
     // a core on another node may have built the same commit meanwhile; a row from before QA
-    // rules or SVS's signatures were recorded gets them, and keeps the rest
+    // rules or SVS's signatures were recorded gets them, and keeps the rest; a row built with other
+    // built-in rules than this build's is this build's from here on
     sqlx::query!(
         "INSERT INTO yara.rulesets AS r
              (key, commit, tree, sources_sha256, yara_x_version, files, left_out, qa_rules,
-              signatures)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+              signatures, built_ins)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
          ON CONFLICT (commit, yara_x_version) DO UPDATE
-         SET qa_rules = COALESCE(r.qa_rules, EXCLUDED.qa_rules),
-             signatures = COALESCE(r.signatures, EXCLUDED.signatures)
-         WHERE r.qa_rules IS NULL OR r.signatures IS NULL",
+         SET key = CASE WHEN r.built_ins IS DISTINCT FROM EXCLUDED.built_ins
+                        THEN EXCLUDED.key ELSE r.key END,
+             sources_sha256 = CASE WHEN r.built_ins IS DISTINCT FROM EXCLUDED.built_ins
+                                   THEN EXCLUDED.sources_sha256 ELSE r.sources_sha256 END,
+             files = CASE WHEN r.built_ins IS DISTINCT FROM EXCLUDED.built_ins
+                          THEN EXCLUDED.files ELSE r.files END,
+             left_out = CASE WHEN r.built_ins IS DISTINCT FROM EXCLUDED.built_ins
+                             THEN EXCLUDED.left_out ELSE r.left_out END,
+             qa_rules = CASE WHEN r.built_ins IS DISTINCT FROM EXCLUDED.built_ins
+                             THEN EXCLUDED.qa_rules
+                             ELSE COALESCE(r.qa_rules, EXCLUDED.qa_rules) END,
+             signatures = CASE WHEN r.built_ins IS DISTINCT FROM EXCLUDED.built_ins
+                               THEN EXCLUDED.signatures
+                               ELSE COALESCE(r.signatures, EXCLUDED.signatures) END,
+             built_at = CASE WHEN r.built_ins IS DISTINCT FROM EXCLUDED.built_ins
+                             THEN now() ELSE r.built_at END,
+             built_ins = EXCLUDED.built_ins
+         WHERE r.qa_rules IS NULL OR r.signatures IS NULL
+            OR r.built_ins IS DISTINCT FROM EXCLUDED.built_ins",
         key,
         commit,
         tree,
@@ -276,6 +311,7 @@ async fn build_commit(
         left_out,
         qa_rules,
         signatures,
+        built_ins(),
     )
     .execute(db.pool())
     .await?;

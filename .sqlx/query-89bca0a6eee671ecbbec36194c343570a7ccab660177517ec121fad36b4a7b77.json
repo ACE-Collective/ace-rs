@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id FROM yara.rulesets\n         WHERE commit = $1 AND yara_x_version = $2 AND qa_rules IS NOT NULL\n           AND signatures IS NOT NULL",
+  "query": "SELECT id FROM svs.runs WHERE id = ANY ($1) ORDER BY id FOR UPDATE",
   "describe": {
     "columns": [
       {
@@ -9,7 +9,7 @@
         "type_info": "Int8",
         "origin": {
           "Table": {
-            "table": "yara.rulesets",
+            "table": "svs.runs",
             "name": "id"
           }
         }
@@ -17,13 +17,12 @@
     ],
     "parameters": {
       "Left": [
-        "Text",
-        "Text"
+        "Int8Array"
       ]
     },
     "nullable": [
       false
     ]
   },
-  "hash": "ea5c9a75907cec43fcce1d14d2844fba35a3472338680dcc4f8097a37b7182b0"
+  "hash": "89bca0a6eee671ecbbec36194c343570a7ccab660177517ec121fad36b4a7b77"
 }

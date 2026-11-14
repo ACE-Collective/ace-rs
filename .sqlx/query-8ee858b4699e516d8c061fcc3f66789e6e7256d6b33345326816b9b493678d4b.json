@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT key, sources_sha256, files, left_out, qa_rules AS \"qa_rules!\",\n                  signatures AS \"signatures!\"\n           FROM yara.rulesets\n           WHERE tree = $1 AND yara_x_version = $2 AND qa_rules IS NOT NULL\n             AND signatures IS NOT NULL\n           ORDER BY id DESC LIMIT 1",
+  "query": "SELECT key, sources_sha256, files, left_out, qa_rules AS \"qa_rules!\",\n                  signatures AS \"signatures!\"\n           FROM yara.rulesets\n           WHERE tree = $1 AND yara_x_version = $2 AND qa_rules IS NOT NULL\n             AND signatures IS NOT NULL AND built_ins = $3\n           ORDER BY id DESC LIMIT 1",
   "describe": {
     "columns": [
       {
@@ -73,6 +73,7 @@
     "parameters": {
       "Left": [
         "Text",
+        "Text",
         "Text"
       ]
     },
@@ -85,5 +86,5 @@
       true
     ]
   },
-  "hash": "8d1e33b7712f54b3759032381c3d901d2c7e2ce555fe6ccbb6e9e1d1c4159639"
+  "hash": "8ee858b4699e516d8c061fcc3f66789e6e7256d6b33345326816b9b493678d4b"
 }

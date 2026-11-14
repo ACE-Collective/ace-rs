@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO svs.maintenance_alerts (window_id, root_id, created_at)\n             VALUES ($1, $2, $3)\n             ON CONFLICT ON CONSTRAINT maintenance_alerts_are_unique DO UPDATE\n             SET removed_at = NULL\n             WHERE svs.maintenance_alerts.closed_at IS NULL\n               AND svs.maintenance_alerts.removed_at IS NOT NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Uuid",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "767b90d31414adc33b673ac72490e773a2268804e1b12984cc5cb3e92be504ce"
+}

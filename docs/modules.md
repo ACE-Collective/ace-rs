@@ -21,16 +21,15 @@ Versions are those of ace3's image: Python packages from `installer/requirements
 | Pool | Modules | Ported |
 |---|---|---|
 | parser | 53 | 53 |
-| lookup | 17 | 16 |
-| core | 3 | 2 |
+| lookup | 16 | 16 |
+| core | 4 | 3 |
 | sandbox | 15 | 15 |
 | scanner | 2 | 2 |
-| all | 90 | 88 |
+| all | 90 | 89 |
 
 | Step | Modules |
 |---|---|
-| done | 88 |
-| 7.10 | 1 |
+| done | 89 |
 | owner | 1 |
 
 No ace3 module goes to 7.8 or 7.9: 7.8's integrations are a site's (below), and remediation and file collection are services, not modules. "done" is the ten modules phases 1 to 4 ported and those 7.4, 7.5, 7.6, 7.7 and 7.10 have ported since. "owner" is a module no step names.
@@ -79,7 +78,7 @@ Not here: `rdap_analyzer` and `nrd_analyzer` use ace3's analysis result cache, w
 | `user_defined_tagging` | ace: observables, observable_tag_mapping, tags R (one SELECT per observable, tag.py:107-120) | to add the tags mapped to an observable's value | `observable-tags` |
 | `alert_added_to_event` | ace: event_mapping joined to alerts, R | to switch the root to event mode when it's in an event | `core` |
 | `svs_yara_sample_capture` | ace: alerts R (disposition), svs_attributions + svs_runs R (unreviewed_run_condition); ace: svs_yara_captures R/W (insert pending, update stored/missing; private transactions); ace: svs_sample_deletions R (is_deleted, checked before and after); ace: cas_objects, cas_holds, cas_purges R/W (CAS index via pool.put/hold/stat/release) | to capture the files YARA matched on a dispositioned alert as SVS samples | `svs-capture-state`, `end` |
-| `svs_alert_tagger` | ace: alerts R (insert_date); ace: svs_runs, svs_maintenance_windows R (attribution_open gate, cached svs.attribution.gate_cache_seconds); ace: svs_runs, svs_test_hosts, svs_maintenance_windows, svs_attributions R (evaluate: resolve_markers, runs_overlapping, maintenance_windows_overlapping, _existing) | to tag an alert SVS attributes to a test run or maintenance window | `svs-attribution` |
+| `svs_alert_tagger` | ace: alerts R (insert_date); ace: svs_runs, svs_maintenance_windows R (attribution_open gate, cached svs.attribution.gate_cache_seconds); ace: svs_runs, svs_test_hosts, svs_maintenance_windows, svs_attributions R (evaluate: resolve_markers, runs_overlapping, maintenance_windows_overlapping, _existing) | to tag an alert SVS attributes to a test run or maintenance window | `core` |
 | `observable_detection` | Redis: Redis 'local' config (redis_local), DB 4 (REDIS_DB_FOR_DETECTION_A): GET '<type>:<value>' per observable; populated by 'ace observables export' (saq/observables/export/redis_cache.py). One connection per module instance, health_check_interval 30. | to flag an observable an analyst set for detection | `lease` |
 
 ## External tools
@@ -275,7 +274,7 @@ In the config's order. ace4 is the crate a ported module is in.
 | `pdf_encryption_analyzer` | `PDFEncryptionAnalyzer` | `ace-mod-encrypted` | parser | done | file | analysis, binary, cli, correlation, email, file |
 | `alert_added_to_event` | `AlertAddedToEventAnalyzer` | not yet | core | owner | - | dispositioned |
 | `svs_yara_sample_capture` | `YaraSampleCapture` | `ace-mod-svs` | lookup | done | - | dispositioned |
-| `svs_alert_tagger` | `SVSAlertTagger` | not yet | lookup | 7.10 | - | correlation |
+| `svs_alert_tagger` | `SVSAlertTagger` | `ace-core` | core | done | - | correlation |
 | `dhash` | `DHashImageAnalyzer` | `ace-mod-files` | parser | done | file | analysis, binary, cli, correlation, email, file |
 | `observable_detection` | `ObservableDetectionAnalyzer` | `ace-mod-tag` | lookup | done | common | analysis, binary, cli, correlation, email, file |
 | `phishkit_analyzer` | `PhishkitAnalyzer` | `ace-mod-scanners` | scanner | done | correlation, file | analysis, binary, cli, correlation, email, file |
@@ -2098,9 +2097,9 @@ In the config's order. ace4 is the crate a ported module is in.
 ### svs_alert_tagger
 
 - **Section**: `analysis_module_svs_alert_tagger`, class `SVSAlertTagger` in `saq/modules/svs.py`, enabled by default.
-- **ace4**: not yet.
-- **Pool**: lookup. Reads SVS run state through the `svs-attribution` read (7.2).
-- **Step**: 7.10.
+- **ace4**: ported in `ace-core`. One of the core's hooks (`crates/ace-core/src/hooks.rs`, the owner's decision of 2026-11-14, ace3 #842): at the end of a pass in a mode that lists it, once the observable modifier's post rules match nothing and `configuration_defined_tagging` has added its detections, the hooks task judges the root's SVS context once (`crates/ace-core/src/svs/attribution.rs`'s `judge`) and writes everything that follows from that one judgment in its transaction: the tags below on the root (`analysis.roots.tags`), a root detection per marker that doesn't agree with its run, and also what ace3's `svs_marker` alert router writes by judging the alert again, twice: the attributions of the alert's detections to test runs (`svs.attributions`, each change in its run's event log, its result marked stale, a reviewed run flagged changed) and the alert's maintenance record (`svs.maintenance_alerts`). Nothing judges an alert again: batch 7's router and everything else read these rows. Markers in module output are read from the results' details at the end of the pass, where ace3's executor saves them on the root as each module returns; the marker rule (`crates/ace-core/src/svs/marker_rule.rs`) is a namespace the ruleset builder adds to every ruleset. The gate is one query in the hook's transaction, with no cache, so with no run registered or in its window the hook costs that query. Bounded: only rows holding marker-shaped text are read, at most 1,000 of each kind, 200 markers from module output, 256 markers judged, 256 hosts an event, 500 runs and 500 windows on those hosts, and a root with more than 10,000 detections isn't judged. A marker that doesn't agree stays one: its own detection carries the marker, as ace3's does.
+- **Pool**: core. It edits the root (its tags and detections) and writes SVS's tables, so it runs beside the tree as a hook, with no read to serve: 7.2's planned `svs-attribution` read is dropped.
+- **Step**: done.
 - **Does**: In correlation-mode post-analysis, evaluates SVS test-run attribution for the alert (markers in the tree, hosts, event time vs registered runs and maintenance windows) and tags it svs_test, svs:marker_mismatch (with detection points) or svs:maintenance.
 - **Input**: none (post-analysis over the root).
 - **Groups and modes**: groups none; modes correlation.

@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO analysis.detections\n                     (root_id, observable_id, description, details, signature_uuid, signature_family)\n                 SELECT $1, NULL, $2, $3, $4, $5\n                 WHERE NOT EXISTS (SELECT FROM analysis.detections d\n                                   WHERE d.root_id = $1 AND d.observable_id IS NULL\n                                     AND d.description = $2)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Jsonb",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "e50aaf469c03d88e522f8c61fcf0170ad16dd92558a6d81b6d7674d20c3daddd"
+}

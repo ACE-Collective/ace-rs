@@ -1,0 +1,30 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id FROM yara.rulesets\n         WHERE commit = $1 AND yara_x_version = $2 AND qa_rules IS NOT NULL\n           AND signatures IS NOT NULL AND built_ins = $3",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "yara.rulesets",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "12aa3f54332d6ab573d803409dcc979c8eabf4f7c5b99f5bca47e6ff76446f77"
+}

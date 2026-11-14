@@ -955,6 +955,22 @@ impl Web {
                 get(svs_run_reads::export_result_feed),
             )
             .route(
+                "/api/svs/v1/runs/attributions",
+                get(svs_run_reads::attribution_feed),
+            )
+            .route(
+                "/api/svs/v1/runs/attributions/export/{format}",
+                get(svs_run_reads::export_attribution_feed),
+            )
+            .route(
+                "/api/svs/v1/runs/{run_id}/attributions",
+                get(svs_run_reads::run_attributions),
+            )
+            .route(
+                "/api/svs/v1/runs/{run_id}/attributions/export/{format}",
+                get(svs_run_reads::export_run_attributions),
+            )
+            .route(
                 "/api/svs/v1/runs/{run_id}/events/export/{format}",
                 get(svs_run_reads::export_run_events),
             )
@@ -1347,6 +1363,10 @@ impl Web {
         svs_run_reads::export_event_feed,
         svs_run_reads::result_feed,
         svs_run_reads::export_result_feed,
+        svs_run_reads::attribution_feed,
+        svs_run_reads::export_attribution_feed,
+        svs_run_reads::run_attributions,
+        svs_run_reads::export_run_attributions,
         svs_run_reads::export_run_events,
         svs_run_reads::run_results,
         svs_run_reads::export_run_results,

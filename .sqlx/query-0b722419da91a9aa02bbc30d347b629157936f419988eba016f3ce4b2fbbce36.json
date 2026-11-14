@@ -1,0 +1,30 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH present AS (\n               SELECT t FROM analysis.observables o, unnest(o.tags) t WHERE o.root_id = $1\n               UNION SELECT t FROM analysis.results r, unnest(r.tags) t WHERE r.root_id = $1\n               UNION SELECT jsonb_array_elements_text(origin -> 'tags') FROM analysis.roots\n                     WHERE id = $1 AND jsonb_typeof(origin -> 'tags') = 'array'\n               UNION SELECT t FROM analysis.roots x, unnest(x.tags) t WHERE x.id = $1),\n           wanted AS (\n               SELECT DISTINCT 'tag ' || p.t || ' is configured to be alertable' AS description\n               FROM present p WHERE p.t = ANY($2))\n           INSERT INTO analysis.detections (root_id, observable_id, description, signature_uuid)\n           SELECT $1, NULL, w.description, $3 FROM wanted w\n           WHERE NOT EXISTS (SELECT 1 FROM analysis.detections d\n                             WHERE d.root_id = $1 AND d.observable_id IS NULL\n                               AND d.description = w.description)\n           ORDER BY w.description\n           RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "analysis.detections",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "TextArray",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "0b722419da91a9aa02bbc30d347b629157936f419988eba016f3ce4b2fbbce36"
+}

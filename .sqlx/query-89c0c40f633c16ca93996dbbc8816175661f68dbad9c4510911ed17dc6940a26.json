@@ -1,0 +1,32 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT r.id FROM svs.runs r\n         WHERE r.started_at <= $2 AND r.attribution_ends_at >= $1\n           AND EXISTS (SELECT FROM svs.run_targets t\n                       LEFT JOIN svs.test_hosts h ON h.id = t.test_host_id\n                       WHERE t.run_id = r.id AND (t.host = ANY ($3) OR h.ips && $4))\n         ORDER BY r.started_at DESC, r.id DESC LIMIT $5",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "svs.runs",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Timestamptz",
+        "Timestamptz",
+        "TextArray",
+        "TextArray",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "89c0c40f633c16ca93996dbbc8816175661f68dbad9c4510911ed17dc6940a26"
+}

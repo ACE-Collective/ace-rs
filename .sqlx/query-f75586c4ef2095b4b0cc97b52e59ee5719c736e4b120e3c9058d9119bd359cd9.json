@@ -1,0 +1,49 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT origin ->> 'alert_type' AS alert_type, origin ->> 'queue' AS queue,\n                  CASE WHEN jsonb_typeof(origin -> 'tags') = 'array'\n                       THEN ARRAY(SELECT jsonb_array_elements_text(origin -> 'tags')) END AS tags,\n                  tags AS core_tags\n           FROM analysis.roots WHERE id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "alert_type",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "queue",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 2,
+        "name": "tags",
+        "type_info": "TextArray",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 3,
+        "name": "core_tags",
+        "type_info": "TextArray",
+        "origin": {
+          "Table": {
+            "table": "analysis.roots",
+            "name": "tags"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      null,
+      false
+    ]
+  },
+  "hash": "f75586c4ef2095b4b0cc97b52e59ee5719c736e4b120e3c9058d9119bd359cd9"
+}
