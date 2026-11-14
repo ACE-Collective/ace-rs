@@ -404,6 +404,84 @@ async fn file_collection_prune_lets_go_of_old_collections_files() {
     assert_eq!(audit.3["collections"][0]["id"], ids[0].0);
 }
 
+/// ace3's `daily/svs-validations-prune` (PLAN.md 7.10 batch 3): a validation that finished past
+/// `svs.yara.retention_days` goes with its rows; a newer one and one still queued stay, and the run has its
+/// audit row as `scheduler:svs_validations_prune`.
+#[tokio::test]
+async fn svs_validations_prune_removes_old_validations() {
+    let fixture = Fixture::new().await;
+    let db = fixture.db();
+    let mut uuids = Vec::new();
+    for (head, state, days) in [
+        ("a", "completed", 91),
+        ("b", "failed", 1),
+        ("c", "queued", 200),
+    ] {
+        let uuid = uuid::Uuid::new_v4();
+        let finished = state != "queued";
+        let id: i64 = sqlx::query_scalar(
+            "INSERT INTO svs.validations
+                 (uuid, repository, base_sha, head_sha, branch, requested_by, state, active_key,
+                  created_at, finished_at)
+             VALUES ($1, 'rules', repeat('0', 40), repeat($2, 40), 'main',
+                     '{\"kind\": \"internal\", \"id\": \"test\"}', $3::svs.validation_state,
+                     CASE WHEN $4 THEN NULL ELSE repeat($2, 64) END,
+                     now() - make_interval(days => $5), CASE WHEN $4 THEN now() - make_interval(days => $5) END)
+             RETURNING id",
+        )
+        .bind(uuid)
+        .bind(head)
+        .bind(state)
+        .bind(finished)
+        .bind(days)
+        .fetch_one(db.pool())
+        .await
+        .expect("a validation");
+        sqlx::query(
+            "INSERT INTO svs.validation_results
+                 (validation_id, sha256, rule_uuid, rule_name, base, head, raw_base, raw_head, category)
+             VALUES ($1, repeat('d', 64), 'r', 'rule', 'match', 'miss', true, false, 'regression')",
+        )
+        .bind(id)
+        .execute(db.pool())
+        .await
+        .expect("a result");
+        uuids.push(uuid);
+    }
+    let task = builtin("svs_validations_prune");
+    make_due(db, &task).await;
+
+    let run = run_once(&fixture, vec![task], "svs_validations_prune").await;
+
+    assert_eq!(run.outcome.as_deref(), Some("succeeded"), "{run:?}");
+    assert_eq!(run.summary, Some(json!({"removed": 1, "batches": 1})));
+    let left: Vec<uuid::Uuid> = sqlx::query_scalar("SELECT uuid FROM svs.validations ORDER BY id")
+        .fetch_all(db.pool())
+        .await
+        .expect("reads");
+    assert_eq!(left, uuids[1..]);
+    let results: i64 = sqlx::query_scalar("SELECT count(*) FROM svs.validation_results")
+        .fetch_one(db.pool())
+        .await
+        .expect("reads");
+    assert_eq!(results, 2);
+    let audit: (serde_json::Value, String, String, serde_json::Value) =
+        sqlx::query_as("SELECT actor::jsonb, action, target_kind, before FROM service.audit")
+            .fetch_one(db.pool())
+            .await
+            .expect("one audit row");
+    assert_eq!(
+        (audit.0, audit.1.as_str(), audit.2.as_str()),
+        (
+            json!({"kind": "internal", "id": "scheduler:svs_validations_prune"}),
+            "prune_svs_validations",
+            "svs_validations"
+        )
+    );
+    assert_eq!(audit.3["retention_days"], 90);
+    assert_eq!(audit.3["validations"], json!([uuids[0]]));
+}
+
 /// The partitions of an email archive table, by name, the catchall's left out.
 async fn archive_weeks(db: &Db, table: &str) -> Vec<String> {
     sqlx::query_scalar(
@@ -960,6 +1038,7 @@ fn the_overlay_s_scheduler_section_sets_each_task_over_its_defaults() {
             ("bucket_verify", "0 5 * * 1", 14400, true),
             ("email_archive_partitions", "0 5 * * *", 3600, true),
             ("file_collection_prune", "0 5 * * *", 3600, true),
+            ("svs_validations_prune", "0 5 * * *", 3600, true),
             ("nrd_refresh", "*/30 * * * *", 1500, true),
         ]
     );
@@ -973,6 +1052,7 @@ fn the_overlay_s_scheduler_section_sets_each_task_over_its_defaults() {
             "internal:scheduler:bucket_verify",
             "internal:scheduler:email_archive_partitions",
             "internal:scheduler:file_collection_prune",
+            "internal:scheduler:svs_validations_prune",
             "internal:scheduler:nrd_refresh",
         ]
     );
@@ -994,7 +1074,7 @@ fn the_overlay_s_scheduler_section_sets_each_task_over_its_defaults() {
         "scheduler:\n  bucket_gc:\n    schedule: '*/15 * * * *'\n    timeout_seconds: 600\n  \
          bucket_verify:\n    enabled: false\n  cas_node_stats:\n    enabled: true\n",
     );
-    assert_eq!(set.len(), 7, "the removed task is skipped");
+    assert_eq!(set.len(), 8, "the removed task is skipped");
     assert_eq!(
         (
             set[0].schedule.as_str(),

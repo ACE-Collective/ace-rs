@@ -1609,6 +1609,9 @@ async fn every_write_function_has_an_audit_test() {
         delete_svs_sample_records_its_row(db).await,
         download_svs_sample_records_its_row(db).await,
         download_svs_samples_records_its_row(db).await,
+        request_svs_validation_records_its_row(db).await,
+        download_svs_validation_records_its_row(db).await,
+        prune_svs_validations_records_its_row(db).await,
     ]);
     assert_eq!(covered, write_functions(), "{WRITES_NEED_A_TEST}");
 }
@@ -3356,6 +3359,38 @@ async fn every_write_fails_when_its_audit_fails() {
         .await
         .expect("retires");
     let (_, deleted, _) = audited_sample(db).await;
+    // a validation to request again, one to download from and one to prune (PLAN.md 7.10 batch 3)
+    let svs_repo = svs_repository();
+    let validations = validating(db, &svs_repo);
+    let validation_content = format!("svs audit fails {}", Uuid::new_v4()).into_bytes();
+    let validation_sample = sample_named(
+        db,
+        &bucket,
+        "DELIVERY",
+        &validation_content,
+        &[RULE_UUID],
+        "sample.bin",
+    )
+    .await;
+    let downloadable = completed_validation(
+        db,
+        &svs_repo,
+        &validation_head(),
+        vec![result_row(
+            ValidationCategory::Regression,
+            &validation_sample,
+        )],
+    )
+    .await;
+    let prunable = completed_validation(db, &svs_repo, &"c".repeat(40), vec![]).await;
+    sqlx::query(
+        "UPDATE svs.validations SET finished_at = now() - interval '100 days' WHERE uuid = $1",
+    )
+    .bind(prunable)
+    .execute(db.pool())
+    .await
+    .expect("ages it");
+    let validations_before = validation_rows(db).await;
     let samples_before = sample_rows(db).await;
     let actions_before = action_rows(db).await;
     let lists_before = list_rows(db).await;
@@ -4148,6 +4183,33 @@ async fn every_write_fails_when_its_audit_fails() {
                 .expect_err("refused"),
         ),
     ];
+    let mut attempts = Vec::from(attempts);
+    attempts.extend([
+        (
+            "request_svs_validation",
+            validations
+                .request_svs_validation(&actor, &ask(&validation_base(), &"d".repeat(40)))
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
+        (
+            "download_svs_validation",
+            validations
+                .download_svs_validation(&actor, downloadable, &ResultSelection::default())
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
+        (
+            "prune_svs_validations",
+            validations
+                .prune_svs_validations(&actor)
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
+    ]);
     let mut covered = BTreeSet::new();
     for (function, error) in &attempts {
         assert!(error.to_string().contains("broken"), "{function}: {error}");
@@ -4186,6 +4248,11 @@ async fn every_write_fails_when_its_audit_fails() {
     );
     assert_eq!(command_rows(db).await, commands_before);
     assert_eq!(sample_rows(db).await, samples_before, "no sample changed");
+    assert_eq!(
+        validation_rows(db).await,
+        validations_before,
+        "no validation changed"
+    );
     assert_eq!(
         list_rows(db).await,
         lists_before,
@@ -20341,4 +20408,2638 @@ async fn sample_filters_match_what_they_say() {
             "{bad:?}"
         );
     }
+}
+
+// ---- PLAN.md 7.10 batch 3: YARA validation ----
+//
+// ace3's tests/saq/svs/yara/ cases that need the database, the bucket or a rule repository: the corpus
+// (test_corpus.py), whole replays (test_replay.py), the queue (test_validations.py) and its workers
+// (test_service.py), and test_config.py's lease and defaults. The pure ones are ace-core's and ace-yara's.
+
+use ace_core::svs::validations as svs_queue;
+use ace_core::svs::yara as svs_yara;
+use ace_core::svs::yara::diff::{Category as ValidationCategory, Outcome as ValidationOutcome};
+use ace_core::svs::yara::replay::{
+    Child as ReplayChild, Replay, ReplayError, ReplayRequest, ReplayResult, Replayer,
+};
+use ace_core::testing::rule_repo::{RuleRepo, rule};
+use ace_service::{ResultSelection, ValidationAsk, ValidationQuery};
+use tokio_util::sync::CancellationToken;
+
+const REPOSITORY: &str = "svs_rules";
+
+fn validation_base() -> String {
+    "a".repeat(40)
+}
+
+fn validation_head() -> String {
+    "b".repeat(40)
+}
+
+/// ace3's `svs_repository`: a rule repository SVS may validate, its rules in its `yara` directory, and the
+/// settings that name it, with a mirror and a work directory of their own.
+struct SvsRepository {
+    repo: RuleRepo,
+    config: svs_yara::ValidationConfig,
+    tmp: tempfile::TempDir,
+}
+
+fn svs_repository_with(change: impl FnOnce(&mut ace_sdk::SvsYaraSection)) -> SvsRepository {
+    // the work directory has no '.' in its path
+    let tmp = tempfile::Builder::new()
+        .prefix("svsrepo")
+        .tempdir_in("/tmp")
+        .expect("a directory");
+    let repo = RuleRepo::new(&tmp.path().join("repo"));
+    let mut section = ace_sdk::SvsYaraSection {
+        repositories: [(
+            REPOSITORY.to_owned(),
+            ace_sdk::SvsRepository {
+                url: repo.origin.to_string_lossy().into_owned(),
+                branch: "main".to_owned(),
+                signature_dir: "yara".to_owned(),
+            },
+        )]
+        .into(),
+        mirror_dir: Some(tmp.path().join("mirrors")),
+        work_dir: Some(tmp.path().join("work")),
+        ..ace_sdk::SvsYaraSection::default()
+    };
+    change(&mut section);
+    let config = svs_yara::ValidationConfig::from_section(&section).expect("valid settings");
+    SvsRepository { repo, config, tmp }
+}
+
+fn svs_repository() -> SvsRepository {
+    svs_repository_with(|_| {})
+}
+
+impl SvsRepository {
+    fn work_dirs(&self) -> Vec<PathBuf> {
+        match std::fs::read_dir(self.tmp.path().join("work")) {
+            Ok(entries) => entries.flatten().map(|e| e.path()).collect(),
+            Err(_) => Vec::new(),
+        }
+    }
+
+    fn commit(&self, files: &[(&str, &str)], branch: &str) -> String {
+        self.repo.commit(files, branch)
+    }
+}
+
+fn classes() -> (Vec<String>, Vec<String>) {
+    ace_service::Dispositions::ace3().classes().lists()
+}
+
+fn validating(db: &Db, repo: &SvsRepository) -> Service {
+    service(db).with_validation(repo.config.clone())
+}
+
+fn replayer(db: &Db, bucket: &Bucket, repo: &SvsRepository) -> Replayer {
+    let (tp, fp) = classes();
+    Replayer {
+        db: db.clone(),
+        bucket: bucket.clone(),
+        config: repo.config.clone(),
+        tp,
+        fp,
+        child: ReplayChild::InProcess,
+    }
+}
+
+fn workers(db: &Db, repo: &SvsRepository, replay: Arc<dyn Replay>) -> svs_queue::Workers {
+    let (tp, fp) = classes();
+    svs_queue::Workers {
+        db: db.clone(),
+        config: repo.config.clone(),
+        replay,
+        tp,
+        fp,
+        node: "node1".to_owned(),
+    }
+}
+
+/// ace3's `stored_sample`: a file YARA matched for each of `rules` on an alert with this disposition,
+/// captured as `name`, its bytes in the `svs_samples` pool held by each capture. Returns its sha256.
+async fn sample_named(
+    db: &Db,
+    bucket: &Bucket,
+    disposition: &str,
+    content: &[u8],
+    rules: &[&str],
+    name: &'static str,
+) -> String {
+    let (_, files) = graded_alert(
+        db,
+        Some(disposition),
+        &[(name, rules)],
+        &[(name, content)],
+        true,
+    )
+    .await;
+    let sha256 = files[name].clone();
+    put_held(db, bucket, content, &sha256).await;
+    sha256
+}
+
+/// The bytes in the pool, held by every capture of their sha256 that holds nothing yet.
+async fn put_held(db: &Db, bucket: &Bucket, content: &[u8], sha256: &str) {
+    let spooled = bucket.store().spool_bytes(content).await.expect("spools");
+    for row in capture_rows(db, sha256).await {
+        let mut tx = db.begin().await.expect("begins");
+        bucket
+            .put_in(
+                &mut tx,
+                ace_core::svs::samples::SVS_SAMPLES,
+                &spooled,
+                Some(&ace_core::svs::samples::capture_hold(row.id)),
+            )
+            .await
+            .expect("puts");
+        tx.commit().await.expect("commits");
+    }
+}
+
+fn ask(base: &str, head: &str) -> ValidationAsk {
+    ValidationAsk {
+        repository: REPOSITORY.to_owned(),
+        base_sha: base.to_owned(),
+        head_sha: head.to_owned(),
+        branch: "feature".to_owned(),
+        pr_url: Some("https://git.example/pr/1".to_owned()),
+    }
+}
+
+async fn request_validation(db: &Db, repo: &SvsRepository, base: &str, head: &str) -> (Uuid, bool) {
+    let (status, created) = validating(db, repo)
+        .request_svs_validation(&admin(db).await, &ask(base, head))
+        .await
+        .expect("requests");
+    (status.uuid, created)
+}
+
+#[derive(Debug, sqlx::FromRow)]
+struct ValidationView {
+    state: String,
+    repository: String,
+    branch: String,
+    requested_by: Value,
+    active_key: Option<String>,
+    claim_token: Option<Uuid>,
+    claimed_by: Option<String>,
+    attempts: i32,
+    error: Option<String>,
+    corpus_version: Option<String>,
+    engine_fingerprint: Option<String>,
+    counts: Option<Value>,
+    report: Option<Value>,
+    regressions: Option<i32>,
+    new_fps: Option<i32>,
+    compile_errors: Option<i32>,
+    diffed: Option<bool>,
+    finished_at: Option<chrono::DateTime<chrono::Utc>>,
+}
+
+async fn validation_view(db: &Db, uuid: Uuid) -> ValidationView {
+    sqlx::query_as(
+        "SELECT state::text, repository, branch, requested_by::jsonb, active_key, claim_token, claimed_by,
+                attempts, error, corpus_version, engine_fingerprint, counts, report, regressions,
+                new_fps, compile_errors, diffed, finished_at
+         FROM svs.validations WHERE uuid = $1",
+    )
+    .bind(uuid)
+    .fetch_one(db.pool())
+    .await
+    .expect("reads the validation")
+}
+
+async fn result_rows(db: &Db) -> Vec<(String, String, String, String, Option<String>)> {
+    sqlx::query_as(
+        "SELECT sha256, category, base, head, label FROM svs.validation_results ORDER BY id",
+    )
+    .fetch_all(db.pool())
+    .await
+    .expect("reads")
+}
+
+const LEASE: Duration = Duration::from_secs(300);
+
+async fn claim_one(db: &Db, node: &str) -> Option<svs_queue::Claim> {
+    svs_queue::claim(db, node, LEASE, 3).await.expect("claims")
+}
+
+/// Claims `uuid`, whatever else waits: it's made the oldest first.
+async fn claim_this(db: &Db, uuid: Uuid) -> svs_queue::Claim {
+    sqlx::query(
+        "UPDATE svs.validations SET created_at = created_at - interval '100 years' WHERE uuid = $1",
+    )
+    .bind(uuid)
+    .execute(db.pool())
+    .await
+    .expect("makes it the oldest");
+    let claimed = claim_one(db, "node1").await.expect("a claim");
+    assert_eq!(claimed.uuid, uuid);
+    claimed
+}
+
+fn result_row(category: ValidationCategory, sha256: &str) -> svs_yara::diff::ResultRow {
+    svs_yara::diff::ResultRow {
+        sha256: sha256.to_owned(),
+        rule_uuid: RULE_UUID.to_owned(),
+        rule_name: "svs_rule".to_owned(),
+        namespace: Some("acme".to_owned()),
+        label: Some("tp".to_owned()),
+        label_source: Some("inherited_single".to_owned()),
+        base: ValidationOutcome::Match,
+        head: ValidationOutcome::Miss,
+        raw_base: true,
+        raw_head: false,
+        category,
+        note: None,
+    }
+}
+
+/// A replay result as the replay returns one, compared, with `rows`.
+fn replay_result(
+    rows: Vec<svs_yara::diff::ResultRow>,
+    file_errors: Vec<svs_yara::replay::FileError>,
+) -> ReplayResult {
+    let mut result = ReplayResult::new(REPOSITORY, &validation_base(), &validation_head());
+    let mut counts = BTreeMap::new();
+    for row in &rows {
+        *counts.entry(row.category).or_default() += 1;
+    }
+    result.counts = ReplayResult::all_counts(&counts);
+    result.rows = rows;
+    result.head.file_errors = file_errors;
+    result.diffed = true;
+    result
+}
+
+async fn complete_claimed(
+    db: &Db,
+    repo: &SvsRepository,
+    uuid: Uuid,
+    rows: Vec<svs_yara::diff::ResultRow>,
+) {
+    let claimed = claim_this(db, uuid).await;
+    let (tp, fp) = classes();
+    svs_queue::complete(
+        db,
+        &claimed,
+        &replay_result(rows, vec![]),
+        &svs_queue::corpus_version(db).await.expect("a version"),
+        &svs_queue::engine_fingerprint(&repo.config, REPOSITORY, &tp, &fp).expect("a fingerprint"),
+    )
+    .await
+    .expect("completes");
+}
+
+async fn expire_lease(db: &Db, uuid: Uuid) {
+    sqlx::query(
+        "UPDATE svs.validations SET heartbeat_at = now() - interval '1 hour' WHERE uuid = $1",
+    )
+    .bind(uuid)
+    .execute(db.pool())
+    .await
+    .expect("expires it");
+}
+
+/// test_validations.py's `test_an_identical_request_shares_the_queued_validation`.
+#[tokio::test]
+async fn an_identical_request_shares_the_queued_validation() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let repo = svs_repository();
+    let (uuid, created) =
+        request_validation(db, &repo, &validation_base(), &validation_head()).await;
+    assert!(created);
+    let row = validation_view(db, uuid).await;
+    assert_eq!(
+        (
+            row.state.as_str(),
+            row.repository.as_str(),
+            row.branch.as_str(),
+            &row.requested_by
+        ),
+        ("queued", REPOSITORY, "feature", &boss_json())
+    );
+
+    assert_eq!(
+        request_validation(db, &repo, &validation_base(), &validation_head()).await,
+        (uuid, false)
+    );
+    // an upper case id is the same commit
+    assert_eq!(
+        request_validation(
+            db,
+            &repo,
+            &validation_base().to_uppercase(),
+            &validation_head()
+        )
+        .await,
+        (uuid, false)
+    );
+    assert!(
+        request_validation(db, &repo, &validation_base(), &"c".repeat(40))
+            .await
+            .1
+    );
+    // the key every process shares: the sha256 of the JSON ["svs_rules", "a" * 40, "b" * 40]
+    assert_eq!(
+        row.active_key.as_deref(),
+        Some("e59ce04f87ba60c144f48f4908d4ff0b8772decf7fc1cbc807136670b50d2a6b")
+    );
+}
+
+/// test_validations.py's `test_a_completed_validation_answers_until_the_corpus_changes`.
+#[tokio::test]
+async fn a_completed_validation_answers_until_the_corpus_changes() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let repo = svs_repository();
+    let (uuid, _) = request_validation(db, &repo, &validation_base(), &validation_head()).await;
+    complete_claimed(db, &repo, uuid, vec![]).await;
+    assert_eq!(validation_view(db, uuid).await.active_key, None);
+
+    assert_eq!(
+        request_validation(db, &repo, &validation_base(), &validation_head()).await,
+        (uuid, false)
+    );
+
+    // a new sample changes the corpus: the next request runs again
+    graded_alert(
+        db,
+        Some("DELIVERY"),
+        &[("new.bin", &[RULE_UUID])],
+        &[],
+        true,
+    )
+    .await;
+    let (again, created) =
+        request_validation(db, &repo, &validation_base(), &validation_head()).await;
+    assert!(created && again != uuid);
+}
+
+/// test_validations.py's `test_a_failed_validation_is_never_reused`.
+#[tokio::test]
+async fn a_failed_validation_is_never_reused() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let repo = svs_repository();
+    let (uuid, _) = request_validation(db, &repo, &validation_base(), &validation_head()).await;
+    let claimed = claim_one(db, "node1").await.expect("a claim");
+    assert!(
+        svs_queue::fail(db, &claimed, "the scan failed")
+            .await
+            .expect("fails")
+    );
+    assert_eq!(validation_view(db, uuid).await.state, "failed");
+
+    let (again, created) =
+        request_validation(db, &repo, &validation_base(), &validation_head()).await;
+    assert!(created && again != uuid);
+}
+
+/// test_validations.py's `test_concurrent_identical_requests_share_one_validation`: two requests at once
+/// make one validation, the second answered with the first's.
+#[tokio::test]
+async fn concurrent_identical_requests_share_one_validation() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let repo = svs_repository();
+    let actor = admin(db).await;
+    let service = validating(db, &repo);
+    let asked = ask(&validation_base(), &validation_head());
+    let (first, second) = tokio::join!(
+        service.request_svs_validation(&actor, &asked),
+        service.request_svs_validation(&actor, &asked),
+    );
+    let (first, second) = (first.expect("requests"), second.expect("requests"));
+    assert_eq!(first.0.uuid, second.0.uuid);
+    assert_eq!(u8::from(first.1) + u8::from(second.1), 1, "one made it");
+    let count: i64 = sqlx::query_scalar("SELECT count(*) FROM svs.validations")
+        .fetch_one(db.pool())
+        .await
+        .expect("counts");
+    assert_eq!(count, 1);
+}
+
+/// test_validations.py's `test_the_corpus_version_follows_every_input`.
+#[tokio::test]
+async fn the_corpus_version_follows_every_input() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let actor = admin(db).await;
+    let service = service(db);
+    let (root, files) =
+        graded_alert(db, Some("DELIVERY"), &[("a.bin", &[RULE_UUID])], &[], true).await;
+    let sha256 = files["a.bin"].clone();
+    let mut versions = vec![svs_queue::corpus_version(db).await.expect("a version")];
+    async fn changed(db: &Db, versions: &mut Vec<String>, what: &str) {
+        versions.push(svs_queue::corpus_version(db).await.expect("a version"));
+        assert_ne!(
+            versions[versions.len() - 1],
+            versions[versions.len() - 2],
+            "{what}"
+        );
+    }
+
+    service
+        .relabel_svs_sample(&actor, &sha256, RULE_UUID, ace_service::Verdict::Fp)
+        .await
+        .expect("relabels");
+    changed(db, &mut versions, "a relabel").await;
+    // clearing a verdict bumps no change time; the history's count catches it
+    service
+        .reset_svs_sample_label(&actor, &sha256, RULE_UUID)
+        .await
+        .expect("resets");
+    changed(db, &mut versions, "a reset").await;
+    service
+        .retire_svs_sample(&actor, &sha256, RULE_UUID, "intended")
+        .await
+        .expect("retires");
+    changed(db, &mut versions, "a retirement").await;
+    set_disposition_row(db, root, Some("FALSE_POSITIVE")).await;
+    changed(db, &mut versions, "a disposition").await;
+    sqlx::query("DELETE FROM analysis.roots WHERE id = $1")
+        .bind(root)
+        .execute(db.pool())
+        .await
+        .expect("deletes the alert");
+    changed(db, &mut versions, "a deleted alert").await;
+    assert_eq!(
+        &svs_queue::corpus_version(db).await.expect("a version"),
+        versions.last().unwrap()
+    );
+}
+
+/// test_validations.py's `test_the_engine_fingerprint_follows_the_disposition_classification`.
+#[test]
+fn the_engine_fingerprint_follows_the_disposition_classification() {
+    let repo = svs_repository();
+    let (tp, mut fp) = classes();
+    let fingerprint =
+        svs_queue::engine_fingerprint(&repo.config, REPOSITORY, &tp, &fp).expect("a fingerprint");
+    assert_eq!(
+        svs_queue::engine_fingerprint(&repo.config, REPOSITORY, &tp, &fp).unwrap(),
+        fingerprint
+    );
+    fp.push("REVIEWED".to_owned());
+    assert_ne!(
+        svs_queue::engine_fingerprint(&repo.config, REPOSITORY, &tp, &fp).unwrap(),
+        fingerprint
+    );
+    assert!(svs_queue::engine_fingerprint(&repo.config, "elsewhere", &tp, &fp).is_err());
+}
+
+/// test_validations.py's `test_only_one_worker_claims_a_validation`: claims racing for one validation, one
+/// wins.
+#[tokio::test]
+async fn only_one_worker_claims_a_validation() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let repo = svs_repository();
+    let (uuid, _) = request_validation(db, &repo, &validation_base(), &validation_head()).await;
+    let claims = futures_join_all(db, 8).await;
+    let won: Vec<&svs_queue::Claim> = claims.iter().flatten().collect();
+    let [first] = won[..] else {
+        panic!("one claim wins: {claims:?}")
+    };
+    assert_eq!((first.uuid, first.attempts), (uuid, 1));
+    assert!(claim_one(db, "node2").await.is_none());
+    let row = validation_view(db, uuid).await;
+    assert_eq!(row.state, "running");
+    assert_eq!(row.claim_token, Some(first.token));
+    assert!(svs_queue::heartbeat(db, first).await.expect("heartbeats"));
+}
+
+async fn futures_join_all(db: &Db, n: usize) -> Vec<Option<svs_queue::Claim>> {
+    let mut set = tokio::task::JoinSet::new();
+    for index in 0..n {
+        let db = db.clone();
+        set.spawn(async move {
+            svs_queue::claim(&db, &format!("node{index}"), LEASE, 3)
+                .await
+                .expect("claims")
+        });
+    }
+    let mut claims = Vec::new();
+    while let Some(claim) = set.join_next().await {
+        claims.push(claim.expect("joins"));
+    }
+    claims
+}
+
+/// test_validations.py's `test_an_expired_lease_is_taken_over`.
+#[tokio::test]
+async fn an_expired_lease_is_taken_over() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let repo = svs_repository();
+    let (uuid, _) = request_validation(db, &repo, &validation_base(), &validation_head()).await;
+    let first = claim_one(db, "node1").await.expect("a claim");
+    expire_lease(db, uuid).await;
+
+    let second = claim_one(db, "node2").await.expect("taken over");
+    assert_eq!((second.uuid, second.attempts), (uuid, 2));
+    // the first worker's work is void
+    assert!(!svs_queue::heartbeat(db, &first).await.expect("heartbeats"));
+    let lost = svs_queue::complete(
+        db,
+        &first,
+        &replay_result(
+            vec![result_row(ValidationCategory::Regression, &"ab".repeat(32))],
+            vec![],
+        ),
+        "v",
+        "f",
+    )
+    .await;
+    assert!(
+        matches!(lost, Err(svs_queue::CompleteError::LeaseLost(_))),
+        "{lost:?}"
+    );
+    assert!(result_rows(db).await.is_empty());
+    assert!(!svs_queue::fail(db, &first, "late").await.expect("fails"));
+    assert_eq!(validation_view(db, uuid).await.state, "running");
+}
+
+/// test_validations.py's `test_a_validation_abandoned_too_often_fails`.
+#[tokio::test]
+async fn a_validation_abandoned_too_often_fails() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let repo = svs_repository();
+    let (uuid, _) = request_validation(db, &repo, &validation_base(), &validation_head()).await;
+    for _ in 0..3 {
+        assert!(claim_one(db, "node1").await.is_some());
+        expire_lease(db, uuid).await;
+    }
+    assert!(claim_one(db, "node1").await.is_none());
+    assert_eq!(
+        svs_queue::fail_abandoned(db, LEASE, 3)
+            .await
+            .expect("fails"),
+        1
+    );
+    let row = validation_view(db, uuid).await;
+    assert_eq!((row.state.as_str(), row.active_key), ("failed", None));
+    assert!(row.error.unwrap().contains("stopped 3 times"));
+}
+
+/// test_validations.py's `test_a_released_validation_returns_to_the_queue`.
+#[tokio::test]
+async fn a_released_validation_returns_to_the_queue() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let repo = svs_repository();
+    let (uuid, _) = request_validation(db, &repo, &validation_base(), &validation_head()).await;
+    let claimed = claim_one(db, "node1").await.expect("a claim");
+    assert!(svs_queue::release(db, &claimed).await.expect("releases"));
+
+    let row = validation_view(db, uuid).await;
+    assert_eq!(
+        (
+            row.state.as_str(),
+            row.attempts,
+            row.claim_token,
+            row.claimed_by
+        ),
+        ("queued", 0, None, None)
+    );
+    assert!(row.active_key.is_some());
+    assert_eq!(claim_one(db, "node2").await.expect("a claim").uuid, uuid);
+}
+
+/// test_validations.py's `test_complete_stores_the_report_and_its_rows`.
+#[tokio::test]
+async fn complete_stores_the_report_and_its_rows() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let repo = svs_repository();
+    let (uuid, _) = request_validation(db, &repo, &validation_base(), &validation_head()).await;
+    let claimed = claim_one(db, "node1").await.expect("a claim");
+    let result = replay_result(
+        vec![
+            result_row(ValidationCategory::Regression, &"ab".repeat(32)),
+            result_row(ValidationCategory::NewFpOtherRule, &"cd".repeat(32)),
+        ],
+        vec![svs_yara::replay::FileError {
+            file: "yara/acme/broken.yar".to_owned(),
+            namespace: "acme".to_owned(),
+            error: "syntax error".to_owned(),
+            dropped: vec![],
+        }],
+    );
+
+    svs_queue::complete(db, &claimed, &result, &"v".repeat(64), &"f".repeat(64))
+        .await
+        .expect("completes");
+
+    let row = validation_view(db, uuid).await;
+    assert_eq!(
+        (
+            row.state.as_str(),
+            row.claim_token,
+            row.active_key.as_deref(),
+            row.diffed
+        ),
+        ("completed", None, None, Some(true))
+    );
+    assert_eq!(
+        (row.regressions, row.new_fps, row.compile_errors),
+        (Some(1), Some(1), Some(1))
+    );
+    assert_eq!(row.counts.as_ref().unwrap()["regression"], 1);
+    let report = row.report.expect("a report");
+    assert!(report.get("rows").is_none());
+    assert_eq!(
+        report["head"]["file_errors"][0]["file"],
+        "yara/acme/broken.yar"
+    );
+    assert!(row.finished_at.is_some());
+    assert_eq!(
+        result_rows(db).await,
+        [
+            (
+                "ab".repeat(32),
+                "regression".to_owned(),
+                "match".to_owned(),
+                "miss".to_owned(),
+                Some("tp".to_owned())
+            ),
+            (
+                "cd".repeat(32),
+                "new_fp_other_rule".to_owned(),
+                "match".to_owned(),
+                "miss".to_owned(),
+                Some("tp".to_owned())
+            ),
+        ]
+    );
+}
+
+/// test_validations.py's `test_prune_removes_old_finished_validations_with_their_results`, in batches of
+/// one.
+#[tokio::test]
+async fn prune_removes_old_finished_validations_with_their_results() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let repo = svs_repository_with(|s| s.prune_batch_size = 1);
+    let (old, _) = request_validation(db, &repo, &validation_base(), &validation_head()).await;
+    complete_claimed(
+        db,
+        &repo,
+        old,
+        vec![result_row(ValidationCategory::Regression, &"ab".repeat(32))],
+    )
+    .await;
+    let (recent, _) = request_validation(db, &repo, &validation_base(), &"c".repeat(40)).await;
+    complete_claimed(db, &repo, recent, vec![]).await;
+    let (queued, _) = request_validation(db, &repo, &validation_base(), &"d".repeat(40)).await;
+    sqlx::query(
+        "UPDATE svs.validations SET finished_at = CASE WHEN finished_at IS NULL THEN NULL ELSE now() - interval '200 days' END,
+                created_at = now() - interval '200 days'
+         WHERE uuid = ANY ($1)",
+    )
+    .bind(vec![old, queued])
+    .execute(db.pool())
+    .await
+    .expect("ages them");
+    let actor = Actor::Internal {
+        id: Component::new("scheduler:svs_validations_prune").expect("a component"),
+    };
+    let service = validating(db, &repo);
+
+    assert_eq!(
+        service
+            .prunable_svs_validations(&actor)
+            .await
+            .expect("counts"),
+        1
+    );
+    let pruned = service.prune_svs_validations(&actor).await.expect("prunes");
+    assert_eq!((pruned.removed, pruned.batches), (1, 1));
+    let left: BTreeSet<Uuid> = sqlx::query_scalar("SELECT uuid FROM svs.validations")
+        .fetch_all(db.pool())
+        .await
+        .expect("reads")
+        .into_iter()
+        .collect();
+    assert_eq!(left, BTreeSet::from([recent, queued]));
+    assert!(result_rows(db).await.is_empty());
+    // only the scheduler's task holds the grant
+    let refused = service
+        .prune_svs_validations(&user(UserId(Uuid::from_u128(77))))
+        .await;
+    assert!(
+        matches!(refused, Err(ServiceError::PermissionDenied { .. })),
+        "{refused:?}"
+    );
+}
+
+/// test_validations.py's `test_deleting_a_sample_removes_it_from_every_report`.
+#[tokio::test]
+async fn deleting_a_sample_removes_it_from_every_report() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let (bucket, _cache) = bucket(db);
+    let repo = svs_repository();
+    let content = format!("svs validation delete {}", Uuid::new_v4()).into_bytes();
+    let sha256 = sample_named(
+        db,
+        &bucket,
+        "DELIVERY",
+        &content,
+        &[RULE_UUID],
+        "sample.bin",
+    )
+    .await;
+    let (uuid, _) = request_validation(db, &repo, &validation_base(), &validation_head()).await;
+    complete_claimed(
+        db,
+        &repo,
+        uuid,
+        vec![
+            result_row(ValidationCategory::Regression, &sha256),
+            result_row(ValidationCategory::Regression, &"ab".repeat(32)),
+        ],
+    )
+    .await;
+
+    service(db)
+        .delete_svs_sample(&admin(db).await, &bucket, &sha256, "privacy request")
+        .await
+        .expect("deletes");
+
+    let left: Vec<String> = result_rows(db).await.into_iter().map(|r| r.0).collect();
+    assert_eq!(left, ["ab".repeat(32)]);
+}
+
+// ---- the corpus ----
+
+/// test_corpus.py's `test_units_are_distinct_scans_and_samples_carry_labels`.
+#[tokio::test]
+async fn units_are_distinct_scans_and_samples_carry_labels() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let (bucket, _cache) = bucket(db);
+    let content = format!("replay me {}", Uuid::new_v4()).into_bytes();
+    let sha256 = sample_named(
+        db,
+        &bucket,
+        "DELIVERY",
+        &content,
+        &[RULE_UUID],
+        "invoice.pdf",
+    )
+    .await;
+    // the same bytes under another name, and again under the same name and tags, and other tags
+    for file_path in ["renamed.pdf", "invoice.pdf", "invoice.pdf"] {
+        insert_capture(
+            db,
+            Uuid::new_v4(),
+            &sha256,
+            OTHER_RULE_UUID,
+            CaptureRow {
+                file_path,
+                ..CaptureRow::default()
+            },
+        )
+        .await;
+    }
+    let tagged = insert_capture(
+        db,
+        Uuid::new_v4(),
+        &sha256,
+        OTHER_RULE_UUID,
+        CaptureRow {
+            file_path: "invoice.pdf",
+            ..CaptureRow::default()
+        },
+    )
+    .await;
+    sqlx::query("UPDATE svs.yara_captures SET yara_meta_tags = '{kind=email}' WHERE id = $1")
+        .bind(tagged)
+        .execute(db.pool())
+        .await
+        .expect("tags it");
+    // a capture that was never stored is no unit, and its file no sample
+    insert_capture(
+        db,
+        Uuid::new_v4(),
+        &"f".repeat(64),
+        RULE_UUID,
+        CaptureRow {
+            state: "missing",
+            missing_reason: Some("file"),
+            ..CaptureRow::default()
+        },
+    )
+    .await;
+
+    let (tp, fp) = classes();
+    let corpus = svs_yara::corpus::read_corpus(db, &tp, &fp)
+        .await
+        .expect("reads");
+
+    let mut units: Vec<(String, Vec<String>)> = corpus
+        .units
+        .iter()
+        .map(|u| (u.file_path.clone(), u.meta_tags.clone()))
+        .collect();
+    units.sort();
+    assert_eq!(
+        units,
+        [
+            ("invoice.pdf".to_owned(), vec![]),
+            ("invoice.pdf".to_owned(), vec!["kind=email".to_owned()]),
+            ("renamed.pdf".to_owned(), vec![]),
+        ]
+    );
+    assert_eq!(
+        corpus.samples.keys().cloned().collect::<BTreeSet<_>>(),
+        BTreeSet::from([
+            (sha256.clone(), RULE_UUID.to_owned()),
+            (sha256.clone(), OTHER_RULE_UUID.to_owned())
+        ])
+    );
+    assert_eq!(
+        corpus.samples[&(sha256.clone(), RULE_UUID.to_owned())]
+            .label
+            .as_deref(),
+        Some("tp")
+    );
+    assert_eq!(
+        corpus.samples[&(sha256, OTHER_RULE_UUID.to_owned())].label,
+        None
+    );
+}
+
+/// test_corpus.py's `test_units_are_copied_out_of_the_pool`.
+#[tokio::test]
+async fn units_are_copied_out_of_the_pool() {
+    use std::os::unix::fs::MetadataExt;
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let (bucket, _cache) = bucket(db);
+    let content = format!("copy me {}", Uuid::new_v4()).into_bytes();
+    let sha256 = sample_named(
+        db,
+        &bucket,
+        "FALSE_POSITIVE",
+        &content,
+        &[RULE_UUID],
+        "dir/a.txt",
+    )
+    .await;
+    insert_capture(
+        db,
+        Uuid::new_v4(),
+        &sha256,
+        OTHER_RULE_UUID,
+        CaptureRow {
+            file_path: "b.txt",
+            ..CaptureRow::default()
+        },
+    )
+    .await;
+    let (tp, fp) = classes();
+    let mut corpus = svs_yara::corpus::read_corpus(db, &tp, &fp)
+        .await
+        .expect("reads");
+    let dir = tempfile::tempdir().expect("a directory");
+
+    svs_yara::corpus::write_units(
+        &mut corpus,
+        &bucket,
+        &dir.path().join("u"),
+        svs_yara::ValidationConfig::default().corpus_limits,
+        &CancellationToken::new(),
+    )
+    .await
+    .expect("writes");
+
+    let paths: BTreeMap<&str, &PathBuf> = corpus
+        .units
+        .iter()
+        .map(|u| (u.file_path.as_str(), u.path.as_ref().expect("written")))
+        .collect();
+    assert!(paths["dir/a.txt"].ends_with("files/dir/a.txt"));
+    for path in paths.values() {
+        assert_eq!(std::fs::read(path).expect("reads"), content);
+        // the two units share one copy, and nothing of the node's cache is linked in: the scan could
+        // change what the bucket serves
+        assert_eq!(std::fs::metadata(path).expect("a file").nlink(), 2);
+    }
+    assert_eq!(corpus.replayed_sha256s(), BTreeSet::from([sha256]));
+    assert_eq!(corpus.bytes, content.len() as u64);
+    assert!(corpus.skipped.is_empty());
+}
+
+/// test_corpus.py's `test_what_cannot_be_replayed_is_skipped`. ace3's `wrong_node` has no counterpart: the
+/// bucket is one, shared by every node.
+#[tokio::test]
+async fn what_cannot_be_replayed_is_skipped() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let (bucket, _cache) = bucket(db);
+    let content = format!("unsafe {}", Uuid::new_v4()).into_bytes();
+    let unsafe_sha = sample_named(db, &bucket, "DELIVERY", &content, &[RULE_UUID], "ok.bin").await;
+    for file_path in ["../../escape.bin", "/etc/escape.bin"] {
+        insert_capture(
+            db,
+            Uuid::new_v4(),
+            &unsafe_sha,
+            OTHER_RULE_UUID,
+            CaptureRow {
+                file_path,
+                ..CaptureRow::default()
+            },
+        )
+        .await;
+    }
+    // stored, but the pool doesn't have the bytes
+    insert_capture(
+        db,
+        Uuid::new_v4(),
+        &"2".repeat(64),
+        RULE_UUID,
+        CaptureRow::default(),
+    )
+    .await;
+    // cut to the column's width when it was stored
+    let long_content = format!("long {}", Uuid::new_v4()).into_bytes();
+    let long_sha = sha256_hex(&long_content);
+    let long_path: &'static str =
+        Box::leak(("d/".repeat(1024)[..1023].to_owned() + "x").into_boxed_str());
+    insert_capture(
+        db,
+        Uuid::new_v4(),
+        &long_sha,
+        RULE_UUID,
+        CaptureRow {
+            file_path: long_path,
+            ..CaptureRow::default()
+        },
+    )
+    .await;
+    put_held(db, &bucket, &long_content, &long_sha).await;
+    let (tp, fp) = classes();
+    let mut corpus = svs_yara::corpus::read_corpus(db, &tp, &fp)
+        .await
+        .expect("reads");
+    let dir = tempfile::tempdir().expect("a directory");
+
+    svs_yara::corpus::write_units(
+        &mut corpus,
+        &bucket,
+        &dir.path().join("u"),
+        svs_yara::ValidationConfig::default().corpus_limits,
+        &CancellationToken::new(),
+    )
+    .await
+    .expect("writes");
+
+    let skipped: BTreeMap<(String, Option<String>), String> = corpus
+        .skipped
+        .iter()
+        .map(|s| ((s.sha256.clone(), s.file_path.clone()), s.reason.clone()))
+        .collect();
+    assert_eq!(
+        skipped[&(unsafe_sha.clone(), Some("../../escape.bin".to_owned()))],
+        "unsafe_path"
+    );
+    assert_eq!(
+        skipped[&(unsafe_sha.clone(), Some("/etc/escape.bin".to_owned()))],
+        "unsafe_path"
+    );
+    assert_eq!(
+        skipped[&("2".repeat(64), Some("sample.bin".to_owned()))],
+        "unreadable"
+    );
+    assert_eq!(
+        corpus.replayed_sha256s(),
+        BTreeSet::from([unsafe_sha, long_sha.clone()])
+    );
+    assert!(!dir.path().join("escape.bin").exists());
+    assert_eq!(
+        corpus
+            .units
+            .iter()
+            .filter(|u| u.sha256 == long_sha)
+            .map(|u| u.truncated)
+            .collect::<Vec<_>>(),
+        [true]
+    );
+}
+
+/// The corpus's bounds (new in ace4): past `max_corpus_files` or `max_corpus_bytes` the validation fails,
+/// rather than reporting on part of the corpus.
+#[tokio::test]
+async fn the_corpus_is_bounded() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let (bucket, _cache) = bucket(db);
+    for name in ["one.bin", "two.bin"] {
+        let content = format!("bounded {name} {}", Uuid::new_v4()).into_bytes();
+        sample_named(db, &bucket, "DELIVERY", &content, &[RULE_UUID], name).await;
+    }
+    let (tp, fp) = classes();
+    for (limits, message) in [
+        (
+            svs_yara::corpus::CorpusLimits {
+                max_files: 1,
+                max_bytes: 1 << 20,
+            },
+            "more than 1 files",
+        ),
+        (
+            svs_yara::corpus::CorpusLimits {
+                max_files: 10,
+                max_bytes: 60,
+            },
+            "larger than 60 bytes",
+        ),
+    ] {
+        let mut corpus = svs_yara::corpus::read_corpus(db, &tp, &fp)
+            .await
+            .expect("reads");
+        let dir = tempfile::tempdir().expect("a directory");
+        let error = svs_yara::corpus::write_units(
+            &mut corpus,
+            &bucket,
+            &dir.path().join("u"),
+            limits,
+            &CancellationToken::new(),
+        )
+        .await
+        .expect_err("too large");
+        assert!(error.to_string().contains(message), "{error}");
+    }
+}
+
+// ---- whole replays ----
+
+fn rules(parts: &[String]) -> String {
+    parts.concat()
+}
+
+fn replay_request(base: &str, head: &str, branch: Option<&str>) -> ReplayRequest {
+    ReplayRequest {
+        repository: REPOSITORY.to_owned(),
+        base_sha: base.to_owned(),
+        head_sha: head.to_owned(),
+        branch: branch.map(str::to_owned),
+        retired: BTreeSet::new(),
+    }
+}
+
+fn rows_by_pair(result: &ReplayResult) -> BTreeMap<(String, String), &svs_yara::diff::ResultRow> {
+    result
+        .rows
+        .iter()
+        .map(|r| ((r.sha256.clone(), r.rule_uuid.clone()), r))
+        .collect()
+}
+
+fn sample_pair(sha256: &str, rule: &str) -> (String, String) {
+    (sha256.to_owned(), rule.to_owned())
+}
+
+fn uuids(n: usize) -> Vec<String> {
+    (0..n).map(|_| Uuid::new_v4().to_string()).collect()
+}
+
+/// test_replay.py's `test_a_branch_gone_from_the_remote_still_validates`: CI running again on a merged pull
+/// request, whose branch was deleted, or on one from a fork.
+#[tokio::test]
+async fn a_branch_gone_from_the_remote_still_validates() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let (bucket, _cache) = bucket(db);
+    let repo = svs_repository();
+    let r1 = Uuid::new_v4().to_string();
+    let a = sample_named(db, &bucket, "DELIVERY", b"alpha evil", &[&r1], "sample.bin").await;
+    let base = repo.commit(
+        &[(
+            "yara/acme/rules.yar",
+            &rule("one", Some(&r1), "$a = \"evil\"", "any of them", &[]),
+        )],
+        "main",
+    );
+    let head = repo.commit(
+        &[(
+            "yara/acme/rules.yar",
+            &rule(
+                "one",
+                Some(&r1),
+                "$a = \"nothing here\"",
+                "any of them",
+                &[],
+            ),
+        )],
+        "main",
+    );
+
+    let result = replayer(db, &bucket, &repo)
+        .run(
+            &replay_request(&base, &head, Some("feature-deleted-on-merge")),
+            &CancellationToken::new(),
+        )
+        .await
+        .expect("replays");
+
+    assert!(result.diffed);
+    assert_eq!(
+        rows_by_pair(&result)[&sample_pair(&a, &r1)].category,
+        ValidationCategory::Regression
+    );
+}
+
+/// test_replay.py's `test_a_validation_reports_what_the_change_does`.
+#[tokio::test]
+async fn a_validation_reports_what_the_change_does() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let (bucket, _cache) = bucket(db);
+    let repo = svs_repository();
+    let ids = uuids(8);
+    let (r1, r2, r3, r4, r5, r6, r7, broken) = (
+        &ids[0], &ids[1], &ids[2], &ids[3], &ids[4], &ids[5], &ids[6], &ids[7],
+    );
+    let a = sample_named(db, &bucket, "DELIVERY", b"alpha evil", &[r1], "sample.bin").await;
+    let b = sample_named(
+        db,
+        &bucket,
+        "FALSE_POSITIVE",
+        b"beta bad",
+        &[r2],
+        "sample.bin",
+    )
+    .await;
+    let c = sample_named(db, &bucket, "DELIVERY", b"gamma", &[r3], "sample.bin").await;
+    // two rules fired on the alert: their TP labels are unconfirmed (inherited_multi)
+    let d = sample_named(db, &bucket, "DELIVERY", b"delta", &[r6, r7], "sample.bin").await;
+    let r =
+        |name: &str, uuid: &str, strings: &str| rule(name, Some(uuid), strings, "any of them", &[]);
+
+    let base = repo.commit(
+        &[(
+            "yara/acme/rules.yar",
+            &rules(&[
+                r("one", r1, "$a = \"evil\""),
+                r("two", r2, "$a = \"bad\""),
+                r("three", r3, "$a = \"gamma\""),
+                r("six", r6, "$a = \"delta\""),
+                r("seven", r7, "$a = \"delta\""),
+            ]),
+        )],
+        "main",
+    );
+    let head = repo.commit(
+        &[
+            (
+                "yara/acme/rules.yar",
+                &rules(&[
+                    r("one", r1, "$a = \"nothing here\""),
+                    r("two", r2, "$a = \"zzz\""),
+                    r("three", r3, "$a = \"gamma\""),
+                    r("four", r4, "$a = \"bad\""),
+                    r("seven", r7, "$a = \"epsilon\""),
+                ]),
+            ),
+            ("yara/beta/new.yar", &r("five", r5, "$a = \"evil\"")),
+            (
+                "yara/acme/broken.yar",
+                &rule("broken", Some(broken), "$a = \"x\"", "nope", &[]),
+            ),
+            (
+                "yara/acme/deeper/nested.yar",
+                &r("nested", &Uuid::new_v4().to_string(), "$a = \"x\""),
+            ),
+            (
+                "yara/acme/no_uuid.yar",
+                &rule("anonymous", None, "$a = \"x\"", "any of them", &[]),
+            ),
+        ],
+        "feature",
+    );
+
+    let result = replayer(db, &bucket, &repo)
+        .run(
+            &replay_request(&base, &head, Some("feature")),
+            &CancellationToken::new(),
+        )
+        .await
+        .expect("replays");
+
+    assert!(result.diffed);
+    let rows = rows_by_pair(&result);
+    let category = |sha: &str, rule: &str| rows[&sample_pair(sha, rule)].category;
+    assert_eq!(category(&a, r1), ValidationCategory::Regression);
+    assert_eq!(
+        (
+            rows[&sample_pair(&a, r1)].base,
+            rows[&sample_pair(&a, r1)].head
+        ),
+        (ValidationOutcome::Match, ValidationOutcome::Miss)
+    );
+    assert_eq!(category(&b, r2), ValidationCategory::Improvement);
+    assert_eq!(category(&b, r4), ValidationCategory::NewFpOtherRule);
+    assert_eq!(category(&a, r5), ValidationCategory::NewMatchRealHit);
+    assert_eq!(
+        rows[&sample_pair(&a, r5)].namespace.as_deref(),
+        Some("beta")
+    );
+    assert_eq!(category(&d, r6), ValidationCategory::RuleRemoved);
+    assert_eq!(category(&d, r7), ValidationCategory::RegressionUnconfirmed);
+    assert!(!rows.contains_key(&sample_pair(&c, r3)));
+    assert_eq!(result.counts["unchanged"], 1);
+    assert_eq!(result.counts.values().sum::<u64>(), 7);
+
+    let [error] = &result.head.file_errors[..] else {
+        panic!("one file error: {:?}", result.head.file_errors)
+    };
+    assert_eq!(
+        (
+            error.file.as_str(),
+            error
+                .dropped
+                .iter()
+                .map(|d| d.uuid.clone().unwrap())
+                .collect::<Vec<_>>()
+        ),
+        ("yara/acme/broken.yar", vec![broken.clone()])
+    );
+    assert_eq!(
+        result
+            .head
+            .not_loaded
+            .iter()
+            .map(|n| n.path.as_str())
+            .collect::<Vec<_>>(),
+        ["yara/acme/deeper/nested.yar"]
+    );
+    assert_eq!(result.base.namespaces, ["acme"]);
+    assert_eq!(result.head.namespaces, ["acme", "beta"]);
+    // a rule in a file that doesn't compile is still in head's source
+    let set = |refs: &[svs_yara::replay::RuleRef]| {
+        refs.iter()
+            .map(|r| r.uuid.clone().unwrap())
+            .collect::<BTreeSet<_>>()
+    };
+    assert_eq!(
+        set(&result.added_rules),
+        BTreeSet::from([r4.clone(), r5.clone(), broken.clone()])
+    );
+    assert_eq!(set(&result.removed_rules), BTreeSet::from([r6.clone()]));
+    assert_eq!(
+        set(&result.changed_rules),
+        BTreeSet::from([r1.clone(), r2.clone(), r7.clone()])
+    );
+    assert_eq!(
+        result
+            .not_testable
+            .iter()
+            .map(|n| (n.name.as_str(), n.reason.as_str()))
+            .collect::<Vec<_>>(),
+        [("anonymous", "no uuid")]
+    );
+    assert_eq!((result.files, result.samples), (4, 5));
+    assert_eq!(
+        result
+            .head
+            .timings
+            .keys()
+            .map(String::as_str)
+            .collect::<Vec<_>>(),
+        ["acme", "beta"]
+    );
+    assert!(repo.work_dirs().is_empty());
+}
+
+/// test_replay.py's `test_retired_samples_are_only_counted`.
+#[tokio::test]
+async fn retired_samples_are_only_counted() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let (bucket, _cache) = bucket(db);
+    let repo = svs_repository();
+    let r1 = Uuid::new_v4().to_string();
+    let a = sample_named(db, &bucket, "DELIVERY", b"alpha evil", &[&r1], "sample.bin").await;
+    let base = repo.commit(
+        &[(
+            "yara/acme/rules.yar",
+            &rule("one", Some(&r1), "$a = \"evil\"", "any of them", &[]),
+        )],
+        "main",
+    );
+    let head = repo.commit(
+        &[(
+            "yara/acme/rules.yar",
+            &rule("one", Some(&r1), "$a = \"nothing\"", "any of them", &[]),
+        )],
+        "main",
+    );
+    let mut request = replay_request(&base, &head, None);
+    request.retired = BTreeSet::from([sample_pair(&a, &r1)]);
+
+    let result = replayer(db, &bucket, &repo)
+        .run(&request, &CancellationToken::new())
+        .await
+        .expect("replays");
+
+    assert!(result.rows.is_empty());
+    assert_eq!(result.counts["retired"], 1);
+}
+
+/// test_replay.py's `test_a_head_that_would_not_load_is_not_compared`. The report's line for it is
+/// ace-app's `the_report_says_a_ruleset_would_not_load`.
+#[tokio::test]
+async fn a_head_that_would_not_load_is_not_compared() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let (bucket, _cache) = bucket(db);
+    let repo = svs_repository();
+    let (r1, r2) = (Uuid::new_v4().to_string(), Uuid::new_v4().to_string());
+    sample_named(db, &bucket, "DELIVERY", b"alpha evil", &[&r1], "sample.bin").await;
+    let base = repo.commit(
+        &[(
+            "yara/acme/rules.yar",
+            &rule("one", Some(&r1), "$a = \"evil\"", "any of them", &[]),
+        )],
+        "main",
+    );
+    let head = repo.commit(
+        &[(
+            "yara/acme/again.yar",
+            &rule("one", Some(&r2), "$a = \"evil\"", "any of them", &[]),
+        )],
+        "main",
+    );
+
+    let result = replayer(db, &bucket, &repo)
+        .run(
+            &replay_request(&base, &head, None),
+            &CancellationToken::new(),
+        )
+        .await
+        .expect("replays");
+
+    assert!(!result.diffed);
+    let error = result
+        .head
+        .ruleset_error
+        .as_deref()
+        .expect("a ruleset error");
+    assert!(error.contains("duplicate"), "{error}");
+    assert!(result.base.loads && !result.head.loads && result.rows.is_empty());
+}
+
+/// test_replay.py's `test_the_working_directory_is_deleted_when_the_scan_fails`: the scan is a program
+/// that fails.
+#[tokio::test]
+async fn the_working_directory_is_deleted_when_the_scan_fails() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let (bucket, _cache) = bucket(db);
+    let repo = svs_repository();
+    let r1 = Uuid::new_v4().to_string();
+    sample_named(db, &bucket, "DELIVERY", b"alpha evil", &[&r1], "sample.bin").await;
+    let sha = repo.commit(
+        &[(
+            "yara/acme/rules.yar",
+            &rule("one", Some(&r1), "$a = \"evil\"", "any of them", &[]),
+        )],
+        "main",
+    );
+    let mut failing = replayer(db, &bucket, &repo);
+    failing.child = ReplayChild::Exec {
+        program: "/bin/sh".into(),
+        args: vec!["-c".into(), "echo the scan failed >&2; exit 3".into()],
+    };
+
+    let error = failing
+        .run(&replay_request(&sha, &sha, None), &CancellationToken::new())
+        .await
+        .expect_err("fails");
+
+    assert!(
+        matches!(&error, ReplayError::Failed(m) if m.contains("exited with 3") && m.contains("the scan failed")),
+        "{error:?}"
+    );
+    assert!(repo.work_dirs().is_empty());
+}
+
+/// test_replay.py's `test_an_unknown_commit_fails`.
+#[tokio::test]
+async fn an_unknown_commit_fails() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let (bucket, _cache) = bucket(db);
+    let repo = svs_repository();
+    let sha = repo.commit(
+        &[(
+            "yara/acme/rules.yar",
+            &rule("one", Some("r1"), "$a = \"evil\"", "any of them", &[]),
+        )],
+        "main",
+    );
+    let replayer = replayer(db, &bucket, &repo);
+    let cancel = CancellationToken::new();
+    let failed = |request: ReplayRequest| {
+        let (replayer, cancel) = (&replayer, &cancel);
+        async move {
+            match replayer.run(&request, cancel).await {
+                Err(ReplayError::Failed(message)) => message,
+                other => panic!("{other:?}"),
+            }
+        }
+    };
+
+    assert!(
+        failed(replay_request(&sha, &"0".repeat(40), None))
+            .await
+            .contains("is not in repository")
+    );
+    assert!(
+        failed(replay_request(&sha, "main", None))
+            .await
+            .contains("not a commit id")
+    );
+    let mut elsewhere = replay_request(&sha, &sha, None);
+    elsewhere.repository = "elsewhere".to_owned();
+    assert!(
+        failed(elsewhere)
+            .await
+            .contains("not in svs.yara.repositories")
+    );
+}
+
+/// test_replay.py's `test_a_cancelled_replay_stops_and_leaves_nothing`.
+#[tokio::test]
+async fn a_cancelled_replay_stops_and_leaves_nothing() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let (bucket, _cache) = bucket(db);
+    let repo = svs_repository();
+    let sha = repo.commit(
+        &[(
+            "yara/acme/rules.yar",
+            &rule("one", Some("r1"), "$a = \"evil\"", "any of them", &[]),
+        )],
+        "main",
+    );
+    let cancel = CancellationToken::new();
+    cancel.cancel();
+
+    let error = replayer(db, &bucket, &repo)
+        .run(&replay_request(&sha, &sha, None), &cancel)
+        .await;
+
+    assert_eq!(error, Err(ReplayError::Cancelled));
+    assert!(repo.work_dirs().is_empty());
+}
+
+/// test_replay.py's `test_a_replay_cancelled_during_the_scan_stops_it`: the scan is a program that would
+/// run for a minute, and the cancel stops it.
+#[tokio::test]
+async fn a_replay_cancelled_during_the_scan_stops_it() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let (bucket, _cache) = bucket(db);
+    let repo = svs_repository();
+    sample_named(
+        db,
+        &bucket,
+        "DELIVERY",
+        b"alpha evil",
+        &["r1"],
+        "sample.bin",
+    )
+    .await;
+    let sha = repo.commit(
+        &[(
+            "yara/acme/rules.yar",
+            &rule("one", Some("r1"), "$a = \"evil\"", "any of them", &[]),
+        )],
+        "main",
+    );
+    let mut slow = replayer(db, &bucket, &repo);
+    slow.child = ReplayChild::Exec {
+        program: "/bin/sh".into(),
+        args: vec!["-c".into(), "sleep 60".into()],
+    };
+    let cancel = CancellationToken::new();
+    let canceller = {
+        let cancel = cancel.clone();
+        tokio::spawn(async move {
+            tokio::time::sleep(Duration::from_millis(500)).await;
+            cancel.cancel();
+        })
+    };
+    let started = Instant::now();
+
+    let error = slow.run(&replay_request(&sha, &sha, None), &cancel).await;
+
+    canceller.await.expect("cancels");
+    assert_eq!(error, Err(ReplayError::Cancelled));
+    assert!(
+        started.elapsed() < Duration::from_secs(20),
+        "{:?}",
+        started.elapsed()
+    );
+    assert!(repo.work_dirs().is_empty());
+}
+
+// ---- the workers ----
+
+/// A stand-in for the replay, as ace3's tests patch `run_replay`.
+struct FakeReplay {
+    calls: Mutex<Vec<ReplayRequest>>,
+    outcome: Box<dyn Fn() -> Result<ReplayResult, ReplayError> + Send + Sync>,
+    /// Waits for the cancel, then answers Cancelled.
+    until_cancelled: bool,
+    started: tokio::sync::Notify,
+}
+
+impl Replay for FakeReplay {
+    fn replay<'a>(
+        &'a self,
+        request: &'a ReplayRequest,
+        cancel: &'a CancellationToken,
+    ) -> std::pin::Pin<
+        Box<dyn std::future::Future<Output = Result<ReplayResult, ReplayError>> + Send + 'a>,
+    > {
+        self.calls.lock().unwrap().push(request.clone());
+        Box::pin(async move {
+            self.started.notify_one();
+            if self.until_cancelled {
+                tokio::select! {
+                    () = cancel.cancelled() => return Err(ReplayError::Cancelled),
+                    () = tokio::time::sleep(Duration::from_secs(30)) => panic!("the replay was never cancelled"),
+                }
+            }
+            (self.outcome)()
+        })
+    }
+}
+
+fn fake_replay(
+    outcome: impl Fn() -> Result<ReplayResult, ReplayError> + Send + Sync + 'static,
+) -> Arc<FakeReplay> {
+    Arc::new(FakeReplay {
+        calls: Mutex::new(Vec::new()),
+        outcome: Box::new(outcome),
+        until_cancelled: false,
+        started: tokio::sync::Notify::new(),
+    })
+}
+
+fn waiting_replay() -> Arc<FakeReplay> {
+    Arc::new(FakeReplay {
+        calls: Mutex::new(Vec::new()),
+        outcome: Box::new(|| -> Result<ReplayResult, ReplayError> {
+            unreachable!("it waits for the cancel")
+        }),
+        until_cancelled: true,
+        started: tokio::sync::Notify::new(),
+    })
+}
+
+/// test_service.py's `test_the_config_refuses_timings_that_cannot_work`: the defaults, and a heartbeat
+/// that a lease can't keep. ace3's `shutdown_deadline_seconds` has no counterpart: `ace serve` stops its
+/// workers within 10 seconds, killing a running scan and returning its validation to the queue.
+#[test]
+fn the_config_refuses_timings_that_cannot_work() {
+    let config = svs_yara::ValidationConfig::default();
+    assert_eq!(
+        (config.heartbeat_interval, config.lease),
+        (Duration::from_secs(30), Duration::from_secs(300))
+    );
+    let error = ace_sdk::Overlay::from_yaml("svs: {yara: {heartbeat_interval_seconds: 200}}")
+        .expect_err("refused");
+    assert!(
+        error.to_string().contains("must not exceed lease_seconds"),
+        "{error}"
+    );
+}
+
+/// test_config.py's `test_a_lease_its_heartbeat_cannot_keep_is_refused_when_the_configuration_is_read`:
+/// not only when `ace serve` starts, but by every process that reads the overlay.
+#[test]
+fn a_lease_its_heartbeat_cannot_keep_is_refused_when_the_overlay_is_read() {
+    let error = ace_sdk::Overlay::from_yaml(
+        "svs: {yara: {lease_seconds: 60, heartbeat_interval_seconds: 30}}",
+    )
+    .expect_err("refused");
+    assert!(
+        error.to_string().contains("must not exceed lease_seconds"),
+        "{error}"
+    );
+    ace_sdk::Overlay::from_yaml("svs: {yara: {lease_seconds: 90, heartbeat_interval_seconds: 30}}")
+        .expect("fits");
+}
+
+/// test_config.py's `test_yara_validation_defaults`.
+#[test]
+fn yara_validation_defaults() {
+    let section = ace_sdk::Overlay::from_yaml("").expect("parses").svs.yara;
+    assert!(section.repositories.is_empty());
+    assert_eq!(section.max_concurrent_validations, 1);
+    // the export of a commit is uncapped unless a site sets a limit
+    assert_eq!(
+        (section.max_archive_bytes, section.max_archive_members),
+        (None, None)
+    );
+    assert!(ace_sdk::Overlay::from_yaml("svs: {yara: {nope: 1}}").is_err());
+    for key in ["max_archive_bytes", "max_archive_members"] {
+        let overlay =
+            ace_sdk::Overlay::from_yaml(&format!("svs: {{yara: {{{key}: 10}}}}")).expect("parses");
+        let value = if key == "max_archive_bytes" {
+            overlay.svs.yara.max_archive_bytes
+        } else {
+            overlay.svs.yara.max_archive_members
+        };
+        assert_eq!(value, Some(10));
+        assert!(ace_sdk::Overlay::from_yaml(&format!("svs: {{yara: {{{key}: 0}}}}")).is_err());
+    }
+    // the scan gets no network at all: its profile allows no port (`ace yara replay --contained`)
+    let config = svs_yara::ValidationConfig::default();
+    assert_eq!(config.retention_days, 90);
+    assert!(config.corpus_limits.max_files > 0 && config.corpus_limits.max_bytes > 0);
+}
+
+/// test_service.py's `test_the_service_runs_a_queued_validation`.
+#[tokio::test]
+async fn the_workers_run_a_queued_validation() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let (bucket, _cache) = bucket(db);
+    let repo = svs_repository();
+    let (uuid, _) = request_validation(db, &repo, &validation_base(), &validation_head()).await;
+    let content = format!("svs service sample {}", Uuid::new_v4()).into_bytes();
+    let sha256 = sample_named(
+        db,
+        &bucket,
+        "DELIVERY",
+        &content,
+        &[RULE_UUID],
+        "sample.bin",
+    )
+    .await;
+    service(db)
+        .retire_svs_sample(&admin(db).await, &sha256, RULE_UUID, "intended")
+        .await
+        .expect("retires");
+    let replay = fake_replay(|| Ok(replay_result(vec![], vec![])));
+
+    let ran = workers(db, &repo, replay.clone())
+        .drain(&CancellationToken::new())
+        .await
+        .expect("drains");
+
+    assert_eq!(ran, 1);
+    let row = validation_view(db, uuid).await;
+    assert_eq!(
+        (row.state.as_str(), row.attempts, row.claim_token),
+        ("completed", 1, None)
+    );
+    assert!(row.corpus_version.is_some() && row.engine_fingerprint.is_some());
+    let calls = replay.calls.lock().unwrap().clone();
+    assert_eq!(
+        calls,
+        [ReplayRequest {
+            repository: REPOSITORY.to_owned(),
+            base_sha: validation_base(),
+            head_sha: validation_head(),
+            branch: Some("feature".to_owned()),
+            retired: BTreeSet::from([sample_pair(&sha256, RULE_UUID)]),
+        }]
+    );
+}
+
+/// test_service.py's `test_a_replay_error_fails_the_validation_with_its_message`: neither commit is in the
+/// repository.
+#[tokio::test]
+async fn a_replay_error_fails_the_validation_with_its_message() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let (bucket, _cache) = bucket(db);
+    let repo = svs_repository();
+    repo.commit(
+        &[(
+            "yara/acme/rules.yar",
+            &rule("one", Some("r1"), "$a = \"evil\"", "any of them", &[]),
+        )],
+        "main",
+    );
+    let (uuid, _) = request_validation(db, &repo, &validation_base(), &validation_head()).await;
+
+    workers(db, &repo, Arc::new(replayer(db, &bucket, &repo)))
+        .drain(&CancellationToken::new())
+        .await
+        .expect("drains");
+
+    let row = validation_view(db, uuid).await;
+    assert_eq!((row.state.as_str(), row.active_key), ("failed", None));
+    let error = row.error.expect("an error");
+    assert!(
+        error.starts_with(&format!(
+            "commit {} is not in repository {REPOSITORY}",
+            validation_base()
+        )),
+        "{error}"
+    );
+}
+
+/// test_service.py's `test_an_unexpected_error_fails_the_validation_without_its_details`.
+#[tokio::test]
+async fn an_unexpected_error_fails_the_validation_without_its_details() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let repo = svs_repository();
+    let (uuid, _) = request_validation(db, &repo, &validation_base(), &validation_head()).await;
+    let replay = fake_replay(|| {
+        Err(ReplayError::Internal(
+            "/secret/path: no space left".to_owned(),
+        ))
+    });
+
+    workers(db, &repo, replay)
+        .drain(&CancellationToken::new())
+        .await
+        .expect("drains");
+
+    let row = validation_view(db, uuid).await;
+    assert_eq!(
+        (row.state.as_str(), row.error.as_deref()),
+        ("failed", Some(svs_queue::INTERNAL_ERROR))
+    );
+}
+
+/// test_service.py's `test_stopping_returns_the_running_validation_to_the_queue`.
+#[tokio::test]
+async fn stopping_returns_the_running_validation_to_the_queue() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let repo = svs_repository();
+    let (uuid, _) = request_validation(db, &repo, &validation_base(), &validation_head()).await;
+    let replay = waiting_replay();
+    let workers = workers(db, &repo, replay.clone());
+    let claimed = claim_one(db, "node1").await.expect("a claim");
+    let stop = CancellationToken::new();
+    let running = {
+        let (workers, stop) = (workers.clone(), stop.clone());
+        tokio::spawn(async move { workers.execute(&claimed, &stop).await })
+    };
+    replay.started.notified().await;
+
+    stop.cancel();
+    tokio::time::timeout(Duration::from_secs(30), running)
+        .await
+        .expect("stops")
+        .expect("joins");
+
+    let row = validation_view(db, uuid).await;
+    assert_eq!(
+        (row.state.as_str(), row.attempts, row.claim_token),
+        ("queued", 0, None)
+    );
+}
+
+/// test_service.py's `test_a_worker_that_loses_its_lease_stops`.
+#[tokio::test]
+async fn a_worker_that_loses_its_lease_stops() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let repo = svs_repository_with(|s| {
+        s.heartbeat_interval_seconds = 1;
+    });
+    let (uuid, _) = request_validation(db, &repo, &validation_base(), &validation_head()).await;
+    let replay = waiting_replay();
+    let workers = workers(db, &repo, replay.clone());
+    let claimed = claim_one(db, "node1").await.expect("a claim");
+    let running = {
+        let workers = workers.clone();
+        tokio::spawn(async move { workers.execute(&claimed, &CancellationToken::new()).await })
+    };
+    replay.started.notified().await;
+    // another worker took the validation over
+    let other = Uuid::new_v4();
+    sqlx::query(
+        "UPDATE svs.validations SET claim_token = $2, claimed_by = 'node2' WHERE uuid = $1",
+    )
+    .bind(uuid)
+    .bind(other)
+    .execute(db.pool())
+    .await
+    .expect("takes it over");
+
+    tokio::time::timeout(Duration::from_secs(30), running)
+        .await
+        .expect("stops")
+        .expect("joins");
+
+    let row = validation_view(db, uuid).await;
+    assert_eq!(
+        (
+            row.state.as_str(),
+            row.claim_token,
+            row.claimed_by.as_deref()
+        ),
+        ("running", Some(other), Some("node2"))
+    );
+}
+
+/// test_service.py's `test_the_service_starts_its_workers_and_stops_them`. ace3's
+/// `test_the_service_stays_idle_off_the_primary_node` has no counterpart: ace4 has no primary node, and
+/// every replica's workers share the queue through the claim (`only_one_worker_claims_a_validation`).
+#[tokio::test]
+async fn the_workers_start_and_stop() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let repo = svs_repository_with(|s| {
+        s.max_concurrent_validations = 2;
+        s.poll_interval_seconds = 0.05;
+    });
+    let (first, _) = request_validation(db, &repo, &validation_base(), &validation_head()).await;
+    let replay = fake_replay(|| Ok(replay_result(vec![], vec![])));
+    let stop = CancellationToken::new();
+    let running = tokio::spawn(workers(db, &repo, replay).run(stop.clone()));
+    // a validation queued while they run is run too
+    let deadline = Instant::now() + Duration::from_secs(20);
+    while validation_view(db, first).await.state != "completed" {
+        assert!(Instant::now() < deadline, "never ran");
+        tokio::time::sleep(Duration::from_millis(50)).await;
+    }
+    let (second, _) = request_validation(db, &repo, &validation_base(), &"c".repeat(40)).await;
+    while validation_view(db, second).await.state != "completed" {
+        assert!(Instant::now() < deadline, "never ran the second");
+        tokio::time::sleep(Duration::from_millis(50)).await;
+    }
+
+    stop.cancel();
+    tokio::time::timeout(Duration::from_secs(5), running)
+        .await
+        .expect("stops")
+        .expect("joins");
+}
+
+/// test_service.py's `test_a_whole_validation_through_the_service`.
+#[tokio::test]
+async fn a_whole_validation_through_the_workers() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let (bucket, _cache) = bucket(db);
+    let repo = svs_repository();
+    let rule_uuid = Uuid::new_v4().to_string();
+    let sha256 = sample_named(
+        db,
+        &bucket,
+        "DELIVERY",
+        b"alpha evil",
+        &[&rule_uuid],
+        "sample.bin",
+    )
+    .await;
+    let base = repo.commit(
+        &[(
+            "yara/acme/rules.yar",
+            &rule("one", Some(&rule_uuid), "$a = \"evil\"", "any of them", &[]),
+        )],
+        "main",
+    );
+    let head = repo.commit(
+        &[(
+            "yara/acme/rules.yar",
+            &rule(
+                "one",
+                Some(&rule_uuid),
+                "$a = \"nothing\"",
+                "any of them",
+                &[],
+            ),
+        )],
+        "feature",
+    );
+    let (uuid, _) = request_validation(db, &repo, &base, &head).await;
+
+    workers(db, &repo, Arc::new(replayer(db, &bucket, &repo)))
+        .drain(&CancellationToken::new())
+        .await
+        .expect("drains");
+
+    let row = validation_view(db, uuid).await;
+    assert_eq!(row.state, "completed", "{:?}", row.error);
+    assert_eq!(
+        (row.regressions, row.new_fps, row.compile_errors, row.diffed),
+        (Some(1), Some(0), Some(0), Some(true))
+    );
+    assert_eq!(row.counts.unwrap()["regression"], 1);
+    let rows: Vec<(String, String, String, Option<String>)> =
+        sqlx::query_as("SELECT sha256, rule_uuid, category, label FROM svs.validation_results")
+            .fetch_all(db.pool())
+            .await
+            .expect("reads");
+    assert_eq!(
+        rows,
+        [(
+            sha256,
+            rule_uuid,
+            "regression".to_owned(),
+            Some("tp".to_owned())
+        )]
+    );
+}
+
+// ---- the routes' service: the status, the list, the reports and their downloads ----
+
+/// A completed validation of BASE..head whose report lists `rows`, as ace3's API tests make one.
+async fn completed_validation(
+    db: &Db,
+    repo: &SvsRepository,
+    head: &str,
+    rows: Vec<svs_yara::diff::ResultRow>,
+) -> Uuid {
+    let (uuid, _) = request_validation(db, repo, &validation_base(), head).await;
+    let claimed = claim_this(db, uuid).await;
+    let mut result = replay_result(
+        rows,
+        vec![svs_yara::replay::FileError {
+            file: "yara/acme/broken.yar".to_owned(),
+            namespace: "acme".to_owned(),
+            error: "syntax error".to_owned(),
+            dropped: vec![],
+        }],
+    );
+    result.head_sha = head.to_owned();
+    result.skipped = vec![svs_yara::corpus::Skipped {
+        sha256: "ef".repeat(32),
+        file_path: Some("files/payroll-2026.xlsm".to_owned()),
+        reason: "unsafe_path".to_owned(),
+        detail: String::new(),
+    }];
+    svs_queue::complete(db, &claimed, &result, "v", "f")
+        .await
+        .expect("completes");
+    uuid
+}
+
+/// tests/aceapi_v2/svs/test_validations.py's `test_the_status_names_rules_and_never_a_sample`.
+#[tokio::test]
+async fn the_status_names_rules_and_never_a_sample() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let repo = svs_repository();
+    let shas = ["11".repeat(32), "22".repeat(32), "33".repeat(32)];
+    let mut other = result_row(ValidationCategory::NewFpOtherRule, &shas[2]);
+    other.rule_uuid = OTHER_RULE_UUID.to_owned();
+    other.rule_name = "other_rule".to_owned();
+    let uuid = completed_validation(
+        db,
+        &repo,
+        &validation_head(),
+        vec![
+            result_row(ValidationCategory::Regression, &shas[0]),
+            result_row(ValidationCategory::Regression, &shas[1]),
+            other,
+        ],
+    )
+    .await;
+    // another validation's rows aren't this one's
+    completed_validation(
+        db,
+        &repo,
+        &"c".repeat(40),
+        vec![result_row(ValidationCategory::Regression, &"44".repeat(32))],
+    )
+    .await;
+
+    let status = validating(db, &repo)
+        .svs_validation_status(&admin(db).await, uuid)
+        .await
+        .expect("reads");
+
+    assert_eq!(status.state, svs_queue::ValidationState::Completed);
+    assert_eq!(status.counts.as_ref().unwrap()["regression"], 2);
+    type RuleCounts = Vec<(String, String, i64)>;
+    let rules: Vec<(String, RuleCounts)> = status
+        .rules
+        .iter()
+        .map(|(c, r)| {
+            (
+                c.clone(),
+                r.iter()
+                    .map(|r| (r.rule_uuid.clone(), r.rule_name.clone(), r.count))
+                    .collect(),
+            )
+        })
+        .collect();
+    assert_eq!(
+        rules,
+        [
+            (
+                "new_fp_other_rule".to_owned(),
+                vec![(OTHER_RULE_UUID.to_owned(), "other_rule".to_owned(), 1)]
+            ),
+            (
+                "regression".to_owned(),
+                vec![(RULE_UUID.to_owned(), "svs_rule".to_owned(), 2)]
+            ),
+        ]
+    );
+    assert_eq!(status.compile_errors[0].file, "yara/acme/broken.yar");
+    assert_eq!(
+        status.report_path,
+        format!("/signatures/validations/{uuid}")
+    );
+    let text = format!("{status:?}");
+    for secret in shas
+        .iter()
+        .map(String::as_str)
+        .chain(["efef", "payroll-2026.xlsm"])
+    {
+        assert!(!text.contains(secret), "{secret} in {text}");
+    }
+}
+
+/// tests/aceapi_v2/svs/test_validations.py's `test_bad_requests` and `test_unknown_and_malformed_validations`,
+/// at the service: a repository not configured, an abbreviated commit and a pr_url that isn't http are
+/// refused, and an unknown validation is NotFound.
+#[tokio::test]
+async fn bad_validation_requests() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let repo = svs_repository();
+    let actor = admin(db).await;
+    let service = validating(db, &repo);
+    let refused = |result: Result<_, ServiceError>| match result {
+        Err(ServiceError::InvalidRequest(message)) => message,
+        other => panic!("{other:?}"),
+    };
+    let mut elsewhere = ask(&validation_base(), &validation_head());
+    elsewhere.repository = "elsewhere".to_owned();
+    assert!(
+        refused(service.request_svs_validation(&actor, &elsewhere).await)
+            .contains("svs.yara.repositories")
+    );
+    // abbreviated commits wouldn't be recognized as the same commit
+    refused(
+        service
+            .request_svs_validation(&actor, &ask(&validation_base(), &"b".repeat(12)))
+            .await,
+    );
+    let mut script = ask(&validation_base(), &validation_head());
+    script.pr_url = Some("javascript:alert(1)".to_owned());
+    refused(service.request_svs_validation(&actor, &script).await);
+    assert!(matches!(
+        service.svs_validation_status(&actor, Uuid::new_v4()).await,
+        Err(ServiceError::NotFound(_))
+    ));
+    assert!(matches!(
+        service.svs_validation(&actor, Uuid::new_v4()).await,
+        Err(ServiceError::NotFound(_))
+    ));
+}
+
+/// tests/aceapi_v2/svs/test_validations.py's `test_filters_pages_and_exports`, at the service: the filters,
+/// an inverse that keeps a validation with no counts, keyset pages newest first, and a bad cursor.
+#[tokio::test]
+async fn validation_filters_and_pages() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let repo = svs_repository();
+    let actor = admin(db).await;
+    let service = validating(db, &repo);
+    let regressed = completed_validation(
+        db,
+        &repo,
+        &validation_head(),
+        vec![result_row(ValidationCategory::Regression, &"11".repeat(32))],
+    )
+    .await;
+    let clean = completed_validation(db, &repo, &"c".repeat(40), vec![]).await;
+    request_validation(db, &repo, &validation_base(), &"d".repeat(40)).await;
+    let failed = claim_one(db, "node1").await.expect("a claim");
+    svs_queue::fail(db, &failed, "the scan failed")
+        .await
+        .expect("fails");
+    let listed = |filters: Vec<FilterEntry>| {
+        let service = &service;
+        let actor = &actor;
+        async move {
+            let page = service
+                .svs_validations(
+                    actor,
+                    &ValidationQuery {
+                        filters,
+                        ..ValidationQuery::default()
+                    },
+                    None,
+                    None,
+                )
+                .await
+                .expect("lists");
+            page.validations
+                .into_iter()
+                .map(|v| v.uuid)
+                .collect::<Vec<_>>()
+        }
+    };
+
+    assert_eq!(
+        listed(vec![FilterEntry::text("Has Regressions", false, &["true"])]).await,
+        [regressed]
+    );
+    // the inverse keeps the failed validation, which has no counts
+    assert_eq!(
+        listed(vec![FilterEntry::text("Has Regressions", true, &["true"])])
+            .await
+            .len(),
+        2
+    );
+    // both values filter nothing, as ace3's flag_condition, and so their inverse matches nothing
+    assert_eq!(
+        listed(vec![FilterEntry::text(
+            "Has Regressions",
+            false,
+            &["true", "false"]
+        )])
+        .await
+        .len(),
+        3
+    );
+    assert!(
+        listed(vec![FilterEntry::text(
+            "Has Regressions",
+            true,
+            &["true", "false"]
+        )])
+        .await
+        .is_empty()
+    );
+    assert_eq!(
+        listed(vec![FilterEntry::text("Compile Errors", false, &["false"])]).await,
+        Vec::<Uuid>::new(),
+        "both completed validations have a compile error, and the failed one has no count"
+    );
+    assert_eq!(
+        listed(vec![FilterEntry::text("State", false, &["completed"])])
+            .await
+            .into_iter()
+            .collect::<BTreeSet<_>>(),
+        BTreeSet::from([regressed, clean])
+    );
+    assert_eq!(
+        listed(vec![FilterEntry::text("Head", false, &["cccc"])]).await,
+        [clean]
+    );
+    assert_eq!(
+        listed(vec![FilterEntry::text("State", false, &["failed"])])
+            .await
+            .len(),
+        1
+    );
+    assert_eq!(
+        listed(vec![FilterEntry::text("Repository", false, &["svs_r"])])
+            .await
+            .len(),
+        3
+    );
+    assert!(
+        listed(vec![FilterEntry::text("Branch", false, &["nope"])])
+            .await
+            .is_empty()
+    );
+    let bad = service
+        .svs_validations(
+            &actor,
+            &ValidationQuery {
+                filters: vec![FilterEntry::text("State", false, &["done"])],
+                ..ValidationQuery::default()
+            },
+            None,
+            None,
+        )
+        .await;
+    assert!(
+        matches!(bad, Err(ServiceError::InvalidRequest(_))),
+        "{bad:?}"
+    );
+
+    // keyset pages, newest first
+    let first = service
+        .svs_validations(&actor, &ValidationQuery::default(), None, Some(2))
+        .await
+        .expect("lists");
+    let second = service
+        .svs_validations(
+            &actor,
+            &ValidationQuery::default(),
+            first.next_cursor.as_deref(),
+            Some(2),
+        )
+        .await
+        .expect("lists");
+    let paged: Vec<Uuid> = first
+        .validations
+        .iter()
+        .chain(&second.validations)
+        .map(|v| v.uuid)
+        .collect();
+    assert_eq!(paged.iter().collect::<BTreeSet<_>>().len(), 3);
+    assert!(second.next_cursor.is_none());
+    assert_eq!(paged, listed(vec![]).await);
+    assert!(matches!(
+        service
+            .svs_validations(&actor, &ValidationQuery::default(), Some("junk"), None)
+            .await,
+        Err(ServiceError::InvalidRequest(_))
+    ));
+    let row = first
+        .validations
+        .iter()
+        .chain(&second.validations)
+        .find(|v| v.uuid == regressed)
+        .unwrap();
+    assert_eq!(
+        (row.regressions, row.new_fps, row.compile_errors),
+        (Some(1), Some(0), Some(1))
+    );
+    assert_eq!(row.requested_by.name.as_deref(), Some("alice"));
+}
+
+/// tests/aceapi_v2/svs/test_validations.py's `test_rows_by_category_and_rule`, at the service.
+#[tokio::test]
+async fn validation_results_by_category_and_rule() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let repo = svs_repository();
+    let actor = admin(db).await;
+    let service = validating(db, &repo);
+    let mut other = result_row(ValidationCategory::NewFp, &"33".repeat(32));
+    other.rule_uuid = OTHER_RULE_UUID.to_owned();
+    let uuid = completed_validation(
+        db,
+        &repo,
+        &validation_head(),
+        vec![
+            result_row(ValidationCategory::Regression, &"11".repeat(32)),
+            result_row(ValidationCategory::Regression, &"22".repeat(32)),
+            other,
+        ],
+    )
+    .await;
+    completed_validation(
+        db,
+        &repo,
+        &"c".repeat(40),
+        vec![result_row(ValidationCategory::Regression, &"44".repeat(32))],
+    )
+    .await;
+    let shas = |selection: ResultSelection, cursor: Option<String>, limit: Option<u32>| {
+        let (service, actor) = (&service, &actor);
+        async move {
+            let page = service
+                .svs_validation_results(actor, uuid, &selection, cursor.as_deref(), limit)
+                .await
+                .expect("reads");
+            (
+                page.results
+                    .into_iter()
+                    .map(|r| r.sha256)
+                    .collect::<Vec<_>>(),
+                page.next_cursor,
+            )
+        }
+    };
+
+    let (all, _) = shas(ResultSelection::default(), None, None).await;
+    assert_eq!(all, ["11".repeat(32), "22".repeat(32), "33".repeat(32)]);
+    let only = |categories: &[&str], rules: &[&str]| ResultSelection {
+        categories: categories.iter().map(|c| (*c).to_owned()).collect(),
+        rule_uuids: rules.iter().map(|r| (*r).to_owned()).collect(),
+    };
+    assert_eq!(
+        shas(only(&["regression"], &[]), None, None).await.0.len(),
+        2
+    );
+    assert_eq!(
+        shas(only(&[], &[OTHER_RULE_UUID]), None, None).await.0,
+        ["33".repeat(32)]
+    );
+    let (_, cursor) = shas(ResultSelection::default(), None, Some(2)).await;
+    assert_eq!(
+        shas(ResultSelection::default(), cursor, Some(2)).await.0,
+        ["33".repeat(32)]
+    );
+    let counted = service
+        .svs_validation_results(&actor, uuid, &only(&["known_fp"], &[]), None, None)
+        .await;
+    assert!(
+        matches!(counted, Err(ServiceError::InvalidRequest(_))),
+        "{counted:?}"
+    );
+    let detail = service.svs_validation(&actor, uuid).await.expect("reads");
+    assert_eq!(
+        (
+            detail.validation.state,
+            detail.attempts,
+            detail.claimed_by.as_deref()
+        ),
+        (svs_queue::ValidationState::Completed, 1, Some("node1"))
+    );
+    let report = detail.report.expect("a report");
+    assert_eq!(report["skipped"][0]["file_path"], "files/payroll-2026.xlsm");
+    assert_eq!(
+        report["head"]["file_errors"][0]["file"],
+        "yara/acme/broken.yar"
+    );
+}
+
+/// tests/aceapi_v2/svs/test_validations.py's `test_the_selection_downloads_as_an_encrypted_zip`, at the
+/// service: the files of the selected rows, with every sample's records, and nothing when none is stored.
+#[tokio::test]
+async fn a_report_s_selection_downloads() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let (bucket, _cache) = bucket(db);
+    let repo = svs_repository();
+    let actor = admin(db).await;
+    let content = format!("svs validation download {}", Uuid::new_v4()).into_bytes();
+    let stored = sample_named(
+        db,
+        &bucket,
+        "DELIVERY",
+        &content,
+        &[RULE_UUID],
+        "sample.bin",
+    )
+    .await;
+    let mut other = result_row(ValidationCategory::NewFpOtherRule, &stored);
+    other.rule_uuid = OTHER_RULE_UUID.to_owned();
+    let uuid = completed_validation(
+        db,
+        &repo,
+        &validation_head(),
+        vec![
+            result_row(ValidationCategory::Regression, &stored),
+            // another rule's pair: the file still downloads, with its own samples' records
+            other,
+            result_row(ValidationCategory::NewFp, &"99".repeat(32)),
+        ],
+    )
+    .await;
+    let service = validating(db, &repo);
+    let selection = ResultSelection {
+        categories: vec!["regression".to_owned(), "new_fp_other_rule".to_owned()],
+        rule_uuids: vec![],
+    };
+
+    let download = service
+        .download_svs_validation(&actor, uuid, &selection)
+        .await
+        .expect("downloads");
+
+    let [file] = &download.files[..] else {
+        panic!("one file: {download:?}")
+    };
+    assert_eq!(file.sha256, stored);
+    assert_eq!(file.rule_uuids, [RULE_UUID]);
+    // nothing of the selection is stored
+    let nothing = service
+        .download_svs_validation(
+            &actor,
+            uuid,
+            &ResultSelection {
+                categories: vec!["new_fp".to_owned()],
+                rule_uuids: vec![],
+            },
+        )
+        .await;
+    assert!(
+        matches!(nothing, Err(ServiceError::NotFound(_))),
+        "{nothing:?}"
+    );
+}
+
+/// tests/aceapi_v2/svs/test_validations.py's `TestAccess`, at the service: the CI's `svs:validate` requests
+/// and reads the status only, and `signature:read` reads the rest but can't request or download.
+#[tokio::test]
+async fn validations_follow_their_permissions() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let repo = svs_repository();
+    let uuid = completed_validation(
+        db,
+        &repo,
+        &validation_head(),
+        vec![result_row(ValidationCategory::Regression, &"11".repeat(32))],
+    )
+    .await;
+    let service = validating(db, &repo);
+    let granted = |id: u128, major: &'static str, minor: &'static str| async move {
+        let holder = UserId(Uuid::from_u128(id));
+        exists(db, &Holder::User(holder)).await;
+        sqlx::query(
+            "INSERT INTO service.permissions (user_id, major, minor, effect, created_by)
+             VALUES ($1, $2, $3, 'allow', '{\"kind\": \"internal\", \"id\": \"test\"}')",
+        )
+        .bind(holder.0)
+        .bind(major)
+        .bind(minor)
+        .execute(db.pool())
+        .await
+        .expect("grants");
+        user(holder)
+    };
+    let ci = granted(0xC1, "svs", "validate").await;
+    let reader = granted(0xC2, "signature", "read").await;
+    let denied = |result: Result<(), ServiceError>| {
+        matches!(result, Err(ServiceError::PermissionDenied { .. }))
+    };
+
+    assert!(
+        service
+            .request_svs_validation(&ci, &ask(&validation_base(), &"c".repeat(40)))
+            .await
+            .expect("requests")
+            .1
+    );
+    service
+        .svs_validation_status(&ci, uuid)
+        .await
+        .expect("reads the status");
+    assert!(denied(
+        service
+            .svs_validations(&ci, &ValidationQuery::default(), None, None)
+            .await
+            .map(|_| ())
+    ));
+    assert!(denied(service.svs_validation(&ci, uuid).await.map(|_| ())));
+    assert!(denied(
+        service
+            .svs_validation_results(&ci, uuid, &ResultSelection::default(), None, None)
+            .await
+            .map(|_| ())
+    ));
+    assert!(denied(
+        service
+            .download_svs_validation(&ci, uuid, &ResultSelection::default())
+            .await
+            .map(|_| ())
+    ));
+
+    assert!(denied(
+        service
+            .request_svs_validation(&reader, &ask(&validation_base(), &"d".repeat(40)))
+            .await
+            .map(|_| ())
+    ));
+    assert!(denied(
+        service
+            .svs_validation_status(&reader, uuid)
+            .await
+            .map(|_| ())
+    ));
+    service
+        .svs_validations(&reader, &ValidationQuery::default(), None, None)
+        .await
+        .expect("lists");
+    assert!(denied(
+        service
+            .download_svs_validation(&reader, uuid, &ResultSelection::default())
+            .await
+            .map(|_| ())
+    ));
+}
+
+// ---- their audit rows ----
+
+/// Every validation and result row, as text, for the audit failure test.
+async fn validation_rows(db: &Db) -> Vec<String> {
+    sqlx::query_scalar(
+        "SELECT 'validation ' || row_to_json(v)::text FROM svs.validations v
+         UNION ALL SELECT 'result ' || row_to_json(r)::text FROM svs.validation_results r
+         ORDER BY 1",
+    )
+    .fetch_all(db.pool())
+    .await
+    .expect("reads")
+}
+
+async fn request_svs_validation_records_its_row(db: &Db) -> String {
+    let repo = svs_repository();
+    let (uuid, _) = request_validation(db, &repo, &validation_base(), &validation_head()).await;
+    let row = last_audit(db).await;
+    assert_eq!(
+        row,
+        AuditRow {
+            actor: boss_json(),
+            action: "request_svs_validation".to_owned(),
+            target: ("svs_validation".to_owned(), uuid.to_string()),
+            before: None,
+            after: Some(json!({
+                "repository": REPOSITORY, "base_sha": validation_base(), "head_sha": validation_head(),
+                "branch": "feature", "pr_url": "https://git.example/pr/1", "answered_by": "queued",
+            })),
+            details: json!({}),
+        }
+    );
+    // a request answered by it has a row too, as ace3 logs both
+    request_validation(db, &repo, &validation_base(), &validation_head()).await;
+    let again = last_audit(db).await;
+    assert_eq!(
+        again.target,
+        ("svs_validation".to_owned(), uuid.to_string())
+    );
+    assert_eq!(again.after, None);
+    assert_eq!(
+        again.details["answered_by"],
+        "an existing queued validation"
+    );
+    row.action
+}
+
+async fn download_svs_validation_records_its_row(db: &Db) -> String {
+    let (bucket, _cache) = bucket(db);
+    let repo = svs_repository();
+    let content = format!("svs validation audit {}", Uuid::new_v4()).into_bytes();
+    let sha256 = sample_named(
+        db,
+        &bucket,
+        "DELIVERY",
+        &content,
+        &[RULE_UUID],
+        "sample.bin",
+    )
+    .await;
+    let uuid = completed_validation(
+        db,
+        &repo,
+        &"e".repeat(40),
+        vec![result_row(ValidationCategory::Regression, &sha256)],
+    )
+    .await;
+    let selection = ResultSelection {
+        categories: vec!["regression".to_owned()],
+        rule_uuids: vec![],
+    };
+    validating(db, &repo)
+        .download_svs_validation(&admin(db).await, uuid, &selection)
+        .await
+        .expect("downloads");
+    let row = last_audit(db).await;
+    assert_eq!(
+        row,
+        AuditRow {
+            actor: boss_json(),
+            action: "download_svs_validation".to_owned(),
+            target: ("svs_validation".to_owned(), uuid.to_string()),
+            before: None,
+            after: None,
+            details: json!({"categories": ["regression"], "rule_uuids": [], "sha256s": [sha256]}),
+        }
+    );
+    row.action
+}
+
+async fn prune_svs_validations_records_its_row(db: &Db) -> String {
+    let repo = svs_repository();
+    let (uuid, _) = request_validation(db, &repo, &validation_base(), &"f".repeat(40)).await;
+    let claimed = claim_this(db, uuid).await;
+    svs_queue::fail(db, &claimed, "failed")
+        .await
+        .expect("fails");
+    sqlx::query(
+        "UPDATE svs.validations SET finished_at = now() - interval '100 days' WHERE uuid = $1",
+    )
+    .bind(uuid)
+    .execute(db.pool())
+    .await
+    .expect("ages it");
+    let actor = Actor::Internal {
+        id: Component::new("scheduler:svs_validations_prune").expect("a component"),
+    };
+    validating(db, &repo)
+        .prune_svs_validations(&actor)
+        .await
+        .expect("prunes");
+    let row = last_audit(db).await;
+    assert_eq!(
+        row,
+        AuditRow {
+            actor: json!({"kind": "internal", "id": "scheduler:svs_validations_prune"}),
+            action: "prune_svs_validations".to_owned(),
+            target: ("svs_validations".to_owned(), "expired".to_owned()),
+            before: Some(json!({"retention_days": 90, "validations": [uuid]})),
+            after: None,
+            details: json!({}),
+        }
+    );
+    row.action
 }

@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM svs.validations\n                                   WHERE id IN (\n                                       SELECT id FROM svs.validations\n                                       WHERE state IN ('completed', 'failed')\n                                         AND finished_at < now() - make_interval(days => $1)\n                                       ORDER BY id LIMIT $2 FOR UPDATE SKIP LOCKED)\n                                   RETURNING uuid",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "uuid",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "svs.validations",
+            "name": "uuid"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "ff78416c818e661e589ee07f15c17af59f2a989491b4a93fdaf34df2f2e03aa3"
+}

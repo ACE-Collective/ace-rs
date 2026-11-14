@@ -45,5 +45,6 @@ pub use module::{
 };
 pub use overlay::{
     ACE3_DISPOSITION_CLASSES, ActionSection, Component, DispositionClass, DispositionSection,
-    NrdList, NrdSection, Overlay, OverlayError, ScheduledTaskSection, SecretSource, SvsSection,
+    NrdList, NrdSection, Overlay, OverlayError, ScheduledTaskSection, SecretSource, SvsRepository,
+    SvsSection, SvsYaraSection,
 };

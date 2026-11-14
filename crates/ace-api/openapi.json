@@ -8206,6 +8206,970 @@
         }
       }
     },
+    "/api/svs/v1/yara/validations": {
+      "get": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "Validations, newest first, a page at a time. Follow `next` with the same filters until it's null.",
+        "operationId": "list",
+        "parameters": [
+          {
+            "name": "f",
+            "in": "query",
+            "description": "A filter in the share-link encoding (`[!]slug:v1,v2`) with the validations screen's slugs:\nrepository, branch, head, state, has_regressions, has_new_fp, compile_errors, created. Repeat it for\nmore; filters are ANDed, the values of one ORed.",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "style": "form",
+            "explode": true
+          },
+          {
+            "name": "changed_since",
+            "in": "query",
+            "description": "Only validations created or changed (queued, run, completed) at or after this time.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tz",
+            "in": "query",
+            "description": "The timezone relative date filters (`-7d`, `@d`) resolve in; UTC when left out.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "How many, 1 to 1000; 100 when left out.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "description": "The `next` of the previous page.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of validations",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationPageBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A filter, time, timezone, limit or cursor that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold signature:read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "Requests a validation of `head_sha` against `base_sha`: 202 with a new queued validation, or 200 with\nthe one that already answers it (queued or running for the same commits, or completed with the samples,\ntheir labels and the scanner unchanged since). Poll its status.",
+        "operationId": "request",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ValidationRequestBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "An existing validation answers the request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationStatusBody"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "A new validation is queued",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationStatusBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A body that isn't one: a repository not in svs.yara.repositories, a commit that isn't a full id, a pr_url that isn't http or https",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold svs:validate",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The body is too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/svs/v1/yara/validations/export/csv": {
+      "get": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "Every validation the list's filters match, newest first, as CSV, without the per-category counts. A\nfailure part-way ends the file there.",
+        "operationId": "export_csv",
+        "parameters": [
+          {
+            "name": "f",
+            "in": "query",
+            "description": "A filter, as the list takes it; repeat it for more.",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "style": "form",
+            "explode": true
+          },
+          {
+            "name": "changed_since",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tz",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The validations",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A filter, time or timezone that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold signature:read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "More validations than an export holds",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/svs/v1/yara/validations/export/ndjson": {
+      "get": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "Every validation the list's filters match, newest first, as NDJSON: one as the list gives it on each\nline. A failure part-way ends it with an `{\"error\": ...}` line.",
+        "operationId": "export_ndjson",
+        "parameters": [
+          {
+            "name": "f",
+            "in": "query",
+            "description": "A filter, as the list takes it; repeat it for more.",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "style": "form",
+            "explode": true
+          },
+          {
+            "name": "changed_since",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tz",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The validations",
+            "content": {
+              "application/x-ndjson": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A filter, time or timezone that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold signature:read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "More validations than an export holds",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/svs/v1/yara/validations/{uuid}": {
+      "get": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "One validation with its report; the pairs it lists are its results.",
+        "operationId": "detail",
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "description": "The validation's uuid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The validation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationDetailBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A uuid that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold signature:read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No validation with that uuid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/svs/v1/yara/validations/{uuid}/download": {
+      "get": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "The files of the selected rows, with the match records of every sample of those files and a manifest,\nas one zip encrypted with AES-256 and the password `infected`. The samples' download limits apply: at\nmost 500 files and 1 GiB. The download is in the audit record.",
+        "operationId": "download",
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "description": "The validation's uuid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "description": "Only rows of these categories; repeat it for more.",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "style": "form",
+            "explode": true
+          },
+          {
+            "name": "rule_uuid",
+            "in": "query",
+            "description": "Only rows of these rule uuids; repeat it for more.",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "style": "form",
+            "explode": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The zip",
+            "content": {
+              "application/zip": {
+                "schema": {
+                  "$ref": "#/components/schemas/ZipBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A uuid, category or rule uuid that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold signature:download",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No validation with that uuid, or none of the selected rows' files is stored",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "More files or bytes than a download holds",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/svs/v1/yara/validations/{uuid}/results": {
+      "get": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "The pairs (sample, rule uuid) the report lists, with each sample's label when it ran, in a stable order,\na page at a time. Follow `next` with the same selection until it's null.",
+        "operationId": "results",
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "description": "The validation's uuid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "description": "Only rows of these categories; repeat it for more. A category that's only counted is refused.",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "style": "form",
+            "explode": true
+          },
+          {
+            "name": "rule_uuid",
+            "in": "query",
+            "description": "Only rows of these rule uuids; repeat it for more.",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "style": "form",
+            "explode": true
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "How many, 1 to 1000; 100 when left out.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "description": "The `next` of the previous page.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of rows",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationResultPageBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A uuid, category, rule uuid, limit or cursor that isn't one, or a category that's only counted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold signature:read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No validation with that uuid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/svs/v1/yara/validations/{uuid}/results/export/csv": {
+      "get": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "The selected rows of a report as CSV.",
+        "operationId": "export_results_csv",
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "description": "The validation's uuid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "description": "Only rows of these categories; repeat it for more.",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "style": "form",
+            "explode": true
+          },
+          {
+            "name": "rule_uuid",
+            "in": "query",
+            "description": "Only rows of these rule uuids; repeat it for more.",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "style": "form",
+            "explode": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The rows",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A uuid, category or rule uuid that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold signature:read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No validation with that uuid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "More rows than an export holds",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/svs/v1/yara/validations/{uuid}/results/export/ndjson": {
+      "get": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "The selected rows of a report as NDJSON.",
+        "operationId": "export_results_ndjson",
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "description": "The validation's uuid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "description": "Only rows of these categories; repeat it for more.",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "style": "form",
+            "explode": true
+          },
+          {
+            "name": "rule_uuid",
+            "in": "query",
+            "description": "Only rows of these rule uuids; repeat it for more.",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "style": "form",
+            "explode": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The rows",
+            "content": {
+              "application/x-ndjson": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A uuid, category or rule uuid that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold signature:read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No validation with that uuid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "More rows than an export holds",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/svs/v1/yara/validations/{uuid}/status": {
+      "get": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "A validation's state and, once completed, its counts per category, the rules with samples in each listed\ncategory, and the head's compile errors. It names no sample.",
+        "operationId": "status",
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "description": "The validation's uuid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationStatusBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A uuid that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold svs:validate",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No validation with that uuid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/users/v1/catalog": {
       "get": {
         "tags": [
@@ -11520,6 +12484,23 @@
             "items": {
               "$ref": "#/components/schemas/CommentBody"
             }
+          }
+        }
+      },
+      "CompileProblemBody": {
+        "type": "object",
+        "description": "A head rule file that doesn't compile; its rules are dropped.",
+        "required": [
+          "file",
+          "error"
+        ],
+        "properties": {
+          "error": {
+            "type": "string"
+          },
+          "file": {
+            "type": "string",
+            "description": "Relative to the repository's top."
           }
         }
       },
@@ -15027,6 +16008,28 @@
         "format": "binary",
         "description": "An email as it arrived, RFC 822."
       },
+      "RuleCountBody": {
+        "type": "object",
+        "description": "The rules with samples in one category.",
+        "required": [
+          "rule_uuid",
+          "rule_name",
+          "count"
+        ],
+        "properties": {
+          "count": {
+            "type": "integer",
+            "format": "int64",
+            "description": "How many samples of the category the rule has in this validation."
+          },
+          "rule_name": {
+            "type": "string"
+          },
+          "rule_uuid": {
+            "type": "string"
+          }
+        }
+      },
       "SampleBody": {
         "type": "object",
         "description": "One sample: a file and a YARA rule it matched, over every alert it was captured from. Its rule name,\nnamespace and file path are what the rule's author and the alert's sender wrote: show them as text.",
@@ -16163,54 +17166,438 @@
       },
       "ValidationBody": {
         "type": "object",
-        "description": "ace3's answer to a validation.",
+        "description": "One validation in the list (`signature:read`).",
         "required": [
-          "valid"
+          "uuid",
+          "repository",
+          "base_sha",
+          "head_sha",
+          "branch",
+          "state",
+          "requested_by",
+          "created_at",
+          "updated_at"
         ],
         "properties": {
-          "correlate_results": {
-            "type": [
-              "object",
-              "null"
-            ],
-            "description": "A run's correlation queries and their rows, `{\"version\": 1, \"queries\": [...]}`, null for a\nhunt that doesn't correlate."
+          "base_sha": {
+            "type": "string"
           },
-          "correlation_trace": {
+          "branch": {
+            "type": "string"
+          },
+          "compile_errors": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "description": "The head's rule files that don't compile, plus one if its rules wouldn't load."
+          },
+          "counts": {
             "type": [
               "object",
               "null"
             ],
-            "description": "A run's correlation trace, null for a hunt that doesn't correlate."
+            "additionalProperties": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "propertyNames": {
+              "type": "string"
+            }
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "diffed": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "error": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "finished_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "head_sha": {
+            "type": "string"
+          },
+          "new_fps": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "description": "new_fp + new_fp_other_rule."
+          },
+          "pr_url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "regressions": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "description": "regression + regression_unconfirmed."
+          },
+          "repository": {
+            "type": "string"
+          },
+          "requested_by": {
+            "$ref": "#/components/schemas/ActorBody",
+            "description": "Who asked for it."
+          },
+          "started_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "state": {
+            "type": "string",
+            "description": "`queued`, `running`, `completed` or `failed`."
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "uuid": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "ValidationDetailBody": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ValidationBody"
+          },
+          {
+            "type": "object",
+            "required": [
+              "attempts"
+            ],
+            "properties": {
+              "attempts": {
+                "type": "integer",
+                "format": "int32",
+                "description": "How many times a worker claimed it."
+              },
+              "claimed_by": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "The node that ran (or runs) it."
+              },
+              "corpus_version": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "What the samples and their labels were when it ran."
+              },
+              "engine_fingerprint": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "What decided its results besides the corpus and the commits."
+              },
+              "report": {
+                "description": "How each commit compiled, the rules added, removed and changed, the rules that can't be tested, the\nsamples skipped and the timings; its listed pairs are its results."
+              }
+            }
+          }
+        ],
+        "description": "One validation with its report (`signature:read`)."
+      },
+      "ValidationPageBody": {
+        "type": "object",
+        "description": "A page of validations.",
+        "required": [
+          "validations"
+        ],
+        "properties": {
+          "next": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Pass it as `cursor`, with the same filters, for the next page; null on the last."
+          },
+          "validations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ValidationBody"
+            }
+          }
+        }
+      },
+      "ValidationRequestBody": {
+        "type": "object",
+        "description": "What a rule repository's CI asks for: validate `head_sha` against `base_sha`.",
+        "required": [
+          "repository",
+          "base_sha",
+          "head_sha",
+          "branch"
+        ],
+        "properties": {
+          "base_sha": {
+            "type": "string",
+            "description": "The full id of the commit to compare against, 40 or 64 hex characters: the pull request's merge base."
+          },
+          "branch": {
+            "type": "string",
+            "description": "The branch `head_sha` is on."
+          },
+          "head_sha": {
+            "type": "string",
+            "description": "The full id of the commit to validate."
+          },
+          "pr_url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The pull request, for the report's link back: an http or https URL."
+          },
+          "repository": {
+            "type": "string",
+            "description": "A name in the overlay's `svs.yara.repositories`."
+          }
+        },
+        "additionalProperties": false
+      },
+      "ValidationResultBody": {
+        "type": "object",
+        "description": "One pair (sample, rule uuid) a report lists, with the sample's label when it ran.",
+        "required": [
+          "id",
+          "sha256",
+          "rule_uuid",
+          "rule_name",
+          "base",
+          "head",
+          "raw_base",
+          "raw_head",
+          "category"
+        ],
+        "properties": {
+          "base": {
+            "type": "string",
+            "description": "The outcome under base: `match` (the rule would make a detection), `miss` or `error`."
+          },
+          "category": {
+            "type": "string"
+          },
+          "head": {
+            "type": "string"
+          },
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "label": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "`tp`, `fp` or `conflicted`."
+          },
+          "label_source": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "`explicit`, `inherited_single` or `inherited_multi`."
+          },
+          "namespace": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "note": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "raw_base": {
+            "type": "boolean",
+            "description": "Whether the rule matched under base at all, before `enabled` and the qa and no_alert modifiers."
+          },
+          "raw_head": {
+            "type": "boolean"
+          },
+          "rule_name": {
+            "type": "string"
+          },
+          "rule_uuid": {
+            "type": "string"
+          },
+          "sha256": {
+            "type": "string"
+          }
+        }
+      },
+      "ValidationResultPageBody": {
+        "type": "object",
+        "description": "A page of a report's rows.",
+        "required": [
+          "results"
+        ],
+        "properties": {
+          "next": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Pass it as `cursor`, with the same selection, for the next page; null on the last."
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ValidationResultBody"
+            }
+          }
+        }
+      },
+      "ValidationStatusBody": {
+        "type": "object",
+        "description": "A validation as the CI sees it (`svs:validate`): its state, counts, and rule names and uuids. It never\ncarries a sample's sha256, file name or content.",
+        "required": [
+          "uuid",
+          "state",
+          "repository",
+          "base_sha",
+          "head_sha",
+          "branch",
+          "created_at",
+          "rules",
+          "compile_errors",
+          "report_path"
+        ],
+        "properties": {
+          "base_sha": {
+            "type": "string"
+          },
+          "branch": {
+            "type": "string"
+          },
+          "compile_errors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CompileProblemBody"
+            },
+            "description": "The head's rule files that don't compile; their rules are dropped."
+          },
+          "counts": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "description": "Pairs (sample, rule uuid) per category, every category included; set once completed.",
+            "additionalProperties": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "propertyNames": {
+              "type": "string"
+            }
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "diffed": {
+            "type": [
+              "boolean",
+              "null"
+            ],
+            "description": "False when either commit's rules wouldn't load, so nothing was compared."
           },
           "error": {
             "type": [
               "string",
               "null"
             ],
-            "description": "Why it isn't valid, or why its run failed."
+            "description": "Why a failed validation couldn't run."
           },
-          "original_events": {
+          "finished_at": {
             "type": [
-              "array",
+              "string",
               "null"
             ],
-            "items": {
-              "type": "object"
-            },
-            "description": "A run's rows as they were sent, before correlation."
+            "format": "date-time"
           },
-          "roots": {
+          "head_sha": {
+            "type": "string"
+          },
+          "pr_url": {
             "type": [
-              "array",
+              "string",
+              "null"
+            ]
+          },
+          "report_path": {
+            "type": "string",
+            "description": "The report in the GUI, relative to its host."
+          },
+          "repository": {
+            "type": "string"
+          },
+          "rules": {
+            "type": "object",
+            "description": "The rules with samples in each listed category, most samples first.",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/RuleCountBody"
+              }
+            },
+            "propertyNames": {
+              "type": "string"
+            }
+          },
+          "ruleset_error": {
+            "type": [
+              "string",
               "null"
             ],
-            "items": {
-              "type": "object"
-            },
-            "description": "What the run made, as ace3's hunter makes it."
+            "description": "Set when the head's rules wouldn't load together: the pools keep the ruleset they have."
           },
-          "valid": {
-            "type": "boolean"
+          "started_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "state": {
+            "type": "string",
+            "description": "`queued`, `running`, `completed` or `failed`."
+          },
+          "uuid": {
+            "type": "string",
+            "format": "uuid"
           }
         }
       },
@@ -16348,7 +17735,7 @@
     },
     {
       "name": "svs",
-      "description": "SVS's samples: the files YARA rules matched on alerts graded TP or FP, their labels, retirements and deletions"
+      "description": "SVS's samples: the files YARA rules matched on alerts graded TP or FP, their labels, retirements and deletions; and YARA validations, a rule change replayed over them"
     },
     {
       "name": "events",

@@ -1,0 +1,21 @@
+{#- ace3's signatures/_validations_page.html: a page of the validations table (src/svs_validations.rs). -#}
+  <table class="keys">
+    <thead><tr><th>Created</th><th>Repository</th><th>Branch</th><th>Head</th><th>State</th><th>Regressions</th><th>New FP</th><th>Compile errors</th><th>Requested by</th></tr></thead>
+    <tbody>
+      {%- for row in view.rows %}
+      <tr>
+        <td class="nowrap"><a href="{{ row.href }}">{{ row.created }}</a></td>
+        <td class="qa-text">{{ row.repository }}</td>
+        <td class="qa-text">{{ row.branch }}</td>
+        <td><code title="{{ row.head_sha }}">{{ row.short_head }}</code>{% if let Some(pr) = row.pr_url %} <a href="{{ pr }}" rel="noopener noreferrer">pull request</a>{% endif %}</td>
+        <td><span class="badge disposition-{{ row.state_class }}">{{ row.state }}</span>{% if row.diffed == Some(false) %} <span class="muted">not compared</span>{% endif %}</td>
+        <td>{{ row.regressions }}</td>
+        <td>{{ row.new_fps }}</td>
+        <td>{{ row.compile_errors }}</td>
+        <td class="qa-text">{{ row.requested_by }}</td>
+      </tr>
+      {%- else %}
+      <tr><td colspan="9" class="muted">No validations.</td></tr>
+      {%- endfor %}
+    </tbody>
+  </table>

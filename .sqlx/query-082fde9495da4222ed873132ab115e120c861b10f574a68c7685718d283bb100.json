@@ -1,0 +1,316 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, uuid, repository, base_sha, head_sha, branch, pr_url,\n                  state AS \"state: ValidationState\", requested_by AS \"requested_by!: Value\",\n                  created_at, started_at, finished_at, error, diffed, regressions, new_fps,\n                  compile_errors, counts, report, attempts, claimed_by, corpus_version,\n                  engine_fingerprint, updated_at\n           FROM svs.validations WHERE uuid = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "svs.validations",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "uuid",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "svs.validations",
+            "name": "uuid"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "repository",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.validations",
+            "name": "repository"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "base_sha",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.validations",
+            "name": "base_sha"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "head_sha",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.validations",
+            "name": "head_sha"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "branch",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.validations",
+            "name": "branch"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "pr_url",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.validations",
+            "name": "pr_url"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "state: ValidationState",
+        "type_info": {
+          "Custom": {
+            "name": "svs.validation_state",
+            "kind": {
+              "Enum": [
+                "queued",
+                "running",
+                "completed",
+                "failed"
+              ]
+            }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "svs.validations",
+            "name": "state"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "requested_by!: Value",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "svs.validations",
+            "name": "requested_by"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "svs.validations",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "started_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "svs.validations",
+            "name": "started_at"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "finished_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "svs.validations",
+            "name": "finished_at"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "error",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.validations",
+            "name": "error"
+          }
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "diffed",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "svs.validations",
+            "name": "diffed"
+          }
+        }
+      },
+      {
+        "ordinal": 14,
+        "name": "regressions",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "svs.validations",
+            "name": "regressions"
+          }
+        }
+      },
+      {
+        "ordinal": 15,
+        "name": "new_fps",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "svs.validations",
+            "name": "new_fps"
+          }
+        }
+      },
+      {
+        "ordinal": 16,
+        "name": "compile_errors",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "svs.validations",
+            "name": "compile_errors"
+          }
+        }
+      },
+      {
+        "ordinal": 17,
+        "name": "counts",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "svs.validations",
+            "name": "counts"
+          }
+        }
+      },
+      {
+        "ordinal": 18,
+        "name": "report",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "svs.validations",
+            "name": "report"
+          }
+        }
+      },
+      {
+        "ordinal": 19,
+        "name": "attempts",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "svs.validations",
+            "name": "attempts"
+          }
+        }
+      },
+      {
+        "ordinal": 20,
+        "name": "claimed_by",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.validations",
+            "name": "claimed_by"
+          }
+        }
+      },
+      {
+        "ordinal": 21,
+        "name": "corpus_version",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.validations",
+            "name": "corpus_version"
+          }
+        }
+      },
+      {
+        "ordinal": 22,
+        "name": "engine_fingerprint",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.validations",
+            "name": "engine_fingerprint"
+          }
+        }
+      },
+      {
+        "ordinal": 23,
+        "name": "updated_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "svs.validations",
+            "name": "updated_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      true,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "082fde9495da4222ed873132ab115e120c861b10f574a68c7685718d283bb100"
+}

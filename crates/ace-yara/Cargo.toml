@@ -17,6 +17,9 @@ sha2 = "0.11.1"
 tempfile = "3.27.0"
 tracing = "0.1.44"
 yara-x = "1.22.1"
+# The rules of a file as its source declares them, for SVS validation's added, removed and changed rules
+# (`source`): yara-x's own parser, at yara-x's version.
+yara-x-parser = "=1.22.1"
 
 [features]
 # yara-x's per-rule timing, for SVS validation's slowest-rule report. It adds overhead to every

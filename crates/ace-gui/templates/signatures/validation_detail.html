@@ -1,0 +1,115 @@
+{#- ace3's signatures/validation_detail.html (PLAN.md 7.10 batch 3): one validation's report, the one a rule
+    repository's CI links to, with its rows a page at a time by category (src/svs_validations.rs). -#}
+{% extends "base.html" %}
+{% block title %}Validation · Signatures · ACE{% endblock %}
+{% block content %}
+<section class="signatures validation">
+  <p><a href="/signatures">Signatures</a> / <a href="/signatures/validations">Validations</a></p>
+  <h1 class="qa-text">{{ view.validation.repository }} <code>{{ view.validation.short_base }}</code>..<code>{{ view.validation.short_head }}</code></h1>
+  <table class="keys">
+    <tbody>
+      <tr><th>State</th><td><span class="badge disposition-{{ view.validation.state_class }}">{{ view.validation.state }}</span>{% if !view.validation.error.is_empty() %} <span class="qa-text">{{ view.validation.error }}</span>{% endif %}</td></tr>
+      <tr><th>Repository</th><td class="qa-text">{{ view.validation.repository }}</td></tr>
+      <tr><th>Branch</th><td class="qa-text">{{ view.validation.branch }}</td></tr>
+      <tr><th>Base</th><td><code>{{ view.validation.base_sha }}</code></td></tr>
+      <tr><th>Head</th><td><code>{{ view.validation.head_sha }}</code></td></tr>
+      {%- if let Some(pr) = view.validation.pr_url %}
+      <tr><th>Pull request</th><td class="qa-text"><a href="{{ pr }}" rel="noopener noreferrer">{{ pr }}</a></td></tr>
+      {%- endif %}
+      <tr><th>Requested</th><td>{{ view.validation.created }} by <span class="qa-text">{{ view.validation.requested_by }}</span></td></tr>
+      <tr><th>Ran</th><td>{% if !view.validation.started.is_empty() %}from {{ view.validation.started }}{% endif %}{% if !view.validation.finished.is_empty() %} to {{ view.validation.finished }}{% endif %}{% if !view.claimed_by.is_empty() %} on <span class="qa-text">{{ view.claimed_by }}</span>{% endif %}, attempt {{ view.attempts }}</td></tr>
+      {%- if !view.corpus.is_empty() %}
+      <tr><th>Corpus</th><td>{{ view.corpus }}</td></tr>
+      {%- endif %}
+    </tbody>
+  </table>
+  {%- if view.validation.diffed == Some(false) %}
+  <p class="notice" role="status">Nothing was compared: a commit's rules would not load.</p>
+  {%- endif %}
+  {%- if !view.counts.is_empty() %}
+  <h2>Counts</h2>
+  <table class="keys">
+    <thead><tr><th>Category</th><th>Pairs</th></tr></thead>
+    <tbody>
+      {%- for count in view.counts %}
+      <tr><td>{% if let Some(href) = count.href %}<a href="{{ href }}">{{ count.category }}</a>{% else %}{{ count.category }}{% endif %}</td><td>{{ count.count }}</td></tr>
+      {%- endfor %}
+    </tbody>
+  </table>
+  {%- endif %}
+  {%- for side in view.sides %}
+  <h2>{{ side.name }} <code>{{ side.sha }}</code></h2>
+  <p>{{ side.rule_count }} rules in {{ side.namespaces }}</p>
+  {%- if !side.ruleset_error.is_empty() %}
+  <p class="notice qa-text" role="status">The ruleset would not load, so production keeps its previous rules: {{ side.ruleset_error }}</p>
+  {%- endif %}
+  {%- if !side.lines.is_empty() %}
+  <table class="keys">
+    <tbody>
+      {%- for line in side.lines %}
+      <tr><td class="qa-text"><code>{{ line.subject }}</code></td><td class="qa-text">{{ line.text }}</td></tr>
+      {%- endfor %}
+    </tbody>
+  </table>
+  {%- endif %}
+  {%- endfor %}
+  {%- if !view.rules.is_empty() %}
+  <h2>Rules</h2>
+  <table class="keys">
+    <tbody>
+      {%- for line in view.rules %}
+      <tr><td class="qa-text">{{ line.subject }}</td><td class="qa-text">{{ line.text }}</td></tr>
+      {%- endfor %}
+    </tbody>
+  </table>
+  {%- endif %}
+  {%- if !view.skipped.is_empty() %}
+  <h2>Not replayed</h2>
+  <table class="keys">
+    <tbody>
+      {%- for line in view.skipped %}
+      <tr><td><code>{{ line.subject }}</code></td><td class="qa-text">{{ line.text }}</td></tr>
+      {%- endfor %}
+    </tbody>
+  </table>
+  {%- endif %}
+  <h2>Results</h2>
+  <form method="get" action="{{ view.validation.href }}" class="fields">
+    <label for="category">Category</label>
+    <select id="category" name="category" multiple>
+      {%- for category in view.categories %}
+      <option value="{{ category }}"{% if view.is_chosen(category) %} selected{% endif %}>{{ category }}</option>
+      {%- endfor %}
+    </select>
+    <button type="submit">Show</button>
+    <a href="{{ view.validation.href }}">All</a>
+  </form>
+  {%- if let Some(download) = view.download %}
+  <p><a href="{{ download }}" title="password: infected">Download these rows' files</a></p>
+  {%- endif %}
+  <table class="keys">
+    <thead><tr><th>Sample</th><th>Rule</th><th>Label</th><th>Base</th><th>Head</th><th>Category</th><th>Note</th></tr></thead>
+    <tbody>
+      {%- for row in view.results %}
+      <tr>
+        <td><a href="{{ row.sample_href }}"><code title="{{ row.sha256 }}">{{ row.short_sha256 }}</code></a></td>
+        <td class="qa-text">{{ row.rule_name }}<br><code class="muted">{{ row.rule_uuid }}</code>{% if !row.namespace.is_empty() %} <span class="muted">{{ row.namespace }}</span>{% endif %}</td>
+        <td>{{ row.label }}</td>
+        <td>{{ row.base }}</td>
+        <td>{{ row.head }}</td>
+        <td>{{ row.category }}</td>
+        <td class="qa-text">{{ row.note }}</td>
+      </tr>
+      {%- else %}
+      <tr><td colspan="7" class="muted">No rows.</td></tr>
+      {%- endfor %}
+    </tbody>
+  </table>
+  {%- if view.first.is_some() || view.next.is_some() %}
+  <nav class="pager" aria-label="Pages">
+    {%- if let Some(first) = view.first %} <a href="{{ first }}">First</a>{% endif %}
+    {%- if let Some(next) = view.next %} <a href="{{ next }}" rel="next">Next</a>{% endif %}
+  </nav>
+  {%- endif %}
+</section>
+{% endblock %}

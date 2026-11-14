@@ -44,6 +44,7 @@ pub mod scheduler;
 mod schema;
 mod serve;
 mod signatures;
+mod svs;
 mod task;
 mod user;
 mod yara;

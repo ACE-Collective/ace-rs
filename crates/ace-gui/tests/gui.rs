@@ -12019,3 +12019,353 @@ async fn the_samples_pages_need_signature_read_then_alert_write_and_svs_admin() 
     );
     std::fs::remove_dir_all(&cache).expect("removes the cache");
 }
+
+// ---- the signatures area's validations (PLAN.md 7.10 batch 3) ----
+
+use ace_gui::svs_validations::{
+    ValidationPage, ValidationsPage, validation_href, validation_view, validations_view,
+};
+use ace_service::{
+    Validation, ValidationDetail, ValidationQuery, ValidationResult, ValidationState,
+};
+
+fn fixture_validation(state: ValidationState) -> Validation {
+    let at = chrono::DateTime::from_timestamp(1_700_000_000, 0).expect("a time");
+    Validation {
+        uuid: uuid::Uuid::from_u128(0x5a),
+        repository: HOSTILE.to_owned(),
+        base_sha: "a".repeat(40),
+        head_sha: "b".repeat(40),
+        branch: HOSTILE.to_owned(),
+        pr_url: Some(format!("https://git.example/pr/{HOSTILE}")),
+        state,
+        requested_by: RecordedActor {
+            kind: "api_key".to_owned(),
+            id: "k".to_owned(),
+            name: Some(HOSTILE.to_owned()),
+        },
+        created_at: at,
+        started_at: Some(at),
+        finished_at: Some(at),
+        error: Some(HOSTILE.to_owned()),
+        diffed: Some(true),
+        regressions: Some(1),
+        new_fps: Some(0),
+        compile_errors: Some(1),
+        counts: Some(
+            [
+                ("regression".to_owned(), 1),
+                ("unchanged".to_owned(), 4),
+                ("known_fp".to_owned(), 0),
+            ]
+            .into(),
+        ),
+        updated_at: at,
+    }
+}
+
+fn fixture_result() -> ValidationResult {
+    ValidationResult {
+        id: 1,
+        sha256: SVS_SHA.to_owned(),
+        rule_uuid: SVS_RULE.to_owned(),
+        rule_name: HOSTILE.to_owned(),
+        namespace: Some(HOSTILE.to_owned()),
+        label: Some("tp".to_owned()),
+        label_source: Some("inherited_single".to_owned()),
+        base: "match".to_owned(),
+        head: "miss".to_owned(),
+        raw_base: true,
+        raw_head: true,
+        category: "regression".to_owned(),
+        note: Some(HOSTILE.to_owned()),
+    }
+}
+
+/// A report as a worker stores one, with text from a rule repository in every field that can hold it.
+fn fixture_report() -> serde_json::Value {
+    serde_json::json!({
+        "base": {"sha": "a".repeat(40), "namespaces": ["acme"], "rule_count": 2, "file_errors": [],
+                 "not_loaded": [], "skipped_members": [], "warnings": [], "ruleset_error": null},
+        "head": {"sha": "b".repeat(40), "namespaces": [HOSTILE], "rule_count": 1,
+                 "file_errors": [{"file": HOSTILE, "namespace": "acme", "error": HOSTILE, "dropped": []}],
+                 "not_loaded": [{"path": HOSTILE, "reason": HOSTILE}],
+                 "skipped_members": [[HOSTILE, HOSTILE]], "warnings": [HOSTILE], "ruleset_error": HOSTILE},
+        "added_rules": [{"uuid": "u", "name": HOSTILE, "file": HOSTILE}],
+        "removed_rules": [], "changed_rules": [],
+        "not_testable": [{"uuid": null, "name": HOSTILE, "file": HOSTILE, "reason": "no uuid"}],
+        "full_path_rules": [],
+        "skipped": [{"sha256": SVS_SHA, "file_path": HOSTILE, "reason": "unsafe_path", "detail": ""}],
+        "files": 1, "units": 1, "samples": 1, "bytes": 10, "duration_seconds": 1.25,
+    })
+}
+
+/// The validations views, called directly: the list with its filters, pages and exports, and a report with
+/// its counts, both commits, the rules, what wasn't replayed and its rows, each with hostile text escaped
+/// and nothing inline.
+#[test]
+fn the_validations_views_draw_validations_and_a_report() {
+    let layout = || {
+        Layout::new(
+            "n",
+            Theme::default(),
+            Some("analyst".to_owned()),
+            "/signatures",
+        )
+    };
+    let validation = fixture_validation(ValidationState::Completed);
+    let list = drawn_safely(&ValidationsPage {
+        layout: layout(),
+        view: validations_view(
+            &ValidationQuery::default(),
+            vec!["state:completed".to_owned()],
+            std::slice::from_ref(&validation),
+            Some("c1"),
+            Some("c2"),
+        ),
+    });
+    let href = validation_href(validation.uuid);
+    assert!(list.contains(&format!(r#"<a href="{href}">"#)), "{list}");
+    assert!(
+        list.contains(r#"<a href="/signatures/validations?f=state%3Acompleted">First</a>"#),
+        "{list}"
+    );
+    assert!(list.contains(r#"<a href="/signatures/validations?f=state%3Acompleted&#38;cursor=c2" rel="next">Next</a>"#), "{list}");
+    assert!(
+        list.contains(r#"href="/api/svs/v1/yara/validations/export/csv?f=state%3Acompleted""#),
+        "{list}"
+    );
+    assert!(
+        list.contains(r#"<input type="text" id="filter-has_regressions""#),
+        "{list}"
+    );
+    // a pull request that isn't http is no link
+    let mut script = fixture_validation(ValidationState::Failed);
+    script.pr_url = Some("javascript:alert(1)".to_owned());
+    let refused = drawn_safely(&ValidationsPage {
+        layout: layout(),
+        view: validations_view(&ValidationQuery::default(), vec![], &[script], None, None),
+    });
+    assert!(!refused.contains("javascript:"), "{refused}");
+    assert!(refused.contains("disposition-danger"), "{refused}");
+
+    let detail = ValidationDetail {
+        validation,
+        attempts: 1,
+        claimed_by: Some(HOSTILE.to_owned()),
+        corpus_version: Some("v".to_owned()),
+        engine_fingerprint: Some("f".to_owned()),
+        report: Some(fixture_report()),
+    };
+    let chosen = vec!["regression".to_owned()];
+    let page = drawn_safely(&ValidationPage {
+        layout: layout(),
+        view: validation_view(
+            &detail,
+            &chosen,
+            &[fixture_result()],
+            None,
+            Some("n1"),
+            true,
+        ),
+    });
+    assert!(page.contains(r#"<a href="/signatures/validations/00000000-0000-0000-0000-00000000005a?category=regression">regression</a>"#), "{page}");
+    // a counted-only category has no rows to show, and a zero isn't listed
+    assert!(
+        page.contains("<td>unchanged</td>") && !page.contains("known_fp</td><td>0"),
+        "{page}"
+    );
+    assert!(
+        page.contains(&format!(
+            r#"<a href="/signatures/samples/{SVS_SHA}/{SVS_RULE}">"#
+        )),
+        "{page}"
+    );
+    assert!(
+        page.contains(r#"<option value="regression" selected>regression</option>"#),
+        "{page}"
+    );
+    assert!(page.contains(r#"href="/api/svs/v1/yara/validations/00000000-0000-0000-0000-00000000005a/download?category=regression""#), "{page}");
+    assert!(page.contains("The ruleset would not load"), "{page}");
+    assert!(page.contains("miss (matches, no detection)"), "{page}");
+    assert!(
+        page.contains("1 files, 1 scans, 1 samples, 10 bytes, in 1.2s"),
+        "{page}"
+    );
+    assert!(page.contains(r#"rel="next">Next</a>"#), "{page}");
+    // without signature:download, no download
+    let plain = drawn_safely(&ValidationPage {
+        layout: layout(),
+        view: validation_view(&detail, &[], &[fixture_result()], None, None, false),
+    });
+    assert!(!plain.contains("/download"), "{plain}");
+    // a queued validation has no report yet
+    let queued = ValidationDetail {
+        validation: fixture_validation(ValidationState::Queued),
+        attempts: 0,
+        claimed_by: None,
+        corpus_version: None,
+        engine_fingerprint: None,
+        report: None,
+    };
+    let waiting = drawn_safely(&ValidationPage {
+        layout: layout(),
+        view: validation_view(&queued, &[], &[], None, None, true),
+    });
+    assert!(
+        waiting.contains("No rows.") && !waiting.contains("/download"),
+        "{waiting}"
+    );
+}
+
+/// A completed validation in the GUI's database with a hostile report and one row.
+async fn gui_validation(stack: &Stack) -> uuid::Uuid {
+    let db = stack.test_db.db();
+    let uuid = uuid::Uuid::new_v4();
+    let id: i64 = sqlx::query_scalar(
+        "INSERT INTO svs.validations
+             (uuid, repository, base_sha, head_sha, branch, requested_by, state, claimed_by, attempts,
+              started_at, finished_at, counts, report, regressions, new_fps, compile_errors, diffed)
+         VALUES ($1, 'rules', repeat('a', 40), repeat('b', 40), $2,
+                 '{\"kind\": \"internal\", \"id\": \"test\"}', 'completed', 'node1', 1, now(), now(),
+                 '{\"regression\": 1}', $3, 1, 0, 1, true)
+         RETURNING id",
+    )
+    .bind(uuid)
+    .bind(HOSTILE)
+    .bind(fixture_report())
+    .fetch_one(db.pool())
+    .await
+    .expect("a validation");
+    sqlx::query(
+        "INSERT INTO svs.validation_results
+             (validation_id, sha256, rule_uuid, rule_name, base, head, raw_base, raw_head, category, note)
+         VALUES ($1, $2, $3, $4, 'match', 'miss', true, false, 'regression', $4)",
+    )
+    .bind(id)
+    .bind(SVS_SHA)
+    .bind(SVS_RULE)
+    .bind(HOSTILE)
+    .execute(db.pool())
+    .await
+    .expect("a row");
+    uuid
+}
+
+/// The validations pages through the server: signed out goes to the login; without `signature:read` each
+/// is 403; with it the hub's tile, the list and a report, its rows and their errors; the filter form folds
+/// into a share link; and `signature:download` adds the download of the rows' files.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn the_validations_pages_need_signature_read() {
+    let stack = stack_of_db(Catalog::new(vec![]), |service, _| {
+        Gui::new(service, Transport::Plain)
+    })
+    .await;
+    let alice = user(&stack, "alice").await;
+    let uuid = gui_validation(&stack).await;
+    let report = validation_href(uuid);
+
+    for path in ["/signatures/validations".to_owned(), report.clone()] {
+        let page = stack.get(&path).send().await.expect("answered");
+        assert_eq!(page.status(), StatusCode::SEE_OTHER, "{path}");
+        assert!(location(&page).starts_with("/login?next="), "{path}");
+    }
+    let session = session_of(&stack, "alice").await;
+    let get = |path: String| stack.get(&path).header("cookie", cookie(&session)).send();
+    for path in ["/signatures/validations".to_owned(), report.clone()] {
+        assert_eq!(
+            get(path.clone()).await.expect("answered").status(),
+            StatusCode::FORBIDDEN,
+            "{path}"
+        );
+    }
+
+    grant_to(&stack, &alice, "signature", "read").await;
+    let hub = get("/signatures".to_owned())
+        .await
+        .expect("answered")
+        .text()
+        .await
+        .expect("a page");
+    assert!(
+        hub.contains(r#"<a href="/signatures/validations"><b>Validations</b>"#),
+        "{hub}"
+    );
+    let list = get("/signatures/validations".to_owned())
+        .await
+        .expect("answered");
+    assert_eq!(list.status(), StatusCode::OK);
+    let list = list.text().await.expect("a page");
+    assert!(list.contains(&format!(r#"<a href="{report}">"#)), "{list}");
+    assert!(!list.contains("<script>alert"), "{list}");
+    let page = get(report.clone()).await.expect("answered");
+    assert_eq!(page.status(), StatusCode::OK);
+    let page = page.text().await.expect("a page");
+    assert!(
+        page.contains(&format!(
+            r#"<a href="/signatures/samples/{SVS_SHA}/{SVS_RULE}">"#
+        )),
+        "{page}"
+    );
+    assert!(
+        !page.contains("<script>alert") && !page.contains("/download"),
+        "{page}"
+    );
+    let folded = get("/signatures/validations?state=completed".to_owned())
+        .await
+        .expect("answered");
+    assert_eq!(folded.status(), StatusCode::SEE_OTHER);
+    assert_eq!(
+        location(&folded),
+        "/signatures/validations?f=state%3Acompleted"
+    );
+    let filtered = get("/signatures/validations?f=state%3Afailed".to_owned())
+        .await
+        .expect("answered");
+    assert!(
+        filtered
+            .text()
+            .await
+            .expect("a page")
+            .contains("No validations.")
+    );
+    for (path, status) in [
+        (
+            "/signatures/validations?f=state%3Adone".to_owned(),
+            StatusCode::BAD_REQUEST,
+        ),
+        (
+            "/signatures/validations?cursor=nope".to_owned(),
+            StatusCode::BAD_REQUEST,
+        ),
+        (
+            "/signatures/validations/nope".to_owned(),
+            StatusCode::BAD_REQUEST,
+        ),
+        (
+            format!("{report}?category=known_fp"),
+            StatusCode::BAD_REQUEST,
+        ),
+        (validation_href(uuid::Uuid::new_v4()), StatusCode::NOT_FOUND),
+    ] {
+        assert_eq!(
+            get(path.clone()).await.expect("answered").status(),
+            status,
+            "{path}"
+        );
+    }
+
+    grant_to(&stack, &alice, "signature", "download").await;
+    let page = get(format!("{report}?category=regression"))
+        .await
+        .expect("answered")
+        .text()
+        .await
+        .expect("a page");
+    assert!(
+        page.contains(&format!(
+            r#"href="/api/svs/v1/yara/validations/{uuid}/download?category=regression""#
+        )),
+        "{page}"
+    );
+}

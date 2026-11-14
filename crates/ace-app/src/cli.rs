@@ -25,6 +25,9 @@ enum Command {
     /// Checks of a signatures checkout, such as the one an author runs before a push.
     #[command(subcommand)]
     Signatures(crate::signatures::SignaturesCommand),
+    /// The Signature Validation System: YARA validation, by hand.
+    #[command(subcommand)]
+    Svs(crate::svs::SvsCommand),
     /// Serve the lease API to workers and the JSON API to people, and take back tasks whose lease
     /// expired.
     Serve,
@@ -52,11 +55,11 @@ enum Command {
 /// ace3's GUI runs any `ace` command but global options and secrets (`ace3/docs/GUI_CLI.md`). Of
 /// ace3's commands, ace4 has `yara scan` (here over a ruleset file, not ace3's scanner service) and
 /// `user`, whose `create-first` and `create-key` are an operator's, not ace3's `user add`. ace4's
-/// `signatures check` is new; ace3's `signatures` lists what a node loads (`list`, `locations`) and
+/// `svs yara` is ace3's (`validate`, `layout`, `prune`), and refused like the rest. ace4's `signatures check` is new; ace3's `signatures` lists what a node loads (`list`, `locations`) and
 /// builds the Suricata lookup (`build-db`). ace3's other commands (`alert`, `cache`, `cas`,
 /// `company`, `config`, `correlate`, `crash`, `cron`, `encryption`, `event`, `gui`, `hunt`,
 /// `integration`, `js-deobfuscator`, `modules`, `node`, `nrd`, `observables`, `partitions`, `perm`,
-/// `persistence`, `phishkit`, `remediation`, `search`, `service`, `storage`, `submit`, `svs`, `test`
+/// `persistence`, `phishkit`, `remediation`, `search`, `service`, `storage`, `submit`, `test`
 /// and `yara-qa`), and those `signatures` subcommands, wait for the steps that bring what they act
 /// on.
 pub(crate) fn run_contained(argv: &[String]) -> u8 {
@@ -91,6 +94,10 @@ fn refusal(command: &Command) -> (&'static str, &'static str) {
         Command::Signatures(_) => (
             "signatures",
             "it reads a signatures checkout on the node, and a GUI command can open none",
+        ),
+        Command::Svs(_) => (
+            "svs",
+            "it reads Postgres and the bucket, and a GUI command holds no credentials for either",
         ),
         Command::Serve => ("serve", "it's the service itself, not a command"),
         Command::Hunter => ("hunter", "it's a service of its own, not a command"),
@@ -130,6 +137,7 @@ pub fn main(app: &App) -> ExitCode {
         Command::Schema(command) => crate::schema::run(app, command),
         Command::Yara(command) => crate::yara::run(command),
         Command::Signatures(command) => crate::signatures::run(app, command),
+        Command::Svs(command) => crate::svs::run(app, command),
         Command::Serve => crate::serve::run(app, &mut telemetry),
         Command::Hunter => crate::hunter::run(app, &mut telemetry),
         Command::Task(command) => crate::task::run(app, command),
@@ -187,6 +195,7 @@ mod tests {
             "schema export /tmp/x",
             "yara scan --rules /x f",
             "signatures check /x",
+            "svs yara layout",
             "task replay 1",
             "root normal-form 00000000-0000-0000-0000-000000000000",
             "user create-key k --grant alert:read",

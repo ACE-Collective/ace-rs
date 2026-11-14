@@ -7,6 +7,8 @@
 //! - `log_search`: the link from a run to the site's own log search, `svs.log_search_url`.
 //! - `samples`: the samples, the files YARA rules matched on alerts graded TP or FP, their labels, and how
 //!   `svs_yara_sample_capture`'s captures land (batch 2).
+//! - `yara` and `validations`: YARA validation, a rule change replayed over the samples, and the queue and
+//!   workers that run it (batch 3).
 //! - The values every part shares: a run's states, its event log's kinds, how a detection was attributed,
 //!   and the one SVS status an alert has (`derive_status`).
 //!
@@ -27,6 +29,8 @@ pub mod hosts;
 pub mod log_search;
 pub mod markers;
 pub mod samples;
+pub mod validations;
+pub mod yara;
 
 use std::collections::{BTreeMap, BTreeSet};
 

@@ -135,6 +135,7 @@ dependencies = [
  "flate2",
  "getrandom 0.4.3",
  "hex",
+ "libc",
  "opentelemetry",
  "opentelemetry_sdk",
  "regex",
@@ -933,6 +934,7 @@ dependencies = [
  "tempfile",
  "thiserror 2.0.21",
  "tokio",
+ "tokio-util",
  "tracing",
  "tracing-subscriber",
  "uuid",
@@ -1057,6 +1059,7 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "yara-x",
+ "yara-x-parser",
 ]
 
 [[package]]

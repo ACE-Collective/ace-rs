@@ -48,6 +48,10 @@
 //!   `_samples_page.html` and `sample_detail.html`: the samples with their filters and sorts, a sample with
 //!   its captures and verdicts, relabel, reset, confirm, retire, and a deletion behind a confirm, over the
 //!   `svs_samples` service.
+//! - `svs_validations`: the signatures area's validations pages (PLAN.md 7.10 batch 3), ace3's
+//!   `validations.html`, `_validations_page.html` and `validation_detail.html`: the validations with their
+//!   filters, and a validation's report with its rows by category and the download of their files, over
+//!   the `svs_validations` service.
 //! - `events`: the events area under `event:read` (5.11's events area): ace3's event list with its
 //!   filters, sorts and CSV export, an event's page with Close Event behind a confirm, and its
 //!   add-to-event modal as a page, opened from the alert list's bulk form, and Create Event, the same
@@ -91,6 +95,7 @@ pub mod saved_filters;
 mod session;
 pub mod signatures;
 pub mod svs_samples;
+pub mod svs_validations;
 pub mod templates;
 pub mod verdicts;
 
@@ -306,6 +311,11 @@ impl Gui {
                 get(signatures::match_page),
             )
             .route("/signatures/samples", get(svs_samples::samples))
+            .route("/signatures/validations", get(svs_validations::validations))
+            .route(
+                "/signatures/validations/{uuid}",
+                get(svs_validations::validation),
+            )
             .route(
                 "/signatures/samples/{sha256}/delete",
                 get(svs_samples::confirm_delete)

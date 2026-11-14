@@ -162,7 +162,19 @@ async fn stack_of(archive: ace_core::email_archive::ArchiveConfig, catalog: Cata
     .expect("the overlay parses");
     let service = Service::new(test_db.db().clone(), orchestrator.clone())
         .with_actions(test_actions())
-        .with_dispositions(ace_service::Dispositions::configured(&overlay).expect("good sections"));
+        .with_dispositions(ace_service::Dispositions::configured(&overlay).expect("good sections"))
+        // a repository the validations' requests may name; requesting doesn't fetch it (PLAN.md 7.10)
+        .with_validation(
+            ace_core::svs::yara::ValidationConfig::from_section(
+                &ace_sdk::Overlay::from_yaml(
+                    "svs: {yara: {repositories: {svs_rules: {url: /nowhere, branch: main}}}}",
+                )
+                .expect("the overlay parses")
+                .svs
+                .yara,
+            )
+            .expect("valid settings"),
+        );
     let config = ace_api::WebConfig {
         max_json_bytes: MAX_JSON,
         max_submission_bytes: MAX_SUBMISSION,
@@ -511,6 +523,15 @@ const SAMPLE_DOWNLOAD: &str = "/api/svs/v1/samples/{sha256}/{rule_uuid}/download
 const SAMPLE_LABEL: &str = "/api/svs/v1/samples/{sha256}/{rule_uuid}/label";
 const SAMPLE_CONFIRM: &str = "/api/svs/v1/samples/{sha256}/{rule_uuid}/confirm";
 const SAMPLE_RETIREMENT: &str = "/api/svs/v1/samples/{sha256}/{rule_uuid}/retirement";
+const VALIDATIONS: &str = "/api/svs/v1/yara/validations";
+const VALIDATIONS_CSV: &str = "/api/svs/v1/yara/validations/export/csv";
+const VALIDATIONS_NDJSON: &str = "/api/svs/v1/yara/validations/export/ndjson";
+const VALIDATION: &str = "/api/svs/v1/yara/validations/{uuid}";
+const VALIDATION_STATUS: &str = "/api/svs/v1/yara/validations/{uuid}/status";
+const VALIDATION_RESULTS: &str = "/api/svs/v1/yara/validations/{uuid}/results";
+const VALIDATION_RESULTS_CSV: &str = "/api/svs/v1/yara/validations/{uuid}/results/export/csv";
+const VALIDATION_RESULTS_NDJSON: &str = "/api/svs/v1/yara/validations/{uuid}/results/export/ndjson";
+const VALIDATION_DOWNLOAD: &str = "/api/svs/v1/yara/validations/{uuid}/download";
 const COLLECTIONS_CSV: &str = "/api/file-collections/v1/collections/export/csv";
 const COLLECTIONS_NDJSON: &str = "/api/file-collections/v1/collections/export/ndjson";
 const COLLECTION: &str = "/api/file-collections/v1/collections/{id}";
@@ -545,7 +566,8 @@ fn fill(route: &str, id: Uuid, observable: i64) -> String {
         return route
             .replace("{sha256}", &"ab".repeat(32))
             .replace("{rule_uuid}", "7d1c2a4e-5b6f-4c3d-9e8f-0a1b2c3d4e5f")
-            .replace("{id}", &observable.to_string());
+            .replace("{id}", &observable.to_string())
+            .replace("{uuid}", &id.to_string());
     }
     if route.starts_with("/api/lists/") {
         return route
@@ -640,6 +662,7 @@ fn good_body(route: &str) -> Send {
         ]})),
         SAMPLE_LABEL => Send::Json(json!({"verdict": "fp"})),
         SAMPLE_RETIREMENT | SAMPLE_FILE => Send::Json(json!({"reason": "refused"})),
+        VALIDATIONS => Send::Json(validation_body(&"b".repeat(40))),
         COLLECTIONS => Send::Json(json!({
             "collector": "edr", "observable_type": "file_location", "observable_value": "h@C:\\x.exe",
         })),
@@ -668,7 +691,7 @@ async fn refuses_without_a_credential_or_a_permission(
         .map(|(method, route, _)| (method, route))
         .filter(|route| !public.contains(route))
         .collect();
-    assert_eq!(routes.len(), 136, "{routes:?}");
+    assert_eq!(routes.len(), 146, "{routes:?}");
     for (method, route) in routes {
         let method: Method = method.to_uppercase().parse().expect("a method");
         let path = fill(&route, id, file);
@@ -4334,6 +4357,7 @@ async fn every_documented_status_is_tested() {
     hunts_router(&mut client).await;
     remediation_routers(&mut client).await;
     svs_samples(&mut client, &token).await;
+    svs_validations(&mut client, &token).await;
     pings(&mut client, &token).await;
 
     assert_eq!(
@@ -8586,4 +8610,736 @@ async fn svs_samples(client: &mut Client<'_>, token: &str) {
             )
             .await;
     }
+}
+
+/// A validation request of `base` × 40 against `head`.
+fn validation_body(head: &str) -> Value {
+    json!({
+        "repository": "svs_rules",
+        "base_sha": "a".repeat(40),
+        "head_sha": head,
+        "branch": "feature",
+        "pr_url": "https://git.example/pr/7",
+    })
+}
+
+/// A completed validation of the request for `head`, its report listing `rows` of (sha256, category,
+/// rule uuid), as a worker would leave it.
+async fn completed_validation_at(stack: &Stack, head: &str, rows: &[(String, &str, &str)]) -> Uuid {
+    use ace_core::svs::validations as queue;
+    use ace_core::svs::yara::diff::{Category, Outcome as ScanOutcome, ResultRow};
+    use ace_core::svs::yara::replay::{FileError, ReplayResult};
+    let db = stack.test_db.db();
+    let actor = json!({"kind": "internal", "id": "test"});
+    let mut tx = db.begin().await.expect("begins");
+    let (uuid, _) = queue::request_validation(
+        tx.conn(),
+        &queue::ValidationRequest {
+            repository: "svs_rules",
+            base_sha: &"a".repeat(40),
+            head_sha: head,
+            branch: "feature",
+            pr_url: None,
+            requested_by: &actor,
+        },
+        "v",
+        "f",
+    )
+    .await
+    .expect("requests");
+    tx.commit().await.expect("commits");
+    sqlx::query(
+        "UPDATE svs.validations SET created_at = created_at - interval '100 years' WHERE uuid = $1",
+    )
+    .bind(uuid)
+    .execute(db.pool())
+    .await
+    .expect("makes it the oldest");
+    let claimed = queue::claim(db, "node1", std::time::Duration::from_secs(300), 3)
+        .await
+        .expect("claims")
+        .expect("a claim");
+    assert_eq!(claimed.uuid, uuid);
+    let mut result = ReplayResult::new("svs_rules", &"a".repeat(40), head);
+    let mut counts = std::collections::BTreeMap::new();
+    result.rows = rows
+        .iter()
+        .map(|(sha256, category, rule)| {
+            let category = Category::parse(category).expect("a category");
+            *counts.entry(category).or_default() += 1;
+            ResultRow {
+                sha256: sha256.clone(),
+                rule_uuid: (*rule).to_owned(),
+                rule_name: "<i>svs_rule</i>".to_owned(),
+                namespace: Some("acme".to_owned()),
+                label: Some("tp".to_owned()),
+                label_source: Some("inherited_single".to_owned()),
+                base: ScanOutcome::Match,
+                head: ScanOutcome::Miss,
+                raw_base: true,
+                raw_head: false,
+                category,
+                note: None,
+            }
+        })
+        .collect();
+    result.counts = ReplayResult::all_counts(&counts);
+    result.diffed = true;
+    result.head.file_errors = vec![FileError {
+        file: "yara/acme/broken.yar".to_owned(),
+        namespace: "acme".to_owned(),
+        error: "syntax error".to_owned(),
+        dropped: vec![],
+    }];
+    queue::complete(db, &claimed, &result, "v", "f")
+        .await
+        .expect("completes");
+    uuid
+}
+
+/// ace3's `tests/aceapi_v2/svs/test_validations.py`: a request queued then shared (202, then 200) with
+/// its audit rows, bad requests, the status that names rules and never a sample, the CI key that reads only
+/// the status, the list's filters, pages and exports, the detail with its report, the rows by category and
+/// rule with their exports, and the selection's encrypted download and its limits, with each documented
+/// status.
+async fn svs_validations(client: &mut Client<'_>, token: &str) {
+    use Method as M;
+    use StatusCode as S;
+    let stack = client.stack;
+    let t = Some(token);
+    let ci = key(stack, &["svs:validate"]).await;
+
+    // a request is queued, then shared, and both are audited
+    let audits = audit_count(stack).await;
+    let queued = client
+        .json(
+            M::POST,
+            VALIDATIONS,
+            VALIDATIONS,
+            Some(&ci),
+            Send::Json(validation_body(&"B".repeat(40))),
+            S::ACCEPTED,
+        )
+        .await;
+    assert_eq!(
+        (queued["state"].clone(), queued["head_sha"].clone()),
+        (json!("queued"), json!("b".repeat(40)))
+    );
+    let uuid = queued["uuid"].as_str().expect("a uuid").to_owned();
+    assert_eq!(
+        queued["report_path"],
+        format!("/signatures/validations/{uuid}")
+    );
+    let again = client
+        .json(
+            M::POST,
+            VALIDATIONS,
+            VALIDATIONS,
+            Some(&ci),
+            Send::Json(validation_body(&"b".repeat(40))),
+            S::OK,
+        )
+        .await;
+    assert_eq!(again["uuid"], uuid);
+    assert_eq!(audit_count(stack).await, audits + 2);
+    // bad requests
+    let mut elsewhere = validation_body(&"c".repeat(40));
+    elsewhere["repository"] = json!("elsewhere");
+    let refused = client
+        .json(
+            M::POST,
+            VALIDATIONS,
+            VALIDATIONS,
+            Some(&ci),
+            Send::Json(elsewhere),
+            S::BAD_REQUEST,
+        )
+        .await;
+    assert!(
+        refused["error"]
+            .as_str()
+            .unwrap()
+            .contains("svs.yara.repositories"),
+        "{refused}"
+    );
+    // an abbreviated commit wouldn't be recognized as the same commit
+    client
+        .json(
+            M::POST,
+            VALIDATIONS,
+            VALIDATIONS,
+            Some(&ci),
+            Send::Json(validation_body(&"b".repeat(12))),
+            S::BAD_REQUEST,
+        )
+        .await;
+    let mut script = validation_body(&"c".repeat(40));
+    script["pr_url"] = json!("javascript:alert(1)");
+    client
+        .json(
+            M::POST,
+            VALIDATIONS,
+            VALIDATIONS,
+            Some(&ci),
+            Send::Json(script),
+            S::BAD_REQUEST,
+        )
+        .await;
+    client
+        .json(
+            M::POST,
+            VALIDATIONS,
+            VALIDATIONS,
+            Some(&ci),
+            too_large(),
+            S::PAYLOAD_TOO_LARGE,
+        )
+        .await;
+
+    // the status names rules, never a sample
+    let shas = ["11".repeat(32), "22".repeat(32), "33".repeat(32)];
+    let reported = completed_validation_at(
+        stack,
+        &"d".repeat(40),
+        &[
+            (shas[0].clone(), "regression", SAMPLE_RULE),
+            (shas[1].clone(), "regression", SAMPLE_RULE),
+            (shas[2].clone(), "new_fp_other_rule", SAMPLE_OTHER_RULE),
+        ],
+    )
+    .await;
+    let path = |route: &str| route.replace("{uuid}", &reported.to_string());
+    let response = client
+        .call(
+            M::GET,
+            VALIDATION_STATUS,
+            &path(VALIDATION_STATUS),
+            Some(&ci),
+            Send::Nothing,
+        )
+        .await;
+    assert_eq!(response.status(), S::OK);
+    let text = response.text().await.expect("a body");
+    let status: Value = serde_json::from_str(&text).expect("JSON");
+    assert_eq!(status["state"], "completed");
+    assert_eq!(status["counts"]["regression"], 2);
+    assert_eq!(
+        status["rules"]["regression"],
+        json!([{"rule_uuid": SAMPLE_RULE, "rule_name": "<i>svs_rule</i>", "count": 2}])
+    );
+    assert_eq!(
+        status["compile_errors"],
+        json!([{"file": "yara/acme/broken.yar", "error": "syntax error"}])
+    );
+    for secret in &shas {
+        assert!(!text.contains(secret.as_str()), "{secret} in {text}");
+    }
+    let unknown = VALIDATION_STATUS.replace("{uuid}", &Uuid::new_v4().to_string());
+    client
+        .json(
+            M::GET,
+            VALIDATION_STATUS,
+            &unknown,
+            Some(&ci),
+            Send::Nothing,
+            S::NOT_FOUND,
+        )
+        .await;
+    client
+        .json(
+            M::GET,
+            VALIDATION_STATUS,
+            &VALIDATION_STATUS.replace("{uuid}", "nope"),
+            Some(&ci),
+            Send::Nothing,
+            S::BAD_REQUEST,
+        )
+        .await;
+    // the CI key reads the status only
+    for route in [
+        VALIDATIONS,
+        VALIDATION,
+        VALIDATION_RESULTS,
+        VALIDATION_DOWNLOAD,
+        SAMPLES,
+    ] {
+        client
+            .json(
+                M::GET,
+                route,
+                &path(route),
+                Some(&ci),
+                Send::Nothing,
+                S::FORBIDDEN,
+            )
+            .await;
+    }
+    // a reader can't request, nor read the status
+    client
+        .json(
+            M::POST,
+            VALIDATIONS,
+            VALIDATIONS,
+            t,
+            Send::Json(validation_body(&"e".repeat(40))),
+            S::FORBIDDEN,
+        )
+        .await;
+    client
+        .json(
+            M::GET,
+            VALIDATION_STATUS,
+            &path(VALIDATION_STATUS),
+            t,
+            Send::Nothing,
+            S::FORBIDDEN,
+        )
+        .await;
+
+    // the list: filters, pages, exports
+    let clean = completed_validation_at(stack, &"f".repeat(40), &[]).await;
+    let listed = |page: &Value| -> Vec<String> {
+        page["validations"]
+            .as_array()
+            .expect("validations")
+            .iter()
+            .map(|v| v["uuid"].as_str().unwrap().to_owned())
+            .collect()
+    };
+    let page = client
+        .json(
+            M::GET,
+            VALIDATIONS,
+            &format!("{VALIDATIONS}?f=has_regressions%3Atrue"),
+            t,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(listed(&page), [reported.to_string()]);
+    let page = client
+        .json(
+            M::GET,
+            VALIDATIONS,
+            &format!("{VALIDATIONS}?f=head%3Affff"),
+            t,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(listed(&page), [clean.to_string()]);
+    let all = client
+        .json(M::GET, VALIDATIONS, VALIDATIONS, t, Send::Nothing, S::OK)
+        .await;
+    assert_eq!(listed(&all).len(), 3);
+    let row = all["validations"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|v| v["uuid"] == reported.to_string())
+        .unwrap();
+    assert_eq!(
+        (
+            row["regressions"].clone(),
+            row["new_fps"].clone(),
+            row["compile_errors"].clone()
+        ),
+        (json!(2), json!(1), json!(1))
+    );
+    let first = client
+        .json(
+            M::GET,
+            VALIDATIONS,
+            &format!("{VALIDATIONS}?limit=2"),
+            t,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    let cursor = first["next"].as_str().expect("a next page").to_owned();
+    let second = client
+        .json(
+            M::GET,
+            VALIDATIONS,
+            &format!("{VALIDATIONS}?limit=2&cursor={cursor}"),
+            t,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!([listed(&first), listed(&second)].concat(), listed(&all));
+    assert_eq!(second["next"], Value::Null);
+    for query in [
+        "?f=state%3Adone",
+        "?limit=0",
+        "?cursor=junk",
+        "?changed_since=yesterday",
+        "?tz=Nowhere",
+    ] {
+        client
+            .json(
+                M::GET,
+                VALIDATIONS,
+                &format!("{VALIDATIONS}{query}"),
+                t,
+                Send::Nothing,
+                S::BAD_REQUEST,
+            )
+            .await;
+    }
+    let response = client
+        .call(
+            M::GET,
+            VALIDATIONS_NDJSON,
+            &format!("{VALIDATIONS_NDJSON}?f=has_regressions%3Atrue"),
+            t,
+            Send::Nothing,
+        )
+        .await;
+    assert_eq!(response.status(), S::OK);
+    let lines: Vec<Value> = response
+        .text()
+        .await
+        .expect("a body")
+        .lines()
+        .map(|l| serde_json::from_str(l).expect("a line"))
+        .collect();
+    assert_eq!(
+        lines
+            .iter()
+            .map(|l| l["uuid"].as_str().unwrap().to_owned())
+            .collect::<Vec<_>>(),
+        [reported.to_string()]
+    );
+    let response = client
+        .call(
+            M::GET,
+            VALIDATIONS_CSV,
+            &format!("{VALIDATIONS_CSV}?f=state%3Acompleted"),
+            t,
+            Send::Nothing,
+        )
+        .await;
+    assert_eq!(response.status(), S::OK);
+    let csv = response.text().await.expect("a body");
+    let header = csv.lines().next().expect("a header");
+    assert!(
+        header.starts_with("uuid,repository,") && !header.contains("counts"),
+        "{header}"
+    );
+    assert_eq!(csv.lines().count(), 3);
+    for route in [VALIDATIONS_CSV, VALIDATIONS_NDJSON] {
+        // three validations are more than the test's export holds
+        client
+            .json(M::GET, route, route, t, Send::Nothing, S::PAYLOAD_TOO_LARGE)
+            .await;
+        client
+            .json(
+                M::GET,
+                route,
+                &format!("{route}?f=state%3Adone"),
+                t,
+                Send::Nothing,
+                S::BAD_REQUEST,
+            )
+            .await;
+    }
+
+    // the detail carries the report
+    let detail = client
+        .json(
+            M::GET,
+            VALIDATION,
+            &path(VALIDATION),
+            t,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(
+        (
+            detail["state"].clone(),
+            detail["attempts"].clone(),
+            detail["claimed_by"].clone()
+        ),
+        (json!("completed"), json!(1), json!("node1"))
+    );
+    assert_eq!(
+        detail["report"]["head"]["file_errors"][0]["file"],
+        "yara/acme/broken.yar"
+    );
+    assert!(detail["report"].get("rows").is_none());
+    client
+        .json(
+            M::GET,
+            VALIDATION,
+            &unknown.replace("/status", ""),
+            t,
+            Send::Nothing,
+            S::NOT_FOUND,
+        )
+        .await;
+    client
+        .json(
+            M::GET,
+            VALIDATION,
+            &VALIDATION.replace("{uuid}", "nope"),
+            t,
+            Send::Nothing,
+            S::BAD_REQUEST,
+        )
+        .await;
+
+    // the rows, by category and rule, and their exports
+    let results = client
+        .json(
+            M::GET,
+            VALIDATION_RESULTS,
+            &path(VALIDATION_RESULTS),
+            t,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    let shas_of = |page: &Value| -> Vec<String> {
+        page["results"]
+            .as_array()
+            .expect("results")
+            .iter()
+            .map(|r| r["sha256"].as_str().unwrap().to_owned())
+            .collect()
+    };
+    assert_eq!(shas_of(&results), shas);
+    assert_eq!(
+        (
+            results["results"][0]["label"].clone(),
+            results["results"][0]["base"].clone()
+        ),
+        (json!("tp"), json!("match"))
+    );
+    let regressions = client
+        .json(
+            M::GET,
+            VALIDATION_RESULTS,
+            &format!("{}?category=regression", path(VALIDATION_RESULTS)),
+            t,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(shas_of(&regressions).len(), 2);
+    let other = client
+        .json(
+            M::GET,
+            VALIDATION_RESULTS,
+            &format!("{}?rule_uuid={SAMPLE_OTHER_RULE}", path(VALIDATION_RESULTS)),
+            t,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(shas_of(&other), [shas[2].clone()]);
+    let first = client
+        .json(
+            M::GET,
+            VALIDATION_RESULTS,
+            &format!("{}?limit=2", path(VALIDATION_RESULTS)),
+            t,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    let cursor = first["next"].as_str().expect("a next page").to_owned();
+    let second = client
+        .json(
+            M::GET,
+            VALIDATION_RESULTS,
+            &format!("{}?limit=2&cursor={cursor}", path(VALIDATION_RESULTS)),
+            t,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(shas_of(&second), [shas[2].clone()]);
+    for query in ["?category=known_fp", "?limit=0", "?cursor=junk"] {
+        client
+            .json(
+                M::GET,
+                VALIDATION_RESULTS,
+                &format!("{}{query}", path(VALIDATION_RESULTS)),
+                t,
+                Send::Nothing,
+                S::BAD_REQUEST,
+            )
+            .await;
+    }
+    client
+        .json(
+            M::GET,
+            VALIDATION_RESULTS,
+            &VALIDATION_RESULTS.replace("{uuid}", &Uuid::new_v4().to_string()),
+            t,
+            Send::Nothing,
+            S::NOT_FOUND,
+        )
+        .await;
+    let response = client
+        .call(
+            M::GET,
+            VALIDATION_RESULTS_CSV,
+            &format!("{}?category=regression", path(VALIDATION_RESULTS_CSV)),
+            t,
+            Send::Nothing,
+        )
+        .await;
+    assert_eq!(response.status(), S::OK);
+    let csv = response.text().await.expect("a body");
+    assert_eq!(
+        csv.lines()
+            .skip(1)
+            .map(|l| l.split(',').nth(11).unwrap().to_owned())
+            .collect::<Vec<_>>(),
+        ["regression", "regression"]
+    );
+    let response = client
+        .call(
+            M::GET,
+            VALIDATION_RESULTS_NDJSON,
+            &format!(
+                "{}?category=new_fp_other_rule",
+                path(VALIDATION_RESULTS_NDJSON)
+            ),
+            t,
+            Send::Nothing,
+        )
+        .await;
+    assert_eq!(response.status(), S::OK);
+    let lines: Vec<Value> = response
+        .text()
+        .await
+        .expect("a body")
+        .lines()
+        .map(|l| serde_json::from_str(l).expect("a line"))
+        .collect();
+    assert_eq!(lines.len(), 1);
+    assert_eq!(lines[0]["sha256"], shas[2]);
+    for route in [VALIDATION_RESULTS_CSV, VALIDATION_RESULTS_NDJSON] {
+        // three rows are more than the test's export holds
+        client
+            .json(
+                M::GET,
+                route,
+                &path(route),
+                t,
+                Send::Nothing,
+                S::PAYLOAD_TOO_LARGE,
+            )
+            .await;
+        client
+            .json(
+                M::GET,
+                route,
+                &format!("{}?category=unchanged", path(route)),
+                t,
+                Send::Nothing,
+                S::BAD_REQUEST,
+            )
+            .await;
+        client
+            .json(
+                M::GET,
+                route,
+                &route.replace("{uuid}", &Uuid::new_v4().to_string()),
+                t,
+                Send::Nothing,
+                S::NOT_FOUND,
+            )
+            .await;
+    }
+
+    // the selection's files, in a zip with ace3's password, audited
+    let (_, stored, bytes) = sample_fixture(stack, "DELIVERY", &[SAMPLE_RULE]).await;
+    let downloadable = completed_validation_at(
+        stack,
+        &"0".repeat(40),
+        &[
+            (stored.clone(), "regression", SAMPLE_RULE),
+            // another rule's pair: the file still downloads, with its own samples' records
+            (stored.clone(), "new_fp_other_rule", SAMPLE_OTHER_RULE),
+            ("99".repeat(32), "new_fp", SAMPLE_RULE),
+        ],
+    )
+    .await;
+    let download = VALIDATION_DOWNLOAD.replace("{uuid}", &downloadable.to_string());
+    let audits = audit_count(stack).await;
+    let response = client
+        .call(
+            M::GET,
+            VALIDATION_DOWNLOAD,
+            &format!("{download}?category=regression&category=new_fp_other_rule"),
+            t,
+            Send::Nothing,
+        )
+        .await;
+    assert_eq!(response.status(), S::OK);
+    let zipped = response.bytes().await.expect("the zip");
+    let (names, mut read) = unzip(&zipped);
+    let label = format!("svs-validation-{downloadable}");
+    assert_eq!(read(&format!("{label}/{stored}/{stored}")), bytes);
+    let manifest: Value =
+        serde_json::from_slice(&read(&format!("{label}/manifest.json"))).expect("a manifest");
+    assert_eq!(
+        manifest["files"]
+            .as_array()
+            .expect("files")
+            .iter()
+            .map(|f| f["sha256"].clone())
+            .collect::<Vec<_>>(),
+        [json!(stored)]
+    );
+    assert!(names.iter().any(|n| n.contains("/match-")));
+    assert_eq!(audit_count(stack).await, audits + 1);
+    // nothing of the selection is stored
+    client
+        .json(
+            M::GET,
+            VALIDATION_DOWNLOAD,
+            &format!("{download}?category=new_fp"),
+            t,
+            Send::Nothing,
+            S::NOT_FOUND,
+        )
+        .await;
+    client
+        .json(
+            M::GET,
+            VALIDATION_DOWNLOAD,
+            &format!("{download}?category=unchanged"),
+            t,
+            Send::Nothing,
+            S::BAD_REQUEST,
+        )
+        .await;
+    // past the limit of files: the samples' bulk captures, each a row of a report
+    let bulk: Vec<(String,)> =
+        sqlx::query_as("SELECT sha256 FROM svs.yara_captures WHERE rule_uuid = 'bulk'")
+            .fetch_all(stack.test_db.db().pool())
+            .await
+            .expect("the bulk captures");
+    assert!(bulk.len() > ace_service::MAX_SAMPLE_DOWNLOAD_FILES);
+    let rows: Vec<(String, &str, &str)> = bulk
+        .into_iter()
+        .map(|(sha256,)| (sha256, "regression", "bulk"))
+        .collect();
+    let large = completed_validation_at(stack, &"1".repeat(40), &rows).await;
+    client
+        .json(
+            M::GET,
+            VALIDATION_DOWNLOAD,
+            &VALIDATION_DOWNLOAD.replace("{uuid}", &large.to_string()),
+            t,
+            Send::Nothing,
+            S::PAYLOAD_TOO_LARGE,
+        )
+        .await;
 }

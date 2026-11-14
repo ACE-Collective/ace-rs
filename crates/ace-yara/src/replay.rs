@@ -34,6 +34,32 @@ use crate::meta::Meta;
 use crate::mime::MimeTyper;
 use crate::scan::{Match, RuleTime, ScanError, ScanRequest, Scanner};
 
+/// A digest of the code that decides what a replay finds: this crate's loader, filters, meta reading, mime
+/// typing, scanner and this child, with yara-x's version. SVS validation's engine fingerprint includes it,
+/// so a build that scans differently doesn't answer a request with an older build's report.
+pub fn engine_digest() -> String {
+    use sha2::{Digest, Sha256};
+    let mut digest = Sha256::new();
+    for (name, source) in [
+        ("filter.rs", include_str!("filter.rs")),
+        ("load.rs", include_str!("load.rs")),
+        ("meta.rs", include_str!("meta.rs")),
+        ("mime.rs", include_str!("mime.rs")),
+        ("replay.rs", include_str!("replay.rs")),
+        ("rule_meta.rs", include_str!("rule_meta.rs")),
+        ("scan.rs", include_str!("scan.rs")),
+    ] {
+        digest.update(name.as_bytes());
+        digest.update(source.as_bytes());
+    }
+    digest.update(yara_x::VERSION.as_bytes());
+    digest
+        .finalize()
+        .iter()
+        .map(|b| format!("{b:02x}"))
+        .collect()
+}
+
 /// How many rules the slowest-rule report lists.
 pub const SLOWEST_RULES: usize = 20;
 
@@ -220,6 +246,18 @@ fn match_entry(found: &Match) -> MatchEntry {
 /// Runs the job in `workdir`, typing each unit's mime type with `typer`. Writes
 /// `progress.json` there as it goes; the caller writes the result.
 pub fn run(workdir: &Path, typer: &MimeTyper) -> Result<ReplayResult, ReplayError> {
+    run_with(workdir, typer, true)
+}
+
+/// `run`, with each scan held to the job's `file_timeout` only when `per_file_timeout` is true. yara-x
+/// starts a thread to time a scan, which a contained process (one thread, PLAN.md 2.17) can't, so a
+/// contained replay scans with no timeout of its own and is held to its CPU-time limit and its
+/// supervisor's deadline instead, as the YARA module is.
+pub fn run_with(
+    workdir: &Path,
+    typer: &MimeTyper,
+    per_file_timeout: bool,
+) -> Result<ReplayResult, ReplayError> {
     let job = read_job(workdir)?;
     let mut result = ReplayResult {
         version: PROTOCOL_VERSION,
@@ -326,7 +364,7 @@ pub fn run(workdir: &Path, typer: &MimeTyper) -> Result<ReplayResult, ReplayErro
                 path: &unit.path,
                 mime_type: &mime_type,
                 meta_tags: &unit.meta_tags,
-                timeout: Some(timeout),
+                timeout: per_file_timeout.then_some(timeout),
             }) {
                 Ok(scanned) => {
                     outcome

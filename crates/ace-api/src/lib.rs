@@ -228,6 +228,25 @@
 //! - A capture's `yara_version` is yara-x's, where ace3 has `yara_python_version` and
 //!   `yara_scanner_version`.
 //!
+//! ace3's `svs` routers' YARA validations (PLAN.md 7.10 batch 3), under ace3's `svs:validate` (a rule
+//! repository's CI: request and status), `signature:read` and `signature:download` (`ace_service`'s
+//! `svs_validations` docs):
+//!
+//! | ace3 `/api/v2/svs/yara/validations` | here |
+//! |---|---|
+//! | `POST /`, 202 or 200 | `POST /api/svs/v1/yara/validations`, 202 or 200, audited |
+//! | `GET /{uuid}/status` | `GET /api/svs/v1/yara/validations/{uuid}/status` |
+//! | `GET /?f=&changed_since=&cursor=&limit=&tz=` | `GET /api/svs/v1/yara/validations`, the same filters and keyset paging |
+//! | `GET /export/ndjson`, `GET /export/csv` | `GET /api/svs/v1/yara/validations/export/ndjson`, `.../export/csv` |
+//! | `GET /{uuid}` | `GET /api/svs/v1/yara/validations/{uuid}` |
+//! | `GET /{uuid}/results?category=&rule_uuid=&cursor=&limit=` | `GET /api/svs/v1/yara/validations/{uuid}/results` |
+//! | `GET /{uuid}/results/export/ndjson`, `.../csv` | `GET /api/svs/v1/yara/validations/{uuid}/results/export/ndjson`, `.../csv` |
+//! | `GET /{uuid}/download?category=&rule_uuid=` | `GET /api/svs/v1/yara/validations/{uuid}/download`, audited |
+//!
+//! What differs: a page is `{validations, next}` and `{results, next}`; a bad request is 400 where ace3's is
+//! 422; a key without an owner may request one; the status's `report_path` is the GUI's
+//! `/signatures/validations/{uuid}`; a download names each file by its sha256, and has no node to skip.
+//!
 //! ace3's `observable_comments` router (PLAN.md 5.6), under ace3's `observable:read` and `observable:write`
 //! (`ace_service`'s `observable_comments` docs). A comment is on a type and value, across alerts:
 //!
@@ -441,6 +460,7 @@ mod observables;
 mod params;
 mod remediation;
 mod svs_samples;
+mod svs_validations;
 mod user_preferences;
 mod users;
 mod yara_qa;
@@ -783,6 +803,44 @@ impl Web {
                     .layer(json_limit),
             )
             .route(
+                "/api/svs/v1/yara/validations",
+                get(svs_validations::list)
+                    .post(svs_validations::request)
+                    .layer(json_limit),
+            )
+            .route(
+                "/api/svs/v1/yara/validations/export/csv",
+                get(svs_validations::export_csv),
+            )
+            .route(
+                "/api/svs/v1/yara/validations/export/ndjson",
+                get(svs_validations::export_ndjson),
+            )
+            .route(
+                "/api/svs/v1/yara/validations/{uuid}",
+                get(svs_validations::detail),
+            )
+            .route(
+                "/api/svs/v1/yara/validations/{uuid}/status",
+                get(svs_validations::status),
+            )
+            .route(
+                "/api/svs/v1/yara/validations/{uuid}/results",
+                get(svs_validations::results),
+            )
+            .route(
+                "/api/svs/v1/yara/validations/{uuid}/results/export/csv",
+                get(svs_validations::export_results_csv),
+            )
+            .route(
+                "/api/svs/v1/yara/validations/{uuid}/results/export/ndjson",
+                get(svs_validations::export_results_ndjson),
+            )
+            .route(
+                "/api/svs/v1/yara/validations/{uuid}/download",
+                get(svs_validations::download),
+            )
+            .route(
                 "/api/remediation/v1/targets",
                 post(remediation::targets).layer(json_limit),
             )
@@ -1041,6 +1099,16 @@ impl Web {
         svs_samples::confirm,
         svs_samples::retire,
         svs_samples::unretire,
+        svs_validations::request,
+        svs_validations::status,
+        svs_validations::list,
+        svs_validations::export_csv,
+        svs_validations::export_ndjson,
+        svs_validations::detail,
+        svs_validations::results,
+        svs_validations::export_results_csv,
+        svs_validations::export_results_ndjson,
+        svs_validations::download,
         remediation::targets,
         remediation::list,
         remediation::export_csv,
@@ -1074,7 +1142,7 @@ impl Web {
         (name = "email", description = "The email archive's emails, decrypted, by Message-ID"),
         (name = "cli", description = "ace commands run from the GUI, contained on a pool until their deadline"),
         (name = "yara_qa", description = "YARA rules in QA mode, the files they matched, and purges"),
-        (name = "svs", description = "SVS's samples: the files YARA rules matched on alerts graded TP or FP, their labels, retirements and deletions"),
+        (name = "svs", description = "SVS's samples: the files YARA rules matched on alerts graded TP or FP, their labels, retirements and deletions; and YARA validations, a rule change replayed over them"),
         (name = "events", description = "Events, the alerts in them, threat types and malware's threats"),
         (name = "filters", description = "A list screen's filters, their share links, and the caller's saved filters"),
         (name = "hunts", description = "The hunts the hunter loaded, their state, and validating a hunt"),

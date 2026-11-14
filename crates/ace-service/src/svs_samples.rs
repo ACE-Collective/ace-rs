@@ -20,7 +20,7 @@
 //! the row is reused. Delete removes a file from SVS for a legal or privacy request: every capture of the
 //! sha256 for every rule and its retirements go, the file's bytes are purged from the `svs_samples` pool
 //! whatever holds them, and the deletion's row is kept, which also keeps capture from taking the file
-//! again. Retire and delete need `svs:admin`. Each write has its audit row, where ace3 logs an AUDIT line.
+//! again, and so does every YARA validation report's row of it (batch 3). Retire and delete need `svs:admin`. Each write has its audit row, where ace3 logs an AUDIT line.
 //!
 //! From ace3, and what differs:
 //! - A detection is named by its id (`analysis.detections.id`), as 7.14's verdicts are, where ace3 names its
@@ -1391,6 +1391,13 @@ impl Service {
                     if existing.is_none() && captures.is_empty() {
                         return Err(ServiceError::NotFound(format!("no sample {sha256}")));
                     }
+                    // and from every validation's report
+                    sqlx::query!(
+                        "DELETE FROM svs.validation_results WHERE sha256 = $1",
+                        sha256
+                    )
+                    .execute(tx.conn())
+                    .await?;
                     sqlx::query!(
                         "DELETE FROM svs.sample_retirements WHERE sha256 = $1",
                         sha256
@@ -1796,7 +1803,7 @@ async fn page(
 
 /// The files of these (sha256, rule uuid) samples that a stored capture holds, each once, with each
 /// selected sample's captures and their records.
-async fn download_of(
+pub(crate) async fn download_of(
     tx: &mut ace_core::db::Tx<'_>,
     pairs: &[(String, String)],
 ) -> Result<SampleDownload, ServiceError> {

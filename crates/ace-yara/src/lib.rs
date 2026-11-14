@@ -15,6 +15,7 @@ pub mod replay;
 pub mod rule_meta;
 pub mod ruleset;
 pub mod scan;
+pub mod source;
 
 pub use load::{
     CompileWarning, EXTERNALS, FileOutcome, FileReport, LoadError, LoadOptions, Loaded, Namespace,

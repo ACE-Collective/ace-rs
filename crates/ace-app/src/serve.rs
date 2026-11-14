@@ -3,7 +3,9 @@
 //! matches (2.27), the worker that runs the core's hooks at the end of a root's pass (7.6,
 //! `ace_core::hooks`), the scheduler of ace3's maintenance tasks (6.7, `crate::scheduler`), and the ruleset
 //! builder (2.25) when `ACE4_SIGNATURES_REPO` names the signatures repository's checkout
-//! (`SignatureRepo::from_env`), every `ACE4_RULESET_POLL_SECONDS` (60).
+//! (`SignatureRepo::from_env`), every `ACE4_RULESET_POLL_SECONDS` (60), and SVS's YARA validation workers
+//! (7.10 batch 3, `ace_core::svs::validations`) when the overlay's `svs.yara` names a repository, each
+//! validation's scans in this binary again, contained.
 //!
 //! The scheduler is here, not a process of its own: its tasks need the database and the bucket, which
 //! `ace serve` already holds, and no data source's secret. Every replica runs it, and the tasks'
@@ -129,6 +131,13 @@ async fn serve(app: &App) -> Result<ExitCode> {
         ace_core::svs::log_search::LogSearchTemplate::parse(overlay.svs.log_search_url.as_deref())
             .map_err(anyhow::Error::msg)
             .context("the overlay's svs section")?;
+    // YARA validation (PLAN.md 7.10 batch 3): its repositories, bounds and workers
+    let validation = ace_core::svs::yara::ValidationConfig::from_section(&overlay.svs.yara)
+        .map_err(anyhow::Error::msg)
+        .context("the overlay's svs.yara section")?;
+    for (name, repository) in &validation.repositories {
+        tracing::info!(repository = name, branch = %repository.branch, "svs validates this repository");
+    }
     let orchestrator = Orchestrator::new(Catalog::of(components), modes).with_hooks(hooks);
     // a pool that lists a module leases its overlay instances too
     // the remediators, probes and collectors the pools host decide their actions' tries (PLAN.md 7.9)
@@ -150,7 +159,31 @@ async fn serve(app: &App) -> Result<ExitCode> {
         .with_dispositions(dispositions)
         .with_log_search(log_search)
         // the GUI's deletion of an SVS sample purges its bytes (PLAN.md 7.10)
-        .with_bucket(bucket.clone());
+        .with_bucket(bucket.clone())
+        .with_validation(validation.clone());
+    // each scan runs in this binary again, contained (`ace yara replay --contained`)
+    let validators = (!validation.repositories.is_empty())
+        .then(|| -> Result<ace_core::svs::validations::Workers> {
+            let replayer = ace_core::svs::yara::replay::Replayer {
+                db: db.clone(),
+                bucket: bucket.clone(),
+                config: validation.clone(),
+                tp: tp.clone(),
+                fp: fp.clone(),
+                child: ace_core::svs::yara::replay::Child::this_binary()
+                    .map_err(anyhow::Error::msg)?,
+            };
+            let host = std::env::var("HOSTNAME").unwrap_or_else(|_| "core".to_owned());
+            Ok(ace_core::svs::validations::Workers {
+                db: db.clone(),
+                config: validation.clone(),
+                replay: std::sync::Arc::new(replayer),
+                tp: tp.clone(),
+                fp: fp.clone(),
+                node: format!("{host}/{}", std::process::id()),
+            })
+        })
+        .transpose()?;
     let scheduler =
         crate::scheduler::Scheduler::new(db.clone(), service.clone(), bucket.clone(), scheduled)
             .with_overlay(overlay.clone())
@@ -204,6 +237,7 @@ async fn serve(app: &App) -> Result<ExitCode> {
         stop.clone(),
     ));
     let scheduler = tokio::spawn(scheduler.run(stop.clone()));
+    let validators = validators.map(|workers| tokio::spawn(workers.run(stop.clone())));
     let builder = signatures.map(|repo| {
         let every = std::env::var("ACE4_RULESET_POLL_SECONDS")
             .ok()
@@ -274,6 +308,14 @@ async fn serve(app: &App) -> Result<ExitCode> {
     .is_err()
     {
         tracing::warn!("the scheduler didn't stop in time");
+    }
+    // a running validation's scan is killed and the validation goes back to the queue
+    if let Some(validators) = validators
+        && tokio::time::timeout(Duration::from_secs(10), validators)
+            .await
+            .is_err()
+    {
+        tracing::warn!("the svs validation workers didn't stop within 10 seconds");
     }
     if let Some(builder) = builder
         && tokio::time::timeout(Duration::from_secs(5), builder)

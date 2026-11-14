@@ -116,6 +116,7 @@ mod source;
 mod submit;
 mod svs;
 mod svs_samples;
+mod svs_validations;
 mod users;
 mod yara_qa;
 
@@ -134,6 +135,7 @@ pub use ace_core::svs::samples::{
     CaptureState, Label as SampleLabel, MissingReason, Strength as VoteStrength,
     Votes as SampleVotes,
 };
+pub use ace_core::svs::validations::ValidationState;
 pub use ace_sdk::actions::{ActionKind, RemediationAction};
 pub use ace_sdk::lists::MatchKind;
 pub use actor::{Actor, ApiKeyId, Component, InvalidComponent, UserId};
@@ -212,7 +214,8 @@ pub use permission::{
     FILE_COLLECTION_READ, FILE_COLLECTION_WRITE, HUNT_READ, HUNT_WRITE, InvalidPermission,
     LIST_READ, LIST_WRITE, NRD_REFRESH, OBSERVABLE_READ, OBSERVABLE_WRITE, PermissionName,
     PermissionPattern, REMEDIATION_READ, REMEDIATION_WRITE, SIGNATURE_DOWNLOAD, SIGNATURE_QA_PURGE,
-    SIGNATURE_READ, SVS_ADMIN, SVS_RUN_READ, USER_READ, USER_SELF, USER_WRITE,
+    SIGNATURE_READ, SVS_ADMIN, SVS_RUN_READ, SVS_VALIDATE, SVS_VALIDATION_PRUNE, USER_READ,
+    USER_SELF, USER_WRITE,
 };
 pub use preferences::{
     AlertSectionsPreference, MANAGE_COLUMNS, MAX_ALERT_SECTIONS, ManageColumn,
@@ -236,6 +239,12 @@ pub use svs_samples::{
     MAX_SAMPLE_DOWNLOAD_FILES, MAX_SAMPLE_REASON, MAX_SAMPLES_PAGE, MissingCount,
     NO_DETECTION_LEFT, Retirement, Sample, SampleCapture, SampleDeletion, SampleDetail,
     SampleDetection, SampleDownload, SamplePage, SampleQuery, SampleSort, SkippedSampleDetection,
+};
+pub use svs_validations::{
+    CompileProblem, MAX_VALIDATIONS_PAGE, ResultSelection, RuleCount, Validation, ValidationAsk,
+    ValidationDetail, ValidationPage, ValidationQuery, ValidationResult, ValidationResultPage,
+    ValidationStatus, ValidationsPruned, listed_categories, new_fp_categories,
+    regression_categories, validation_report_path,
 };
 pub use users::{ApiKey, Grant, Group, MAX_KEY_SCOPE, Profile, User, UserDetail};
 pub use yara_qa::{
@@ -420,6 +429,9 @@ pub struct Service {
     /// The bucket, for an adapter whose writes reach it with no bucket of its own, such as the GUI's
     /// deletion of an SVS sample (PLAN.md 7.10). `ace serve` sets it.
     bucket: Option<ace_core::bucket::Bucket>,
+    /// YARA validation's settings, the overlay's `svs.yara` (PLAN.md 7.10 batch 3): its repositories and its
+    /// retention. None configured by default.
+    validation: std::sync::Arc<ace_core::svs::yara::ValidationConfig>,
 }
 
 impl Service {
@@ -433,7 +445,19 @@ impl Service {
             dispositions: std::sync::Arc::default(),
             log_search: None,
             bucket: None,
+            validation: std::sync::Arc::default(),
         }
+    }
+
+    /// The service with YARA validation's settings (PLAN.md 7.10 batch 3).
+    pub fn with_validation(mut self, config: ace_core::svs::yara::ValidationConfig) -> Self {
+        self.validation = std::sync::Arc::new(config);
+        self
+    }
+
+    /// YARA validation's settings.
+    pub fn validation_config(&self) -> std::sync::Arc<ace_core::svs::yara::ValidationConfig> {
+        self.validation.clone()
     }
 
     /// The service with the site's dispositions (PLAN.md 7.14), `Dispositions::ace3` unless the binary sets

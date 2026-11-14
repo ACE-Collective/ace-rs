@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT count(*) AS \"count!\" FROM svs.validations\n                           WHERE state IN ('completed', 'failed')\n                             AND finished_at < now() - make_interval(days => $1::float8::int)",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "count!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Float8"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "4e747324a47481e5b3ae63976cbfecd9c0b5d4c6a8ca65ad8d0f55ed5322be58"
+}

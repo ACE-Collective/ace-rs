@@ -2,7 +2,7 @@
 //! (`ace3/saq/cron_tasks.py`, `ace3/docs/CRON.md`) runs from `etc/cron/<cadence>/` on yacron's
 //! schedules in `etc/cron.yaml`, here as tasks of `ace serve`.
 //!
-//! **What runs.** Of ace3's 25 core tasks (3 hourly, 20 daily, 2 weekly), six have a counterpart in
+//! **What runs.** Of ace3's 25 core tasks (3 hourly, 20 daily, 2 weekly), seven have a counterpart in
 //! ace4 now, and run here on ace3's cadence (`Task::builtin`), with one of the cron jobs ace3 runs
 //! outside them, `nrd-refresh` (PLAN.md 7.4, `crate::nrd`). `daily/partitions` keeps the email
 //! archive's weekly partitions and ace3's analysis result cache's daily ones; ace4 has no result
@@ -17,6 +17,7 @@
 //! | `bucket_verify` | `weekly/cas-verify`, `ace cas verify` | `0 5 * * 1` | 4 h | `scheduler:bucket_verify`, `bucket:verify` |
 //! | `email_archive_partitions` | `daily/partitions`, `ace partitions maintain`, its email archive half (PLAN.md 7.5 batch 9) | `0 5 * * *` | 1 h | `scheduler:email_archive_partitions`, `email_archive:maintain` |
 //! | `file_collection_prune` | `daily/file-collection-prune`, `ace file-collection prune` (PLAN.md 7.9) | `0 5 * * *` | 1 h | `scheduler:file_collection_prune`, `file_collection:prune` |
+//! | `svs_validations_prune` | `daily/svs-validations-prune`, `ace svs yara prune` (PLAN.md 7.10 batch 3) | `0 5 * * *` | 1 h | `scheduler:svs_validations_prune`, `svs:validation_prune` |
 //! | `nrd_refresh` | `etc/cron.yaml`'s `nrd-refresh`, `ace nrd refresh` | `*/30 * * * *` | 25 min | `scheduler:nrd_refresh`, `nrd:refresh` |
 //!
 //! The rest, and a site's one, wait for the step that brings what they maintain, or mean nothing in
@@ -261,6 +262,21 @@ impl Task {
                         let done = ctx
                             .service
                             .prune_file_collections(&ctx.actor)
+                            .await
+                            .map_err(|e| e.to_string())?;
+                        Ok(Done::ok(summary(&done)))
+                    })
+                },
+            ),
+            Task::new(
+                "svs_validations_prune",
+                "0 5 * * *",
+                Duration::from_secs(3600),
+                |ctx| {
+                    Box::pin(async move {
+                        let done = ctx
+                            .service
+                            .prune_svs_validations(&ctx.actor)
                             .await
                             .map_err(|e| e.to_string())?;
                         Ok(Done::ok(summary(&done)))

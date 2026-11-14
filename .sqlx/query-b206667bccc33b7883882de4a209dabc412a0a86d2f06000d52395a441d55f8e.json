@@ -1,0 +1,332 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, uuid, repository, base_sha, head_sha, branch, pr_url,\n                  state AS \"state: ValidationState\", requested_by AS \"requested_by!: Value\",\n                  created_at, started_at, finished_at, error, diffed, regressions, new_fps,\n                  compile_errors, counts, NULL::jsonb AS report, attempts, claimed_by, corpus_version,\n                  engine_fingerprint, updated_at\n           FROM svs.validations v\n           WHERE ($1::text[] IS NULL OR v.repository ILIKE ANY ($1))\n             AND ($2::text[] IS NULL OR NOT v.repository ILIKE ANY ($2))\n             AND ($3::text[] IS NULL OR v.branch ILIKE ANY ($3))\n             AND ($4::text[] IS NULL OR NOT v.branch ILIKE ANY ($4))\n             AND ($5::text[] IS NULL OR v.head_sha LIKE ANY ($5))\n             AND ($6::text[] IS NULL OR NOT v.head_sha LIKE ANY ($6))\n             AND ($7::text[] IS NULL OR v.state::text = ANY ($7))\n             AND ($8::text[] IS NULL OR NOT v.state::text = ANY ($8))\n             AND ($9::text IS NULL OR $9 = 'both'\n                  OR COALESCE(CASE $9 WHEN 'true' THEN v.regressions > 0 ELSE v.regressions = 0 END, false))\n             AND ($10::text IS NULL OR $10 <> 'both'\n                  AND NOT COALESCE(CASE $10 WHEN 'true' THEN v.regressions > 0 ELSE v.regressions = 0 END, false))\n             AND ($11::text IS NULL OR $11 = 'both'\n                  OR COALESCE(CASE $11 WHEN 'true' THEN v.new_fps > 0 ELSE v.new_fps = 0 END, false))\n             AND ($12::text IS NULL OR $12 <> 'both'\n                  AND NOT COALESCE(CASE $12 WHEN 'true' THEN v.new_fps > 0 ELSE v.new_fps = 0 END, false))\n             AND ($13::text IS NULL OR $13 = 'both'\n                  OR COALESCE(CASE $13 WHEN 'true' THEN v.compile_errors > 0 ELSE v.compile_errors = 0 END, false))\n             AND ($14::text IS NULL OR $14 <> 'both'\n                  AND NOT COALESCE(CASE $14 WHEN 'true' THEN v.compile_errors > 0 ELSE v.compile_errors = 0 END, false))\n             AND ($15::timestamptz[] IS NULL OR EXISTS (\n                   SELECT FROM unnest($15::timestamptz[], $16::timestamptz[]) w(b, e)\n                   WHERE v.created_at BETWEEN w.b AND w.e))\n             AND ($17::timestamptz[] IS NULL OR NOT EXISTS (\n                   SELECT FROM unnest($17::timestamptz[], $18::timestamptz[]) w(b, e)\n                   WHERE v.created_at BETWEEN w.b AND w.e))\n             AND ($19::timestamptz IS NULL OR v.updated_at >= $19 OR v.created_at >= $19)\n             AND ($20::timestamptz IS NULL OR (v.created_at, v.id) < ($20, $21::bigint))\n           ORDER BY v.created_at DESC, v.id DESC\n           LIMIT $22",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "svs.validations",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "uuid",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "svs.validations",
+            "name": "uuid"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "repository",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.validations",
+            "name": "repository"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "base_sha",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.validations",
+            "name": "base_sha"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "head_sha",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.validations",
+            "name": "head_sha"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "branch",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.validations",
+            "name": "branch"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "pr_url",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.validations",
+            "name": "pr_url"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "state: ValidationState",
+        "type_info": {
+          "Custom": {
+            "name": "svs.validation_state",
+            "kind": {
+              "Enum": [
+                "queued",
+                "running",
+                "completed",
+                "failed"
+              ]
+            }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "svs.validations",
+            "name": "state"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "requested_by!: Value",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "svs.validations",
+            "name": "requested_by"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "svs.validations",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "started_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "svs.validations",
+            "name": "started_at"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "finished_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "svs.validations",
+            "name": "finished_at"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "error",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.validations",
+            "name": "error"
+          }
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "diffed",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "svs.validations",
+            "name": "diffed"
+          }
+        }
+      },
+      {
+        "ordinal": 14,
+        "name": "regressions",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "svs.validations",
+            "name": "regressions"
+          }
+        }
+      },
+      {
+        "ordinal": 15,
+        "name": "new_fps",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "svs.validations",
+            "name": "new_fps"
+          }
+        }
+      },
+      {
+        "ordinal": 16,
+        "name": "compile_errors",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "svs.validations",
+            "name": "compile_errors"
+          }
+        }
+      },
+      {
+        "ordinal": 17,
+        "name": "counts",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "svs.validations",
+            "name": "counts"
+          }
+        }
+      },
+      {
+        "ordinal": 18,
+        "name": "report",
+        "type_info": "Jsonb",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 19,
+        "name": "attempts",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "svs.validations",
+            "name": "attempts"
+          }
+        }
+      },
+      {
+        "ordinal": 20,
+        "name": "claimed_by",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.validations",
+            "name": "claimed_by"
+          }
+        }
+      },
+      {
+        "ordinal": 21,
+        "name": "corpus_version",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.validations",
+            "name": "corpus_version"
+          }
+        }
+      },
+      {
+        "ordinal": 22,
+        "name": "engine_fingerprint",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.validations",
+            "name": "engine_fingerprint"
+          }
+        }
+      },
+      {
+        "ordinal": 23,
+        "name": "updated_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "svs.validations",
+            "name": "updated_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "TextArray",
+        "TextArray",
+        "TextArray",
+        "TextArray",
+        "TextArray",
+        "TextArray",
+        "TextArray",
+        "TextArray",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "TimestamptzArray",
+        "TimestamptzArray",
+        "TimestamptzArray",
+        "TimestamptzArray",
+        "Timestamptz",
+        "Timestamptz",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      null,
+      false,
+      true,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "b206667bccc33b7883882de4a209dabc412a0a86d2f06000d52395a441d55f8e"
+}

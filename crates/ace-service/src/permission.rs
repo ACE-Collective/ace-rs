@@ -317,6 +317,12 @@ pub const SIGNATURE_QA_PURGE: PermissionName = PermissionName::known("signature"
 pub const SVS_ADMIN: PermissionName = PermissionName::known("svs", "admin");
 /// Read SVS's runs, tests, test hosts and coverage: ace3's `svs:run_read`.
 pub const SVS_RUN_READ: PermissionName = PermissionName::known("svs", "run_read");
+/// Request YARA validations of a rule repository's commits and read their status: ace3's `svs:validate`,
+/// the CI key's permission.
+pub const SVS_VALIDATE: PermissionName = PermissionName::known("svs", "validate");
+/// Remove the finished YARA validations past their retention, as ace3's `ace svs yara prune` does. ace3
+/// has no such permission. Only the scheduler's `scheduler:svs_validations_prune` holds it.
+pub const SVS_VALIDATION_PRUNE: PermissionName = PermissionName::known("svs", "validation_prune");
 /// See users, groups, grants and keys: ace3's `user:read`.
 pub const USER_READ: PermissionName = PermissionName::known("user", "read");
 /// Change users, groups and grants: ace3's `user:write`.
@@ -485,6 +491,16 @@ pub static CATALOG: &[CatalogEntry] = &[
     CatalogEntry {
         name: SVS_RUN_READ,
         description: "Read the SVS test hosts.",
+    },
+    CatalogEntry {
+        name: SVS_VALIDATE,
+        description: "Request SVS YARA validations of a rule repository's commits and read their status \
+                      (counts, rule names and uuids only; the CI key's permission).",
+    },
+    CatalogEntry {
+        name: SVS_VALIDATION_PRUNE,
+        description: "Remove the finished SVS YARA validations past their retention, with their reports. The \
+                      scheduler holds it.",
     },
     CatalogEntry {
         name: USER_READ,

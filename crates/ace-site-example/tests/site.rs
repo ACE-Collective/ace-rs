@@ -537,3 +537,100 @@ async fn a_site_module_adds_an_observable_of_the_sites_type() {
         "the site's pool ran contained:\n{pool_log}"
     );
 }
+
+/// PLAN.md 7.10 batch 3, ace3's test_child.py `test_the_sandboxed_scan_cannot_read_saq_home`: a validation's
+/// scan, `ace yara replay --contained` as `ace serve` runs it, reads only its validation's directory. A rule
+/// file including a file outside it is left out with the include's error, and the rest of the namespace
+/// still matches; the same replay uncontained reads the include. Through a site's binary, so the command
+/// comes with `ace-app`.
+#[test]
+fn a_contained_replay_reads_only_its_validation() {
+    let work = tempfile::Builder::new()
+        .prefix("svswork")
+        .tempdir_in("/tmp")
+        .expect("a directory");
+    let outside = tempfile::tempdir().expect("a directory");
+    let secret = outside.path().join("secret.yar");
+    std::fs::write(&secret, "rule secret { condition: true }\n").expect("writes");
+    let namespace = work.path().join("base/tree/yara/acme");
+    std::fs::create_dir_all(&namespace).expect("makes it");
+    let steal = namespace.join("steal.yar");
+    std::fs::write(
+        &steal,
+        format!(
+            "include \"{}\"\nrule x {{ strings: $a = \"evil\" condition: $a }}\n",
+            secret.display()
+        ),
+    )
+    .expect("writes");
+    let plain = namespace.join("plain.yar");
+    std::fs::write(
+        &plain,
+        "rule plain { strings: $a = \"evil\" condition: $a }\n",
+    )
+    .expect("writes");
+    let unit = work.path().join("u/0/files/x.bin");
+    std::fs::create_dir_all(unit.parent().unwrap()).expect("makes it");
+    std::fs::write(&unit, "some evil text\n").expect("writes");
+    let side = work.path().join("base");
+    let job = json!({
+        "version": 1,
+        "tree_root": work.path().join("base/tree"),
+        "file_timeout": 10,
+        "namespaces": [{"name": "acme", "directory": namespace, "files": [plain, steal]}],
+        "units": [{"id": 0, "path": unit, "meta_tags": []}],
+    });
+    std::fs::write(side.join("job.json"), job.to_string()).expect("writes the job");
+    let replay = |contained: bool| {
+        let mut command = Command::new(env!("CARGO_BIN_EXE_example-ace"));
+        command.args(["yara", "replay"]);
+        if contained {
+            command
+                .args(["--contained", "--read"])
+                .arg(work.path())
+                .args(["--cpu-seconds", "60", "--memory-mb", "4096"]);
+        }
+        let output = command
+            .arg(&side)
+            .env_clear()
+            .env("PATH", "/usr/bin:/bin")
+            .output()
+            .expect("ace runs");
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        let result: Value =
+            serde_json::from_slice(&std::fs::read(side.join("result.json")).expect("a result"))
+                .expect("JSON");
+        let stolen = result["files"]
+            .as_array()
+            .expect("files")
+            .iter()
+            .find(|f| f["path"].as_str().unwrap().ends_with("steal.yar"))
+            .expect("the stealing file")["error"]
+            .clone();
+        let mut matched: Vec<String> = result["units"]["0"]["matches"]
+            .as_array()
+            .expect("matches")
+            .iter()
+            .map(|m| m["rule"].as_str().unwrap().to_owned())
+            .collect();
+        matched.sort();
+        (stolen, matched)
+    };
+
+    let (error, matched) = replay(true);
+    let error = error.as_str().expect("left out");
+    assert!(
+        error.contains("include") && error.contains("secret.yar"),
+        "{error}"
+    );
+    assert_eq!(matched, ["plain"]);
+
+    // uncontained, the include is read
+    let (error, matched) = replay(false);
+    assert_eq!(error, Value::Null);
+    assert_eq!(matched, ["plain", "secret", "x"]);
+}

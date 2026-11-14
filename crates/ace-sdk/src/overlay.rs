@@ -47,7 +47,10 @@
 //! checks both when it starts; a pool doesn't read them.
 //!
 //! `svs:` is ace3's section of that name, holding the keys of SVS that are ported (PLAN.md 7.10): so far
-//! `log_search_url`, which `ace serve` checks when it starts.
+//! `log_search_url`, which `ace serve` checks when it starts, and `yara`, YARA validation's (batch 3), with
+//! the keys of ace3's `service_svs` section that its workers read. Every process that reads the overlay
+//! refuses a `yara` whose lease its heartbeat can't keep, as every ace3 process refuses that
+//! `service_svs`.
 //!
 //! `secrets:` says where each secret comes from, by the name modules declare in
 //! `Module::SECRETS`: `env:<VARIABLE>` or `file:<path>`, as ace3's `env:` references. Nothing
@@ -104,7 +107,7 @@ pub struct Overlay {
 
 /// ace3's `svs:` section. Each batch of 7.10 adds the keys its part reads; one this build doesn't have is
 /// refused, as ace3's schema refuses an unknown key.
-#[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Deserialize)]
 #[serde(deny_unknown_fields, default)]
 pub struct SvsSection {
     /// A link to the site's log search for one run, shown on the run's page; ACE never queries it.
@@ -112,6 +115,198 @@ pub struct SvsSection {
     /// and the end of its attribution window or now) are replaced, URL-encoded. `ace serve` checks it when
     /// it starts (`ace_core::svs::log_search`).
     pub log_search_url: Option<String>,
+    /// YARA validation (batch 3): ace3's `svs.yara`, with `service_svs`'s keys.
+    pub yara: SvsYaraSection,
+}
+
+/// ace3's `svs.yara` (YARA validation, PLAN.md 7.10 batch 3), with the keys of its `service_svs` section that
+/// the validation workers read. Both commits of a repository compile the way the YARA pool's ruleset build
+/// loads rules and scan every stored sample, in a contained process.
+///
+/// What differs from ace3's:
+/// - A repository is named here with its URL, branch and signature directory, where ace3 names a
+///   `git_repo_*` section and finds the directory from `service_yara.signature_dir`: ace4 has no such
+///   sections, and its ruleset build reads one directory of a repository (PLAN.md 2.25).
+/// - `file_timeout_seconds` is ace3's `service_yara.default_timeout`, and the work and mirror directories are
+///   absolute, as ace4 has no `DATA_DIR`.
+/// - The corpus is bounded (`max_corpus_files`, `max_corpus_bytes`) and so is the scan's memory
+///   (`scan_memory_mb`), where ace3 bounds neither.
+#[derive(Debug, Clone, PartialEq, Deserialize)]
+#[serde(deny_unknown_fields, default)]
+pub struct SvsYaraSection {
+    /// The repositories whose commits may be validated, by the name a request gives.
+    pub repositories: BTreeMap<String, SvsRepository>,
+    /// How long compiling and scanning one commit's rules over the whole corpus may take.
+    pub scan_timeout_seconds: u64,
+    /// How many validations run at once.
+    pub max_concurrent_validations: u32,
+    /// How long fetching a repository into its mirror may take (the first fetch clones it), and exporting a
+    /// commit from it.
+    pub fetch_timeout_seconds: u64,
+    /// The largest export of one commit, in bytes; unset for no limit.
+    pub max_archive_bytes: Option<u64>,
+    /// The most files and directories in the export of one commit; unset for no limit.
+    pub max_archive_members: Option<u64>,
+    /// The most distinct files a validation replays. A corpus with more fails the validation, rather than
+    /// leaving samples out of a report that would then read as complete.
+    pub max_corpus_files: u64,
+    /// The most bytes of files a validation copies out of the bucket, with the same rule.
+    pub max_corpus_bytes: u64,
+    /// The address space the contained scan may map, in MiB.
+    pub scan_memory_mb: u64,
+    /// How long one scan of one file may take when the scan runs in this process: ace3's
+    /// `service_yara.default_timeout`. A contained scan has no per-file timeout (`ace_yara::replay`).
+    pub file_timeout_seconds: u64,
+    /// Where SVS keeps its own bare clone of each repository. The system's temporary directory by default.
+    pub mirror_dir: Option<std::path::PathBuf>,
+    /// Where each validation gets its private working directory: both commits' rules and a plaintext copy of
+    /// every sample, deleted when the validation ends. It must have no `.` in its path, which would change
+    /// the extension YARA sees for a file without one.
+    pub work_dir: Option<std::path::PathBuf>,
+    /// How long a finished validation and its report are kept; the scheduler's `svs_validations_prune`
+    /// removes older ones.
+    pub retention_days: u32,
+    /// How many validations one prune transaction removes, with their results.
+    pub prune_batch_size: u32,
+    /// ace3's `service_svs.poll_interval_seconds`: how long an idle worker waits before it looks again.
+    pub poll_interval_seconds: f64,
+    /// ace3's `service_svs.heartbeat_interval_seconds`: how often a worker renews its lease.
+    pub heartbeat_interval_seconds: u64,
+    /// ace3's `service_svs.lease_seconds`: how long a lease lasts without a heartbeat.
+    pub lease_seconds: u64,
+    /// ace3's `service_svs.max_attempts`: how many times a validation is claimed before one whose worker
+    /// stopped heartbeating is failed.
+    pub max_attempts: u32,
+}
+
+impl Default for SvsYaraSection {
+    fn default() -> Self {
+        SvsYaraSection {
+            repositories: BTreeMap::new(),
+            scan_timeout_seconds: 1800,
+            max_concurrent_validations: 1,
+            fetch_timeout_seconds: 600,
+            max_archive_bytes: None,
+            max_archive_members: None,
+            max_corpus_files: 100_000,
+            max_corpus_bytes: 16 << 30,
+            scan_memory_mb: 4096,
+            file_timeout_seconds: 10,
+            mirror_dir: None,
+            work_dir: None,
+            retention_days: 90,
+            prune_batch_size: 100,
+            poll_interval_seconds: 5.0,
+            heartbeat_interval_seconds: 30,
+            lease_seconds: 300,
+            max_attempts: 3,
+        }
+    }
+}
+
+/// One repository YARA validation may fetch.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SvsRepository {
+    /// What the mirror fetches: a URL or a path git can fetch from. An error never shows it.
+    pub url: String,
+    /// The branch the repository's rules are merged into, fetched with every validation.
+    pub branch: String,
+    /// The signature directory, relative to the repository's top: each directory in it is a namespace, as
+    /// the ruleset build loads it. `yara` by default, as the core's `ACE4_SIGNATURES_DIR`.
+    #[serde(default = "default_signature_dir")]
+    pub signature_dir: String,
+}
+
+fn default_signature_dir() -> String {
+    "yara".to_owned()
+}
+
+impl SvsYaraSection {
+    /// Refuses values the workers can't run with. Every process that reads the overlay checks it.
+    pub fn check(&self) -> Result<(), String> {
+        let positive = [
+            ("scan_timeout_seconds", self.scan_timeout_seconds),
+            ("fetch_timeout_seconds", self.fetch_timeout_seconds),
+            ("max_corpus_files", self.max_corpus_files),
+            ("max_corpus_bytes", self.max_corpus_bytes),
+            ("scan_memory_mb", self.scan_memory_mb),
+            ("file_timeout_seconds", self.file_timeout_seconds),
+            (
+                "heartbeat_interval_seconds",
+                self.heartbeat_interval_seconds,
+            ),
+            ("lease_seconds", self.lease_seconds),
+            (
+                "max_concurrent_validations",
+                u64::from(self.max_concurrent_validations),
+            ),
+            ("retention_days", u64::from(self.retention_days)),
+            ("max_attempts", u64::from(self.max_attempts)),
+        ];
+        for (key, value) in positive {
+            if value == 0 {
+                return Err(format!("{key} must be at least 1"));
+            }
+        }
+        for (key, value) in [
+            ("max_archive_bytes", self.max_archive_bytes),
+            ("max_archive_members", self.max_archive_members),
+        ] {
+            if value == Some(0) {
+                return Err(format!("{key} must be at least 1, or unset for no limit"));
+            }
+        }
+        if !(1..=1000).contains(&self.prune_batch_size) {
+            return Err("prune_batch_size must be between 1 and 1000".to_owned());
+        }
+        if !(self.poll_interval_seconds.is_finite() && self.poll_interval_seconds > 0.0) {
+            return Err("poll_interval_seconds must be above 0".to_owned());
+        }
+        if self.heartbeat_interval_seconds.saturating_mul(3) > self.lease_seconds {
+            return Err(format!(
+                "heartbeat_interval_seconds ({}) times 3 must not exceed lease_seconds ({}): one late \
+                 heartbeat must not lose the lease",
+                self.heartbeat_interval_seconds, self.lease_seconds
+            ));
+        }
+        for (name, repository) in &self.repositories {
+            let name_ok = !name.is_empty()
+                && name.len() <= 256
+                && name
+                    .chars()
+                    .all(|c| c.is_ascii_alphanumeric() || matches!(c, '_' | '-' | '.'))
+                && !name.starts_with('.');
+            if !name_ok {
+                return Err(format!(
+                    "repository name {name:?} must be letters, digits, '_', '-' and '.', not starting with '.'"
+                ));
+            }
+            if repository.url.trim().is_empty() {
+                return Err(format!("repository {name}: url is empty"));
+            }
+            if repository.branch.is_empty()
+                || repository.branch.starts_with('-')
+                || repository.branch.contains("..")
+            {
+                return Err(format!(
+                    "repository {name}: branch {:?} isn't a branch name",
+                    repository.branch
+                ));
+            }
+            let dir = std::path::Path::new(&repository.signature_dir);
+            if dir.is_absolute()
+                || dir
+                    .components()
+                    .any(|c| matches!(c, std::path::Component::ParentDir))
+            {
+                return Err(format!(
+                    "repository {name}: signature_dir must be relative to the repository's top"
+                ));
+            }
+        }
+        Ok(())
+    }
 }
 
 /// What a disposition says about an alert's detections, ace3's `tp` and `fp`.
@@ -365,6 +560,11 @@ impl Overlay {
             parse_error(path, e.into_inner().to_string())
         })?;
         overlay.disposition_order = disposition_order;
+        overlay
+            .svs
+            .yara
+            .check()
+            .map_err(|message| parse_error("svs.yara".to_owned(), message))?;
         Ok(overlay)
     }
 

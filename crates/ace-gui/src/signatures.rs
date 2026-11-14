@@ -11,8 +11,7 @@
 //! Here the server draws each page, every control is a link or a form, and ace3's script's parts are
 //! these:
 //! - `signatures.signatures_hub` (`hub.html`): `GET /signatures`, a tile for each page the viewer may
-//!   open: Samples (`svs_samples`, 7.10 batch 2) and YARA QA. ace3's Validations tile comes with its pages
-//!   in 7.10's batch 3.
+//!   open: Samples (`svs_samples`, 7.10 batch 2), YARA QA and Validations (`svs_validations`, batch 3).
 //! - `signatures.yara_qa` (`yara_qa.html`): `GET /signatures/yara-qa`, the rules in QA mode and the rules
 //!   with matches kept (`Service::qa_rules`), with ace3's filters as a `GET` form, its search, status,
 //!   matches, sort, descending and page size, and its pages as Previous and Next links. ace3's status
@@ -45,8 +44,8 @@
 //! `?direct=`, which is `/alerts/{id}` here; and its note that a file is on another node, since ace4's
 //! files are in one bucket. ace3's folder holds four more pages: `samples.html` and `sample_detail.html`,
 //! with `_samples_page.html`, are `svs_samples` (7.10 batch 2); `validations.html` and
-//! `validation_detail.html`, with `_validations_page.html`, come with batch 3, and the hub's link to the SVS
-//! guides moves with the help area.
+//! `validation_detail.html`, with `_validations_page.html`, are `svs_validations` (batch 3), and the hub's
+//! link to the SVS guides moves with the help area (batch 9).
 
 use ace_service::{
     MAX_QA_DOWNLOAD_FILES, QaMatch, QaMatchDetail, QaPurge, QaRuleDetail, QaRuleFilter, QaRulePage,
@@ -81,11 +80,17 @@ pub const MAX_REASON: usize = ace_service::MAX_PURGE_REASON;
 /// percent-encoded.
 pub const MAX_PURGE_FORM_BYTES: usize = 128 << 10;
 
-/// ace3's `SIGNATURE_MODULES`: the samples (7.10 batch 2) and YARA QA. Validations come with batch 3.
+/// ace3's `SIGNATURE_MODULES`: the samples (7.10 batch 2), YARA QA and the validations (batch 3).
 const SAMPLES: Module = Module {
     href: "/signatures/samples",
     title: "Samples",
     description: "Files YARA rules matched on alerts graded TP or FP, their labels, retirements and deletions.",
+};
+
+const VALIDATIONS: Module = Module {
+    href: "/signatures/validations",
+    title: "Validations",
+    description: "Reports on YARA rule changes, replayed against every graded sample: regressions, new false positives and what else a change does.",
 };
 
 const YARA_QA: Module = Module {
@@ -780,7 +785,7 @@ pub(crate) async fn hub(State(gui): State<Gui>, viewer: SignedIn, parts: Parts) 
     render(&HubPage {
         layout: viewer.layout,
         // every page here needs only the area's signature:read
-        modules: vec![SAMPLES, YARA_QA],
+        modules: vec![SAMPLES, YARA_QA, VALIDATIONS],
     })
 }
 

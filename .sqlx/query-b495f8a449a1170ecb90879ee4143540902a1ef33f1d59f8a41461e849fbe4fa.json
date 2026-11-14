@@ -1,0 +1,59 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT category, rule_uuid, rule_name, count(*) AS \"count!\"\n           FROM svs.validation_results WHERE validation_id = $1\n           GROUP BY category, rule_uuid, rule_name\n           ORDER BY count(*) DESC, rule_name, rule_uuid",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "category",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.validation_results",
+            "name": "category"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "rule_uuid",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.validation_results",
+            "name": "rule_uuid"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "rule_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.validation_results",
+            "name": "rule_name"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "count!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "b495f8a449a1170ecb90879ee4143540902a1ef33f1d59f8a41461e849fbe4fa"
+}

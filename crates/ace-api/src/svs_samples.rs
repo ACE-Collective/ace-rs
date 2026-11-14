@@ -1166,7 +1166,7 @@ enum Entry {
 /// The zip of `download`: `<label>/manifest.json`, and for each file `<label>/<sha256>/<sha256>`, its
 /// bytes, when the bucket has them, and `<label>/<sha256>/match-<capture id>.json`, each capture's record.
 /// Nothing a rule or a file named becomes an entry's name.
-async fn zip_response(
+pub(crate) async fn zip_response(
     web: &Web,
     label: String,
     download: SampleDownload,

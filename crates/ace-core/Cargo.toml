@@ -26,6 +26,8 @@ chrono = { version = "0.4.45", default-features = false, features = ["clock", "s
 # The archive gzips an email before it encrypts it, as ace3's does.
 flate2 = "1.1.10"
 getrandom = "0.4.3"
+# SVS validation kills a git command's process group at its timeout, and locks its mirror (PLAN.md 7.10).
+libc = "0.2.191"
 hex = "0.4.3"
 # The lease API's spans join their callers' traces (PLAN.md 2.22).
 opentelemetry = "0.33.1"
@@ -39,7 +41,9 @@ sha2 = "0.11.1"
 # workspace's .sqlx/ when no database is set (PLAN.md 2.2).
 sqlx = { version = "0.9.0", default-features = false, features = ["runtime-tokio", "tls-rustls-aws-lc-rs", "postgres", "macros", "migrate", "sqlx-toml", "uuid", "chrono", "json"] }
 thiserror = "2.0.21"
-tokio = { version = "1.54.1", features = ["macros", "net", "rt", "sync", "time"] }
+# SVS validation's working directory (PLAN.md 7.10).
+tempfile = "3.27.0"
+tokio = { version = "1.54.1", features = ["io-util", "macros", "net", "process", "rt", "sync", "time"] }
 tokio-util = "0.7.20"
 tracing = "0.1.44"
 tracing-opentelemetry = { version = "0.34.0", default-features = false }

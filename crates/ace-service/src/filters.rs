@@ -49,7 +49,7 @@ pub const SIGNATURE_FAMILIES: &[&str] = &["yara", "hunt", "observable_modifier",
 /// The observable filter's type that matches any type.
 pub const ANY_TYPE: &str = "Any";
 
-/// A screen whose list has filters, saved filters and share links: ace3's `FilterScreen`. Five of ace3's
+/// A screen whose list has filters, saved filters and share links: ace3's `FilterScreen`. Six of ace3's
 /// eleven exist here; the other SVS screens come with their batches of SVS (7.10).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum FilterScreen {
@@ -63,6 +63,8 @@ pub enum FilterScreen {
     FileCollections,
     /// SVS's samples (PLAN.md 7.10 batch 2), ace3's `SVS_SAMPLES_SCREEN`.
     SvsSamples,
+    /// SVS's YARA validations (PLAN.md 7.10 batch 3), ace3's `SVS_VALIDATIONS_SCREEN`.
+    SvsValidations,
 }
 
 /// How an editor edits one filter.
@@ -502,6 +504,69 @@ const SVS_SAMPLE_FILTERS: &[FilterSpec] = &[
     spec("Retired", "retired", FilterKind::Multi, BOOLEANS, "true"),
 ];
 
+/// ace3's `VALIDATION_STATES`.
+pub const VALIDATION_STATES: &[&str] = &["queued", "running", "completed", "failed"];
+
+/// ace3's validations screen (`SVS_VALIDATIONS_SCREEN`).
+const SVS_VALIDATION_FILTERS: &[FilterSpec] = &[
+    spec(
+        "Repository",
+        "repository",
+        FilterKind::Text,
+        &[],
+        "text the repository's name contains",
+    ),
+    spec(
+        "Branch",
+        "branch",
+        FilterKind::Text,
+        &[],
+        "text the branch contains",
+    ),
+    spec(
+        "Head",
+        "head",
+        FilterKind::Text,
+        &[],
+        "the start of the head commit's id",
+    ),
+    spec(
+        "State",
+        "state",
+        FilterKind::Multi,
+        VALIDATION_STATES,
+        "completed",
+    ),
+    spec(
+        "Has Regressions",
+        "has_regressions",
+        FilterKind::Multi,
+        BOOLEANS,
+        "true",
+    ),
+    spec(
+        "Has New FP",
+        "has_new_fp",
+        FilterKind::Multi,
+        BOOLEANS,
+        "true",
+    ),
+    spec(
+        "Compile Errors",
+        "compile_errors",
+        FilterKind::Multi,
+        BOOLEANS,
+        "true",
+    ),
+    spec(
+        "Created",
+        "created",
+        FilterKind::DateRange,
+        &[],
+        CREATED_HINT,
+    ),
+];
+
 impl FilterScreen {
     pub const ALL: &'static [FilterScreen] = &[
         FilterScreen::Alerts,
@@ -509,6 +574,7 @@ impl FilterScreen {
         FilterScreen::Remediations,
         FilterScreen::FileCollections,
         FilterScreen::SvsSamples,
+        FilterScreen::SvsValidations,
     ];
 
     /// Its name, ace3's `saved_filters.screen`.
@@ -519,6 +585,7 @@ impl FilterScreen {
             FilterScreen::Remediations => "remediations",
             FilterScreen::FileCollections => "file_collections",
             FilterScreen::SvsSamples => "svs_samples",
+            FilterScreen::SvsValidations => "svs_validations",
         }
     }
 
@@ -536,7 +603,7 @@ impl FilterScreen {
             FilterScreen::Alerts | FilterScreen::DetectionPoints => ALERT_READ,
             FilterScreen::Remediations => REMEDIATION_READ,
             FilterScreen::FileCollections => FILE_COLLECTION_READ,
-            FilterScreen::SvsSamples => SIGNATURE_READ,
+            FilterScreen::SvsSamples | FilterScreen::SvsValidations => SIGNATURE_READ,
         }
     }
 
@@ -547,6 +614,7 @@ impl FilterScreen {
             FilterScreen::Remediations => REMEDIATION_FILTERS,
             FilterScreen::FileCollections => FILE_COLLECTION_FILTERS,
             FilterScreen::SvsSamples => SVS_SAMPLE_FILTERS,
+            FilterScreen::SvsValidations => SVS_VALIDATION_FILTERS,
         }
     }
 
@@ -557,7 +625,8 @@ impl FilterScreen {
             FilterScreen::DetectionPoints => DETECTION_POINT_LEFT_OUT,
             FilterScreen::Remediations
             | FilterScreen::FileCollections
-            | FilterScreen::SvsSamples => &[],
+            | FilterScreen::SvsSamples
+            | FilterScreen::SvsValidations => &[],
         }
     }
 

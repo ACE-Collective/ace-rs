@@ -33,6 +33,20 @@ pub struct ReplayArgs {
     /// The magic database for the mime_type filter.
     #[arg(long, default_value = DEFAULT_DATABASE)]
     magic_database: PathBuf,
+    /// Contain this process before it compiles anything, as SVS validation runs it (PLAN.md 7.10): one
+    /// thread, no fork or exec, no network, reading only --read and the working directory and writing only
+    /// the working directory, its CPU time and memory held. A scan then has no per-file timeout.
+    #[arg(long)]
+    contained: bool,
+    /// What a contained replay may read: the validation's directory, with both commits and the samples.
+    #[arg(long, requires = "contained")]
+    read: Option<PathBuf>,
+    /// A contained replay's CPU-time limit.
+    #[arg(long, default_value_t = 1800, requires = "contained")]
+    cpu_seconds: u64,
+    /// A contained replay's address-space limit, in MiB.
+    #[arg(long, default_value_t = 4096, requires = "contained")]
+    memory_mb: u64,
 }
 
 #[derive(Args)]
@@ -120,6 +134,25 @@ fn build(args: BuildArgs) -> Result<ExitCode> {
     for file in &manifest.left_out {
         println!("\tleft out {}", file.path);
     }
+    Ok(ExitCode::SUCCESS)
+}
+
+/// `ace yara replay --contained`: the magic database is open before containment, which then allows only
+/// the validation's directory to read and the working directory to write.
+fn replay_contained(args: &ReplayArgs, typer: &MimeTyper) -> Result<ExitCode> {
+    use ace_pool::containment::{SandboxProfile, contain};
+    let mut profile = SandboxProfile {
+        address_space_bytes: args.memory_mb.saturating_mul(1 << 20),
+        cpu_seconds: args.cpu_seconds,
+        ..SandboxProfile::default()
+    }
+    .allow_write(&args.workdir);
+    if let Some(read) = &args.read {
+        profile = profile.allow_read(read);
+    }
+    contain(&profile).context("containing the replay")?;
+    let result = replay::run_with(&args.workdir, typer, false)?;
+    replay::write_json(&args.workdir, RESULT_FILE, &result)?;
     Ok(ExitCode::SUCCESS)
 }
 
@@ -265,6 +298,9 @@ fn scan(args: ScanArgs) -> Result<ExitCode> {
 
 fn replay(args: ReplayArgs) -> Result<ExitCode> {
     let typer = MimeTyper::open(&args.magic_database)?;
+    if args.contained {
+        return replay_contained(&args, &typer);
+    }
     let result = replay::run(&args.workdir, &typer)?;
     replay::write_json(&args.workdir, RESULT_FILE, &result)?;
 

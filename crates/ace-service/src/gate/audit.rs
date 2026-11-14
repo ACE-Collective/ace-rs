@@ -195,6 +195,22 @@ impl Target {
         }
     }
 
+    /// An SVS YARA validation, by its uuid (PLAN.md 7.10 batch 3).
+    pub(crate) fn svs_validation(uuid: Uuid) -> Self {
+        Target {
+            kind: "svs_validation",
+            id: uuid.to_string(),
+        }
+    }
+
+    /// The finished SVS validations past their retention, which a prune removes.
+    pub(crate) fn expired_svs_validations() -> Self {
+        Target {
+            kind: "svs_validations",
+            id: "expired".to_owned(),
+        }
+    }
+
     /// The samples a download's filters selected.
     pub(crate) fn svs_samples() -> Self {
         Target {

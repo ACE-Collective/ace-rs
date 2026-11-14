@@ -15,6 +15,8 @@
 //!
 //! The server is the one `ACE4_DATABASE_URL` names. The URL's user needs `CREATEDB`.
 
+pub mod rule_repo;
+
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 

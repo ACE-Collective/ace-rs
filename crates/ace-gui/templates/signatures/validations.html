@@ -1,0 +1,27 @@
+{#- ace3's signatures/validations.html (PLAN.md 7.10 batch 3): the validations, newest first, with the
+    validations screen's filters folded into `f`, its pages and the exports (src/svs_validations.rs). -#}
+{% extends "base.html" %}
+{% block title %}Validations · Signatures · ACE{% endblock %}
+{% block content %}
+<section class="signatures validations">
+  <p><a href="/signatures">Signatures</a> / Validations</p>
+  <h1>Validations</h1>
+  <p class="muted">A YARA rule repository's CI asks ACE to check a change: every sample is scanned with the rules of the base commit and of the head commit, and the report lists what the change does to them. Validation warns and never blocks. A report is reused while the samples, their labels and the scanner are unchanged.</p>
+  <form method="get" action="/signatures/validations" class="detection-filters">
+    {%- for field in view.fields %}
+    <label for="filter-{{ field.slug }}">{{ field.name }}</label>
+    <input type="text" id="filter-{{ field.slug }}" name="{{ field.slug }}" value="{{ field.value }}" placeholder="{% if field.options.is_empty() %}{{ field.hint }}{% else %}{{ field.options|join(", ") }}{% endif %}">
+    {%- endfor %}
+    <button type="submit">Apply</button>
+    <a href="/signatures/validations">Reset</a>
+  </form>
+  <p class="muted">Export as <a href="{{ view.csv }}">CSV</a> or <a href="{{ view.ndjson }}">NDJSON</a></p>
+  {%- include "signatures/_validations_page.html" %}
+  {%- if view.first.is_some() || view.next.is_some() %}
+  <nav class="pager" aria-label="Pages">
+    {%- if let Some(first) = view.first %} <a href="{{ first }}">First</a>{% endif %}
+    {%- if let Some(next) = view.next %} <a href="{{ next }}" rel="next">Next</a>{% endif %}
+  </nav>
+  {%- endif %}
+</section>
+{% endblock %}
