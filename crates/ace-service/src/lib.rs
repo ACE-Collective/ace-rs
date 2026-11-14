@@ -129,6 +129,7 @@ mod saved_filters;
 mod source;
 mod submit;
 mod svs;
+pub mod svs_association;
 mod svs_catalog;
 mod svs_decisions;
 mod svs_results;
@@ -266,6 +267,7 @@ pub use svs::{
     AlertSvsStatus, AlertSvsView, MAX_TEST_HOSTS_PAGE, MarkerMismatch, RunRef, TestHost,
     TestHostPage,
 };
+pub use svs_association::{AlertRelease, Association, AssociationResult, MarkerRouter};
 pub use svs_catalog::{
     CatalogTest, CatalogTestDetail, CatalogTestPage, CatalogTestQuery, MAX_CATALOG_TESTS_PAGE,
 };
@@ -451,6 +453,9 @@ struct RootSnapshot {
     title: String,
     event_time: Option<DateTime<Utc>>,
     root_created_at: DateTime<Utc>,
+    /// Why, when ACE made the disposition for SVS: ace3 adds it to the alert as a comment.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    comment: Option<String>,
 }
 
 impl Recorded for RootSnapshot {}
@@ -628,59 +633,81 @@ impl Service {
         self.gate
             .write(actor, "disposition", &ALERT_WRITE, &|tx| {
                 Box::pin(async move {
-                    // Locks first, so `before` is what this write replaces. The title is capped here,
-                    // not by the column: it's whatever the alert's sender wrote.
-                    let found = sqlx::query!(
-                        r#"SELECT disposition, dispositioned_by AS "dispositioned_by: Value",
-                                  analysis_mode, event_time, created_at,
-                                  left(description, $2) AS "title!"
-                           FROM analysis.roots WHERE id = $1 FOR UPDATE"#,
-                        root,
-                        TITLE_LIMIT,
-                    )
-                    .fetch_optional(tx.conn())
-                    .await?
-                    .ok_or(OrchestratorError::NoRoot(root))?;
-                    if analyst && self.dispositions.is_frozen(found.disposition.as_deref()) {
-                        return Err(ServiceError::Conflict(format!(
-                            "the alert's disposition {} is set only by ACE, so an analyst can't change it",
-                            found.disposition.as_deref().unwrap_or_default()
-                        )));
-                    }
-                    let dispositioned = self.orchestrator.stop_for_disposition(tx, root).await?;
-                    let mode = sqlx::query_scalar!(
-                        "UPDATE analysis.roots
-                         SET disposition = $2, dispositioned_at = now(), dispositioned_by = $3::jsonb
-                         WHERE id = $1
-                         RETURNING analysis_mode",
-                        root,
-                        disposition,
-                        Json(actor) as _,
-                    )
-                    .fetch_one(tx.conn())
-                    .await?;
-                    let change = Change::updated(
-                        Target::root(root),
-                        &DispositionState {
-                            disposition: found.disposition,
-                            dispositioned_by: found.dispositioned_by,
-                            analysis_mode: found.analysis_mode,
-                        },
-                        &DispositionState {
-                            disposition: Some(disposition.to_owned()),
-                            dispositioned_by: Some(serde_json::to_value(actor)?),
-                            analysis_mode: mode,
-                        },
-                    )?
-                    .details(&RootSnapshot {
-                        title: found.title,
-                        event_time: found.event_time,
-                        root_created_at: found.created_at,
-                    })?;
+                    let (dispositioned, change) = self
+                        .disposition_in(tx, root, disposition, actor, None)
+                        .await?;
                     Ok(Audited::changed(dispositioned, change))
                 })
             })
             .await
+    }
+
+    /// A disposition's writes, in its caller's transaction: the one writer of an alert's disposition,
+    /// which `disposition` and SVS (closing a run's and a maintenance window's alerts, and giving a
+    /// disassociated alert back, `svs_association`) share. `by` is who the alert's row names: the actor, or
+    /// the component that acts for them. From an analyst it refuses a frozen alert (`Conflict`). `comment`
+    /// says why, in the audit row, where ace3 adds a comment to the alert. Returns what the analysis did
+    /// and the audit row's change, which the caller's write records.
+    pub(crate) async fn disposition_in(
+        &self,
+        tx: &mut ace_core::db::Tx<'_>,
+        root: Uuid,
+        disposition: &str,
+        by: &Actor,
+        comment: Option<&str>,
+    ) -> Result<(Dispositioned, Change), ServiceError> {
+        // Locks first, so `before` is what this write replaces. The title is capped here,
+        // not by the column: it's whatever the alert's sender wrote.
+        let found = sqlx::query!(
+            r#"SELECT disposition, dispositioned_by AS "dispositioned_by: Value",
+                      analysis_mode, event_time, created_at,
+                      left(description, $2) AS "title!"
+               FROM analysis.roots WHERE id = $1 FOR UPDATE"#,
+            root,
+            TITLE_LIMIT,
+        )
+        .fetch_optional(tx.conn())
+        .await?
+        .ok_or(OrchestratorError::NoRoot(root))?;
+        if dispositions::is_analyst(by) && self.dispositions.is_frozen(found.disposition.as_deref())
+        {
+            return Err(ServiceError::Conflict(format!(
+                "the alert's disposition {} is set only by ACE, so an analyst can't change it",
+                found.disposition.as_deref().unwrap_or_default()
+            )));
+        }
+        let dispositioned = self.orchestrator.stop_for_disposition(tx, root).await?;
+        let mode = sqlx::query_scalar!(
+            "UPDATE analysis.roots
+             SET disposition = $2, dispositioned_at = now(), dispositioned_by = $3::jsonb
+             WHERE id = $1
+             RETURNING analysis_mode",
+            root,
+            disposition,
+            Json(by) as _,
+        )
+        .fetch_one(tx.conn())
+        .await?;
+        let change = Change::updated(
+            Target::root(root),
+            &DispositionState {
+                disposition: found.disposition,
+                dispositioned_by: found.dispositioned_by,
+                analysis_mode: found.analysis_mode,
+            },
+            &DispositionState {
+                disposition: Some(disposition.to_owned()),
+                dispositioned_by: Some(serde_json::to_value(by)?),
+                analysis_mode: mode,
+            },
+        )?
+        .details(&RootSnapshot {
+            title: found.title,
+            event_time: found.event_time,
+            root_created_at: found.created_at,
+            comment: comment.map(str::to_owned),
+        })?;
+        Ok((dispositioned, change))
     }
 
     /// Adds a row giving a holder an effect on a pattern, as ace3's `add_user_permission`,

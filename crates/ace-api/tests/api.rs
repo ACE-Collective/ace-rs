@@ -583,6 +583,13 @@ const RUN_ATTRIBUTION_FEED: &str = "/api/svs/v1/runs/attributions";
 const RUN_ATTRIBUTION_FEED_EXPORT: &str = "/api/svs/v1/runs/attributions/export/{format}";
 const RUN_ATTRIBUTIONS: &str = "/api/svs/v1/runs/{run_id}/attributions";
 const RUN_ATTRIBUTIONS_EXPORT: &str = "/api/svs/v1/runs/{run_id}/attributions/export/{format}";
+const ALERT_SVS: &str = "/api/alerts/v1/alerts/{id}/svs";
+const ALERT_RELEASE: &str = "/api/alerts/v1/alerts/{id}/svs/disassociate";
+const ALERT_NOT_A_TEST: &str = "/api/alerts/v1/alerts/{id}/svs/not-a-test";
+const RUN_ASSOCIATE: &str = "/api/svs/v1/runs/{run_id}/alerts/{uuid}/associate";
+const RUN_DISASSOCIATE: &str = "/api/svs/v1/runs/{run_id}/alerts/{uuid}/disassociate";
+const RUN_NOT_A_TEST: &str = "/api/svs/v1/runs/{run_id}/alerts/{uuid}/not-a-test";
+const RUN_KEEP: &str = "/api/svs/v1/runs/{run_id}/alerts/{uuid}/keep";
 const RUN_RESULTS: &str = "/api/svs/v1/runs/{run_id}/results";
 const RUN_RESULTS_EXPORT: &str = "/api/svs/v1/runs/{run_id}/results/export/{format}";
 const RUN_HISTORY: &str = "/api/svs/v1/runs/{run_id}/history";
@@ -732,6 +739,7 @@ fn good_body(route: &str) -> Send {
         })),
         RUN_EXECUTED => Send::Json(json!({"exit_code": 0})),
         RUN_COMMENTS | RUN_COMMENT => Send::Json(json!({"comment": "refused"})),
+        ALERT_RELEASE | RUN_ASSOCIATE | RUN_DISASSOCIATE => Send::Json(json!({})),
         EXPECTATION => Send::Json(json!({"state": "expected"})),
         TEST_IGNORE | GLOBAL_IGNORE | TEST_SETTINGS => Send::Json(json!({})),
         TEST_HOSTS | TEST_HOST => Send::Json(json!({"hostname": "refused"})),
@@ -771,7 +779,7 @@ async fn refuses_without_a_credential_or_a_permission(
         .map(|(method, route, _)| (method, route))
         .filter(|route| !public.contains(route))
         .collect();
-    assert_eq!(routes.len(), 204, "{routes:?}");
+    assert_eq!(routes.len(), 211, "{routes:?}");
     for (method, route) in routes {
         let method: Method = method.to_uppercase().parse().expect("a method");
         let path = fill(&route, id, file);
@@ -4541,6 +4549,7 @@ async fn every_documented_status_is_tested() {
     svs_catalog(&mut client).await;
     svs_runs(&mut client).await;
     svs_run_reads(&mut client).await;
+    svs_association(&mut client).await;
     pings(&mut client, &token).await;
 
     assert_eq!(
@@ -13319,6 +13328,485 @@ async fn svs_run_reads(client: &mut Client<'_>) {
             r,
             Send::Nothing,
             S::PAYLOAD_TOO_LARGE,
+        )
+        .await;
+}
+
+// ---- SVS's association routes (PLAN.md 7.10 batch 7a) ----
+
+/// ace3's `tests/aceapi_v2/svs/test_alert_svs.py` (`test_what_svs_makes_of_an_alert`, `test_disassociate`,
+/// `test_not_a_test`, `test_errors`) and `test_association.py` (`test_associate_and_disassociate`,
+/// `test_keep_and_not_a_test`, `test_errors`), with every status the routes document.
+/// `test_permissions` is the sweep's; `test_a_config_key_is_refused` has no case, since a key that belongs
+/// to nobody is an actor here; `test_the_feed_and_exports` and `test_the_feed_waits_for_rows_to_settle` are
+/// batch 6's attribution feed.
+async fn svs_association(client: &mut Client<'_>) {
+    use Method as M;
+    use StatusCode as S;
+    let stack = client.stack;
+    let db = stack.test_db.db();
+    let launcher = key(stack, &["svs:run_register"]).await;
+    let manager = key(stack, &["svs:run_manage"]).await;
+    let analyst = key(stack, &["alert:read", "alert:write"]).await;
+    let admin = key(stack, &["svs:admin", "svs:run_read"]).await;
+    let (l, m, n, a) = (
+        Some(launcher.as_str()),
+        Some(manager.as_str()),
+        Some(analyst.as_str()),
+        Some(admin.as_str()),
+    );
+    catalog_test(
+        stack,
+        41,
+        "T1059.003",
+        "An associated run's test",
+        &["windows"],
+        "command_prompt",
+        false,
+    )
+    .await;
+    let guid = catalog_guid(41);
+    let mut runs = Vec::new();
+    for host in ["assoc-1", "assoc-2"] {
+        client
+            .json(
+                M::POST,
+                TEST_HOSTS,
+                TEST_HOSTS,
+                a,
+                Send::Json(json!({"hostname": host, "platform": "windows"})),
+                S::CREATED,
+            )
+            .await;
+        let run = client
+            .json(
+                M::POST,
+                RUNS,
+                RUNS,
+                l,
+                Send::Json(json!({
+                    "test_guid": guid, "targets": [{"hostname": host}], "launcher": "assocart",
+                })),
+                S::CREATED,
+            )
+            .await;
+        runs.push(run["run_id"].as_str().expect("a run").to_owned());
+    }
+    let (run, created) = (runs[0].clone(), runs[1].clone());
+    client
+        .json(
+            M::POST,
+            RUN_START,
+            &RUN_START.replace("{run_id}", &run),
+            l,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+
+    // alerts as the core leaves them: one nothing holds, one with no detections, and two the run holds by
+    // context, which the marker router sent to the test queue
+    let new_alert = async |detections: i64, context: bool| -> Uuid {
+        let alert = Uuid::new_v4();
+        sqlx::query(
+            "INSERT INTO analysis.roots (id, analysis_mode, description, event_time_source, alerted_at)
+             VALUES ($1, 'correlation', 'an associated alert', 'unset', now())",
+        )
+        .bind(alert)
+        .execute(db.pool())
+        .await
+        .expect("an alert");
+        for d in 0..detections {
+            sqlx::query(
+                "INSERT INTO analysis.detections (root_id, description) VALUES ($1, 'detection ' || $2)",
+            )
+            .bind(alert)
+            .bind(d.to_string())
+            .execute(db.pool())
+            .await
+            .expect("a detection");
+        }
+        if context {
+            sqlx::query(
+                "INSERT INTO svs.attributions
+                     (run_id, root_id, detection_id, confidence, source, actor, event_time,
+                      event_time_source)
+                 SELECT (SELECT id FROM svs.runs WHERE uuid = $1::uuid), d.root_id, d.id, 'context',
+                        'router', '{\"kind\": \"internal\", \"id\": \"svs\"}', now(), 'insert_time'
+                 FROM analysis.detections d WHERE d.root_id = $2",
+            )
+            .bind(&run)
+            .bind(alert)
+            .execute(db.pool())
+            .await
+            .expect("an attribution");
+            sqlx::query("UPDATE analysis.roots SET queue = 'svs' WHERE id = $1")
+                .bind(alert)
+                .execute(db.pool())
+                .await
+                .expect("its queue");
+            sqlx::query(
+                "INSERT INTO analysis.queue_changes
+                     (root_id, from_queue, to_queue, reason, router, moved_by)
+                 VALUES ($1, 'default', 'svs', 'attributed', 'svs_marker',
+                         '{\"kind\": \"internal\", \"id\": \"alert_routing\"}')",
+            )
+            .bind(alert)
+            .execute(db.pool())
+            .await
+            .expect("its move");
+        }
+        alert
+    };
+    let free = new_alert(1, false).await;
+    let bare = new_alert(0, false).await;
+    let kept = new_alert(1, true).await;
+    let context = new_alert(1, true).await;
+    let nowhere = Uuid::new_v4();
+    let svs = |alert: &dyn std::fmt::Display| ALERT_SVS.replace("{id}", &alert.to_string());
+    let on = |route: &str, run: &dyn std::fmt::Display, alert: &dyn std::fmt::Display| {
+        route
+            .replace("{run_id}", &run.to_string())
+            .replace("{uuid}", &alert.to_string())
+    };
+
+    // test_what_svs_makes_of_an_alert
+    let nothing = client
+        .json(M::GET, ALERT_SVS, &svs(&free), n, Send::Nothing, S::OK)
+        .await;
+    assert_eq!(
+        nothing,
+        json!({"status": null, "runs": [], "detections": {}, "mismatches": []})
+    );
+    let held = client
+        .json(M::GET, ALERT_SVS, &svs(&context), n, Send::Nothing, S::OK)
+        .await;
+    assert_eq!(held["status"], "test?");
+    assert_eq!(
+        (
+            &held["runs"][0]["uuid"],
+            &held["runs"][0]["state"],
+            &held["runs"][0]["test_name"]
+        ),
+        (
+            &json!(run),
+            &json!("started"),
+            &json!("An associated run's test")
+        )
+    );
+    assert_eq!(held["detections"].as_object().map(|d| d.len()), Some(1));
+    client
+        .json(
+            M::GET,
+            ALERT_SVS,
+            &svs(&nowhere),
+            n,
+            Send::Nothing,
+            S::NOT_FOUND,
+        )
+        .await;
+    client
+        .json(
+            M::GET,
+            ALERT_SVS,
+            &svs(&"nope"),
+            n,
+            Send::Nothing,
+            S::BAD_REQUEST,
+        )
+        .await;
+
+    // test_associate_and_disassociate
+    let associated = client
+        .json(
+            M::POST,
+            RUN_ASSOCIATE,
+            &on(RUN_ASSOCIATE, &run, &free),
+            m,
+            Send::Json(json!({"reason": "seen on the console"})),
+            S::OK,
+        )
+        .await;
+    assert_eq!(
+        associated,
+        json!({
+            "alert_uuid": free, "svs_status": "test", "queue": "svs", "moved": true,
+            "reopened": false,
+        })
+    );
+    let audited: (String, String, String, Value) = sqlx::query_as(
+        "SELECT action, target_kind, target_id, actor::jsonb FROM service.audit ORDER BY id DESC LIMIT 1",
+    )
+    .fetch_one(db.pool())
+    .await
+    .expect("an audit row");
+    assert_eq!(
+        (audited.0.as_str(), audited.1.as_str(), audited.2),
+        ("change_svs_association", "root", free.to_string())
+    );
+    assert_eq!(audited.3["kind"], "api_key");
+    for (route, path, body, status) in [
+        (
+            RUN_ASSOCIATE,
+            on(RUN_ASSOCIATE, &"nope", &free),
+            json!({}),
+            S::BAD_REQUEST,
+        ),
+        (
+            RUN_ASSOCIATE,
+            on(RUN_ASSOCIATE, &run, &"nope"),
+            json!({}),
+            S::BAD_REQUEST,
+        ),
+        (
+            RUN_ASSOCIATE,
+            on(RUN_ASSOCIATE, &run, &free),
+            json!({"surprise": 1}),
+            S::BAD_REQUEST,
+        ),
+        (
+            RUN_ASSOCIATE,
+            on(RUN_ASSOCIATE, &run, &free),
+            json!({"reason": "x".repeat(513)}),
+            S::BAD_REQUEST,
+        ),
+        // an alert with no detections has nothing to attribute
+        (
+            RUN_ASSOCIATE,
+            on(RUN_ASSOCIATE, &run, &bare),
+            json!({}),
+            S::BAD_REQUEST,
+        ),
+        (
+            RUN_ASSOCIATE,
+            on(RUN_ASSOCIATE, &nowhere, &free),
+            json!({}),
+            S::NOT_FOUND,
+        ),
+        (
+            RUN_ASSOCIATE,
+            on(RUN_ASSOCIATE, &run, &nowhere),
+            json!({}),
+            S::NOT_FOUND,
+        ),
+        // a run that never started
+        (
+            RUN_ASSOCIATE,
+            on(RUN_ASSOCIATE, &created, &free),
+            json!({}),
+            S::CONFLICT,
+        ),
+        (
+            RUN_DISASSOCIATE,
+            on(RUN_DISASSOCIATE, &"nope", &free),
+            json!({}),
+            S::BAD_REQUEST,
+        ),
+        (
+            RUN_DISASSOCIATE,
+            on(RUN_DISASSOCIATE, &run, &free),
+            json!({"surprise": 1}),
+            S::BAD_REQUEST,
+        ),
+        (
+            RUN_DISASSOCIATE,
+            on(RUN_DISASSOCIATE, &nowhere, &free),
+            json!({}),
+            S::NOT_FOUND,
+        ),
+        // the run doesn't hold it
+        (
+            RUN_DISASSOCIATE,
+            on(RUN_DISASSOCIATE, &created, &free),
+            json!({}),
+            S::CONFLICT,
+        ),
+    ] {
+        client
+            .json(M::POST, route, &path, m, Send::Json(body), status)
+            .await;
+    }
+    for route in [RUN_ASSOCIATE, RUN_DISASSOCIATE] {
+        client
+            .json(
+                M::POST,
+                route,
+                &on(route, &run, &free),
+                m,
+                too_large(),
+                S::PAYLOAD_TOO_LARGE,
+            )
+            .await;
+    }
+
+    // test_keep_and_not_a_test
+    let keep = client
+        .json(
+            M::POST,
+            RUN_KEEP,
+            &on(RUN_KEEP, &run, &kept),
+            m,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(
+        (&keep["svs_status"], &keep["moved"]),
+        (&json!("test?"), &json!(false))
+    );
+    for (route, path, status) in [
+        // a person's association is more than context: nothing to keep, and not a test doesn't apply
+        (RUN_KEEP, on(RUN_KEEP, &run, &free), S::CONFLICT),
+        (RUN_KEEP, on(RUN_KEEP, &"nope", &free), S::BAD_REQUEST),
+        (RUN_KEEP, on(RUN_KEEP, &run, &nowhere), S::NOT_FOUND),
+        (RUN_NOT_A_TEST, on(RUN_NOT_A_TEST, &run, &free), S::CONFLICT),
+        (
+            RUN_NOT_A_TEST,
+            on(RUN_NOT_A_TEST, &run, &"nope"),
+            S::BAD_REQUEST,
+        ),
+        (
+            RUN_NOT_A_TEST,
+            on(RUN_NOT_A_TEST, &nowhere, &kept),
+            S::NOT_FOUND,
+        ),
+    ] {
+        client
+            .json(M::POST, route, &path, m, Send::Nothing, status)
+            .await;
+    }
+    let rejected = client
+        .json(
+            M::POST,
+            RUN_NOT_A_TEST,
+            &on(RUN_NOT_A_TEST, &run, &kept),
+            m,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(
+        rejected,
+        json!({
+            "alert_uuid": kept, "svs_status": null, "queue": "default", "moved": true,
+            "reopened": false,
+        })
+    );
+    let disassociated = client
+        .json(
+            M::POST,
+            RUN_DISASSOCIATE,
+            &on(RUN_DISASSOCIATE, &run, &free),
+            m,
+            Send::Json(json!({})),
+            S::OK,
+        )
+        .await;
+    assert_eq!(
+        (
+            &disassociated["svs_status"],
+            &disassociated["queue"],
+            &disassociated["moved"]
+        ),
+        (&Value::Null, &json!("default"), &json!(true))
+    );
+
+    // test_alert_svs.py's test_not_a_test, test_disassociate and test_errors: from the alert's side
+    let not_a_test =
+        |alert: &dyn std::fmt::Display| ALERT_NOT_A_TEST.replace("{id}", &alert.to_string());
+    let release = |alert: &dyn std::fmt::Display| ALERT_RELEASE.replace("{id}", &alert.to_string());
+    let rejected = client
+        .json(
+            M::POST,
+            ALERT_NOT_A_TEST,
+            &not_a_test(&context),
+            n,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(
+        rejected,
+        json!({
+            "alert_uuid": context, "runs": [run], "svs_status": null, "queue": "default",
+            "moved": true, "reopened": false,
+        })
+    );
+    for (path, status) in [
+        (not_a_test(&context), S::CONFLICT),
+        (not_a_test(&"nope"), S::BAD_REQUEST),
+        (not_a_test(&nowhere), S::NOT_FOUND),
+    ] {
+        client
+            .json(M::POST, ALERT_NOT_A_TEST, &path, n, Send::Nothing, status)
+            .await;
+    }
+    client
+        .json(
+            M::POST,
+            RUN_ASSOCIATE,
+            &on(RUN_ASSOCIATE, &run, &free),
+            m,
+            Send::Json(json!({})),
+            S::OK,
+        )
+        .await;
+    let released = client
+        .json(
+            M::POST,
+            ALERT_RELEASE,
+            &release(&free),
+            n,
+            Send::Json(json!({"reason": "a real attack"})),
+            S::OK,
+        )
+        .await;
+    assert_eq!(
+        released,
+        json!({
+            "alert_uuid": free, "runs": [run], "svs_status": null, "queue": "default",
+            "moved": true, "reopened": false,
+        })
+    );
+    for (path, body, status) in [
+        (release(&free), json!({}), S::CONFLICT),
+        (release(&"nope"), json!({}), S::BAD_REQUEST),
+        (release(&free), json!({"surprise": 1}), S::BAD_REQUEST),
+        (release(&nowhere), json!({}), S::NOT_FOUND),
+    ] {
+        client
+            .json(M::POST, ALERT_RELEASE, &path, n, Send::Json(body), status)
+            .await;
+    }
+    client
+        .json(
+            M::POST,
+            ALERT_RELEASE,
+            &release(&free),
+            n,
+            too_large(),
+            S::PAYLOAD_TOO_LARGE,
+        )
+        .await;
+    // the alert's routes don't take the run's permission, nor the run's the alert's
+    client
+        .json(
+            M::POST,
+            ALERT_RELEASE,
+            &release(&free),
+            m,
+            Send::Json(json!({})),
+            S::FORBIDDEN,
+        )
+        .await;
+    client
+        .json(
+            M::POST,
+            RUN_KEEP,
+            &on(RUN_KEEP, &run, &free),
+            n,
+            Send::Nothing,
+            S::FORBIDDEN,
         )
         .await;
 }

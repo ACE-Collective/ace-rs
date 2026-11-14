@@ -157,7 +157,14 @@ pub fn app() -> App {
         .scanner_pool(scanner_pool())
         // ace3's protected_url_analyzer is in its common group, and this does its network half
         .module_in_group("common", "protected_url_one_drive")
-        .hunt_type(ace_hunt::types::Splunk::default());
+        .hunt_type(ace_hunt::types::Splunk::default())
+        // SVS's marker router (PLAN.md 7.10 batch 7), ahead of the detection-queue router, as ace3's
+        // `alert_routers` lists it
+        .alert_router(
+            ace_service::svs_association::MARKER_ROUTER,
+            ace_service::svs_association::MARKER_ROUTER_PRIORITY,
+            std::sync::Arc::new(ace_service::svs_association::MarkerRouter),
+        );
     for (suffix, name) in ace_hunt::correlate::scripts::SCRIPTS {
         app = app.hunt_script(suffix, name, move |net, settings| {
             ace_hunt::correlate::scripts::build(name, net, settings)

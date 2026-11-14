@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT root_id FROM svs.maintenance_alerts\n             WHERE window_id = $1 AND removed_at IS NULL AND closed_at IS NULL\n             ORDER BY root_id LIMIT $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "root_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "svs.maintenance_alerts",
+            "name": "root_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "70492d2b924db40c7b2614794b959c2900fc6ca6968a532aba906e629f8ee074"
+}

@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE analysis.roots\n                         SET owner_id = $2, owned_at = CASE WHEN $2::uuid IS NULL THEN NULL ELSE now() END\n                         WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "0699fbc5962bc95cb98f473ff23e99b4899420a354d1fd6110847ce14e53d897"
+}

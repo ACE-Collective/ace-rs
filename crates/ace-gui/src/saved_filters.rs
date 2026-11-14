@@ -24,7 +24,7 @@
 //!   `saved_filters.js` draws has no control for it; this is that control.
 //!
 //! The hint under the table has ace3's tip (`manageTipHtml`) for `$USER_QUEUE` (7.13), where ace3 has it;
-//! its `$USER` half waits for the owner filter (7.10 batch 7).
+//! its `$USER` half waits for the alert list's owner filter, which no step brings yet.
 //!
 //! What's left out: ace3's confirm before a delete, which needs a script. ace3's `saveCurrent`, which
 //! overwrites a saved filter with the editor's rows from the alert list's Edit dialog, belongs to that list

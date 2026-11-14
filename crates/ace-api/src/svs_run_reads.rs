@@ -5,13 +5,13 @@
 //! From ace3: a page is its rows under their own name and `next`, where ace3's is `{data, next_cursor}`; a
 //! refused parameter is 400 where ace3 answers 422; an export is one operation, `.../export/{format}`
 //! with `csv` or `ndjson`, at ace3's two URLs; who did something is an actor (`kind`, `id`, `name`), where
-//! ace3 gives a name; and a run's detail has no review blockers until batch 7 brings the review.
+//! ace3 gives a name; and a run's detail has no review blockers until batch 7b brings the review.
 //!
 //! Batch 6 brought the attributions, which the core's SVS hook writes (`ace_core::svs::attribution`):
 //! ace3's `GET /attributions` and `/{run_id}/attributions`, each with its export, are
 //! `GET /api/svs/v1/runs/attributions` and `/runs/{run_id}/attributions`. A row names its alert (`alert`,
 //! ace3's `alert_uuid`) and its detection by the detection's id (`detection`, ace3's content hash). A
-//! run's alerts (`/{run_id}/alerts`) come with batch 7, which closes them.
+//! run's alerts (`/{run_id}/alerts`) come with batch 7b, with the run page's review.
 
 use ace_service::filters::{FilterScreen, decode};
 use ace_service::{

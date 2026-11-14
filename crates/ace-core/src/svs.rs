@@ -69,6 +69,17 @@ pub const RUN_SIGNATURES: [&str; 2] = [REGISTRATION_REFUSED_SIGNATURE, MARKER_MI
 
 /// The tag of an alert every detection of which is attributed to a run.
 pub const TAG_SVS_TEST: &str = "svs_test";
+/// The queue test-run alerts are routed to: ace3's `svs.queue`, at its default. It isn't a setting here
+/// yet: the marker router joins the binary before the overlay is read (PLAN.md 7.10 batch 7a).
+pub const SVS_QUEUE: &str = "svs";
+/// The router name a person's move through SVS is recorded with (associating or disassociating an
+/// alert), which the marker router never overrides: ace3's `SVS_MANUAL_ROUTER`.
+pub const MANUAL_ROUTER: &str = "svs_manual";
+/// The marker router's name, ace3's `alert_routers` entry: a move into the test queue it made, or one a
+/// person made, is what disassociating undoes.
+pub const MARKER_ROUTER: &str = "svs_marker";
+/// The marker router's priority, ahead of the detection-queue router's 500: ace3's entry.
+pub const MARKER_ROUTER_PRIORITY: i32 = 100;
 /// The tag of an alert with a marker that doesn't agree with its run.
 pub const TAG_MARKER_MISMATCH: &str = "svs:marker_mismatch";
 /// The tag of an alert of a test host's maintenance window.

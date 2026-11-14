@@ -203,7 +203,7 @@ pub struct AlertSvsView {
 }
 
 /// Each of `roots`' status, in one transaction and a fixed number of queries: ace3's `alert_svs_statuses`.
-async fn statuses(
+pub(crate) async fn statuses(
     conn: &mut sqlx::PgConnection,
     roots: &[Uuid],
 ) -> Result<BTreeMap<Uuid, AlertSvsStatus>, ServiceError> {

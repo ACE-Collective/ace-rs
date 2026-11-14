@@ -1045,6 +1045,265 @@
         }
       }
     },
+    "/api/alerts/v1/alerts/{id}/svs": {
+      "get": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "What SVS makes of an alert: its status, the runs it's attributed to, which detections each holds, and\nthe markers that disagree with their run.",
+        "operationId": "alert_svs",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The alert's id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "What SVS makes of it",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlertSvsBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "An id that isn't a uuid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold alert:read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such alert",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/alerts/v1/alerts/{id}/svs/disassociate": {
+      "post": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "Disassociates the alert from every test run that holds it, so it's given back to analysts: OPEN if it\nwas SIMULATED, and in the queue SVS took it from. The core never attributes it to those runs again.",
+        "operationId": "release_alert",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The alert's id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReasonRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "What it left",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlertDisassociationBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "An id that isn't a uuid, a body that isn't one, or a reason that is too long",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold alert:write",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such alert",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "No test run holds the alert",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The body is too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/alerts/v1/alerts/{id}/svs/not-a-test": {
+      "post": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "Marks a `test?` alert, which its runs hold by context alone, not a test: it's disassociated from them.",
+        "operationId": "alert_not_a_test",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The alert's id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "What it left",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlertDisassociationBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "An id that isn't a uuid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold alert:write",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such alert",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "No test run holds the alert, or one holds it by more than context",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/alerts/v1/detections": {
       "get": {
         "tags": [
@@ -8943,6 +9202,410 @@
           },
           "404": {
             "description": "No run with that id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/svs/v1/runs/{run_id}/alerts/{uuid}/associate": {
+      "post": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "Attributes every detection of the alert to the run, by hand, as certain as a marker that agrees, and\nmoves the alert to the test queue when it's then fully attributed, open and nobody else's.",
+        "operationId": "associate",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "description": "The run's uuid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "uuid",
+            "in": "path",
+            "description": "The alert's id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReasonRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "What it left",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssociationBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "An id that isn't a uuid, a body that isn't one, a reason that is too long, or an alert with no detections",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold svs:run_manage",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such run, or no such alert",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The run never started",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The body is too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/svs/v1/runs/{run_id}/alerts/{uuid}/disassociate": {
+      "post": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "Removes the alert's attributions to the run, by hand: the core never attributes the alert to the run\nagain, and an alert no longer fully attributed is given back to analysts.",
+        "operationId": "disassociate",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "description": "The run's uuid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "uuid",
+            "in": "path",
+            "description": "The alert's id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReasonRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "What it left",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssociationBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "An id that isn't a uuid, a body that isn't one, or a reason that is too long",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold svs:run_manage",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such run, or no such alert",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The alert isn't attributed to the run",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The body is too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/svs/v1/runs/{run_id}/alerts/{uuid}/keep": {
+      "post": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "Confirms the alert's context attributions to the run: it is the run's. A run's review asks for it.",
+        "operationId": "keep",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "description": "The run's uuid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "uuid",
+            "in": "path",
+            "description": "The alert's id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "What it left",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssociationBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "An id that isn't a uuid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold svs:run_manage",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such run, or no such alert",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The alert has no context attribution to the run to keep",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/svs/v1/runs/{run_id}/alerts/{uuid}/not-a-test": {
+      "post": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "Marks an alert the run holds by context alone not a test: a disassociation.",
+        "operationId": "not_a_test",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "description": "The run's uuid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "uuid",
+            "in": "path",
+            "description": "The alert's id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "What it left",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssociationBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "An id that isn't a uuid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold svs:run_manage",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such run, or no such alert",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The alert isn't attributed to the run, or by more than context",
             "content": {
               "application/json": {
                 "schema": {
@@ -17188,6 +17851,49 @@
           }
         }
       },
+      "AlertDisassociationBody": {
+        "type": "object",
+        "description": "What releasing an alert left.",
+        "required": [
+          "alert_uuid",
+          "runs",
+          "queue",
+          "moved",
+          "reopened"
+        ],
+        "properties": {
+          "alert_uuid": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "moved": {
+            "type": "boolean",
+            "description": "The alert moved to another queue."
+          },
+          "queue": {
+            "type": "string"
+          },
+          "reopened": {
+            "type": "boolean",
+            "description": "The alert was SIMULATED and is OPEN again."
+          },
+          "runs": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "The runs the alert was disassociated from, oldest first."
+          },
+          "svs_status": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The alert's SVS status after the change; null when it has none."
+          }
+        }
+      },
       "AlertPageBody": {
         "type": "object",
         "required": [
@@ -17212,6 +17918,80 @@
             "type": "integer",
             "format": "int64",
             "description": "How many alerts the filters match in all."
+          }
+        }
+      },
+      "AlertRunBody": {
+        "type": "object",
+        "description": "A run, as an alert names it.",
+        "required": [
+          "uuid",
+          "state",
+          "test_guid"
+        ],
+        "properties": {
+          "state": {
+            "type": "string"
+          },
+          "test_guid": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "test_name": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The catalog's name of the test; null when the catalog no longer has it."
+          },
+          "uuid": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "AlertSvsBody": {
+        "type": "object",
+        "description": "What SVS makes of an alert.",
+        "required": [
+          "runs",
+          "detections",
+          "mismatches"
+        ],
+        "properties": {
+          "detections": {
+            "type": "object",
+            "description": "Each attributed detection's id, and the uuids of the runs it's attributed to.",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            },
+            "propertyNames": {
+              "type": "string"
+            }
+          },
+          "mismatches": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MarkerMismatchBody"
+            }
+          },
+          "runs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AlertRunBody"
+            },
+            "description": "The runs whose attributions of the alert hold, oldest first."
+          },
+          "status": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "`test`, `test?`, `partial` or `mismatch`; null when SVS never touched the alert."
           }
         }
       },
@@ -17324,6 +18104,40 @@
             ],
             "format": "int32",
             "minimum": 0
+          }
+        }
+      },
+      "AssociationBody": {
+        "type": "object",
+        "description": "What a change to a run's hold on an alert left.",
+        "required": [
+          "alert_uuid",
+          "queue",
+          "moved",
+          "reopened"
+        ],
+        "properties": {
+          "alert_uuid": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "moved": {
+            "type": "boolean",
+            "description": "The alert moved to another queue."
+          },
+          "queue": {
+            "type": "string"
+          },
+          "reopened": {
+            "type": "boolean",
+            "description": "The alert was SIMULATED and is OPEN again."
+          },
+          "svs_status": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The alert's SVS status after the change; null when it has none."
           }
         }
       },
@@ -20331,6 +21145,34 @@
           }
         }
       },
+      "MarkerMismatchBody": {
+        "type": "object",
+        "description": "A marker in the alert that doesn't agree with its run.",
+        "required": [
+          "marker",
+          "result"
+        ],
+        "properties": {
+          "marker": {
+            "type": "string"
+          },
+          "result": {
+            "type": "string",
+            "description": "How it disagrees: `unknown`, `other host` or `outside window`."
+          },
+          "run": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/AlertRunBody",
+                "description": "The run the marker belongs to; null when no run has it."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
       "MatchBody": {
         "type": "string",
         "description": "How an entry matches a value.",
@@ -21522,14 +22364,14 @@
       },
       "ReasonRequest": {
         "type": "object",
-        "description": "Why, recorded with the action.",
-        "required": [
-          "reason"
-        ],
+        "description": "Why a person makes the change, for the run's event log.",
         "properties": {
           "reason": {
-            "type": "string",
-            "description": "1 to 4000 characters."
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "At most 512 characters."
           }
         },
         "additionalProperties": false

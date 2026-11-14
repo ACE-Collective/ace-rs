@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT o.id FROM analysis.roots o\n             WHERE o.id = ANY ($2) AND (o.disposition IS NULL OR o.disposition = 'OPEN')\n               AND o.owner_id IS NULL\n               AND EXISTS (SELECT FROM svs.maintenance_alerts m\n                           WHERE m.window_id = $1 AND m.root_id = o.id\n                             AND m.removed_at IS NULL AND m.closed_at IS NULL)\n               AND NOT EXISTS (SELECT FROM svs.attributions a\n                               WHERE a.root_id = o.id AND a.removed_at IS NULL)",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "analysis.roots",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "UuidArray"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "bd95d423381af20c1d0853d348883d3b6ba909f9f199d4c3fdacf1221d900b5a"
+}

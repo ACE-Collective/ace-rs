@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT queue AS \"queue!: String\" FROM analysis.roots\n           WHERE id = $1 AND alerted_at IS NOT NULL\n             AND (NOT $2 OR disposition IS NULL OR disposition = 'OPEN')\n           FOR UPDATE",
+  "query": "SELECT queue AS \"queue!: String\" FROM analysis.roots\n           WHERE id = $1 AND alerted_at IS NOT NULL\n             AND (disposition IS NULL OR disposition = 'OPEN')\n             AND (owner_id IS NULL OR owner_id = $2)\n           FOR UPDATE",
   "describe": {
     "columns": [
       {
@@ -18,12 +18,12 @@
     "parameters": {
       "Left": [
         "Uuid",
-        "Bool"
+        "Uuid"
       ]
     },
     "nullable": [
       false
     ]
   },
-  "hash": "030788eaa4df5a9b19fb1416dd2ae3f850182547615d0453d30f42b124fe00e7"
+  "hash": "dc0926eb05e1a668761b06a5e52088e008776306d2716f4423d7a8bbc68d5ead"
 }

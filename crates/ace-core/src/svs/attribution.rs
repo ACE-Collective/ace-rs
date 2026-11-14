@@ -1908,20 +1908,39 @@ pub async fn judge(
     log_sightings(root, &evaluation);
     let written = write_attributions(conn, root, &evaluation, now).await?;
     // a hunt that alerted on a test host, inside a run's or a maintenance window, without the event's
-    // own time: it was judged by the time the hunt ran its query, which can put it in the wrong window
+    // own time: it was judged by the time the hunt ran its query, which can put it in the wrong window.
+    // Said once: as the alert is first judged (it hasn't been routed yet, ace3's PRE_INSERT), or at the
+    // later pass that first attributes it, not on every pass that changes its attributions.
     let concerned = !evaluation.attributions.is_empty()
         || evaluation.maintenance.is_some()
         || !evaluation.candidate_runs.is_empty();
-    if evaluation.event_time_source == TimeSource::QueryTime && written.first && concerned {
-        let hunts: BTreeSet<&str> = evaluation
-            .detections
-            .iter()
-            .filter_map(|d| d.signature_uuid.as_deref())
-            .collect();
-        tracing::warn!(
-            alert_uuid = %root, hunt_uuids = ?hunts, event_time_source = "query_time",
-            "a hunt alerted on an svs test host without the event's own time: the alert was judged by the time the hunt ran its query"
-        );
+    if evaluation.event_time_source == TimeSource::QueryTime && concerned {
+        let head = sqlx::query!(
+            "SELECT left(description, 512) AS description, routed_pass
+             FROM analysis.roots WHERE id = $1",
+            root,
+        )
+        .fetch_one(&mut *conn)
+        .await?;
+        if written.first || head.routed_pass.is_none() {
+            let hunts: BTreeSet<&str> = evaluation
+                .detections
+                .iter()
+                .filter_map(|d| d.signature_uuid.as_deref())
+                .collect();
+            let run = evaluation.runs().first().map(|run| run.uuid.to_string());
+            let window = evaluation
+                .maintenance
+                .as_ref()
+                .map(|window| window.uuid.to_string());
+            tracing::warn!(
+                alert_uuid = %root, hunt = head.description.as_deref(), hunt_uuids = ?hunts,
+                svs_run = run.as_deref(), svs_maintenance = window.as_deref(),
+                stage = if head.routed_pass.is_none() { "alerted" } else { "analyzed" },
+                event_time_source = "query_time",
+                "a hunt alerted on an svs test host without the event's own time: the alert was judged by the time the hunt ran its query"
+            );
+        }
     }
     record_maintenance_alert(
         conn,

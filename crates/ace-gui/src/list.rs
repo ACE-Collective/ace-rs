@@ -45,7 +45,8 @@
 //! Bulk disposition is ace3's "Set Disposition" on the ticked rows. Each alert is its own
 //! `Service::disposition`, which checks `alert:write` and writes its audit row, so the result is per alert:
 //! the page lists the alerts it dispositioned and those it couldn't, with why. ace3's runs them in one
-//! transaction and skips the ones another analyst owns; ace4's alerts have no owner. The menu offers the
+//! transaction and skips the ones another analyst owns; here a disposition doesn't look at an alert's owner
+//! (7.10 batch 7a brought the owner for routing and SVS's closing only). The menu offers the
 //! site's dispositions an analyst may choose, in their order, as ace3's modal does (`Dispositions`), and the
 //! filter editor's suggestions are all of them. A disposition with `show_save_to_event`, chosen in ace3's
 //! modal, shows its Save to Event button, which opens the event modal for the alerts; here the answer page

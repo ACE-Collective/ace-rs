@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE svs.attributions SET kept_at = $3, kept_by = $4::jsonb\n                                 WHERE run_id = $1 AND root_id = $2 AND removed_at IS NULL\n                                   AND confidence = 'context'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Uuid",
+        "Timestamptz",
+        "Jsonb"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "789003cf3d45c0a42c4273f65fecb3de85a6d109512194b0d68db3c54be42182"
+}

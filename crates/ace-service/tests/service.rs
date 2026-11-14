@@ -1640,6 +1640,9 @@ async fn every_write_function_has_an_audit_test() {
         svs_results_tests::add_svs_run_comment_records_its_row(db).await,
         svs_results_tests::update_svs_run_comment_records_its_row(db).await,
         svs_results_tests::delete_svs_run_comment_records_its_row(db).await,
+        svs_attribution_tests::association::change_svs_association_records_its_row(db).await,
+        svs_attribution_tests::association::release_alert_from_svs_records_its_row(db).await,
+        svs_attribution_tests::association::set_alert_owner_records_its_row(db).await,
     ]);
     assert_eq!(covered, write_functions(), "{WRITES_NEED_A_TEST}");
 }
@@ -3371,6 +3374,8 @@ async fn every_write_fails_when_its_audit_fails() {
         .create_test_host(&actor, &HostFields::new("win10-01"))
         .await
         .expect("adds a test host");
+    let associations = svs_attribution_tests::association::before_the_audit_breaks(db).await;
+    let associations_before = svs_attribution_tests::association::rows(db, &associations).await;
     let decisions = svs_results_tests::before_the_audit_breaks(db).await;
     let decisions_before = svs_results_tests::decision_rows(db).await;
     let runs = svs_runs_tests::before_the_audit_breaks(db).await;
@@ -4306,6 +4311,10 @@ async fn every_write_fails_when_its_audit_fails() {
     attempts.push(("route_due", routing_failed));
     attempts.extend(svs_runs_tests::attempts_with_the_audit_broken(&runs, &actor).await);
     attempts.extend(svs_results_tests::attempts_with_the_audit_broken(&decisions, &actor).await);
+    attempts.extend(
+        svs_attribution_tests::association::attempts_with_the_audit_broken(&associations, &actor)
+            .await,
+    );
     let mut covered = BTreeSet::new();
     for (function, error) in &attempts {
         assert!(error.to_string().contains("broken"), "{function}: {error}");
@@ -4351,6 +4360,11 @@ async fn every_write_fails_when_its_audit_fails() {
         svs_results_tests::decision_rows(db).await,
         decisions_before,
         "no decision, ignore, setting, result or comment changed"
+    );
+    assert_eq!(
+        svs_attribution_tests::association::rows(db, &associations).await,
+        associations_before,
+        "no alert's queue, disposition, owner or attributions changed"
     );
     assert_eq!(command_rows(db).await, commands_before);
     assert_eq!(sample_rows(db).await, samples_before, "no sample changed");
@@ -9029,7 +9043,7 @@ fn share_links_encode_and_decode_as_ace3_s_do() {
     let (decoded, warnings) = filter_model::decode(screen, &old, false).expect("decodes");
     assert_eq!(decoded, [text("Disposition", false, &["OPEN"])]);
     assert_eq!(warnings.len(), 1);
-    assert!(warnings[0].contains("no owner"), "{warnings:?}");
+    assert!(warnings[0].contains("no filter for it yet"), "{warnings:?}");
     // the Queue filter came with 7.13, `$USER_QUEUE` and all
     let (decoded, warnings) =
         filter_model::decode(screen, &["queue:$USER_QUEUE,triage".to_owned()], true)
@@ -23629,8 +23643,9 @@ async fn prune_svs_validations_records_its_row(db: &Db) -> String {
 //   nothing else to return), routing_a_decision_needs_a_usable_queue.
 //   TestConfiguration: routing_configured_routers_are_loaded, routing_one_broken_entry_is_named_and_stops_startup
 //   (ace3 loads the others; ace4 stops, as the rest of the overlay does), routing_unknown_settings_are_a_load_error;
-//   test_the_shipped_configuration_loads is the site crate's the_shipped_routers_are_the_built_in_one, until
-//   7.10 batch 7 adds svs_marker; test_loading_never_leaves_an_empty_registry has no case, as the routers are
+//   test_the_shipped_configuration_loads is the site crate's
+//   the_shipped_routers_are_the_marker_router_and_the_built_in_one, since 7.10 batch 7a added svs_marker;
+//   test_loading_never_leaves_an_empty_registry has no case, as the routers are
 //   built once at startup and never reloaded. TestExampleIntegration is the site crate's
 //   the_example_router_loads_and_routes_only_tagged_alerts.
 // test_alert_routing.py: TestPreInsert: routing_a_decision_becomes_the_alert_s_queue,
@@ -23638,10 +23653,13 @@ async fn prune_svs_validations_records_its_row(db: &Db) -> String {
 //   routing_a_raising_router_never_breaks_the_routing. TestMoveAlertToQueue:
 //   routing_a_move_records_who_made_it_and_its_audit_row, routing_moving_back_restores_through_the_record,
 //   routing_the_same_queue_is_not_a_move, routing_a_move_judges_the_row_as_it_is_written (the disposition
-//   case; the two owner cases wait for alert ownership, 7.10 batch 7), routing_a_bad_queue_is_refused;
+//   case) and routing_a_move_judges_the_owner_as_the_row_is_written (the two owner cases: an analyst's
+//   alert stays, and ACE's component, which stands where ace3's automation user does, owns nothing, so the
+//   alert it dispositioned moves; 7.10 batch 7a), routing_a_bad_queue_is_refused;
 //   test_a_given_root_carries_the_queue has no case: the root's row is the alert's one queue.
 //   TestPostAnalysis: routing_an_open_alert_is_moved_after_a_later_pass,
-//   routing_a_dispositioned_alert_is_not_moved; the owned and automation-user cases wait for ownership.
+//   routing_a_dispositioned_alert_is_not_moved, routing_an_alert_an_analyst_owns_is_not_moved,
+//   routing_a_component_counts_as_nobody (ace3's automation user, 7.10 batch 7a).
 //   TestReconcile has no case, for the same reason as a given root's. TestFinalPass:
 //   routing_the_first_routing_is_the_alerted_stage_once, routing_runs_when_the_pass_completes,
 //   routing_waits_while_a_task_is_delayed, routing_runs_after_a_cancelled_pass. TestEngine:
@@ -24520,6 +24538,131 @@ mod routing_tests {
         assert_eq!(outcomes[0].moved, None);
         assert_eq!(queue_of(db, root).await, DEFAULT_QUEUE);
         assert_eq!(changes(db, root).await, []);
+    }
+
+    /// The owner half of ace3's conditional move: an analyst took the alert after its pass ended, and the
+    /// move is judged by the row under its lock. ace3's third parameter gives the alert to its automation
+    /// user, which counts as nobody; here a component that dispositions an alert doesn't own it.
+    #[tokio::test]
+    async fn routing_a_move_judges_the_owner_as_the_row_is_written() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let service = bare_service(db).with_routers(routers(vec![(
+            "svs_marker",
+            100,
+            fixed("svs", ALERTED),
+        )]));
+        let analyst = UserId(Uuid::from_u128(0xB0B));
+        exists(db, &Holder::User(analyst)).await;
+        let (root, _) = new_alert(db).await;
+        complete_pass(db, root).await;
+        sqlx::query("UPDATE analysis.roots SET owner_id = $2, owned_at = now() WHERE id = $1")
+            .bind(root)
+            .bind(analyst.0)
+            .execute(db.pool())
+            .await
+            .expect("takes it");
+        let outcomes = route_all(&service).await;
+        assert_eq!(
+            outcomes[0].decision.as_ref().map(|d| d.router.as_str()),
+            Some("svs_marker")
+        );
+        assert_eq!(outcomes[0].moved, None);
+        assert_eq!(queue_of(db, root).await, DEFAULT_QUEUE);
+        assert_eq!(changes(db, root).await, []);
+
+        // a component's disposition leaves the alert nobody's
+        let (root, _) = new_alert(db).await;
+        grant(
+            db,
+            &Holder::Component(Component::new("svs").expect("a name")),
+            "alert",
+            "write",
+            Effect::Allow,
+        )
+        .await;
+        for disposition in ["FALSE_POSITIVE", "OPEN"] {
+            service
+                .disposition(&component("svs"), root, disposition)
+                .await
+                .expect("dispositions");
+        }
+        let owner: Option<Uuid> =
+            sqlx::query_scalar("SELECT owner_id FROM analysis.roots WHERE id = $1")
+                .bind(root)
+                .fetch_one(db.pool())
+                .await
+                .expect("reads");
+        assert_eq!(owner, None);
+        if due(db).await.is_empty() {
+            complete_pass(db, root).await;
+        }
+        route_all(&service).await;
+        assert_eq!(queue_of(db, root).await, "svs");
+        assert_eq!(changes(db, root).await.len(), 1);
+    }
+
+    /// ace3's `test_an_alert_an_analyst_owns_is_not_moved`, at the later stage.
+    #[tokio::test]
+    async fn routing_an_alert_an_analyst_owns_is_not_moved() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let service = bare_service(db).with_routers(routers(vec![(
+            "post",
+            100,
+            fixed("post_queue", ANALYZED),
+        )]));
+        let (root, _) = new_alert(db).await;
+        complete_pass(db, root).await;
+        route_all(&service).await;
+        let analyst = UserId(Uuid::from_u128(0xB0B));
+        exists(db, &Holder::User(analyst)).await;
+        service
+            .set_alert_owner(&admin(db).await, root, Some(analyst))
+            .await
+            .expect("takes it");
+        complete_pass(db, root).await;
+        let outcomes = route_all(&service).await;
+        assert_eq!(outcomes.last().and_then(|o| o.stage), Some(Stage::Analyzed));
+        assert_eq!(outcomes.last().and_then(|o| o.moved.clone()), None);
+        assert_eq!(queue_of(db, root).await, DEFAULT_QUEUE);
+    }
+
+    /// ace3's `test_the_automation_user_counts_as_nobody`: setting a disposition as automation makes it the
+    /// owner there, and a re-review must still be able to move the alert. Here ACE's components own
+    /// nothing, so nothing has to be discounted: the alert a component closed and gave back moves.
+    #[tokio::test]
+    async fn routing_a_component_counts_as_nobody() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let service = bare_service(db).with_routers(routers(vec![(
+            "post",
+            100,
+            fixed("post_queue", ANALYZED),
+        )]));
+        let (root, _) = new_alert(db).await;
+        complete_pass(db, root).await;
+        route_all(&service).await;
+        grant(
+            db,
+            &Holder::Component(Component::new("svs").expect("a name")),
+            "alert",
+            "write",
+            Effect::Allow,
+        )
+        .await;
+        // SIMULATED is ACE's own, and only a component can give the alert back
+        for disposition in ["SIMULATED", "OPEN"] {
+            service
+                .disposition(&component("svs"), root, disposition)
+                .await
+                .expect("dispositions");
+        }
+        if due(db).await.is_empty() {
+            complete_pass(db, root).await;
+        }
+        route_all(&service).await;
+        assert_eq!(queue_of(db, root).await, "post_queue");
     }
 
     #[tokio::test]
@@ -37152,5 +37295,2246 @@ mod svs_attribution_tests {
                 .await,
             Err(ServiceError::PermissionDenied { .. })
         ));
+    }
+
+    /// SVS's marker router, the closing of test alerts and a person's associations (PLAN.md 7.10 batch
+    /// 7a). Where ace3's `ALERT()` and `sync_alert` judge and route an alert, `pass` here runs the core's
+    /// hook and then the routing, as the end of a pass does.
+    ///
+    /// test_routing.py (20). TestFallbackEventTime: `a_hunt_that_fell_back_is_warned_about_once` (its
+    /// first, second, third, sixth and seventh cases) and
+    /// `a_hunt_in_a_window_or_several_runs_claims_is_warned_about` (the fourth and fifth). TestPreInsert:
+    /// `a_marker_that_agrees_routes_the_alert`, `it_wins_over_a_detection_queue_and_a_configured_queue`
+    /// (two cases), `partial_and_mismatch_stay_and_context_is_routed` (three),
+    /// `a_refused_registration_on_a_test_host_stays_in_triage`, `nothing_happens_without_runs`,
+    /// `a_failing_marker_router_never_breaks_the_routing`. TestPostAnalysis:
+    /// `a_marker_found_by_analysis_moves_the_alert_and_it_goes_back` (two),
+    /// `an_alert_an_analyst_owns_is_not_moved`. TestEngine: `a_marker_in_a_dropped_file_routes_the_alert`.
+    ///
+    /// test_association.py (27). TestAssociate: `associating_an_unattributed_alert`,
+    /// `associating_over_the_hooks_rows`, `a_late_alert_and_a_run_canceled_before_it_started` (two),
+    /// `a_reviewed_run_changes_since_review`, `a_dispositioned_or_taken_alert_is_not_moved` (two),
+    /// `an_alert_with_no_time_of_its_own_is_judged_by_when_it_became_one`, `association_refused`.
+    /// TestDisassociate: `a_routed_alert_goes_back`, `a_simulated_alert_is_given_back_open`,
+    /// `an_analyst_who_took_the_reopened_alert_keeps_it`,
+    /// `an_alert_still_fully_attributed_to_another_run_stays`,
+    /// `an_alert_submitted_to_the_test_queue_stays_there`, `it_is_reversible`,
+    /// `nothing_to_disassociate`. TestNotATestAndKeep: `not_a_test_and_keep` (two).
+    /// TestFromTheAlertsSide: `every_run_lets_the_alert_go`, `a_simulated_alert_is_released_open`,
+    /// `not_a_test_from_the_alerts_side` (two), `nothing_holds_it`. TestTheRouterRespectsAPerson:
+    /// `a_disassociated_run_never_takes_the_alert_back`,
+    /// `another_runs_marker_is_attributed_but_the_queue_is_held`,
+    /// `a_hand_associated_alert_is_never_moved_back`,
+    /// `the_hook_never_overwrites_a_row_a_person_took`.
+    ///
+    /// test_run_alerts.py (13). TestClosingARun: `its_fully_attributed_alerts_become_simulated`,
+    /// `partial_taken_and_dispositioned_alerts_are_left_alone`,
+    /// `an_alert_dispositioned_or_disassociated_meanwhile_is_left_alone` (two),
+    /// `a_failure_never_undoes_the_close`. TestLateAlerts:
+    /// `an_alert_attributed_after_the_run_closed_is_closed_by_the_sweep`,
+    /// `the_sweep_leaves_open_runs_and_partial_alerts_alone`. TestEventLog and TestResultInputs:
+    /// `attributions_are_events_of_their_run` (four). TestChangedSinceReview:
+    /// `a_late_alert_after_review_flags_the_run` (two).
+    ///
+    /// test_maintenance.py (7 of the 17 that judge an alert): `an_alert_of_a_window_is_routed_recorded_and_closed`,
+    /// `an_alert_an_analyst_associated_or_took_is_left_alone` (two),
+    /// `an_alert_no_longer_judged_maintenance_is_not_closed`,
+    /// `a_window_whose_alerts_fail_to_close_doesnt_stop_the_others`.
+    /// `test_an_alert_is_confirmed_only_once_no_analysis_is_delayed` and
+    /// `test_an_alert_whose_analysis_was_aborted_is_confirmed` have no case: a record has no
+    /// `confirmed_at`, since the hook writes it only when a pass has nothing left to run.
+    pub(crate) mod association {
+        use super::*;
+        use ace_service::routing::{RouteOutcome, Routers, Stage, routing_actor};
+        use ace_service::svs_association::{MANUAL_ROUTER, MARKER_ROUTER, SVS_QUEUE};
+        use ace_service::{
+            AlertRelease, Association, AssociationResult, DEFAULT_QUEUE, MarkerRouter, TimerResult,
+        };
+
+        /// The fixture's service, with the marker router as `ace::app()` adds it.
+        fn routed(f: &Fx) -> Service {
+            f.service.clone().with_routers(
+                Routers::builtin()
+                    .with(MARKER_ROUTER, 100, Arc::new(MarkerRouter))
+                    .expect("adds the marker router"),
+            )
+        }
+
+        struct Ax {
+            f: Fx,
+            service: Service,
+        }
+
+        /// The fixture, the test host `win10-01`, and the routing service.
+        async fn ax(db: &Db) -> Ax {
+            let f = fixture(db).await;
+            f.host("win10-01", None, &[]).await;
+            let service = routed(&f);
+            Ax { f, service }
+        }
+
+        fn timers() -> Actor {
+            component("scheduler:svs_run_timers")
+        }
+
+        /// Another person, who may do everything.
+        async fn person(db: &Db, n: u128) -> (Actor, UserId) {
+            let id = UserId(Uuid::from_u128(n));
+            grant(db, &Holder::User(id), "*", "*", Effect::Allow).await;
+            (user(id), id)
+        }
+
+        /// The end of a pass over the alert: the core's hook judges it, and the routers route it.
+        async fn pass(db: &Db, service: &Service, root: Uuid) -> Option<RouteOutcome> {
+            judge(db, root).await;
+            let mut tx = db.begin().await.expect("begins");
+            queue::begin_pass(&mut tx, root)
+                .await
+                .expect("begins a pass");
+            queue::check_completion(&mut tx, root)
+                .await
+                .expect("completes");
+            tx.commit().await.expect("commits");
+            let mut last = None;
+            while let Some(outcome) = service.route_due(&routing_actor()).await.expect("routes") {
+                last = Some(outcome);
+            }
+            last
+        }
+
+        fn command_line(marker: &str) -> Value {
+            json!({"events": [{"command_line": format!("whoami & REM {marker}")}]})
+        }
+
+        /// `_root` and `_alert`: an alert on `host` with one detection, and `marker` in its details, judged
+        /// and routed.
+        async fn alert(a: &Ax, db: &Db, host: &str, marker: Option<&str>) -> Uuid {
+            let root = staged_root(db, host, marker.map(command_line)).await;
+            pass(db, &a.service, root).await;
+            root
+        }
+
+        /// A partial alert: the marker on one observable with a detection, and a detection on another.
+        async fn partial_alert(a: &Ax, db: &Db, marker: &str) -> Uuid {
+            let root = alert_root(db, None, now()).await;
+            observable(db, root, "hostname", "win10-01").await;
+            let marked = observable(db, root, "user", &format!("ran {marker}")).await;
+            detect(db, root, Some(marked), "test detection").await;
+            let other = observable(db, root, "user", "unrelated").await;
+            detect(db, root, Some(other), "real detection").await;
+            pass(db, &a.service, root).await;
+            root
+        }
+
+        async fn queue_of(db: &Db, root: Uuid) -> String {
+            sqlx::query_scalar("SELECT queue::text FROM analysis.roots WHERE id = $1")
+                .bind(root)
+                .fetch_one(db.pool())
+                .await
+                .expect("reads")
+        }
+
+        async fn disposition_of(db: &Db, root: Uuid) -> Option<String> {
+            sqlx::query_scalar("SELECT disposition FROM analysis.roots WHERE id = $1")
+                .bind(root)
+                .fetch_one(db.pool())
+                .await
+                .expect("reads")
+        }
+
+        async fn owner_of(db: &Db, root: Uuid) -> Option<Uuid> {
+            sqlx::query_scalar("SELECT owner_id FROM analysis.roots WHERE id = $1")
+                .bind(root)
+                .fetch_one(db.pool())
+                .await
+                .expect("reads")
+        }
+
+        /// Each move as (from, to, router).
+        async fn moves(db: &Db, root: Uuid) -> Vec<(String, String, Option<String>)> {
+            sqlx::query_as(
+                "SELECT from_queue::text, to_queue::text, router
+                 FROM analysis.queue_changes WHERE root_id = $1 ORDER BY id",
+            )
+            .bind(root)
+            .fetch_all(db.pool())
+            .await
+            .expect("reads")
+        }
+
+        fn moved(from: &str, to: &str, router: &str) -> (String, String, Option<String>) {
+            (from.to_owned(), to.to_owned(), Some(router.to_owned()))
+        }
+
+        /// `_attributions`: each row as (confidence, source, removed), oldest first.
+        async fn attributions(db: &Db, root: Uuid) -> Vec<(String, String, bool)> {
+            sqlx::query_as(
+                "SELECT confidence::text, source, removed_at IS NOT NULL
+                 FROM svs.attributions WHERE root_id = $1 ORDER BY id",
+            )
+            .bind(root)
+            .fetch_all(db.pool())
+            .await
+            .expect("reads")
+        }
+
+        fn held(confidence: &str, source: &str) -> (String, String, bool) {
+            (confidence.to_owned(), source.to_owned(), false)
+        }
+
+        async fn events(db: &Db, run: Uuid, kind: &str) -> Vec<Value> {
+            sqlx::query_scalar(
+                "SELECT e.details FROM svs.run_events e JOIN svs.runs r ON r.id = e.run_id
+                 WHERE r.uuid = $1 AND e.kind = $2 ORDER BY e.id",
+            )
+            .bind(run)
+            .bind(kind)
+            .fetch_all(db.pool())
+            .await
+            .expect("reads")
+        }
+
+        async fn needs_attention(db: &Db, run: Uuid) -> bool {
+            sqlx::query_scalar(
+                "SELECT svs.run_needs_attention(r) FROM svs.runs r WHERE r.uuid = $1",
+            )
+            .bind(run)
+            .fetch_one(db.pool())
+            .await
+            .expect("reads")
+        }
+
+        async fn stale(db: &Db, run: Uuid) -> bool {
+            sqlx::query_scalar(
+                "SELECT s.stale FROM svs.run_result_state s JOIN svs.runs r ON r.id = s.run_id
+                 WHERE r.uuid = $1",
+            )
+            .bind(run)
+            .fetch_one(db.pool())
+            .await
+            .expect("reads")
+        }
+
+        async fn set_time(db: &Db, root: Uuid, at: DateTime<Utc>, source: &str) {
+            sqlx::query(
+                "UPDATE analysis.roots SET event_time = $2, event_time_source = $3::analysis.event_time_source
+                 WHERE id = $1",
+            )
+            .bind(root)
+            .bind(at)
+            .bind(source)
+            .execute(db.pool())
+            .await
+            .expect("sets the event time");
+        }
+
+        async fn set_state(db: &Db, run: Uuid, state: &str) {
+            sqlx::query("UPDATE svs.runs SET state = $2::svs.run_state WHERE uuid = $1")
+                .bind(run)
+                .bind(state)
+                .execute(db.pool())
+                .await
+                .expect("sets the state");
+        }
+
+        /// `_close`: cancels the run and lets the timers close it as its attribution window would. The
+        /// window is still open by the wall clock, so the hook keeps attributing to the closed run.
+        async fn close(a: &Ax, run: &Run) -> TimerResult {
+            a.f.service
+                .cancel_svs_run(&a.f.admin, run.uuid, now())
+                .await
+                .expect("cancels");
+            let result =
+                a.f.service
+                    .run_svs_timers(
+                        &timers(),
+                        run.attribution_ends_at.expect("a window") + TimeDelta::seconds(1),
+                    )
+                    .await
+                    .expect("runs the timers");
+            assert_eq!(result.closed, 1, "{result:?}");
+            result
+        }
+
+        async fn run_timers(a: &Ax) -> TimerResult {
+            a.f.service
+                .run_svs_timers(&timers(), now())
+                .await
+                .expect("runs the timers")
+        }
+
+        async fn associate(a: &Ax, who: &Actor, run: Uuid, root: Uuid) -> AssociationResult {
+            a.service
+                .change_svs_association(
+                    who,
+                    run,
+                    root,
+                    &Association::Associate { reason: None },
+                    now(),
+                )
+                .await
+                .expect("associates")
+        }
+
+        fn disassociation(reason: Option<&str>, not_a_test: bool) -> Association {
+            Association::Disassociate {
+                reason: reason.map(str::to_owned),
+                not_a_test,
+            }
+        }
+
+        async fn disassociate(a: &Ax, who: &Actor, run: Uuid, root: Uuid) -> AssociationResult {
+            a.service
+                .change_svs_association(who, run, root, &disassociation(None, false), now())
+                .await
+                .expect("disassociates")
+        }
+
+        async fn release(
+            a: &Ax,
+            root: Uuid,
+            not_a_test: bool,
+        ) -> Result<AlertRelease, ServiceError> {
+            a.service
+                .release_alert_from_svs(&a.f.admin, root, None, not_a_test, now())
+                .await
+        }
+
+        fn warnings(log: &Captured, root: Uuid) -> Vec<String> {
+            String::from_utf8(log.0.lock().expect("a lock").clone())
+                .expect("UTF-8")
+                .lines()
+                .filter(|line| {
+                    line.contains("without the event's own time")
+                        && line.contains(&root.to_string())
+                })
+                .map(str::to_owned)
+                .collect()
+        }
+
+        fn logged(log: &Captured, text: &str) -> bool {
+            String::from_utf8(log.0.lock().expect("a lock").clone())
+                .expect("UTF-8")
+                .lines()
+                .any(|line| line.contains(text))
+        }
+
+        //
+        // test_routing.py
+        //
+
+        #[tokio::test(flavor = "current_thread")]
+        async fn a_hunt_that_fell_back_is_warned_about_once() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let a = ax(db).await;
+            let run = a.f.started_run("win10-01", now() - minutes(1)).await;
+            let (log, _guard) = log_capture();
+            let source = async |root: Uuid| -> Vec<Option<String>> {
+                sqlx::query_scalar(
+                    "SELECT event_time_source FROM svs.attributions WHERE root_id = $1",
+                )
+                .bind(root)
+                .fetch_all(db.pool())
+                .await
+                .expect("reads")
+            };
+
+            // test_a_hunt_that_fell_back_on_a_test_host_is_warned_about_once
+            let root = staged_root(db, "win10-01", None).await;
+            set_time(db, root, now(), "query_time").await;
+            pass(db, &a.service, root).await;
+            pass(db, &a.service, root).await;
+            assert_eq!(source(root).await, [Some("query_time".to_owned())]);
+            let warned = warnings(&log, root);
+            assert_eq!(warned.len(), 1, "{warned:?}");
+            assert!(warned[0].contains("WARN"), "{warned:?}");
+            assert!(warned[0].contains("hunt=\"an alert\""), "{warned:?}");
+            assert!(warned[0].contains(&run.uuid.to_string()), "{warned:?}");
+            assert!(warned[0].contains("stage=\"alerted\""), "{warned:?}");
+
+            // test_a_hunt_first_attributed_by_a_later_pass_is_warned_about_then: as inserted it names no
+            // host, so nothing concerns a run
+            let root = alert_root(db, None, now()).await;
+            detect(db, root, None, "hunt hit").await;
+            set_time(db, root, now(), "query_time").await;
+            pass(db, &a.service, root).await;
+            assert_eq!(attributions(db, root).await, []);
+            assert_eq!(warnings(&log, root), Vec::<String>::new());
+            // analysis finds the test host
+            observable(db, root, "hostname", "win10-01").await;
+            pass(db, &a.service, root).await;
+            assert_eq!(attributions(db, root).await, [held("context", "router")]);
+            let warned = warnings(&log, root);
+            assert_eq!(warned.len(), 1, "{warned:?}");
+            assert!(warned[0].contains("stage=\"analyzed\""), "{warned:?}");
+
+            // test_a_later_pass_that_changes_its_attributions_is_not_warned_about_again
+            let root = staged_root(db, "win10-01", None).await;
+            set_time(db, root, now(), "query_time").await;
+            pass(db, &a.service, root).await;
+            assert_eq!(attributions(db, root).await, [held("context", "router")]);
+            set_details(db, root, command_line(&run.marker)).await;
+            pass(db, &a.service, root).await;
+            assert_eq!(attributions(db, root).await, [held("marker", "router")]);
+            let warned = warnings(&log, root);
+            assert_eq!(warned.len(), 1, "{warned:?}");
+            assert!(warned[0].contains("stage=\"alerted\""), "{warned:?}");
+
+            // test_the_events_own_time_is_not_warned_about
+            let root = staged_root(db, "win10-01", None).await;
+            set_time(db, root, now(), "event").await;
+            pass(db, &a.service, root).await;
+            assert_eq!(warnings(&log, root), Vec::<String>::new());
+            assert_eq!(source(root).await, [Some("event".to_owned())]);
+
+            // test_a_time_its_producer_made_up_is_not_blamed_on_a_hunt: now is a fallback time too, but
+            // no hunt's timestamp extraction is at fault
+            let root = staged_root(db, "win10-01", None).await;
+            set_time(db, root, now(), "now").await;
+            pass(db, &a.service, root).await;
+            pass(db, &a.service, root).await;
+            assert_eq!(warnings(&log, root), Vec::<String>::new());
+            assert_eq!(source(root).await, [Some("now".to_owned())]);
+        }
+
+        #[tokio::test(flavor = "current_thread")]
+        async fn a_hunt_in_a_window_or_several_runs_claims_is_warned_about() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let a = ax(db).await;
+            a.f.host("win10-02", None, &[]).await;
+            let (log, _guard) = log_capture();
+
+            // test_a_hunt_inside_a_maintenance_window_is_warned_about
+            let window = a.f.window("win10-01", now() - minutes(10)).await;
+            let root = staged_root(db, "win10-01", None).await;
+            set_time(db, root, now(), "query_time").await;
+            pass(db, &a.service, root).await;
+            pass(db, &a.service, root).await;
+            assert_eq!(attributions(db, root).await, []);
+            let warned = warnings(&log, root);
+            assert_eq!(warned.len(), 1, "{warned:?}");
+            assert!(warned[0].contains(&window.uuid.to_string()), "{warned:?}");
+            assert!(warned[0].contains("stage=\"alerted\""), "{warned:?}");
+
+            // test_a_hunt_that_several_runs_could_claim_is_warned_about
+            run_at(db, "win10-02", Some(now() - minutes(1))).await;
+            run_at(db, "win10-02", Some(now() - minutes(1))).await;
+            let root = staged_root(db, "win10-02", None).await;
+            set_time(db, root, now(), "query_time").await;
+            pass(db, &a.service, root).await;
+            assert_eq!(attributions(db, root).await, []);
+            assert!(logged(&log, "svs context attribution of an alert refused"));
+            let warned = warnings(&log, root);
+            assert_eq!(warned.len(), 1, "{warned:?}");
+        }
+
+        /// `test_a_marker_that_agrees_routes_the_alert`. ace3 also reads the queue from the tree, which
+        /// has no copy here.
+        #[tokio::test]
+        async fn a_marker_that_agrees_routes_the_alert() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let a = ax(db).await;
+            let run = a.f.started_run("win10-01", now() - minutes(1)).await;
+            let root = staged_root(db, "win10-01", Some(command_line(&run.marker))).await;
+            let outcome = pass(db, &a.service, root).await.expect("routed");
+            assert_eq!(outcome.stage, Some(Stage::Alerted));
+            let decision = outcome.decision.expect("a decision");
+            assert_eq!(decision.router, MARKER_ROUTER);
+            assert_eq!(
+                decision.reason,
+                format!("every detection is attributed to SVS test run {}", run.uuid)
+            );
+            assert_eq!(queue_of(db, root).await, SVS_QUEUE);
+            assert_eq!(
+                moves(db, root).await,
+                [moved(DEFAULT_QUEUE, SVS_QUEUE, MARKER_ROUTER)]
+            );
+            assert_eq!(attributions(db, root).await, [held("marker", "router")]);
+            // the same again changes nothing
+            pass(db, &a.service, root).await;
+            assert_eq!(moves(db, root).await.len(), 1);
+        }
+
+        /// `test_it_wins_over_a_detection_queue`: the marker router runs first, though every detection
+        /// asks for a queue, which the detection-queue router would send the alert to. And
+        /// `test_it_overrides_a_configured_queue`.
+        #[tokio::test]
+        async fn it_wins_over_a_detection_queue_and_a_configured_queue() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let a = ax(db).await;
+            let run = a.f.started_run("win10-01", now() - minutes(1)).await;
+            let root = staged_root(db, "win10-01", Some(command_line(&run.marker))).await;
+            sqlx::query("UPDATE analysis.detections SET queue = 'experimental' WHERE root_id = $1")
+                .bind(root)
+                .execute(db.pool())
+                .await
+                .expect("asks for a queue");
+            pass(db, &a.service, root).await;
+            assert_eq!(queue_of(db, root).await, SVS_QUEUE);
+
+            let root = staged_root(db, "win10-01", Some(command_line(&run.marker))).await;
+            sqlx::query("UPDATE analysis.roots SET queue = 'hunting' WHERE id = $1")
+                .bind(root)
+                .execute(db.pool())
+                .await
+                .expect("sets its queue");
+            pass(db, &a.service, root).await;
+            assert_eq!(queue_of(db, root).await, SVS_QUEUE);
+            assert_eq!(
+                moves(db, root).await,
+                [moved("hunting", SVS_QUEUE, MARKER_ROUTER)]
+            );
+        }
+
+        /// `test_partial_stays_in_its_queue`, `test_a_mismatch_stays_and_attributes_nothing` and
+        /// `test_context`.
+        #[tokio::test]
+        async fn partial_and_mismatch_stay_and_context_is_routed() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let a = ax(db).await;
+            let run = a.f.started_run("win10-01", now() - minutes(1)).await;
+
+            let root = partial_alert(&a, db, &run.marker).await;
+            assert_eq!(queue_of(db, root).await, DEFAULT_QUEUE);
+            assert_eq!(attributions(db, root).await, [held("marker", "router")]);
+            assert_eq!(moves(db, root).await, []);
+
+            let root = alert(&a, db, "srv-01", Some(&run.marker)).await;
+            assert_eq!(queue_of(db, root).await, DEFAULT_QUEUE);
+            assert_eq!(attributions(db, root).await, []);
+
+            let root = alert(&a, db, "win10-01", None).await;
+            assert_eq!(queue_of(db, root).await, SVS_QUEUE);
+            assert_eq!(attributions(db, root).await, [held("context", "router")]);
+        }
+
+        /// `test_a_refused_registration_on_a_test_host_stays_in_triage`: its alert names the host of the
+        /// live run, which context attribution would claim it for.
+        #[tokio::test]
+        async fn a_refused_registration_on_a_test_host_stays_in_triage() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let a = ax(db).await;
+            a.f.started_run("win10-01", now() - minutes(1)).await;
+            let root = alert_root(db, None, now()).await;
+            let host = observable(db, root, "hostname", "win10-01").await;
+            detect_as(db, root, Some(host), "refused", Some(REFUSED_SIGNATURE)).await;
+            pass(db, &a.service, root).await;
+            assert_eq!(queue_of(db, root).await, DEFAULT_QUEUE);
+            assert_eq!(attributions(db, root).await, []);
+        }
+
+        /// `test_nothing_happens_without_runs`: the gate is closed, so the alert's marker isn't even
+        /// judged, which would make it a mismatch, and the router has nothing to say.
+        #[tokio::test(flavor = "current_thread")]
+        async fn nothing_happens_without_runs() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let a = ax(db).await;
+            let (log, _guard) = log_capture();
+            let root = staged_root(db, "win10-01", Some(command_line(MARKER))).await;
+            let outcome = pass(db, &a.service, root).await.expect("routed");
+            assert_eq!(outcome.decision, None);
+            assert_eq!(queue_of(db, root).await, DEFAULT_QUEUE);
+            assert_eq!(attributions(db, root).await, []);
+            assert!(!logged(&log, "svs router decision"));
+            assert!(!logged(&log, "svs marker"));
+        }
+
+        /// `test_a_failing_router_never_breaks_the_insert`: the router's read fails, the routing goes on
+        /// without it, and the alert stays.
+        #[tokio::test]
+        async fn a_failing_marker_router_never_breaks_the_routing() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let a = ax(db).await;
+            let run = a.f.started_run("win10-01", now() - minutes(1)).await;
+            let root = staged_root(db, "win10-01", Some(command_line(&run.marker))).await;
+            sqlx::query("ALTER FUNCTION svs.fully_attributed(uuid) RENAME TO broken")
+                .execute(db.pool())
+                .await
+                .expect("breaks the router's read");
+            let outcome = pass(db, &a.service, root).await.expect("routed");
+            assert_eq!(outcome.stage, Some(Stage::Alerted));
+            assert_eq!(outcome.decision, None);
+            assert_eq!(queue_of(db, root).await, DEFAULT_QUEUE);
+        }
+
+        /// `test_a_marker_found_by_analysis_moves_the_alert` and
+        /// `test_it_goes_back_when_it_is_no_longer_fully_attributed`.
+        #[tokio::test]
+        async fn a_marker_found_by_analysis_moves_the_alert_and_it_goes_back() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let a = ax(db).await;
+            let run = a.f.started_run("win10-01", now() - minutes(1)).await;
+            // a hunt alert before analysis: nothing in it names a test host yet
+            let root = alert(&a, db, "srv-01", None).await;
+            assert_eq!(queue_of(db, root).await, DEFAULT_QUEUE);
+            // analysis decoded a command line on the target
+            observable(db, root, "hostname", "win10-01").await;
+            observable(db, root, "user", &format!("decoded {}", run.marker)).await;
+            let outcome = pass(db, &a.service, root).await.expect("routed");
+            assert_eq!(outcome.stage, Some(Stage::Analyzed));
+            assert_eq!(queue_of(db, root).await, SVS_QUEUE);
+            assert_eq!(
+                moves(db, root).await,
+                [moved(DEFAULT_QUEUE, SVS_QUEUE, MARKER_ROUTER)]
+            );
+
+            // a later pass finds a detection on another branch
+            let other = observable(db, root, "user", "unrelated").await;
+            detect(db, root, Some(other), "real detection").await;
+            let outcome = pass(db, &a.service, root).await.expect("routed");
+            assert_eq!(
+                outcome.decision.map(|d| d.reason),
+                Some("no longer attributed to an SVS test run".to_owned())
+            );
+            assert_eq!(queue_of(db, root).await, DEFAULT_QUEUE);
+            assert_eq!(
+                moves(db, root).await.last(),
+                Some(&moved(SVS_QUEUE, DEFAULT_QUEUE, MARKER_ROUTER))
+            );
+        }
+
+        /// `test_an_alert_an_analyst_owns_is_not_moved`: attributed all the same, so the alert gets its
+        /// SVS status.
+        #[tokio::test(flavor = "current_thread")]
+        async fn an_alert_an_analyst_owns_is_not_moved() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let a = ax(db).await;
+            let run = a.f.started_run("win10-01", now() - minutes(1)).await;
+            let (_, bob) = person(db, 0xB0B).await;
+            let root = alert(&a, db, "srv-01", None).await;
+            assert_eq!(
+                a.service
+                    .set_alert_owner(&a.f.admin, root, Some(bob))
+                    .await
+                    .expect("takes it"),
+                None
+            );
+            let (log, _guard) = log_capture();
+            observable(db, root, "hostname", "win10-01").await;
+            observable(db, root, "user", &format!("decoded {}", run.marker)).await;
+            let outcome = pass(db, &a.service, root).await.expect("routed");
+            assert_eq!(outcome.moved, None);
+            assert_eq!(queue_of(db, root).await, DEFAULT_QUEUE);
+            assert_eq!(attributions(db, root).await, [held("marker", "router")]);
+            assert!(logged(&log, "decision=\"not moved because owned\""));
+            // given up, it goes on the next pass
+            a.service
+                .set_alert_owner(&a.f.admin, root, None)
+                .await
+                .expect("gives it up");
+            pass(db, &a.service, root).await;
+            assert_eq!(queue_of(db, root).await, SVS_QUEUE);
+        }
+
+        /// `test_a_marker_in_a_dropped_file_routes_the_alert`: the marker rule matched the file, and the
+        /// hook reads the match from the scanner's result. The scan itself is `ace-yara`'s and the
+        /// builder's tests (batch 6).
+        #[tokio::test]
+        async fn a_marker_in_a_dropped_file_routes_the_alert() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let a = ax(db).await;
+            let run = a.f.started_run("win10-01", now() - minutes(1)).await;
+            let root = staged_root(db, "win10-01", None).await;
+            let file = observable(db, root, "file", &"ab".repeat(32)).await;
+            let matched = serde_json::to_value(ace_results::Bytes::new(
+                format!("<# {} #>", run.marker).into_bytes(),
+            ))
+            .expect("bytes");
+            analysis(
+                db,
+                root,
+                file,
+                "yara_scanner_v3_4",
+                json!({"scan_results": [{"rule": MARKER_RULE_NAME, "strings": [[0, "$marker", matched]]}]}),
+                &[],
+            )
+            .await;
+            pass(db, &a.service, root).await;
+            let points: Vec<Option<String>> =
+                sqlx::query_scalar("SELECT scan_point FROM svs.attributions WHERE root_id = $1")
+                    .bind(root)
+                    .fetch_all(db.pool())
+                    .await
+                    .expect("reads");
+            assert_eq!(points, [Some("file_contents".to_owned())]);
+            assert_eq!(queue_of(db, root).await, SVS_QUEUE);
+            assert_eq!(attributions(db, root).await, [held("marker", "router")]);
+        }
+
+        //
+        // test_association.py
+        //
+
+        /// `test_an_unattributed_alert`.
+        #[tokio::test]
+        async fn associating_an_unattributed_alert() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let a = ax(db).await;
+            let run = a.f.started_run("win10-01", now() - minutes(1)).await;
+            // an event time well before the alert became one, so the two can't be confused
+            let event_time = now() - TimeDelta::seconds(30);
+            let root = staged_root(db, "srv-01", None).await;
+            set_time(db, root, event_time, "event").await;
+            pass(db, &a.service, root).await;
+            assert_eq!(queue_of(db, root).await, DEFAULT_QUEUE);
+
+            let result = a
+                .service
+                .change_svs_association(
+                    &a.f.admin,
+                    run.uuid,
+                    root,
+                    &Association::Associate {
+                        reason: Some("seen on the test VM's console".to_owned()),
+                    },
+                    now(),
+                )
+                .await
+                .expect("associates");
+            assert_eq!(
+                result,
+                AssociationResult {
+                    alert: root,
+                    svs_status: Some(SvsStatus::Test),
+                    queue: SVS_QUEUE.to_owned(),
+                    moved: true,
+                    reopened: false,
+                }
+            );
+            let row: (
+                String,
+                String,
+                Option<String>,
+                bool,
+                Value,
+                DateTime<Utc>,
+                String,
+            ) = sqlx::query_as(
+                "SELECT source, confidence::text, scan_point, late, actor::jsonb, event_time,
+                            event_time_source
+                     FROM svs.attributions WHERE root_id = $1",
+            )
+            .bind(root)
+            .fetch_one(db.pool())
+            .await
+            .expect("one row");
+            assert_eq!(
+                row,
+                (
+                    "manual".to_owned(),
+                    "marker".to_owned(),
+                    None,
+                    false,
+                    serde_json::to_value(&a.f.admin).expect("JSON"),
+                    event_time,
+                    "event".to_owned()
+                )
+            );
+            assert_eq!(
+                moves(db, root).await,
+                [moved(DEFAULT_QUEUE, SVS_QUEUE, MANUAL_ROUTER)]
+            );
+            let associated = events(db, run.uuid, "associated").await;
+            assert_eq!(associated.len(), 1);
+            assert_eq!(associated[0]["alert_uuid"], json!(root));
+            assert_eq!(associated[0]["reason"], "seen on the test VM's console");
+            assert_eq!(associated[0]["late"], false);
+            assert!(stale(db, run.uuid).await);
+        }
+
+        /// `test_over_the_routers_rows`.
+        #[tokio::test]
+        async fn associating_over_the_hooks_rows() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let a = ax(db).await;
+            let run = a.f.started_run("win10-01", now() - minutes(1)).await;
+            let root = alert(&a, db, "win10-01", Some(&run.marker)).await;
+            assert_eq!(attributions(db, root).await, [held("marker", "router")]);
+            let result = associate(&a, &a.f.admin, run.uuid, root).await;
+            assert_eq!(
+                (result.moved, result.svs_status),
+                (false, Some(SvsStatus::Test))
+            );
+            assert_eq!(attributions(db, root).await, [held("marker", "manual")]);
+            let points: Vec<Option<String>> =
+                sqlx::query_scalar("SELECT scan_point FROM svs.attributions WHERE root_id = $1")
+                    .bind(root)
+                    .fetch_all(db.pool())
+                    .await
+                    .expect("reads");
+            assert_eq!(points, [None]);
+        }
+
+        /// `test_a_late_alert`, and `test_a_run_canceled_before_it_started`: it has no observation
+        /// window, so nothing associated with it is late.
+        #[tokio::test]
+        async fn a_late_alert_and_a_run_canceled_before_it_started() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let a = ax(db).await;
+            let late = async |root: Uuid, run: Uuid| -> (bool, String) {
+                sqlx::query_as(
+                    "SELECT a.late, a.source FROM svs.attributions a JOIN svs.runs r ON r.id = a.run_id
+                     WHERE a.root_id = $1 AND r.uuid = $2",
+                )
+                .bind(root)
+                .bind(run)
+                .fetch_one(db.pool())
+                .await
+                .expect("one row")
+            };
+            let early = a.f.started_run("win10-01", now() - hours(3)).await;
+            let root = alert(&a, db, "srv-01", None).await;
+            associate(&a, &a.f.admin, early.uuid, root).await;
+            assert_eq!(late(root, early.uuid).await, (true, "manual".to_owned()));
+
+            let canceled =
+                a.f.service
+                    .register_svs_run(
+                        &a.f.admin,
+                        &Registration {
+                            test_guid: GUID.to_owned(),
+                            targets: vec![TargetSpec::new("win10-01", None)],
+                            launcher: "art".to_owned(),
+                            batch_id: None,
+                            extra: json!({}),
+                        },
+                        now(),
+                    )
+                    .await
+                    .expect("registers");
+            let canceled =
+                a.f.service
+                    .cancel_svs_run(&a.f.admin, canceled.uuid, now())
+                    .await
+                    .expect("cancels");
+            assert_eq!(canceled.observation_ends_at, None);
+            let root = alert(&a, db, "srv-01", None).await;
+            associate(&a, &a.f.admin, canceled.uuid, root).await;
+            assert_eq!(
+                late(root, canceled.uuid).await,
+                (false, "manual".to_owned())
+            );
+        }
+
+        /// `test_a_reviewed_run_changes_since_review`.
+        #[tokio::test]
+        async fn a_reviewed_run_changes_since_review() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let a = ax(db).await;
+            let run = a.f.started_run("win10-01", now() - minutes(1)).await;
+            set_state(db, run.uuid, "reviewed").await;
+            let root = alert(&a, db, "srv-01", None).await;
+            associate(&a, &a.f.admin, run.uuid, root).await;
+            let changed: bool =
+                sqlx::query_scalar("SELECT changed_since_review FROM svs.runs WHERE uuid = $1")
+                    .bind(run.uuid)
+                    .fetch_one(db.pool())
+                    .await
+                    .expect("reads");
+            assert!(changed);
+        }
+
+        /// `test_a_dispositioned_alert_is_not_moved` and `test_an_alert_taken_meanwhile_is_not_moved`:
+        /// the move is judged by the alert's row under its lock. An alert the person owns themselves
+        /// moves.
+        #[tokio::test]
+        async fn a_dispositioned_or_taken_alert_is_not_moved() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let a = ax(db).await;
+            let run = a.f.started_run("win10-01", now() - minutes(1)).await;
+            let (_, bob) = person(db, 0xB0B).await;
+            let admin_id = UserId(Uuid::from_u128(0xAD));
+            let stays = |result: &AssociationResult| {
+                (
+                    result.svs_status,
+                    result.moved,
+                    result.queue == DEFAULT_QUEUE,
+                )
+            };
+
+            let root = alert(&a, db, "srv-01", None).await;
+            a.service
+                .disposition(&a.f.admin, root, "FALSE_POSITIVE")
+                .await
+                .expect("dispositions");
+            let result = associate(&a, &a.f.admin, run.uuid, root).await;
+            assert_eq!(stays(&result), (Some(SvsStatus::Test), false, true));
+
+            let root = alert(&a, db, "srv-01", None).await;
+            a.service
+                .set_alert_owner(&a.f.admin, root, Some(bob))
+                .await
+                .expect("bob takes it");
+            let result = associate(&a, &a.f.admin, run.uuid, root).await;
+            assert_eq!(stays(&result), (Some(SvsStatus::Test), false, true));
+            assert_eq!(moves(db, root).await, []);
+
+            let root = alert(&a, db, "srv-01", None).await;
+            a.service
+                .set_alert_owner(&a.f.admin, root, Some(admin_id))
+                .await
+                .expect("takes it");
+            let result = associate(&a, &a.f.admin, run.uuid, root).await;
+            assert!(result.moved);
+            assert_eq!(queue_of(db, root).await, SVS_QUEUE);
+        }
+
+        /// `test_an_alert_that_cannot_be_loaded_is_judged_by_its_insert_time`: ace3 falls back when the
+        /// alert's tree can't be read from disk; here the time is in the alert's row, and one with no
+        /// event time of its own is judged by when it became an alert.
+        #[tokio::test]
+        async fn an_alert_with_no_time_of_its_own_is_judged_by_when_it_became_one() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let a = ax(db).await;
+            let run = a.f.started_run("win10-01", now() - minutes(1)).await;
+            let root = alert(&a, db, "srv-01", None).await;
+            associate(&a, &a.f.admin, run.uuid, root).await;
+            let (source, event_time, alerted_at): (String, DateTime<Utc>, DateTime<Utc>) =
+                sqlx::query_as(
+                    "SELECT a.event_time_source, a.event_time, o.alerted_at
+                     FROM svs.attributions a JOIN analysis.roots o ON o.id = a.root_id
+                     WHERE a.root_id = $1",
+                )
+                .bind(root)
+                .fetch_one(db.pool())
+                .await
+                .expect("one row");
+            assert_eq!(source, "insert_time");
+            assert_eq!(event_time, alerted_at);
+        }
+
+        /// `test_refused`.
+        #[tokio::test]
+        async fn association_refused() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let a = ax(db).await;
+            let created =
+                a.f.service
+                    .register_svs_run(
+                        &a.f.admin,
+                        &Registration {
+                            test_guid: GUID.to_owned(),
+                            targets: vec![TargetSpec::new("win10-01", None)],
+                            launcher: "art".to_owned(),
+                            batch_id: None,
+                            extra: json!({}),
+                        },
+                        now(),
+                    )
+                    .await
+                    .expect("registers");
+            let root = alert(&a, db, "srv-01", None).await;
+            let try_it = async |run: Uuid, root: Uuid| {
+                a.service
+                    .change_svs_association(
+                        &a.f.admin,
+                        run,
+                        root,
+                        &Association::Associate { reason: None },
+                        now(),
+                    )
+                    .await
+                    .expect_err("refused")
+            };
+            assert!(matches!(
+                try_it(created.uuid, root).await,
+                ServiceError::Conflict(why) if why.contains("never started")
+            ));
+            a.f.host("win10-02", None, &[]).await;
+            let run = a.f.started_run("win10-02", now()).await;
+            let bare = alert_root(db, None, now()).await;
+            assert!(matches!(
+                try_it(run.uuid, bare).await,
+                ServiceError::InvalidRequest(why) if why.contains("no detections")
+            ));
+            assert!(matches!(
+                try_it(run.uuid, Uuid::new_v4()).await,
+                ServiceError::NotFound(_)
+            ));
+            assert!(matches!(
+                try_it(Uuid::new_v4(), root).await,
+                ServiceError::NotFound(_)
+            ));
+            let long = Association::Associate {
+                reason: Some("x".repeat(513)),
+            };
+            assert!(matches!(
+                a.service
+                    .change_svs_association(&a.f.admin, run.uuid, root, &long, now())
+                    .await,
+                Err(ServiceError::InvalidRequest(_))
+            ));
+            // nothing was written, and nobody without svs:run_manage may
+            assert_eq!(attributions(db, root).await, []);
+            let outsider = user(UserId(Uuid::from_u128(0x0BAD)));
+            exists(db, &Holder::User(UserId(Uuid::from_u128(0x0BAD)))).await;
+            assert!(matches!(
+                a.service
+                    .change_svs_association(
+                        &outsider,
+                        run.uuid,
+                        root,
+                        &Association::Associate { reason: None },
+                        now()
+                    )
+                    .await,
+                Err(ServiceError::PermissionDenied { .. })
+            ));
+            assert!(matches!(
+                a.service
+                    .release_alert_from_svs(&outsider, root, None, false, now())
+                    .await,
+                Err(ServiceError::PermissionDenied { .. })
+            ));
+            assert!(matches!(
+                a.service.set_alert_owner(&outsider, root, None).await,
+                Err(ServiceError::PermissionDenied { .. })
+            ));
+        }
+
+        /// `test_a_routed_alert_goes_back`.
+        #[tokio::test]
+        async fn a_routed_alert_goes_back() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let a = ax(db).await;
+            let run = a.f.started_run("win10-01", now() - minutes(1)).await;
+            let root = alert(&a, db, "win10-01", Some(&run.marker)).await;
+            assert_eq!(queue_of(db, root).await, SVS_QUEUE);
+            let result = a
+                .service
+                .change_svs_association(
+                    &a.f.admin,
+                    run.uuid,
+                    root,
+                    &disassociation(Some("the analyst ran this by hand"), false),
+                    now(),
+                )
+                .await
+                .expect("disassociates");
+            assert_eq!(
+                result,
+                AssociationResult {
+                    alert: root,
+                    svs_status: None,
+                    queue: DEFAULT_QUEUE.to_owned(),
+                    moved: true,
+                    reopened: false,
+                }
+            );
+            let (removed_by, reason): (Value, Option<String>) = sqlx::query_as(
+                "SELECT removed_by::jsonb, removal_reason FROM svs.attributions WHERE root_id = $1",
+            )
+            .bind(root)
+            .fetch_one(db.pool())
+            .await
+            .expect("one row");
+            assert_eq!(removed_by, serde_json::to_value(&a.f.admin).expect("JSON"));
+            assert_eq!(reason.as_deref(), Some("the analyst ran this by hand"));
+            assert_eq!(
+                moves(db, root).await.last(),
+                Some(&moved(SVS_QUEUE, DEFAULT_QUEUE, MANUAL_ROUTER))
+            );
+            let disassociated = events(db, run.uuid, "disassociated").await;
+            assert_eq!(disassociated.len(), 1);
+            assert_eq!(disassociated[0]["not_a_test"], false);
+        }
+
+        /// `test_a_simulated_alert_is_given_back_open`: ACE's component writes the disposition, since an
+        /// analyst can't change a frozen alert, and the audit row names the analyst.
+        #[tokio::test]
+        async fn a_simulated_alert_is_given_back_open() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let a = ax(db).await;
+            let run = a.f.started_run("win10-01", now() - minutes(1)).await;
+            let root = alert(&a, db, "win10-01", Some(&run.marker)).await;
+            close(&a, &run).await;
+            assert_eq!(disposition_of(db, root).await.as_deref(), Some("SIMULATED"));
+            // an analyst can't reopen it themselves
+            assert!(matches!(
+                a.service.disposition(&a.f.admin, root, "OPEN").await,
+                Err(ServiceError::Conflict(_))
+            ));
+
+            let result = disassociate(&a, &a.f.admin, run.uuid, root).await;
+            assert_eq!(
+                (result.reopened, result.moved, result.queue.as_str()),
+                (true, true, DEFAULT_QUEUE)
+            );
+            let by: Value = sqlx::query_scalar(
+                "SELECT dispositioned_by::jsonb FROM analysis.roots WHERE id = $1",
+            )
+            .bind(root)
+            .fetch_one(db.pool())
+            .await
+            .expect("reads");
+            assert_eq!(by, json!({"kind": "internal", "id": "svs"}));
+            assert_eq!(disposition_of(db, root).await.as_deref(), Some("OPEN"));
+            assert_eq!(owner_of(db, root).await, None);
+            let row = last_audit(db).await;
+            assert_eq!(row.action, "change_svs_association");
+            assert_eq!(row.actor, serde_json::to_value(&a.f.admin).expect("JSON"));
+            assert_eq!(row.details["reopened"], true);
+            assert_eq!(row.before.expect("a before")["disposition"], "SIMULATED");
+            assert_eq!(row.after.expect("an after")["disposition"], "OPEN");
+        }
+
+        /// `test_an_analyst_who_takes_the_reopened_alert_keeps_it`: here nothing is given up when an
+        /// alert is reopened, so an analyst who owns it keeps it, and it stays where they have it.
+        #[tokio::test]
+        async fn an_analyst_who_took_the_reopened_alert_keeps_it() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let a = ax(db).await;
+            let run = a.f.started_run("win10-01", now() - minutes(1)).await;
+            let root = alert(&a, db, "win10-01", Some(&run.marker)).await;
+            close(&a, &run).await;
+            let (_, bob) = person(db, 0xB0B).await;
+            a.service
+                .set_alert_owner(&a.f.admin, root, Some(bob))
+                .await
+                .expect("bob takes it");
+            let result = disassociate(&a, &a.f.admin, run.uuid, root).await;
+            assert!(result.reopened);
+            assert!(!result.moved);
+            assert_eq!(owner_of(db, root).await, Some(bob.0));
+        }
+
+        /// `test_an_alert_still_fully_attributed_to_another_run_stays`.
+        #[tokio::test]
+        async fn an_alert_still_fully_attributed_to_another_run_stays() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let a = ax(db).await;
+            let run = a.f.started_run("win10-01", now() - minutes(1)).await;
+            let root = alert(&a, db, "win10-01", Some(&run.marker)).await;
+            let other = run_at(db, "win10-01", Some(now() - minutes(1))).await;
+            associate(&a, &a.f.admin, other.uuid, root).await;
+            let result = disassociate(&a, &a.f.admin, run.uuid, root).await;
+            assert_eq!(
+                (result.svs_status, result.queue.as_str(), result.moved),
+                (Some(SvsStatus::Test), SVS_QUEUE, false)
+            );
+        }
+
+        /// `test_an_alert_submitted_to_the_test_queue_stays_there`.
+        #[tokio::test]
+        async fn an_alert_submitted_to_the_test_queue_stays_there() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let a = ax(db).await;
+            let run = a.f.started_run("win10-01", now() - minutes(1)).await;
+            let root = staged_root(db, "srv-01", None).await;
+            sqlx::query("UPDATE analysis.roots SET queue = 'svs' WHERE id = $1")
+                .bind(root)
+                .execute(db.pool())
+                .await
+                .expect("sets its queue");
+            pass(db, &a.service, root).await;
+            associate(&a, &a.f.admin, run.uuid, root).await;
+            let result = disassociate(&a, &a.f.admin, run.uuid, root).await;
+            assert_eq!((result.moved, result.queue.as_str()), (false, SVS_QUEUE));
+        }
+
+        /// `test_it_is_reversible`.
+        #[tokio::test]
+        async fn it_is_reversible() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let a = ax(db).await;
+            let run = a.f.started_run("win10-01", now() - minutes(1)).await;
+            let root = alert(&a, db, "win10-01", Some(&run.marker)).await;
+            disassociate(&a, &a.f.admin, run.uuid, root).await;
+            let result = associate(&a, &a.f.admin, run.uuid, root).await;
+            assert_eq!(
+                (result.svs_status, result.queue.as_str()),
+                (Some(SvsStatus::Test), SVS_QUEUE)
+            );
+            assert_eq!(attributions(db, root).await, [held("marker", "manual")]);
+            let removed: Option<Value> = sqlx::query_scalar(
+                "SELECT removed_by::jsonb FROM svs.attributions WHERE root_id = $1",
+            )
+            .bind(root)
+            .fetch_one(db.pool())
+            .await
+            .expect("reads");
+            assert_eq!(removed, None);
+        }
+
+        /// `test_nothing_to_disassociate`.
+        #[tokio::test]
+        async fn nothing_to_disassociate() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let a = ax(db).await;
+            let run = a.f.started_run("win10-01", now() - minutes(1)).await;
+            let root = alert(&a, db, "srv-01", None).await;
+            assert!(matches!(
+                a.service
+                    .change_svs_association(
+                        &a.f.admin,
+                        run.uuid,
+                        root,
+                        &disassociation(None, false),
+                        now()
+                    )
+                    .await,
+                Err(ServiceError::Conflict(why)) if why.contains("is not attributed to run")
+            ));
+        }
+
+        /// `test_not_a_test_on_a_marker_alert_is_refused` and `test_keep`.
+        #[tokio::test]
+        async fn not_a_test_and_keep() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let a = ax(db).await;
+            let run = a.f.started_run("win10-01", now() - minutes(1)).await;
+            let marked = alert(&a, db, "win10-01", Some(&run.marker)).await;
+            assert!(matches!(
+                a.service
+                    .change_svs_association(
+                        &a.f.admin,
+                        run.uuid,
+                        marked,
+                        &disassociation(None, true),
+                        now()
+                    )
+                    .await,
+                Err(ServiceError::Conflict(why)) if why.contains("more than context")
+            ));
+            assert_eq!(attributions(db, marked).await, [held("marker", "router")]);
+
+            let context = alert(&a, db, "win10-01", None).await;
+            let result = a
+                .service
+                .change_svs_association(&a.f.admin, run.uuid, context, &Association::Keep, now())
+                .await
+                .expect("keeps");
+            assert_eq!(result.svs_status, Some(SvsStatus::TestContext));
+            let (kept_by, kept): (Option<Value>, bool) = sqlx::query_as(
+                "SELECT kept_by::jsonb, kept_at IS NOT NULL FROM svs.attributions WHERE root_id = $1",
+            )
+            .bind(context)
+            .fetch_one(db.pool())
+            .await
+            .expect("one row");
+            assert_eq!(
+                kept_by,
+                Some(serde_json::to_value(&a.f.admin).expect("JSON"))
+            );
+            assert!(kept);
+            assert_eq!(
+                events(db, run.uuid, "context_kept").await,
+                [json!({ "alert_uuid": context })]
+            );
+            assert!(matches!(
+                a.service
+                    .change_svs_association(&a.f.admin, run.uuid, marked, &Association::Keep, now())
+                    .await,
+                Err(ServiceError::Conflict(why)) if why.contains("no context attribution")
+            ));
+        }
+
+        /// `test_every_run_lets_the_alert_go`.
+        #[tokio::test]
+        async fn every_run_lets_the_alert_go() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let a = ax(db).await;
+            let run = a.f.started_run("win10-01", now() - minutes(1)).await;
+            let root = alert(&a, db, "win10-01", Some(&run.marker)).await;
+            let other = run_at(db, "win10-01", Some(now() - minutes(1))).await;
+            associate(&a, &a.f.admin, other.uuid, root).await;
+
+            let result = a
+                .service
+                .release_alert_from_svs(&a.f.admin, root, Some("a real attack"), false, now())
+                .await
+                .expect("releases");
+            assert_eq!(
+                result,
+                AlertRelease {
+                    alert: root,
+                    runs: vec![run.uuid, other.uuid],
+                    svs_status: None,
+                    queue: DEFAULT_QUEUE.to_owned(),
+                    moved: true,
+                    reopened: false,
+                }
+            );
+            let reasons: Vec<Option<String>> = sqlx::query_scalar(
+                "SELECT removal_reason FROM svs.attributions WHERE root_id = $1",
+            )
+            .bind(root)
+            .fetch_all(db.pool())
+            .await
+            .expect("reads");
+            assert_eq!(
+                reasons,
+                [
+                    Some("a real attack".to_owned()),
+                    Some("a real attack".to_owned())
+                ]
+            );
+            for held_by in [run.uuid, other.uuid] {
+                let disassociated = events(db, held_by, "disassociated").await;
+                assert_eq!(disassociated.len(), 1);
+                assert_eq!(disassociated[0]["not_a_test"], false);
+            }
+        }
+
+        /// TestFromTheAlertsSide's `test_a_simulated_alert_is_given_back_open`.
+        #[tokio::test]
+        async fn a_simulated_alert_is_released_open() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let a = ax(db).await;
+            let run = a.f.started_run("win10-01", now() - minutes(1)).await;
+            let root = alert(&a, db, "win10-01", Some(&run.marker)).await;
+            close(&a, &run).await;
+            assert_eq!(disposition_of(db, root).await.as_deref(), Some("SIMULATED"));
+            let result = release(&a, root, false).await.expect("releases");
+            assert_eq!(
+                (result.runs.as_slice(), result.reopened, result.moved),
+                ([run.uuid].as_slice(), true, true)
+            );
+            assert_eq!(disposition_of(db, root).await.as_deref(), Some("OPEN"));
+            assert_eq!(owner_of(db, root).await, None);
+        }
+
+        /// `test_not_a_test` and `test_not_a_test_only_for_a_context_alert`.
+        #[tokio::test]
+        async fn not_a_test_from_the_alerts_side() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let a = ax(db).await;
+            let run = a.f.started_run("win10-01", now() - minutes(1)).await;
+            let root = alert(&a, db, "win10-01", None).await;
+            let result = release(&a, root, true).await.expect("releases");
+            assert_eq!(
+                (
+                    result.runs.as_slice(),
+                    result.svs_status,
+                    result.queue.as_str()
+                ),
+                ([run.uuid].as_slice(), None, DEFAULT_QUEUE)
+            );
+            let reason: Option<String> = sqlx::query_scalar(
+                "SELECT removal_reason FROM svs.attributions WHERE root_id = $1",
+            )
+            .bind(root)
+            .fetch_one(db.pool())
+            .await
+            .expect("reads");
+            assert_eq!(reason.as_deref(), Some("not a test"));
+
+            let marked = alert(&a, db, "win10-01", Some(&run.marker)).await;
+            assert!(matches!(
+                release(&a, marked, true).await,
+                Err(ServiceError::Conflict(why)) if why.contains("not test?")
+            ));
+            assert_eq!(attributions(db, marked).await, [held("marker", "router")]);
+        }
+
+        /// `test_nothing_holds_it`.
+        #[tokio::test]
+        async fn nothing_holds_it() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let a = ax(db).await;
+            a.f.started_run("win10-01", now() - minutes(1)).await;
+            let root = alert(&a, db, "srv-01", None).await;
+            assert!(matches!(
+                release(&a, root, false).await,
+                Err(ServiceError::Conflict(why)) if why.contains("not attributed to any test run")
+            ));
+            assert!(matches!(
+                release(&a, Uuid::new_v4(), false).await,
+                Err(ServiceError::NotFound(_))
+            ));
+        }
+
+        /// `test_a_disassociated_run_never_takes_the_alert_back`.
+        #[tokio::test]
+        async fn a_disassociated_run_never_takes_the_alert_back() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let a = ax(db).await;
+            let run = a.f.started_run("win10-01", now() - minutes(1)).await;
+            let root = alert(&a, db, "win10-01", Some(&run.marker)).await;
+            disassociate(&a, &a.f.admin, run.uuid, root).await;
+            // a later pass finds another detection on the marker's branch
+            let more = observable(db, root, "user", &format!("ran {}", run.marker)).await;
+            detect(db, root, Some(more), "test detection").await;
+            pass(db, &a.service, root).await;
+            let rows = attributions(db, root).await;
+            assert!(rows.iter().all(|(_, _, removed)| *removed), "{rows:?}");
+            assert_eq!(queue_of(db, root).await, DEFAULT_QUEUE);
+        }
+
+        /// `test_another_runs_marker_is_attributed_but_the_queue_is_held`.
+        #[tokio::test]
+        async fn another_runs_marker_is_attributed_but_the_queue_is_held() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let a = ax(db).await;
+            let run = a.f.started_run("win10-01", now() - minutes(1)).await;
+            let root = alert(&a, db, "win10-01", Some(&run.marker)).await;
+            disassociate(&a, &a.f.admin, run.uuid, root).await;
+
+            let other = run_at(db, "win10-01", Some(now() - minutes(1))).await;
+            set_details(db, root, command_line(&other.marker)).await;
+            let outcome = pass(db, &a.service, root).await.expect("routed");
+            let theirs: Vec<String> = sqlx::query_scalar(
+                "SELECT source FROM svs.attributions WHERE root_id = $1 AND run_id = $2",
+            )
+            .bind(root)
+            .bind(other.id)
+            .fetch_all(db.pool())
+            .await
+            .expect("reads");
+            assert_eq!(theirs, ["router"]);
+            assert_eq!(
+                outcome.decision.map(|d| d.reason),
+                Some("queue set by hand in SVS".to_owned())
+            );
+            assert_eq!(queue_of(db, root).await, DEFAULT_QUEUE);
+        }
+
+        /// `test_a_hand_associated_alert_is_never_moved_back`.
+        #[tokio::test]
+        async fn a_hand_associated_alert_is_never_moved_back() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let a = ax(db).await;
+            let run = a.f.started_run("win10-01", now() - minutes(1)).await;
+            let root = alert(&a, db, "srv-01", None).await;
+            associate(&a, &a.f.admin, run.uuid, root).await;
+            // a later pass finds a detection the association doesn't cover: the alert is partial
+            let other = observable(db, root, "user", "unrelated").await;
+            detect(db, root, Some(other), "real detection").await;
+            pass(db, &a.service, root).await;
+            assert_eq!(queue_of(db, root).await, SVS_QUEUE);
+            assert_eq!(
+                moves(db, root).await.last(),
+                Some(&moved(DEFAULT_QUEUE, SVS_QUEUE, MANUAL_ROUTER))
+            );
+        }
+
+        /// `test_the_router_never_overwrites_a_row_a_person_took_meanwhile`: ace3 races a person's change
+        /// against the router's update of its own row. Here both hold the run's lock, so one follows the
+        /// other: the marker is gone from the alert, and the hook leaves the person's row alone.
+        #[tokio::test]
+        async fn the_hook_never_overwrites_a_row_a_person_took() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let a = ax(db).await;
+            let run = a.f.started_run("win10-01", now() - minutes(1)).await;
+            let root = alert(&a, db, "win10-01", Some(&run.marker)).await;
+            associate(&a, &a.f.admin, run.uuid, root).await;
+            set_details(db, root, json!({})).await;
+            sqlx::query("DELETE FROM analysis.observables WHERE root_id = $1")
+                .bind(root)
+                .execute(db.pool())
+                .await
+                .expect("removes the host");
+            let judged = judge(db, root).await.expect("judged");
+            assert_eq!(judged.removed, 0);
+            assert_eq!(attributions(db, root).await, [held("marker", "manual")]);
+        }
+
+        //
+        // test_run_alerts.py
+        //
+
+        /// `test_its_fully_attributed_alerts_become_simulated`.
+        #[tokio::test]
+        async fn its_fully_attributed_alerts_become_simulated() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let a = ax(db).await;
+            let run = a.f.started_run("win10-01", now() - minutes(1)).await;
+            let by_marker = alert(&a, db, "win10-01", Some(&run.marker)).await;
+            let by_context = alert(&a, db, "win10-01", None).await;
+            assert_eq!(queue_of(db, by_context).await, SVS_QUEUE);
+
+            let result = close(&a, &run).await;
+            assert_eq!(
+                (result.alerts_closed, result.late_alerts_closed),
+                (2, 0),
+                "{result:?}"
+            );
+            for root in [by_marker, by_context] {
+                let (disposition, by, owner): (Option<String>, Value, Option<Uuid>) =
+                    sqlx::query_as(
+                        "SELECT disposition, dispositioned_by::jsonb, owner_id FROM analysis.roots
+                     WHERE id = $1",
+                    )
+                    .bind(root)
+                    .fetch_one(db.pool())
+                    .await
+                    .expect("reads");
+                assert_eq!(disposition.as_deref(), Some("SIMULATED"));
+                assert_eq!(
+                    by,
+                    json!({"kind": "internal", "id": "scheduler:svs_run_timers"})
+                );
+                assert_eq!(owner, None);
+            }
+            let closed = events(db, run.uuid, "alerts_closed").await;
+            assert_eq!(closed.len(), 1);
+            let mut both = vec![json!(by_marker), json!(by_context)];
+            both.sort_by_key(|v| v.as_str().expect("a uuid").to_owned());
+            assert_eq!(
+                closed[0],
+                json!({"alerts": both, "disposition": "SIMULATED", "late": false, "reviewed": false})
+            );
+            // the timers' audit row holds what ace3 writes as each alert's comment
+            let row: (Value, Value) = sqlx::query_as(
+                "SELECT actor::jsonb, details FROM service.audit
+                 WHERE action = 'run_svs_timers' AND details ? 'alerts_closed' ORDER BY id DESC LIMIT 1",
+            )
+            .fetch_one(db.pool())
+            .await
+            .expect("an audit row");
+            assert_eq!(
+                row.0,
+                json!({"kind": "internal", "id": "scheduler:svs_run_timers"})
+            );
+            assert_eq!(
+                row.1["comment"],
+                format!("closed with SVS test run {}", run.uuid)
+            );
+            assert_eq!(row.1["alerts_closed"], json!(both));
+            assert!(!needs_attention(db, run.uuid).await);
+            // an analyst can't change a frozen alert
+            assert!(matches!(
+                a.service
+                    .disposition(&a.f.admin, by_marker, "FALSE_POSITIVE")
+                    .await,
+                Err(ServiceError::Conflict(_))
+            ));
+        }
+
+        /// `test_partial_taken_and_dispositioned_alerts_are_left_alone`. ace3's fourth alert, one its
+        /// automation user owns, has no counterpart: a component owns nothing here.
+        #[tokio::test]
+        async fn partial_taken_and_dispositioned_alerts_are_left_alone() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let a = ax(db).await;
+            let run = a.f.started_run("win10-01", now() - minutes(1)).await;
+            let (_, bob) = person(db, 0xB0B).await;
+            let partial = partial_alert(&a, db, &run.marker).await;
+            let taken = alert(&a, db, "win10-01", Some(&run.marker)).await;
+            a.service
+                .set_alert_owner(&a.f.admin, taken, Some(bob))
+                .await
+                .expect("bob takes it");
+            let dispositioned = alert(&a, db, "win10-01", Some(&run.marker)).await;
+            a.service
+                .disposition(&a.f.admin, dispositioned, "FALSE_POSITIVE")
+                .await
+                .expect("dispositions");
+            let plain = alert(&a, db, "win10-01", Some(&run.marker)).await;
+
+            let result = close(&a, &run).await;
+            assert_eq!(result.alerts_closed, 1, "{result:?}");
+            assert_eq!(disposition_of(db, partial).await, None);
+            assert_eq!(disposition_of(db, taken).await, None);
+            assert_eq!(
+                disposition_of(db, dispositioned).await.as_deref(),
+                Some("FALSE_POSITIVE")
+            );
+            assert_eq!(
+                disposition_of(db, plain).await.as_deref(),
+                Some("SIMULATED")
+            );
+            assert_eq!(
+                events(db, run.uuid, "alerts_closed").await[0]["alerts"],
+                json!([plain])
+            );
+            // the open ones keep the closed run in Needs attention
+            assert!(needs_attention(db, run.uuid).await);
+        }
+
+        /// `test_an_alert_dispositioned_meanwhile_keeps_its_disposition` and
+        /// `test_an_alert_disassociated_meanwhile_stays_open`: the timers choose alerts, then judge them
+        /// again under each alert's lock. A change that holds the lock while they choose wins.
+        #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+        async fn an_alert_dispositioned_or_disassociated_meanwhile_is_left_alone() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let a = ax(db).await;
+            let run = a.f.started_run("win10-01", now() - minutes(1)).await;
+            let dispositioned = alert(&a, db, "win10-01", Some(&run.marker)).await;
+            let disassociated = alert(&a, db, "win10-01", Some(&run.marker)).await;
+            a.f.service
+                .cancel_svs_run(&a.f.admin, run.uuid, now())
+                .await
+                .expect("cancels");
+
+            // an analyst's changes, not yet committed, with both alerts locked
+            let mut tx = db.pool().begin().await.expect("begins");
+            sqlx::query(
+                "UPDATE analysis.roots SET disposition = 'FALSE_POSITIVE', dispositioned_at = now(),
+                        dispositioned_by = '{\"kind\": \"internal\", \"id\": \"test\"}' WHERE id = $1",
+            )
+            .bind(dispositioned)
+            .execute(&mut *tx)
+            .await
+            .expect("dispositions");
+            sqlx::query("SELECT id FROM analysis.roots WHERE id = $1 FOR UPDATE")
+                .bind(disassociated)
+                .execute(&mut *tx)
+                .await
+                .expect("locks");
+            sqlx::query(
+                "UPDATE svs.attributions SET removed_at = now(),
+                        removed_by = '{\"kind\": \"internal\", \"id\": \"test\"}' WHERE root_id = $1",
+            )
+            .bind(disassociated)
+            .execute(&mut *tx)
+            .await
+            .expect("disassociates");
+
+            let service = a.f.service.clone();
+            let at = run.attribution_ends_at.expect("a window") + TimeDelta::seconds(1);
+            let closing = tokio::spawn(async move { service.run_svs_timers(&timers(), at).await });
+            tokio::time::sleep(Duration::from_millis(500)).await;
+            assert!(
+                !closing.is_finished(),
+                "the timers wait for the alerts' locks"
+            );
+            tx.commit().await.expect("commits");
+            let result = closing.await.expect("joins").expect("runs the timers");
+            assert_eq!(
+                (result.closed, result.alerts_closed, result.failed),
+                (1, 0, 0),
+                "{result:?}"
+            );
+            assert_eq!(
+                disposition_of(db, dispositioned).await.as_deref(),
+                Some("FALSE_POSITIVE")
+            );
+            assert_eq!(disposition_of(db, disassociated).await, None);
+            assert_eq!(
+                events(db, run.uuid, "alerts_closed").await,
+                Vec::<Value>::new()
+            );
+        }
+
+        /// Makes closing `root` fail, as ace3's tests patch the disposition writer to raise.
+        async fn break_closing(db: &Db, root: Uuid) {
+            sqlx::raw_sql(
+                "CREATE TABLE analysis.refused_closing (id uuid PRIMARY KEY);
+                 CREATE FUNCTION analysis.refuse_closing() RETURNS trigger LANGUAGE plpgsql AS $$
+                 BEGIN
+                     IF NEW.disposition IN ('SIMULATED', 'IGNORE')
+                        AND EXISTS (SELECT FROM analysis.refused_closing r WHERE r.id = NEW.id) THEN
+                         RAISE EXCEPTION 'database down';
+                     END IF;
+                     RETURN NEW;
+                 END $$;
+                 CREATE TRIGGER refuse_closing BEFORE UPDATE ON analysis.roots
+                     FOR EACH ROW EXECUTE FUNCTION analysis.refuse_closing();",
+            )
+            .execute(db.pool())
+            .await
+            .expect("breaks the closing");
+            sqlx::query("INSERT INTO analysis.refused_closing VALUES ($1)")
+                .bind(root)
+                .execute(db.pool())
+                .await
+                .expect("names the alert");
+        }
+
+        async fn mend_closing(db: &Db) {
+            sqlx::raw_sql(
+                "DROP TRIGGER refuse_closing ON analysis.roots;
+                 DROP FUNCTION analysis.refuse_closing();
+                 DROP TABLE analysis.refused_closing;",
+            )
+            .execute(db.pool())
+            .await
+            .expect("mends the closing");
+        }
+
+        /// `test_a_failure_never_undoes_the_close`.
+        #[tokio::test]
+        async fn a_failure_never_undoes_the_close() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let a = ax(db).await;
+            let run = a.f.started_run("win10-01", now() - minutes(1)).await;
+            let root = alert(&a, db, "win10-01", Some(&run.marker)).await;
+            break_closing(db, root).await;
+            let result = close(&a, &run).await;
+            assert_eq!((result.alerts_closed, result.failed), (0, 1), "{result:?}");
+            assert!(
+                result
+                    .first_error
+                    .as_deref()
+                    .is_some_and(|e| e.contains("database down")),
+                "{result:?}"
+            );
+            let state: String =
+                sqlx::query_scalar("SELECT state::text FROM svs.runs WHERE uuid = $1")
+                    .bind(run.uuid)
+                    .fetch_one(db.pool())
+                    .await
+                    .expect("reads");
+            assert_eq!(state, "closed");
+            assert_eq!(disposition_of(db, root).await, None);
+            mend_closing(db).await;
+
+            // the sweep closes it on the timers' next pass
+            assert_eq!(run_timers(&a).await.late_alerts_closed, 1);
+            assert_eq!(disposition_of(db, root).await.as_deref(), Some("SIMULATED"));
+        }
+
+        /// `test_an_alert_attributed_after_the_run_closed_is_closed_by_the_sweep`.
+        #[tokio::test]
+        async fn an_alert_attributed_after_the_run_closed_is_closed_by_the_sweep() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let a = ax(db).await;
+            let run = a.f.started_run("win10-01", now() - minutes(1)).await;
+            close(&a, &run).await;
+            let root = alert(&a, db, "win10-01", Some(&run.marker)).await;
+            assert_eq!(queue_of(db, root).await, SVS_QUEUE);
+            assert!(needs_attention(db, run.uuid).await);
+
+            assert_eq!(run_timers(&a).await.late_alerts_closed, 1);
+            assert_eq!(disposition_of(db, root).await.as_deref(), Some("SIMULATED"));
+            let closed = events(db, run.uuid, "alerts_closed").await;
+            assert_eq!(closed.len(), 1);
+            assert_eq!(closed[0]["alerts"], json!([root]));
+            assert_eq!(closed[0]["late"], true);
+            assert!(!needs_attention(db, run.uuid).await);
+            // nothing left to do
+            assert_eq!(run_timers(&a).await.late_alerts_closed, 0);
+        }
+
+        /// `test_the_sweep_leaves_open_runs_and_partial_alerts_alone`.
+        #[tokio::test]
+        async fn the_sweep_leaves_open_runs_and_partial_alerts_alone() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let a = ax(db).await;
+            let run = a.f.started_run("win10-01", now() - minutes(1)).await;
+            let open = alert(&a, db, "win10-01", Some(&run.marker)).await;
+            assert_eq!(run_timers(&a).await.late_alerts_closed, 0);
+            assert_eq!(disposition_of(db, open).await, None);
+
+            close(&a, &run).await;
+            let partial = partial_alert(&a, db, &run.marker).await;
+            assert_eq!(run_timers(&a).await.late_alerts_closed, 0);
+            assert_eq!(disposition_of(db, partial).await, None);
+        }
+
+        /// TestEventLog's `test_attributions_are_events_of_their_run`,
+        /// `test_a_removed_attribution_is_an_event` and `test_nothing_is_written_when_nothing_changed`,
+        /// and TestResultInputs' `test_an_attribution_carries_its_detections_signature_and_marks_the_result_stale`:
+        /// an attribution names its detection's row, which carries the signature.
+        #[tokio::test]
+        async fn attributions_are_events_of_their_run() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let a = ax(db).await;
+            let run = a.f.started_run("win10-01", now() - minutes(1)).await;
+            let root = staged_root(db, "win10-01", Some(command_line(&run.marker))).await;
+            let yara = detect_as(db, root, None, "yara hit", Some(HUNT_UUID)).await;
+            pass(db, &a.service, root).await;
+
+            let attributed = events(db, run.uuid, "attributed").await;
+            assert_eq!(attributed.len(), 1);
+            assert_eq!(attributed[0]["alert_uuid"], json!(root));
+            let detections = attributed[0]["detections"].as_array().expect("detections");
+            assert_eq!(detections.len(), 2);
+            for detection in detections {
+                assert_eq!(
+                    (
+                        &detection["confidence"],
+                        &detection["late"],
+                        &detection["scan_point"]
+                    ),
+                    (&json!("marker"), &json!(false), &json!("root_details"))
+                );
+            }
+            let signatures: Vec<(i64, Option<String>)> = sqlx::query_as(
+                "SELECT d.id, d.signature_uuid FROM svs.attributions a
+                 JOIN analysis.detections d ON d.id = a.detection_id
+                 WHERE a.root_id = $1 ORDER BY d.id",
+            )
+            .bind(root)
+            .fetch_all(db.pool())
+            .await
+            .expect("reads");
+            assert!(signatures.contains(&(yara, Some(HUNT_UUID.to_owned()))));
+            assert!(stale(db, run.uuid).await);
+            assert_eq!(generation(db, run_id(db, run.uuid).await).await, Some(1));
+
+            // nothing is written when nothing changed
+            pass(db, &a.service, root).await;
+            assert_eq!(events(db, run.uuid, "attributed").await.len(), 1);
+
+            // a later judgment no longer finds the marker or the run's host
+            set_details(db, root, json!({})).await;
+            sqlx::query("UPDATE analysis.observables SET value = 'srv-01' WHERE root_id = $1")
+                .bind(root)
+                .execute(db.pool())
+                .await
+                .expect("moves it off the test host");
+            pass(db, &a.service, root).await;
+            let removed = events(db, run.uuid, "attribution_removed").await;
+            assert_eq!(removed.len(), 1);
+            assert_eq!(removed[0]["alert_uuid"], json!(root));
+            assert_eq!(removed[0]["detections"].as_array().map(Vec::len), Some(2));
+        }
+
+        /// `test_a_late_alert_after_review_flags_the_run`: a reviewed run's alerts are the review's to
+        /// close, never the sweep's. And `test_attributions_to_runs_not_reviewed_flag_nothing`.
+        #[tokio::test]
+        async fn a_late_alert_after_review_flags_the_run() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let a = ax(db).await;
+            let changed = async |run: Uuid| -> bool {
+                sqlx::query_scalar("SELECT changed_since_review FROM svs.runs WHERE uuid = $1")
+                    .bind(run)
+                    .fetch_one(db.pool())
+                    .await
+                    .expect("reads")
+            };
+            let run = a.f.started_run("win10-01", now() - minutes(1)).await;
+            let first = alert(&a, db, "win10-01", Some(&run.marker)).await;
+            assert!(!changed(run.uuid).await);
+            sqlx::query(
+                "UPDATE analysis.roots SET disposition = 'SIMULATED', dispositioned_at = now(),
+                        dispositioned_by = '{\"kind\": \"internal\", \"id\": \"test\"}' WHERE id = $1",
+            )
+            .bind(first)
+            .execute(db.pool())
+            .await
+            .expect("closes the first alert");
+
+            set_state(db, run.uuid, "reviewed").await;
+            assert!(!needs_attention(db, run.uuid).await);
+            let root = alert(&a, db, "win10-01", Some(&run.marker)).await;
+            assert!(changed(run.uuid).await);
+            assert!(needs_attention(db, run.uuid).await);
+            assert_eq!(run_timers(&a).await.late_alerts_closed, 0);
+            assert_eq!(disposition_of(db, root).await, None);
+        }
+
+        //
+        // test_maintenance.py
+        //
+
+        async fn record(db: &Db, root: Uuid) -> Option<(bool, bool)> {
+            sqlx::query_as(
+                "SELECT removed_at IS NOT NULL, closed_at IS NOT NULL FROM svs.maintenance_alerts
+                 WHERE root_id = $1",
+            )
+            .bind(root)
+            .fetch_optional(db.pool())
+            .await
+            .expect("reads")
+        }
+
+        /// `test_an_alert_of_a_window_is_routed_recorded_and_closed`.
+        #[tokio::test]
+        async fn an_alert_of_a_window_is_routed_recorded_and_closed() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let a = ax(db).await;
+            let window = a.f.window("win10-01", now() - minutes(10)).await;
+            let root = staged_root(db, "win10-01", None).await;
+            let outcome = pass(db, &a.service, root).await.expect("routed");
+            assert_eq!(
+                outcome.decision.map(|d| (d.router, d.reason)),
+                Some((
+                    MARKER_ROUTER.to_owned(),
+                    format!(
+                        "in SVS maintenance window {} on test host win10-01",
+                        window.uuid
+                    )
+                ))
+            );
+            assert_eq!(queue_of(db, root).await, SVS_QUEUE);
+            assert_eq!(attributions(db, root).await, []);
+            assert_eq!(root_tags(db, root).await, ["svs:maintenance"]);
+            assert_eq!(record(db, root).await, Some((false, false)));
+
+            let result = run_timers(&a).await;
+            assert_eq!(result.maintenance_alerts_closed, 1, "{result:?}");
+            assert_eq!(disposition_of(db, root).await.as_deref(), Some("IGNORE"));
+            assert_eq!(record(db, root).await, Some((false, true)));
+            let details: Value = sqlx::query_scalar(
+                "SELECT details FROM service.audit
+                 WHERE action = 'run_svs_timers' AND target_kind = 'svs_maintenance_window'
+                 ORDER BY id DESC LIMIT 1",
+            )
+            .fetch_one(db.pool())
+            .await
+            .expect("an audit row");
+            assert_eq!(
+                details,
+                json!({
+                    "alerts_closed": [root], "left_alone": [], "disposition": "IGNORE",
+                    "comment": format!(
+                        "closed: SVS maintenance window {} on test host win10-01: staging", window.uuid
+                    ),
+                })
+            );
+            // closed once
+            assert_eq!(run_timers(&a).await.maintenance_alerts_closed, 0);
+        }
+
+        /// `test_an_alert_an_analyst_associated_with_a_run_is_left_alone` and
+        /// `test_an_alert_an_analyst_took_is_left_alone`: either way its record is closed, so it isn't
+        /// looked at again.
+        #[tokio::test]
+        async fn an_alert_an_analyst_associated_or_took_is_left_alone() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let a = ax(db).await;
+            a.f.host("win10-02", None, &[]).await;
+            a.f.window("win10-01", now() - minutes(10)).await;
+            let run = a.f.started_run("win10-02", now() - minutes(1)).await;
+            let (_, bob) = person(db, 0xB0B).await;
+            let associated = alert(&a, db, "win10-01", None).await;
+            associate(&a, &a.f.admin, run.uuid, associated).await;
+            let taken = alert(&a, db, "win10-01", None).await;
+            a.service
+                .set_alert_owner(&a.f.admin, taken, Some(bob))
+                .await
+                .expect("bob takes it");
+
+            let result = run_timers(&a).await;
+            assert_eq!(
+                (result.maintenance_alerts_closed, result.failed),
+                (0, 0),
+                "{result:?}"
+            );
+            for root in [associated, taken] {
+                assert_eq!(disposition_of(db, root).await, None);
+                assert_eq!(record(db, root).await, Some((false, true)));
+            }
+        }
+
+        /// `test_an_alert_no_longer_judged_maintenance_is_not_closed`.
+        #[tokio::test]
+        async fn an_alert_no_longer_judged_maintenance_is_not_closed() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let a = ax(db).await;
+            a.f.window("win10-01", now() - minutes(10)).await;
+            let root = alert(&a, db, "win10-01", None).await;
+            assert_eq!(record(db, root).await, Some((false, false)));
+            // a later pass finds the alert wasn't on the test host after all
+            sqlx::query("UPDATE analysis.observables SET value = 'srv-01' WHERE root_id = $1")
+                .bind(root)
+                .execute(db.pool())
+                .await
+                .expect("moves it off the test host");
+            pass(db, &a.service, root).await;
+            assert_eq!(record(db, root).await, Some((true, false)));
+            // and the router sends it back where it came from
+            assert_eq!(queue_of(db, root).await, DEFAULT_QUEUE);
+
+            assert_eq!(run_timers(&a).await.maintenance_alerts_closed, 0);
+            assert_eq!(disposition_of(db, root).await, None);
+            assert_eq!(record(db, root).await, Some((true, false)));
+        }
+
+        /// `test_a_window_whose_alerts_fail_to_close_doesnt_stop_the_others`.
+        #[tokio::test]
+        async fn a_window_whose_alerts_fail_to_close_doesnt_stop_the_others() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let a = ax(db).await;
+            a.f.host("win10-02", None, &[]).await;
+            a.f.window("win10-01", now() - minutes(10)).await;
+            a.f.window("win10-02", now() - minutes(10)).await;
+            let broken = alert(&a, db, "win10-01", None).await;
+            let fine = alert(&a, db, "win10-02", None).await;
+            break_closing(db, broken).await;
+
+            let result = run_timers(&a).await;
+            assert_eq!(
+                (result.maintenance_alerts_closed, result.failed),
+                (1, 1),
+                "{result:?}"
+            );
+            assert_eq!(disposition_of(db, broken).await, None);
+            assert_eq!(record(db, broken).await, Some((false, false)));
+            assert_eq!(disposition_of(db, fine).await.as_deref(), Some("IGNORE"));
+
+            mend_closing(db).await;
+            assert_eq!(run_timers(&a).await.maintenance_alerts_closed, 1);
+            assert_eq!(disposition_of(db, broken).await.as_deref(), Some("IGNORE"));
+        }
+
+        //
+        // the alert's owner
+        //
+
+        #[tokio::test]
+        async fn an_alerts_owner_is_a_user() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let a = ax(db).await;
+            let (_, bob) = person(db, 0xB0B).await;
+            let root = alert_root(db, None, now()).await;
+            let set = async |owner: Option<UserId>| {
+                a.service.set_alert_owner(&a.f.admin, root, owner).await
+            };
+            assert_eq!(set(Some(bob)).await.expect("takes"), None);
+            let owned_at: Option<DateTime<Utc>> =
+                sqlx::query_scalar("SELECT owned_at FROM analysis.roots WHERE id = $1")
+                    .bind(root)
+                    .fetch_one(db.pool())
+                    .await
+                    .expect("reads");
+            assert!(owned_at.is_some());
+            let row = last_audit(db).await;
+            assert_eq!(
+                (row.action.as_str(), row.before, row.after),
+                (
+                    "set_alert_owner",
+                    Some(json!({"owner": null})),
+                    Some(json!({"owner": bob.0}))
+                )
+            );
+            // theirs already: nothing is written
+            let audits = audit_rows(db).await.len();
+            assert_eq!(set(Some(bob)).await.expect("no change"), Some(bob));
+            assert_eq!(audit_rows(db).await.len(), audits);
+            assert_eq!(set(None).await.expect("gives up"), Some(bob));
+            assert_eq!(owner_of(db, root).await, None);
+            assert!(matches!(
+                set(Some(UserId(Uuid::new_v4()))).await,
+                Err(ServiceError::NoUser(_))
+            ));
+            assert!(matches!(
+                a.service
+                    .set_alert_owner(&a.f.admin, Uuid::new_v4(), Some(bob))
+                    .await,
+                Err(ServiceError::NotFound(_))
+            ));
+            // a deleted user's alerts are nobody's
+            set(Some(bob)).await.expect("takes");
+            sqlx::query("DELETE FROM service.permissions WHERE user_id = $1")
+                .bind(bob.0)
+                .execute(db.pool())
+                .await
+                .expect("removes bob's grants");
+            sqlx::query("DELETE FROM service.users WHERE id = $1")
+                .bind(bob.0)
+                .execute(db.pool())
+                .await
+                .expect("removes bob");
+            assert_eq!(owner_of(db, root).await, None);
+        }
+
+        //
+        // the audit tests
+        //
+
+        const AUDIT_HOST: &str = "assoc-audit-01";
+
+        /// A run on a host of its own, in a database other audit tests share: one of them leaves the
+        /// catalog's test removed, which a registration refuses.
+        async fn audit_ax(db: &Db, host: &str) -> (Ax, Run) {
+            let f = fixture(db).await;
+            sqlx::query("UPDATE svs.catalog_tests SET removed_at = NULL WHERE guid = $1::uuid")
+                .bind(GUID)
+                .execute(db.pool())
+                .await
+                .expect("puts the test back");
+            f.host(host, None, &[]).await;
+            let service = routed(&f);
+            let a = Ax { f, service };
+            let run = a.f.started_run(host, now() - minutes(1)).await;
+            (a, run)
+        }
+
+        pub(crate) async fn change_svs_association_records_its_row(db: &Db) -> String {
+            let (a, run) = audit_ax(db, AUDIT_HOST).await;
+            let root = alert(&a, db, "srv-audit", None).await;
+            a.service
+                .change_svs_association(
+                    &a.f.admin,
+                    run.uuid,
+                    root,
+                    &Association::Associate {
+                        reason: Some("by hand".to_owned()),
+                    },
+                    now(),
+                )
+                .await
+                .expect("associates");
+            let row = last_audit(db).await;
+            assert_eq!(
+                row,
+                AuditRow {
+                    actor: serde_json::to_value(&a.f.admin).expect("JSON"),
+                    action: "change_svs_association".to_owned(),
+                    target: ("root".to_owned(), root.to_string()),
+                    before: Some(json!({
+                        "svs_status": null, "queue": DEFAULT_QUEUE, "disposition": null,
+                    })),
+                    after: Some(json!({
+                        "svs_status": "test", "queue": SVS_QUEUE, "disposition": null,
+                    })),
+                    details: json!({
+                        "action": "associate", "runs": [run.uuid], "reason": "by hand",
+                        "moved": true, "reopened": false,
+                    }),
+                }
+            );
+            row.action
+        }
+
+        pub(crate) async fn release_alert_from_svs_records_its_row(db: &Db) -> String {
+            let (a, run) = audit_ax(db, "assoc-audit-02").await;
+            let root = alert(&a, db, "assoc-audit-02", None).await;
+            a.service
+                .release_alert_from_svs(&a.f.admin, root, None, true, now())
+                .await
+                .expect("releases");
+            let row = last_audit(db).await;
+            assert_eq!(
+                row,
+                AuditRow {
+                    actor: serde_json::to_value(&a.f.admin).expect("JSON"),
+                    action: "release_alert_from_svs".to_owned(),
+                    target: ("root".to_owned(), root.to_string()),
+                    before: Some(json!({
+                        "svs_status": "test?", "queue": SVS_QUEUE, "disposition": null,
+                    })),
+                    after: Some(json!({
+                        "svs_status": null, "queue": DEFAULT_QUEUE, "disposition": null,
+                    })),
+                    details: json!({
+                        "action": "not_a_test", "runs": [run.uuid], "reason": null,
+                        "moved": true, "reopened": false,
+                    }),
+                }
+            );
+            row.action
+        }
+
+        pub(crate) async fn set_alert_owner_records_its_row(db: &Db) -> String {
+            let f = fixture(db).await;
+            let owner = UserId(Uuid::from_u128(0xAD));
+            let root = alert_root(db, None, now()).await;
+            f.service
+                .set_alert_owner(&f.admin, root, Some(owner))
+                .await
+                .expect("takes it");
+            let row = last_audit(db).await;
+            assert_eq!(
+                row,
+                AuditRow {
+                    actor: serde_json::to_value(&f.admin).expect("JSON"),
+                    action: "set_alert_owner".to_owned(),
+                    target: ("root".to_owned(), root.to_string()),
+                    before: Some(json!({"owner": null})),
+                    after: Some(json!({"owner": owner.0})),
+                    details: json!({}),
+                }
+            );
+            row.action
+        }
+
+        /// What `every_write_fails_when_its_audit_fails` sets up before the audit breaks: a run, an alert
+        /// it holds by context, and one nothing holds.
+        pub(crate) struct BeforeTheAuditBreaks {
+            a: Ax,
+            run: Run,
+            held: Uuid,
+            free: Uuid,
+        }
+
+        pub(crate) async fn before_the_audit_breaks(db: &Db) -> BeforeTheAuditBreaks {
+            let (a, run) = audit_ax(db, "assoc-broken-01").await;
+            let held = alert(&a, db, "assoc-broken-01", None).await;
+            let free = alert(&a, db, "srv-broken", None).await;
+            BeforeTheAuditBreaks { a, run, held, free }
+        }
+
+        /// The rows these writes would change.
+        pub(crate) async fn rows(db: &Db, before: &BeforeTheAuditBreaks) -> Vec<String> {
+            sqlx::query_scalar(
+                "SELECT format('%s %s %s %s %s', o.id, o.queue, o.disposition, o.owner_id,
+                               (SELECT count(*) FROM svs.attributions a
+                                WHERE a.root_id = o.id AND a.removed_at IS NULL))
+                 FROM analysis.roots o WHERE o.id = ANY ($1) ORDER BY o.id",
+            )
+            .bind(vec![before.held, before.free])
+            .fetch_all(db.pool())
+            .await
+            .expect("reads")
+        }
+
+        /// Each write here, with the audit broken: its name and the error it gave.
+        pub(crate) async fn attempts_with_the_audit_broken(
+            before: &BeforeTheAuditBreaks,
+            actor: &Actor,
+        ) -> Vec<(&'static str, ServiceError)> {
+            let s = &before.a.service;
+            vec![
+                (
+                    "change_svs_association",
+                    s.change_svs_association(
+                        actor,
+                        before.run.uuid,
+                        before.free,
+                        &Association::Associate { reason: None },
+                        now(),
+                    )
+                    .await
+                    .map(|_| ())
+                    .expect_err("refused"),
+                ),
+                (
+                    "release_alert_from_svs",
+                    s.release_alert_from_svs(actor, before.held, None, false, now())
+                        .await
+                        .map(|_| ())
+                        .expect_err("refused"),
+                ),
+                (
+                    "set_alert_owner",
+                    s.set_alert_owner(actor, before.free, Some(UserId(Uuid::from_u128(0xAD))))
+                        .await
+                        .map(|_| ())
+                        .expect_err("refused"),
+                ),
+            ]
+        }
     }
 }

@@ -27,8 +27,8 @@
 //! rows with `SKIP LOCKED`.
 //!
 //! An alert's first routing is ace3's `PRE_INSERT` (`Stage::Alerted`); every later one is its
-//! `POST_ANALYSIS` (`Stage::Analyzed`). Either moves only an OPEN alert, judged under the root's lock, so a
-//! disposition made meanwhile keeps the alert where it is.
+//! `POST_ANALYSIS` (`Stage::Analyzed`). Either moves only an OPEN alert that no analyst owns, judged under
+//! the root's lock, so a disposition or a take made meanwhile keeps the alert where it is.
 //!
 //! # Extending it
 //!
@@ -44,11 +44,12 @@
 //!     settings: {tag: example_route, queue: example}
 //! ```
 //!
-//! SVS's marker router (PLAN.md 7.10 batch 7) is such a type: it implements `Router`, reads the attributions
-//! the core's SVS hook wrote at the end of the pass (in `tx`, under the root's lock, judging nothing again),
-//! and joins the open-source binary with `App::alert_router("svs_marker", 100, ...)` in `ace::app()`, ahead of
-//! `detection_queue`, as ace3's `saq.default.yaml` adds it. Holding an alert a person moved through SVS reads
-//! `Alert::last_change`; moving one back reads its `from_queue`. Nothing here changes for it.
+//! SVS's marker router (PLAN.md 7.10 batch 7, `crate::svs_association::MarkerRouter`) is such a router: it
+//! implements `Router`, reads the attributions the core's SVS hook wrote at the end of the pass (in `tx`,
+//! under the root's lock, judging nothing again), and joins the open-source binary with
+//! `App::alert_router("svs_marker", 100, ...)` in `ace::app()`, ahead of `detection_queue`, as ace3's
+//! `saq.default.yaml` adds it. Holding an alert a person moved through SVS reads `Alert::last_change`;
+//! moving one back reads its `from_queue`. Nothing here changed for it but the owner check.
 //!
 //! The contract is ace3's: a router never changes the tree (the move is the only change made for it); it
 //! should not fail, and one that does, or panics, is logged and skipped, and the next one runs; it's shared
@@ -72,9 +73,10 @@
 //! - There is no `final` flag. A pass completes in ace4 only when nothing is queued, delayed or running, so
 //!   every routing is after what ace3 calls the final pass; a cancelled pass completes too, as ace3's
 //!   aborted pass is final.
-//! - The first routing moves only an OPEN alert too, since in ace4 the alert existed while it was analyzed.
-//!   ace3's owner check (an analyst who took the alert keeps it) waits for alert ownership, which ace4 adds
-//!   with 7.10 batch 7's review; `move_alert` is where it goes.
+//! - The first routing moves only an OPEN alert nobody has taken too, since in ace4 the alert existed while
+//!   it was analyzed. ace3's owner check (an analyst who took the alert keeps it) is in `move_alert`,
+//!   over `analysis.roots.owner_id` (7.10 batch 7a). ace3's automation user owns
+//!   what it dispositions and counts as nobody; here a component never owns an alert.
 //! - The routers are built once when `ace serve` starts and never change, and an overlay entry that can't be
 //!   built (an unknown type, a built-in's name, settings its type refuses) stops startup, as the rest of the
 //!   overlay does, where ace3 logs it and loads the others. There's no reload, so ace3's lock-free swap has
@@ -103,7 +105,7 @@ use serde_json::Value;
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
-use crate::actor::{Actor, Component};
+use crate::actor::{Actor, Component, UserId};
 use crate::alerts::no_alert;
 use crate::gate::{Audited, Change, Recorded, Target};
 use crate::observables::OPEN;
@@ -552,7 +554,7 @@ pub struct RouteOutcome {
     /// The first decision, if any router made one.
     pub decision: Option<Routed>,
     /// The move it made, as (from, to): None when there was no decision, the alert was in that queue
-    /// already, or it was dispositioned.
+    /// already, it was dispositioned, or an analyst owns it.
     pub moved: Option<(String, String)>,
 }
 
@@ -575,11 +577,24 @@ struct MoveRecord<'a> {
 
 impl Recorded for MoveRecord<'_> {}
 
+/// The user an actor acts as: themselves, or a key's owner. None for a key that belongs to nobody and for
+/// ACE's components, who own no alert.
+pub(crate) fn acting_user(actor: &Actor) -> Option<UserId> {
+    match actor {
+        Actor::User { id, .. } => Some(*id),
+        Actor::ApiKey { owner, .. } => *owner,
+        Actor::Internal { .. } => None,
+    }
+}
+
 /// Moves the alert to `to`, ace3's `move_alert_to_queue`, in the caller's write: its queue and the row that
 /// records the move, with `router`'s name for a router's move and who made it. Returns the queue it came from,
-/// or None when it's already there, isn't an alert, or, with `only_open`, has a disposition, judged by the
-/// row under its lock, so an analyst who dispositions it meanwhile keeps it where it is. The caller locks the
-/// root first and writes the audit row.
+/// or None when it's already there, isn't an alert, has a disposition, or an analyst other than
+/// `or_owned_by` owns it (ace3's `open_unless_owned_by_others`: None for a router's move, the person for
+/// one they make through SVS), judged by the row under its lock, so an analyst who takes or dispositions it
+/// meanwhile keeps it where it is. ACE's components never own an alert, so ace3's automation user, which
+/// counts as nobody there, has nothing to stand for here. The caller locks the root first and writes the
+/// audit row.
 pub(crate) async fn move_alert(
     tx: &mut Tx<'_>,
     root: Uuid,
@@ -587,7 +602,7 @@ pub(crate) async fn move_alert(
     reason: &str,
     router: Option<&str>,
     actor: &Actor,
-    only_open: bool,
+    or_owned_by: Option<UserId>,
 ) -> Result<Option<String>, ServiceError> {
     if reason.chars().count() > MAX_REASON_CHARS {
         return Err(ServiceError::InvalidRequest(format!(
@@ -597,10 +612,11 @@ pub(crate) async fn move_alert(
     let from = sqlx::query_scalar!(
         r#"SELECT queue AS "queue!: String" FROM analysis.roots
            WHERE id = $1 AND alerted_at IS NOT NULL
-             AND (NOT $2 OR disposition IS NULL OR disposition = 'OPEN')
+             AND (disposition IS NULL OR disposition = 'OPEN')
+             AND (owner_id IS NULL OR owner_id = $2)
            FOR UPDATE"#,
         root,
-        only_open,
+        or_owned_by.map(|user| user.0),
     )
     .fetch_optional(tx.conn())
     .await?;
@@ -812,7 +828,7 @@ impl Service {
                         &routed.reason,
                         Some(&routed.router),
                         actor,
-                        true,
+                        None,
                     )
                     .await?
                     else {
@@ -820,7 +836,7 @@ impl Service {
                             alert_uuid = %alert.root,
                             queue = routed.queue.as_str(),
                             router = routed.router,
-                            "not moving the alert to the queue its router decided: it's dispositioned"
+                            "not moving the alert to the queue its router decided: it's dispositioned or an analyst owns it"
                         );
                         return Ok(Audited::unchanged(Some(outcome)));
                     };

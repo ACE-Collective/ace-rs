@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT r.id, r.uuid FROM svs.runs r\n                         WHERE EXISTS (SELECT FROM svs.attributions a\n                                       WHERE a.run_id = r.id AND a.root_id = $1\n                                         AND a.removed_at IS NULL)\n                         ORDER BY r.id FOR UPDATE OF r",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "svs.runs",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "uuid",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "svs.runs",
+            "name": "uuid"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "9c0288c5a7396282fdf5005ea8576a49975ac0b47f46a8828c024d737af871bc"
+}

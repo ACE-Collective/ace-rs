@@ -1,0 +1,63 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, detection_id, confidence AS \"confidence: AttributionConfidence\"\n               FROM svs.attributions\n               WHERE run_id = $1 AND root_id = $2 AND removed_at IS NULL ORDER BY detection_id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "svs.attributions",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "detection_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "svs.attributions",
+            "name": "detection_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "confidence: AttributionConfidence",
+        "type_info": {
+          "Custom": {
+            "name": "svs.attribution_confidence",
+            "kind": {
+              "Enum": [
+                "marker",
+                "context"
+              ]
+            }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "svs.attributions",
+            "name": "confidence"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "af98543bd95a0b5cd36706d93d38cfd2fafd8b911e8a8275988d7d7257461894"
+}

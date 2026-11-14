@@ -272,7 +272,7 @@
 //! | `POST /runs/`, 201 | `POST /api/svs/v1/runs`, 201, audited; a refusal is 403 and alerts |
 //! | `POST /runs/validate` | `POST /api/svs/v1/runs/validate` |
 //! | `POST /runs/{run_id}/start`, `executed`, `cleanup`, `cancel` | `POST /api/svs/v1/runs/{run_id}/start`, `executed`, `cleanup`, `cancel`, audited |
-//! | `GET /runs/{run_id}` | `GET /api/svs/v1/runs/{run_id}`, with what the runs' list shows of it and its log search; its review blockers come with batch 7 |
+//! | `GET /runs/{run_id}` | `GET /api/svs/v1/runs/{run_id}`, with what the runs' list shows of it and its log search; its review blockers come with batch 7b |
 //! | `GET /runs/{run_id}/events?cursor=&limit=` | `GET /api/svs/v1/runs/{run_id}/events?after=&limit=` |
 //! | `GET /test-hosts/?changed_since=&cursor=&limit=` | `GET /api/svs/v1/test-hosts`, the same, a page `{hosts, next}` |
 //! | `GET /test-hosts/export/ndjson`, `.../csv` | `GET /api/svs/v1/test-hosts/export/{format}` |
@@ -311,9 +311,10 @@
 //! two URLs; a write's `If-Match` and `If-None-Match: *` (`aceapi_v2/svs/preconditions.py`) are taken as
 //! in ace3, and a 412's body is `{"error": ...}`, where ace3's carries the row as it is now; who did
 //! something is an actor, so a key that belongs to nobody decides, where ace3 refuses it, but can't
-//! comment, as in ace3. Still to come: the attribution feed, a run's attributions and its alerts, with
-//! batch 6's attribution; a person's bulk actions (`/runs/bulk/*`), association
-//! (`/runs/{run_id}/alerts/*`), review and a run's review blockers, with batch 7.
+//! comment, as in ace3. Batch 7a's association routes (what SVS makes of an alert, and a person's
+//! associate, disassociate, not a test and keep, from the run's side and the alert's) are `svs_association`'s,
+//! whose docs map them. Still to come, with batch 7b: a run's alerts, a person's bulk actions
+//! (`/runs/bulk/*`), review and a run's review blockers.
 //!
 //! ace3's `observable_comments` router (PLAN.md 5.6), under ace3's `observable:read` and `observable:write`
 //! (`ace_service`'s `observable_comments` docs). A comment is on a type and value, across alerts:
@@ -527,6 +528,7 @@ mod observable_comments;
 mod observables;
 mod params;
 mod remediation;
+mod svs_association;
 mod svs_catalog;
 mod svs_decisions;
 mod svs_run_reads;
@@ -1051,6 +1053,34 @@ impl Web {
             .route("/api/svs/v1/runs/{run_id}/cleanup", post(svs_runs::cleanup))
             .route("/api/svs/v1/runs/{run_id}/cancel", post(svs_runs::cancel))
             .route(
+                "/api/alerts/v1/alerts/{id}/svs",
+                get(svs_association::alert_svs),
+            )
+            .route(
+                "/api/alerts/v1/alerts/{id}/svs/disassociate",
+                post(svs_association::release_alert).layer(json_limit),
+            )
+            .route(
+                "/api/alerts/v1/alerts/{id}/svs/not-a-test",
+                post(svs_association::alert_not_a_test),
+            )
+            .route(
+                "/api/svs/v1/runs/{run_id}/alerts/{uuid}/associate",
+                post(svs_association::associate).layer(json_limit),
+            )
+            .route(
+                "/api/svs/v1/runs/{run_id}/alerts/{uuid}/disassociate",
+                post(svs_association::disassociate).layer(json_limit),
+            )
+            .route(
+                "/api/svs/v1/runs/{run_id}/alerts/{uuid}/not-a-test",
+                post(svs_association::not_a_test),
+            )
+            .route(
+                "/api/svs/v1/runs/{run_id}/alerts/{uuid}/keep",
+                post(svs_association::keep),
+            )
+            .route(
                 "/api/svs/v1/test-hosts",
                 get(svs_runs::test_hosts)
                     .post(svs_runs::create_test_host)
@@ -1353,6 +1383,13 @@ impl Web {
         svs_runs::executed,
         svs_runs::cleanup,
         svs_runs::cancel,
+        svs_association::alert_svs,
+        svs_association::release_alert,
+        svs_association::alert_not_a_test,
+        svs_association::associate,
+        svs_association::disassociate,
+        svs_association::not_a_test,
+        svs_association::keep,
         svs_run_reads::list,
         svs_run_reads::export,
         svs_run_reads::count,

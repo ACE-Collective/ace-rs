@@ -651,13 +651,16 @@ fn routed_alert(tags: &[&str]) -> ace_service::routing::Alert {
 }
 
 /// PLAN.md 7.13, ace3's `test_the_shipped_configuration_loads`: with no overlay, the open-source binary routes
-/// with the built-in router alone. ace3's ships SVS's marker router too, which 7.10 batch 7 adds.
+/// with SVS's marker router (7.10 batch 7a) ahead of the built-in one, as ace3's `saq.default.yaml` does.
 #[test]
-fn the_shipped_routers_are_the_built_in_one() {
+fn the_shipped_routers_are_the_marker_router_and_the_built_in_one() {
     let routers = ace::app()
         .alert_routers(&ace_sdk::Overlay::default())
         .expect("loads");
-    assert_eq!(routers.names(), [("detection_queue", 500)]);
+    assert_eq!(
+        routers.names(),
+        [("svs_marker", 100), ("detection_queue", 500)]
+    );
 }
 
 /// PLAN.md 7.13, ace3's `TestExampleIntegration`: the example router is loaded the way an overlay entry

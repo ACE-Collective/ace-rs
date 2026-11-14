@@ -251,7 +251,7 @@ const ALERT_LEFT_OUT: &[LeftOut] = &[
     LeftOut {
         name: "Owner",
         slug: "owner",
-        why: "an alert has no owner yet, and no step in PLAN.md adds one",
+        why: "an alert has an owner (7.10 batch 7a) but no filter for it yet, and no step in PLAN.md adds one",
     },
     LeftOut {
         name: "Reviewed",

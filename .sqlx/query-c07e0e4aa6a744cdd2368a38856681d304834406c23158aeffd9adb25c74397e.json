@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE svs.maintenance_alerts SET closed_at = $3\n             WHERE window_id = $1 AND root_id = ANY ($2) AND removed_at IS NULL AND closed_at IS NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "UuidArray",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "c07e0e4aa6a744cdd2368a38856681d304834406c23158aeffd9adb25c74397e"
+}

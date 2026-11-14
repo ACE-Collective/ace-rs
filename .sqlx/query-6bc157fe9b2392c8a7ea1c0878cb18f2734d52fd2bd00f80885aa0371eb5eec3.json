@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT disposition, dispositioned_by AS \"dispositioned_by: Value\",\n                                  analysis_mode, event_time, created_at,\n                                  left(description, $2) AS \"title!\"\n                           FROM analysis.roots WHERE id = $1 FOR UPDATE",
+  "query": "SELECT disposition, dispositioned_by AS \"dispositioned_by: Value\",\n                      analysis_mode, event_time, created_at,\n                      left(description, $2) AS \"title!\"\n               FROM analysis.roots WHERE id = $1 FOR UPDATE",
   "describe": {
     "columns": [
       {
@@ -80,5 +80,5 @@
       null
     ]
   },
-  "hash": "c354e32c14ec0878ecc99ace0fbfb0d68c7042e945e7364d879716fde3f22837"
+  "hash": "6bc157fe9b2392c8a7ea1c0878cb18f2734d52fd2bd00f80885aa0371eb5eec3"
 }

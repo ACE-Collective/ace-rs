@@ -22,7 +22,7 @@
 //!   and the batches both fold it, and a batch is shown by the first of its spellings.
 //! - A comment's author is the user, or the user an API key belongs to; a key that belongs to nobody
 //!   can't comment, as in ace3.
-//! - A run's alerts and its review's blockers come with batch 7, which closes and reviews them. The
+//! - A run's alerts and its review's blockers come with batch 7b, which reviews them. The
 //!   summary's alert counts read `svs.attributions`.
 //!
 //! **The attributions** (batch 6). A run's attributions, a row per (alert, detection) in id order, and

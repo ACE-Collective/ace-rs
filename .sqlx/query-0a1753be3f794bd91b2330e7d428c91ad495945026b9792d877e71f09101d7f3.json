@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE svs.runs SET changed_since_review = true\n         WHERE id = $1 AND state = 'reviewed' AND NOT changed_since_review",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "0a1753be3f794bd91b2330e7d428c91ad495945026b9792d877e71f09101d7f3"
+}

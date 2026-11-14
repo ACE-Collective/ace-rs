@@ -6,10 +6,10 @@
 //! From ace3: a refused parameter or registration that can't be accepted as sent is 400 where ace3 answers
 //! 422; a failure's body is `{"error": ...}`, so a busy host's holders and a conflict's state are in its
 //! text, where ace3's detail is an object; and a run's detail doesn't yet carry its review's blockers,
-//! which batch 7 brings. Part 5b's reads are `svs_run_reads`: the runs' list, feeds, exports, results,
+//! which batch 7b brings. Part 5b's reads are `svs_run_reads`: the runs' list, feeds, exports, results,
 //! history and comments. The test hosts page by name with `changed_since`, export, and take `If-Match` on
-//! a change. Batch 6 brings a run's attributions and alerts; batch 7 a person's bulk actions, association
-//! and review.
+//! a change. Batch 6 brought a run's attributions and batch 7a association (`svs_association`); batch 7b
+//! brings a run's alerts, a person's bulk actions and review.
 
 use ace_core::svs::hosts::HostFields;
 use ace_service::{

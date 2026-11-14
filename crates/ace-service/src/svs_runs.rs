@@ -9,7 +9,8 @@
 //! error and is closed, a started run ends when its observation window passes, and a canceled or failed run
 //! is closed when its attribution window passes. A person ends a started run early with
 //! [`Service::end_svs_run`], under `svs:run_manage`; taking, reviewing, canceling and closing a run by hand
-//! come with batch 7.
+//! come with batch 7b. The timers also close alerts: SIMULATED for those of a run they close and those
+//! attributed to a closed run afterwards, IGNORE for a maintenance window's (`svs_association`, batch 7a).
 //!
 //! Every change of state is one transaction that locks the run's row, checks the state it found and
 //! appends the transition to the run's event log, so a timer that fires twice, or a launcher's call racing
@@ -216,6 +217,12 @@ pub struct TimerResult {
     pub closed: u64,
     /// Maintenance windows whose time passed.
     pub expired_windows: u64,
+    /// Alerts given SIMULATED with the run the timers just closed.
+    pub alerts_closed: u64,
+    /// Alerts given SIMULATED that were attributed to a run after it closed: the late-alert sweep.
+    pub late_alerts_closed: u64,
+    /// Alerts of maintenance windows given IGNORE.
+    pub maintenance_alerts_closed: u64,
     /// Stale results of ended and reviewed runs computed again.
     pub results_computed: u64,
     pub pruned_refusals: u64,
@@ -246,7 +253,7 @@ pub struct MaintenanceWindow {
     pub updated_at: DateTime<Utc>,
 }
 
-fn unknown_run(uuid: Uuid) -> ServiceError {
+pub(crate) fn unknown_run(uuid: Uuid) -> ServiceError {
     ServiceError::NotFound(format!("run {uuid} not found"))
 }
 
@@ -305,9 +312,9 @@ struct RunRow {
 }
 
 /// A run and its row's id, which the writes need.
-struct Loaded {
-    id: i64,
-    run: Run,
+pub(crate) struct Loaded {
+    pub(crate) id: i64,
+    pub(crate) run: Run,
 }
 
 /// The run, with its row locked when `lock`, or None when there's none.
@@ -383,7 +390,10 @@ async fn find_run(
     }))
 }
 
-async fn locked_run(conn: &mut PgConnection, uuid: Uuid) -> Result<Loaded, ServiceError> {
+pub(crate) async fn locked_run(
+    conn: &mut PgConnection,
+    uuid: Uuid,
+) -> Result<Loaded, ServiceError> {
     find_run(conn, uuid, true)
         .await?
         .ok_or_else(|| unknown_run(uuid))
@@ -557,7 +567,7 @@ async fn close(
 
 /// Marks the runs' live results stale, in run id order: ace3's `mark_runs_stale` for given runs, which
 /// the core's SVS hook shares (`ace_core::svs::attribution::mark_runs_stale`).
-async fn mark_stale(conn: &mut PgConnection, runs: &[i64]) -> Result<(), ServiceError> {
+pub(crate) async fn mark_stale(conn: &mut PgConnection, runs: &[i64]) -> Result<(), ServiceError> {
     Ok(ace_core::svs::attribution::mark_runs_stale(conn, runs).await?)
 }
 
@@ -1277,6 +1287,13 @@ enum Step {
     End(Uuid),
     Close(Uuid),
     Expire(i64),
+    /// The alerts of a closed run: just closed, or `late`, found by the sweep.
+    CloseAlerts {
+        run: Uuid,
+        late: bool,
+    },
+    /// The alerts the hook recorded for a maintenance window.
+    CloseMaintenance(i64),
     PruneRefusals,
 }
 
@@ -2149,9 +2166,10 @@ impl Service {
         Ok(run)
     }
 
-    /// Moves every run whose start timeout or window has passed, expires the maintenance windows whose time
-    /// has passed, and removes the refusals past their day: ace3's `run_timers` and its maintenance
-    /// half's `expire_windows`. It needs `svs:run_timers`. Each move is its own transaction, on the state
+    /// Moves every run whose start timeout or window has passed, closes the alerts of the runs it closes
+    /// and of runs closed before their alerts arrived as SIMULATED, expires the maintenance windows whose
+    /// time has passed and closes their alerts as IGNORE (`svs_association`), and removes the refusals past
+    /// their day: ace3's `run_timers` and its maintenance half's. It needs `svs:run_timers`. Each move is its own transaction, on the state
     /// it finds under the row's lock, so a pass that runs twice changes nothing, and one that fails is
     /// logged and counted while the others go on.
     pub async fn run_svs_timers(
@@ -2161,11 +2179,11 @@ impl Service {
     ) -> Result<TimerResult, ServiceError> {
         let timeout = self.runs.start_timeout;
         let minutes = self.runs.start_timeout_minutes;
-        let mut steps: Vec<Step> = self
+        let mut steps: std::collections::VecDeque<Step> = self
             .gate
             .read(actor, "run_svs_timers", &SVS_RUN_TIMERS, &|tx| {
                 Box::pin(async move {
-                    let mut steps = Vec::new();
+                    let mut steps = std::collections::VecDeque::new();
                     let timed_out = sqlx::query_scalar!(
                         "SELECT uuid FROM svs.runs WHERE state = 'created' AND created_at <= $1
                          ORDER BY id LIMIT $2",
@@ -2205,13 +2223,25 @@ impl Service {
                     .fetch_all(tx.conn())
                     .await?;
                     steps.extend(expired.into_iter().map(Step::Expire));
+                    // the sweep: alerts attributed to a run after it closed, or that its close
+                    // couldn't reach; the runs this pass closes get theirs as each closes
+                    let late =
+                        crate::svs_association::runs_with_late_alerts(tx, TIMER_BATCH).await?;
+                    steps.extend(
+                        late.into_iter()
+                            .map(|run| Step::CloseAlerts { run, late: true }),
+                    );
+                    let windows =
+                        crate::svs_association::windows_with_standing_alerts(tx, TIMER_BATCH)
+                            .await?;
+                    steps.extend(windows.into_iter().map(Step::CloseMaintenance));
                     Ok(steps)
                 })
             })
             .await?;
-        steps.push(Step::PruneRefusals);
+        steps.push_back(Step::PruneRefusals);
         let mut result = TimerResult::default();
-        for step in steps {
+        while let Some(step) = steps.pop_front() {
             let step = &step;
             let moved = self
                 .gate
@@ -2370,6 +2400,32 @@ impl Service {
                                 )?;
                                 Ok(Audited::changed(1, change))
                             }
+                            Step::CloseAlerts { run, late } => {
+                                match self.close_run_alerts_in(tx, actor, run, late, now).await? {
+                                    None => Ok(Audited::unchanged(0)),
+                                    Some(closed) => {
+                                        let count = closed.alerts_closed.len() as u64;
+                                        let change = Change::noted(Target::svs_run(run), &closed)?;
+                                        Ok(Audited::changed(count, change))
+                                    }
+                                }
+                            }
+                            Step::CloseMaintenance(window) => {
+                                match self
+                                    .close_maintenance_alerts_in(tx, actor, window, now)
+                                    .await?
+                                {
+                                    None => Ok(Audited::unchanged(0)),
+                                    Some((uuid, closed)) => {
+                                        let count = closed.alerts_closed.len() as u64;
+                                        let change = Change::noted(
+                                            Target::svs_maintenance_window(uuid),
+                                            &closed,
+                                        )?;
+                                        Ok(Audited::changed(count, change))
+                                    }
+                                }
+                            }
                             Step::PruneRefusals => {
                                 let before = now - REFUSAL_RETENTION;
                                 let pruned = sqlx::query!(
@@ -2396,7 +2452,15 @@ impl Service {
                 })
                 .await;
             match (moved, step) {
-                (Ok(count), Step::TimeOut(_)) => result.timed_out += count,
+                (Ok(count), Step::TimeOut(run)) => {
+                    result.timed_out += count;
+                    if count > 0 {
+                        steps.push_front(Step::CloseAlerts {
+                            run: *run,
+                            late: false,
+                        });
+                    }
+                }
                 (Ok(count), Step::End(uuid)) => {
                     result.ended += count;
                     // the result, as the run ends: a computation that fails leaves the end, and the
@@ -2410,7 +2474,24 @@ impl Service {
                         );
                     }
                 }
-                (Ok(count), Step::Close(_)) => result.closed += count,
+                // a failure to close its alerts never undoes the close: the sweep closes them on a
+                // later pass
+                (Ok(count), Step::Close(run)) => {
+                    result.closed += count;
+                    if count > 0 {
+                        steps.push_front(Step::CloseAlerts {
+                            run: *run,
+                            late: false,
+                        });
+                    }
+                }
+                (Ok(count), Step::CloseAlerts { late: false, .. }) => result.alerts_closed += count,
+                (Ok(count), Step::CloseAlerts { late: true, .. }) => {
+                    result.late_alerts_closed += count;
+                }
+                (Ok(count), Step::CloseMaintenance(_)) => {
+                    result.maintenance_alerts_closed += count;
+                }
                 (Ok(count), Step::Expire(_)) => result.expired_windows += count,
                 (Ok(count), Step::PruneRefusals) => result.pruned_refusals += count,
                 (Err(error), step) => {

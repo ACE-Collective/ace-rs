@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT r.uuid FROM svs.runs r\n         WHERE r.state = 'closed' AND r.id IN (\n             SELECT a.run_id FROM analysis.roots o\n             JOIN svs.attributions a ON a.root_id = o.id AND a.removed_at IS NULL\n             WHERE o.alerted_at IS NOT NULL AND (o.disposition IS NULL OR o.disposition = 'OPEN')\n               AND o.owner_id IS NULL AND svs.fully_attributed(o.id))\n         ORDER BY r.id LIMIT $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "uuid",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "svs.runs",
+            "name": "uuid"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "36f6b137efa2e95c6da67c039190a2c3c5a4c9ad1c3488475bd60a0024306fc0"
+}

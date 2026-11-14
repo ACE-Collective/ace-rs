@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT w.uuid, w.host FROM svs.maintenance_alerts m\n             JOIN svs.maintenance_windows w ON w.id = m.window_id\n             WHERE m.root_id = $1 AND m.removed_at IS NULL\n             ORDER BY m.id DESC LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "uuid",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "svs.maintenance_windows",
+            "name": "uuid"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "host",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.maintenance_windows",
+            "name": "host"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "9ccff690ec66a1adabcfd9fd446ada0507d769f3fd004a82eec0b0975d745154"
+}

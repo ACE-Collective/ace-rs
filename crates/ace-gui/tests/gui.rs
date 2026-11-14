@@ -4032,7 +4032,7 @@ async fn the_list_filters_and_pages_through_fixture_alerts() {
     // a filter the list doesn't have is left out, saying so; a broken one shows the list without filters
     let (status, page) = get("/?f=owner:alice".to_owned()).await;
     assert_eq!(status, StatusCode::OK);
-    assert!(page.contains("an alert has no owner yet"), "{page}");
+    assert!(page.contains("an alert has an owner"), "{page}");
     assert_eq!(row_ids(&page).len(), 5);
     let (status, page) = get("/?f=tag:a,,b".to_owned()).await;
     assert_eq!(status, StatusCode::OK);
