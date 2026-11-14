@@ -634,3 +634,75 @@ fn a_contained_replay_reads_only_its_validation() {
     assert_eq!(error, Value::Null);
     assert_eq!(matched, ["plain", "secret", "x"]);
 }
+
+/// An alert as a router reads it, with these tags.
+fn routed_alert(tags: &[&str]) -> ace_service::routing::Alert {
+    ace_service::routing::Alert {
+        root: Uuid::new_v4(),
+        description: "an alert".to_owned(),
+        pass: 1,
+        queue: ace_service::DEFAULT_QUEUE.to_owned(),
+        disposition: None,
+        alerted_at: chrono::Utc::now(),
+        detections: Vec::new(),
+        tags: tags.iter().map(|tag| (*tag).to_owned()).collect(),
+        last_change: None,
+    }
+}
+
+/// PLAN.md 7.13, ace3's `test_the_shipped_configuration_loads`: with no overlay, the open-source binary routes
+/// with the built-in router alone. ace3's ships SVS's marker router too, which 7.10 batch 7 adds.
+#[test]
+fn the_shipped_routers_are_the_built_in_one() {
+    let routers = ace::app()
+        .alert_routers(&ace_sdk::Overlay::default())
+        .expect("loads");
+    assert_eq!(routers.names(), [("detection_queue", 500)]);
+}
+
+/// PLAN.md 7.13, ace3's `TestExampleIntegration`: the example router is loaded the way an overlay entry
+/// loads it, routes an alert with its tag, and does nothing to one without; settings it doesn't know stop
+/// startup.
+#[tokio::test]
+async fn the_example_router_loads_and_routes_only_tagged_alerts() {
+    let entry = |extra: &str| {
+        format!(
+            "alert_routers:\n  example_tag_router:\n    type: example_tag\n    priority: 400\n    settings:\n      tag: example_route\n      queue: example\n{extra}"
+        )
+    };
+    let overlay = ace_sdk::Overlay::from_yaml(&entry("")).expect("parses");
+    let routers = ace_site_example::app()
+        .alert_routers(&overlay)
+        .expect("loads");
+    assert_eq!(
+        routers.names(),
+        [("example_tag_router", 400), ("detection_queue", 500)]
+    );
+    let test_db = TestDb::new().await;
+    let mut tx = test_db.db().begin().await.expect("begins");
+    let stage = ace_service::routing::Stage::Alerted;
+    assert_eq!(
+        routers
+            .decide(&routed_alert(&[]), stage, &mut tx)
+            .await
+            .expect("decides"),
+        None
+    );
+    let decision = routers
+        .decide(&routed_alert(&["example_route"]), stage, &mut tx)
+        .await
+        .expect("decides")
+        .expect("a decision");
+    assert_eq!(
+        (decision.queue.as_str(), decision.router.as_str()),
+        ("example", "example_tag_router")
+    );
+    let typo = ace_sdk::Overlay::from_yaml(&entry("      colour: red\n")).expect("parses");
+    let error = ace_site_example::app()
+        .alert_routers(&typo)
+        .expect_err("refused");
+    assert!(
+        error.contains("example_tag_router") && error.contains("colour"),
+        "{error}"
+    );
+}

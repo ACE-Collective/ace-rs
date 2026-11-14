@@ -17,7 +17,7 @@
 //! a detection makes the root an alert as it's created, as ace3's hunter does with a correlation
 //! root's detection point, and the rest of what the submitter said about the root, such as ace3's
 //! alert type, tool, queue and details, is kept as it said it in `analysis.roots.origin` until roots
-//! have columns for them.
+//! have columns for them. The queue has one (PLAN.md 7.13): `Origin::queue` is the alert's first.
 
 use std::collections::BTreeMap;
 
@@ -80,6 +80,9 @@ pub struct Origin {
     pub observables: Vec<NewObservable>,
     /// What the submitter said about the root, kept as it is in `analysis.roots.origin`.
     pub details: Option<serde_json::Value>,
+    /// The queue the alert starts in, such as a hunt's `queue`; `tree::DEFAULT_QUEUE` when None. A
+    /// router's decision never takes an alert out of a queue a submitter named (PLAN.md 7.13).
+    pub queue: Option<String>,
 }
 
 impl Origin {
@@ -157,6 +160,9 @@ pub fn prepare(
             "a submission can't hold a NUL character".to_owned(),
         ));
     }
+    if let Some(queue) = &origin.queue {
+        tree::check_queue_name(queue).map_err(SubmitError::Invalid)?;
+    }
     if let Some(path) = submission
         .file_yara_meta
         .keys()
@@ -198,6 +204,16 @@ pub async fn create(
             root.id,
             origin.details,
             origin.alerts(),
+        )
+        .execute(tx.conn())
+        .await
+        .map_err(DbError::from)?;
+    }
+    if let Some(queue) = &origin.queue {
+        sqlx::query!(
+            "UPDATE analysis.roots SET queue = $2 WHERE id = $1",
+            root.id,
+            queue,
         )
         .execute(tx.conn())
         .await

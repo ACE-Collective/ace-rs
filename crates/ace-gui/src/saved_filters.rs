@@ -24,7 +24,7 @@
 //!   `saved_filters.js` draws has no control for it; this is that control.
 //!
 //! What's left out: ace3's confirm before a delete, which needs a script; its tip on `$USER_QUEUE` and
-//! `$USER`, which come with queues (7.13). ace3's `saveCurrent`, which overwrites a saved filter with
+//! `$USER`, which waits for `$USER` and the owner filter, since only `$USER_QUEUE` works yet (7.13). ace3's `saveCurrent`, which overwrites a saved filter with
 //! the editor's rows from the alert list's Edit dialog, belongs to that list (5.10) and isn't here. Every
 //! other screen that draws ace3's dialogs (file collection, remediation, SVS, signatures' samples and
 //! validations) comes with its screen.

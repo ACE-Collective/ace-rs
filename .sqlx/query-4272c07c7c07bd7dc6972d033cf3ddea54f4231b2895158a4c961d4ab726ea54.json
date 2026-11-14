@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE service.users\n                         SET display_name = $2, email = $3, timezone = $4, queue = $5::text\n                         WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "4272c07c7c07bd7dc6972d033cf3ddea54f4231b2895158a4c961d4ab726ea54"
+}

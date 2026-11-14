@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM queue.routing_due WHERE root_id = $1 AND pass = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "5c07169c8de98e2365397614ea5d242bb91ebbb140f58d242bfb2d60ab62d8ad"
+}

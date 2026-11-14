@@ -106,6 +106,7 @@ struct UserRecord<'a> {
     #[serde(skip_serializing_if = "Option::is_none")]
     email: Option<&'a str>,
     timezone: &'a str,
+    queue: &'a str,
 }
 
 impl Recorded for UserRecord<'_> {}
@@ -361,7 +362,7 @@ impl Service {
         profile: &Profile,
     ) -> Result<UserId, ServiceError> {
         let profile = profile.checked()?;
-        let (display_name, email, timezone) = profile.initial();
+        let (display_name, email, timezone, queue) = profile.initial();
         let password_hash = self.passwords.hash(password).await?;
         let id = Uuid::new_v4();
         let (name, hash) = (username.as_str(), password_hash.as_str());
@@ -370,12 +371,14 @@ impl Service {
                 Box::pin(async move {
                     insert_user(tx.conn(), id, name, hash, actor).await?;
                     sqlx::query!(
-                        "UPDATE service.users SET display_name = $2, email = $3, timezone = $4
+                        "UPDATE service.users
+                         SET display_name = $2, email = $3, timezone = $4, queue = $5::text
                          WHERE id = $1",
                         id,
                         display_name,
                         email,
                         timezone,
+                        queue,
                     )
                     .execute(tx.conn())
                     .await?;
@@ -387,6 +390,7 @@ impl Service {
                             display_name,
                             email,
                             timezone,
+                            queue,
                         },
                     )?;
                     Ok(Audited::changed(UserId(id), change))
@@ -447,6 +451,7 @@ impl Service {
                             display_name: None,
                             email: None,
                             timezone: "UTC",
+                            queue: ace_core::tree::DEFAULT_QUEUE,
                         },
                     )?
                     .details(&FirstUserDetails {

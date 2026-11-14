@@ -1,0 +1,100 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT description, queue AS \"queue!: String\", disposition, alerted_at, pass, completed_pass,\n                  routed_pass\n           FROM analysis.roots WHERE id = $1 FOR UPDATE",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "description",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "analysis.roots",
+            "name": "description"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "queue!: String",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "analysis.roots",
+            "name": "queue"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "disposition",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "analysis.roots",
+            "name": "disposition"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "alerted_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "analysis.roots",
+            "name": "alerted_at"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "pass",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "analysis.roots",
+            "name": "pass"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "completed_pass",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "analysis.roots",
+            "name": "completed_pass"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "routed_pass",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "analysis.roots",
+            "name": "routed_pass"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "eb654a5b74ddde1bac19ca75985ada64781705bda8648e27d2ca7b2788c9bc4f"
+}

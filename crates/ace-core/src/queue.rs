@@ -17,7 +17,8 @@
 //!
 //! A root is complete when it has no queued, delayed or running tasks. Queueing work on an
 //! idle root starts an analysis pass, and the transaction that ends its last task records the
-//! pass's one completion (`check_completion`), which `Completions` waits for. Every change
+//! pass's one completion (`check_completion`), which `Completions` waits for, and, for an alert, that its
+//! routing is due (`queue.routing_due`, PLAN.md 7.13's `ace_service::routing`). Every change
 //! that queues or ends tasks locks the root's row first, so two that race on one root take
 //! turns and the second sees what the first did: a pass can't end twice, or not at all.
 //! When the core's hooks are due (`crate::hooks`), the transaction that ends the last task queues
@@ -211,6 +212,15 @@ pub async fn check_completion(tx: &mut Tx<'_>, root: Uuid) -> Result<Option<i32>
         .execute(tx.conn())
         .await?;
         tracing::info!(%root, pass, "the root's analysis pass completed");
+        // an alert's routing runs on its completion (PLAN.md 7.13, `ace_service::routing`)
+        sqlx::query!(
+            "INSERT INTO queue.routing_due (root_id, pass)
+             SELECT id, $2 FROM analysis.roots WHERE id = $1 AND alerted_at IS NOT NULL",
+            root,
+            pass,
+        )
+        .execute(tx.conn())
+        .await?;
         // ace3's email archiver indexes the URLs below an email it archived in its post-analysis
         crate::email_archive::index_urls(tx, root).await?;
     }

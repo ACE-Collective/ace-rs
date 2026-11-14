@@ -18,7 +18,8 @@
 //! `MAX_SAVED_FILTERS` on a screen, where ace3 has no bound. ace3's `working` and `temp` rows, and its
 //! `PUT /scratch/{kind}`, hold the filter a page shows because ace3's session cookie can't: ace4's list
 //! keeps it in the page's URL, so there's nothing to hold. ace3 seeds a new analyst's `Last 24h` and
-//! `Last 7d`, which filter on the viewer's queue; they come with queues (7.13).
+//! `Last 7d`, which filter on the viewer's queue; they aren't seeded here, though 7.13 brought the queue
+//! filter they need: a user here has no saved filters until they save one.
 
 use chrono::{DateTime, Utc};
 use serde::Serialize;

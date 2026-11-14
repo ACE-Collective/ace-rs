@@ -94,6 +94,10 @@ struct Params {
     /// `true`, `false` or both.
     has_override: Option<Vec<String>>,
     not_has_override: Option<Vec<String>>,
+    /// The alert's queue (7.13), with `$USER_QUEUE` the viewer's (`viewer`).
+    queue: Option<Vec<String>>,
+    not_queue: Option<Vec<String>>,
+    viewer: Option<Uuid>,
 }
 
 fn verdicts(names: Option<Vec<String>>) -> (Option<Vec<String>>, bool) {
@@ -114,7 +118,11 @@ fn verdicts(names: Option<Vec<String>>) -> (Option<Vec<String>>, bool) {
     }
 }
 
-fn params(service: &Service, filter: &DetectionPointFilter) -> Result<Params, ServiceError> {
+fn params(
+    service: &Service,
+    actor: &crate::Actor,
+    filter: &DetectionPointFilter,
+) -> Result<Params, ServiceError> {
     let f = Resolved::new(
         FilterScreen::DetectionPoints,
         &filter.filters,
@@ -137,6 +145,9 @@ fn params(service: &Service, filter: &DetectionPointFilter) -> Result<Params, Se
         not_source: f.names("source", true),
         has_override: f.names("has_override", false),
         not_has_override: f.names("has_override", true),
+        queue: f.names("queue", false),
+        not_queue: f.names("queue", true),
+        viewer: crate::filters::queue_holder(actor),
     })
 }
 
@@ -236,7 +247,7 @@ impl Service {
     ) -> Result<DetectionPointPage, ServiceError> {
         let alert = filter.alert;
         let changed_since = filter.changed_since;
-        let p = &params(self, filter)?;
+        let p = &params(self, actor, filter)?;
         self.gate
             .read(actor, "detection_points", &ALERT_READ, &|tx| {
                 Box::pin(async move {
@@ -304,6 +315,13 @@ impl Service {
                              -- Has Override: true, false or both
                              AND ($24::text[] IS NULL OR (v.verdict IS NOT NULL)::text = ANY ($24::text[]))
                              AND ($25::text[] IS NULL OR NOT (v.verdict IS NOT NULL)::text = ANY ($25::text[]))
+                             -- Queue: the alert's, $USER_QUEUE standing for the viewer's own (7.13)
+                             AND ($26::text[] IS NULL OR r.queue = ANY ($26::text[])
+                                  OR ('$USER_QUEUE' = ANY ($26::text[]) AND COALESCE(r.queue = (
+                                        SELECT u.queue FROM service.users u WHERE u.id = $28), false)))
+                             AND ($27::text[] IS NULL OR NOT (r.queue = ANY ($27::text[])
+                                  OR ('$USER_QUEUE' = ANY ($27::text[]) AND COALESCE(r.queue = (
+                                        SELECT u.queue FROM service.users u WHERE u.id = $28), false))))
                            ORDER BY d.id
                            LIMIT $1"#,
                         limit + 1,
@@ -331,6 +349,9 @@ impl Service {
                         p.not_source.as_deref(),
                         p.has_override.as_deref(),
                         p.not_has_override.as_deref(),
+                        p.queue.as_deref(),
+                        p.not_queue.as_deref(),
+                        p.viewer,
                     )
                     .fetch_all(tx.conn())
                     .await
@@ -383,7 +404,7 @@ impl Service {
     ) -> Result<i64, ServiceError> {
         let alert = filter.alert;
         let changed_since = filter.changed_since;
-        let p = &params(self, filter)?;
+        let p = &params(self, actor, filter)?;
         self.gate
             .read(actor, "detection_point_count", &ALERT_READ, &|tx| {
                 Box::pin(async move {
@@ -435,6 +456,12 @@ impl Service {
                              AND ($21::text[] IS NULL OR NOT COALESCE(e.source = ANY ($21::text[]), false))
                              AND ($22::text[] IS NULL OR (v.verdict IS NOT NULL)::text = ANY ($22::text[]))
                              AND ($23::text[] IS NULL OR NOT (v.verdict IS NOT NULL)::text = ANY ($23::text[]))
+                             AND ($24::text[] IS NULL OR r.queue = ANY ($24::text[])
+                                  OR ('$USER_QUEUE' = ANY ($24::text[]) AND COALESCE(r.queue = (
+                                        SELECT u.queue FROM service.users u WHERE u.id = $26), false)))
+                             AND ($25::text[] IS NULL OR NOT (r.queue = ANY ($25::text[])
+                                  OR ('$USER_QUEUE' = ANY ($25::text[]) AND COALESCE(r.queue = (
+                                        SELECT u.queue FROM service.users u WHERE u.id = $26), false))))
                            LIMIT $1) counted"#,
                         cap.saturating_add(1),
                         alert,
@@ -459,6 +486,9 @@ impl Service {
                         p.not_source.as_deref(),
                         p.has_override.as_deref(),
                         p.not_has_override.as_deref(),
+                        p.queue.as_deref(),
+                        p.not_queue.as_deref(),
+                        p.viewer,
                     )
                     .fetch_one(tx.conn())
                     .await

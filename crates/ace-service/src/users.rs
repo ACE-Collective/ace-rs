@@ -21,7 +21,7 @@
 //! (`keeps_user_write`), as disabling yourself is. ace3 refuses only the second. Holding `user:write`
 //! still lets you grant yourself `*:*`, as in ace3 (5.2).
 //!
-//! ace3's `queue` isn't here: ace4's alerts have no queues yet.
+//! A profile holds ace3's `queue`, the queue a person works (PLAN.md 7.13), `default` until they change it.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::str::FromStr;
@@ -50,12 +50,14 @@ const MAX_EMAIL: usize = 255;
 const MAX_GROUP_NAME: usize = 255;
 
 /// A user's profile as a request gives it. Each field left out is left alone, or unset for a new user;
-/// an empty display name or email clears it. A timezone is an IANA name such as `America/New_York`.
+/// an empty display name or email clears it. A timezone is an IANA name such as `America/New_York`. A queue
+/// is the one a person works (PLAN.md 7.13), ace3's `users.queue`, `default` for a new user.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Profile {
     pub display_name: Option<String>,
     pub email: Option<String>,
     pub timezone: Option<String>,
+    pub queue: Option<String>,
 }
 
 /// A profile's fields after `Profile::checked`: `Some(None)` clears one.
@@ -64,6 +66,7 @@ pub(crate) struct CheckedProfile {
     display_name: Option<Option<String>>,
     email: Option<Option<String>>,
     timezone: Option<String>,
+    queue: Option<String>,
 }
 
 impl Profile {
@@ -114,21 +117,35 @@ impl Profile {
                     })
             })
             .transpose()?;
+        let queue = self
+            .queue
+            .as_deref()
+            .map(|queue| {
+                let queue = queue.trim();
+                ace_core::tree::check_queue_name(queue)
+                    .map(|()| queue.to_owned())
+                    .map_err(ServiceError::InvalidRequest)
+            })
+            .transpose()?;
         Ok(CheckedProfile {
             display_name,
             email,
             timezone,
+            queue,
         })
     }
 }
 
 impl CheckedProfile {
-    /// The values a new user starts with.
-    pub(crate) fn initial(&self) -> (Option<&str>, Option<&str>, &str) {
+    /// The values a new user starts with: display name, email, timezone and queue.
+    pub(crate) fn initial(&self) -> (Option<&str>, Option<&str>, &str, &str) {
         (
             self.display_name.as_ref().and_then(|name| name.as_deref()),
             self.email.as_ref().and_then(|email| email.as_deref()),
             self.timezone.as_deref().unwrap_or("UTC"),
+            self.queue
+                .as_deref()
+                .unwrap_or(ace_core::tree::DEFAULT_QUEUE),
         )
     }
 }
@@ -141,6 +158,8 @@ pub struct User {
     pub display_name: Option<String>,
     pub email: Option<String>,
     pub timezone: String,
+    /// The queue they work (PLAN.md 7.13).
+    pub queue: String,
     pub enabled: bool,
     pub created_at: DateTime<Utc>,
     /// How many API keys they own.
@@ -190,6 +209,7 @@ struct ProfileRecord {
     display_name: Option<String>,
     email: Option<String>,
     timezone: String,
+    queue: String,
 }
 
 impl Recorded for ProfileRecord {}
@@ -431,7 +451,7 @@ impl Service {
             .await
     }
 
-    /// A user changing their own display name or timezone, as ace3's `PATCH /users/me`, which needs no
+    /// A user changing their own display name, timezone or queue, as ace3's `PATCH /users/me`, which needs no
     /// grant. The email stays with `update_user`, as in ace3. Returns false when nothing changed.
     pub async fn update_own_profile(
         &self,
@@ -890,7 +910,8 @@ async fn change_profile(
     profile: &CheckedProfile,
 ) -> Result<Audited<bool>, ServiceError> {
     let found = sqlx::query!(
-        "SELECT display_name, email, timezone FROM service.users WHERE id = $1 FOR UPDATE",
+        r#"SELECT display_name, email, timezone, queue AS "queue!: String"
+           FROM service.users WHERE id = $1 FOR UPDATE"#,
         user.0,
     )
     .fetch_optional(&mut *conn)
@@ -900,6 +921,7 @@ async fn change_profile(
         display_name: found.display_name,
         email: found.email,
         timezone: found.timezone,
+        queue: found.queue,
     };
     let after = ProfileRecord {
         display_name: profile
@@ -914,16 +936,22 @@ async fn change_profile(
             .timezone
             .clone()
             .unwrap_or_else(|| before.timezone.clone()),
+        queue: profile
+            .queue
+            .clone()
+            .unwrap_or_else(|| before.queue.clone()),
     };
     if before == after {
         return Ok(Audited::unchanged(false));
     }
     sqlx::query!(
-        "UPDATE service.users SET display_name = $2, email = $3, timezone = $4 WHERE id = $1",
+        "UPDATE service.users SET display_name = $2, email = $3, timezone = $4, queue = $5::text
+         WHERE id = $1",
         user.0,
         after.display_name,
         after.email,
         after.timezone,
+        after.queue,
     )
     .execute(&mut *conn)
     .await?;
@@ -938,7 +966,7 @@ async fn user_rows(
 ) -> Result<Vec<User>, ServiceError> {
     let rows = sqlx::query!(
         r#"SELECT u.id, u.username::text AS "username!", u.display_name, u.email, u.timezone,
-                  u.enabled, u.created_at,
+                  u.queue AS "queue!: String", u.enabled, u.created_at,
                   (SELECT count(*) FROM service.api_keys k WHERE k.owner_id = u.id) AS "api_keys!"
            FROM service.users u
            WHERE ($1::uuid IS NULL OR u.id = $1) AND ($2 OR u.enabled)
@@ -956,6 +984,7 @@ async fn user_rows(
             display_name: row.display_name,
             email: row.email,
             timezone: row.timezone,
+            queue: row.queue,
             enabled: row.enabled,
             created_at: row.created_at,
             api_keys: row.api_keys,

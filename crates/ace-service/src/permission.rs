@@ -250,6 +250,9 @@ pub const ADMIN_READ: PermissionName = PermissionName::known("admin", "read");
 pub const ALERT_READ: PermissionName = PermissionName::known("alert", "read");
 /// Change an alert: ace3's `alert:write`, which its disposition route requires.
 pub const ALERT_WRITE: PermissionName = PermissionName::known("alert", "write");
+/// Move an alert to another queue (PLAN.md 7.13). ace3 has no such permission: its routers move alerts with
+/// no check. Only ACE's routing, the component `alert_routing`, holds it.
+pub const ALERT_QUEUE: PermissionName = PermissionName::known("alert", "queue");
 /// Submit analysis: ace3's `alert:create`, which its submit route requires.
 pub const ALERT_CREATE: PermissionName = PermissionName::known("alert", "create");
 /// Read an archived email, decrypted, by its Message-ID: ace3's `email:read`.
@@ -350,6 +353,10 @@ pub static CATALOG: &[CatalogEntry] = &[
     CatalogEntry {
         name: ALERT_CREATE,
         description: "Submit analysis, which may become alerts.",
+    },
+    CatalogEntry {
+        name: ALERT_QUEUE,
+        description: "Move alerts to the queue their routers decide. ACE's alert routing holds it.",
     },
     CatalogEntry {
         name: ALERT_READ,

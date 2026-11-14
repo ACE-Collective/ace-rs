@@ -1,0 +1,100 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, from_queue AS \"from_queue!: String\", to_queue AS \"to_queue!: String\", reason,\n                  router, moved_by AS \"moved_by!: Value\", changed_at\n           FROM analysis.queue_changes WHERE root_id = $1 ORDER BY id DESC LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "analysis.queue_changes",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "from_queue!: String",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "analysis.queue_changes",
+            "name": "from_queue"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "to_queue!: String",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "analysis.queue_changes",
+            "name": "to_queue"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "reason",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "analysis.queue_changes",
+            "name": "reason"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "router",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "analysis.queue_changes",
+            "name": "router"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "moved_by!: Value",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "analysis.queue_changes",
+            "name": "moved_by"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "changed_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "analysis.queue_changes",
+            "name": "changed_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "72578e41f69e5df922da6f9519cb7ece5ffce6139756872f7050362330291da2"
+}

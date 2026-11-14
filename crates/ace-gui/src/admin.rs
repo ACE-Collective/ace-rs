@@ -42,8 +42,7 @@
 //! ace3 allows. The page draws your own Disable as a note instead of a button.
 //!
 //! Left out: ace3's bulk edit of several selected users at once; its username change in Edit User,
-//! which 5.6's service has no write for; its default queue column, with 7.13's
-//! queues; its confirm before revoking a key, which needs a script; making a key with no owner, which
+//! which 5.6's service has no write for; its confirm before revoking a key, which needs a script; making a key with no owner, which
 //! `ace user create-key` and the API do (the page lists, changes and revokes them).
 
 use std::collections::BTreeMap;
@@ -209,6 +208,8 @@ pub struct UserRow {
     pub display_name: String,
     pub email: String,
     pub timezone: String,
+    /// Their default queue (PLAN.md 7.13), ace3's column of that name.
+    pub queue: String,
     pub enabled: bool,
     pub api_keys: i64,
     /// Their own grants, then their groups'.
@@ -265,6 +266,7 @@ pub struct UserDraft {
     pub display_name: String,
     pub email: String,
     pub timezone: String,
+    pub queue: String,
 }
 
 /// What Users & Roles shows.
@@ -306,6 +308,7 @@ pub struct UserView {
     pub display_name: String,
     pub email: String,
     pub timezone: String,
+    pub queue: String,
     pub enabled: bool,
     /// Whether this is the viewer's own account.
     pub is_you: bool,
@@ -483,6 +486,7 @@ pub fn users_view(
                 display_name: detail.user.display_name.clone().unwrap_or_default(),
                 email: detail.user.email.clone().unwrap_or_default(),
                 timezone: detail.user.timezone.clone(),
+                queue: detail.user.queue.clone(),
                 enabled: detail.user.enabled,
                 api_keys: detail.user.api_keys,
                 grants: detail
@@ -526,6 +530,7 @@ pub fn users_view(
         timezones: timezones(),
         draft: UserDraft {
             timezone: "UTC".to_owned(),
+            queue: ace_service::DEFAULT_QUEUE.to_owned(),
             ..UserDraft::default()
         },
         group_draft: String::new(),
@@ -550,6 +555,7 @@ pub fn user_view(
         display_name: user.display_name.clone().unwrap_or_default(),
         email: user.email.clone().unwrap_or_default(),
         timezone: user.timezone.clone(),
+        queue: user.queue.clone(),
         enabled: user.enabled,
         is_you: viewer == Some(user.id),
         grants: detail
@@ -975,6 +981,9 @@ pub(crate) async fn create_user(
         display_name: field("display_name"),
         email: field("email"),
         timezone: field("timezone"),
+        queue: one(&form, "queue")
+            .unwrap_or(ace_service::DEFAULT_QUEUE)
+            .to_owned(),
     };
     let username = match Username::new(draft.username.trim()) {
         Ok(username) => username,
@@ -998,6 +1007,7 @@ pub(crate) async fn create_user(
         display_name: Some(draft.display_name.clone()),
         email: Some(draft.email.clone()),
         timezone: Some(draft.timezone.clone()),
+        queue: Some(draft.queue.clone()),
     };
     let made = gui
         .service
@@ -1081,7 +1091,7 @@ async fn user_refused(
     }
 }
 
-/// `POST /admin/users/{id}/profile`: a user's display name, email and timezone.
+/// `POST /admin/users/{id}/profile`: a user's display name, email, timezone and default queue.
 pub(crate) async fn save_profile(
     State(gui): State<Gui>,
     viewer: SignedIn,
@@ -1100,6 +1110,8 @@ pub(crate) async fn save_profile(
         display_name: Some(one(&form, "display_name").unwrap_or("").to_owned()),
         email: Some(one(&form, "email").unwrap_or("").to_owned()),
         timezone: Some(one(&form, "timezone").unwrap_or("").to_owned()),
+        // left out, the queue stays as it is
+        queue: one(&form, "queue").map(str::to_owned),
     };
     match gui
         .service

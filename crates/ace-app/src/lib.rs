@@ -28,6 +28,7 @@
 //! `hunt_type`), correlation command types (6.6, `command_type`), the script command types that
 //! stand in for hunt scripts (decision 16, `hunt_script`), scheduled tasks (6.7,
 //! `scheduled_task`), remediators, remediation probes and file collectors (7.9, `LookupPool::action`),
+//! alert routers and their types (7.13, `alert_router`, `alert_router_type`),
 //! collectors with the first collector (6.1), and the rest with the phases that build them.
 //!
 //! Everything here reads its configuration from the environment and the site overlay at run
@@ -73,6 +74,8 @@ pub struct App {
     command_types: Vec<(String, CommandTypeFactory)>,
     hunt_scripts: Vec<(String, String, HuntScriptFactory)>,
     scheduled_tasks: Vec<scheduler::Task>,
+    alert_routers: Vec<(String, i32, Arc<dyn ace_service::routing::Router>)>,
+    router_types: ace_service::routing::RouterTypes,
 }
 
 /// What builds a script command type from the hunter's network and the type's settings (its entry
@@ -302,6 +305,48 @@ impl App {
         self.scheduled_tasks.retain(|t| t.name != task.name);
         self.scheduled_tasks.push(task);
         self
+    }
+
+    /// Adds an alert router (PLAN.md 7.13) that `ace serve` always runs, named `name`, at `priority` (lowest
+    /// first; the built-in `detection_queue` is 500), as ace3's `saq.default.yaml` lists SVS's marker router.
+    /// A name must be unique and not a built-in's, which `ace serve` checks when it starts.
+    pub fn alert_router(
+        mut self,
+        name: &str,
+        priority: i32,
+        router: Arc<dyn ace_service::routing::Router>,
+    ) -> App {
+        self.alert_routers.push((name.to_owned(), priority, router));
+        self
+    }
+
+    /// Adds an alert router type (PLAN.md 7.13), which the overlay's `alert_routers:` entries name with their
+    /// own name, priority and settings, as an ace3 integration's entry names its class and `kwargs`. `build`
+    /// makes a router from an entry's `settings` (null when left out), or says why it can't, which stops `ace
+    /// serve`. One with a type's name already added takes its place.
+    pub fn alert_router_type(
+        mut self,
+        kind: &str,
+        build: impl Fn(&serde_json::Value) -> Result<Arc<dyn ace_service::routing::Router>, String>
+        + Send
+        + Sync
+        + 'static,
+    ) -> App {
+        self.router_types = std::mem::take(&mut self.router_types).with(kind, Arc::new(build));
+        self
+    }
+
+    /// The alert routers `ace serve` runs: the built-in one, the binary's and the overlay's, or why one of
+    /// them can't be built.
+    pub fn alert_routers(
+        &self,
+        overlay: &ace_sdk::Overlay,
+    ) -> Result<ace_service::routing::Routers, String> {
+        let mut routers = ace_service::routing::Routers::builtin();
+        for (name, priority, router) in &self.alert_routers {
+            routers = routers.with(name, *priority, router.clone())?;
+        }
+        routers.configured(&self.router_types, &overlay.alert_routers)
     }
 
     /// The scheduler's tasks: the core's (`scheduler::Task::builtin`) and the site's.

@@ -37,6 +37,9 @@
 //! effective rule in Rust and in SQL, the writes with their history and audit rows, batches and confirms,
 //! and the verdict filters.
 //!
+//! PLAN.md 7.13: ace3's `tests/saq/alert_routing/` cases as Rust tests (`routing_tests`, whose comment maps
+//! each case), and the routing's audited move.
+//!
 //! PLAN.md 5.11's events (6c): the event list's filters checked, each filter and each order both ways
 //! through the keyset, the filters' choices, and an event's alerts with their state and tags.
 
@@ -1034,13 +1037,14 @@ async fn an_actor_with_no_grants_is_refused_every_write() {
     let (rows,): (i64,) = sqlx::query_as(
         "SELECT count(*) FROM service.permissions
          WHERE component IS NULL
-            OR (component NOT IN ('bootstrap', 'hunter') AND component NOT LIKE 'scheduler:%')",
+            OR (component NOT IN ('bootstrap', 'hunter', 'alert_routing')
+                AND component NOT LIKE 'scheduler:%')",
     )
     .fetch_one(db.pool())
     .await
     .expect("counts");
-    // the migrations' grants are the bootstrap's, the hunter's and the scheduler's tasks' (0022, 0034,
-    // 0036)
+    // the migrations' grants are the bootstrap's, the hunter's, the scheduler's tasks' and alert
+    // routing's (0022, 0034, 0036, 0050)
     assert_eq!(rows, 0, "nothing was granted, and no admin was seeded");
 }
 
@@ -1612,6 +1616,7 @@ async fn every_write_function_has_an_audit_test() {
         request_svs_validation_records_its_row(db).await,
         download_svs_validation_records_its_row(db).await,
         prune_svs_validations_records_its_row(db).await,
+        routing_tests::route_due_records_its_row(db).await,
     ]);
     assert_eq!(covered, write_functions(), "{WRITES_NEED_A_TEST}");
 }
@@ -3390,6 +3395,8 @@ async fn every_write_fails_when_its_audit_fails() {
     .execute(db.pool())
     .await
     .expect("ages it");
+    let routable = routing_tests::routable(db).await;
+    let routing_before = routing_tests::routing_rows(db, routable).await;
     let validations_before = validation_rows(db).await;
     let samples_before = sample_rows(db).await;
     let actions_before = action_rows(db).await;
@@ -4210,6 +4217,18 @@ async fn every_write_fails_when_its_audit_fails() {
                 .expect_err("refused"),
         ),
     ]);
+    // the first routing that moves an alert fails; one before it that moves nothing commits
+    let routing_failed = loop {
+        match service
+            .route_due(&ace_service::routing::routing_actor())
+            .await
+        {
+            Ok(Some(_)) => {}
+            Ok(None) => panic!("nothing due moved an alert"),
+            Err(error) => break error,
+        }
+    };
+    attempts.push(("route_due", routing_failed));
     let mut covered = BTreeSet::new();
     for (function, error) in &attempts {
         assert!(error.to_string().contains("broken"), "{function}: {error}");
@@ -4252,6 +4271,11 @@ async fn every_write_fails_when_its_audit_fails() {
         validation_rows(db).await,
         validations_before,
         "no validation changed"
+    );
+    assert_eq!(
+        routing_tests::routing_rows(db, routable).await,
+        routing_before,
+        "no alert moved, and its routing is still due"
     );
     assert_eq!(
         list_rows(db).await,
@@ -6202,7 +6226,9 @@ async fn create_first_user_records_its_row() -> String {
             action: "create_first_user".to_owned(),
             target: ("user".to_owned(), id.0.to_string()),
             before: None,
-            after: Some(json!({"username": "root", "enabled": true, "timezone": "UTC"})),
+            after: Some(
+                json!({"username": "root", "enabled": true, "timezone": "UTC", "queue": "default"})
+            ),
             details: json!({"grants": "*:*", "forced": false}),
         }
     );
@@ -6219,6 +6245,7 @@ async fn create_user_records_its_row(db: &Db) -> String {
         display_name: Some(" Audited User ".to_owned()),
         email: Some("audited@example.com".to_owned()),
         timezone: Some("Europe/London".to_owned()),
+        queue: Some(" triage ".to_owned()),
     };
     let id = service
         .create_user(
@@ -6243,6 +6270,7 @@ async fn create_user_records_its_row(db: &Db) -> String {
                 "display_name": "Audited User",
                 "email": "audited@example.com",
                 "timezone": "Europe/London",
+                "queue": "triage",
             })),
             details: json!({}),
         }
@@ -6564,6 +6592,7 @@ async fn update_user_records_its_row(db: &Db) -> String {
         display_name: Some("Audited".to_owned()),
         email: Some("a@example.com".to_owned()),
         timezone: Some("Asia/Tokyo".to_owned()),
+        queue: Some("tier2".to_owned()),
     };
     assert!(
         service
@@ -6578,11 +6607,14 @@ async fn update_user_records_its_row(db: &Db) -> String {
             actor: boss_json(),
             action: "update_user".to_owned(),
             target: ("user".to_owned(), id.0.to_string()),
-            before: Some(json!({"display_name": null, "email": null, "timezone": "UTC"})),
+            before: Some(
+                json!({"display_name": null, "email": null, "timezone": "UTC", "queue": "default"})
+            ),
             after: Some(json!({
                 "display_name": "Audited",
                 "email": "a@example.com",
                 "timezone": "Asia/Tokyo",
+                "queue": "tier2",
             })),
             details: json!({}),
         }
@@ -6604,6 +6636,7 @@ async fn update_own_profile_records_its_row(db: &Db) -> String {
     let profile = Profile {
         display_name: Some("Me".to_owned()),
         timezone: Some("America/New_York".to_owned()),
+        queue: Some("my_queue".to_owned()),
         ..Profile::default()
     };
     assert!(
@@ -6619,11 +6652,14 @@ async fn update_own_profile_records_its_row(db: &Db) -> String {
             actor: actor_json(&me),
             action: "update_own_profile".to_owned(),
             target: ("user".to_owned(), actor_id(&me).0.to_string()),
-            before: Some(json!({"display_name": null, "email": null, "timezone": "UTC"})),
+            before: Some(
+                json!({"display_name": null, "email": null, "timezone": "UTC", "queue": "default"})
+            ),
             after: Some(json!({
                 "display_name": "Me",
                 "email": null,
                 "timezone": "America/New_York",
+                "queue": "my_queue",
             })),
             details: json!({}),
         }
@@ -6984,7 +7020,7 @@ async fn a_user_s_own_key_holds_only_what_they_do() {
         .expect_err("refused");
     assert_eq!(
         error.to_string(),
-        "alert:* covers alert:create, alert:write, which you don't hold"
+        "alert:* covers alert:create, alert:queue, alert:write, which you don't hold"
     );
     assert_eq!(
         (permission_rows(db).await, credential_rows(db).await),
@@ -7316,6 +7352,7 @@ async fn a_profile_is_checked() {
                 display_name: Some("Shown".to_owned()),
                 email: Some("me@example.com".to_owned()),
                 timezone: Some(" US/Eastern ".to_owned()),
+                queue: None,
             },
         )
         .await
@@ -8143,6 +8180,18 @@ const FILE_SHA256: &str = "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6
 const HOSTILE_TITLE: &str = "quarterly'; DROP TABLE analysis.roots; --";
 
 /// The list's fixtures: four alerts and a root that isn't one, as (A, B, C, D).
+/// Puts each alert in its queue.
+async fn set_queues(db: &Db, queues: &[(Uuid, &str)]) {
+    for (root, queue) in queues {
+        sqlx::query("UPDATE analysis.roots SET queue = $2 WHERE id = $1")
+            .bind(root)
+            .bind(queue)
+            .execute(db.pool())
+            .await
+            .expect("sets the queue");
+    }
+}
+
 async fn list_fixtures(db: &Db) -> (Uuid, Uuid, Uuid, Uuid) {
     let a = listed(
         db,
@@ -8274,6 +8323,13 @@ async fn the_alert_list_filters_and_pages_through_fixture_alerts() {
     let actor = admin(db).await;
     let (a, b, c, d) = list_fixtures(db).await;
     let all = sorted(vec![a, b, c, d]);
+    // queues (PLAN.md 7.13): B is in triage, C in external, and the viewer works triage
+    set_queues(db, &[(b, "triage"), (c, "external")]).await;
+    sqlx::query("UPDATE service.users SET queue = 'triage' WHERE id = $1")
+        .bind(Uuid::from_u128(0xAD))
+        .execute(db.pool())
+        .await
+        .expect("sets the viewer's queue");
 
     // no filter: every alert, newest first, the tie between B and C broken by the id
     let (newest, total) = every_alert(&service, &actor, &AlertQuery::default(), 2).await;
@@ -8326,6 +8382,19 @@ async fn the_alert_list_filters_and_pages_through_fixture_alerts() {
         (vec![text("Tag", false, &["phish"])], vec![a]),
         (vec![text("Tag", false, &["whois"])], vec![a]),
         (vec![text("Tag", true, &["phish*"])], vec![b, d]),
+        (vec![text("Queue", false, &["triage"])], vec![b]),
+        (
+            vec![text("Queue", false, &["triage", "external"])],
+            vec![b, c],
+        ),
+        (vec![text("Queue", false, &["default"])], vec![a, d]),
+        (vec![text("Queue", true, &["default"])], vec![b, c]),
+        (vec![text("Queue", false, &["$USER_QUEUE"])], vec![b]),
+        (
+            vec![text("Queue", false, &["$USER_QUEUE", "external"])],
+            vec![b, c],
+        ),
+        (vec![text("Queue", false, &["nobody's"])], vec![]),
         (vec![text("Analysis", false, &["rdap_analyzer"])], vec![a]),
         (
             vec![text("Analysis", true, &["rdap_analyzer"])],
@@ -8652,9 +8721,10 @@ async fn hostile_filter_values_are_refused_or_are_data() {
             "1 to 64 values",
         ),
         (vec![text("Nope", false, &["x"])], "no filter named"),
+        (vec![text("Queue", false, &["  "])], "a queue needs a name"),
         (
-            vec![text("Queue", false, &["default"])],
-            "alert routing (7.13)",
+            vec![text("Queue", false, &[&"q".repeat(65)])],
+            "longer than 64 characters",
         ),
         (vec![text("Owner", false, &["alice"])], "no step in PLAN.md"),
         (
@@ -8764,11 +8834,17 @@ fn share_links_encode_and_decode_as_ace3_s_do() {
     );
 
     // a filter this list doesn't have is left out, saying why, unless the caller is strict
-    let old = ["queue:default".to_owned(), "disposition:OPEN".to_owned()];
+    let old = ["owner:alice".to_owned(), "disposition:OPEN".to_owned()];
     let (decoded, warnings) = filter_model::decode(screen, &old, false).expect("decodes");
     assert_eq!(decoded, [text("Disposition", false, &["OPEN"])]);
     assert_eq!(warnings.len(), 1);
-    assert!(warnings[0].contains("7.13"), "{warnings:?}");
+    assert!(warnings[0].contains("no owner"), "{warnings:?}");
+    // the Queue filter came with 7.13, `$USER_QUEUE` and all
+    let (decoded, warnings) =
+        filter_model::decode(screen, &["queue:$USER_QUEUE,triage".to_owned()], true)
+            .expect("decodes");
+    assert_eq!(decoded, [text("Queue", false, &["$USER_QUEUE", "triage"])]);
+    assert!(warnings.is_empty());
     assert!(filter_model::decode(screen, &old, true).is_err());
     assert!(
         filter_model::decode(screen, &["nonsense:x".to_owned()], false)
@@ -8891,6 +8967,8 @@ async fn detection_points_filter_and_count() {
     let service = service(db);
     let actor = admin(db).await;
     let (a, _, c, _) = list_fixtures(db).await;
+    // the alert's queue (PLAN.md 7.13): C is in external, and the viewer's queue is the default
+    set_queues(db, &[(c, "external")]).await;
     let ids = |page: ace_service::DetectionPointPage| {
         page.detections.iter().map(|d| d.alert).collect::<Vec<_>>()
     };
@@ -8920,6 +8998,9 @@ async fn detection_points_filter_and_count() {
             )],
             vec![c],
         ),
+        (vec![text("Queue", false, &["external"])], vec![c]),
+        (vec![text("Queue", true, &["external"])], vec![a]),
+        (vec![text("Queue", false, &["$USER_QUEUE"])], vec![a]),
     ] {
         let filter = filtered(filters.clone());
         let page = service
@@ -8982,9 +9063,9 @@ async fn detection_points_filter_and_count() {
     ));
     assert!(matches!(
         service
-            .detection_point_count(&actor, &filtered(vec![text("Queue", false, &["external"])]), 10)
+            .detection_point_count(&actor, &filtered(vec![text("Queue", false, &[&"q".repeat(65)])]), 10)
             .await,
-        Err(ServiceError::InvalidRequest(why)) if why.contains("7.13")
+        Err(ServiceError::InvalidRequest(why)) if why.contains("longer than 64")
     ));
     let outsider = user(UserId(Uuid::from_u128(0xDE8)));
     exists(db, &Holder::User(UserId(Uuid::from_u128(0xDE8)))).await;
@@ -13699,6 +13780,7 @@ fn hunt_submission() -> HuntSubmission {
             event_time_from_query: true,
             observables: vec![ip, signature],
             details: Some(json!({"alert_type": "hunter - splunk", "queue": "default"})),
+            queue: None,
         },
         dedup_key: None,
         suppression_key: None,
@@ -23042,4 +23124,1227 @@ async fn prune_svs_validations_records_its_row(db: &Db) -> String {
         }
     );
     row.action
+}
+
+// PLAN.md 7.13: ace3's `tests/saq/alert_routing/` as Rust tests, each named `routing_` and its case. Where an
+// alert's routing runs here, after its pass completes, the tests complete a pass and route what's due, as
+// `ace serve`'s worker does. The cases and where they went:
+//
+// test_detection_queue.py (8): routing_single_routed_detection_sets_queue,
+//   routing_routed_plus_plain_detection_keeps_default, routing_explicit_queue_not_clobbered,
+//   routing_no_detections_leaves_default, routing_conflicting_queues_pick_sorted_first,
+//   routing_routed_detection_on_observable, routing_a_plain_detection_on_the_root_keeps_the_default_queue,
+//   routing_only_when_the_alert_is_created.
+// test_registry.py: TestOrder: routing_the_built_in_router_is_always_present (with the site crate's
+//   the_shipped_routers_are_the_built_in_one), routing_lowest_priority_runs_first_and_the_first_decision_wins,
+//   routing_ahead_of_the_detection_queue_router, routing_stages_are_passed_through, routing_names_are_unique,
+//   routing_the_decision_is_logged; test_final_is_passed_through has no case: there's no `final` flag
+//   (`ace_service::routing`'s docs), and TestFinalPass's cases below cover when routing runs.
+//   TestFailures: routing_a_raising_router_is_reported_and_skipped (and a panicking one),
+//   routing_a_router_returning_something_else_is_skipped (a decision that can't be made: Rust's types leave
+//   nothing else to return), routing_a_decision_needs_a_usable_queue.
+//   TestConfiguration: routing_configured_routers_are_loaded, routing_one_broken_entry_is_named_and_stops_startup
+//   (ace3 loads the others; ace4 stops, as the rest of the overlay does), routing_unknown_settings_are_a_load_error;
+//   test_the_shipped_configuration_loads is the site crate's the_shipped_routers_are_the_built_in_one, until
+//   7.10 batch 7 adds svs_marker; test_loading_never_leaves_an_empty_registry has no case, as the routers are
+//   built once at startup and never reloaded. TestExampleIntegration is the site crate's
+//   the_example_router_loads_and_routes_only_tagged_alerts.
+// test_alert_routing.py: TestPreInsert: routing_a_decision_becomes_the_alert_s_queue,
+//   routing_no_decision_no_change_row, routing_the_detection_queue_router_runs_for_every_alert_path,
+//   routing_a_raising_router_never_breaks_the_routing. TestMoveAlertToQueue:
+//   routing_a_move_records_who_made_it_and_its_audit_row, routing_moving_back_restores_through_the_record,
+//   routing_the_same_queue_is_not_a_move, routing_a_move_judges_the_row_as_it_is_written (the disposition
+//   case; the two owner cases wait for alert ownership, 7.10 batch 7), routing_a_bad_queue_is_refused;
+//   test_a_given_root_carries_the_queue has no case: the root's row is the alert's one queue.
+//   TestPostAnalysis: routing_an_open_alert_is_moved_after_a_later_pass,
+//   routing_a_dispositioned_alert_is_not_moved; the owned and automation-user cases wait for ownership.
+//   TestReconcile has no case, for the same reason as a given root's. TestFinalPass:
+//   routing_the_first_routing_is_the_alerted_stage_once, routing_runs_when_the_pass_completes,
+//   routing_waits_while_a_task_is_delayed, routing_runs_after_a_cancelled_pass. TestEngine:
+//   routing_a_detection_queue_routes_the_alert_a_landing_makes. Beyond ace3's:
+//   routing_runs_on_the_completion_event, through `run_worker`.
+
+mod routing_tests {
+    use super::*;
+    use ace_sdk::AlertRouterSection;
+    use ace_service::DEFAULT_QUEUE;
+    use ace_service::routing::{
+        Alert as RoutedAlert, DETECTION_QUEUE, Decision, DetectionPoint, DetectionQueue,
+        RouteFuture, RouteOutcome, Router, RouterTypes, Routers, Stage, Tx, routing_actor,
+    };
+    use std::collections::BTreeMap;
+    use std::sync::atomic::{AtomicUsize, Ordering};
+
+    /// An orchestrator with no modules, so a pass ends as soon as it starts.
+    fn bare_service(db: &Db) -> Service {
+        Service::new(
+            db.clone(),
+            Orchestrator::new(Catalog::new(vec![]), Modes::ace3()),
+        )
+    }
+
+    /// Decides `queue` at `stages`, and counts its calls.
+    struct Fixed {
+        queue: &'static str,
+        stages: &'static [Stage],
+        calls: AtomicUsize,
+    }
+
+    fn fixed(queue: &'static str, stages: &'static [Stage]) -> Arc<Fixed> {
+        Arc::new(Fixed {
+            queue,
+            stages,
+            calls: AtomicUsize::new(0),
+        })
+    }
+
+    const ALERTED: &[Stage] = &[Stage::Alerted];
+    const ANALYZED: &[Stage] = &[Stage::Analyzed];
+
+    impl Router for Fixed {
+        fn route<'a>(
+            &'a self,
+            _: &'a RoutedAlert,
+            stage: Stage,
+            _: &'a mut Tx<'_>,
+        ) -> RouteFuture<'a> {
+            Box::pin(async move {
+                self.calls.fetch_add(1, Ordering::SeqCst);
+                if !self.stages.contains(&stage) {
+                    return Ok(None);
+                }
+                Decision::new(self.queue, format!("{} says so", self.queue)).map(Some)
+            })
+        }
+    }
+
+    /// Records each stage it's called at, and decides nothing.
+    #[derive(Default)]
+    struct Recording(Mutex<Vec<Stage>>);
+
+    impl Router for Recording {
+        fn route<'a>(
+            &'a self,
+            _: &'a RoutedAlert,
+            stage: Stage,
+            _: &'a mut Tx<'_>,
+        ) -> RouteFuture<'a> {
+            Box::pin(async move {
+                self.0.lock().expect("a lock").push(stage);
+                Ok(None)
+            })
+        }
+    }
+
+    /// Writes a row of its own, then fails: its write has to be undone.
+    struct Failing;
+
+    impl Router for Failing {
+        fn route<'a>(
+            &'a self,
+            alert: &'a RoutedAlert,
+            _: Stage,
+            tx: &'a mut Tx<'_>,
+        ) -> RouteFuture<'a> {
+            Box::pin(async move {
+                sqlx::query(
+                    "UPDATE analysis.roots SET description = 'changed by a router' WHERE id = $1",
+                )
+                .bind(alert.root)
+                .execute(tx.conn())
+                .await
+                .map_err(|e| e.to_string())?;
+                Err("router is broken".to_owned())
+            })
+        }
+    }
+
+    struct Panicking;
+
+    impl Router for Panicking {
+        fn route<'a>(&'a self, _: &'a RoutedAlert, _: Stage, _: &'a mut Tx<'_>) -> RouteFuture<'a> {
+            Box::pin(async move { panic!("router panicked") })
+        }
+    }
+
+    /// Asks for a queue no decision can name, ace3's `BadReturnRouter`'s nearest kin here.
+    struct BadQueue;
+
+    impl Router for BadQueue {
+        fn route<'a>(&'a self, _: &'a RoutedAlert, _: Stage, _: &'a mut Tx<'_>) -> RouteFuture<'a> {
+            Box::pin(async move { Decision::new("q".repeat(65), "too long").map(Some) })
+        }
+    }
+
+    /// At the later stage, sends the alert back where its newest move took it from, as SVS's marker router
+    /// does when an alert is no longer attributed.
+    struct Back;
+
+    impl Router for Back {
+        fn route<'a>(
+            &'a self,
+            alert: &'a RoutedAlert,
+            stage: Stage,
+            _: &'a mut Tx<'_>,
+        ) -> RouteFuture<'a> {
+            Box::pin(async move {
+                if stage != Stage::Analyzed {
+                    return Ok(None);
+                }
+                match &alert.last_change {
+                    Some(change) => {
+                        Decision::new(change.from_queue.clone(), "disassociated").map(Some)
+                    }
+                    None => Ok(None),
+                }
+            })
+        }
+    }
+
+    /// Decides the queue the alert is in.
+    struct Same;
+
+    impl Router for Same {
+        fn route<'a>(
+            &'a self,
+            alert: &'a RoutedAlert,
+            _: Stage,
+            _: &'a mut Tx<'_>,
+        ) -> RouteFuture<'a> {
+            Box::pin(async move { Decision::new(alert.queue.clone(), "no-op").map(Some) })
+        }
+    }
+
+    fn routers(added: Vec<(&str, i32, Arc<dyn Router>)>) -> Routers {
+        let mut routers = Routers::builtin();
+        for (name, priority, router) in added {
+            routers = routers.with(name, priority, router).expect("adds");
+        }
+        routers
+    }
+
+    /// An alert, not yet routed, in correlation mode, with an fqdn.
+    async fn new_alert(db: &Db) -> (Uuid, i64) {
+        let root = NewRoot::new("correlation");
+        let mut tx = db.begin().await.expect("begins");
+        tree::create_root(&mut tx, &root).await.expect("creates");
+        let observable = tree::upsert_observable(
+            &mut tx,
+            root.id,
+            &NewObservable::new(ObservableKind::Fqdn, "evil.example.com"),
+        )
+        .await
+        .expect("adds");
+        tx.commit().await.expect("commits");
+        sqlx::query("UPDATE analysis.roots SET alerted_at = now() WHERE id = $1")
+            .bind(root.id)
+            .execute(db.pool())
+            .await
+            .expect("makes it an alert");
+        (root.id, observable.id.0)
+    }
+
+    /// A detection on the observable, or on the root with None, asking for `queue`.
+    async fn detect(db: &Db, root: Uuid, observable: Option<i64>, queue: Option<&str>) {
+        sqlx::query(
+            "INSERT INTO analysis.detections (root_id, observable_id, description, queue)
+             VALUES ($1, $2, 'a detection', $3)",
+        )
+        .bind(root)
+        .bind(observable)
+        .bind(queue)
+        .execute(db.pool())
+        .await
+        .expect("a detection");
+    }
+
+    /// Ends a pass over the root, as the last task of one does.
+    async fn complete_pass(db: &Db, root: Uuid) -> Option<i32> {
+        let mut tx = db.begin().await.expect("begins");
+        queue::begin_pass(&mut tx, root)
+            .await
+            .expect("begins a pass");
+        let pass = queue::check_completion(&mut tx, root)
+            .await
+            .expect("completes");
+        tx.commit().await.expect("commits");
+        pass
+    }
+
+    /// Routes everything due, as the worker does.
+    async fn route_all(service: &Service) -> Vec<RouteOutcome> {
+        let mut outcomes = Vec::new();
+        while let Some(outcome) = service.route_due(&routing_actor()).await.expect("routes") {
+            outcomes.push(outcome);
+        }
+        outcomes
+    }
+
+    async fn queue_of(db: &Db, root: Uuid) -> String {
+        sqlx::query_scalar("SELECT queue::text FROM analysis.roots WHERE id = $1")
+            .bind(root)
+            .fetch_one(db.pool())
+            .await
+            .expect("reads")
+    }
+
+    /// Each move as (from, to, router, moved_by, reason).
+    async fn changes(db: &Db, root: Uuid) -> Vec<(String, String, Option<String>, Value, String)> {
+        sqlx::query_as(
+            "SELECT from_queue::text, to_queue::text, router, moved_by::jsonb, reason
+             FROM analysis.queue_changes WHERE root_id = $1 ORDER BY id",
+        )
+        .bind(root)
+        .fetch_all(db.pool())
+        .await
+        .expect("reads")
+    }
+
+    async fn due(db: &Db) -> Vec<(Uuid, i32)> {
+        sqlx::query_as("SELECT root_id, pass FROM queue.routing_due ORDER BY root_id, pass")
+            .fetch_all(db.pool())
+            .await
+            .expect("reads")
+    }
+
+    fn routing_json() -> Value {
+        json!({"kind": "internal", "id": "alert_routing"})
+    }
+
+    /// An alert as a router reads it, for the cases that need no database.
+    fn alert_with(queue: &str, detections: &[Option<&str>]) -> RoutedAlert {
+        RoutedAlert {
+            root: Uuid::from_u128(7),
+            description: "an alert".to_owned(),
+            pass: 1,
+            queue: queue.to_owned(),
+            disposition: None,
+            alerted_at: chrono::Utc::now(),
+            detections: detections
+                .iter()
+                .map(|queue| DetectionPoint {
+                    description: "a detection".to_owned(),
+                    queue: queue.map(str::to_owned),
+                    signature_uuid: None,
+                    observable: None,
+                })
+                .collect(),
+            tags: BTreeSet::new(),
+            last_change: None,
+        }
+    }
+
+    fn decided(alert: &RoutedAlert, stage: Stage) -> Option<String> {
+        DetectionQueue::decide(alert, stage)
+            .expect("decides")
+            .map(|decision| decision.queue.as_str().to_owned())
+    }
+
+    // test_detection_queue.py
+
+    #[test]
+    fn routing_single_routed_detection_sets_queue() {
+        let alert = alert_with(DEFAULT_QUEUE, &[Some("experimental")]);
+        assert_eq!(
+            decided(&alert, Stage::Alerted).as_deref(),
+            Some("experimental")
+        );
+        // a router never changes the alert; the routing applies its decision
+        assert_eq!(alert.queue, DEFAULT_QUEUE);
+    }
+
+    #[test]
+    fn routing_routed_plus_plain_detection_keeps_default() {
+        let alert = alert_with(DEFAULT_QUEUE, &[Some("experimental"), None]);
+        assert_eq!(decided(&alert, Stage::Alerted), None);
+    }
+
+    #[test]
+    fn routing_explicit_queue_not_clobbered() {
+        let alert = alert_with("incoming", &[Some("experimental")]);
+        assert_eq!(decided(&alert, Stage::Alerted), None);
+    }
+
+    #[test]
+    fn routing_no_detections_leaves_default() {
+        assert_eq!(
+            decided(&alert_with(DEFAULT_QUEUE, &[]), Stage::Alerted),
+            None
+        );
+    }
+
+    #[test]
+    fn routing_conflicting_queues_pick_sorted_first() {
+        let alert = alert_with(DEFAULT_QUEUE, &[Some("bravo"), Some("alpha")]);
+        assert_eq!(decided(&alert, Stage::Alerted).as_deref(), Some("alpha"));
+    }
+
+    /// Detections on observables, the real YARA path, are read, through the routing itself.
+    #[tokio::test]
+    async fn routing_routed_detection_on_observable() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let service = bare_service(db);
+        let (root, observable) = new_alert(db).await;
+        detect(db, root, Some(observable), Some("experimental")).await;
+        complete_pass(db, root).await;
+        route_all(&service).await;
+        assert_eq!(queue_of(db, root).await, "experimental");
+    }
+
+    /// The alert's detections include the root's own (ace3's FR-24), so a plain one there keeps the default
+    /// queue though an observable's asks for one.
+    #[tokio::test]
+    async fn routing_a_plain_detection_on_the_root_keeps_the_default_queue() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let service = bare_service(db);
+        let (root, observable) = new_alert(db).await;
+        detect(db, root, Some(observable), Some("experimental")).await;
+        detect(db, root, None, None).await;
+        complete_pass(db, root).await;
+        let outcomes = route_all(&service).await;
+        assert_eq!(outcomes.len(), 1);
+        assert_eq!(outcomes[0].decision, None);
+        assert_eq!(queue_of(db, root).await, DEFAULT_QUEUE);
+    }
+
+    #[test]
+    fn routing_only_when_the_alert_is_created() {
+        let alert = alert_with(DEFAULT_QUEUE, &[Some("experimental")]);
+        assert_eq!(decided(&alert, Stage::Analyzed), None);
+    }
+
+    // test_registry.py
+
+    #[test]
+    fn routing_the_built_in_router_is_always_present() {
+        assert_eq!(Routers::builtin().names(), [(DETECTION_QUEUE, 500)]);
+        let configured = Routers::builtin()
+            .configured(&RouterTypes::new(), &BTreeMap::new())
+            .expect("nothing to build");
+        assert_eq!(configured.names(), [(DETECTION_QUEUE, 500)]);
+        let added = routers(vec![("added", 100, fixed("x", ALERTED))]);
+        assert_eq!(added.names(), [("added", 100), (DETECTION_QUEUE, 500)]);
+    }
+
+    #[tokio::test]
+    async fn routing_lowest_priority_runs_first_and_the_first_decision_wins() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let late = fixed("late", ALERTED);
+        let early = fixed("early", ALERTED);
+        let routers = routers(vec![
+            ("late", 300, late.clone()),
+            ("early", 100, early.clone()),
+        ]);
+        assert_eq!(
+            routers.names(),
+            [("early", 100), ("late", 300), (DETECTION_QUEUE, 500)]
+        );
+        let mut tx = db.begin().await.expect("begins");
+        let decision = routers
+            .decide(&alert_with(DEFAULT_QUEUE, &[]), Stage::Alerted, &mut tx)
+            .await
+            .expect("decides")
+            .expect("a decision");
+        assert_eq!(decision.queue.as_str(), "early");
+        // the registry names the router that decided
+        assert_eq!(decision.router, "early");
+        assert_eq!(late.calls.load(Ordering::SeqCst), 0);
+    }
+
+    /// A router ahead of 500 decides before a detection's queue does (ace3's FR-2: the SVS marker router must
+    /// see an alert before a YARA rule's `queue` meta takes it).
+    #[tokio::test]
+    async fn routing_ahead_of_the_detection_queue_router() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let routers = routers(vec![("marker", 100, fixed("svs", ALERTED))]);
+        let mut tx = db.begin().await.expect("begins");
+        let decision = routers
+            .decide(
+                &alert_with(DEFAULT_QUEUE, &[Some("experimental")]),
+                Stage::Alerted,
+                &mut tx,
+            )
+            .await
+            .expect("decides")
+            .expect("a decision");
+        assert_eq!(
+            (decision.queue.as_str(), decision.router.as_str()),
+            ("svs", "marker")
+        );
+    }
+
+    #[tokio::test]
+    async fn routing_stages_are_passed_through() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let routers = routers(vec![("post_only", 100, fixed("moved", ANALYZED))]);
+        let alert = alert_with(DEFAULT_QUEUE, &[]);
+        let mut tx = db.begin().await.expect("begins");
+        assert_eq!(
+            routers
+                .decide(&alert, Stage::Alerted, &mut tx)
+                .await
+                .expect("decides"),
+            None
+        );
+        let decision = routers
+            .decide(&alert, Stage::Analyzed, &mut tx)
+            .await
+            .expect("decides")
+            .expect("a decision");
+        assert_eq!(decision.queue.as_str(), "moved");
+    }
+
+    #[test]
+    fn routing_names_are_unique() {
+        let routers = routers(vec![("twice", 100, Arc::new(Recording::default()))]);
+        assert!(
+            routers
+                .clone()
+                .with("twice", 200, Arc::new(Recording::default()))
+                .is_err()
+        );
+        let error = routers
+            .with(DETECTION_QUEUE, 200, Arc::new(Recording::default()))
+            .expect_err("a built-in's name");
+        assert!(error.contains("built-in"), "{error}");
+    }
+
+    /// The log line ace3 asserts, through a subscriber of this thread's own: the test runtime polls
+    /// everything on this thread.
+    #[tokio::test(flavor = "current_thread")]
+    async fn routing_the_decision_is_logged() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let captured = Captured::default();
+        let subscriber = tracing_subscriber::fmt()
+            .with_max_level(tracing::Level::INFO)
+            .with_ansi(false)
+            .with_writer(captured.clone())
+            .finish();
+        let _guard = tracing::subscriber::set_default(subscriber);
+        let routers = routers(vec![("logged", 100, fixed("logged_queue", ALERTED))]);
+        let alert = alert_with(DEFAULT_QUEUE, &[]);
+        let mut tx = db.begin().await.expect("begins");
+        routers
+            .decide(&alert, Stage::Alerted, &mut tx)
+            .await
+            .expect("decides");
+        let log = String::from_utf8(captured.0.lock().expect("a lock").clone()).expect("UTF-8");
+        let line = log
+            .lines()
+            .find(|line| line.contains("alert router decided a queue"))
+            .unwrap_or_else(|| panic!("no decision line in {log}"));
+        for field in [
+            format!("alert_uuid={}", alert.root),
+            "stage=\"alerted\"".to_owned(),
+            "router=\"logged\"".to_owned(),
+            "queue=\"logged_queue\"".to_owned(),
+        ] {
+            assert!(line.contains(&field), "{field} in {line}");
+        }
+    }
+
+    /// A router that fails, or panics, is skipped and the next one decides; what it wrote is undone.
+    #[tokio::test]
+    async fn routing_a_raising_router_is_reported_and_skipped() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let (root, _) = new_alert(db).await;
+        let routers = routers(vec![
+            ("broken", 100, Arc::new(Failing)),
+            ("panics", 110, Arc::new(Panicking)),
+            ("fallback", 200, fixed("fallback", ALERTED)),
+        ]);
+        let alert = RoutedAlert {
+            root,
+            ..alert_with(DEFAULT_QUEUE, &[])
+        };
+        let mut tx = db.begin().await.expect("begins");
+        let decision = routers
+            .decide(&alert, Stage::Alerted, &mut tx)
+            .await
+            .expect("decides")
+            .expect("a decision");
+        assert_eq!(decision.router, "fallback");
+        let description: String =
+            sqlx::query_scalar("SELECT description FROM analysis.roots WHERE id = $1")
+                .bind(root)
+                .fetch_one(tx.conn())
+                .await
+                .expect("the transaction still works");
+        assert_eq!(description, "", "the failed router's write was rolled back");
+    }
+
+    #[tokio::test]
+    async fn routing_a_router_returning_something_else_is_skipped() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let routers = routers(vec![
+            ("bad", 100, Arc::new(BadQueue)),
+            ("fallback", 200, fixed("fallback", ALERTED)),
+        ]);
+        let mut tx = db.begin().await.expect("begins");
+        let decision = routers
+            .decide(&alert_with(DEFAULT_QUEUE, &[]), Stage::Alerted, &mut tx)
+            .await
+            .expect("decides")
+            .expect("a decision");
+        assert_eq!(decision.queue.as_str(), "fallback");
+    }
+
+    #[test]
+    fn routing_a_decision_needs_a_usable_queue() {
+        for queue in ["", "   ", &"q".repeat(65), "a\u{7}bell"] {
+            assert!(Decision::new(queue, "x").is_err(), "{queue:?}");
+        }
+        assert!(Decision::new("q".repeat(64), "x").is_ok());
+        assert!(
+            Decision::new("ok", "r".repeat(1025)).is_err(),
+            "a reason fits its column"
+        );
+    }
+
+    #[derive(serde::Deserialize)]
+    #[serde(deny_unknown_fields)]
+    struct FixedSettings {
+        queue: String,
+    }
+
+    fn types() -> RouterTypes {
+        RouterTypes::new()
+            .with(
+                "fixed",
+                Arc::new(|settings: &Value| {
+                    let settings: FixedSettings = ace_service::routing::settings(settings)?;
+                    let queue: &'static str = Box::leak(settings.queue.into_boxed_str());
+                    Ok(fixed(queue, ALERTED) as Arc<dyn Router>)
+                }),
+            )
+            .with(
+                "cannot_build",
+                Arc::new(|_: &Value| Err("cannot build".to_owned())),
+            )
+    }
+
+    fn entry(kind: &str, priority: i32, settings: Option<Value>) -> AlertRouterSection {
+        AlertRouterSection {
+            kind: kind.to_owned(),
+            priority,
+            settings,
+        }
+    }
+
+    #[tokio::test]
+    async fn routing_configured_routers_are_loaded() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let section = BTreeMap::from([(
+            "from_config".to_owned(),
+            entry("fixed", 150, Some(json!({"queue": "configured"}))),
+        )]);
+        let routers = Routers::builtin()
+            .configured(&types(), &section)
+            .expect("loads");
+        assert_eq!(
+            routers.names(),
+            [("from_config", 150), (DETECTION_QUEUE, 500)]
+        );
+        let mut tx = db.begin().await.expect("begins");
+        let decision = routers
+            .decide(&alert_with(DEFAULT_QUEUE, &[]), Stage::Alerted, &mut tx)
+            .await
+            .expect("decides")
+            .expect("a decision");
+        assert_eq!(decision.queue.as_str(), "configured");
+    }
+
+    /// ace3 logs a broken entry and loads the others; here each is named and startup stops.
+    #[test]
+    fn routing_one_broken_entry_is_named_and_stops_startup() {
+        let section = BTreeMap::from([
+            ("cannot_build".to_owned(), entry("cannot_build", 100, None)),
+            ("missing_type".to_owned(), entry("no_such_type", 110, None)),
+            (
+                "detection_queue".to_owned(),
+                entry("fixed", 140, Some(json!({"queue": "q"}))),
+            ),
+            (
+                "works".to_owned(),
+                entry("fixed", 200, Some(json!({"queue": "works"}))),
+            ),
+        ]);
+        let error = Routers::builtin()
+            .configured(&types(), &section)
+            .expect_err("refused");
+        for broken in ["cannot_build", "missing_type", "detection_queue"] {
+            assert!(
+                error.contains(&format!("alert_routers.{broken}:")),
+                "{broken}: {error}"
+            );
+        }
+        assert!(!error.contains("alert_routers.works"), "{error}");
+    }
+
+    #[test]
+    fn routing_unknown_settings_are_a_load_error() {
+        let section = BTreeMap::from([(
+            "typo".to_owned(),
+            entry("fixed", 100, Some(json!({"queue": "q", "colour": "red"}))),
+        )]);
+        let error = Routers::builtin()
+            .configured(&types(), &section)
+            .expect_err("refused");
+        assert!(
+            error.contains("alert_routers.typo") && error.contains("colour"),
+            "{error}"
+        );
+        // the overlay's own parse refuses an unknown key in an entry
+        assert!(
+            ace_sdk::Overlay::from_yaml(
+                "alert_routers:\n  r:\n    type: fixed\n    priority: 1\n    kwargs: {}\n"
+            )
+            .is_err()
+        );
+    }
+
+    // test_alert_routing.py
+
+    #[tokio::test]
+    async fn routing_a_decision_becomes_the_alert_s_queue() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let service =
+            bare_service(db).with_routers(routers(vec![("pre", 100, fixed("routed", ALERTED))]));
+        let (root, _) = new_alert(db).await;
+        complete_pass(db, root).await;
+        let outcomes = route_all(&service).await;
+        assert_eq!(outcomes.len(), 1);
+        assert_eq!(outcomes[0].stage, Some(Stage::Alerted));
+        assert_eq!(
+            outcomes[0].moved,
+            Some((DEFAULT_QUEUE.to_owned(), "routed".to_owned()))
+        );
+        assert_eq!(queue_of(db, root).await, "routed");
+        assert_eq!(
+            changes(db, root).await,
+            [(
+                DEFAULT_QUEUE.to_owned(),
+                "routed".to_owned(),
+                Some("pre".to_owned()),
+                routing_json(),
+                "routed says so".to_owned()
+            )]
+        );
+        let last = service
+            .last_queue_change(&admin(db).await, root)
+            .await
+            .expect("reads")
+            .expect("a move");
+        assert_eq!(
+            (
+                last.from_queue.as_str(),
+                last.to_queue.as_str(),
+                last.router.as_deref()
+            ),
+            (DEFAULT_QUEUE, "routed", Some("pre"))
+        );
+        assert_eq!(due(db).await, [], "the routing is done");
+    }
+
+    #[tokio::test]
+    async fn routing_no_decision_no_change_row() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let service = bare_service(db);
+        let (root, _) = new_alert(db).await;
+        complete_pass(db, root).await;
+        route_all(&service).await;
+        assert_eq!(queue_of(db, root).await, DEFAULT_QUEUE);
+        assert_eq!(changes(db, root).await, []);
+        assert_eq!(
+            service
+                .last_queue_change(&admin(db).await, root)
+                .await
+                .expect("reads"),
+            None
+        );
+    }
+
+    /// An alert made by a submitter (the hunter's path, a detection in its `Origin`) routes as one a
+    /// landing made does (`routing_a_detection_queue_routes_the_alert_a_landing_makes`). ace3 says this used to
+    /// run only when the engine converted a root.
+    #[tokio::test]
+    async fn routing_the_detection_queue_router_runs_for_every_alert_path() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let service = bare_service(db);
+        let (bucket, _cache) = bucket(db);
+        let submission: Submission = serde_json::from_value(json!({
+            "description": "hunt: routed",
+            "analysis_mode": "correlation",
+        }))
+        .expect("a submission");
+        let mut signature = NewObservable::new(ObservableKind::SignatureId, "rule-1");
+        signature.detections.push(ace_results::Detection {
+            description: "yara hit".to_owned(),
+            details: None,
+            queue: Some("experimental".to_owned()),
+            signature_uuid: Some("rule-1".to_owned()),
+            signature_version: None,
+            signature_family: None,
+        });
+        let origin = ace_core::submit::Origin {
+            observables: vec![signature],
+            ..ace_core::submit::Origin::default()
+        };
+        let orchestrator = Orchestrator::new(Catalog::new(vec![]), Modes::ace3());
+        let new_root =
+            ace_core::submit::prepare(&orchestrator, &submission, &origin, &[]).expect("prepares");
+        let mut tx = db.begin().await.expect("begins");
+        ace_core::submit::create(
+            &mut tx,
+            &bucket,
+            &orchestrator,
+            &new_root,
+            &submission,
+            &origin,
+            &[],
+        )
+        .await
+        .expect("creates");
+        tx.commit().await.expect("commits");
+        route_all(&service).await;
+        assert_eq!(queue_of(db, new_root.id).await, "experimental");
+        assert_eq!(
+            changes(db, new_root.id).await[0].2.as_deref(),
+            Some(DETECTION_QUEUE)
+        );
+    }
+
+    #[tokio::test]
+    async fn routing_a_raising_router_never_breaks_the_routing() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let service =
+            bare_service(db).with_routers(routers(vec![("broken", 100, Arc::new(Failing))]));
+        let (root, _) = new_alert(db).await;
+        complete_pass(db, root).await;
+        let outcomes = route_all(&service).await;
+        assert_eq!(outcomes.len(), 1);
+        assert_eq!(outcomes[0].decision, None);
+        assert_eq!(queue_of(db, root).await, DEFAULT_QUEUE);
+        assert_eq!(due(db).await, []);
+    }
+
+    #[tokio::test]
+    async fn routing_a_move_records_who_made_it_and_its_audit_row() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let service =
+            bare_service(db).with_routers(routers(vec![("triage", 100, fixed("triage", ALERTED))]));
+        let (root, _) = new_alert(db).await;
+        complete_pass(db, root).await;
+        route_all(&service).await;
+        assert_eq!(queue_of(db, root).await, "triage");
+        assert_eq!(
+            last_audit(db).await,
+            AuditRow {
+                actor: routing_json(),
+                action: "route_due".to_owned(),
+                target: ("root".to_owned(), root.to_string()),
+                before: Some(json!({"queue": DEFAULT_QUEUE})),
+                after: Some(json!({"queue": "triage"})),
+                details: json!({"router": "triage", "reason": "triage says so", "stage": "alerted", "pass": 1}),
+            }
+        );
+    }
+
+    /// The newest move says what queue the alert came from, which is how a move is reversed.
+    #[tokio::test]
+    async fn routing_moving_back_restores_through_the_record() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let service = bare_service(db).with_routers(routers(vec![
+            ("svs_marker", 100, fixed("svs", ALERTED)),
+            ("back", 110, Arc::new(Back)),
+        ]));
+        let (root, _) = new_alert(db).await;
+        complete_pass(db, root).await;
+        route_all(&service).await;
+        let previous = service
+            .last_queue_change(&admin(db).await, root)
+            .await
+            .expect("reads")
+            .expect("a move");
+        assert_eq!(previous.router.as_deref(), Some("svs_marker"));
+        complete_pass(db, root).await;
+        route_all(&service).await;
+        assert_eq!(queue_of(db, root).await, DEFAULT_QUEUE);
+        let moves: Vec<String> = changes(db, root).await.into_iter().map(|c| c.1).collect();
+        assert_eq!(moves, ["svs", DEFAULT_QUEUE]);
+    }
+
+    #[tokio::test]
+    async fn routing_the_same_queue_is_not_a_move() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let service = bare_service(db).with_routers(routers(vec![("same", 100, Arc::new(Same))]));
+        let (root, _) = new_alert(db).await;
+        complete_pass(db, root).await;
+        let audits = audit_rows(db).await.len();
+        let outcomes = route_all(&service).await;
+        assert_eq!(outcomes[0].moved, None);
+        assert_eq!(changes(db, root).await, []);
+        assert_eq!(
+            audit_rows(db).await.len(),
+            audits,
+            "a no-op has no audit row"
+        );
+    }
+
+    /// ace3's conditional move: the alert was read OPEN and someone changed it since. Here the routing locks
+    /// the root and reads it then, so a disposition made after the pass ended keeps the alert where it is.
+    #[tokio::test]
+    async fn routing_a_move_judges_the_row_as_it_is_written() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let service = bare_service(db).with_routers(routers(vec![(
+            "svs_marker",
+            100,
+            fixed("svs", ALERTED),
+        )]));
+        let (root, _) = new_alert(db).await;
+        complete_pass(db, root).await;
+        sqlx::query(
+            "UPDATE analysis.roots SET disposition = 'FALSE_POSITIVE', dispositioned_at = now(),
+                    dispositioned_by = '{\"kind\": \"internal\", \"id\": \"test\"}' WHERE id = $1",
+        )
+        .bind(root)
+        .execute(db.pool())
+        .await
+        .expect("dispositions it");
+        let outcomes = route_all(&service).await;
+        assert_eq!(
+            outcomes[0].decision.as_ref().map(|d| d.router.as_str()),
+            Some("svs_marker")
+        );
+        assert_eq!(outcomes[0].moved, None);
+        assert_eq!(queue_of(db, root).await, DEFAULT_QUEUE);
+        assert_eq!(changes(db, root).await, []);
+    }
+
+    #[tokio::test]
+    async fn routing_a_bad_queue_is_refused() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let service =
+            bare_service(db).with_routers(routers(vec![("bad", 100, Arc::new(BadQueue))]));
+        let (root, _) = new_alert(db).await;
+        complete_pass(db, root).await;
+        route_all(&service).await;
+        assert_eq!(queue_of(db, root).await, DEFAULT_QUEUE);
+        // and the database holds the same rule
+        for queue in ["", "   ", &"q".repeat(65)] {
+            assert!(
+                sqlx::query("UPDATE analysis.roots SET queue = $2 WHERE id = $1")
+                    .bind(root)
+                    .bind(queue)
+                    .execute(db.pool())
+                    .await
+                    .is_err(),
+                "{queue:?}"
+            );
+        }
+    }
+
+    #[tokio::test]
+    async fn routing_an_open_alert_is_moved_after_a_later_pass() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let service = bare_service(db).with_routers(routers(vec![(
+            "post",
+            100,
+            fixed("post_queue", ANALYZED),
+        )]));
+        let (root, _) = new_alert(db).await;
+        complete_pass(db, root).await;
+        route_all(&service).await;
+        assert_eq!(
+            queue_of(db, root).await,
+            DEFAULT_QUEUE,
+            "not at the first routing"
+        );
+        complete_pass(db, root).await;
+        let outcomes = route_all(&service).await;
+        assert_eq!(outcomes[0].stage, Some(Stage::Analyzed));
+        assert_eq!(queue_of(db, root).await, "post_queue");
+        assert_eq!(changes(db, root).await[0].2.as_deref(), Some("post"));
+    }
+
+    /// Through the service's own disposition, whose pass in dispositioned mode completes and routes.
+    #[tokio::test]
+    async fn routing_a_dispositioned_alert_is_not_moved() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let service = bare_service(db).with_routers(routers(vec![(
+            "post",
+            100,
+            fixed("post_queue", ANALYZED),
+        )]));
+        let (root, _) = new_alert(db).await;
+        complete_pass(db, root).await;
+        route_all(&service).await;
+        service
+            .disposition(&admin(db).await, root, "FALSE_POSITIVE")
+            .await
+            .expect("dispositions");
+        if due(db).await.is_empty() {
+            complete_pass(db, root).await;
+        }
+        let outcomes = route_all(&service).await;
+        assert_eq!(outcomes.last().and_then(|o| o.stage), Some(Stage::Analyzed));
+        assert_eq!(queue_of(db, root).await, DEFAULT_QUEUE);
+    }
+
+    #[tokio::test]
+    async fn routing_the_first_routing_is_the_alerted_stage_once() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let recording = Arc::new(Recording::default());
+        let service =
+            bare_service(db).with_routers(routers(vec![("final", 100, recording.clone())]));
+        let (root, _) = new_alert(db).await;
+        complete_pass(db, root).await;
+        route_all(&service).await;
+        assert_eq!(*recording.0.lock().expect("a lock"), [Stage::Alerted]);
+        complete_pass(db, root).await;
+        route_all(&service).await;
+        // two passes that end before the worker gets to them route once, after the later
+        complete_pass(db, root).await;
+        complete_pass(db, root).await;
+        route_all(&service).await;
+        assert_eq!(
+            *recording.0.lock().expect("a lock"),
+            [Stage::Alerted, Stage::Analyzed, Stage::Analyzed]
+        );
+    }
+
+    /// A root that isn't an alert has nothing due when its pass completes; an alert's is due once per pass.
+    #[tokio::test]
+    async fn routing_runs_when_the_pass_completes() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let (root, _) = new_alert(db).await;
+        let (plain, _) = new_alert(db).await;
+        sqlx::query("UPDATE analysis.roots SET alerted_at = NULL WHERE id = $1")
+            .bind(plain)
+            .execute(db.pool())
+            .await
+            .expect("not an alert");
+        let pass = complete_pass(db, root).await.expect("a pass");
+        complete_pass(db, plain).await.expect("a pass");
+        assert_eq!(due(db).await, [(root, pass)]);
+    }
+
+    /// ace3's pass with delayed analysis isn't final; here it doesn't complete, so nothing routes yet.
+    #[tokio::test]
+    async fn routing_waits_while_a_task_is_delayed() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let recording = Arc::new(Recording::default());
+        let service =
+            bare_service(db).with_routers(routers(vec![("final", 100, recording.clone())]));
+        let (root, observable) = new_alert(db).await;
+        let mut tx = db.begin().await.expect("begins");
+        queue::enqueue(
+            &mut tx,
+            root,
+            tree::ObservableId(observable),
+            "rdap_analyzer",
+        )
+        .await
+        .expect("queues");
+        tx.commit().await.expect("commits");
+        sqlx::query("UPDATE queue.tasks SET state = 'delayed', run_after = now() + interval '1 hour' WHERE root_id = $1")
+            .bind(root)
+            .execute(db.pool())
+            .await
+            .expect("delays it");
+        let mut tx = db.begin().await.expect("begins");
+        assert_eq!(
+            queue::check_completion(&mut tx, root)
+                .await
+                .expect("checks"),
+            None
+        );
+        tx.commit().await.expect("commits");
+        assert_eq!(route_all(&service).await, []);
+        assert!(recording.0.lock().expect("a lock").is_empty());
+    }
+
+    /// ace3's aborted pass is final; here a cancelled pass completes, and routes.
+    #[tokio::test]
+    async fn routing_runs_after_a_cancelled_pass() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let recording = Arc::new(Recording::default());
+        let service =
+            bare_service(db).with_routers(routers(vec![("final", 100, recording.clone())]));
+        let (root, observable) = new_alert(db).await;
+        let mut tx = db.begin().await.expect("begins");
+        queue::enqueue(
+            &mut tx,
+            root,
+            tree::ObservableId(observable),
+            "rdap_analyzer",
+        )
+        .await
+        .expect("queues");
+        // which ends the pass, its one task cancelled
+        queue::cancel_root(&mut tx, root).await.expect("cancels");
+        tx.commit().await.expect("commits");
+        assert_eq!(queue::completions(db, root).await.expect("reads").len(), 1);
+        route_all(&service).await;
+        assert_eq!(*recording.0.lock().expect("a lock"), [Stage::Alerted]);
+    }
+
+    /// ace3's TestEngine: a module's detection with a queue makes the root an alert, its pass completes, and
+    /// the detection queue router routes it.
+    #[tokio::test]
+    async fn routing_a_detection_queue_routes_the_alert_a_landing_makes() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let service = service(db);
+        let orchestrator = orchestrator();
+        let root = NewRoot::new("analysis");
+        let mut tx = db.begin().await.expect("begins");
+        tree::create_root(&mut tx, &root).await.expect("creates");
+        tree::upsert_observable(
+            &mut tx,
+            root.id,
+            &NewObservable::new(ObservableKind::Fqdn, "evil.example.com"),
+        )
+        .await
+        .expect("adds");
+        orchestrator.start(&mut tx, root.id).await.expect("starts");
+        tx.commit().await.expect("commits");
+        let worker = queue::Worker::new(
+            db.clone(),
+            "test/routing",
+            vec!["rdap_analyzer".to_owned()],
+            Duration::from_secs(60),
+        );
+        let task = worker.claim().await.expect("claims").expect("a task");
+        let result: ace_results::ResultEnvelope<Value> = serde_json::from_value(json!({
+            "analysis_type": "test_stub",
+            "schema_version": 1,
+            "details": {"note": "a hit"},
+            "detections": [{"description": "yara hit", "queue": "experimental"}],
+        }))
+        .expect("a result");
+        let mut tx = db.begin().await.expect("begins");
+        let landed = orchestrator
+            .land_result(&mut tx, &worker, &task, &result)
+            .await
+            .expect("lands");
+        tx.commit().await.expect("commits");
+        assert_eq!(landed.mode_changed_to.as_deref(), Some("correlation"));
+        assert!(
+            queue::root_is_idle(db, root.id).await.expect("reads"),
+            "the pass completed"
+        );
+        route_all(&service).await;
+        assert_eq!(queue_of(db, root.id).await, "experimental");
+        let moves = changes(db, root.id).await;
+        assert_eq!(
+            (
+                moves[0].0.as_str(),
+                moves[0].1.as_str(),
+                moves[0].2.as_deref()
+            ),
+            (DEFAULT_QUEUE, "experimental", Some(DETECTION_QUEUE))
+        );
+    }
+
+    /// The worker routes on 2.11's completion event, as `ace serve` runs it.
+    #[tokio::test]
+    async fn routing_runs_on_the_completion_event() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let service =
+            bare_service(db).with_routers(routers(vec![("pre", 100, fixed("routed", ALERTED))]));
+        let stop = tokio_util::sync::CancellationToken::new();
+        // a long poll, so only the notification can wake it in time
+        let worker = tokio::spawn(ace_service::routing::run_worker(
+            service,
+            Duration::from_secs(600),
+            stop.clone(),
+        ));
+        // the worker listens once it finds nothing due
+        tokio::time::sleep(Duration::from_millis(500)).await;
+        let (root, _) = new_alert(db).await;
+        complete_pass(db, root).await;
+        let started = Instant::now();
+        while queue_of(db, root).await != "routed" {
+            assert!(
+                started.elapsed() < Duration::from_secs(20),
+                "routed on the event"
+            );
+            tokio::time::sleep(Duration::from_millis(50)).await;
+        }
+        stop.cancel();
+        worker.await.expect("the worker stops");
+    }
+
+    /// The service's audit tests' case for `route_due`.
+    pub(super) async fn routable(db: &Db) -> Uuid {
+        let (root, observable) = new_alert(db).await;
+        detect(db, root, Some(observable), Some("audited_queue")).await;
+        complete_pass(db, root).await;
+        root
+    }
+
+    pub(super) async fn route_due_records_its_row(db: &Db) -> String {
+        let root = routable(db).await;
+        let service = bare_service(db);
+        let outcomes = route_all(&service).await;
+        assert!(outcomes.iter().any(|o| o.root == root && o.moved.is_some()));
+        let row = audit_rows(db)
+            .await
+            .into_iter()
+            .rfind(|row| row.target == ("root".to_owned(), root.to_string()))
+            .expect("its row");
+        assert_eq!(
+            row,
+            AuditRow {
+                actor: routing_json(),
+                action: "route_due".to_owned(),
+                target: ("root".to_owned(), root.to_string()),
+                before: Some(json!({"queue": DEFAULT_QUEUE})),
+                after: Some(json!({"queue": "audited_queue"})),
+                details: json!({
+                    "router": DETECTION_QUEUE,
+                    "reason": "every detection point requests this queue",
+                    "stage": "alerted",
+                    "pass": 1,
+                }),
+            }
+        );
+        row.action
+    }
+
+    /// What routing keeps of an alert, to compare before and after a failed routing.
+    pub(super) async fn routing_rows(db: &Db, root: Uuid) -> (String, usize, Vec<(Uuid, i32)>) {
+        let due = due(db)
+            .await
+            .into_iter()
+            .filter(|(r, _)| *r == root)
+            .collect();
+        (queue_of(db, root).await, changes(db, root).await.len(), due)
+    }
 }

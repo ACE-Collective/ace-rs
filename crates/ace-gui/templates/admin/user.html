@@ -27,12 +27,15 @@
         <option value="{{ zone }}"{% if view.is_timezone(zone) %} selected{% endif %}>{{ zone }}</option>
         {%- endfor %}
       </select>
+      <label for="user-queue">Default queue</label>
+      <input id="user-queue" type="text" name="queue" value="{{ view.queue }}" maxlength="64" required>
       <button type="submit">Save profile</button>
     </form>
     {%- else %}
     <p>Display name: {{ view.display_name }}</p>
     <p>Email: {{ view.email }}</p>
     <p>Timezone: {{ view.timezone }}</p>
+    <p>Default queue: {{ view.queue }}</p>
     {%- endif %}
   </div>
 

@@ -1,0 +1,76 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT d.description, d.queue, d.signature_uuid, o.type AS \"type?\", o.value AS \"value?\"\n           FROM analysis.detections d\n           LEFT JOIN analysis.observables o ON o.root_id = d.root_id AND o.id = d.observable_id\n           WHERE d.root_id = $1 ORDER BY d.id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "description",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "analysis.detections",
+            "name": "description"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "queue",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "analysis.detections",
+            "name": "queue"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "signature_uuid",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "analysis.detections",
+            "name": "signature_uuid"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "type?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "analysis.observables",
+            "name": "type"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "value?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "analysis.observables",
+            "name": "value"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "f4ef1d454102a17692d5fd888c442c7fb67c05182bdfbf0e58166a73da9b8b8c"
+}

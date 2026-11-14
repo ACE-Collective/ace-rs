@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO queue.routing_due (root_id, pass)\n             SELECT id, $2 FROM analysis.roots WHERE id = $1 AND alerted_at IS NOT NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "d177a5d6bc09f9f07b68e8d710b7c5d3a52ffe2f8ebd095ee00ec7687fcefd50"
+}

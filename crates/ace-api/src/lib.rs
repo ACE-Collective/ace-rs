@@ -75,7 +75,6 @@
 //!   rather than ace3's `{"revoked": false}`.
 //! - ace3 lets an API key that inherits its owner's scope read and change its owner's `/me`. Here only a
 //!   user has an account, so every key gets 403.
-//! - A user's `queue`: alerts have no queues yet (PLAN.md 7.13).
 //! - Login and logout are ace3's Flask views, and are the GUI's (`ace-gui`, 5.7), which sets the cookie
 //!   this API reads. ace3's held catalog, the scope picker of a user's own keys, has no route in
 //!   its router: it comes with the preferences page (5.11).
@@ -311,8 +310,8 @@
 //! - The path is under `alerts`, since a detection is an alert's. ace3's `detection` router, its list of
 //!   observables to detect, is another thing and comes with 7.6.
 //! - The `f` filters (5.10) are the detection points screen's that ace4 has fields for: `alert_date`,
-//!   `family`, `signature`, and 7.14's `verdict`, `source` and `has_override`. `queue` comes with alert
-//!   routing (7.13). `changed_since` is a detection made, whose root became an alert or was dispositioned,
+//!   `family`, `signature`, 7.14's `verdict`, `source` and `has_override`, and 7.13's `queue`, which takes
+//!   `$USER_QUEUE` for the caller's own (a key's owner's). `changed_since` is a detection made, whose root became an alert or was dispositioned,
 //!   or whose stored verdict was set or cleared, at or after the time; ace3 also counts any other change to
 //!   the alert's row. The exports, `export/csv` and `export/ndjson`, page through this list to the end, and
 //!   refuse more than 100,000 rows with 413.

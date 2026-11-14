@@ -17,7 +17,7 @@
     <h2>Users</h2>
     <p>{% if view.hide_disabled %}<a href="/admin/users">Show disabled users</a>{% else %}<a href="/admin/users?disabled=hide">Hide disabled users</a>{% endif %}</p>
     <table class="keys">
-      <thead><tr><th>User name</th><th>Display name</th><th>Email</th><th>Enabled</th><th>Timezone</th><th>API keys</th><th>Grants</th></tr></thead>
+      <thead><tr><th>User name</th><th>Display name</th><th>Email</th><th>Enabled</th><th>Timezone</th><th>Default queue</th><th>API keys</th><th>Grants</th></tr></thead>
       <tbody>
         {%- for user in view.users %}
         <tr>
@@ -26,6 +26,7 @@
           <td>{{ user.email }}</td>
           <td>{% if user.enabled %}yes{% else %}<b>no</b>{% endif %}</td>
           <td>{{ user.timezone }}</td>
+          <td>{{ user.queue }}</td>
           <td>{{ user.api_keys }}</td>
           <td>
             <ul class="grants">
@@ -116,6 +117,8 @@
         <option value="{{ zone }}"{% if view.is_timezone(zone) %} selected{% endif %}>{{ zone }}</option>
         {%- endfor %}
       </select>
+      <label for="new-queue">Default queue</label>
+      <input id="new-queue" type="text" name="queue" value="{{ view.draft.queue }}" maxlength="64" required>
       <p class="muted hint">A new user holds nothing until they're granted something or put in a group.</p>
       <button type="submit">Add user</button>
     </form>

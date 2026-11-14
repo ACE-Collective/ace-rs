@@ -729,6 +729,8 @@ pub fn to_core(submission: &query::Submission) -> (Submission, Origin) {
         event_time_from_query: submission.event_time_source == EventTimeSource::QueryTime,
         observables,
         details: serde_json::to_value(submission).ok(),
+        // the hunt's queue, ace3's `RootAnalysis.queue` (PLAN.md 7.13)
+        queue: Some(submission.queue.clone()),
     };
     (core, origin)
 }

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT display_name, email, timezone FROM service.users WHERE id = $1 FOR UPDATE",
+  "query": "SELECT display_name, email, timezone, queue AS \"queue!: String\"\n           FROM service.users WHERE id = $1 FOR UPDATE",
   "describe": {
     "columns": [
       {
@@ -35,6 +35,17 @@
             "name": "timezone"
           }
         }
+      },
+      {
+        "ordinal": 3,
+        "name": "queue!: String",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "service.users",
+            "name": "queue"
+          }
+        }
       }
     ],
     "parameters": {
@@ -45,8 +56,9 @@
     "nullable": [
       true,
       true,
+      false,
       false
     ]
   },
-  "hash": "0b2cec7cf41d0e980d7f14d1b74419cd9facc66c5a7c6ca458f7651cc3de97e9"
+  "hash": "fef54b5c19b95d73f022dba3448db19f938201d7ddba54fb6f3308db96765553"
 }

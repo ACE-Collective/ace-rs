@@ -75,6 +75,10 @@
 //! `svs` is SVS's service side (7.10): the test hosts, under `svs:admin` to change and `svs:run_read` to
 //! read, and an alert's SVS status, read with the alert. Its model is `ace_core::svs`.
 //!
+//! `routing` is alert routing (7.13), ace3's `saq/alert_routing/`: the routers that decide which queue an
+//! alert belongs in, run by `ace serve`'s routing worker when an alert's pass completes, and the audited move
+//! between queues.
+//!
 //! `filters` is the filter model of a list screen (5.10), ace3's filter language and share links, which the
 //! alert list (`alerts`) and the detection points (`detection_points`) take, and `saved_filters` keeps an
 //! analyst's saved filters, ace3's `saved_filters` router.
@@ -111,6 +115,7 @@ mod observables;
 mod permission;
 mod preferences;
 mod remediation;
+pub mod routing;
 mod saved_filters;
 mod source;
 mod submit;
@@ -136,6 +141,7 @@ pub use ace_core::svs::samples::{
     Votes as SampleVotes,
 };
 pub use ace_core::svs::validations::ValidationState;
+pub use ace_core::tree::DEFAULT_QUEUE;
 pub use ace_sdk::actions::{ActionKind, RemediationAction};
 pub use ace_sdk::lists::MatchKind;
 pub use actor::{Actor, ApiKeyId, Component, InvalidComponent, UserId};
@@ -208,14 +214,14 @@ pub use observables::{
     Lookup, MAX_EXCLUDED_ALERTS, MAX_LOOKUP_PAIRS, MAX_RECENT_ALERTS, OPEN, Prevalence, RecentAlert,
 };
 pub use permission::{
-    ADMIN_READ, ALERT_CREATE, ALERT_READ, ALERT_WRITE, BUCKET_GC, BUCKET_VERIFY, CATALOG,
-    CLI_EXECUTE, CRASH_READ, CatalogEntry, DETECTION_READ, DETECTION_WRITE, EMAIL_ARCHIVE_MAINTAIN,
-    EMAIL_READ, EVENT_READ, EVENT_WRITE, Effect, FILE_COLLECTION_CREATE, FILE_COLLECTION_PRUNE,
-    FILE_COLLECTION_READ, FILE_COLLECTION_WRITE, HUNT_READ, HUNT_WRITE, InvalidPermission,
-    LIST_READ, LIST_WRITE, NRD_REFRESH, OBSERVABLE_READ, OBSERVABLE_WRITE, PermissionName,
-    PermissionPattern, REMEDIATION_READ, REMEDIATION_WRITE, SIGNATURE_DOWNLOAD, SIGNATURE_QA_PURGE,
-    SIGNATURE_READ, SVS_ADMIN, SVS_RUN_READ, SVS_VALIDATE, SVS_VALIDATION_PRUNE, USER_READ,
-    USER_SELF, USER_WRITE,
+    ADMIN_READ, ALERT_CREATE, ALERT_QUEUE, ALERT_READ, ALERT_WRITE, BUCKET_GC, BUCKET_VERIFY,
+    CATALOG, CLI_EXECUTE, CRASH_READ, CatalogEntry, DETECTION_READ, DETECTION_WRITE,
+    EMAIL_ARCHIVE_MAINTAIN, EMAIL_READ, EVENT_READ, EVENT_WRITE, Effect, FILE_COLLECTION_CREATE,
+    FILE_COLLECTION_PRUNE, FILE_COLLECTION_READ, FILE_COLLECTION_WRITE, HUNT_READ, HUNT_WRITE,
+    InvalidPermission, LIST_READ, LIST_WRITE, NRD_REFRESH, OBSERVABLE_READ, OBSERVABLE_WRITE,
+    PermissionName, PermissionPattern, REMEDIATION_READ, REMEDIATION_WRITE, SIGNATURE_DOWNLOAD,
+    SIGNATURE_QA_PURGE, SIGNATURE_READ, SVS_ADMIN, SVS_RUN_READ, SVS_VALIDATE,
+    SVS_VALIDATION_PRUNE, USER_READ, USER_SELF, USER_WRITE,
 };
 pub use preferences::{
     AlertSectionsPreference, MANAGE_COLUMNS, MAX_ALERT_SECTIONS, ManageColumn,
@@ -432,6 +438,8 @@ pub struct Service {
     /// YARA validation's settings, the overlay's `svs.yara` (PLAN.md 7.10 batch 3): its repositories and its
     /// retention. None configured by default.
     validation: std::sync::Arc<ace_core::svs::yara::ValidationConfig>,
+    /// The alert routers (PLAN.md 7.13), `routing`'s docs: the built-in one unless the binary adds others.
+    routers: routing::Routers,
 }
 
 impl Service {
@@ -446,6 +454,7 @@ impl Service {
             log_search: None,
             bucket: None,
             validation: std::sync::Arc::default(),
+            routers: routing::Routers::builtin(),
         }
     }
 

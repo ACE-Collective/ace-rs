@@ -1,7 +1,8 @@
 //! `ace serve`: the lease API workers call (PLAN.md 2.14), the JSON API people and their scripts call
 //! (5.5, `ace-api`), the reaper that takes back tasks whose lease expired, the recorder of YARA QA
 //! matches (2.27), the worker that runs the core's hooks at the end of a root's pass (7.6,
-//! `ace_core::hooks`), the scheduler of ace3's maintenance tasks (6.7, `crate::scheduler`), and the ruleset
+//! `ace_core::hooks`), the worker that routes an alert to its queue when its pass completes (7.13,
+//! `ace_service::routing`), the scheduler of ace3's maintenance tasks (6.7, `crate::scheduler`), and the ruleset
 //! builder (2.25) when `ACE4_SIGNATURES_REPO` names the signatures repository's checkout
 //! (`SignatureRepo::from_env`), every `ACE4_RULESET_POLL_SECONDS` (60), and SVS's YARA validation workers
 //! (7.10 batch 3, `ace_core::svs::validations`) when the overlay's `svs.yara` names a repository, each
@@ -138,6 +139,14 @@ async fn serve(app: &App) -> Result<ExitCode> {
     for (name, repository) in &validation.repositories {
         tracing::info!(repository = name, branch = %repository.branch, "svs validates this repository");
     }
+    // alert routing (PLAN.md 7.13): the built-in router, the binary's and the overlay's
+    let routers = app
+        .alert_routers(&overlay)
+        .map_err(anyhow::Error::msg)
+        .context("the overlay's alert_routers section")?;
+    for (name, priority) in routers.names() {
+        tracing::info!(router = name, priority, "routing alerts with this router");
+    }
     let orchestrator = Orchestrator::new(Catalog::of(components), modes).with_hooks(hooks);
     // a pool that lists a module leases its overlay instances too
     // the remediators, probes and collectors the pools host decide their actions' tries (PLAN.md 7.9)
@@ -160,7 +169,8 @@ async fn serve(app: &App) -> Result<ExitCode> {
         .with_log_search(log_search)
         // the GUI's deletion of an SVS sample purges its bytes (PLAN.md 7.10)
         .with_bucket(bucket.clone())
-        .with_validation(validation.clone());
+        .with_validation(validation.clone())
+        .with_routers(routers);
     // each scan runs in this binary again, contained (`ace yara replay --contained`)
     let validators = (!validation.repositories.is_empty())
         .then(|| -> Result<ace_core::svs::validations::Workers> {
@@ -197,6 +207,7 @@ async fn serve(app: &App) -> Result<ExitCode> {
             "a module's results have no analysis view, so they draw as JSON"
         );
     }
+    let routing_service = service.clone();
     let gui = ace_gui::Gui::new(service.clone(), web_config.transport)
         .with_views(app.views().clone())
         .with_actions(app.actions().clone());
@@ -233,6 +244,11 @@ async fn serve(app: &App) -> Result<ExitCode> {
     let hook_runner = tokio::spawn(ace_core::hooks::run_worker(
         hooks_orchestrator,
         ace_core::hooks::hooks_worker(db.clone()),
+        Duration::from_secs(5),
+        stop.clone(),
+    ));
+    let router = tokio::spawn(ace_service::routing::run_worker(
+        routing_service,
         Duration::from_secs(5),
         stop.clone(),
     ));
@@ -298,6 +314,12 @@ async fn serve(app: &App) -> Result<ExitCode> {
         .is_err()
     {
         tracing::warn!("the hooks worker didn't stop within 5 seconds");
+    }
+    if tokio::time::timeout(Duration::from_secs(5), router)
+        .await
+        .is_err()
+    {
+        tracing::warn!("the routing worker didn't stop within 5 seconds");
     }
     // the scheduler stops its running tasks and waits STOP_WAIT for their ends to be recorded
     if tokio::time::timeout(

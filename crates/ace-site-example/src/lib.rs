@@ -6,6 +6,10 @@
 //! an `example_ticket` observable; for a ticket it records the ticket and adds nothing. Its results
 //! have a view of the site's own, its analysis template (5.9), and a ticket has an observable action
 //! of the site's own that opens it, both named by the binary's list.
+//!
+//! Its alert router type (PLAN.md 7.13) is ace3's example integration's (`integrations.example`'s
+//! `ExampleTagRouter`): an overlay entry of type `example_tag` sends a new alert carrying one tag to one
+//! queue, and does nothing to any other, so the type changes nothing until an entry and that tag appear.
 
 use ace_app::App;
 use ace_gui::{AnalysisView, ObservableAction};
@@ -35,6 +39,47 @@ pub fn app() -> App {
         .module_in_group("correlation", TicketLookup::NAME)
         .analysis_view::<TicketAnalysis>()
         .observable_action(OPEN_TICKET)
+        .alert_router_type(EXAMPLE_TAG_ROUTER, |settings| {
+            Ok(std::sync::Arc::new(ExampleTagRouter::new(settings)?))
+        })
+}
+
+/// The example alert router's type name, which an overlay's `alert_routers:` entry names.
+pub const EXAMPLE_TAG_ROUTER: &str = "example_tag";
+
+/// Routes an alert tagged `tag` to `queue` when it's first routed, ace3's example `ExampleTagRouter`. It only
+/// reads the alert and returns a decision; it never changes the tree, and doesn't fail.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ExampleTagRouter {
+    pub tag: String,
+    pub queue: String,
+}
+
+impl ExampleTagRouter {
+    /// The router an overlay entry's settings make, which must name its `tag` and `queue` and nothing else.
+    pub fn new(settings: &serde_json::Value) -> Result<ExampleTagRouter, String> {
+        let router: ExampleTagRouter = ace_service::routing::settings(settings)?;
+        ace_service::routing::Queue::new(router.queue.as_str())?;
+        Ok(router)
+    }
+}
+
+impl ace_service::routing::Router for ExampleTagRouter {
+    fn route<'a>(
+        &'a self,
+        alert: &'a ace_service::routing::Alert,
+        stage: ace_service::routing::Stage,
+        _: &'a mut ace_service::routing::Tx<'_>,
+    ) -> ace_service::routing::RouteFuture<'a> {
+        Box::pin(async move {
+            if stage != ace_service::routing::Stage::Alerted || !alert.has_tag(&self.tag) {
+                return Ok(None);
+            }
+            ace_service::routing::Decision::new(self.queue.as_str(), format!("tagged {}", self.tag))
+                .map(Some)
+        })
+    }
 }
 
 /// An observable action of the site's own (PLAN.md 5.9): a ticket opens in the site's ticket system.

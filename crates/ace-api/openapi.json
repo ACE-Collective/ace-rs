@@ -10047,7 +10047,7 @@
         "tags": [
           "users"
         ],
-        "summary": "Changes the caller's own display name or timezone, which needs no grant.",
+        "summary": "Changes the caller's own display name, timezone or queue, which needs no grant.",
         "operationId": "update_me",
         "requestBody": {
           "content": {
@@ -14698,6 +14698,13 @@
             "type": "string",
             "description": "At least 12 characters."
           },
+          "queue": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Not blank, at most 64 characters; `default` when left out."
+          },
           "timezone": {
             "type": [
               "string",
@@ -14926,6 +14933,12 @@
               "null"
             ]
           },
+          "queue": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "timezone": {
             "type": [
               "string",
@@ -15106,6 +15119,12 @@
             ]
           },
           "email": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "queue": {
             "type": [
               "string",
               "null"
@@ -17074,6 +17093,7 @@
           "id",
           "username",
           "timezone",
+          "queue",
           "enabled",
           "created_at",
           "api_keys"
@@ -17106,6 +17126,10 @@
           "id": {
             "type": "string",
             "format": "uuid"
+          },
+          "queue": {
+            "type": "string",
+            "description": "The queue they work, ace3's `queue` (PLAN.md 7.13)."
           },
           "timezone": {
             "type": "string",

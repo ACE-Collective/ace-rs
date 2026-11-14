@@ -1,0 +1,38 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT root_id, pass FROM queue.routing_due\n                         ORDER BY due_at, root_id, pass LIMIT 1 FOR UPDATE SKIP LOCKED",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "root_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "queue.routing_due",
+            "name": "root_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "pass",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "queue.routing_due",
+            "name": "pass"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "4d823147fb25ab638c27702b627a72a2b720e1732229eb32f1cc09a0bf5da0c6"
+}

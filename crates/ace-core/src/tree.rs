@@ -70,6 +70,28 @@ impl EventTime {
     }
 }
 
+/// The queue an alert is in until a submitter or a router puts it in another: ace3's `QUEUE_DEFAULT`.
+pub const DEFAULT_QUEUE: &str = "default";
+/// The longest queue name, ace3's `QUEUE_MAX_LENGTH`, in characters.
+pub const MAX_QUEUE_CHARS: usize = 64;
+
+/// Whether `name` can be a queue: ace3's rule (`RouteDecision`), not blank and at most `MAX_QUEUE_CHARS`
+/// characters, and with no control characters, as `analysis.queue_name` checks too.
+pub fn check_queue_name(name: &str) -> Result<(), String> {
+    if name.trim().is_empty() {
+        return Err("a queue needs a name".to_owned());
+    }
+    if name.chars().count() > MAX_QUEUE_CHARS {
+        return Err(format!(
+            "queue {name:?} is longer than {MAX_QUEUE_CHARS} characters"
+        ));
+    }
+    if name.chars().any(char::is_control) {
+        return Err(format!("queue {name:?} has a control character"));
+    }
+    Ok(())
+}
+
 /// A root to create.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NewRoot {

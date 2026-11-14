@@ -10,7 +10,8 @@
 //! - `GET /preferences` (`main.preferences`): `page`, over `Service::own_account`, `own_api_keys`,
 //!   `own_permissions` (ace3's `list_held_catalog`) and `manage_columns`.
 //! - The profile form, `PATCH /users/me`: `POST /preferences/profile`, over `Service::update_own_profile`.
-//!   Its fields are what 5.6 lets a user change about themself: the display name and the timezone. The
+//!   Its fields are what 5.6 lets a user change about themself: the display name, the timezone and, since
+//!   7.13, the default queue, ace3's `users.queue`, which the alert list's `$USER_QUEUE` stands for. The
 //!   username and email are shown, not edited, as ace3's page says an administrator sets them. The
 //!   timezones are chrono-tz's list, the one the service checks against, where ace3 offers pytz's.
 //! - The link to the password change, `/login/change` (5.11's auth area).
@@ -34,7 +35,7 @@
 //!   is `*:*`, ace3's `inherit_user_scope`, which only an administrator sets, isn't offered for editing,
 //!   as in ace3.
 //!
-//! Left out: the default queue field, which waits for 7.13's queues; ace3's copy button for a new key,
+//! Left out: ace3's copy button for a new key,
 //! which needs a script (the token is in a read-only field to select); its confirm dialog before a revoke.
 //!
 //! The theme menu of the base layout, ace3's theme switcher, is a form that posts to `/preferences/theme`,
@@ -110,6 +111,8 @@ pub struct PreferencesView {
     pub email: String,
     pub timezone: String,
     pub timezones: Vec<&'static str>,
+    /// The queue they work (PLAN.md 7.13).
+    pub queue: String,
     pub themes: &'static [Theme],
     /// The column chooser's rows, which `column_chooser.html` reads.
     pub columns: Vec<ColumnChoice>,
@@ -241,6 +244,7 @@ pub fn preferences_view(
         email: user.email.clone().unwrap_or_default(),
         timezone: user.timezone.clone(),
         timezones: timezones(),
+        queue: user.queue.clone(),
         themes: Theme::ALL,
         columns: column_choices(columns),
         here: HERE,
@@ -321,9 +325,11 @@ pub(crate) async fn page(
 pub(crate) struct ProfileForm {
     display_name: String,
     timezone: String,
+    /// Left out, the queue stays as it is.
+    queue: Option<String>,
 }
 
-/// `POST /preferences/profile`: the user's own display name and timezone.
+/// `POST /preferences/profile`: the user's own display name, timezone and default queue.
 pub(crate) async fn save_profile(
     State(gui): State<Gui>,
     viewer: SignedIn,
@@ -338,6 +344,7 @@ pub(crate) async fn save_profile(
         display_name: Some(form.display_name),
         email: None,
         timezone: Some(form.timezone),
+        queue: form.queue,
     };
     match gui
         .service

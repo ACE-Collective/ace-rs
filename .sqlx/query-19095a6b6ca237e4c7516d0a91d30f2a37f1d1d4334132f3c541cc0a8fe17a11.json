@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE analysis.roots SET queue = $2::text WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "19095a6b6ca237e4c7516d0a91d30f2a37f1d1d4334132f3c541cc0a8fe17a11"
+}

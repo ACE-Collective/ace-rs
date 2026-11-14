@@ -30,6 +30,9 @@
         {%- endfor %}
       </select>
       <p class="muted hint">Alert dates are shown in this timezone.</p>
+      <label for="profile-queue">Default queue</label>
+      <input id="profile-queue" type="text" name="queue" value="{{ view.queue }}" maxlength="64" required>
+      <p class="muted hint">The queue the alert list's $USER_QUEUE stands for.</p>
       <button type="submit">Save profile</button>
     </form>
     <p><a href="/login/change">Change password</a></p>

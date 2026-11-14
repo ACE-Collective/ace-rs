@@ -17,7 +17,9 @@
 //!
 //! What's left out of ace3's filters, and the step that brings the field each one reads, is
 //! `FilterScreen::left_out`. ace3's alert filters also take `$USER` and `$USER_QUEUE`, which stand for the
-//! viewer in a stored filter; they only have meaning for the owner and queue filters, so they come with them.
+//! viewer in a stored filter or a link, resolved when the list is read. `$USER_QUEUE` came with the Queue
+//! filter (PLAN.md 7.13) and is the viewer's default queue, a key's owner's for an API key, and matches
+//! nothing for a key with no owner or one of ACE's components. `$USER` waits for the owner filter.
 //!
 //! ace3's event list isn't a filter screen, as it has no saved filters or share links: its filters are
 //! `events`, under the same rules (5.11's events area).
@@ -45,6 +47,10 @@ pub const MAX_FILTER_VALUE_CHARS: usize = 256;
 
 /// ace3's signature families (`SignatureType`), which the detection points screen's `family` takes.
 pub const SIGNATURE_FAMILIES: &[&str] = &["yara", "hunt", "observable_modifier", "builtin"];
+
+/// ace3's `FILTER_SENTINEL_USER_QUEUE`: in a Queue filter, the viewer's own default queue, resolved when the list
+/// is read, so a shared link shows each viewer their own queue.
+pub const USER_QUEUE: &str = "$USER_QUEUE";
 
 /// The observable filter's type that matches any type.
 pub const ANY_TYPE: &str = "Any";
@@ -209,6 +215,13 @@ const ALERT_FILTERS: &[FilterSpec] = &[
         "a type, or Any, and a value",
     ),
     spec(
+        "Queue",
+        "queue",
+        FilterKind::Multi,
+        &[],
+        "a queue, or $USER_QUEUE for yours",
+    ),
+    spec(
         "Tag",
         "tag",
         FilterKind::Text,
@@ -234,11 +247,6 @@ const ALERT_LEFT_OUT: &[LeftOut] = &[
         name: "Owner",
         slug: "owner",
         why: "an alert has no owner yet, and no step in PLAN.md adds one",
-    },
-    LeftOut {
-        name: "Queue",
-        slug: "queue",
-        why: "an alert has no queue until alert routing (7.13)",
     },
     LeftOut {
         name: "Reviewed",
@@ -300,13 +308,16 @@ const DETECTION_POINT_FILTERS: &[FilterSpec] = &[
         BOOLEANS,
         "true",
     ),
+    spec(
+        "Queue",
+        "queue",
+        FilterKind::Multi,
+        &[],
+        "the alert's queue, or $USER_QUEUE for yours",
+    ),
 ];
 
-const DETECTION_POINT_LEFT_OUT: &[LeftOut] = &[LeftOut {
-    name: "Queue",
-    slug: "queue",
-    why: "ace3 filters on the alert's queue, which comes with alert routing (7.13)",
-}];
+const DETECTION_POINT_LEFT_OUT: &[LeftOut] = &[];
 
 /// ace3's remediation actions, statuses and remediator results, which the remediations screen offers.
 pub const REMEDIATION_ACTIONS: &[&str] = &["remove", "restore"];
@@ -860,6 +871,14 @@ fn canonical(
             }
             text.clone()
         }
+        // a queue's name, or the viewer's own queue (PLAN.md 7.13)
+        ("queue", _) => {
+            if text != USER_QUEUE {
+                ace_core::tree::check_queue_name(text)
+                    .map_err(|why| invalid(format!("{name}: {why}")))?;
+            }
+            text.clone()
+        }
         ("analysis", _) => {
             if !is_module_name(text) {
                 return Err(invalid(format!(
@@ -1241,6 +1260,16 @@ pub fn date_window(
 }
 
 /// A pair of arrays as two parameters, each None when the filter isn't set.
+/// The user whose default queue `$USER_QUEUE` stands for: the viewer, or an API key's owner. None for a key
+/// with no owner or one of ACE's components, for whom it matches nothing.
+pub(crate) fn queue_holder(actor: &crate::Actor) -> Option<uuid::Uuid> {
+    match actor {
+        crate::Actor::User { id, .. } => Some(id.0),
+        crate::Actor::ApiKey { owner, .. } => owner.map(|owner| owner.0),
+        crate::Actor::Internal { .. } => None,
+    }
+}
+
 pub(crate) fn split<T>(pair: Option<(Vec<T>, Vec<T>)>) -> (Option<Vec<T>>, Option<Vec<T>>) {
     match pair {
         Some((a, b)) => (Some(a), Some(b)),

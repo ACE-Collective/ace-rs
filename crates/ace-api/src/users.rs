@@ -61,6 +61,8 @@ pub(crate) struct UserBody {
     email: Option<String>,
     /// An IANA name, such as `Europe/London`.
     timezone: String,
+    /// The queue they work, ace3's `queue` (PLAN.md 7.13).
+    queue: String,
     enabled: bool,
     created_at: DateTime<Utc>,
     /// How many API keys they own.
@@ -75,6 +77,7 @@ impl From<User> for UserBody {
             display_name: user.display_name,
             email: user.email,
             timezone: user.timezone,
+            queue: user.queue,
             enabled: user.enabled,
             created_at: user.created_at,
             api_keys: user.api_keys,
@@ -235,6 +238,8 @@ pub(crate) struct NewUserRequest {
     email: Option<String>,
     /// An IANA name; `UTC` when left out.
     timezone: Option<String>,
+    /// Not blank, at most 64 characters; `default` when left out.
+    queue: Option<String>,
 }
 
 /// A profile change. A field left out stays as it is, and an empty display name or email clears it.
@@ -244,6 +249,7 @@ pub(crate) struct ProfileRequest {
     display_name: Option<String>,
     email: Option<String>,
     timezone: Option<String>,
+    queue: Option<String>,
 }
 
 /// What a user changes on their own account. The email is an administrator's to change, as in ace3.
@@ -252,6 +258,7 @@ pub(crate) struct ProfileRequest {
 pub(crate) struct OwnProfileRequest {
     display_name: Option<String>,
     timezone: Option<String>,
+    queue: Option<String>,
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
@@ -414,6 +421,7 @@ pub(crate) async fn create_user(
         display_name: body.display_name,
         email: body.email,
         timezone: body.timezone,
+        queue: body.queue,
     };
     let id = web
         .service
@@ -470,6 +478,7 @@ pub(crate) async fn update_user(
         display_name: body.display_name,
         email: body.email,
         timezone: body.timezone,
+        queue: body.queue,
     };
     let changed = web
         .service
@@ -893,7 +902,7 @@ pub(crate) async fn me(
     Ok(Json(web.service.own_account(&actor).await?.into()))
 }
 
-/// Changes the caller's own display name or timezone, which needs no grant.
+/// Changes the caller's own display name, timezone or queue, which needs no grant.
 #[utoipa::path(
     patch,
     path = "/api/users/v1/me",
@@ -917,6 +926,7 @@ pub(crate) async fn update_me(
         display_name: body.display_name,
         email: None,
         timezone: body.timezone,
+        queue: body.queue,
     };
     web.service.update_own_profile(&actor, &profile).await?;
     Ok(Json(web.service.own_account(&actor).await?.into()))

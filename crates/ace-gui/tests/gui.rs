@@ -3982,9 +3982,9 @@ async fn the_list_filters_and_pages_through_fixture_alerts() {
     let (_, page) = get(to).await;
     assert_eq!(row_ids(&page), ids(&[made[4]]));
     // a filter the list doesn't have is left out, saying so; a broken one shows the list without filters
-    let (status, page) = get("/?f=queue:default".to_owned()).await;
+    let (status, page) = get("/?f=owner:alice".to_owned()).await;
     assert_eq!(status, StatusCode::OK);
-    assert!(page.contains("alert routing (7.13)"), "{page}");
+    assert!(page.contains("an alert has no owner yet"), "{page}");
     assert_eq!(row_ids(&page).len(), 5);
     let (status, page) = get("/?f=tag:a,,b".to_owned()).await;
     assert_eq!(status, StatusCode::OK);
@@ -4448,6 +4448,7 @@ fn fixture_user(name: &str) -> User {
         display_name: Some(name.to_owned()),
         email: Some(name.to_owned()),
         timezone: "America/New_York".to_owned(),
+        queue: "<b>tier2</b>".to_owned(),
         enabled: true,
         created_at: chrono::DateTime::from_timestamp(1_793_000_000, 0).expect("a time"),
         api_keys: 2,
@@ -4532,6 +4533,8 @@ fn the_preferences_view_draws_the_profile_theme_columns_and_keys() {
         r#"name="display_name" value="alice""#,
         r#"<option value="America/New_York" selected>America/New_York</option>"#,
         r#"<option value="Europe/London">Europe/London</option>"#,
+        // the default queue (PLAN.md 7.13), its text escaped
+        r#"<input id="profile-queue" type="text" name="queue" value="&#60;b&#62;tier2&#60;/b&#62;" maxlength="64" required>"#,
         r#"<a href="/login/change">Change password</a>"#,
         r#"<a href="/preferences">Preferences</a>"#,
         r#"<input type="radio" name="mode" value="dark" checked> Dark"#,
@@ -4753,6 +4756,26 @@ async fn the_preferences_page_saves_the_profile() {
             "Not saved: &#34;Mars/Olympus_Mons&#34; isn&#39;t an IANA timezone",
         ),
         (
+            "a blank queue",
+            profile(&[
+                ("display_name", "Alice"),
+                ("timezone", "UTC"),
+                ("queue", "   "),
+            ]),
+            StatusCode::BAD_REQUEST,
+            "Not saved: a queue needs a name.",
+        ),
+        (
+            "a queue too long",
+            profile(&[
+                ("display_name", "Alice"),
+                ("timezone", "UTC"),
+                ("queue", &"q".repeat(65)),
+            ]),
+            StatusCode::BAD_REQUEST,
+            "is longer than 64 characters",
+        ),
+        (
             "a display name with a control character",
             profile(&[("display_name", "Al\u{7}ice"), ("timezone", "UTC")]),
             StatusCode::BAD_REQUEST,
@@ -4786,6 +4809,7 @@ async fn the_preferences_page_saves_the_profile() {
     let saved = profile(&[
         ("display_name", "Alice A."),
         ("timezone", "Europe/London"),
+        ("queue", " tier2 "),
         ("email", "alice@evil.example"),
     ])
     .send()
@@ -4797,6 +4821,10 @@ async fn the_preferences_page_saves_the_profile() {
     assert_eq!(last_action(&stack).await, "update_own_profile");
     let account = stack.service.own_account(&alice).await.expect("reads");
     assert_eq!(account.display_name.as_deref(), Some("Alice A."));
+    assert_eq!(
+        account.queue, "tier2",
+        "the default queue, trimmed (PLAN.md 7.13)"
+    );
     assert_eq!(account.timezone, "Europe/London");
     assert_eq!(account.email, None, "an email isn't the user's to change");
     let page = stack
@@ -4902,7 +4930,7 @@ async fn own_api_keys_are_made_shown_once_changed_and_revoked() {
                 ("scope", "alert:read"),
                 ("other", "alert:*"),
             ],
-            "No key was made: alert:* covers alert:create, alert:write, which you don&#39;t hold.",
+            "No key was made: alert:* covers alert:create, alert:queue, alert:write, which you don&#39;t hold.",
         ),
         (
             "a pattern covering nothing",
@@ -5051,7 +5079,7 @@ async fn own_api_keys_are_made_shown_once_changed_and_revoked() {
     assert_eq!(refused.status(), StatusCode::BAD_REQUEST);
     let page = refused.text().await.expect("a page");
     assert!(
-        page.contains("Not changed: alert:* covers alert:create, alert:write"),
+        page.contains("Not changed: alert:* covers alert:create, alert:queue, alert:write"),
         "{page}"
     );
     assert!(page.contains(r#"name="name" value="renamed""#), "{page}");
@@ -5719,17 +5747,17 @@ fn the_admin_views_draw_users_groups_grants_and_keys() {
     let alerts = gives(&PermissionPattern::new("alert", "*").expect("a pattern"));
     assert_eq!(
         alerts.covers,
-        ["alert:create", "alert:read", "alert:write"],
+        ["alert:create", "alert:queue", "alert:read", "alert:write"],
         "the catalog's order"
     );
     assert!(!alerts.escalates);
     assert_eq!(
         alerts.summary(false),
-        "Gives alert:create, alert:read, alert:write."
+        "Gives alert:create, alert:queue, alert:read, alert:write."
     );
     assert_eq!(
         alerts.summary(true),
-        "Takes away alert:create, alert:read, alert:write, whatever else allows them."
+        "Takes away alert:create, alert:queue, alert:read, alert:write, whatever else allows them."
     );
     let none = gives(&PermissionPattern::new("alret", "read").expect("a pattern"));
     assert_eq!(none.summary(false), "Covers nothing ACE checks today.");
@@ -6163,6 +6191,7 @@ async fn users_are_made_changed_disabled_and_reset_through_the_admin_area() {
             ("display_name", HOSTILE),
             ("email", "carol@example.com"),
             ("timezone", "Europe/London"),
+            ("queue", "<i>tier2</i>"),
         ],
     )
     .send()
@@ -6182,6 +6211,10 @@ async fn users_are_made_changed_disabled_and_reset_through_the_admin_area() {
         .find(|user| user.username == "carol")
         .expect("carol");
     assert_eq!(carol.timezone, "Europe/London");
+    assert_eq!(
+        carol.queue, "<i>tier2</i>",
+        "her default queue (PLAN.md 7.13)"
+    );
     let carol_id = carol.id.0;
     let carol_session = session_of(&stack, "carol").await;
     let shown = page(carol_page).await;
@@ -6193,6 +6226,10 @@ async fn users_are_made_changed_disabled_and_reset_through_the_admin_area() {
         "{listed}"
     );
     assert!(!listed.contains("<script>alert"));
+    assert!(
+        listed.contains("<td>&#60;i&#62;tier2&#60;/i&#62;</td>"),
+        "{listed}"
+    );
 
     // made, with one made for her, shown once
     let audit = stack.audit_count().await;
@@ -6308,6 +6345,7 @@ async fn users_are_made_changed_disabled_and_reset_through_the_admin_area() {
             ("display_name", "Carol"),
             ("email", "c@example.com"),
             ("timezone", "UTC"),
+            ("queue", "triage"),
         ],
     )
     .send()

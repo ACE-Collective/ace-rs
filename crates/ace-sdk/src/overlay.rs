@@ -52,6 +52,9 @@
 //! refuses a `yara` whose lease its heartbeat can't keep, as every ace3 process refuses that
 //! `service_svs`.
 //!
+//! `alert_routers:` is ace3's section of that name (PLAN.md 7.13, `ace_service::routing`): each router, by its
+//! name, with its `type`, `priority` and `settings`. `ace serve` builds and checks them when it starts.
+//!
 //! `secrets:` says where each secret comes from, by the name modules declare in
 //! `Module::SECRETS`: `env:<VARIABLE>` or `file:<path>`, as ace3's `env:` references. Nothing
 //! is read when the overlay loads; a pool reads only the ones its modules declare (PLAN.md 2.24,
@@ -103,6 +106,29 @@ pub struct Overlay {
     pub disposition_order: Vec<String>,
     /// ace3's `svs:` section, as far as SVS is ported (PLAN.md 7.10). `ace serve` reads it; a pool doesn't.
     pub svs: SvsSection,
+    /// ace3's `alert_routers:` (PLAN.md 7.13), by router name: the routers of the types the binary has
+    /// that decide which queue an alert belongs in. `ace serve` reads it; a pool doesn't.
+    pub alert_routers: BTreeMap<String, AlertRouterSection>,
+}
+
+/// One of ace3's `alert_routers:` entries (PLAN.md 7.13): a router of a type the binary has, which a site
+/// names, places in the order and configures. Its name is its key, which every move it makes records.
+///
+/// What differs from ace3's: `type` names a router type the binary was built with (`App::alert_router_type`)
+/// where ace3 names a Python module and class, and `settings` is ace3's `kwargs`. `ace serve` checks every
+/// entry when it starts, and an entry it can't build stops it, as the rest of the overlay does, where ace3
+/// logs the entry and loads the others (`ace_service::routing`).
+#[derive(Debug, Clone, PartialEq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct AlertRouterSection {
+    /// The router type, as the binary names it.
+    #[serde(rename = "type")]
+    pub kind: String,
+    /// Routers run lowest first, and the first to decide wins. The built-in `detection_queue` is 500.
+    pub priority: i32,
+    /// What the type's builder takes, ace3's `kwargs`; null when left out.
+    #[serde(default)]
+    pub settings: Option<Value>,
 }
 
 /// ace3's `svs:` section. Each batch of 7.10 adds the keys its part reads; one this build doesn't have is
@@ -598,6 +624,7 @@ impl Overlay {
             dispositions: BTreeMap::new(),
             disposition_order: Vec::new(),
             svs: SvsSection::default(),
+            alert_routers: BTreeMap::new(),
         }
     }
 

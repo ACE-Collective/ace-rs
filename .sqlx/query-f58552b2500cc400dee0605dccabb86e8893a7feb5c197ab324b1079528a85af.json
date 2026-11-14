@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT u.id, u.username::text AS \"username!\", u.display_name, u.email, u.timezone,\n                  u.enabled, u.created_at,\n                  (SELECT count(*) FROM service.api_keys k WHERE k.owner_id = u.id) AS \"api_keys!\"\n           FROM service.users u\n           WHERE ($1::uuid IS NULL OR u.id = $1) AND ($2 OR u.enabled)\n           ORDER BY u.username",
+  "query": "SELECT u.id, u.username::text AS \"username!\", u.display_name, u.email, u.timezone,\n                  u.queue AS \"queue!: String\", u.enabled, u.created_at,\n                  (SELECT count(*) FROM service.api_keys k WHERE k.owner_id = u.id) AS \"api_keys!\"\n           FROM service.users u\n           WHERE ($1::uuid IS NULL OR u.id = $1) AND ($2 OR u.enabled)\n           ORDER BY u.username",
   "describe": {
     "columns": [
       {
@@ -55,6 +55,17 @@
       },
       {
         "ordinal": 5,
+        "name": "queue!: String",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "service.users",
+            "name": "queue"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
         "name": "enabled",
         "type_info": "Bool",
         "origin": {
@@ -65,7 +76,7 @@
         }
       },
       {
-        "ordinal": 6,
+        "ordinal": 7,
         "name": "created_at",
         "type_info": "Timestamptz",
         "origin": {
@@ -76,7 +87,7 @@
         }
       },
       {
-        "ordinal": 7,
+        "ordinal": 8,
         "name": "api_keys!",
         "type_info": "Int8",
         "origin": "Expression"
@@ -96,8 +107,9 @@
       false,
       false,
       false,
+      false,
       null
     ]
   },
-  "hash": "8ac722439a4b4c5e4ff9b8261cee88add2412488d5856459f9f596f5d69d6f44"
+  "hash": "f58552b2500cc400dee0605dccabb86e8893a7feb5c197ab324b1079528a85af"
 }

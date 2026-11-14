@@ -2139,6 +2139,7 @@ async fn manages_users(client: &mut Client<'_>, token: &str) {
                 "display_name": "An Analyst",
                 "email": "analyst@example.com",
                 "timezone": "Europe/London",
+                "queue": "triage",
             })),
             S::CREATED,
         )
@@ -2149,6 +2150,7 @@ async fn manages_users(client: &mut Client<'_>, token: &str) {
         json!({"username": "weak", "password": "short"}),
         json!({"username": "no spaces", "password": PASSWORD}),
         json!({"username": "zoned", "password": PASSWORD, "timezone": "Mars/Olympus"}),
+        json!({"username": "queued", "password": PASSWORD, "queue": "   "}),
         json!({"username": "extra", "password": PASSWORD, "admin": true}),
         json!({"password": PASSWORD}),
     ] {
@@ -2198,6 +2200,10 @@ async fn manages_users(client: &mut Client<'_>, token: &str) {
     assert_eq!(detail["user"]["username"], "analyst");
     assert_eq!(detail["user"]["display_name"], "An Analyst");
     assert_eq!(detail["user"]["timezone"], "Europe/London");
+    assert_eq!(
+        detail["user"]["queue"], "triage",
+        "the default queue (PLAN.md 7.13)"
+    );
     assert!(detail["user"].get("password_hash").is_none());
     client
         .json(
@@ -2781,12 +2787,13 @@ async fn serves_me(client: &mut Client<'_>) {
             ME,
             ME,
             t,
-            json(json!({"display_name": "Me", "timezone": "Europe/Paris"})),
+            json(json!({"display_name": "Me", "timezone": "Europe/Paris", "queue": "mine"})),
             S::OK,
         )
         .await;
     assert_eq!(changed["display_name"], "Me");
     assert_eq!(changed["timezone"], "Europe/Paris");
+    assert_eq!(changed["queue"], "mine");
     client
         .json(
             M::PATCH,
@@ -4640,7 +4647,8 @@ async fn filters_and_exports(client: &mut Client<'_>, token: &str) {
     assert_eq!(ids(&page), [made[0].to_string()]);
     for bad in [
         "?f=nope:x",
-        "?f=queue:default",
+        "?f=owner:alice",
+        "?f=queue:%20",
         "?f=tag:a,,b",
         "?f=",
         "?sort=owner",
@@ -4754,7 +4762,7 @@ async fn filters_and_exports(client: &mut Client<'_>, token: &str) {
     for bad in [
         "f=tag:x",
         "f=verdict:maybe",
-        "f=queue:x",
+        "f=queue:%20%20",
         "changed_since=yesterday",
         "tz=x",
     ] {
@@ -4847,13 +4855,20 @@ async fn filters_and_exports(client: &mut Client<'_>, token: &str) {
         options[options.len() - 3..],
         ["SIMULATED", "SITE_CHECKED", "SITE_SWEEP"]
     );
+    // the Queue filter came with alert routing (7.13)
     assert!(
-        screen["left_out"]
+        screen["filters"]
+            .as_array()
+            .expect("filters")
+            .iter()
+            .any(|f| f["slug"] == "queue" && f["kind"] == "multi")
+    );
+    assert!(
+        !screen["left_out"]
             .as_array()
             .expect("left out")
             .iter()
-            .any(|f| f["slug"] == "queue"
-                && f["why"].as_str().is_some_and(|why| why.contains("7.13")))
+            .any(|f| f["slug"] == "queue")
     );
     client
         .json(
@@ -4888,7 +4903,7 @@ async fn filters_and_exports(client: &mut Client<'_>, token: &str) {
     for (path, body, status) in [
         (
             "/api/filters/v1/screens/alerts/encode",
-            Send::Json(json!({"filters": [{"name": "Queue", "values": ["x"]}]})),
+            Send::Json(json!({"filters": [{"name": "Owner", "values": ["x"]}]})),
             StatusCode::BAD_REQUEST,
         ),
         (
@@ -4915,7 +4930,7 @@ async fn filters_and_exports(client: &mut Client<'_>, token: &str) {
         .json(
             Method::GET,
             DECODE,
-            "/api/filters/v1/screens/alerts/decode?f=queue:default&f=!tag:x",
+            "/api/filters/v1/screens/alerts/decode?f=owner:alice&f=!tag:x",
             Some(token),
             Send::Nothing,
             StatusCode::OK,

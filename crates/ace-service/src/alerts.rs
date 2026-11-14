@@ -110,8 +110,9 @@ pub struct AlertPage {
 /// How long the alert list's query may run. A filter that takes longer is refused, to be narrowed.
 pub const LIST_TIMEOUT: &str = "10s";
 
-/// The alert list's orders, ace3's sort filters that ace4's alerts have fields for. ace3's owner and queue
-/// orders come with those fields (`FilterScreen::left_out`).
+/// The alert list's orders, ace3's sort filters that ace4's alerts have fields for. ace3's owner order comes
+/// with its field (`FilterScreen::left_out`). Its queue order isn't here: 7.13 brought the queue and its
+/// filter, and not the list's queue column or order.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub enum AlertSort {
     /// When each became an alert, ace3's `Alert Date`, its default.
@@ -476,6 +477,8 @@ impl Service {
             f.patterns("tag", true, true),
         );
         let (analysis, not_analysis) = (f.names("analysis", false), f.names("analysis", true));
+        let (queued, not_queued) = (f.names("queue", false), f.names("queue", true));
+        let queues = (&queued, &not_queued, crate::filters::queue_holder(actor));
         let (unconfirmed, not_unconfirmed) = (
             f.names("unconfirmed_detections", false),
             f.names("unconfirmed_detections", true),
@@ -519,6 +522,7 @@ impl Service {
                     ) = params;
                     let (described, not_described, disposition, not_disposition, by, not_by, tagged, not_tagged, analysis, not_analysis) = texts;
                     let (unconfirmed, not_unconfirmed, tp, fp) = verdicts;
+                    let (queued, not_queued, viewer) = queues;
                     sqlx::raw_sql(SET_LIST_TIMEOUT).execute(tx.conn()).await?;
                     if let Some(after) = after_id {
                         let known = sqlx::query_scalar!(
@@ -621,6 +625,13 @@ impl Service {
                                        ON lower(d.signature_uuid) = g.u
                                       AND (g.v = '' OR d.signature_version = g.v)
                                      WHERE d.root_id = r.id))
+                               -- Queue: the alert's, $USER_QUEUE standing for the viewer's own (7.13)
+                               AND ($42::text[] IS NULL OR r.queue = ANY ($42::text[])
+                                    OR ('$USER_QUEUE' = ANY ($42::text[]) AND COALESCE(r.queue = (
+                                          SELECT u.queue FROM service.users u WHERE u.id = $44), false)))
+                               AND ($43::text[] IS NULL OR NOT (r.queue = ANY ($43::text[])
+                                    OR ('$USER_QUEUE' = ANY ($43::text[]) AND COALESCE(r.queue = (
+                                          SELECT u.queue FROM service.users u WHERE u.id = $44), false))))
                                -- Unconfirmed Detections: an inherited TP of several signatures' (7.14)
                                AND ($38::text[] IS NULL
                                     OR ('True' = ANY ($38::text[]) AND EXISTS (
@@ -734,6 +745,9 @@ impl Service {
                         not_unconfirmed.as_deref(),
                         tp,
                         fp,
+                        queued.as_deref(),
+                        not_queued.as_deref(),
+                        viewer,
                     )
                     .fetch_all(tx.conn())
                     .await
