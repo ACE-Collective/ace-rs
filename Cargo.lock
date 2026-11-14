@@ -117,6 +117,7 @@ name = "ace-core"
 version = "0.1.0"
 dependencies = [
  "ace-core",
+ "ace-hunt",
  "ace-mod-archive",
  "ace-mod-brocess",
  "ace-mod-email",
@@ -132,6 +133,7 @@ dependencies = [
  "aes-gcm",
  "axum",
  "chrono",
+ "croner",
  "flate2",
  "getrandom 0.4.3",
  "hex",

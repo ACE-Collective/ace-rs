@@ -1,0 +1,25 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO svs.catalog_tests\n                         (guid, repository, technique, technique_name, name, description, platforms,\n                          executor, test, content_hash, commit, path, first_seen_at)\n                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, now())",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "TextArray",
+        "Text",
+        "Jsonb",
+        "Text",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "5c3877d7c519d68646a558bce86859c5e5f3b2a922f27e2e41df3fe1bd578055"
+}

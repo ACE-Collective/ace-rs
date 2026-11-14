@@ -1,0 +1,88 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT name, commit, refreshed_at, test_count, skipped_count, error\n         FROM svs.catalog_repositories WHERE name = $1 FOR UPDATE",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.catalog_repositories",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "commit",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.catalog_repositories",
+            "name": "commit"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "refreshed_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "svs.catalog_repositories",
+            "name": "refreshed_at"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "test_count",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "svs.catalog_repositories",
+            "name": "test_count"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "skipped_count",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "svs.catalog_repositories",
+            "name": "skipped_count"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "error",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.catalog_repositories",
+            "name": "error"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      true,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "68fbc4093edd9e3d373e89cd0ad1b0ce3b9fb998563dd6be9c3c68321467d231"
+}

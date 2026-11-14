@@ -73,6 +73,26 @@ pub struct ExportResult {
     pub skipped: Vec<(String, String)>,
 }
 
+/// One entry of a commit's tree, as `git ls-tree -l` lists it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TreeEntry {
+    /// `100644`, `100755`, `120000` (a symbolic link), `160000` (a submodule) or `040000` (a directory).
+    pub mode: String,
+    /// `blob`, `tree` or `commit`.
+    pub kind: String,
+    pub object: String,
+    /// A blob's size; None for a directory or a submodule.
+    pub size: Option<u64>,
+    pub path: String,
+}
+
+impl TreeEntry {
+    /// A regular file, the only kind anything of SVS reads.
+    pub fn is_regular_file(&self) -> bool {
+        self.kind == "blob" && matches!(self.mode.as_str(), "100644" | "100755")
+    }
+}
+
 /// Whether `value` looks like a commit id: 7 to 64 hex digits. Anything else never reaches git, so a
 /// request can't pass it an option or a revision expression.
 pub fn is_valid_sha(value: &str) -> bool {
@@ -216,6 +236,18 @@ impl Mirror {
         timeout: Duration,
         error: &str,
     ) -> Result<Vec<u8>, RepositoryError> {
+        self.git_capped(args, timeout, error, None)
+    }
+
+    /// `git`, with at most `max_stdout` bytes of output: a command that prints more is killed and fails,
+    /// so a listing of a repository of any size can't fill memory.
+    fn git_capped(
+        &self,
+        args: &[&str],
+        timeout: Duration,
+        error: &str,
+        max_stdout: Option<u64>,
+    ) -> Result<Vec<u8>, RepositoryError> {
         let mut command = self.command();
         command
             .args(args)
@@ -243,14 +275,23 @@ impl Mirror {
         let child = command
             .spawn()
             .map_err(|e| RepositoryError(format!("{error}: unable to run git: {e}")))?;
-        let (status, stdout, stderr) = wait(child, timeout).map_err(|e| match e {
-            Waited::TimedOut => RepositoryError(format!(
-                "{error}: git {} timed out after {} seconds",
-                args[0],
-                timeout.as_secs()
-            )),
-            Waited::Io(e) => RepositoryError(format!("{error}: {e}")),
-        })?;
+        let (status, stdout, stderr) =
+            wait_capped(child, timeout, max_stdout).map_err(|e| match e {
+                Waited::TimedOut => RepositoryError(format!(
+                    "{error}: git {} timed out after {} seconds",
+                    args[0],
+                    timeout.as_secs()
+                )),
+                Waited::Io(e) => RepositoryError(format!("{error}: {e}")),
+            })?;
+        if let Some(max) = max_stdout
+            && stdout.len() as u64 > max
+        {
+            return Err(RepositoryError(format!(
+                "{error}: git {} printed more than {max} bytes",
+                args[0]
+            )));
+        }
         if !status.success() {
             let stderr = String::from_utf8_lossy(&stderr);
             let stderr = stderr.trim();
@@ -323,7 +364,15 @@ impl Mirror {
             .iter()
             .map(|b| format!("+refs/heads/{b}:refs/heads/{b}"))
             .collect();
-        let mut args = vec!["fetch", "--quiet", "--no-tags", "origin"];
+        // --update-shallow: a remote that is itself a shallow clone gives its branch with the history it
+        // has, where git otherwise refuses the ref
+        let mut args = vec![
+            "fetch",
+            "--quiet",
+            "--no-tags",
+            "--update-shallow",
+            "origin",
+        ];
         args.extend(refspecs.iter().map(String::as_str));
         self.git(
             &args,
@@ -341,7 +390,14 @@ impl Mirror {
             }
             let refspec = format!("+refs/heads/{branch}:refs/heads/{branch}");
             if let Err(e) = self.git(
-                &["fetch", "--quiet", "--no-tags", "origin", &refspec],
+                &[
+                    "fetch",
+                    "--quiet",
+                    "--no-tags",
+                    "--update-shallow",
+                    "origin",
+                    &refspec,
+                ],
                 self.fetch_timeout,
                 &format!("unable to fetch {branch} of repository {}", self.name),
             ) {
@@ -380,6 +436,133 @@ impl Mirror {
             .ok()
             .map(|out| String::from_utf8_lossy(&out).trim().to_owned())
             .filter(|id| !id.is_empty()))
+    }
+
+    /// The full id of the commit the mirror's `branch` is at, as the last `ensure` fetched it, or None when
+    /// the mirror has no such branch.
+    pub fn head(&self, branch: &str) -> Result<Option<String>, RepositoryError> {
+        if branch.is_empty() || branch.starts_with('-') || branch.contains("..") {
+            return Err(RepositoryError(format!("{branch:?} is not a branch name")));
+        }
+        let spec = format!("refs/heads/{branch}^{{commit}}");
+        Ok(self
+            .git(
+                &["rev-parse", "--verify", "--quiet", &spec],
+                LOCAL_COMMAND_TIMEOUT,
+                "branch not found",
+            )
+            .ok()
+            .map(|out| String::from_utf8_lossy(&out).trim().to_owned())
+            .filter(|id| is_valid_sha(id)))
+    }
+
+    /// Every entry of `sha` (a full id) under the directory `dir`, files and directories, as git lists
+    /// them: nothing is read or written. A listing longer than `max_listing_bytes` fails, so a commit of any
+    /// size is refused before its entries are held.
+    pub fn list_tree(
+        &self,
+        sha: &str,
+        dir: &str,
+        max_listing_bytes: u64,
+        timeout: Duration,
+    ) -> Result<Vec<TreeEntry>, RepositoryError> {
+        if !is_valid_sha(sha) {
+            return Err(RepositoryError(format!("{sha:?} is not a commit id")));
+        }
+        if !is_safe_tree_path(dir) {
+            return Err(RepositoryError(format!(
+                "{dir:?} is not a directory of a tree"
+            )));
+        }
+        let error = format!("unable to list {dir} of commit {sha}");
+        let listing = self.git_capped(
+            &[
+                "ls-tree",
+                "-r",
+                "-t",
+                "-l",
+                "-z",
+                "--full-tree",
+                sha,
+                "--",
+                dir,
+            ],
+            timeout,
+            &error,
+            Some(max_listing_bytes),
+        )?;
+        let mut entries = Vec::new();
+        for entry in listing.split(|b| *b == 0).filter(|e| !e.is_empty()) {
+            let entry = String::from_utf8_lossy(entry);
+            // <mode> SP <type> SP <object> SP+ <size> TAB <path>
+            let parsed = entry.split_once('\t').and_then(|(header, path)| {
+                let fields: Vec<&str> = header.split_whitespace().collect();
+                let [mode, kind, object, size] = fields[..] else {
+                    return None;
+                };
+                Some(TreeEntry {
+                    mode: mode.to_owned(),
+                    kind: kind.to_owned(),
+                    object: object.to_owned(),
+                    size: size.parse().ok(),
+                    path: path.to_owned(),
+                })
+            });
+            match parsed {
+                Some(entry) => entries.push(entry),
+                None => {
+                    return Err(RepositoryError(format!(
+                        "{error}: unexpected ls-tree entry {entry:?}"
+                    )));
+                }
+            }
+        }
+        Ok(entries)
+    }
+
+    /// The content of each blob in `objects`, in their order, read from git's objects with one
+    /// `git cat-file --batch`: nothing is checked out or written. A blob larger than `max_each` fails the
+    /// read; the caller takes each blob's size from `list_tree` and asks only for those it has room for.
+    pub fn read_files(
+        &self,
+        objects: &[String],
+        max_each: u64,
+        timeout: Duration,
+    ) -> Result<Vec<Vec<u8>>, RepositoryError> {
+        let wanted: Vec<(String, String)> = objects
+            .iter()
+            .map(|object| (object.clone(), object.clone()))
+            .collect();
+        let mut contents = Vec::with_capacity(objects.len());
+        self.cat_blobs(
+            &wanted,
+            Instant::now() + timeout,
+            &mut |path, size, reader| {
+                if size > max_each {
+                    return Err(std::io::Error::other(format!(
+                        "{path} is {size} bytes, more than {max_each}"
+                    )));
+                }
+                let mut bytes = Vec::with_capacity(usize::try_from(size).unwrap_or(0));
+                let copied = reader.take(size).read_to_end(&mut bytes)?;
+                if copied as u64 != size {
+                    return Err(std::io::Error::other(format!("{path} was cut short")));
+                }
+                contents.push(bytes);
+                Ok(())
+            },
+        )
+        .map_err(|e| match e {
+            Waited::TimedOut => RepositoryError(format!(
+                "reading the files timed out after {} seconds",
+                timeout.as_secs()
+            )),
+            Waited::Io(e) => RepositoryError(format!(
+                "unable to read the files: {}",
+                self.redact(&e.to_string())
+            )),
+        })?;
+        Ok(contents)
     }
 
     /// Writes the rules of `sha` (a full id from `resolve`) into `dest`, which must exist: every regular
@@ -487,6 +670,28 @@ impl Mirror {
         dest: &Path,
         deadline: Instant,
     ) -> Result<(), Waited> {
+        self.cat_blobs(wanted, deadline, &mut |path, size, reader| {
+            let target = dest.join(path);
+            if let Some(parent) = target.parent() {
+                std::fs::create_dir_all(parent)?;
+            }
+            let mut file = std::fs::File::create(&target)?;
+            let copied = std::io::copy(&mut reader.take(size), &mut file)?;
+            if copied != size {
+                return Err(std::io::Error::other(format!("{path} was cut short")));
+            }
+            Ok(())
+        })
+    }
+
+    /// Reads each `(object, path)` with one `git cat-file --batch`, giving `sink` its path, its size and
+    /// a reader that holds exactly its content.
+    fn cat_blobs(
+        &self,
+        wanted: &[(String, String)],
+        deadline: Instant,
+        sink: &mut BlobSink<'_>,
+    ) -> Result<(), Waited> {
         if wanted.is_empty() {
             return Ok(());
         }
@@ -522,7 +727,7 @@ impl Mirror {
                 }
             }
         });
-        let outcome = read_blobs(child.stdout.take().expect("stdout is piped"), wanted, dest);
+        let outcome = read_blobs(child.stdout.take().expect("stdout is piped"), wanted, sink);
         done.store(true, Ordering::Release);
         if outcome.is_err() {
             kill_group(pid);
@@ -543,10 +748,13 @@ impl Mirror {
     }
 }
 
+/// What takes one blob: its path, its size, and a reader of its content.
+type BlobSink<'a> = dyn FnMut(&str, u64, &mut dyn Read) -> std::io::Result<()> + 'a;
+
 fn read_blobs(
     stdout: std::process::ChildStdout,
     wanted: &[(String, String)],
-    dest: &Path,
+    sink: &mut BlobSink<'_>,
 ) -> std::io::Result<()> {
     let mut reader = BufReader::new(stdout);
     let mut header = String::new();
@@ -570,15 +778,10 @@ fn read_blobs(
         let size: u64 = size
             .parse()
             .map_err(|_| std::io::Error::other("git cat-file gave no size"))?;
-        let target = dest.join(path);
-        if let Some(parent) = target.parent() {
-            std::fs::create_dir_all(parent)?;
-        }
-        let mut file = std::fs::File::create(&target)?;
-        let copied = std::io::copy(&mut (&mut reader).take(size), &mut file)?;
-        if copied != size {
-            return Err(std::io::Error::other(format!("{path} was cut short")));
-        }
+        let mut content = (&mut reader).take(size);
+        sink(path, size, &mut content)?;
+        // whatever the sink left unread, so the next header is where it should be
+        std::io::copy(&mut content, &mut std::io::sink())?;
         let mut newline = [0u8; 1];
         reader.read_exact(&mut newline)?;
     }
@@ -616,17 +819,34 @@ pub(crate) fn kill_group(pid: u32) {
 
 /// Waits for `child` (made with its own process group) for at most `timeout`, reading its stdout and
 /// stderr, and kills its group at the timeout.
-pub(crate) fn wait(
+/// With `max_stdout`, it keeps at most that many bytes and one more of the child's stdout: a child that prints
+/// more is killed, and the caller sees the extra byte and refuses the output.
+pub(crate) fn wait_capped(
     mut child: Child,
     timeout: Duration,
+    max_stdout: Option<u64>,
 ) -> Result<(std::process::ExitStatus, Vec<u8>, Vec<u8>), Waited> {
     let deadline = Instant::now() + timeout;
     let mut stdout = child.stdout.take();
     let mut stderr = child.stderr.take();
+    let pid = child.id();
     let out = std::thread::spawn(move || {
         let mut bytes = Vec::new();
         if let Some(stdout) = stdout.as_mut() {
-            stdout.read_to_end(&mut bytes).ok();
+            match max_stdout {
+                None => {
+                    stdout.read_to_end(&mut bytes).ok();
+                }
+                Some(max) => {
+                    stdout
+                        .take(max.saturating_add(1))
+                        .read_to_end(&mut bytes)
+                        .ok();
+                    if bytes.len() as u64 > max {
+                        kill_group(pid);
+                    }
+                }
+            }
         }
         bytes
     });
@@ -780,6 +1000,116 @@ mod tests {
     }
 
     /// test_repository.py's `test_an_optional_branch_missing_from_the_remote_is_skipped`.
+    /// The catalog's reads (PLAN.md 7.10 batch 4): a branch's head, the entries under one directory, and
+    /// blobs read into memory with nothing checked out. A listing or a blob over its cap fails, and a
+    /// remote that is itself a shallow clone is fetched with the history it has.
+    #[test]
+    fn a_branch_is_listed_and_read_from_git_s_objects() {
+        let tmp = tempfile::tempdir().expect("a directory");
+        let repo = RuleRepo::new(&tmp.path().join("repo"));
+        repo.commit(&[("atomics/T1003/T1003.yaml", "first\n")], "main");
+        let head = repo.commit_with(
+            &[
+                (
+                    "atomics/T1003/T1003.yaml",
+                    Some(b"attack_technique: T1003\n"),
+                ),
+                ("atomics/T1003/src/helper.yaml", Some(b"helper\n")),
+                ("atomics/big.bin", Some(&[0u8; 5000])),
+                ("elsewhere/T1/T1.yaml", Some(b"not under atomics\n")),
+            ],
+            "main",
+            &[("atomics/T1004/T1004.yaml", "../T1003/T1003.yaml")],
+        );
+        let mirror = mirror(&repo, &tmp.path().join("mirrors"), None);
+        let _lock = mirror.lock().expect("locks");
+        mirror.ensure(&["main"], &[]).expect("fetches");
+        assert_eq!(mirror.head("main").expect("reads"), Some(head.clone()));
+        assert_eq!(mirror.head("nowhere").expect("reads"), None);
+        assert!(mirror.head("-x").is_err());
+
+        let timeout = Duration::from_secs(60);
+        let entries = mirror
+            .list_tree(&head, "atomics", 1 << 20, timeout)
+            .expect("lists");
+        let shown: Vec<(&str, &str, Option<u64>)> = entries
+            .iter()
+            .map(|e| (e.path.as_str(), e.mode.as_str(), e.size))
+            .collect();
+        assert_eq!(
+            shown,
+            [
+                ("atomics", "040000", None),
+                ("atomics/T1003", "040000", None),
+                ("atomics/T1003/T1003.yaml", "100644", Some(24)),
+                ("atomics/T1003/src", "040000", None),
+                ("atomics/T1003/src/helper.yaml", "100644", Some(7)),
+                ("atomics/T1004", "040000", None),
+                ("atomics/T1004/T1004.yaml", "120000", Some(19)),
+                ("atomics/big.bin", "100644", Some(5000)),
+            ]
+        );
+        assert!(entries[2].is_regular_file() && !entries[6].is_regular_file());
+        // a listing over its cap is refused, as is a directory that leaves the tree
+        let error = mirror
+            .list_tree(&head, "atomics", 100, timeout)
+            .expect_err("over the cap");
+        assert!(error.0.contains("printed more than 100 bytes"), "{error}");
+        assert!(mirror.list_tree(&head, "../x", 1 << 20, timeout).is_err());
+        assert!(
+            mirror
+                .list_tree(&head, "-r", 1 << 20, timeout)
+                .expect("no such directory")
+                .is_empty()
+        );
+
+        let objects = vec![entries[4].object.clone(), entries[2].object.clone()];
+        let contents = mirror.read_files(&objects, 100, timeout).expect("reads");
+        assert_eq!(
+            contents,
+            [b"helper\n".to_vec(), b"attack_technique: T1003\n".to_vec()]
+        );
+        assert!(
+            mirror
+                .read_files(&[], 100, timeout)
+                .expect("reads")
+                .is_empty()
+        );
+        let error = mirror
+            .read_files(&[entries[7].object.clone()], 100, timeout)
+            .expect_err("over the cap");
+        assert!(error.0.contains("5000 bytes, more than 100"), "{error}");
+        // nothing was checked out: the mirror is bare
+        assert!(!mirror.path.join("atomics").exists());
+
+        // a remote that is a shallow clone: its one commit is the branch
+        let shallow = tmp.path().join("shallow");
+        git_in(
+            tmp.path(),
+            &[
+                "clone",
+                "--quiet",
+                "--depth",
+                "1",
+                "--branch",
+                "main",
+                &format!("file://{}", repo.origin.display()),
+                shallow.to_str().expect("a path"),
+            ],
+        );
+        let from_shallow = Mirror::new(
+            "shallow",
+            shallow.to_str().expect("a path"),
+            &tmp.path().join("mirrors"),
+            timeout,
+        );
+        let _lock = from_shallow.lock().expect("locks");
+        from_shallow
+            .ensure(&["main"], &[])
+            .expect("fetches a shallow remote");
+        assert_eq!(from_shallow.head("main").expect("reads"), Some(head));
+    }
+
     #[test]
     fn an_optional_branch_missing_from_the_remote_is_skipped() {
         let tmp = tempfile::tempdir().expect("a directory");

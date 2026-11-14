@@ -246,6 +246,23 @@
 //! 422; a key without an owner may request one; the status's `report_path` is the GUI's
 //! `/signatures/validations/{uuid}`; a download names each file by its sha256, and has no node to skip.
 //!
+//! ace3's `svs` routers' catalog (PLAN.md 7.10 batch 4), the Atomic Red Team tests runs may be registered
+//! for, under ace3's `svs:run_read` (`ace_service`'s `svs_catalog` docs):
+//!
+//! | ace3 `/api/v2/svs` | here |
+//! |---|---|
+//! | `GET /tests/?f=&changed_since=&cursor=&limit=` | `GET /api/svs/v1/tests`, the same filters and keyset paging |
+//! | `GET /tests/export/ndjson`, `GET /tests/export/csv` | `GET /api/svs/v1/tests/export/ndjson`, `.../export/csv` |
+//! | `GET /tests/{guid}` | `GET /api/svs/v1/tests/{guid}` |
+//! | `GET /catalog/repositories` | `GET /api/svs/v1/catalog/repositories` |
+//! | `PUT`/`DELETE /tests/{guid}/expectations/{platform}/{signature_uuid}`, `PUT`/`DELETE /tests/{guid}/ignores/{signature_uuid}`, `GET`/`PUT`/`DELETE /tests/{guid}/settings` | batch 5: they write a test's decisions and settings under `svs:run_manage`, which it brings with `saq/svs/expectations.py` |
+//!
+//! What differs: a page is `{tests, next}`; a bad request is 400 where ace3's is 422; a test's state and run
+//! history (`test_state`, `run_count`, `last_run_*`, `last_reviewed_*`, `expected_signatures`,
+//! `recent_runs*`, and the detail's `platform_states`) come with the runs and decisions of batches 5 and
+//! 8; the detail's atomic entry is `entry`, and it adds `platform_slugs`. Nothing here writes: the catalog
+//! is refreshed by the scheduler's `svs_catalog_refresh` and `ace svs catalog refresh`.
+//!
 //! ace3's `observable_comments` router (PLAN.md 5.6), under ace3's `observable:read` and `observable:write`
 //! (`ace_service`'s `observable_comments` docs). A comment is on a type and value, across alerts:
 //!
@@ -458,6 +475,7 @@ mod observable_comments;
 mod observables;
 mod params;
 mod remediation;
+mod svs_catalog;
 mod svs_samples;
 mod svs_validations;
 mod user_preferences;
@@ -840,6 +858,17 @@ impl Web {
                 "/api/svs/v1/yara/validations/{uuid}/download",
                 get(svs_validations::download),
             )
+            .route("/api/svs/v1/tests", get(svs_catalog::list))
+            .route("/api/svs/v1/tests/export/csv", get(svs_catalog::export_csv))
+            .route(
+                "/api/svs/v1/tests/export/ndjson",
+                get(svs_catalog::export_ndjson),
+            )
+            .route("/api/svs/v1/tests/{guid}", get(svs_catalog::detail))
+            .route(
+                "/api/svs/v1/catalog/repositories",
+                get(svs_catalog::repositories),
+            )
             .route(
                 "/api/remediation/v1/targets",
                 post(remediation::targets).layer(json_limit),
@@ -1110,6 +1139,11 @@ impl Web {
         svs_validations::export_results_csv,
         svs_validations::export_results_ndjson,
         svs_validations::download,
+        svs_catalog::list,
+        svs_catalog::export_csv,
+        svs_catalog::export_ndjson,
+        svs_catalog::detail,
+        svs_catalog::repositories,
         remediation::targets,
         remediation::list,
         remediation::export_csv,

@@ -33,6 +33,7 @@ use serde::{Deserialize, Serialize};
 use crate::ServiceError;
 use crate::permission::{
     ALERT_READ, FILE_COLLECTION_READ, PermissionName, REMEDIATION_READ, SIGNATURE_READ,
+    SVS_RUN_READ,
 };
 
 mod dates;
@@ -71,6 +72,8 @@ pub enum FilterScreen {
     SvsSamples,
     /// SVS's YARA validations (PLAN.md 7.10 batch 3), ace3's `SVS_VALIDATIONS_SCREEN`.
     SvsValidations,
+    /// SVS's Atomic Red Team tests (PLAN.md 7.10 batch 4), ace3's `SVS_TESTS_SCREEN`.
+    SvsTests,
 }
 
 /// How an editor edits one filter.
@@ -578,6 +581,46 @@ const SVS_VALIDATION_FILTERS: &[FilterSpec] = &[
     ),
 ];
 
+/// ace3's tests screen (`SVS_TESTS_SCREEN`), the Atomic Red Team catalog's.
+const SVS_TEST_FILTERS: &[FilterSpec] = &[
+    spec(
+        "Technique",
+        "technique",
+        FilterKind::Text,
+        &[],
+        "T1059, which also finds its sub-techniques, or T1059.001",
+    ),
+    spec(
+        "Name",
+        "name",
+        FilterKind::Text,
+        &[],
+        "text the test's name contains",
+    ),
+    spec(
+        "Platform",
+        "platform",
+        FilterKind::Text,
+        &[],
+        "one of the test's supported_platforms, such as windows",
+    ),
+    spec(
+        "Executor",
+        "executor",
+        FilterKind::Text,
+        &[],
+        "powershell, command_prompt, sh, bash or manual",
+    ),
+    spec(
+        "Repository",
+        "repository",
+        FilterKind::Text,
+        &[],
+        "text the repository's name contains",
+    ),
+    spec("Removed", "removed", FilterKind::Multi, BOOLEANS, "false"),
+];
+
 impl FilterScreen {
     pub const ALL: &'static [FilterScreen] = &[
         FilterScreen::Alerts,
@@ -586,6 +629,7 @@ impl FilterScreen {
         FilterScreen::FileCollections,
         FilterScreen::SvsSamples,
         FilterScreen::SvsValidations,
+        FilterScreen::SvsTests,
     ];
 
     /// Its name, ace3's `saved_filters.screen`.
@@ -597,6 +641,7 @@ impl FilterScreen {
             FilterScreen::FileCollections => "file_collections",
             FilterScreen::SvsSamples => "svs_samples",
             FilterScreen::SvsValidations => "svs_validations",
+            FilterScreen::SvsTests => "svs_tests",
         }
     }
 
@@ -615,6 +660,7 @@ impl FilterScreen {
             FilterScreen::Remediations => REMEDIATION_READ,
             FilterScreen::FileCollections => FILE_COLLECTION_READ,
             FilterScreen::SvsSamples | FilterScreen::SvsValidations => SIGNATURE_READ,
+            FilterScreen::SvsTests => SVS_RUN_READ,
         }
     }
 
@@ -626,6 +672,7 @@ impl FilterScreen {
             FilterScreen::FileCollections => FILE_COLLECTION_FILTERS,
             FilterScreen::SvsSamples => SVS_SAMPLE_FILTERS,
             FilterScreen::SvsValidations => SVS_VALIDATION_FILTERS,
+            FilterScreen::SvsTests => SVS_TEST_FILTERS,
         }
     }
 
@@ -637,7 +684,8 @@ impl FilterScreen {
             FilterScreen::Remediations
             | FilterScreen::FileCollections
             | FilterScreen::SvsSamples
-            | FilterScreen::SvsValidations => &[],
+            | FilterScreen::SvsValidations
+            | FilterScreen::SvsTests => &[],
         }
     }
 
@@ -844,6 +892,30 @@ fn canonical(
                     return Err(invalid(format!(
                         "{name}: {text:?} isn't a sha256, which is 64 hex characters"
                     )));
+                }
+                return Ok(FilterValue::Text(lower));
+            }
+            _ => {}
+        }
+    }
+    if screen == FilterScreen::SvsTests {
+        // ace3's `CatalogTestFilterEntry`: a technique is an ATT&CK id, upper case, and a platform or an
+        // executor is compared lower case, as the catalog stores them
+        match spec.slug {
+            "technique" => {
+                return ace_core::svs::attack::normalize_technique_id(text)
+                    .map(FilterValue::Text)
+                    .ok_or_else(|| {
+                        invalid(format!(
+                            "{name}: invalid technique {text:?} (expected an ATT&CK id such as T1059 or \
+                             T1059.001)"
+                        ))
+                    });
+            }
+            "platform" | "executor" => {
+                let lower = text.trim().to_lowercase();
+                if lower.is_empty() {
+                    return Err(invalid(format!("a {name} value can't be empty")));
                 }
                 return Ok(FilterValue::Text(lower));
             }

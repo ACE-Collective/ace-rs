@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE svs.catalog_tests SET removed_at = now()\n         WHERE repository = $1 AND removed_at IS NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "6018ba99da9af615936eb2e270fdd9645c571048ca57b06910eca3d5efce1840"
+}

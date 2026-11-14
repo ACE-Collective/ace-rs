@@ -181,7 +181,9 @@ pub fn load(text: &str, name: &str, budget: &mut Budget) -> Result<Value, YamlEr
 /// A literal or folded block scalar that runs to the end of a file with no final line break ends
 /// with no line break in PyYAML, which keeps only breaks that are there; yaml-rust2 gives it one.
 /// So when the file doesn't end with a break, the last scalar is a block scalar, and every
-/// non-blank line from its first is indented at least as far as that one, it loses that break.
+/// non-blank line from its first is indented at least as far as that one, it loses that break, unless
+/// what follows the file's last break is only spaces shallower than the block: then the scalar ended at
+/// that break, and yaml-rust2 added none.
 fn unclip_block_scalar_at_end(text: &str, events: &mut [(Event, Marker)]) {
     if text.is_empty() || text.ends_with(['\n', '\r']) {
         return;
@@ -206,6 +208,12 @@ fn unclip_block_scalar_at_end(text: &str, events: &mut [(Event, Marker)]) {
         return;
     };
     let block = indent(first);
+    // a last line of only spaces, shallower than the block, isn't a line of the scalar to either parser:
+    // the line before it has its break and keeps it (Atomic Red Team's T1202.yaml ends this way)
+    let tail = text.rsplit(['\n', '\r']).next().unwrap_or_default();
+    if tail.len() < text.len() && tail.len() < block && tail.bytes().all(|b| b == b' ') {
+        return;
+    }
     if content.all(|l| indent(l) >= block) {
         value.pop();
     }
@@ -738,6 +746,19 @@ mod tests {
             serde_json::json!({"q": "a\n  b\nc"})
         );
         assert_eq!(json("q: |\n  a\n\n  "), serde_json::json!({"q": "a\n"}));
+        // a file that ends with spaces after its last break, as PyYAML 6.0.3 reads each
+        for (text, value) in [
+            ("a: |\n  x\n  ", "x\n"),
+            ("a: |\n  x\n ", "x\n"),
+            ("a: |\n  x\n    ", "x\n  "),
+            ("a: |\n  x  ", "x  "),
+            ("a: |\n  x", "x"),
+            ("a: >\n  x\n  ", "x\n"),
+            ("a: |\n  x\n  \n ", "x\n"),
+            ("a: |\n  x\n   y\n ", "x\n y\n"),
+        ] {
+            assert_eq!(json(text), serde_json::json!({"a": value}), "{text:?}");
+        }
     }
 
     #[test]

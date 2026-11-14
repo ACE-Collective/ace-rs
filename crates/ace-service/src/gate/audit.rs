@@ -211,6 +211,14 @@ impl Target {
         }
     }
 
+    /// A repository of SVS's Atomic Red Team catalog, by its name (PLAN.md 7.10 batch 4).
+    pub(crate) fn svs_catalog_repository(name: &str) -> Self {
+        Target {
+            kind: "svs_catalog_repository",
+            id: name.to_owned(),
+        }
+    }
+
     /// The samples a download's filters selected.
     pub(crate) fn svs_samples() -> Self {
         Target {

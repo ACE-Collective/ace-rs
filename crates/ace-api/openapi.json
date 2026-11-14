@@ -6895,6 +6895,50 @@
         }
       }
     },
+    "/api/svs/v1/catalog/repositories": {
+      "get": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "Each catalog repository with the commit the catalog reflects, when it was read, its test count and its\nlast error, by name: what `ace svs catalog status` prints. A launcher checks out that commit to run the\ntests as the catalog has them.",
+        "operationId": "repositories",
+        "responses": {
+          "200": {
+            "description": "The repositories",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CatalogRepositoryBody"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold svs:run_read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/svs/v1/samples": {
       "get": {
         "tags": [
@@ -8236,6 +8280,344 @@
           },
           "404": {
             "description": "The sample isn't retired",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/svs/v1/tests": {
+      "get": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "The catalog's tests by technique, then name, a page at a time. Follow `next` with the same filters\nuntil it's null.",
+        "operationId": "list",
+        "parameters": [
+          {
+            "name": "f",
+            "in": "query",
+            "description": "A filter in the share-link encoding (`[!]slug:v1,v2`) with the tests screen's slugs: technique\n(T1059 also finds its sub-techniques), name, platform, executor, repository, removed. Repeat it for\nmore; filters are ANDed, the values of one ORed.",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "style": "form",
+            "explode": true
+          },
+          {
+            "name": "changed_since",
+            "in": "query",
+            "description": "Only tests added, changed or removed at or after this time.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "How many, 1 to 1000; 100 when left out.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "description": "The `next` of the previous page.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of tests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CatalogTestPageBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A filter, time, limit or cursor that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold svs:run_read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/svs/v1/tests/export/csv": {
+      "get": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "Every test the list's filters match, by technique, then name, as CSV, its platforms joined with `,`. A\nfailure part-way ends the file there.",
+        "operationId": "export_csv",
+        "parameters": [
+          {
+            "name": "f",
+            "in": "query",
+            "description": "A filter, as the list takes it; repeat it for more.",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "style": "form",
+            "explode": true
+          },
+          {
+            "name": "changed_since",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The tests",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A filter or time that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold svs:run_read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "More tests than an export holds",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/svs/v1/tests/export/ndjson": {
+      "get": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "Every test the list's filters match, by technique, then name, as NDJSON: one as the list gives it on\neach line. A failure part-way ends it with an `{\"error\": ...}` line.",
+        "operationId": "export_ndjson",
+        "parameters": [
+          {
+            "name": "f",
+            "in": "query",
+            "description": "A filter, as the list takes it; repeat it for more.",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "style": "form",
+            "explode": true
+          },
+          {
+            "name": "changed_since",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The tests",
+            "content": {
+              "application/x-ndjson": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A filter or time that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold svs:run_read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "More tests than an export holds",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/svs/v1/tests/{guid}": {
+      "get": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "One test with its description and its atomic entry: commands, input arguments, dependencies.",
+        "operationId": "detail",
+        "parameters": [
+          {
+            "name": "guid",
+            "in": "path",
+            "description": "The test's auto_generated_guid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The test",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CatalogTestDetailBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A guid that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold svs:run_read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No test with that guid in the catalog",
             "content": {
               "application/json": {
                 "schema": {
@@ -12283,6 +12665,221 @@
           },
           "minor": {
             "type": "string"
+          }
+        }
+      },
+      "CatalogRepositoryBody": {
+        "type": "object",
+        "description": "A catalog repository and the commit the catalog reflects.",
+        "required": [
+          "name",
+          "configured",
+          "test_count",
+          "skipped_count",
+          "removed_count",
+          "retired"
+        ],
+        "properties": {
+          "branch": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "commit": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The commit the catalog's tests were last read from; null until it is first read."
+          },
+          "configured": {
+            "type": "boolean",
+            "description": "It is in `svs.catalog.repositories`; one that isn't is listed while it has a row."
+          },
+          "error": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Why the last refresh failed; null when it succeeded. The catalog keeps the tests of the commit it\nlast read."
+          },
+          "git_url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "From its overlay entry, without credentials; null without one."
+          },
+          "name": {
+            "type": "string",
+            "description": "Its name in the overlay's `svs.catalog.repositories`."
+          },
+          "refreshed_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "When that commit was read."
+          },
+          "removed_count": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Its tests removed from the catalog."
+          },
+          "retired": {
+            "type": "boolean",
+            "description": "Taken out of `svs.catalog.repositories`, so its tests were removed."
+          },
+          "skipped_count": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Tests and files that read could not use."
+          },
+          "test_count": {
+            "type": "integer",
+            "format": "int64",
+            "description": "The tests read from that commit."
+          }
+        }
+      },
+      "CatalogTestBody": {
+        "type": "object",
+        "description": "An Atomic Red Team test, by its `auto_generated_guid`.",
+        "required": [
+          "guid",
+          "repository",
+          "technique",
+          "name",
+          "platforms",
+          "path",
+          "commit",
+          "content_hash",
+          "first_seen_at",
+          "updated_at"
+        ],
+        "properties": {
+          "commit": {
+            "type": "string",
+            "description": "The repository commit this version of the test was first read from."
+          },
+          "content_hash": {
+            "type": "string",
+            "description": "The sha256 of the test's entry; it changes exactly when the test does."
+          },
+          "executor": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "`command_prompt`, `powershell`, `sh`, `bash` or `manual`."
+          },
+          "first_seen_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "guid": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The test's `auto_generated_guid`, lower case."
+          },
+          "name": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string",
+            "description": "Its atomic file, relative to the repository."
+          },
+          "platforms": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Its `supported_platforms`, lower case."
+          },
+          "removed_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "When the test disappeared from its repository; it keeps its runs."
+          },
+          "repository": {
+            "type": "string",
+            "description": "The catalog repository it is read from, a name in the overlay's `svs.catalog.repositories`."
+          },
+          "technique": {
+            "type": "string",
+            "description": "The ATT&CK technique of its atomic file, such as `T1059.001`."
+          },
+          "technique_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the catalog row last changed: the `changed_since` key."
+          }
+        }
+      },
+      "CatalogTestDetailBody": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/CatalogTestBody"
+          },
+          {
+            "type": "object",
+            "required": [
+              "platform_slugs",
+              "entry"
+            ],
+            "properties": {
+              "description": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "entry": {
+                "type": "object",
+                "description": "The test's entry in its atomic file: executor (commands), input_arguments, dependencies."
+              },
+              "platform_slugs": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "The platforms a run of it can be on: its `supported_platforms` as ATT&CK's platform slugs, sorted."
+              }
+            }
+          }
+        ],
+        "description": "One test with its description and its atomic entry."
+      },
+      "CatalogTestPageBody": {
+        "type": "object",
+        "description": "A page of tests.",
+        "required": [
+          "tests"
+        ],
+        "properties": {
+          "next": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Pass it as `cursor`, with the same filters, for the next page; null on the last."
+          },
+          "tests": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CatalogTestBody"
+            }
           }
         }
       },

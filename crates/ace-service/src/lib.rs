@@ -73,7 +73,9 @@
 //! network pools run from the queue.
 //!
 //! `svs` is SVS's service side (7.10): the test hosts, under `svs:admin` to change and `svs:run_read` to
-//! read, and an alert's SVS status, read with the alert. Its model is `ace_core::svs`.
+//! read, and an alert's SVS status, read with the alert. Its model is `ace_core::svs`. `svs_catalog` is the
+//! Atomic Red Team test catalog (batch 4): its tests and repositories under `svs:run_read`, and its
+//! refresh under `svs:catalog_refresh`.
 //!
 //! `routing` is alert routing (7.13), ace3's `saq/alert_routing/`: the routers that decide which queue an
 //! alert belongs in, run by `ace serve`'s routing worker when an alert's pass completes, and the audited move
@@ -120,6 +122,7 @@ mod saved_filters;
 mod source;
 mod submit;
 mod svs;
+mod svs_catalog;
 mod svs_samples;
 mod svs_validations;
 mod users;
@@ -136,6 +139,10 @@ use uuid::Uuid;
 
 use gate::{Audited, Change, Gate, Recorded, TITLE_LIMIT, Target};
 
+pub use ace_core::svs::catalog::{
+    RefreshResult as CatalogRefresh, RepositoryStatus as CatalogRepository,
+    Skipped as CatalogSkipped,
+};
 pub use ace_core::svs::samples::{
     CaptureState, Label as SampleLabel, MissingReason, Strength as VoteStrength,
     Votes as SampleVotes,
@@ -240,6 +247,9 @@ pub use saved_filters::{
 };
 pub use source::with_source_ip;
 pub use svs::{AlertSvsStatus, AlertSvsView, MarkerMismatch, RunRef, TestHost};
+pub use svs_catalog::{
+    CatalogTest, CatalogTestDetail, CatalogTestPage, CatalogTestQuery, MAX_CATALOG_TESTS_PAGE,
+};
 pub use svs_samples::{
     DownloadCapture, DownloadFile, LabelChange, MAX_DELETIONS_PAGE, MAX_SAMPLE_DOWNLOAD_BYTES,
     MAX_SAMPLE_DOWNLOAD_FILES, MAX_SAMPLE_REASON, MAX_SAMPLES_PAGE, MissingCount,
@@ -438,6 +448,9 @@ pub struct Service {
     /// YARA validation's settings, the overlay's `svs.yara` (PLAN.md 7.10 batch 3): its repositories and its
     /// retention. None configured by default.
     validation: std::sync::Arc<ace_core::svs::yara::ValidationConfig>,
+    /// The Atomic Red Team catalog's settings, the overlay's `svs.catalog` (PLAN.md 7.10 batch 4): its
+    /// repositories and what a refresh may read. None configured by default.
+    catalog: std::sync::Arc<ace_core::svs::catalog::CatalogConfig>,
     /// The alert routers (PLAN.md 7.13), `routing`'s docs: the built-in one unless the binary adds others.
     routers: routing::Routers,
 }
@@ -454,6 +467,7 @@ impl Service {
             log_search: None,
             bucket: None,
             validation: std::sync::Arc::default(),
+            catalog: std::sync::Arc::default(),
             routers: routing::Routers::builtin(),
         }
     }

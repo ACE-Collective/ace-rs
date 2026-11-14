@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE svs.catalog_tests SET removed_at = now() WHERE id = ANY ($1)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8Array"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "7feed7547ed5ecca86aca2e56f166d36698958c3d7130f89249e214b210d8848"
+}

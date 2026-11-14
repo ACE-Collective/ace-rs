@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE svs.catalog_repositories SET test_count = 0, error = $2 WHERE name = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "434dae9dca04d6ecf443c57167084c494a6eed5755b5428132b4264b25f68469"
+}

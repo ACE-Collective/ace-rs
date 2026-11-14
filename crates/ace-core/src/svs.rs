@@ -9,6 +9,11 @@
 //!   `svs_yara_sample_capture`'s captures land (batch 2).
 //! - `yara` and `validations`: YARA validation, a rule change replayed over the samples, and the queue and
 //!   workers that run it (batch 3).
+//! - `attack`: the ATT&CK release coverage is computed against, an extract built into the binary, and the
+//!   builder of such an extract (batch 4).
+//! - `catalog`: the Atomic Red Team test catalog, read from SVS's mirror of each catalog repository (batch 4).
+//! - `windows`: a run's observation and attribution windows, from the hunts' latencies (batch 4).
+//! - `signatures`: what a run's result says of a signature, and the techniques `mitre:` tags claim (batch 4).
 //! - The values every part shares: a run's states, its event log's kinds, how a detection was attributed,
 //!   and the one SVS status an alert has (`derive_status`).
 //!
@@ -25,11 +30,15 @@
 //! 7.13's router, the screens) reads the attributions rather than judging again. PLAN.md 7.10 has the
 //! whole design.
 
+pub mod attack;
+pub mod catalog;
 pub mod hosts;
 pub mod log_search;
 pub mod markers;
 pub mod samples;
+pub mod signatures;
 pub mod validations;
+pub mod windows;
 pub mod yara;
 
 use std::collections::{BTreeMap, BTreeSet};

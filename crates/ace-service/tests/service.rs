@@ -1617,6 +1617,9 @@ async fn every_write_function_has_an_audit_test() {
         request_svs_validation_records_its_row(db).await,
         download_svs_validation_records_its_row(db).await,
         prune_svs_validations_records_its_row(db).await,
+        svs_catalog_tests::store_svs_catalog_records_its_row(db).await,
+        svs_catalog_tests::record_svs_catalog_error_records_its_row(db).await,
+        svs_catalog_tests::retire_svs_catalog_repository_records_its_row(db).await,
         routing_tests::route_due_records_its_row(db).await,
     ]);
     assert_eq!(covered, write_functions(), "{WRITES_NEED_A_TEST}");
@@ -3399,6 +3402,8 @@ async fn every_write_fails_when_its_audit_fails() {
     let routable = routing_tests::routable(db).await;
     let routing_before = routing_tests::routing_rows(db, routable).await;
     let validations_before = validation_rows(db).await;
+    let catalog = svs_catalog_tests::art(&["art_unittest"]).service(db);
+    let catalog_before = svs_catalog_tests::catalog_rows(db).await;
     let samples_before = sample_rows(db).await;
     let actions_before = action_rows(db).await;
     let lists_before = list_rows(db).await;
@@ -4227,6 +4232,38 @@ async fn every_write_fails_when_its_audit_fails() {
                 .expect_err("refused"),
         ),
     ]);
+    let refresher = svs_catalog_tests::refresher();
+    attempts.extend([
+        (
+            "store_svs_catalog",
+            catalog
+                .store_svs_catalog(
+                    &refresher,
+                    "art_unittest",
+                    &"c".repeat(40),
+                    &svs_catalog_tests::one_parsed(svs_catalog_tests::GUID_A),
+                )
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
+        (
+            "record_svs_catalog_error",
+            catalog
+                .record_svs_catalog_error(&refresher, "art_unittest", "it failed")
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
+        (
+            "retire_svs_catalog_repository",
+            catalog
+                .retire_svs_catalog_repository(&refresher, "gone")
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
+    ]);
     // the first routing that moves an alert fails; one before it that moves nothing commits
     let routing_failed = loop {
         match service
@@ -4281,6 +4318,11 @@ async fn every_write_fails_when_its_audit_fails() {
         validation_rows(db).await,
         validations_before,
         "no validation changed"
+    );
+    assert_eq!(
+        svs_catalog_tests::catalog_rows(db).await,
+        catalog_before,
+        "no catalog row changed"
     );
     assert_eq!(
         routing_tests::routing_rows(db, routable).await,
@@ -24727,5 +24769,1445 @@ mod routing_tests {
             .filter(|(r, _)| *r == root)
             .collect();
         (queue_of(db, root).await, changes(db, root).await.len(), due)
+    }
+}
+
+// PLAN.md 7.10 batch 4: ace3's `tests/saq/svs/test_catalog.py` as Rust tests, with the catalog's cases of
+// `tests/aceapi_v2/svs/test_catalog.py` that are the service's. Each repository here is a bare origin a
+// working clone pushes to, as ace3's test checkout is one `service_git` keeps, and a refresh fetches it into
+// a mirror of its own. The cases and where they went:
+//
+// test_catalog.py (18):
+//   test_parse_atomics: ace-core's svs::catalog parse_atomics_reads_the_tests and
+//     the_glob_is_atomics_t_t_yaml.
+//   test_the_content_hash_follows_the_test_only: ace-core's the_content_hash_follows_the_test_only.
+//   test_refresh_reads_the_tests: refresh_reads_the_tests.
+//   test_refresh_reads_again_only_when_the_commit_changes: refresh_reads_again_only_when_the_commit_changes.
+//   test_changes_removals_and_returns: changes_removals_and_returns.
+//   test_a_repository_taken_out_of_the_config_is_retired: a_repository_taken_out_of_the_config_is_retired.
+//   test_retiring_leaves_the_configured_repositories_alone: retiring_leaves_the_configured_repositories_alone.
+//   test_a_guid_of_another_repository_is_not_taken: a_guid_of_another_repository_is_not_taken.
+//   test_a_commit_that_moves_while_reading_stores_nothing: no counterpart. ace3 reads a working tree
+//     `service_git` may pull under it; here a refresh reads one commit's objects from its own mirror, so
+//     nothing can move (refresh_reads_the_tests checks every row is that commit's).
+//   test_refresh_errors_are_recorded (3 parameters): refresh_errors_are_recorded has `unlisted` and
+//     `no_checkout`, which here is a repository that can't be fetched; `no_section` has no counterpart, as
+//     the overlay's entry is the repository's whole setting.
+//   test_an_error_keeps_the_tests_and_clears_on_the_next_success:
+//     an_error_keeps_the_tests_and_clears_on_the_next_success.
+//   test_the_service_refreshes_the_catalog, test_the_refresher_runs_until_stopped_and_survives_a_failure:
+//     ace-app's scheduler tests, svs_catalog_refresh_reads_the_catalog and
+//     svs_catalog_refresh_survives_a_failure.
+//   test_the_refresher_stays_idle_off_the_primary_node: no counterpart. ace4 has no primary node: every
+//     replica's scheduler shares the task through its claim (6.7's two-replica test).
+//   test_cli_refresh_and_status, test_cli_refresh_reports_a_retired_repository,
+//     test_cli_refresh_reports_an_error: ace-app's svs tests of the same names.
+//   test_repository_status: repository_status.
+// test_svs_cli.py: test_catalog_refresh_with_no_repositories: ace-app's
+//   catalog_refresh_with_no_repositories.
+// tests/aceapi_v2/svs/test_catalog.py: test_ordered_by_technique_then_name, test_filters (9 parameters),
+//   test_a_bad_filter_is_422, test_pages and test_detail are catalog_tests_are_listed_filtered_and_paged
+//   here and ace-api's svs_catalog tests; test_exports, test_permissions and test_repositories are
+//   ace-api's; test_each_tests_state_and_runs waits for the runs and decisions of batches 5 and 8.
+mod svs_catalog_tests {
+    use super::*;
+    use ace_core::svs::catalog::{self, AtomicFile, CatalogConfig, CatalogLimits, RETIRED_ERROR};
+    use ace_core::testing::rule_repo::RuleRepo;
+    use ace_service::{CatalogRefresh, CatalogTestQuery};
+
+    const REPOSITORY: &str = "art_unittest";
+    pub(super) const GUID_A: &str = "aaaaaaaa-1111-4111-8111-111111111111";
+    const GUID_B: &str = "bbbbbbbb-2222-4222-8222-222222222222";
+    const GUID_C: &str = "cccccccc-3333-4333-8333-333333333333";
+    const T1003: &str = "atomics/T1003/T1003.yaml";
+    const T1105: &str = "atomics/T1105/T1105.yaml";
+
+    /// One test of an atomic file, as ace3's test helper `_test` writes it.
+    fn atomic_test(name: &str, guid: Option<&str>, command: &str) -> String {
+        let guid = guid.map_or(String::new(), |g| format!("  auto_generated_guid: {g}\n"));
+        format!(
+            "- name: {name}\n{guid}  description: |\n    {name} does a thing\n  supported_platforms:\n  - windows\n  \
+             input_arguments:\n    output_file:\n      description: where\n      type: path\n      default: out.txt\n  \
+             executor:\n    name: powershell\n    command: {command}\n    elevation_required: false\n"
+        )
+    }
+
+    fn atomic(technique: &str, display_name: &str, tests: &[String]) -> String {
+        format!(
+            "attack_technique: {technique}\ndisplay_name: {display_name}\natomic_tests:\n{}",
+            tests.concat()
+        )
+    }
+
+    fn dumping(tests: &[String]) -> String {
+        atomic("T1003", "OS Credential Dumping", tests)
+    }
+
+    fn transfer(tests: &[String]) -> String {
+        atomic("T1105", "Ingress Tool Transfer", tests)
+    }
+
+    /// Catalog repositories, each a bare origin a working clone pushes to, and the settings that name
+    /// them, with a mirror directory of their own.
+    pub(super) struct Art {
+        repos: BTreeMap<String, RuleRepo>,
+        section: ace_sdk::SvsCatalogSection,
+        tmp: tempfile::TempDir,
+    }
+
+    pub(super) fn art(names: &[&str]) -> Art {
+        let tmp = tempfile::tempdir().expect("a directory");
+        let repos: BTreeMap<String, RuleRepo> = names
+            .iter()
+            .map(|name| ((*name).to_owned(), RuleRepo::new(&tmp.path().join(name))))
+            .collect();
+        let section = ace_sdk::SvsCatalogSection {
+            repositories: repos
+                .iter()
+                .map(|(name, repo)| {
+                    (
+                        name.clone(),
+                        ace_sdk::SvsCatalogRepository {
+                            url: repo.origin.to_string_lossy().into_owned(),
+                            branch: "main".to_owned(),
+                            ssh_key: None,
+                        },
+                    )
+                })
+                .collect(),
+            mirror_dir: Some(tmp.path().join("mirrors")),
+            ..ace_sdk::SvsCatalogSection::default()
+        };
+        Art {
+            repos,
+            section,
+            tmp,
+        }
+    }
+
+    impl Art {
+        fn config(&self) -> CatalogConfig {
+            CatalogConfig::from_section(&self.section).expect("valid settings")
+        }
+
+        pub(super) fn service(&self, db: &Db) -> Service {
+            service(db).with_catalog(self.config())
+        }
+
+        /// The service with only `names` of the repositories in its overlay.
+        fn listing(&self, db: &Db, names: &[&str]) -> Service {
+            let mut section = self.section.clone();
+            section
+                .repositories
+                .retain(|name, _| names.contains(&name.as_str()));
+            service(db).with_catalog(CatalogConfig::from_section(&section).expect("valid"))
+        }
+
+        /// Writes (or, for None, deletes) the files of `repository`, commits and pushes; the commit's id.
+        pub(super) fn commit_in(&self, repository: &str, files: &[(&str, Option<&str>)]) -> String {
+            let files: Vec<(&str, Option<&[u8]>)> = files
+                .iter()
+                .map(|(path, content)| (*path, content.map(str::as_bytes)))
+                .collect();
+            self.repos[repository].commit_with(&files, "main", &[])
+        }
+
+        pub(super) fn commit(&self, files: &[(&str, Option<&str>)]) -> String {
+            self.commit_in(REPOSITORY, files)
+        }
+    }
+
+    pub(super) fn refresher() -> Actor {
+        component("scheduler:svs_catalog_refresh")
+    }
+
+    async fn refresh(service: &Service) -> Vec<CatalogRefresh> {
+        service
+            .refresh_svs_catalog(&refresher(), None, false)
+            .await
+            .expect("refreshes")
+    }
+
+    async fn refresh_one(service: &Service, repository: &str, force: bool) -> CatalogRefresh {
+        service
+            .refresh_svs_catalog(&refresher(), Some(repository), force)
+            .await
+            .expect("refreshes")
+            .pop()
+            .expect("one result")
+    }
+
+    #[derive(Debug, Clone, PartialEq, sqlx::FromRow)]
+    struct StoredTest {
+        guid: Uuid,
+        repository: String,
+        technique: String,
+        technique_name: Option<String>,
+        name: String,
+        description: Option<String>,
+        platforms: Vec<String>,
+        executor: Option<String>,
+        test: Value,
+        content_hash: String,
+        commit: String,
+        path: String,
+        removed: bool,
+        updated_at: chrono::DateTime<Utc>,
+    }
+
+    async fn stored_tests(db: &Db) -> BTreeMap<String, StoredTest> {
+        sqlx::query_as::<_, StoredTest>(
+            "SELECT guid, repository, technique, technique_name, name, description, platforms, executor, test,
+                    content_hash, commit, path, removed_at IS NOT NULL AS removed, updated_at
+             FROM svs.catalog_tests",
+        )
+        .fetch_all(db.pool())
+        .await
+        .expect("reads")
+        .into_iter()
+        .map(|test| (test.guid.to_string(), test))
+        .collect()
+    }
+
+    /// A repository's row: its commit, test count, skipped count and error.
+    async fn repository(db: &Db, name: &str) -> (Option<String>, i32, i32, Option<String>) {
+        sqlx::query_as(
+            "SELECT commit, test_count, skipped_count, error FROM svs.catalog_repositories WHERE name = $1",
+        )
+        .bind(name)
+        .fetch_one(db.pool())
+        .await
+        .expect("the repository's row")
+    }
+
+    /// Every catalog row, as text, for the audit failure test.
+    pub(super) async fn catalog_rows(db: &Db) -> Vec<String> {
+        sqlx::query_scalar(
+            "SELECT 'test ' || row_to_json(t)::text FROM svs.catalog_tests t
+             UNION ALL SELECT 'repository ' || row_to_json(r)::text FROM svs.catalog_repositories r
+             ORDER BY 1",
+        )
+        .fetch_all(db.pool())
+        .await
+        .expect("reads")
+    }
+
+    async fn audit_count(db: &Db) -> i64 {
+        sqlx::query_scalar("SELECT count(*) FROM service.audit")
+            .fetch_one(db.pool())
+            .await
+            .expect("counts")
+    }
+
+    /// test_catalog.py's `test_refresh_reads_the_tests`: a refresh stores each test of the branch's commit
+    /// with its technique, name, platforms, executor and entry, counts the one it skipped, and records the
+    /// commit on the repository's row. Every row is that commit's: a refresh reads one commit's objects.
+    #[tokio::test]
+    async fn refresh_reads_the_tests() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let art = art(&[REPOSITORY]);
+        let commit = art.commit(&[(
+            "atomics/T1059.001/T1059.001.yaml",
+            Some(&atomic(
+                "T1059.001",
+                "PowerShell",
+                &[
+                    atomic_test("Mimikatz", Some(GUID_A), "whoami"),
+                    atomic_test("No guid", None, "whoami"),
+                ],
+            )),
+        )]);
+
+        let result = refresh_one(&art.service(db), REPOSITORY, false).await;
+
+        assert!(result.refreshed && result.error.is_none(), "{result:?}");
+        assert_eq!(
+            (
+                result.commit.as_deref(),
+                result.tests,
+                result.added,
+                result.skipped.len()
+            ),
+            (Some(commit.as_str()), 1, 1, 1)
+        );
+        assert_eq!(
+            (
+                result.skipped[0].path.as_str(),
+                result.skipped[0].name.as_deref(),
+                result.skipped[0].reason.as_str()
+            ),
+            (
+                "atomics/T1059.001/T1059.001.yaml",
+                Some("No guid"),
+                "no auto_generated_guid"
+            )
+        );
+        let tests = stored_tests(db).await;
+        assert_eq!(tests.len(), 1);
+        let test = &tests[GUID_A];
+        assert_eq!(
+            (
+                test.repository.as_str(),
+                test.technique.as_str(),
+                test.technique_name.as_deref(),
+                test.name.as_str()
+            ),
+            (REPOSITORY, "T1059.001", Some("PowerShell"), "Mimikatz")
+        );
+        assert_eq!(test.platforms, ["windows"]);
+        assert_eq!(test.executor.as_deref(), Some("powershell"));
+        assert_eq!(test.description.as_deref(), Some("Mimikatz does a thing"));
+        assert_eq!(test.test["executor"]["command"], "whoami");
+        assert_eq!(
+            test.test["input_arguments"]["output_file"]["default"],
+            "out.txt"
+        );
+        assert_eq!(test.path, "atomics/T1059.001/T1059.001.yaml");
+        assert!(test.commit == commit && !test.removed);
+        assert_eq!(repository(db, REPOSITORY).await, (Some(commit), 1, 1, None));
+    }
+
+    /// test_catalog.py's `test_refresh_reads_again_only_when_the_commit_changes`: a refresh of a commit
+    /// already read stores nothing, which the repository's row, the tests' rows and the audit table show
+    /// (ace3's test counts calls of its parser); `force` reads it anyway.
+    #[tokio::test]
+    async fn refresh_reads_again_only_when_the_commit_changes() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let art = art(&[REPOSITORY]);
+        let commit = art.commit(&[(
+            T1003,
+            Some(&dumping(&[atomic_test("Dump", Some(GUID_A), "whoami")])),
+        )]);
+        let service = art.service(db);
+        assert!(refresh_one(&service, REPOSITORY, false).await.refreshed);
+        let (rows, audits) = (catalog_rows(db).await, audit_count(db).await);
+
+        let again = refresh_one(&service, REPOSITORY, false).await;
+        assert!(!again.refreshed && again.error.is_none(), "{again:?}");
+        assert_eq!(again.commit.as_deref(), Some(commit.as_str()));
+        assert_eq!(catalog_rows(db).await, rows, "nothing was written");
+        assert_eq!(audit_count(db).await, audits);
+
+        // --force reads it anyway
+        let forced = refresh_one(&service, REPOSITORY, true).await;
+        assert!(forced.refreshed, "{forced:?}");
+        assert_eq!(
+            (forced.tests, forced.added, forced.changed, forced.removed),
+            (1, 0, 0, 0)
+        );
+        assert_eq!(audit_count(db).await, audits + 1);
+        assert!(!stored_tests(db).await[GUID_A].removed);
+    }
+
+    /// test_catalog.py's `test_changes_removals_and_returns`: a test the commit didn't change keeps the
+    /// commit it was first read from and its `updated_at`; a test that disappears keeps its row, so its
+    /// runs keep their test, and comes back when its file does.
+    #[tokio::test]
+    async fn changes_removals_and_returns() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let art = art(&[REPOSITORY]);
+        let service = art.service(db);
+        let first = art.commit(&[(
+            T1003,
+            Some(&dumping(&[
+                atomic_test("Dump", Some(GUID_A), "whoami"),
+                atomic_test("Keep", Some(GUID_B), "whoami"),
+            ])),
+        )]);
+        refresh_one(&service, REPOSITORY, false).await;
+        let before = stored_tests(db).await;
+
+        // B unchanged, A changed, C added; then A removed
+        let second = art.commit(&[
+            (
+                T1003,
+                Some(&dumping(&[
+                    atomic_test("Dump", Some(GUID_A), "id"),
+                    atomic_test("Keep", Some(GUID_B), "whoami"),
+                ])),
+            ),
+            (
+                T1105,
+                Some(&transfer(&[atomic_test("Copy", Some(GUID_C), "whoami")])),
+            ),
+        ]);
+        let result = refresh_one(&service, REPOSITORY, false).await;
+        assert_eq!((result.added, result.changed, result.removed), (1, 1, 0));
+        let tests = stored_tests(db).await;
+        assert_eq!(tests[GUID_A].commit, second);
+        assert_ne!(tests[GUID_A].content_hash, before[GUID_A].content_hash);
+        assert_eq!(tests[GUID_A].test["executor"]["command"], "id");
+        assert!(tests[GUID_A].updated_at > before[GUID_A].updated_at);
+        assert_eq!(tests[GUID_B].commit, first);
+        assert_eq!(tests[GUID_B].updated_at, before[GUID_B].updated_at);
+
+        art.commit(&[
+            (
+                T1003,
+                Some(&dumping(&[atomic_test("Keep", Some(GUID_B), "whoami")])),
+            ),
+            (T1105, None),
+        ]);
+        let result = refresh_one(&service, REPOSITORY, false).await;
+        assert_eq!(result.removed, 2);
+        let tests = stored_tests(db).await;
+        assert!(tests[GUID_A].removed && tests[GUID_C].removed && !tests[GUID_B].removed);
+        assert_eq!(repository(db, REPOSITORY).await.1, 1);
+
+        // and comes back
+        art.commit(&[(
+            T1105,
+            Some(&transfer(&[atomic_test("Copy", Some(GUID_C), "whoami")])),
+        )]);
+        let result = refresh_one(&service, REPOSITORY, false).await;
+        assert_eq!((result.added, result.changed, result.removed), (0, 1, 0));
+        assert!(!stored_tests(db).await[GUID_C].removed);
+    }
+
+    /// test_catalog.py's `test_a_repository_taken_out_of_the_config_is_retired`: its tests keep their rows,
+    /// removed; nothing is left to retire next time; and listed again, it is read again although its
+    /// commit did not change.
+    #[tokio::test]
+    async fn a_repository_taken_out_of_the_config_is_retired() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let art = art(&[REPOSITORY]);
+        art.commit(&[(
+            T1003,
+            Some(&dumping(&[
+                atomic_test("Dump", Some(GUID_A), "whoami"),
+                atomic_test("Keep", Some(GUID_B), "whoami"),
+            ])),
+        )]);
+        refresh(&art.service(db)).await;
+
+        let unlisted = art.listing(db, &[]);
+        let results = refresh(&unlisted).await;
+        let shown: Vec<(&str, bool, i64, Option<&str>)> = results
+            .iter()
+            .map(|r| {
+                (
+                    r.repository.as_str(),
+                    r.retired,
+                    r.removed,
+                    r.error.as_deref(),
+                )
+            })
+            .collect();
+        assert_eq!(shown, [(REPOSITORY, true, 2, None)]);
+        assert!(stored_tests(db).await.values().all(|test| test.removed));
+        let (_, count, _, error) = repository(db, REPOSITORY).await;
+        assert_eq!((count, error.as_deref()), (0, Some(RETIRED_ERROR)));
+        // a retired repository can't be retired while the overlay lists it
+        assert!(matches!(
+            art.service(db)
+                .retire_svs_catalog_repository(&refresher(), REPOSITORY)
+                .await,
+            Err(ServiceError::InvalidRequest(_))
+        ));
+
+        // nothing is left to retire on the next refresh
+        assert!(refresh(&unlisted).await.is_empty());
+
+        // listed again, it is read again although its commit did not change
+        let results = refresh(&art.service(db)).await;
+        assert!(results[0].refreshed, "{results:?}");
+        assert!(stored_tests(db).await.values().all(|test| !test.removed));
+        assert_eq!(repository(db, REPOSITORY).await.3, None);
+    }
+
+    /// test_catalog.py's `test_retiring_leaves_the_configured_repositories_alone`: a test of a repository
+    /// that was never configured here, with no repository row, is retired; the configured one's stay.
+    #[tokio::test]
+    async fn retiring_leaves_the_configured_repositories_alone() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let art = art(&[REPOSITORY]);
+        art.commit(&[(
+            T1003,
+            Some(&dumping(&[atomic_test("Dump", Some(GUID_A), "whoami")])),
+        )]);
+        sqlx::query(
+            "INSERT INTO svs.catalog_tests
+                 (guid, repository, technique, name, platforms, test, content_hash, commit, path)
+             VALUES ($1, 'hand_made', 'T1105', 'Copy', '{}', '{}', repeat('0', 64), repeat('1', 40), $2)",
+        )
+        .bind(Uuid::parse_str(GUID_C).expect("a uuid"))
+        .bind(T1105)
+        .execute(db.pool())
+        .await
+        .expect("a test of a repository with no row");
+
+        let results = refresh(&art.service(db)).await;
+
+        let shown: Vec<(&str, bool, i64)> = results
+            .iter()
+            .map(|r| (r.repository.as_str(), r.retired, r.removed))
+            .collect();
+        assert_eq!(shown, [(REPOSITORY, false, 0), ("hand_made", true, 1)]);
+        let tests = stored_tests(db).await;
+        assert!(!tests[GUID_A].removed && tests[GUID_C].removed);
+    }
+
+    /// test_catalog.py's `test_a_guid_of_another_repository_is_not_taken`: the first repository read keeps
+    /// the guid, and the other's test is skipped with the reason.
+    #[tokio::test]
+    async fn a_guid_of_another_repository_is_not_taken() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        // repositories are read in the order of their names
+        let art = art(&[REPOSITORY, "custom_atomics"]);
+        art.commit(&[(
+            T1003,
+            Some(&dumping(&[atomic_test("Dump", Some(GUID_A), "whoami")])),
+        )]);
+        art.commit_in(
+            "custom_atomics",
+            &[(
+                T1003,
+                Some(&dumping(&[atomic_test(
+                    "Copy of dump",
+                    Some(GUID_A),
+                    "whoami",
+                )])),
+            )],
+        );
+
+        let results = refresh(&art.service(db)).await;
+
+        let counts: Vec<(&str, i64)> = results
+            .iter()
+            .map(|r| (r.repository.as_str(), r.tests))
+            .collect();
+        assert_eq!(counts, [(REPOSITORY, 1), ("custom_atomics", 0)]);
+        assert!(
+            results[1].skipped[0]
+                .reason
+                .contains("belongs to a test of art_unittest"),
+            "{:?}",
+            results[1].skipped
+        );
+        assert_eq!(stored_tests(db).await[GUID_A].name, "Dump");
+        assert_eq!(repository(db, "custom_atomics").await.1, 0);
+        assert_eq!(repository(db, "custom_atomics").await.2, 1);
+    }
+
+    /// test_catalog.py's `test_refresh_errors_are_recorded`: a repository that isn't in the overlay, and one
+    /// that can't be fetched (ace3's checkout that doesn't exist yet), leave their error on a row with no
+    /// commit. The error never holds the repository's URL.
+    #[tokio::test]
+    async fn refresh_errors_are_recorded() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let art = art(&[REPOSITORY]);
+        art.commit(&[(
+            T1003,
+            Some(&dumping(&[atomic_test("Dump", Some(GUID_A), "whoami")])),
+        )]);
+
+        // unlisted
+        let result = refresh_one(&art.listing(db, &[]), REPOSITORY, false).await;
+        assert!(!result.refreshed);
+        let message = "art_unittest is not in svs.catalog.repositories";
+        assert_eq!(result.error.as_deref(), Some(message));
+        assert_eq!(
+            repository(db, REPOSITORY).await,
+            (None, 0, 0, Some(message.to_owned()))
+        );
+
+        // no checkout: nothing to fetch from
+        let mut section = art.section.clone();
+        let secret_url = art
+            .tmp
+            .path()
+            .join("missing-ghp_secret")
+            .display()
+            .to_string();
+        section.repositories.insert(
+            "nowhere".to_owned(),
+            ace_sdk::SvsCatalogRepository {
+                url: secret_url.clone(),
+                branch: "main".to_owned(),
+                ssh_key: None,
+            },
+        );
+        let broken =
+            service(db).with_catalog(CatalogConfig::from_section(&section).expect("valid"));
+        let result = refresh_one(&broken, "nowhere", false).await;
+        let error = result.error.clone().expect("an error");
+        assert!(!result.refreshed && result.commit.is_none(), "{result:?}");
+        assert!(
+            error.starts_with("unable to fetch main of repository nowhere"),
+            "{error}"
+        );
+        assert!(!error.contains("ghp_secret"), "{error}");
+        let (commit, _, _, stored) = repository(db, "nowhere").await;
+        assert_eq!((commit, stored.as_deref()), (None, Some(error.as_str())));
+
+        // a branch the repository doesn't have, and a repository whose ssh key isn't set
+        section.repositories.insert(
+            "branchless".to_owned(),
+            ace_sdk::SvsCatalogRepository {
+                url: art.repos[REPOSITORY].origin.display().to_string(),
+                branch: "release".to_owned(),
+                ssh_key: None,
+            },
+        );
+        section.repositories.insert(
+            "keyed".to_owned(),
+            ace_sdk::SvsCatalogRepository {
+                url: art.repos[REPOSITORY].origin.display().to_string(),
+                branch: "main".to_owned(),
+                ssh_key: Some("art_key".to_owned()),
+            },
+        );
+        let broken =
+            service(db).with_catalog(CatalogConfig::from_section(&section).expect("valid"));
+        let error = refresh_one(&broken, "branchless", false).await.error;
+        assert!(
+            error
+                .as_deref()
+                .is_some_and(|e| e.starts_with("unable to fetch release of repository branchless")),
+            "{error:?}"
+        );
+        assert_eq!(
+            refresh_one(&broken, "keyed", false).await.error.as_deref(),
+            Some("repository keyed: its ssh_key, the secret art_key, isn't set")
+        );
+        // one repository's failure doesn't stop the others
+        let results = refresh(&broken).await;
+        let failed: Vec<(&str, bool)> = results
+            .iter()
+            .map(|r| (r.repository.as_str(), r.error.is_some()))
+            .collect();
+        assert_eq!(
+            failed,
+            [
+                (REPOSITORY, false),
+                ("branchless", true),
+                ("keyed", true),
+                ("nowhere", true)
+            ]
+        );
+        assert!(stored_tests(db).await.contains_key(GUID_A));
+    }
+
+    /// test_catalog.py's `test_an_error_keeps_the_tests_and_clears_on_the_next_success`: a forced read of
+    /// the commit already stored fails, so the row keeps that commit with the error; the failed commit is
+    /// read on the next refresh, not skipped as already read. The failure here is the store's, as ace3's is
+    /// its parser's, and a repeat of it writes no second audit row.
+    #[tokio::test]
+    async fn an_error_keeps_the_tests_and_clears_on_the_next_success() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let art = art(&[REPOSITORY]);
+        let commit = art.commit(&[(
+            T1003,
+            Some(&dumping(&[atomic_test("Dump", Some(GUID_A), "whoami")])),
+        )]);
+        let service = art.service(db);
+        refresh_one(&service, REPOSITORY, false).await;
+
+        sqlx::raw_sql(
+            "CREATE FUNCTION svs.on_fire() RETURNS trigger LANGUAGE plpgsql AS
+                 $$ BEGIN RAISE EXCEPTION 'disk on fire'; END $$;
+             CREATE TRIGGER on_fire BEFORE UPDATE ON svs.catalog_repositories
+                 FOR EACH ROW WHEN (NEW.refreshed_at IS DISTINCT FROM OLD.refreshed_at)
+                 EXECUTE FUNCTION svs.on_fire()",
+        )
+        .execute(db.pool())
+        .await
+        .expect("breaks the store");
+        let result = refresh_one(&service, REPOSITORY, true).await;
+        let error = result.error.clone().expect("an error");
+        assert!(
+            error.starts_with("refresh failed: ") && error.contains("disk on fire"),
+            "{error}"
+        );
+        assert_eq!(
+            repository(db, REPOSITORY).await,
+            (Some(commit.clone()), 1, 0, Some(error.clone()))
+        );
+        assert!(stored_tests(db).await.contains_key(GUID_A));
+        // the same failure again changes nothing, and adds no audit row
+        let audits = audit_count(db).await;
+        assert_eq!(
+            refresh_one(&service, REPOSITORY, false).await.error,
+            Some(error)
+        );
+        assert_eq!(audit_count(db).await, audits);
+
+        sqlx::raw_sql("DROP TRIGGER on_fire ON svs.catalog_repositories")
+            .execute(db.pool())
+            .await
+            .expect("mends it");
+        let result = refresh_one(&service, REPOSITORY, false).await;
+        assert!(result.refreshed, "{result:?}");
+        assert_eq!(repository(db, REPOSITORY).await.3, None);
+    }
+
+    /// A repository that breaks a bound fails its refresh, which stores nothing of it and keeps the
+    /// catalog as it was; a file over the size limit, a symbolic link named like an atomic file and a file
+    /// that isn't YAML are skipped and counted while the rest is read.
+    #[tokio::test]
+    async fn a_hostile_repository_fails_its_refresh_and_keeps_the_catalog() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let art = art(&[REPOSITORY]);
+        let first = art.commit(&[(
+            T1003,
+            Some(&dumping(&[atomic_test("Dump", Some(GUID_A), "whoami")])),
+        )]);
+        let bounded = |change: fn(&mut ace_sdk::SvsCatalogSection)| {
+            let mut section = art.section.clone();
+            change(&mut section);
+            service(db).with_catalog(CatalogConfig::from_section(&section).expect("valid"))
+        };
+        refresh_one(&art.service(db), REPOSITORY, false).await;
+        let rows = catalog_rows(db).await;
+
+        // more files, more bytes and more tests than a refresh may read
+        let big = format!("# {}\n", "x".repeat(3000));
+        art.repos[REPOSITORY].commit_with(
+            &[
+                (
+                    T1105,
+                    Some(
+                        transfer(&[
+                            atomic_test("Copy", Some(GUID_B), "whoami"),
+                            atomic_test("Move", Some(GUID_C), "whoami"),
+                        ])
+                        .as_bytes(),
+                    ),
+                ),
+                ("atomics/T1106/T1106.yaml", Some(big.as_bytes())),
+                ("atomics/T1107/T1107.yaml", Some(b"{not yaml: [")),
+            ],
+            "main",
+            &[("atomics/T1108/T1108.yaml", "../T1003/T1003.yaml")],
+        );
+        for (service, said) in [
+            (
+                bounded(|s| s.max_files = 4),
+                "the commit has more than 4 atomic files (svs.catalog.max_files)",
+            ),
+            (
+                bounded(|s| s.max_total_bytes = 700),
+                "the commit's atomic files are more than 700 bytes (svs.catalog.max_total_bytes)",
+            ),
+            (
+                bounded(|s| s.max_tests = 2),
+                "the commit defines more than 2 tests (svs.catalog.max_tests)",
+            ),
+        ] {
+            let result = refresh_one(&service, REPOSITORY, false).await;
+            assert_eq!(result.error.as_deref(), Some(said));
+            assert!(!result.refreshed);
+            let (commit, count, _, error) = repository(db, REPOSITORY).await;
+            assert_eq!(
+                (commit.as_deref(), count, error.as_deref()),
+                (Some(first.as_str()), 1, Some(said))
+            );
+            let tests = stored_tests(db).await;
+            assert_eq!(tests.len(), 1);
+            assert!(!tests[GUID_A].removed);
+        }
+        assert_ne!(
+            catalog_rows(db).await,
+            rows,
+            "only the repository's error changed"
+        );
+
+        // within the limits the same commit is read, without what it can't use
+        let result = refresh_one(&bounded(|s| s.max_file_bytes = 2000), REPOSITORY, false).await;
+        assert!(result.refreshed && result.error.is_none(), "{result:?}");
+        assert_eq!((result.tests, result.added), (3, 2));
+        let skipped: Vec<(&str, &str)> = result
+            .skipped
+            .iter()
+            .map(|s| {
+                (
+                    s.path.as_str(),
+                    s.reason.split(':').next().unwrap_or_default(),
+                )
+            })
+            .collect();
+        assert_eq!(
+            skipped,
+            [
+                ("atomics/T1106/T1106.yaml", "larger than 2000 bytes"),
+                ("atomics/T1107/T1107.yaml", "unreadable"),
+                ("atomics/T1108/T1108.yaml", "a symbolic link"),
+            ]
+        );
+        assert_eq!(repository(db, REPOSITORY).await.2, 3);
+        assert_eq!(stored_tests(db).await.len(), 3);
+    }
+
+    /// test_catalog.py's `test_repository_status`: every repository in the overlay and every one with a
+    /// row, by name, with its URL without credentials, its counts, and its error unless it's retired.
+    #[tokio::test]
+    async fn repository_status() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let actor = admin(db).await;
+        let art = art(&[REPOSITORY]);
+        art.commit(&[(
+            T1003,
+            Some(&dumping(&[
+                atomic_test("Dump", Some(GUID_A), "whoami"),
+                atomic_test("Gone", Some(GUID_B), "whoami"),
+                atomic_test("No guid", None, "whoami"),
+            ])),
+        )]);
+        refresh(&art.service(db)).await;
+        let commit = art.commit(&[(
+            T1003,
+            Some(&dumping(&[atomic_test("Dump", Some(GUID_A), "whoami")])),
+        )]);
+        refresh(&art.service(db)).await;
+
+        let mut section = art.section.clone();
+        section.repositories.insert(
+            "private_art".to_owned(),
+            ace_sdk::SvsCatalogRepository {
+                url: "https://ghp_secret@git.invalid/org/art.git".to_owned(),
+                branch: "main".to_owned(),
+                ssh_key: None,
+            },
+        );
+        section.fetch_timeout_seconds = 20;
+        let listed =
+            service(db).with_catalog(CatalogConfig::from_section(&section).expect("valid"));
+        refresh(&listed).await;
+
+        let statuses = listed
+            .svs_catalog_repositories(&actor)
+            .await
+            .expect("lists");
+        let names: Vec<&str> = statuses.iter().map(|s| s.name.as_str()).collect();
+        assert_eq!(names, [REPOSITORY, "private_art"]);
+        let status = &statuses[0];
+        assert_eq!(
+            (
+                status.configured,
+                status.git_url.as_deref(),
+                status.branch.as_deref(),
+                status.commit.as_deref()
+            ),
+            (
+                true,
+                Some(art.repos[REPOSITORY].origin.to_string_lossy().as_ref()),
+                Some("main"),
+                Some(commit.as_str())
+            )
+        );
+        assert_eq!(
+            (
+                status.test_count,
+                status.skipped_count,
+                status.removed_count,
+                status.error.as_deref(),
+                status.retired
+            ),
+            (1, 0, 1, None, false)
+        );
+        assert!(status.refreshed_at.is_some());
+
+        // never read, with the error, and the url without its credentials
+        let status = &statuses[1];
+        assert_eq!(
+            (
+                status.git_url.as_deref(),
+                status.branch.as_deref(),
+                status.commit.as_deref(),
+                status.refreshed_at
+            ),
+            (
+                Some("https://git.invalid/org/art.git"),
+                Some("main"),
+                None,
+                None
+            )
+        );
+        let error = status.error.as_deref().expect("an error");
+        assert!(
+            error.starts_with("unable to fetch main of repository private_art"),
+            "{error}"
+        );
+        assert!(!error.contains("ghp_secret"), "{error}");
+
+        // taken out of the list: retired, with no error, and no settings to show
+        let only_private = {
+            let mut section = section.clone();
+            section.repositories.remove(REPOSITORY);
+            service(db).with_catalog(CatalogConfig::from_section(&section).expect("valid"))
+        };
+        refresh(&only_private).await;
+        let statuses = only_private
+            .svs_catalog_repositories(&actor)
+            .await
+            .expect("lists");
+        let status = &statuses[0];
+        assert_eq!(
+            (
+                status.name.as_str(),
+                status.configured,
+                status.retired,
+                status.error.as_deref(),
+                status.test_count,
+                status.commit.as_deref()
+            ),
+            (REPOSITORY, false, true, None, 0, Some(commit.as_str()))
+        );
+        assert_eq!(
+            (status.git_url.as_deref(), status.branch.as_deref()),
+            (None, None)
+        );
+        assert_eq!(status.removed_count, 2);
+    }
+
+    /// The tests of ace3's API cases, seeded as it seeds them.
+    /// `custom_removed`: of the repository `custom` and removed, as one of ace3's is; of
+    /// `atomic-red-team` otherwise.
+    async fn seed(
+        db: &Db,
+        n: u128,
+        technique: &str,
+        name: &str,
+        platforms: &[&str],
+        executor: &str,
+        custom_removed: bool,
+    ) {
+        let (repository, removed) = if custom_removed {
+            ("custom", true)
+        } else {
+            ("atomic-red-team", false)
+        };
+        sqlx::query(
+            "INSERT INTO svs.catalog_tests
+                 (guid, repository, technique, technique_name, name, description, platforms, executor, test,
+                  content_hash, commit, path, removed_at)
+             VALUES ($1, $2, $3, $3 || ' name', $4, $4 || ' does a thing', $5, $6,
+                     jsonb_build_object('name', $4, 'executor',
+                                        jsonb_build_object('name', $6, 'command', 'whoami')),
+                     repeat('0', 64), repeat('a', 40), 'atomics/' || $3 || '/' || $3 || '.yaml',
+                     CASE WHEN $7 THEN now() END)",
+        )
+        .bind(seeded(n))
+        .bind(repository)
+        .bind(technique)
+        .bind(name)
+        .bind(platforms.iter().map(|p| (*p).to_owned()).collect::<Vec<_>>())
+        .bind(executor)
+        .bind(removed)
+        .execute(db.pool())
+        .await
+        .expect("seeds a test");
+    }
+
+    fn seeded(n: u128) -> Uuid {
+        Uuid::from_u128((n << 96) | 0x0000_4000_8000_0000_0000_0000)
+    }
+
+    /// The catalog's cases of ace3's `tests/aceapi_v2/svs/test_catalog.py`: the order, each filter, a bad
+    /// filter, the pages and the detail.
+    #[tokio::test]
+    async fn catalog_tests_are_listed_filtered_and_paged() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let actor = admin(db).await;
+        let service = service(db);
+        seed(
+            db,
+            1,
+            "T1059.001",
+            "PowerShell download",
+            &["windows"],
+            "powershell",
+            false,
+        )
+        .await;
+        seed(
+            db,
+            2,
+            "T1059",
+            "Command interpreter",
+            &["linux", "macos"],
+            "sh",
+            false,
+        )
+        .await;
+        seed(
+            db,
+            3,
+            "T1003",
+            "Dump credentials",
+            &["windows"],
+            "powershell",
+            false,
+        )
+        .await;
+        seed(
+            db,
+            4,
+            "T1059.003",
+            "Batch file",
+            &["windows"],
+            "command_prompt",
+            true,
+        )
+        .await;
+        seed(
+            db,
+            5,
+            "T10590",
+            "Not a sub-technique of T1059",
+            &["windows"],
+            "powershell",
+            false,
+        )
+        .await;
+        let numbers = |tests: &[ace_service::CatalogTest]| -> Vec<u128> {
+            tests.iter().map(|t| t.guid.as_u128() >> 96).collect()
+        };
+        let listed = |filters: Vec<FilterEntry>| {
+            let (service, actor) = (&service, &actor);
+            async move {
+                let query = CatalogTestQuery {
+                    filters,
+                    ..CatalogTestQuery::default()
+                };
+                service
+                    .svs_catalog_tests(actor, &query, None, None)
+                    .await
+                    .map(|page| numbers(&page.tests))
+            }
+        };
+
+        // test_ordered_by_technique_then_name: written after "Dump credentials" on the same technique, so
+        // only its name puts it first; T10590 sorts after T1059's sub-techniques
+        seed(
+            db,
+            6,
+            "T1003",
+            "Archive credentials",
+            &["windows"],
+            "powershell",
+            false,
+        )
+        .await;
+        assert_eq!(listed(vec![]).await.expect("lists"), [6, 3, 2, 1, 4, 5]);
+        sqlx::query("DELETE FROM svs.catalog_tests WHERE guid = $1")
+            .bind(seeded(6))
+            .execute(db.pool())
+            .await
+            .expect("deletes");
+
+        // test_filters: a technique also finds its sub-techniques, and nothing that only shares its prefix
+        let text = FilterEntry::text;
+        for (filters, expected) in [
+            (vec![text("Technique", false, &["T1059"])], vec![2, 1, 4]),
+            (vec![text("Technique", false, &["t1059.001"])], vec![1]),
+            (vec![text("Technique", true, &["T1059"])], vec![3, 5]),
+            (vec![text("Platform", false, &["linux"])], vec![2]),
+            (
+                vec![text("Executor", false, &["sh", "command_prompt"])],
+                vec![2, 4],
+            ),
+            (vec![text("Name", false, &["download"])], vec![1]),
+            (vec![text("Repository", false, &["custom"])], vec![4]),
+            (vec![text("Removed", false, &["true"])], vec![4]),
+            (
+                vec![
+                    text("Removed", false, &["false"]),
+                    text("Technique", false, &["T1059"]),
+                ],
+                vec![2, 1],
+            ),
+            // and beyond ace3's cases: each inverse, values as they're typed, and a filter holding both
+            (vec![text("Platform", true, &["Windows "])], vec![2]),
+            (vec![text("Executor", true, &["PowerShell"])], vec![2, 4]),
+            (
+                vec![text("Name", true, &["DOWNLOAD", "dump"])],
+                vec![2, 4, 5],
+            ),
+            (
+                vec![text("Repository", true, &["custom"])],
+                vec![3, 2, 1, 5],
+            ),
+            (vec![text("Removed", true, &["true"])], vec![3, 2, 1, 5]),
+            (
+                vec![text("Removed", false, &["true", "false"])],
+                vec![3, 2, 1, 4, 5],
+            ),
+            (vec![text("Removed", true, &["true", "false"])], vec![]),
+            (
+                vec![text("Technique", false, &["T1003", "T1059.003"])],
+                vec![3, 4],
+            ),
+            (vec![text("Name", false, &["100%", "_"])], vec![]),
+        ] {
+            let shown = format!("{filters:?}");
+            assert_eq!(listed(filters).await.expect("lists"), expected, "{shown}");
+        }
+
+        // test_a_bad_filter_is_422
+        for filters in [
+            vec![text("Technique", false, &["mimikatz"])],
+            vec![text("Nonsense", false, &["x"])],
+            vec![text("Removed", false, &["maybe"])],
+            vec![text("Platform", false, &[" "])],
+        ] {
+            assert!(
+                matches!(
+                    listed(filters.clone()).await,
+                    Err(ServiceError::InvalidRequest(_))
+                ),
+                "{filters:?}"
+            );
+        }
+
+        // test_pages
+        let query = CatalogTestQuery::default();
+        let mut cursor: Option<String> = None;
+        let mut pages = Vec::new();
+        loop {
+            let page = service
+                .svs_catalog_tests(&actor, &query, cursor.as_deref(), Some(2))
+                .await
+                .expect("a page");
+            pages.push(numbers(&page.tests));
+            cursor = page.next_cursor;
+            if cursor.is_none() {
+                break;
+            }
+        }
+        assert_eq!(pages, [vec![3, 2], vec![1, 4], vec![5]]);
+        for (cursor, limit) in [(Some("zz"), Some(2)), (None, Some(0)), (None, Some(1001))] {
+            assert!(matches!(
+                service
+                    .svs_catalog_tests(&actor, &query, cursor, limit)
+                    .await,
+                Err(ServiceError::InvalidRequest(_))
+            ));
+        }
+        assert_eq!(
+            service
+                .svs_catalog_test_count(&actor, &query, 3)
+                .await
+                .expect("counts"),
+            4,
+            "counted to one past the most"
+        );
+
+        // changed_since: a row's own change, which a later refresh that leaves it alone doesn't move
+        let before: chrono::DateTime<Utc> = sqlx::query_scalar("SELECT clock_timestamp()")
+            .fetch_one(db.pool())
+            .await
+            .expect("now");
+        sqlx::query("UPDATE svs.catalog_tests SET removed_at = now() WHERE guid = $1")
+            .bind(seeded(3))
+            .execute(db.pool())
+            .await
+            .expect("removes one");
+        let changed = CatalogTestQuery {
+            changed_since: Some(before),
+            ..CatalogTestQuery::default()
+        };
+        let page = service
+            .svs_catalog_tests(&actor, &changed, None, None)
+            .await
+            .expect("lists");
+        assert_eq!(numbers(&page.tests), [3]);
+        assert!(page.tests[0].removed_at.is_some());
+
+        // test_detail: a guid in any case; one that isn't a uuid; one the catalog doesn't have
+        let detail = service
+            .svs_catalog_test(&actor, &seeded(1).to_string().to_uppercase())
+            .await
+            .expect("the test");
+        assert_eq!(
+            (detail.test.name.as_str(), detail.test.technique.as_str()),
+            ("PowerShell download", "T1059.001")
+        );
+        assert_eq!(
+            detail.description.as_deref(),
+            Some("PowerShell download does a thing")
+        );
+        assert_eq!(detail.entry["executor"]["command"], "whoami");
+        assert_eq!(detail.test.platforms, ["windows"]);
+        assert_eq!(detail.platform_slugs, ["windows"]);
+        assert!(detail.test.removed_at.is_none());
+        assert_eq!(
+            service
+                .svs_catalog_test(&actor, &seeded(2).to_string())
+                .await
+                .expect("the test")
+                .platform_slugs,
+            ["linux", "macos"]
+        );
+        assert!(matches!(
+            service.svs_catalog_test(&actor, "not-a-guid").await,
+            Err(ServiceError::InvalidRequest(why)) if why == "invalid test guid \"not-a-guid\""
+        ));
+        assert!(matches!(
+            service
+                .svs_catalog_test(&actor, &seeded(99).to_string())
+                .await,
+            Err(ServiceError::NotFound(_))
+        ));
+    }
+
+    /// The catalog's reads need `svs:run_read`, and its refresh and each of its writes
+    /// `svs:catalog_refresh`, which the scheduler's component holds and nothing else of it: the component
+    /// can't read through the service, and a reader can't refresh.
+    #[tokio::test]
+    async fn the_catalog_reads_need_run_read_and_the_refresh_its_permission() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let boss = admin(db).await;
+        let art = art(&[REPOSITORY]);
+        art.commit(&[(
+            T1003,
+            Some(&dumping(&[atomic_test("Dump", Some(GUID_A), "whoami")])),
+        )]);
+        let service = art.service(db);
+        let reader_id = UserId(Uuid::from_u128(0x5C));
+        exists(db, &Holder::User(reader_id)).await;
+        service
+            .grant(
+                &boss,
+                &Holder::User(reader_id),
+                &pattern("svs", "run_read"),
+                Effect::Allow,
+            )
+            .await
+            .expect("grants");
+        let reader = user(reader_id);
+        let outsider = user(UserId(Uuid::from_u128(0x5D)));
+        let query = CatalogTestQuery::default();
+        let parsed = catalog::ParseResult::default();
+        let denied = |result: Result<(), ServiceError>| {
+            assert!(
+                matches!(result, Err(ServiceError::PermissionDenied { .. })),
+                "{result:?}"
+            );
+        };
+
+        refresh(&service).await;
+        for actor in [&reader, &boss] {
+            service
+                .svs_catalog_tests(actor, &query, None, None)
+                .await
+                .expect("lists");
+            service
+                .svs_catalog_test_count(actor, &query, 10)
+                .await
+                .expect("counts");
+            service
+                .svs_catalog_test(actor, GUID_A)
+                .await
+                .expect("reads");
+            service
+                .svs_catalog_repositories(actor)
+                .await
+                .expect("lists");
+        }
+        for actor in [&outsider, &refresher()] {
+            denied(
+                service
+                    .svs_catalog_tests(actor, &query, None, None)
+                    .await
+                    .map(|_| ()),
+            );
+            denied(
+                service
+                    .svs_catalog_test_count(actor, &query, 10)
+                    .await
+                    .map(|_| ()),
+            );
+            denied(service.svs_catalog_test(actor, GUID_A).await.map(|_| ()));
+            // a guid that isn't one says so only to someone who may read
+            denied(service.svs_catalog_repositories(actor).await.map(|_| ()));
+        }
+        let rows = catalog_rows(db).await;
+        for actor in [&outsider, &reader] {
+            denied(
+                service
+                    .refresh_svs_catalog(actor, None, true)
+                    .await
+                    .map(|_| ()),
+            );
+            denied(
+                service
+                    .store_svs_catalog(actor, REPOSITORY, &"c".repeat(40), &parsed)
+                    .await
+                    .map(|_| ()),
+            );
+            denied(
+                service
+                    .record_svs_catalog_error(actor, REPOSITORY, "it failed")
+                    .await
+                    .map(|_| ()),
+            );
+            denied(
+                service
+                    .retire_svs_catalog_repository(actor, "gone")
+                    .await
+                    .map(|_| ()),
+            );
+        }
+        assert_eq!(
+            catalog_rows(db).await,
+            rows,
+            "a refused write wrote nothing"
+        );
+        // the migration's grant is the component's only one
+        let grants: Vec<(String, String)> = sqlx::query_as(
+            "SELECT major, minor FROM service.permissions WHERE component = 'scheduler:svs_catalog_refresh'",
+        )
+        .fetch_all(db.pool())
+        .await
+        .expect("reads");
+        assert_eq!(grants, [("svs".to_owned(), "catalog_refresh".to_owned())]);
+    }
+
+    /// One parsed test, for the writes' audit tests.
+    pub(super) fn one_parsed(guid: &str) -> catalog::ParseResult {
+        catalog::parse_atomics(
+            vec![AtomicFile {
+                path: T1003.to_owned(),
+                content: Ok(dumping(&[
+                    atomic_test("Dump", Some(guid), "whoami"),
+                    atomic_test("No guid", None, "whoami"),
+                ])
+                .into_bytes()),
+            }],
+            &CatalogLimits::default(),
+        )
+        .expect("parses")
+    }
+
+    pub(super) async fn store_svs_catalog_records_its_row(db: &Db) -> String {
+        let art = art(&[REPOSITORY]);
+        let (first, second) = ("c".repeat(40), "d".repeat(40));
+        let service = art.service(db);
+        service
+            .store_svs_catalog(&refresher(), REPOSITORY, &first, &one_parsed(GUID_A))
+            .await
+            .expect("stores");
+        let row = last_audit(db).await;
+        let skipped =
+            json!([{"path": T1003, "name": "No guid", "reason": "no auto_generated_guid"}]);
+        assert_eq!(
+            row,
+            AuditRow {
+                actor: json!({"kind": "internal", "id": "scheduler:svs_catalog_refresh"}),
+                action: "store_svs_catalog".to_owned(),
+                target: ("svs_catalog_repository".to_owned(), REPOSITORY.to_owned()),
+                before: Some(json!({"commit": null, "tests": 0})),
+                after: Some(json!({
+                    "commit": first, "tests": 1, "added": 1, "changed": 0, "removed": 0, "skipped": 1,
+                    "skipped_first": skipped,
+                })),
+                details: json!({}),
+            }
+        );
+        // the next commit's row has the one before it
+        service
+            .store_svs_catalog(
+                &refresher(),
+                REPOSITORY,
+                &second,
+                &catalog::ParseResult::default(),
+            )
+            .await
+            .expect("stores");
+        let next = last_audit(db).await;
+        assert_eq!(next.before, Some(json!({"commit": first, "tests": 1})));
+        assert_eq!(
+            next.after,
+            Some(json!({
+                "commit": second, "tests": 0, "added": 0, "changed": 0, "removed": 1, "skipped": 0,
+                "skipped_first": [],
+            }))
+        );
+        row.action
+    }
+
+    pub(super) async fn record_svs_catalog_error_records_its_row(db: &Db) -> String {
+        let art = art(&[REPOSITORY]);
+        let service = art.service(db);
+        let changed = service
+            .record_svs_catalog_error(&refresher(), "failing", "it failed")
+            .await
+            .expect("records");
+        assert!(changed);
+        let row = last_audit(db).await;
+        assert_eq!(
+            row,
+            AuditRow {
+                actor: json!({"kind": "internal", "id": "scheduler:svs_catalog_refresh"}),
+                action: "record_svs_catalog_error".to_owned(),
+                target: ("svs_catalog_repository".to_owned(), "failing".to_owned()),
+                before: Some(json!({"error": null})),
+                after: Some(json!({"error": "it failed"})),
+                details: json!({}),
+            }
+        );
+        // the same failure again writes nothing; another one is a change
+        let audits = audit_count(db).await;
+        assert!(
+            !service
+                .record_svs_catalog_error(&refresher(), "failing", "it failed")
+                .await
+                .expect("records")
+        );
+        assert_eq!(audit_count(db).await, audits);
+        assert!(
+            service
+                .record_svs_catalog_error(&refresher(), "failing", &"x".repeat(5000))
+                .await
+                .expect("records")
+        );
+        let after = last_audit(db).await.after.expect("an after");
+        assert_eq!(after["error"].as_str().map(str::len), Some(4096));
+        row.action
+    }
+
+    pub(super) async fn retire_svs_catalog_repository_records_its_row(db: &Db) -> String {
+        let art = art(&[REPOSITORY]);
+        art.service(db)
+            .store_svs_catalog(
+                &refresher(),
+                "dropped",
+                &"c".repeat(40),
+                &one_parsed(GUID_B),
+            )
+            .await
+            .expect("stores");
+        let result = art
+            .service(db)
+            .retire_svs_catalog_repository(&refresher(), "dropped")
+            .await
+            .expect("retires");
+        assert!(result.retired && result.removed == 1, "{result:?}");
+        let row = last_audit(db).await;
+        assert_eq!(
+            row,
+            AuditRow {
+                actor: json!({"kind": "internal", "id": "scheduler:svs_catalog_refresh"}),
+                action: "retire_svs_catalog_repository".to_owned(),
+                target: ("svs_catalog_repository".to_owned(), "dropped".to_owned()),
+                before: Some(json!({"removed": 1})),
+                after: None,
+                details: json!({}),
+            }
+        );
+        row.action
     }
 }

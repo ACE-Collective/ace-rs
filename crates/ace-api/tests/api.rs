@@ -175,6 +175,21 @@ async fn stack_of(archive: ace_core::email_archive::ArchiveConfig, catalog: Cata
                 .yara,
             )
             .expect("valid settings"),
+        )
+        // the catalog's repositories, which the API lists and never fetches (PLAN.md 7.10 batch 4)
+        .with_catalog(
+            ace_core::svs::catalog::CatalogConfig::from_section(
+                &ace_sdk::Overlay::from_yaml(
+                    "svs: {catalog: {repositories: {\n\
+                       art: {url: 'https://ghp_secret@git.invalid/redcanaryco/atomic-red-team.git', \
+                             branch: master},\n\
+                       unread: {url: /nowhere, branch: main}}}}",
+                )
+                .expect("the overlay parses")
+                .svs
+                .catalog,
+            )
+            .expect("valid settings"),
         );
     let config = ace_api::WebConfig {
         max_json_bytes: MAX_JSON,
@@ -534,6 +549,11 @@ const VALIDATION_RESULTS: &str = "/api/svs/v1/yara/validations/{uuid}/results";
 const VALIDATION_RESULTS_CSV: &str = "/api/svs/v1/yara/validations/{uuid}/results/export/csv";
 const VALIDATION_RESULTS_NDJSON: &str = "/api/svs/v1/yara/validations/{uuid}/results/export/ndjson";
 const VALIDATION_DOWNLOAD: &str = "/api/svs/v1/yara/validations/{uuid}/download";
+const CATALOG_TESTS: &str = "/api/svs/v1/tests";
+const CATALOG_TESTS_CSV: &str = "/api/svs/v1/tests/export/csv";
+const CATALOG_TESTS_NDJSON: &str = "/api/svs/v1/tests/export/ndjson";
+const CATALOG_TEST: &str = "/api/svs/v1/tests/{guid}";
+const CATALOG_REPOSITORIES: &str = "/api/svs/v1/catalog/repositories";
 const COLLECTIONS_CSV: &str = "/api/file-collections/v1/collections/export/csv";
 const COLLECTIONS_NDJSON: &str = "/api/file-collections/v1/collections/export/ndjson";
 const COLLECTION: &str = "/api/file-collections/v1/collections/{id}";
@@ -569,7 +589,8 @@ fn fill(route: &str, id: Uuid, observable: i64) -> String {
             .replace("{sha256}", &"ab".repeat(32))
             .replace("{rule_uuid}", "7d1c2a4e-5b6f-4c3d-9e8f-0a1b2c3d4e5f")
             .replace("{id}", &observable.to_string())
-            .replace("{uuid}", &id.to_string());
+            .replace("{uuid}", &id.to_string())
+            .replace("{guid}", &id.to_string());
     }
     if route.starts_with("/api/lists/") {
         return route
@@ -693,7 +714,7 @@ async fn refuses_without_a_credential_or_a_permission(
         .map(|(method, route, _)| (method, route))
         .filter(|route| !public.contains(route))
         .collect();
-    assert_eq!(routes.len(), 147, "{routes:?}");
+    assert_eq!(routes.len(), 152, "{routes:?}");
     for (method, route) in routes {
         let method: Method = method.to_uppercase().parse().expect("a method");
         let path = fill(&route, id, file);
@@ -4460,6 +4481,7 @@ async fn every_documented_status_is_tested() {
     remediation_routers(&mut client).await;
     svs_samples(&mut client, &token).await;
     svs_validations(&mut client, &token).await;
+    svs_catalog(&mut client).await;
     pings(&mut client, &token).await;
 
     assert_eq!(
@@ -8877,6 +8899,427 @@ async fn completed_validation_at(stack: &Stack, head: &str, rows: &[(String, &st
 /// the status, the list's filters, pages and exports, the detail with its report, the rows by category and
 /// rule with their exports, and the selection's encrypted download and its limits, with each documented
 /// status.
+/// A test of the catalog, seeded as ace3's API tests seed theirs: `custom_removed` for one of the
+/// repository `custom` that was removed.
+async fn catalog_test(
+    stack: &Stack,
+    n: u128,
+    technique: &str,
+    name: &str,
+    platforms: &[&str],
+    executor: &str,
+    custom_removed: bool,
+) {
+    let (repository, removed) = if custom_removed {
+        ("custom", true)
+    } else {
+        ("atomic-red-team", false)
+    };
+    sqlx::query(
+        "INSERT INTO svs.catalog_tests
+             (guid, repository, technique, technique_name, name, description, platforms, executor, test,
+              content_hash, commit, path, removed_at)
+         VALUES ($1, $2, $3, $3 || ' name', $4, $4 || ' does a thing', $5, $6,
+                 jsonb_build_object('name', $4, 'executor',
+                                    jsonb_build_object('name', $6, 'command', 'whoami')),
+                 repeat('0', 64), repeat('a', 40), 'atomics/' || $3 || '/' || $3 || '.yaml',
+                 CASE WHEN $7 THEN now() END)",
+    )
+    .bind(catalog_guid(n))
+    .bind(repository)
+    .bind(technique)
+    .bind(name)
+    .bind(platforms.iter().map(|p| (*p).to_owned()).collect::<Vec<_>>())
+    .bind(executor)
+    .bind(removed)
+    .execute(stack.test_db.db().pool())
+    .await
+    .expect("seeds a test");
+}
+
+fn catalog_guid(n: u128) -> Uuid {
+    Uuid::from_u128((n << 96) | 0x0000_4000_8000_0000_0000_0000)
+}
+
+/// The catalog's routes (PLAN.md 7.10 batch 4): ace3's `tests/aceapi_v2/svs/test_catalog.py`, but its
+/// state and run history, which wait for batches 5 and 8. Everything reads with `svs:run_read` alone
+/// (`test_permissions`).
+async fn svs_catalog(client: &mut Client<'_>) {
+    use Method as M;
+    use StatusCode as S;
+    let stack = client.stack;
+    let reader = key(stack, &["svs:run_read"]).await;
+    let t = Some(reader.as_str());
+    let windows: &[&str] = &["windows"];
+    catalog_test(
+        stack,
+        1,
+        "T1059.001",
+        "PowerShell download",
+        windows,
+        "powershell",
+        false,
+    )
+    .await;
+    catalog_test(
+        stack,
+        2,
+        "T1059",
+        "Command interpreter",
+        &["linux", "macos"],
+        "sh",
+        false,
+    )
+    .await;
+    catalog_test(
+        stack,
+        3,
+        "T1003",
+        "Dump credentials",
+        windows,
+        "powershell",
+        false,
+    )
+    .await;
+    catalog_test(
+        stack,
+        4,
+        "T1059.003",
+        "Batch file",
+        windows,
+        "command_prompt",
+        true,
+    )
+    .await;
+    catalog_test(
+        stack,
+        5,
+        "T10590",
+        "Not a sub-technique of T1059",
+        windows,
+        "powershell",
+        false,
+    )
+    .await;
+    let numbers = |body: &Value| -> Vec<u128> {
+        body["tests"]
+            .as_array()
+            .expect("tests")
+            .iter()
+            .map(|t| {
+                t["guid"]
+                    .as_str()
+                    .expect("a guid")
+                    .parse::<Uuid>()
+                    .expect("a uuid")
+                    .as_u128()
+                    >> 96
+            })
+            .collect()
+    };
+
+    // test_ordered_by_technique_then_name, and what a test carries
+    let all = client
+        .json(
+            M::GET,
+            CATALOG_TESTS,
+            CATALOG_TESTS,
+            t,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(numbers(&all), [3, 2, 1, 4, 5]);
+    assert_eq!(all["next"], Value::Null);
+    let first = &all["tests"][1];
+    assert_eq!(
+        (
+            first["repository"].clone(),
+            first["technique"].clone(),
+            first["technique_name"].clone(),
+            first["name"].clone(),
+            first["platforms"].clone(),
+            first["executor"].clone(),
+            first["path"].clone(),
+            first["commit"].clone(),
+            first["removed_at"].clone()
+        ),
+        (
+            json!("atomic-red-team"),
+            json!("T1059"),
+            json!("T1059 name"),
+            json!("Command interpreter"),
+            json!(["linux", "macos"]),
+            json!("sh"),
+            json!("atomics/T1059/T1059.yaml"),
+            json!("a".repeat(40)),
+            Value::Null
+        )
+    );
+    assert!(first["first_seen_at"].is_string() && first["updated_at"].is_string());
+    assert!(first.get("description").is_none() && first.get("entry").is_none());
+    assert!(all["tests"][3]["removed_at"].is_string());
+
+    // test_filters: a technique also finds its sub-techniques, and nothing that only shares its prefix
+    for (query, expected) in [
+        ("?f=technique%3AT1059", vec![2, 1, 4]),
+        ("?f=technique%3At1059.001", vec![1]),
+        ("?f=!technique%3AT1059", vec![3, 5]),
+        ("?f=platform%3Alinux", vec![2]),
+        ("?f=executor%3Ash%2Ccommand_prompt", vec![2, 4]),
+        ("?f=name%3Adownload", vec![1]),
+        ("?f=repository%3Acustom", vec![4]),
+        ("?f=removed%3Atrue", vec![4]),
+        ("?f=removed%3Afalse&f=technique%3AT1059", vec![2, 1]),
+        ("?changed_since=2999-01-01T00%3A00%3A00Z", vec![]),
+        (
+            "?changed_since=2000-01-01T00%3A00%3A00Z&limit=1000",
+            vec![3, 2, 1, 4, 5],
+        ),
+    ] {
+        let body = client
+            .json(
+                M::GET,
+                CATALOG_TESTS,
+                &format!("{CATALOG_TESTS}{query}"),
+                t,
+                Send::Nothing,
+                S::OK,
+            )
+            .await;
+        assert_eq!(numbers(&body), expected, "{query}");
+    }
+
+    // test_pages
+    let mut pages = Vec::new();
+    let mut cursor = String::new();
+    loop {
+        let body = client
+            .json(
+                M::GET,
+                CATALOG_TESTS,
+                &format!("{CATALOG_TESTS}?limit=2{cursor}"),
+                t,
+                Send::Nothing,
+                S::OK,
+            )
+            .await;
+        pages.push(numbers(&body));
+        match body["next"].as_str() {
+            Some(next) => cursor = format!("&cursor={next}"),
+            None => break,
+        }
+    }
+    assert_eq!(pages, [vec![3, 2], vec![1, 4], vec![5]]);
+
+    // test_a_bad_filter_is_422, here 400, with the other parameters that aren't one
+    for query in [
+        "?f=technique%3Amimikatz",
+        "?f=nonsense%3Ax",
+        "?f=removed%3Amaybe",
+        "?changed_since=yesterday",
+        "?limit=0",
+        "?limit=1001",
+        "?cursor=zz",
+        "?cursor=a&cursor=b",
+    ] {
+        let refused = client
+            .json(
+                M::GET,
+                CATALOG_TESTS,
+                &format!("{CATALOG_TESTS}{query}"),
+                t,
+                Send::Nothing,
+                S::BAD_REQUEST,
+            )
+            .await;
+        assert!(refused["error"].is_string(), "{query}: {refused}");
+    }
+
+    // test_exports: the list's rows as NDJSON, and as CSV with the platforms joined
+    let response = client
+        .call(
+            M::GET,
+            CATALOG_TESTS_NDJSON,
+            &format!("{CATALOG_TESTS_NDJSON}?f=technique%3AT1059&f=removed%3Afalse"),
+            t,
+            Send::Nothing,
+        )
+        .await;
+    assert_eq!(response.status(), S::OK);
+    assert_eq!(response.headers()["content-type"], "application/x-ndjson");
+    let lines: Vec<Value> = response
+        .text()
+        .await
+        .expect("a body")
+        .lines()
+        .map(|l| serde_json::from_str(l).expect("a line"))
+        .collect();
+    assert_eq!(
+        lines
+            .iter()
+            .map(|l| l["guid"].as_str().unwrap().to_owned())
+            .collect::<Vec<_>>(),
+        [catalog_guid(2).to_string(), catalog_guid(1).to_string()]
+    );
+    assert_eq!(lines[0]["platforms"], json!(["linux", "macos"]));
+    let response = client
+        .call(
+            M::GET,
+            CATALOG_TESTS_CSV,
+            &format!("{CATALOG_TESTS_CSV}?f=technique%3AT1059&f=removed%3Afalse"),
+            t,
+            Send::Nothing,
+        )
+        .await;
+    assert_eq!(response.status(), S::OK);
+    let csv = response.text().await.expect("a body");
+    let mut rows = csv.lines();
+    assert_eq!(
+        rows.next(),
+        Some(
+            "guid,repository,technique,technique_name,name,platforms,executor,path,commit,content_hash,\
+             first_seen_at,removed_at,updated_at"
+        )
+    );
+    let row = rows.next().expect("a row");
+    assert!(
+        row.starts_with(&format!(
+            "{},atomic-red-team,T1059,T1059 name,Command interpreter,\"linux,macos\",sh,atomics/T1059/T1059.yaml,",
+            catalog_guid(2)
+        )),
+        "{row}"
+    );
+    assert_eq!(csv.lines().count(), 3);
+    for route in [CATALOG_TESTS_CSV, CATALOG_TESTS_NDJSON] {
+        // five tests are more than the test's export holds
+        client
+            .json(M::GET, route, route, t, Send::Nothing, S::PAYLOAD_TOO_LARGE)
+            .await;
+        client
+            .json(
+                M::GET,
+                route,
+                &format!("{route}?f=technique%3Amimikatz"),
+                t,
+                Send::Nothing,
+                S::BAD_REQUEST,
+            )
+            .await;
+    }
+
+    // test_detail: a guid in any case; one that isn't a uuid; one the catalog doesn't have
+    let one = CATALOG_TEST.replace("{guid}", &catalog_guid(1).to_string().to_uppercase());
+    let detail = client
+        .json(M::GET, CATALOG_TEST, &one, t, Send::Nothing, S::OK)
+        .await;
+    assert_eq!(
+        (
+            detail["guid"].clone(),
+            detail["name"].clone(),
+            detail["technique"].clone(),
+            detail["description"].clone(),
+            detail["platforms"].clone(),
+            detail["platform_slugs"].clone(),
+            detail["removed_at"].clone()
+        ),
+        (
+            json!(catalog_guid(1)),
+            json!("PowerShell download"),
+            json!("T1059.001"),
+            json!("PowerShell download does a thing"),
+            json!(["windows"]),
+            json!(["windows"]),
+            Value::Null
+        )
+    );
+    assert_eq!(detail["entry"]["executor"]["command"], "whoami");
+    let refused = client
+        .json(
+            M::GET,
+            CATALOG_TEST,
+            &CATALOG_TEST.replace("{guid}", "not-a-guid"),
+            t,
+            Send::Nothing,
+            S::BAD_REQUEST,
+        )
+        .await;
+    assert_eq!(refused["error"], "invalid test guid \"not-a-guid\"");
+    client
+        .json(
+            M::GET,
+            CATALOG_TEST,
+            &CATALOG_TEST.replace("{guid}", &catalog_guid(99).to_string()),
+            t,
+            Send::Nothing,
+            S::NOT_FOUND,
+        )
+        .await;
+
+    // test_repositories: every repository of the overlay and every one with a row, by name; a URL
+    // never shows its credentials
+    sqlx::query(
+        "INSERT INTO svs.catalog_repositories (name, commit, refreshed_at, test_count, skipped_count)
+         VALUES ('art', repeat('c', 40), '2026-10-20T08:30:00Z', 1700, 2),
+                ('dropped', repeat('d', 40), '2026-10-01T00:00:00Z', 0, 0)",
+    )
+    .execute(stack.test_db.db().pool())
+    .await
+    .expect("seeds the repositories");
+    sqlx::query("UPDATE svs.catalog_repositories SET error = $1 WHERE name = 'dropped'")
+        .bind(ace_core::svs::catalog::RETIRED_ERROR)
+        .execute(stack.test_db.db().pool())
+        .await
+        .expect("retires one");
+    let repositories = client
+        .json(
+            M::GET,
+            CATALOG_REPOSITORIES,
+            CATALOG_REPOSITORIES,
+            t,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(
+        repositories,
+        json!([
+            {"name": "art", "configured": true,
+             "git_url": "https://git.invalid/redcanaryco/atomic-red-team.git", "branch": "master",
+             "commit": "c".repeat(40), "refreshed_at": "2026-10-20T08:30:00Z", "test_count": 1700,
+             "skipped_count": 2, "removed_count": 0, "error": null, "retired": false},
+            {"name": "dropped", "configured": false, "git_url": null, "branch": null,
+             "commit": "d".repeat(40), "refreshed_at": "2026-10-01T00:00:00Z", "test_count": 0,
+             "skipped_count": 0, "removed_count": 0, "error": null, "retired": true},
+            {"name": "unread", "configured": true, "git_url": "/nowhere", "branch": "main",
+             "commit": null, "refreshed_at": null, "test_count": 0, "skipped_count": 0,
+             "removed_count": 0, "error": null, "retired": false},
+        ])
+    );
+
+    // test_permissions: another permission reads none of it
+    let other = key(stack, &["signature:read", "svs:validate", "svs:admin"]).await;
+    for (route, path) in [
+        (CATALOG_TESTS, CATALOG_TESTS.to_owned()),
+        (CATALOG_TESTS_CSV, CATALOG_TESTS_CSV.to_owned()),
+        (CATALOG_TESTS_NDJSON, CATALOG_TESTS_NDJSON.to_owned()),
+        (CATALOG_TEST, one.clone()),
+        (CATALOG_REPOSITORIES, CATALOG_REPOSITORIES.to_owned()),
+    ] {
+        let refused = client
+            .json(
+                M::GET,
+                route,
+                &path,
+                Some(&other),
+                Send::Nothing,
+                S::FORBIDDEN,
+            )
+            .await;
+        assert_eq!(refused["error"], "this needs svs:run_read", "{route}");
+    }
+}
+
 async fn svs_validations(client: &mut Client<'_>, token: &str) {
     use Method as M;
     use StatusCode as S;

@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT DISTINCT repository FROM svs.catalog_tests\n         WHERE removed_at IS NULL AND NOT repository = ANY ($1)\n         ORDER BY repository",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "repository",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.catalog_tests",
+            "name": "repository"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "TextArray"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "8f0b6e1f748e185dceacc94071b3cced127a3dee6d55d2e3ddba3fef95b471e9"
+}

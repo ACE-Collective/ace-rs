@@ -1,5 +1,6 @@
 //! test_svs_cli.py's cases for `ace svs yara validate`, `layout` and `prune`, and the parts of the report
-//! the replay's tests don't reach.
+//! the replay's tests don't reach; then its catalog refresh and test_catalog.py's cases of `ace svs catalog`
+//! (PLAN.md 7.10 batch 4), and `ace svs attack extract`.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::future::Future;
@@ -426,4 +427,333 @@ fn the_report_says_a_ruleset_would_not_load() {
     let text = report(&result);
     assert!(text.contains("  the ruleset would not load, so production keeps its previous rules: duplicate rule `one`\n"), "{text}");
     assert!(text.contains("nothing was compared: a ruleset would not load\n"));
+}
+
+// ---- `ace svs catalog` and `ace svs attack` (PLAN.md 7.10 batch 4) ----
+
+const ART: &str = "art_unittest";
+const ART_GUID: &str = "aaaaaaaa-1111-4111-8111-111111111111";
+const T1003: &str = "atomics/T1003/T1003.yaml";
+
+/// An atomic file of T1003 with one test, and one more with no guid when `no_guid`.
+fn atomics(no_guid: bool) -> String {
+    let test = |name: &str, guid: &str| {
+        format!(
+            "- name: {name}\n{guid}  supported_platforms: [windows]\n  executor: {{name: powershell, command: whoami}}\n"
+        )
+    };
+    let mut text = format!(
+        "attack_technique: T1003\ndisplay_name: OS Credential Dumping\natomic_tests:\n{}",
+        test("Dump", &format!("  auto_generated_guid: {ART_GUID}\n"))
+    );
+    if no_guid {
+        text.push_str(&test("No guid", ""));
+    }
+    text
+}
+
+/// A catalog repository as a bare origin with a working clone, and the settings of a catalog that lists
+/// the repositories `listed`, each by its name and URL.
+struct ArtRepo {
+    repo: ace_core::testing::rule_repo::RuleRepo,
+    tmp: tempfile::TempDir,
+}
+
+fn art_repo() -> ArtRepo {
+    let tmp = tempfile::tempdir().expect("a directory");
+    let repo = ace_core::testing::rule_repo::RuleRepo::new(&tmp.path().join("art"));
+    ArtRepo { repo, tmp }
+}
+
+impl ArtRepo {
+    fn url(&self) -> String {
+        self.repo.origin.to_string_lossy().into_owned()
+    }
+
+    fn config(&self, listed: &[(&str, String)]) -> ace_core::svs::catalog::CatalogConfig {
+        let section = ace_sdk::SvsCatalogSection {
+            repositories: listed
+                .iter()
+                .map(|(name, url)| {
+                    (
+                        (*name).to_owned(),
+                        ace_sdk::SvsCatalogRepository {
+                            url: url.clone(),
+                            branch: "main".to_owned(),
+                            ssh_key: None,
+                        },
+                    )
+                })
+                .collect(),
+            mirror_dir: Some(self.tmp.path().join("mirrors")),
+            ..ace_sdk::SvsCatalogSection::default()
+        };
+        ace_core::svs::catalog::CatalogConfig::from_section(&section).expect("valid settings")
+    }
+}
+
+fn catalog_service(
+    db: &Db,
+    config: &ace_core::svs::catalog::CatalogConfig,
+) -> ace_service::Service {
+    ace_service::Service::new(
+        db.clone(),
+        ace_core::orchestrator::Orchestrator::new(
+            ace_core::eligibility::Catalog::new(vec![]),
+            ace_core::modes::Modes::ace3(),
+        ),
+    )
+    .with_catalog(config.clone())
+}
+
+/// test_svs_cli.py's `test_catalog_refresh_with_no_repositories`.
+#[tokio::test]
+async fn catalog_refresh_with_no_repositories() {
+    let test_db = TestDb::new().await;
+    let config = ace_core::svs::catalog::CatalogConfig::default();
+    let service = catalog_service(test_db.db(), &config);
+    assert_eq!(
+        catalog_refresh(&service, None, false)
+            .await
+            .expect("refreshes"),
+        ("svs.catalog.repositories is empty\n".to_owned(), 0)
+    );
+    assert_eq!(
+        catalog_status(test_db.db(), &config).await.expect("reads"),
+        ""
+    );
+}
+
+/// test_catalog.py's `test_cli_refresh_and_status`: a refresh says what it read and skipped, a second
+/// one that the commit was already read, and the status the repository's tests and commit.
+#[tokio::test]
+async fn cli_refresh_and_status() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let art = art_repo();
+    let commit = art.repo.commit(&[(T1003, &atomics(true))], "main");
+    let config = art.config(&[(ART, art.url())]);
+    let service = catalog_service(db, &config);
+
+    let (out, code) = catalog_refresh(&service, None, false)
+        .await
+        .expect("refreshes");
+    assert_eq!(code, 0);
+    assert_eq!(
+        out,
+        format!(
+            "{ART} @ {}: 1 tests (1 added, 0 changed, 0 removed, 1 skipped)\n  \
+             skipped {T1003} (No guid): no auto_generated_guid\n",
+            &commit[..12]
+        )
+    );
+
+    let (out, code) = catalog_refresh(&service, Some(ART), false)
+        .await
+        .expect("refreshes");
+    assert_eq!(
+        (out, code),
+        (
+            format!(
+                "{ART} @ {}: already read (--force to read it again)\n",
+                &commit[..12]
+            ),
+            0
+        )
+    );
+    let (out, _) = catalog_refresh(&service, Some(ART), true)
+        .await
+        .expect("refreshes");
+    assert!(
+        out.starts_with(&format!(
+            "{ART} @ {}: 1 tests (0 added, 0 changed, 0 removed, 1 skipped)\n",
+            &commit[..12]
+        )),
+        "{out}"
+    );
+
+    let status = catalog_status(db, &config).await.expect("reads");
+    assert!(
+        status.starts_with(&format!("{ART}: 1 tests at {}, read 20", &commit[..12]))
+            && status.ends_with(" UTC, 1 skipped, 0 removed since\n"),
+        "{status}"
+    );
+}
+
+/// test_catalog.py's `test_cli_refresh_reports_a_retired_repository`.
+#[tokio::test]
+async fn cli_refresh_reports_a_retired_repository() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let art = art_repo();
+    let commit = art.repo.commit(&[(T1003, &atomics(false))], "main");
+    catalog_refresh(
+        &catalog_service(db, &art.config(&[(ART, art.url())])),
+        None,
+        false,
+    )
+    .await
+    .expect("refreshes");
+    let unlisted = art.config(&[]);
+
+    assert_eq!(
+        catalog_refresh(&catalog_service(db, &unlisted), None, false)
+            .await
+            .expect("refreshes"),
+        (
+            format!("{ART}: no longer in svs.catalog.repositories, 1 tests removed\n"),
+            0
+        )
+    );
+    let status = catalog_status(db, &unlisted).await.expect("reads");
+    assert!(
+        status.starts_with(&format!(
+            "{ART} ({}): 0 tests at {}",
+            ace_core::svs::catalog::RETIRED_ERROR,
+            &commit[..12]
+        )),
+        "{status}"
+    );
+    assert!(
+        status.ends_with(", 0 skipped, 1 removed since\n"),
+        "{status}"
+    );
+}
+
+/// test_catalog.py's `test_cli_refresh_reports_an_error`: a repository that can't be read fails the
+/// command, and the status says it was never read, with the error. ace3's repository has no `git_repo_*`
+/// section; here it has nothing to fetch from.
+#[tokio::test]
+async fn cli_refresh_reports_an_error() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let art = art_repo();
+    art.repo.commit(&[(T1003, &atomics(false))], "main");
+    let missing = art
+        .tmp
+        .path()
+        .join("missing")
+        .to_string_lossy()
+        .into_owned();
+    let config = art.config(&[(ART, art.url()), ("nowhere", missing.clone())]);
+    let service = catalog_service(db, &config);
+
+    let (out, code) = catalog_refresh(&service, None, false)
+        .await
+        .expect("refreshes");
+    assert_eq!(code, 1);
+    let lines: Vec<&str> = out.lines().collect();
+    assert!(
+        lines[0].starts_with(&format!("{ART} @ ")) && lines[0].contains(": 1 tests (1 added"),
+        "{out}"
+    );
+    assert!(
+        lines[1].starts_with("nowhere: unable to fetch main of repository nowhere"),
+        "{out}"
+    );
+    assert!(!out.contains(&missing), "the URL isn't shown: {out}");
+
+    let status = catalog_status(db, &config).await.expect("reads");
+    assert!(
+        status.contains(
+            "\nnowhere: never read; last error: unable to fetch main of repository nowhere"
+        ),
+        "{status}"
+    );
+    // a repository the overlay doesn't list, asked for by name
+    let (out, code) = catalog_refresh(&service, Some("elsewhere"), false)
+        .await
+        .expect("refreshes");
+    assert_eq!(
+        (out.as_str(), code),
+        (
+            "elsewhere: elsewhere is not in svs.catalog.repositories\n",
+            1
+        )
+    );
+    let status = catalog_status(db, &config).await.expect("reads");
+    assert!(
+        status.contains(
+            "elsewhere (no longer in svs.catalog.repositories): never read; last error: elsewhere is not"
+        ),
+        "{status}"
+    );
+}
+
+/// `ace svs attack extract`, ace3's `bin/update-attack-catalog`: the extract of a bundle is written as
+/// `<release>.json` in the output directory, whole or not at all, with a line saying what it holds; a
+/// bundle of another release writes nothing.
+#[test]
+fn attack_extract_writes_the_extract() {
+    let tmp = tempfile::tempdir().expect("a directory");
+    let bundle = tmp.path().join("bundle.json");
+    let reference = |id: &str| json!([{"source_name": "mitre-attack", "external_id": id}]);
+    std::fs::write(
+        &bundle,
+        json!({"type": "bundle", "objects": [
+            {"type": "x-mitre-collection", "name": "Enterprise ATT&CK", "x_mitre_version": "99.0"},
+            {"type": "x-mitre-tactic", "id": "tactic--1", "name": "Execution",
+             "x_mitre_shortname": "execution", "external_references": reference("TA0002")},
+            {"type": "x-mitre-matrix", "tactic_refs": ["tactic--1"]},
+            {"type": "attack-pattern", "id": "ap--1", "name": "Command and Scripting Interpreter",
+             "external_references": reference("T1059"), "x_mitre_platforms": ["Windows"],
+             "kill_chain_phases": [{"kill_chain_name": "mitre-attack", "phase_name": "execution"}]},
+            {"type": "attack-pattern", "id": "ap--2", "name": "Gone", "revoked": true,
+             "external_references": reference("T1064")},
+            {"type": "relationship", "relationship_type": "revoked-by", "source_ref": "ap--2",
+             "target_ref": "ap--1"},
+        ]})
+        .to_string(),
+    )
+    .expect("writes the bundle");
+    let out_dir = tmp.path().join("out").join("attack");
+    let args = |release: &str| AttackExtractArgs {
+        release: release.to_owned(),
+        input: bundle.clone(),
+        previous: None,
+        output_dir: out_dir.clone(),
+    };
+
+    let said = attack_extract(&args("99")).expect("builds");
+    let path = out_dir.join("v99.0.json");
+    assert_eq!(
+        said,
+        format!(
+            "wrote {}: 1 techniques, 1 tactics, 1 revoked, 0 renamed\n",
+            path.display()
+        )
+    );
+    let text = std::fs::read_to_string(&path).expect("the extract");
+    let catalog =
+        ace_core::svs::attack::AttackCatalog::load(&text, "v99.0.json").expect("it loads");
+    assert_eq!(catalog.release, "v99.0");
+    assert_eq!(catalog.resolve("T1064").expect("an id").technique, "T1059");
+    let source: serde_json::Value = serde_json::from_str(&text).expect("JSON");
+    assert!(
+        source["source"]["url"]
+            .as_str()
+            .is_some_and(|url| url.ends_with("/enterprise-attack-99.0.json")),
+        "{source}"
+    );
+    // only the extract is left in the directory
+    let names: Vec<String> = std::fs::read_dir(&out_dir)
+        .expect("lists")
+        .map(|e| {
+            e.expect("an entry")
+                .file_name()
+                .to_string_lossy()
+                .into_owned()
+        })
+        .collect();
+    assert_eq!(names, ["v99.0.json"]);
+
+    let error = attack_extract(&args("v98.0")).expect_err("another release");
+    assert!(
+        error
+            .to_string()
+            .contains("the bundle is ATT&CK Enterprise ATT&CK 99.0, not v98.0"),
+        "{error}"
+    );
+    assert!(!out_dir.join("v98.0.json").exists());
+    assert!(attack_extract(&args("latest")).is_err());
 }

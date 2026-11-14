@@ -47,10 +47,12 @@
 //! checks both when it starts; a pool doesn't read them.
 //!
 //! `svs:` is ace3's section of that name, holding the keys of SVS that are ported (PLAN.md 7.10): so far
-//! `log_search_url`, which `ace serve` checks when it starts, and `yara`, YARA validation's (batch 3), with
-//! the keys of ace3's `service_svs` section that its workers read. Every process that reads the overlay
-//! refuses a `yara` whose lease its heartbeat can't keep, as every ace3 process refuses that
-//! `service_svs`.
+//! `log_search_url`, which `ace serve` checks when it starts, `yara`, YARA validation's (batch 3), with
+//! the keys of ace3's `service_svs` section that its workers read, and batch 4's `attack_release`, `catalog`
+//! (the Atomic Red Team repositories whose tests runs may be registered for) and the keys of `runs` that
+//! a run's windows read. Every process that reads the overlay refuses a `yara` whose lease its heartbeat
+//! can't keep, as every ace3 process refuses that `service_svs`, and a `catalog` or `runs` whose values
+//! can't be used.
 //!
 //! `alert_routers:` is ace3's section of that name (PLAN.md 7.13, `ace_service::routing`): each router, by its
 //! name, with its `type`, `priority` and `settings`. `ace serve` builds and checks them when it starts.
@@ -133,7 +135,7 @@ pub struct AlertRouterSection {
 
 /// ace3's `svs:` section. Each batch of 7.10 adds the keys its part reads; one this build doesn't have is
 /// refused, as ace3's schema refuses an unknown key.
-#[derive(Debug, Clone, Default, PartialEq, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(deny_unknown_fields, default)]
 pub struct SvsSection {
     /// A link to the site's log search for one run, shown on the run's page; ACE never queries it.
@@ -143,6 +145,249 @@ pub struct SvsSection {
     pub log_search_url: Option<String>,
     /// YARA validation (batch 3): ace3's `svs.yara`, with `service_svs`'s keys.
     pub yara: SvsYaraSection,
+    /// The ATT&CK release coverage uses for technique and tactic names, sub-technique parents, platforms
+    /// and revoked techniques (batch 4): ace3's `svs.attack_release`, `v20.0` by default. It names an
+    /// extract built into the binary (`ace_core::svs::attack`); `ace serve` refuses one it doesn't have.
+    pub attack_release: String,
+    /// The Atomic Red Team test catalog (batch 4): ace3's `svs.catalog`.
+    pub catalog: SvsCatalogSection,
+    /// Test runs: the keys of ace3's `svs.runs` that a run's windows read (batch 4). Batch 5 adds the rest.
+    pub runs: SvsRunsSection,
+}
+
+impl Default for SvsSection {
+    fn default() -> Self {
+        SvsSection {
+            log_search_url: None,
+            yara: SvsYaraSection::default(),
+            attack_release: "v20.0".to_owned(),
+            catalog: SvsCatalogSection::default(),
+            runs: SvsRunsSection::default(),
+        }
+    }
+}
+
+impl SvsSection {
+    /// Refuses values SVS can't run with, saying which key. Every process that reads the overlay checks it.
+    pub fn check(&self) -> Result<(), (String, String)> {
+        self.yara
+            .check()
+            .map_err(|message| ("svs.yara".to_owned(), message))?;
+        if !is_attack_release_name(&self.attack_release) {
+            return Err((
+                "svs.attack_release".to_owned(),
+                format!(
+                    "{:?} is not an ATT&CK release name (for example v20.0)",
+                    self.attack_release
+                ),
+            ));
+        }
+        self.catalog
+            .check()
+            .map_err(|message| ("svs.catalog".to_owned(), message))?;
+        self.runs
+            .check()
+            .map_err(|message| ("svs.runs".to_owned(), message))
+    }
+}
+
+/// How an ATT&CK release is named: `v20.0`, ace3's `RELEASE_RE` (`^v\d+\.\d+$`, ASCII digits).
+pub fn is_attack_release_name(value: &str) -> bool {
+    let Some((major, minor)) = value.strip_prefix('v').and_then(|v| v.split_once('.')) else {
+        return false;
+    };
+    let digits = |part: &str| !part.is_empty() && part.bytes().all(|b| b.is_ascii_digit());
+    digits(major) && digits(minor)
+}
+
+/// ace3's `svs.catalog` (PLAN.md 7.10 batch 4): the Atomic Red Team repositories whose
+/// `atomics/T*/T*.yaml` make up the test catalog (`ace_core::svs::catalog`).
+///
+/// What differs from ace3's:
+/// - A repository is named here with its URL and branch, as `svs.yara`'s are, where ace3 names a
+///   `git_repo_*` section whose checkout `service_git` keeps: ace4 has no such sections. The catalog reads a
+///   commit from SVS's own mirror of the repository, never a working tree.
+/// - ace3's `refresh_interval_seconds` is the schedule of the scheduler's `svs_catalog_refresh`
+///   (`scheduler:` in this file), every five minutes by default as ace3's 300 seconds.
+/// - What one refresh reads is bounded (`max_files`, `max_file_bytes`, `max_total_bytes`, `max_tests`),
+///   where ace3 bounds only a file's size.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields, default)]
+pub struct SvsCatalogSection {
+    /// The catalog's repositories, by the name a test's `repository` gives.
+    pub repositories: BTreeMap<String, SvsCatalogRepository>,
+    /// How long fetching a repository into its mirror may take (the first fetch clones it), and reading a
+    /// commit's atomic files from it.
+    pub fetch_timeout_seconds: u64,
+    /// Where SVS keeps its own bare clone of each catalog repository. The system's temporary directory by
+    /// default.
+    pub mirror_dir: Option<std::path::PathBuf>,
+    /// The most atomic files (`atomics/T*/T*.yaml`) one commit may hold. A commit with more fails its
+    /// refresh, and the catalog keeps the tests of the commit it last read.
+    pub max_files: u64,
+    /// The largest atomic file read, in bytes: ace3's 10 MiB. A larger one is skipped and counted.
+    pub max_file_bytes: u64,
+    /// The most bytes of atomic files one refresh reads; more fails the refresh.
+    pub max_total_bytes: u64,
+    /// The most tests one commit may define; more fails the refresh.
+    pub max_tests: u64,
+}
+
+impl Default for SvsCatalogSection {
+    fn default() -> Self {
+        SvsCatalogSection {
+            repositories: BTreeMap::new(),
+            fetch_timeout_seconds: 600,
+            mirror_dir: None,
+            max_files: 10_000,
+            max_file_bytes: 10 << 20,
+            max_total_bytes: 256 << 20,
+            max_tests: 100_000,
+        }
+    }
+}
+
+/// One Atomic Red Team repository the catalog reads.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SvsCatalogRepository {
+    /// What the mirror fetches: a URL or a path git can fetch from. A credential in it is never shown.
+    pub url: String,
+    /// The branch whose newest commit the catalog reflects.
+    pub branch: String,
+    /// The SSH private key the mirror fetches with: the name of a secret in the overlay's `secrets:`, as
+    /// `svs.yara`'s repositories name theirs. None by default.
+    #[serde(default)]
+    pub ssh_key: Option<String>,
+}
+
+impl SvsCatalogSection {
+    /// Refuses values the refresh can't run with.
+    pub fn check(&self) -> Result<(), String> {
+        for (key, value) in [
+            ("fetch_timeout_seconds", self.fetch_timeout_seconds),
+            ("max_files", self.max_files),
+            ("max_file_bytes", self.max_file_bytes),
+            ("max_total_bytes", self.max_total_bytes),
+            ("max_tests", self.max_tests),
+        ] {
+            if value == 0 {
+                return Err(format!("{key} must be at least 1"));
+            }
+        }
+        if let Some(dir) = &self.mirror_dir
+            && !dir.is_absolute()
+        {
+            return Err(format!(
+                "mirror_dir ({}) must be an absolute path",
+                dir.display()
+            ));
+        }
+        for (name, repository) in &self.repositories {
+            check_repository(
+                name,
+                &repository.url,
+                &repository.branch,
+                &repository.ssh_key,
+            )?;
+        }
+        Ok(())
+    }
+}
+
+/// The keys of ace3's `svs.runs` that a run's windows read (PLAN.md 7.10 batch 4,
+/// `ace_core::svs::windows`).
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields, default)]
+pub struct SvsRunsSection {
+    /// How long a started run waits for its alerts before it ends.
+    pub observation_window: SvsObservationWindow,
+    /// How much longer than the observation window alerts are still attributed to the run, as late.
+    pub attribution_extra_hours: u32,
+}
+
+impl Default for SvsRunsSection {
+    fn default() -> Self {
+        SvsRunsSection {
+            observation_window: SvsObservationWindow::default(),
+            attribution_extra_hours: 24,
+        }
+    }
+}
+
+/// ace3's `svs.runs.observation_window`: the worst-case latency of the signatures a run expects, plus
+/// slack, within a floor and a ceiling.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields, default)]
+pub struct SvsObservationWindow {
+    /// Added to the worst-case latency of the slowest expected signature.
+    pub slack_minutes: u32,
+    /// The shortest observation window.
+    pub floor_minutes: u32,
+    /// The longest observation window.
+    pub ceiling_hours: u32,
+}
+
+impl Default for SvsObservationWindow {
+    fn default() -> Self {
+        SvsObservationWindow {
+            slack_minutes: 30,
+            floor_minutes: 60,
+            ceiling_hours: 72,
+        }
+    }
+}
+
+impl SvsRunsSection {
+    /// Refuses a floor or ceiling of 0 and a floor above the ceiling, as ace3's schema does.
+    pub fn check(&self) -> Result<(), String> {
+        let window = &self.observation_window;
+        if window.floor_minutes == 0 {
+            return Err("observation_window.floor_minutes must be at least 1".to_owned());
+        }
+        if window.ceiling_hours == 0 {
+            return Err("observation_window.ceiling_hours must be at least 1".to_owned());
+        }
+        if u64::from(window.floor_minutes) > u64::from(window.ceiling_hours) * 60 {
+            return Err(format!(
+                "observation_window.floor_minutes ({}) must not exceed ceiling_hours ({}) in minutes",
+                window.floor_minutes, window.ceiling_hours
+            ));
+        }
+        Ok(())
+    }
+}
+
+/// What every repository SVS fetches is checked for: its name, URL, branch and `ssh_key`.
+fn check_repository(
+    name: &str,
+    url: &str,
+    branch: &str,
+    ssh_key: &Option<String>,
+) -> Result<(), String> {
+    let name_ok = !name.is_empty()
+        && name.len() <= 256
+        && name
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || matches!(c, '_' | '-' | '.'))
+        && !name.starts_with('.');
+    if !name_ok {
+        return Err(format!(
+            "repository name {name:?} must be letters, digits, '_', '-' and '.', not starting with '.'"
+        ));
+    }
+    if url.trim().is_empty() {
+        return Err(format!("repository {name}: url is empty"));
+    }
+    if branch.is_empty() || branch.starts_with('-') || branch.contains("..") {
+        return Err(format!(
+            "repository {name}: branch {branch:?} isn't a branch name"
+        ));
+    }
+    if ssh_key.as_deref() == Some("") {
+        return Err(format!("repository {name}: ssh_key is empty"));
+    }
+    Ok(())
 }
 
 /// ace3's `svs.yara` (YARA validation, PLAN.md 7.10 batch 3), with the keys of its `service_svs` section that
@@ -302,32 +547,12 @@ impl SvsYaraSection {
             ));
         }
         for (name, repository) in &self.repositories {
-            let name_ok = !name.is_empty()
-                && name.len() <= 256
-                && name
-                    .chars()
-                    .all(|c| c.is_ascii_alphanumeric() || matches!(c, '_' | '-' | '.'))
-                && !name.starts_with('.');
-            if !name_ok {
-                return Err(format!(
-                    "repository name {name:?} must be letters, digits, '_', '-' and '.', not starting with '.'"
-                ));
-            }
-            if repository.url.trim().is_empty() {
-                return Err(format!("repository {name}: url is empty"));
-            }
-            if repository.branch.is_empty()
-                || repository.branch.starts_with('-')
-                || repository.branch.contains("..")
-            {
-                return Err(format!(
-                    "repository {name}: branch {:?} isn't a branch name",
-                    repository.branch
-                ));
-            }
-            if repository.ssh_key.as_deref() == Some("") {
-                return Err(format!("repository {name}: ssh_key is empty"));
-            }
+            check_repository(
+                name,
+                &repository.url,
+                &repository.branch,
+                &repository.ssh_key,
+            )?;
             let dir = std::path::Path::new(&repository.signature_dir);
             if dir.is_absolute()
                 || dir
@@ -596,16 +821,27 @@ impl Overlay {
         overlay.disposition_order = disposition_order;
         overlay
             .svs
-            .yara
             .check()
-            .map_err(|message| parse_error("svs.yara".to_owned(), message))?;
+            .map_err(|(path, message)| parse_error(path, message))?;
         // a repository's ssh_key is a secret's name, and a name with no source is a mistake in this file
-        for (name, repository) in &overlay.svs.yara.repositories {
-            if let Some(secret) = &repository.ssh_key
+        let yara = overlay
+            .svs
+            .yara
+            .repositories
+            .iter()
+            .map(|(name, r)| ("yara", name, &r.ssh_key));
+        let catalog = overlay
+            .svs
+            .catalog
+            .repositories
+            .iter()
+            .map(|(name, r)| ("catalog", name, &r.ssh_key));
+        for (section, name, ssh_key) in yara.chain(catalog) {
+            if let Some(secret) = ssh_key
                 && !overlay.secrets.contains_key(secret)
             {
                 return Err(parse_error(
-                    format!("svs.yara.repositories.{name}.ssh_key"),
+                    format!("svs.{section}.repositories.{name}.ssh_key"),
                     format!("{secret:?} isn't a secret in secrets:"),
                 ));
             }
@@ -1066,6 +1302,114 @@ mod tests {
             super::tests::components("modules: {example_resolver: {instances: {Bad-Name: {}}}}")
                 .unwrap_err();
         assert!(matches!(err, OverlayError::BadName(_)), "{err}");
+    }
+
+    /// Batch 4's keys of `svs:` (PLAN.md 7.10): the defaults are ace3's, an unknown key is refused as ace3's
+    /// schema refuses one, and so are values the catalog and a run's windows can't use.
+    #[test]
+    fn the_svs_catalog_and_runs_keys_are_checked() {
+        let svs = Overlay::from_yaml("").expect("parses").svs;
+        assert_eq!(svs.attack_release, "v20.0");
+        assert!(svs.catalog.repositories.is_empty());
+        assert_eq!(
+            (
+                svs.catalog.max_files,
+                svs.catalog.max_file_bytes,
+                svs.catalog.max_total_bytes,
+                svs.catalog.max_tests,
+                svs.catalog.fetch_timeout_seconds
+            ),
+            (10_000, 10 << 20, 256 << 20, 100_000, 600)
+        );
+        let window = &svs.runs.observation_window;
+        assert_eq!(
+            (
+                window.slack_minutes,
+                window.floor_minutes,
+                window.ceiling_hours,
+                svs.runs.attribution_extra_hours
+            ),
+            (30, 60, 72, 24)
+        );
+        let overlay = Overlay::from_yaml(
+            "secrets: {art_key: env:ART_KEY}\n\
+             svs: {attack_release: v21.1, catalog: {repositories: {\n\
+               art: {url: 'https://forge.example/art.git', branch: master, ssh_key: art_key}}},\n\
+               runs: {observation_window: {floor_minutes: 5, slack_minutes: 0}}}\n",
+        )
+        .expect("parses");
+        assert_eq!(overlay.svs.attack_release, "v21.1");
+        assert_eq!(overlay.svs.catalog.repositories["art"].branch, "master");
+        assert_eq!(overlay.svs.runs.observation_window.floor_minutes, 5);
+        for (yaml, at, said) in [
+            (
+                "svs: {attack_release: ../v20.0}",
+                "svs.attack_release",
+                "is not an ATT&CK release name",
+            ),
+            (
+                "svs: {attack_release: v20}",
+                "svs.attack_release",
+                "is not an ATT&CK release name",
+            ),
+            (
+                "svs: {catalog: {refresh_interval_seconds: 300}}",
+                "svs.catalog",
+                "unknown field",
+            ),
+            (
+                "svs: {catalog: {max_files: 0}}",
+                "svs.catalog",
+                "max_files must be at least 1",
+            ),
+            (
+                "svs: {catalog: {mirror_dir: relative/dir}}",
+                "svs.catalog",
+                "must be an absolute path",
+            ),
+            (
+                "svs: {catalog: {repositories: {'.hidden': {url: /x, branch: main}}}}",
+                "svs.catalog",
+                "repository name",
+            ),
+            (
+                "svs: {catalog: {repositories: {r: {url: /x, branch: '-x'}}}}",
+                "svs.catalog",
+                "isn't a branch name",
+            ),
+            (
+                "svs: {catalog: {repositories: {r: {url: /x, branch: main, ssh_key: art_key}}}}",
+                "svs.catalog.repositories.r.ssh_key",
+                "\"art_key\" isn't a secret in secrets:",
+            ),
+            (
+                "svs: {runs: {observation_window: {floor_minutes: 0}}}",
+                "svs.runs",
+                "floor_minutes must be at least 1",
+            ),
+            (
+                "svs: {runs: {observation_window: {floor_minutes: 121, ceiling_hours: 2}}}",
+                "svs.runs",
+                "must not exceed ceiling_hours",
+            ),
+            (
+                "svs: {runs: {max_targets: 16}}",
+                "svs.runs",
+                "unknown field",
+            ),
+        ] {
+            let err = Overlay::from_yaml(yaml).expect_err(yaml);
+            assert!(
+                matches!(&err, OverlayError::Parse { path, message } if path.starts_with(at) && message.contains(said)),
+                "{yaml}: {err:?}"
+            );
+        }
+        assert!(is_attack_release_name("v20.0") && is_attack_release_name("v1.10"));
+        for bad in [
+            "20.0", "v20", "v.1", "v1.", "v1.0.0", "v1.x", "V1.0", "v1.0\n",
+        ] {
+            assert!(!is_attack_release_name(bad), "{bad:?}");
+        }
     }
 
     /// A repository's `ssh_key` is the name of a secret this file gives a source for (PLAN.md 7.10).

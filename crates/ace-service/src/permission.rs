@@ -326,6 +326,10 @@ pub const SVS_VALIDATE: PermissionName = PermissionName::known("svs", "validate"
 /// Remove the finished YARA validations past their retention, as ace3's `ace svs yara prune` does. ace3
 /// has no such permission. Only the scheduler's `scheduler:svs_validations_prune` holds it.
 pub const SVS_VALIDATION_PRUNE: PermissionName = PermissionName::known("svs", "validation_prune");
+/// Read the Atomic Red Team catalog's repositories into the catalog, as ace3's `service_svs` and
+/// `ace svs catalog refresh` do. ace3 has no such permission. Only the scheduler's
+/// `scheduler:svs_catalog_refresh` holds it.
+pub const SVS_CATALOG_REFRESH: PermissionName = PermissionName::known("svs", "catalog_refresh");
 /// See users, groups, grants and keys: ace3's `user:read`.
 pub const USER_READ: PermissionName = PermissionName::known("user", "read");
 /// Change users, groups and grants: ace3's `user:write`.
@@ -497,7 +501,8 @@ pub static CATALOG: &[CatalogEntry] = &[
     },
     CatalogEntry {
         name: SVS_RUN_READ,
-        description: "Read the SVS test hosts.",
+        description: "Read the SVS test hosts, the Atomic Red Team tests runs may be registered for, and the \
+                      catalog's repositories.",
     },
     CatalogEntry {
         name: SVS_VALIDATE,
@@ -508,6 +513,11 @@ pub static CATALOG: &[CatalogEntry] = &[
         name: SVS_VALIDATION_PRUNE,
         description: "Remove the finished SVS YARA validations past their retention, with their reports. The \
                       scheduler holds it.",
+    },
+    CatalogEntry {
+        name: SVS_CATALOG_REFRESH,
+        description: "Read the SVS catalog repositories' tests into the catalog (audited). The scheduler \
+                      holds it.",
     },
     CatalogEntry {
         name: USER_READ,

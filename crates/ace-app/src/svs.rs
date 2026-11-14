@@ -7,9 +7,18 @@
 //! YARA pool loads. `yara prune` removes the validations older than `svs.yara.retention_days`, as the
 //! scheduler's `svs_validations_prune` does daily, acting as that task's component.
 //!
+//! `catalog refresh` reads the tests of each Atomic Red Team repository in `svs.catalog.repositories` whose
+//! commit changed, as the scheduler's `svs_catalog_refresh` does every five minutes, acting as that task's
+//! component; `catalog status` prints each repository's commit, test count and last error (batch 4,
+//! `ace_core::svs::catalog`). Their lines are ace3's.
+//!
+//! `attack extract` builds the ATT&CK extract of a release from MITRE's enterprise STIX bundle, for a
+//! developer to vendor: ace3's `bin/update-attack-catalog` (`ace_core::svs::attack::extract`). It reads no
+//! configuration and reaches nothing: the bundle is a file the developer downloaded.
+//!
 //! What differs from ace3: ace3's prune skips a node that isn't the primary one unless given `--force`; ace4
-//! has no primary node (every replica shares the queue), so there's no `--force`. ace3's catalog and
-//! coverage commands come with batches 4 and 8.
+//! has no primary node (every replica shares the queue), so there's no `--force`. ace3's coverage commands
+//! come with batch 8.
 
 use std::process::ExitCode;
 
@@ -38,6 +47,53 @@ pub enum SvsCommand {
     /// YARA rule validation.
     #[command(subcommand)]
     Yara(SvsYaraCommand),
+    /// The Atomic Red Team test catalog.
+    #[command(subcommand)]
+    Catalog(SvsCatalogCommand),
+    /// The ATT&CK release coverage is computed against.
+    #[command(subcommand)]
+    Attack(SvsAttackCommand),
+}
+
+#[derive(Subcommand)]
+pub enum SvsCatalogCommand {
+    /// Read the tests of each catalog repository whose commit changed (the scheduler does this on its
+    /// own).
+    Refresh(CatalogRefreshArgs),
+    /// Print each catalog repository's commit and test count.
+    Status,
+}
+
+#[derive(Args)]
+pub struct CatalogRefreshArgs {
+    /// Only this repository (one of svs.catalog.repositories).
+    #[arg(long)]
+    pub repository: Option<String>,
+    /// Read the tests even if the commit did not change.
+    #[arg(long)]
+    pub force: bool,
+}
+
+#[derive(Subcommand)]
+pub enum SvsAttackCommand {
+    /// Build the extract of an ATT&CK release from its enterprise STIX bundle, to vendor in
+    /// crates/ace-core/data/attack.
+    Extract(AttackExtractArgs),
+}
+
+#[derive(Args)]
+pub struct AttackExtractArgs {
+    /// The ATT&CK release, for example v20.0.
+    pub release: String,
+    /// The release's enterprise STIX bundle, downloaded from MITRE's attack-stix-data repository.
+    #[arg(long)]
+    pub input: std::path::PathBuf,
+    /// An earlier extract, to list the techniques renamed since.
+    #[arg(long)]
+    pub previous: Option<std::path::PathBuf>,
+    /// Where to write the extract.
+    #[arg(long, default_value = "crates/ace-core/data/attack")]
+    pub output_dir: std::path::PathBuf,
 }
 
 #[derive(Subcommand)]
@@ -411,8 +467,229 @@ pub(crate) fn with_ssh_keys(
     config.with_secrets(&secrets)
 }
 
+/// `ace svs catalog refresh`'s lines and exit code: ace3's `cli_catalog_refresh`.
+pub fn catalog_refresh_report(results: &[ace_service::CatalogRefresh]) -> (String, u8) {
+    let mut out = String::new();
+    if results.is_empty() {
+        put!(out, "svs.catalog.repositories is empty");
+        return (out, 0);
+    }
+    let mut status = 0;
+    for result in results {
+        let repository = &result.repository;
+        if let Some(error) = &result.error {
+            put!(out, "{repository}: {error}");
+            status = 1;
+        } else if result.retired {
+            put!(
+                out,
+                "{repository}: no longer in svs.catalog.repositories, {} tests removed",
+                result.removed
+            );
+        } else if result.refreshed {
+            put!(
+                out,
+                "{repository} @ {}: {} tests ({} added, {} changed, {} removed, {} skipped)",
+                short(result.commit.as_deref().unwrap_or("?")),
+                result.tests,
+                result.added,
+                result.changed,
+                result.removed,
+                result.skipped.len()
+            );
+            for skipped in &result.skipped {
+                let name = skipped
+                    .name
+                    .as_ref()
+                    .map_or(String::new(), |name| format!(" ({name})"));
+                put!(out, "  skipped {}{name}: {}", skipped.path, skipped.reason);
+            }
+        } else {
+            put!(
+                out,
+                "{repository} @ {}: already read (--force to read it again)",
+                short(result.commit.as_deref().unwrap_or("?"))
+            );
+        }
+    }
+    (out, status)
+}
+
+/// `ace svs catalog status`'s lines: ace3's `cli_catalog_status`.
+pub fn catalog_status_report(statuses: &[ace_service::CatalogRepository]) -> String {
+    let mut out = String::new();
+    for status in statuses {
+        let state = if status.retired {
+            format!(" ({})", ace_core::svs::catalog::RETIRED_ERROR)
+        } else if status.configured {
+            String::new()
+        } else {
+            " (no longer in svs.catalog.repositories)".to_owned()
+        };
+        let error = status
+            .error
+            .as_ref()
+            .map_or(String::new(), |error| format!("; last error: {error}"));
+        match status.refreshed_at {
+            None => put!(out, "{}{state}: never read{error}", status.name),
+            Some(refreshed_at) => put!(
+                out,
+                "{}{state}: {} tests at {}, read {}, {} skipped, {} removed since{error}",
+                status.name,
+                status.test_count,
+                short(status.commit.as_deref().unwrap_or("?")),
+                refreshed_at.format("%Y-%m-%d %H:%M:%S UTC"),
+                status.skipped_count,
+                status.removed_count
+            ),
+        }
+    }
+    out
+}
+
+/// The component the catalog's refresh acts as, from the scheduler or this command.
+fn catalog_actor() -> Result<ace_service::Actor> {
+    Ok(ace_service::Actor::Internal {
+        id: ace_service::Component::new("scheduler:svs_catalog_refresh")
+            .map_err(anyhow::Error::msg)?,
+    })
+}
+
+/// `ace svs catalog refresh` over `service`: its lines and its exit code.
+pub async fn catalog_refresh(
+    service: &ace_service::Service,
+    repository: Option<&str>,
+    force: bool,
+) -> Result<(String, u8)> {
+    let results = service
+        .refresh_svs_catalog(&catalog_actor()?, repository, force)
+        .await?;
+    Ok(catalog_refresh_report(&results))
+}
+
+/// `ace svs catalog status`'s lines, read as an operator reads them: with the database's own credentials,
+/// not through the service, as the command holds no user's permission.
+pub async fn catalog_status(
+    db: &Db,
+    config: &ace_core::svs::catalog::CatalogConfig,
+) -> Result<String> {
+    let mut conn = db.pool().acquire().await.context("a connection")?;
+    let statuses = ace_core::svs::catalog::repository_status(&mut conn, config).await?;
+    Ok(catalog_status_report(&statuses))
+}
+
+/// The catalog's settings with the SSH keys their repositories name, as `with_ssh_keys` reads
+/// validation's.
+pub(crate) fn catalog_with_ssh_keys(
+    config: ace_core::svs::catalog::CatalogConfig,
+    overlay: &ace_sdk::Overlay,
+) -> ace_core::svs::catalog::CatalogConfig {
+    let names = config.secret_names();
+    if names.is_empty() {
+        return config;
+    }
+    let secrets = ace_pool::secrets::resolve_names(
+        "svs catalog",
+        &names,
+        overlay,
+        &ace_pool::secrets::process_env,
+    );
+    config.with_secrets(&secrets)
+}
+
+/// `ace svs attack extract`: writes `<output_dir>/<release>.json` and returns its summary line, with what
+/// the build warned about before it.
+pub fn attack_extract(args: &AttackExtractArgs) -> Result<String> {
+    use ace_core::svs::attack::extract;
+    let release = extract::parse_release(&args.release).map_err(anyhow::Error::msg)?;
+    let bundle =
+        std::fs::read(&args.input).with_context(|| format!("reading {}", args.input.display()))?;
+    let previous = match &args.previous {
+        Some(path) => Some(
+            serde_json::from_slice::<serde_json::Value>(
+                &std::fs::read(path).with_context(|| format!("reading {}", path.display()))?,
+            )
+            .with_context(|| format!("{} isn't an extract", path.display()))?,
+        ),
+        None => None,
+    };
+    let built = extract::build(
+        &bundle,
+        &release,
+        &extract::source_url(&release),
+        previous.as_ref(),
+    )
+    .map_err(anyhow::Error::msg)?;
+    let path = args.output_dir.join(format!("{release}.json"));
+    std::fs::create_dir_all(&args.output_dir)
+        .with_context(|| format!("making {}", args.output_dir.display()))?;
+    // written beside it and renamed, so a failed write leaves no half of an extract
+    let mut temp = tempfile::NamedTempFile::new_in(&args.output_dir)
+        .with_context(|| format!("writing in {}", args.output_dir.display()))?;
+    std::io::Write::write_all(&mut temp, extract::render(&built.extract).as_bytes())
+        .context("writing the extract")?;
+    temp.persist(&path)
+        .with_context(|| format!("writing {}", path.display()))?;
+    let count = |key: &str| built.extract[key].as_object().map_or(0, |o| o.len());
+    let mut out = String::new();
+    for warning in &built.warnings {
+        put!(out, "warning: {warning}");
+    }
+    put!(
+        out,
+        "wrote {}: {} techniques, {} tactics, {} revoked, {} renamed",
+        path.display(),
+        count("techniques"),
+        built.extract["tactics"].as_array().map_or(0, Vec::len),
+        count("revoked"),
+        count("renamed")
+    );
+    Ok(out)
+}
+
+fn run_catalog(command: SvsCatalogCommand) -> Result<ExitCode> {
+    let overlay = crate::cli::overlay()?;
+    let config = ace_core::svs::catalog::CatalogConfig::from_section(&overlay.svs.catalog)
+        .map_err(anyhow::Error::msg)
+        .context("the overlay's svs.catalog section")?;
+    let config = catalog_with_ssh_keys(config, &overlay);
+    let runtime = tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()
+        .context("starting the runtime")?;
+    runtime.block_on(async {
+        let db = Db::connect(&DbConfig::from_env("ace")?)
+            .await
+            .context("connecting to Postgres")?;
+        match command {
+            SvsCatalogCommand::Status => {
+                print!("{}", catalog_status(&db, &config).await?);
+                Ok(ExitCode::SUCCESS)
+            }
+            SvsCatalogCommand::Refresh(args) => {
+                let orchestrator = ace_core::orchestrator::Orchestrator::new(
+                    ace_core::eligibility::Catalog::new(vec![]),
+                    ace_core::modes::Modes::ace3(),
+                );
+                let service = ace_service::Service::new(db, orchestrator).with_catalog(config);
+                let (out, code) =
+                    catalog_refresh(&service, args.repository.as_deref(), args.force).await?;
+                print!("{out}");
+                Ok(ExitCode::from(code))
+            }
+        }
+    })
+}
+
 pub fn run(_app: &crate::App, command: SvsCommand) -> Result<ExitCode> {
-    let SvsCommand::Yara(command) = command;
+    let command = match command {
+        SvsCommand::Yara(command) => command,
+        SvsCommand::Catalog(command) => return run_catalog(command),
+        SvsCommand::Attack(SvsAttackCommand::Extract(args)) => {
+            print!("{}", attack_extract(&args)?);
+            return Ok(ExitCode::SUCCESS);
+        }
+    };
     let overlay = crate::cli::overlay()?;
     let config = ValidationConfig::from_section(&overlay.svs.yara)
         .map_err(anyhow::Error::msg)

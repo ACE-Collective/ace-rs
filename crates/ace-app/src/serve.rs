@@ -141,6 +141,18 @@ async fn serve(app: &App) -> Result<ExitCode> {
     for (name, repository) in &validation.repositories {
         tracing::info!(repository = name, branch = %repository.branch, "svs validates this repository");
     }
+    // the Atomic Red Team catalog and the ATT&CK release (PLAN.md 7.10 batch 4): a release this build has
+    // no extract of stops startup, as ace3's config refuses one whose file is missing
+    ace_core::svs::attack::attack_catalog(&overlay.svs.attack_release)
+        .map_err(anyhow::Error::msg)
+        .context("the overlay's svs.attack_release")?;
+    let catalog = ace_core::svs::catalog::CatalogConfig::from_section(&overlay.svs.catalog)
+        .map_err(anyhow::Error::msg)
+        .context("the overlay's svs.catalog section")?;
+    let catalog = crate::svs::catalog_with_ssh_keys(catalog, &overlay);
+    for (name, repository) in &catalog.repositories {
+        tracing::info!(repository = name, branch = %repository.branch, "svs reads its test catalog from this repository");
+    }
     // alert routing (PLAN.md 7.13): the built-in router, the binary's and the overlay's
     let routers = app
         .alert_routers(&overlay)
@@ -172,6 +184,7 @@ async fn serve(app: &App) -> Result<ExitCode> {
         // the GUI's deletion of an SVS sample purges its bytes (PLAN.md 7.10)
         .with_bucket(bucket.clone())
         .with_validation(validation.clone())
+        .with_catalog(catalog)
         .with_routers(routers);
     // each scan runs in this binary again, contained (`ace yara replay --contained`)
     let validators = (!validation.repositories.is_empty())

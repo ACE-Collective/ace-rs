@@ -6,6 +6,9 @@ samples/** -text
 tools/ace3/dumps/fixtures/** -text
 # dhash's test images are hashed by their exact bytes, and a few truncated PNGs look like text.
 crates/ace-dhash/tests/data/** -text
+# The ATT&CK extracts are kept byte for byte as they were built, and a test compares them with what the
+# builder writes.
+crates/ace-core/data/** -text
 # Vendored crates are kept byte for byte as upstream ships them, CRLF line endings included.
 vendor/** -text
 # sqlx's offline query data, written by `cargo sqlx prepare --workspace` and checked in CI. GitHub

@@ -482,6 +482,182 @@ async fn svs_validations_prune_removes_old_validations() {
     assert_eq!(audit.3["validations"], json!([uuids[0]]));
 }
 
+/// A catalog repository for the refresh's tests: a bare origin with a working clone, and a file of one
+/// test in it.
+fn art_repository(root: &std::path::Path) -> ace_core::testing::rule_repo::RuleRepo {
+    let repo = ace_core::testing::rule_repo::RuleRepo::new(root);
+    repo.commit(
+        &[(
+            "atomics/T1003/T1003.yaml",
+            "attack_technique: T1003\ndisplay_name: OS Credential Dumping\natomic_tests:\n\
+             - name: Dump\n  auto_generated_guid: aaaaaaaa-1111-4111-8111-111111111111\n  \
+             supported_platforms: [windows]\n  executor: {name: powershell, command: whoami}\n",
+        )],
+        "main",
+    );
+    repo
+}
+
+fn art_catalog(
+    mirrors: &std::path::Path,
+    repositories: &[(&str, String)],
+) -> ace_core::svs::catalog::CatalogConfig {
+    let section = ace_sdk::SvsCatalogSection {
+        repositories: repositories
+            .iter()
+            .map(|(name, url)| {
+                (
+                    (*name).to_owned(),
+                    ace_sdk::SvsCatalogRepository {
+                        url: url.clone(),
+                        branch: "main".to_owned(),
+                        ssh_key: None,
+                    },
+                )
+            })
+            .collect(),
+        mirror_dir: Some(mirrors.to_path_buf()),
+        ..ace_sdk::SvsCatalogSection::default()
+    };
+    ace_core::svs::catalog::CatalogConfig::from_section(&section).expect("valid settings")
+}
+
+async fn catalog_guids(db: &Db) -> Vec<(String, String)> {
+    sqlx::query_as(
+        "SELECT repository, guid::text FROM svs.catalog_tests WHERE removed_at IS NULL ORDER BY 1, 2",
+    )
+    .fetch_all(db.pool())
+    .await
+    .expect("reads")
+}
+
+/// test_catalog.py's `test_the_service_refreshes_the_catalog` (PLAN.md 7.10 batch 4): ace3's
+/// `service_svs` refreshes the catalog every `svs.catalog.refresh_interval_seconds`; here the scheduler's
+/// `svs_catalog_refresh` does, every five minutes, and its store has its audit row as the task's
+/// component.
+#[tokio::test]
+async fn svs_catalog_refresh_reads_the_catalog() {
+    let mut fixture = Fixture::new().await;
+    let tmp = tempfile::tempdir().expect("a directory");
+    let repo = art_repository(&tmp.path().join("art"));
+    fixture.service = fixture.service.clone().with_catalog(art_catalog(
+        &tmp.path().join("mirrors"),
+        &[("art", repo.origin.to_string_lossy().into_owned())],
+    ));
+    let db = fixture.db();
+    let task = builtin("svs_catalog_refresh");
+    make_due(db, &task).await;
+
+    let run = run_once(&fixture, vec![task], "svs_catalog_refresh").await;
+
+    assert_eq!(run.outcome.as_deref(), Some("succeeded"), "{run:?}");
+    assert_eq!(
+        run.summary,
+        Some(json!({
+            "repositories": 1, "refreshed": 1, "retired": 0, "failed": 0,
+            "added": 1, "changed": 0, "removed": 0,
+        }))
+    );
+    assert_eq!(
+        catalog_guids(db).await,
+        [(
+            "art".to_owned(),
+            "aaaaaaaa-1111-4111-8111-111111111111".to_owned()
+        )]
+    );
+    let audit: (serde_json::Value, String, String, String) =
+        sqlx::query_as("SELECT actor::jsonb, action, target_kind, target_id FROM service.audit")
+            .fetch_one(db.pool())
+            .await
+            .expect("one audit row");
+    assert_eq!(
+        (
+            audit.0,
+            audit.1.as_str(),
+            audit.2.as_str(),
+            audit.3.as_str()
+        ),
+        (
+            json!({"kind": "internal", "id": "scheduler:svs_catalog_refresh"}),
+            "store_svs_catalog",
+            "svs_catalog_repository",
+            "art"
+        )
+    );
+}
+
+/// test_catalog.py's `test_the_refresher_runs_until_stopped_and_survives_a_failure`: a run in which a
+/// repository can't be read fails, saying which, with the other repository still read; the task stays
+/// scheduled, and its next run reads the repository once it can be.
+#[tokio::test]
+async fn svs_catalog_refresh_survives_a_failure() {
+    let mut fixture = Fixture::new().await;
+    let tmp = tempfile::tempdir().expect("a directory");
+    let repo = art_repository(&tmp.path().join("art"));
+    let late = tmp.path().join("late");
+    fixture.service = fixture.service.clone().with_catalog(art_catalog(
+        &tmp.path().join("mirrors"),
+        &[
+            ("art", repo.origin.to_string_lossy().into_owned()),
+            ("late", late.join("origin").to_string_lossy().into_owned()),
+        ],
+    ));
+    let db = fixture.db();
+    let task = builtin("svs_catalog_refresh");
+    make_due(db, &task).await;
+    let stop = CancellationToken::new();
+    let running = tokio::spawn(
+        fixture
+            .scheduler(vec![task.clone()], "test/1")
+            .run(stop.clone()),
+    );
+
+    let runs = ended_runs(db, "svs_catalog_refresh", 1).await;
+    assert_eq!(runs[0].outcome.as_deref(), Some("failed"), "{runs:?}");
+    let error = runs[0].error.clone().expect("an error");
+    assert!(
+        error.starts_with("late: unable to fetch main of repository late"),
+        "{error}"
+    );
+    assert_eq!(runs[0].summary.as_ref().expect("a summary")["refreshed"], 1);
+    assert_eq!(catalog_guids(db).await.len(), 1, "the other was read");
+
+    // the repository appears; the task's next run reads it
+    ace_core::testing::rule_repo::RuleRepo::new(&late).commit(
+        &[(
+            "atomics/T1105/T1105.yaml",
+            "attack_technique: T1105\natomic_tests:\n- name: Copy\n  \
+             auto_generated_guid: cccccccc-3333-4333-8333-333333333333\n",
+        )],
+        "main",
+    );
+    make_due(db, &task).await;
+    let runs = ended_runs(db, "svs_catalog_refresh", 2).await;
+    stop.cancel();
+    running.await.expect("the scheduler stops");
+    assert_eq!(runs[0].outcome.as_deref(), Some("succeeded"), "{runs:?}");
+    assert_eq!(
+        runs[0].summary,
+        Some(json!({
+            "repositories": 2, "refreshed": 1, "retired": 0, "failed": 0,
+            "added": 1, "changed": 0, "removed": 0,
+        }))
+    );
+    assert_eq!(
+        catalog_guids(db).await,
+        [
+            (
+                "art".to_owned(),
+                "aaaaaaaa-1111-4111-8111-111111111111".to_owned()
+            ),
+            (
+                "late".to_owned(),
+                "cccccccc-3333-4333-8333-333333333333".to_owned()
+            ),
+        ]
+    );
+}
+
 /// The partitions of an email archive table, by name, the catchall's left out.
 async fn archive_weeks(db: &Db, table: &str) -> Vec<String> {
     sqlx::query_scalar(
@@ -1039,6 +1215,7 @@ fn the_overlay_s_scheduler_section_sets_each_task_over_its_defaults() {
             ("email_archive_partitions", "0 5 * * *", 3600, true),
             ("file_collection_prune", "0 5 * * *", 3600, true),
             ("svs_validations_prune", "0 5 * * *", 3600, true),
+            ("svs_catalog_refresh", "*/5 * * * *", 1500, true),
             ("nrd_refresh", "*/30 * * * *", 1500, true),
         ]
     );
@@ -1053,6 +1230,7 @@ fn the_overlay_s_scheduler_section_sets_each_task_over_its_defaults() {
             "internal:scheduler:email_archive_partitions",
             "internal:scheduler:file_collection_prune",
             "internal:scheduler:svs_validations_prune",
+            "internal:scheduler:svs_catalog_refresh",
             "internal:scheduler:nrd_refresh",
         ]
     );
@@ -1074,7 +1252,7 @@ fn the_overlay_s_scheduler_section_sets_each_task_over_its_defaults() {
         "scheduler:\n  bucket_gc:\n    schedule: '*/15 * * * *'\n    timeout_seconds: 600\n  \
          bucket_verify:\n    enabled: false\n  cas_node_stats:\n    enabled: true\n",
     );
-    assert_eq!(set.len(), 8, "the removed task is skipped");
+    assert_eq!(set.len(), 9, "the removed task is skipped");
     assert_eq!(
         (
             set[0].schedule.as_str(),

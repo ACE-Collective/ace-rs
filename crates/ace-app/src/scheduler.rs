@@ -18,6 +18,7 @@
 //! | `email_archive_partitions` | `daily/partitions`, `ace partitions maintain`, its email archive half (PLAN.md 7.5 batch 9) | `0 5 * * *` | 1 h | `scheduler:email_archive_partitions`, `email_archive:maintain` |
 //! | `file_collection_prune` | `daily/file-collection-prune`, `ace file-collection prune` (PLAN.md 7.9) | `0 5 * * *` | 1 h | `scheduler:file_collection_prune`, `file_collection:prune` |
 //! | `svs_validations_prune` | `daily/svs-validations-prune`, `ace svs yara prune` (PLAN.md 7.10 batch 3) | `0 5 * * *` | 1 h | `scheduler:svs_validations_prune`, `svs:validation_prune` |
+//! | `svs_catalog_refresh` | `service_svs`'s catalog refresher, every `svs.catalog.refresh_interval_seconds` (300), `ace svs catalog refresh` (PLAN.md 7.10 batch 4) | `*/5 * * * *` | 25 min | `scheduler:svs_catalog_refresh`, `svs:catalog_refresh` |
 //! | `nrd_refresh` | `etc/cron.yaml`'s `nrd-refresh`, `ace nrd refresh` | `*/30 * * * *` | 25 min | `scheduler:nrd_refresh`, `nrd:refresh` |
 //!
 //! The rest, and a site's one, wait for the step that brings what they maintain, or mean nothing in
@@ -280,6 +281,45 @@ impl Task {
                             .await
                             .map_err(|e| e.to_string())?;
                         Ok(Done::ok(summary(&done)))
+                    })
+                },
+            ),
+            Task::new(
+                "svs_catalog_refresh",
+                "*/5 * * * *",
+                Duration::from_secs(25 * 60),
+                |ctx| {
+                    Box::pin(async move {
+                        let results = ctx
+                            .service
+                            .refresh_svs_catalog(&ctx.actor, None, false)
+                            .await
+                            .map_err(|e| e.to_string())?;
+                        // one repository's failure is on its row and in this run's error; the others
+                        // were still read
+                        let failed: Vec<String> = results
+                            .iter()
+                            .filter_map(|r| {
+                                r.error
+                                    .as_ref()
+                                    .map(|error| format!("{}: {error}", r.repository))
+                            })
+                            .collect();
+                        let count = |keep: fn(&ace_service::CatalogRefresh) -> bool| {
+                            results.iter().filter(|r| keep(r)).count()
+                        };
+                        Ok(Done {
+                            summary: json!({
+                                "repositories": count(|r| !r.retired),
+                                "refreshed": count(|r| r.refreshed),
+                                "retired": count(|r| r.retired && r.error.is_none()),
+                                "failed": failed.len(),
+                                "added": results.iter().map(|r| r.added).sum::<i64>(),
+                                "changed": results.iter().map(|r| r.changed).sum::<i64>(),
+                                "removed": results.iter().map(|r| r.removed).sum::<i64>(),
+                            }),
+                            error: (!failed.is_empty()).then(|| failed.join("; ")),
+                        })
                     })
                 },
             ),

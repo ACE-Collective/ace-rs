@@ -1,0 +1,25 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE svs.catalog_tests\n                         SET repository = $2, technique = $3, technique_name = $4, name = $5,\n                             description = $6, platforms = $7, executor = $8, test = $9,\n                             commit = CASE WHEN content_hash = $10 THEN commit ELSE $11 END,\n                             content_hash = $10, path = $12, removed_at = NULL\n                         WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "TextArray",
+        "Text",
+        "Jsonb",
+        "Text",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "5b44577160f5bb60a70154f9bfe4a171fb031fc39c399e8681c18b9a5bebcc96"
+}
