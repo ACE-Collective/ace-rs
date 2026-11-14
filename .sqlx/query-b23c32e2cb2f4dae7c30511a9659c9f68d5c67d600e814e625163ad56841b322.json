@@ -1,0 +1,160 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, signature_uuid, signature_family, signature_name, status, alert_count, late_only,\n                context_only, fallback_time, content_hash, suppressing_root_id, reviewed_status\n         FROM svs.run_results WHERE run_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "svs.run_results",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "signature_uuid",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.run_results",
+            "name": "signature_uuid"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "signature_family",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.run_results",
+            "name": "signature_family"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "signature_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.run_results",
+            "name": "signature_name"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "status",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.run_results",
+            "name": "status"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "alert_count",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "svs.run_results",
+            "name": "alert_count"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "late_only",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "svs.run_results",
+            "name": "late_only"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "context_only",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "svs.run_results",
+            "name": "context_only"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "fallback_time",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "svs.run_results",
+            "name": "fallback_time"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "content_hash",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.run_results",
+            "name": "content_hash"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "suppressing_root_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "svs.run_results",
+            "name": "suppressing_root_id"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "reviewed_status",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.run_results",
+            "name": "reviewed_status"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "b23c32e2cb2f4dae7c30511a9659c9f68d5c67d600e814e625163ad56841b322"
+}

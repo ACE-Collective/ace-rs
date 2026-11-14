@@ -19,7 +19,7 @@
 //! | `file_collection_prune` | `daily/file-collection-prune`, `ace file-collection prune` (PLAN.md 7.9) | `0 5 * * *` | 1 h | `scheduler:file_collection_prune`, `file_collection:prune` |
 //! | `svs_validations_prune` | `daily/svs-validations-prune`, `ace svs yara prune` (PLAN.md 7.10 batch 3) | `0 5 * * *` | 1 h | `scheduler:svs_validations_prune`, `svs:validation_prune` |
 //! | `svs_catalog_refresh` | `service_svs`'s catalog refresher, every `svs.catalog.refresh_interval_seconds` (300), `ace svs catalog refresh` (PLAN.md 7.10 batch 4) | `*/5 * * * *` | 25 min | `scheduler:svs_catalog_refresh`, `svs:catalog_refresh` |
-//! | `svs_run_timers` | `service_svs`'s run timer, every `svs.runs.timer_interval_seconds` (30), and its maintenance windows' expiry (PLAN.md 7.10 batch 5) | `* * * * *` | 10 min | `scheduler:svs_run_timers`, `svs:run_timers` |
+//! | `svs_run_timers` | `service_svs`'s run timer, every `svs.runs.timer_interval_seconds` (30), its maintenance windows' expiry, and the results of runs as they end and of those gone stale (PLAN.md 7.10 batch 5) | `* * * * *` | 10 min | `scheduler:svs_run_timers`, `svs:run_timers` |
 //! | `nrd_refresh` | `etc/cron.yaml`'s `nrd-refresh`, `ace nrd refresh` | `*/30 * * * *` | 25 min | `scheduler:nrd_refresh`, `nrd:refresh` |
 //!
 //! The rest, and a site's one, wait for the step that brings what they maintain, or mean nothing in

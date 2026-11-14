@@ -41,6 +41,48 @@ pub struct Manifest {
     /// field existed reads it as empty.
     #[serde(default)]
     pub qa_rules: Vec<QaRule>,
+    /// What SVS reads of each rule that has a `uuid` meta (PLAN.md 7.10 batch 5), in file order, the
+    /// first rule of a uuid: ace3's YARA signature inventory. A manifest written before this field
+    /// existed reads it as empty.
+    #[serde(default)]
+    pub signatures: Vec<RuleSignature>,
+}
+
+/// A rule with a `uuid` meta, as SVS's run results and coverage know it: ace3's inventory `Signature` of
+/// a YARA rule. The name and tags are text the rule's author wrote, so they're data to show, never
+/// markup.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RuleSignature {
+    /// Its `uuid` meta, trimmed: the `signature_uuid` of its detections.
+    pub uuid: String,
+    pub name: String,
+    /// The sha256 of the rule's own text (`crate::source`), which changes exactly when the rule does.
+    pub content_hash: String,
+    /// Its tags and its `mitre_attack` meta's techniques as `mitre:` tags, sorted, without repeats, as
+    /// ace3's `_rule_tags`.
+    pub tags: Vec<String>,
+    /// Its tags count toward coverage: it's enabled and not in QA mode.
+    pub counts: bool,
+}
+
+/// A rule's tags as ace3's inventory has them: its own, and each technique of its `mitre_attack` meta
+/// (comma separated) as a `mitre:` tag.
+fn signature_tags(rule: &crate::load::RuleInfo) -> Vec<String> {
+    let mut tags: std::collections::BTreeSet<String> = rule
+        .tags
+        .iter()
+        .map(|tag| tag.trim().to_owned())
+        .filter(|tag| !tag.is_empty())
+        .collect();
+    if let Some(value) = rule.meta.get("mitre_attack") {
+        for technique in value.python_str().split(',') {
+            let technique = technique.trim();
+            if !technique.is_empty() {
+                tags.insert(format!("mitre:{technique}"));
+            }
+        }
+    }
+    tags.into_iter().collect()
 }
 
 /// A rule in QA mode, with the meta that says what it is. Every field but `path` is text the
@@ -236,10 +278,40 @@ fn build_with(
     let mut files = Vec::new();
     let mut left_out = Vec::new();
     let mut qa_rules = Vec::new();
+    let mut signatures: Vec<RuleSignature> = Vec::new();
+    let mut signed = std::collections::BTreeSet::new();
     for report in &loaded.files {
         match &report.outcome {
             FileOutcome::Included { rules } => {
                 let path = relative(&report.path);
+                // each rule's own text, by its name: a file that can't be read again has none, and
+                // its rules are then left out of the signatures, never given another rule's hash
+                let hashes: std::collections::BTreeMap<String, String> =
+                    std::fs::read(&report.path)
+                        .map(|source| {
+                            crate::source::rules(&source)
+                                .into_iter()
+                                .map(|rule| (rule.name, rule.content_hash))
+                                .collect()
+                        })
+                        .unwrap_or_default();
+                for rule in rules {
+                    let Some(uuid) = rule.meta.uuid().filter(|uuid| !uuid.is_empty()) else {
+                        continue;
+                    };
+                    let Some(content_hash) = hashes.get(&rule.name) else {
+                        continue;
+                    };
+                    if signed.insert(uuid.clone()) {
+                        signatures.push(RuleSignature {
+                            uuid,
+                            name: rule.name.clone(),
+                            content_hash: content_hash.clone(),
+                            tags: signature_tags(rule),
+                            counts: rule.meta.enabled() && !rule.meta.is_qa(),
+                        });
+                    }
+                }
                 qa_rules.extend(rules.iter().filter(|r| r.meta.is_qa()).map(|r| QaRule {
                     namespace: r.namespace.clone(),
                     path: path.clone(),
@@ -270,6 +342,7 @@ fn build_with(
         files,
         left_out,
         qa_rules,
+        signatures,
     };
     Ok(Built {
         bytes,

@@ -81,6 +81,8 @@ pub struct Layout {
     pub admin: bool,
     /// Whether the viewer holds `signature:read`, for the link to the signatures area.
     pub signatures: bool,
+    /// Whether the viewer holds `svs:run_read`, for the link to the SVS area (PLAN.md 7.10 batch 5).
+    pub svs: bool,
     /// Whether the viewer holds `event:read`, for the link to the event list.
     pub events: bool,
     /// Whether the viewer holds `remediation:read` and `file_collection:read`, for the links to those
@@ -104,6 +106,7 @@ impl Layout {
             path: path.to_owned(),
             admin: false,
             signatures: false,
+            svs: false,
             events: false,
             remediations: false,
             file_collections: false,

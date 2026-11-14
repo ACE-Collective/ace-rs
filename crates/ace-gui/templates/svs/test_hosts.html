@@ -1,0 +1,39 @@
+{#- ace3's svs/test_hosts.html (PLAN.md 7.10 batch 5): the hosts runs may target, for svs:admin, and the
+    form that adds one (src/svs.rs). -#}
+{% extends "base.html" %}
+{% block title %}Test hosts · SVS · ACE{% endblock %}
+{% block content %}
+<section class="signatures detection svs-hosts">
+  {%- include "svs/tabs.html" %}
+  <p class="muted">The hosts test runs may target. A run registered against any other host, or as a user a host doesn't list, is refused and alerts. A host's platform, when set, is checked against the test's supported platforms.</p>
+  {%- if let Some(notice) = view.notice %}
+  <p class="notice" role="status">{{ notice }}</p>
+  {%- endif %}
+  <table class="keys">
+    <thead><tr><th>Host</th><th>FQDN</th><th>Platform</th><th title="empty: any user">Users</th><th>IP addresses</th><th>Notes</th><th title="UTC">Updated</th></tr></thead>
+    <tbody>
+      {%- for row in view.rows %}
+      <tr>
+        <td class="qa-text"><a href="{{ row.href }}">{{ row.hostname }}</a></td>
+        <td class="qa-text">{{ row.fqdn }}</td>
+        <td>{{ row.platform }}</td>
+        <td class="qa-text">{{ row.usernames }}</td>
+        <td class="qa-text">{{ row.ips }}</td>
+        <td class="qa-text">{{ row.notes }}</td>
+        <td class="nowrap">{{ row.updated }}</td>
+      </tr>
+      {%- else %}
+      <tr><td colspan="7" class="muted">No test hosts.</td></tr>
+      {%- endfor %}
+    </tbody>
+  </table>
+  {%- if view.first.is_some() || view.next.is_some() %}
+  <nav class="pager" aria-label="Pages">
+    {%- if let Some(first) = view.first %} <a href="{{ first }}">First</a>{% endif %}
+    {%- if let Some(next) = view.next %} <a href="{{ next }}" rel="next">Next</a>{% endif %}
+  </nav>
+  {%- endif %}
+  <h2>Add a test host</h2>
+  {%- include "svs/host_form.html" %}
+</section>
+{% endblock %}

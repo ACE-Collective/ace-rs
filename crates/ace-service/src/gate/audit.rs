@@ -187,6 +187,39 @@ impl Target {
         }
     }
 
+    /// A decision about a signature for an SVS test on a platform, by `<test>/<platform>/<signature>`
+    /// (PLAN.md 7.10 batch 5).
+    pub(crate) fn svs_expectation(key: &str) -> Self {
+        Target {
+            kind: "svs_expectation",
+            id: key.to_owned(),
+        }
+    }
+
+    /// An SVS ignore, by `<test>/<signature>` or `global/<signature>`.
+    pub(crate) fn svs_ignore(key: &str) -> Self {
+        Target {
+            kind: "svs_ignore",
+            id: key.to_owned(),
+        }
+    }
+
+    /// An SVS test's settings, by the test's guid.
+    pub(crate) fn svs_test_settings(test: Uuid) -> Self {
+        Target {
+            kind: "svs_test_settings",
+            id: test.to_string(),
+        }
+    }
+
+    /// A comment on an SVS test run, by its id.
+    pub(crate) fn svs_run_comment(id: i64) -> Self {
+        Target {
+            kind: "svs_run_comment",
+            id: id.to_string(),
+        }
+    }
+
     /// A maintenance window on an SVS test host, by its uuid.
     pub(crate) fn svs_maintenance_window(uuid: Uuid) -> Self {
         Target {

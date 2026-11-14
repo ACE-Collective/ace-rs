@@ -628,8 +628,8 @@ async fn svs_run_timers_move_runs() {
     assert_eq!(
         ran.summary,
         Some(json!({
-            "timed_out": 1, "ended": 0, "closed": 0, "expired_windows": 0, "pruned_refusals": 0,
-            "failed": 0,
+            "timed_out": 1, "ended": 0, "closed": 0, "expired_windows": 0, "results_computed": 0,
+            "pruned_refusals": 0, "failed": 0,
         }))
     );
     assert_eq!(run_state(db, run).await, "closed");

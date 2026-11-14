@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id FROM yara.rulesets\n         WHERE commit = $1 AND yara_x_version = $2 AND qa_rules IS NOT NULL",
+  "query": "SELECT id FROM svs.ignores\n             WHERE test_guid IS NOT DISTINCT FROM $1 AND signature_uuid = $2 FOR UPDATE",
   "describe": {
     "columns": [
       {
@@ -9,7 +9,7 @@
         "type_info": "Int8",
         "origin": {
           "Table": {
-            "table": "yara.rulesets",
+            "table": "svs.ignores",
             "name": "id"
           }
         }
@@ -17,7 +17,7 @@
     ],
     "parameters": {
       "Left": [
-        "Text",
+        "Uuid",
         "Text"
       ]
     },
@@ -25,5 +25,5 @@
       false
     ]
   },
-  "hash": "c2f38c4902df6ad72d3bf9d3293bed109091841543ac37ef156ee9c63e30faf8"
+  "hash": "07c163f7d4bf9f9b471f36fbd5c59cec92545d31036e161375a99c32bd081f58"
 }

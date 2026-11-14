@@ -10,9 +10,11 @@
 //!
 //! What differs from ace3's: ace3 reads the built-ins and the YARA rules from its signature inventory
 //! (`saq/signatures/`), which ace4 doesn't have, so both functions take what's known of each family from
-//! their caller. Batch 5's results give [`describe_signatures`] the built-ins and the ruleset's rules, and
-//! batch 8's coverage gives [`signature_techniques`] the rules' tags; the hunts are
-//! `super::windows`'s. The rules and their order of precedence are ace3's.
+//! their caller. A run's result (batch 5) gives [`describe_signatures`] the built-ins, which are ace3's
+//! table ([`BUILTINS`]), and the YARA rules of the ruleset the pools scan with
+//! (`yara.rulesets.signatures`, which the ruleset builder records); batch 8's coverage gives
+//! [`signature_techniques`] the same rules' tags; the hunts are `super::windows`'s. The rules and their
+//! order of precedence are ace3's.
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -61,6 +63,130 @@ pub struct KnownSignature {
     pub tags: Vec<String>,
     /// Whether its tags count toward coverage: enabled, and not in QA mode.
     pub counts: bool,
+}
+
+/// ACE's built-in signatures, the identities of its own detection logic: ace3's `BUILTIN_SIGNATURES`
+/// (`saq/signatures/builtin.py`), each its name, uuid and description. A module that raises one names its
+/// uuid itself; this table is what a run's result reads to name it.
+pub const BUILTINS: &[(&str, &str, &str)] = &[
+    (
+        "generic",
+        "87fe1a4a-0e60-4e3b-b712-da9d3db12fa7",
+        "ACE detection with no specific signature",
+    ),
+    (
+        "alertable_tag",
+        "14564014-a223-440a-914f-03a1f322e1bf",
+        "tag configured as alertable",
+    ),
+    (
+        "correlated_tag_match",
+        "6bf55f83-9ec0-4b64-88b4-63b237e010c4",
+        "correlated tag match",
+    ),
+    (
+        "observable_flagged_for_detection",
+        "97a0bcb8-1bde-4cf0-8fa2-72d6343c6458",
+        "observable flagged for detection",
+    ),
+    (
+        "archive_single_dangerous_file",
+        "de4bfc85-d827-4e60-a7e3-211b60ad61c8",
+        "archive holds a single exe/script/shortcut/JNLP/OneNote",
+    ),
+    (
+        "rtf_extracted_suspect_file",
+        "cb9764d5-049b-4b7e-bf40-cf7e9c618058",
+        "RTF-extracted file suspect ext/mime/type",
+    ),
+    (
+        "ole_extracted_suspect_file",
+        "827c5aab-9fa2-45d9-8c5e-a13cd1be9812",
+        "OLE attachment suspect type/ext/javascript",
+    ),
+    (
+        "vbs_hex_encoded_content",
+        "e46a6485-7ccd-4cba-8196-7540c5e7a1b9",
+        "VBS large hex strings / high hex %",
+    ),
+    (
+        "office_external_oleobject",
+        "6ee4fb89-87d9-4cf0-85ec-52f7760b9a1d",
+        "Office links external OLE object",
+    ),
+    (
+        "xlm_macro_url",
+        "3e719b5d-8063-4cd7-a72b-3d1cc8ead39c",
+        "URL inside an Excel 4.0 macro",
+    ),
+    (
+        "email_encrypted_attachment_decrypted",
+        "ef715326-081e-4ece-97ba-02817b5a28cd",
+        "decrypted email attachment (office/rar/zip)",
+    ),
+    (
+        "email_macro_new_sender",
+        "26fb96a4-6e20-48df-b826-a9c4a25b1965",
+        "macro from a new sender",
+    ),
+    (
+        "email_suspect_url_new_sender",
+        "11b42a94-e21a-4cd0-bdb6-8f278d20611d",
+        "suspect URL from a new sender",
+    ),
+    (
+        "cve_2021_30657_dmg_script",
+        "3ba358a3-b7ab-4475-a10a-f2a8070b455d",
+        "CVE-2021-30657 DMG script",
+    ),
+    (
+        "url_clicker",
+        "a764126b-443d-4991-a554-72d86125382d",
+        "user clicked a URL / visited a flagged domain (clicker detection)",
+    ),
+    (
+        "dhash_image_match",
+        "10d1e320-3b07-45f1-9bcf-078044643b7e",
+        "image dhash match",
+    ),
+    (
+        "svs_registration_refused",
+        super::REGISTRATION_REFUSED_SIGNATURE,
+        "SVS test run registered against a host that is not a test host",
+    ),
+    (
+        "svs_marker_mismatch",
+        super::MARKER_MISMATCH_SIGNATURE,
+        "SVS test run marker that does not match its run",
+    ),
+    (
+        "yara_rule_match",
+        "3557435e-da7f-4b1b-a5dd-655107839530",
+        "YARA rule match with no uuid meta",
+    ),
+    (
+        "legacy",
+        "3c649355-160e-405c-ad91-6916ab539849",
+        "detection point predating signature attribution",
+    ),
+];
+
+/// The built-ins as [`describe_signatures`] takes them, each with ace3's content hash of a built-in: the
+/// sha256 of its name, uuid and description, one a line (`saq/signatures/loaders/builtin.py`).
+pub fn builtin_signatures() -> Vec<KnownSignature> {
+    use sha2::{Digest, Sha256};
+    BUILTINS
+        .iter()
+        .map(|(name, uuid, description)| KnownSignature {
+            uuid: (*uuid).to_owned(),
+            name: (*name).to_owned(),
+            content_hash: hex::encode(Sha256::digest(
+                format!("{name}\n{uuid}\n{description}").as_bytes(),
+            )),
+            tags: Vec::new(),
+            counts: true,
+        })
+        .collect()
 }
 
 /// `(declared technique ids, ignored mitre: tags)` of a signature's tags, each sorted: ace3's
@@ -188,6 +314,34 @@ mod tests {
             tags: tags.iter().map(|t| (*t).to_owned()).collect(),
             counts,
         }
+    }
+
+    /// The built-ins are ace3's twenty, each uuid once, with ace3's hash of a built-in.
+    #[test]
+    fn the_built_ins_are_ace3_s() {
+        let builtins = builtin_signatures();
+        assert_eq!(builtins.len(), 20);
+        let uuids: BTreeSet<&str> = builtins.iter().map(|s| s.uuid.as_str()).collect();
+        assert_eq!(uuids.len(), 20);
+        let generic = builtins
+            .iter()
+            .find(|s| s.name == "generic")
+            .expect("generic");
+        // sha256("generic\n87fe1a4a-0e60-4e3b-b712-da9d3db12fa7\nACE detection with no specific signature")
+        assert_eq!(generic.uuid, crate::svs::results::GENERIC_SIGNATURE);
+        assert_eq!(
+            generic.content_hash,
+            "eaf82dc1ba6749316046f3167f39865ccba488586cf85370ccca031848c8664c"
+        );
+        for uuid in crate::svs::results::untracked_signatures() {
+            assert!(uuids.contains(uuid.as_str()), "{uuid} is a built-in");
+        }
+        let described =
+            describe_signatures([generic.uuid.as_str()], &builtins, &BTreeMap::new(), &[]);
+        assert_eq!(
+            described[&generic.uuid].family.as_deref(),
+            Some(FAMILY_BUILTIN)
+        );
     }
 
     /// A `mitre:` tag that names a technique is declared, upper-cased; one that doesn't (a tactic, a

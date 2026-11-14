@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT stale FROM svs.run_result_state WHERE run_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "stale",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "svs.run_result_state",
+            "name": "stale"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "c25131581934c1665720e6651b85fd234a41f8a43b86e8f54ed365caf4c03e58"
+}

@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO svs.test_settings\n                             (test_guid, observation_minutes, holds_host, set_by)\n                         VALUES ($1, $2, $3, $4::jsonb)\n                         ON CONFLICT (test_guid) DO UPDATE\n                         SET observation_minutes = EXCLUDED.observation_minutes,\n                             holds_host = EXCLUDED.holds_host, set_by = EXCLUDED.set_by",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Int4",
+        "Bool",
+        "Jsonb"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "7d4d32f36bf5f91e6bf8e44c5f7d6eb063d6f51d6e47e527aaca17f4ddb63c5a"
+}

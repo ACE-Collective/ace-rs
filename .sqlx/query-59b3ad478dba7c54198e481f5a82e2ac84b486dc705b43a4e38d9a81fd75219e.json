@@ -1,0 +1,119 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT e.id, r.uuid AS run, e.kind, e.from_state::text AS from_state,\n                                  e.to_state::text AS to_state, e.actor AS \"actor!: Value\", e.details,\n                                  e.created_at, e.updated_at\n                           FROM svs.run_events e\n                           JOIN svs.runs r ON r.id = e.run_id\n                           WHERE svs.run_matches(r, $1)\n                             AND ($2::timestamptz IS NULL OR e.updated_at >= $2)\n                             AND e.updated_at < now() - make_interval(secs => $3)\n                             AND ($4::bigint IS NULL\n                                  OR (e.updated_at, e.id) > ($5::timestamptz, $4))\n                           ORDER BY e.updated_at, e.id\n                           LIMIT $6",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "svs.run_events",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "run",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "svs.runs",
+            "name": "uuid"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "kind",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.run_events",
+            "name": "kind"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "from_state",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 4,
+        "name": "to_state",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 5,
+        "name": "actor!: Value",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "svs.run_events",
+            "name": "actor"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "details",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "svs.run_events",
+            "name": "details"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "svs.run_events",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "updated_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "svs.run_events",
+            "name": "updated_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Jsonb",
+        "Timestamptz",
+        "Float8",
+        "Int8",
+        "Timestamptz",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      null,
+      null,
+      false,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "59b3ad478dba7c54198e481f5a82e2ac84b486dc705b43a4e38d9a81fd75219e"
+}

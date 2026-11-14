@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT r.uuid FROM svs.run_result_state s\n                             JOIN svs.runs r ON r.id = s.run_id\n                             WHERE s.stale AND r.state IN ('ended', 'reviewed')\n                             ORDER BY s.run_id LIMIT $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "uuid",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "svs.runs",
+            "name": "uuid"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "c41eca4c3baca5589d34ab28549d8d0f5437d726916fbad5de7f012b995428a1"
+}

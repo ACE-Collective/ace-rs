@@ -5,10 +5,11 @@
 //!
 //! From ace3: a refused parameter or registration that can't be accepted as sent is 400 where ace3 answers
 //! 422; a failure's body is `{"error": ...}`, so a busy host's holders and a conflict's state are in its
-//! text, where ace3's detail is an object; and a run's detail doesn't yet carry its result's summary, its
-//! review's blockers or its owner, which part 5b and batch 7 bring. Part 5b brings the runs' list, feeds,
-//! exports, results, attributions, alerts, history and comments, the test hosts' `changed_since` paging and
-//! exports, and the `If-Match` preconditions; batch 7 a person's bulk actions, association and review.
+//! text, where ace3's detail is an object; and a run's detail doesn't yet carry its review's blockers,
+//! which batch 7 brings. Part 5b's reads are `svs_run_reads`: the runs' list, feeds, exports, results,
+//! history and comments. The test hosts page by name with `changed_since`, export, and take `If-Match` on
+//! a change. Batch 6 brings a run's attributions and alerts; batch 7 a person's bulk actions, association
+//! and review.
 
 use ace_core::svs::hosts::HostFields;
 use ace_service::{
@@ -118,13 +119,25 @@ pub(crate) struct RunExecutedBody {
 #[derive(Debug, Serialize, ToSchema)]
 pub(crate) struct RunTargetBody {
     /// As registered.
-    hostname: String,
-    username: Option<String>,
+    pub(crate) hostname: String,
+    pub(crate) username: Option<String>,
     /// The short host name, lower case.
     host: String,
     fqdn: Option<String>,
     /// The bare user name, lower case.
     user: Option<String>,
+}
+
+impl From<ace_service::RunTarget> for RunTargetBody {
+    fn from(target: ace_service::RunTarget) -> Self {
+        RunTargetBody {
+            hostname: target.hostname,
+            username: target.username,
+            host: target.host,
+            fqdn: target.fqdn,
+            user: target.user,
+        }
+    }
 }
 
 /// A run as the launcher's calls return it.
@@ -165,17 +178,7 @@ impl From<Run> for RunLifecycleBody {
             state: run.state.as_str().to_owned(),
             test_guid: run.test_guid,
             platform: run.platform,
-            targets: run
-                .targets
-                .into_iter()
-                .map(|target| RunTargetBody {
-                    hostname: target.hostname,
-                    username: target.username,
-                    host: target.host,
-                    fqdn: target.fqdn,
-                    user: target.user,
-                })
-                .collect(),
+            targets: run.targets.into_iter().map(Into::into).collect(),
             observation_seconds: run.observation_seconds,
             attribution_seconds: run.attribution_seconds,
             holds_host: run.holds_host,
@@ -215,12 +218,16 @@ pub(crate) struct RunDetailBody {
     canceled_at: Option<DateTime<Utc>>,
     closed_at: Option<DateTime<Utc>>,
     updated_at: DateTime<Utc>,
+    /// What the runs screen shows of it, and its log search.
+    #[serde(flatten)]
+    seen: crate::svs_run_reads::RunDetailSeenBody,
 }
 
-impl From<RunDetail> for RunDetailBody {
-    fn from(detail: RunDetail) -> Self {
+impl RunDetailBody {
+    fn of(detail: RunDetail, seen: crate::svs_run_reads::RunDetailSeenBody) -> Self {
         let run = detail.run;
         RunDetailBody {
+            seen,
             launcher: run.launcher.clone(),
             batch_id: run.batch_id.clone(),
             extra: run.extra.clone(),
@@ -614,7 +621,9 @@ pub(crate) async fn validate(
     Ok(Json(validation.into()))
 }
 
-/// One run, with what its launcher sent and what its test printed.
+/// One run, with what its launcher sent, what its test printed, and what the runs screen shows of it: its
+/// test's name, who owns and reviewed it, whether it needs attention, and its result's and alerts' summary.
+/// Its history is `GET .../events`.
 #[utoipa::path(
     get,
     path = "/api/svs/v1/runs/{run_id}",
@@ -634,7 +643,11 @@ pub(crate) async fn detail(
     path: Result<Path<String>, PathRejection>,
 ) -> Result<Json<RunDetailBody>, ApiError> {
     let uuid = run_id(path)?;
-    Ok(Json(web.service.svs_run(&actor, uuid).await?.into()))
+    let detail = web.service.svs_run(&actor, uuid).await?;
+    let row = web.service.svs_run_row(&actor, uuid).await?;
+    let log_search_url = web.service.svs_run_log_search_url(&detail.run, Utc::now());
+    let seen = crate::svs_run_reads::RunDetailSeenBody::of(&row, log_search_url);
+    Ok(Json(RunDetailBody::of(detail, seen)))
 }
 
 /// A run's event log, oldest first: its registration, each change of state with its reason, and each of
@@ -812,13 +825,79 @@ pub(crate) async fn cancel(
     Ok(Json(run.into()))
 }
 
-/// The test hosts, by host name.
+/// A page of test hosts.
+#[derive(Debug, Serialize, ToSchema)]
+pub(crate) struct TestHostPageBody {
+    hosts: Vec<TestHostBody>,
+    /// Pass it as `cursor` for the next page; null on the last.
+    next: Option<String>,
+}
+
+/// The test hosts' list's parameters.
+#[derive(Debug, IntoParams)]
+#[into_params(parameter_in = Query)]
+#[allow(dead_code)]
+pub(crate) struct TestHostsQuery {
+    /// Only test hosts added or changed at or after this time.
+    changed_since: Option<String>,
+    /// How many, 1 to 1000; 100 when left out.
+    limit: Option<u32>,
+    /// The `next` of the previous page.
+    cursor: Option<String>,
+}
+
+/// An export's parameters: the list's, with no paging.
+#[derive(Debug, IntoParams)]
+#[into_params(parameter_in = Query)]
+#[allow(dead_code)]
+pub(crate) struct TestHostsExportQuery {
+    /// Only test hosts added or changed at or after this time.
+    changed_since: Option<String>,
+}
+
+impl crate::export::ExportRow for TestHostBody {
+    const HEADER: &'static [&'static str] = &[
+        "id",
+        "hostname",
+        "fqdn",
+        "usernames",
+        "ips",
+        "platform",
+        "notes",
+        "created_by",
+        "created_at",
+        "updated_at",
+    ];
+
+    fn cells(&self) -> Vec<String> {
+        vec![
+            self.id.to_string(),
+            self.hostname.clone(),
+            self.fqdn.clone().unwrap_or_default(),
+            // joined with ",", as ace3's CSV writes them
+            self.usernames.join(","),
+            self.ips.join(","),
+            self.platform.clone().unwrap_or_default(),
+            self.notes.clone().unwrap_or_default(),
+            self.created_by
+                .as_ref()
+                .map(ActorBody::shown)
+                .unwrap_or_default(),
+            crate::export::time_cell(Some(self.created_at)),
+            crate::export::time_cell(Some(self.updated_at)),
+        ]
+    }
+}
+
+/// The test hosts, by host name, a page at a time. Follow `next` until it's null.
 #[utoipa::path(
     get,
     path = "/api/svs/v1/test-hosts",
     tag = "svs",
+    params(TestHostsQuery),
     responses(
-        (status = 200, description = "The test hosts", body = Vec<TestHostBody>),
+        (status = 200, description = "A page of test hosts", body = TestHostPageBody),
+        (status = 400, description = "A time, limit or cursor that isn't one", body = ErrorBody),
         (status = 401, description = "No credential, or one that isn't valid", body = ErrorBody),
         (status = 403, description = "The actor doesn't hold svs:run_read", body = ErrorBody),
     )
@@ -826,9 +905,78 @@ pub(crate) async fn cancel(
 pub(crate) async fn test_hosts(
     Authenticated(actor): Authenticated,
     State(web): State<Web>,
-) -> Result<Json<Vec<TestHostBody>>, ApiError> {
-    let hosts = web.service.test_hosts(&actor).await?;
-    Ok(Json(hosts.into_iter().map(Into::into).collect()))
+    raw: RawQuery,
+) -> Result<Json<TestHostPageBody>, ApiError> {
+    let params = Params::of(raw)?;
+    let page = web
+        .service
+        .test_hosts_page(
+            &actor,
+            params.time("changed_since")?,
+            params.one("cursor")?,
+            params.parsed("limit", "a number from 1 to 1000")?,
+        )
+        .await?;
+    Ok(Json(TestHostPageBody {
+        hosts: page.hosts.into_iter().map(Into::into).collect(),
+        next: page.next_cursor,
+    }))
+}
+
+/// Every test host, by host name, as CSV (usernames and ips joined with `,`) or NDJSON.
+#[utoipa::path(
+    get,
+    path = "/api/svs/v1/test-hosts/export/{format}",
+    tag = "svs",
+    params(("format" = String, Path, description = "`csv` or `ndjson`"), TestHostsExportQuery),
+    responses(
+        (status = 200, description = "The test hosts, as text/csv or application/x-ndjson", body = String),
+        (status = 400, description = "A format or time that isn't one", body = ErrorBody),
+        (status = 401, description = "No credential, or one that isn't valid", body = ErrorBody),
+        (status = 403, description = "The actor doesn't hold svs:run_read", body = ErrorBody),
+        (status = 413, description = "More test hosts than an export holds", body = ErrorBody),
+    )
+)]
+pub(crate) async fn export_test_hosts(
+    Authenticated(actor): Authenticated,
+    State(web): State<Web>,
+    path: Result<Path<String>, PathRejection>,
+    raw: RawQuery,
+) -> Result<axum::response::Response, ApiError> {
+    use crate::export::EXPORT_PAGE;
+    let Path(format) = path?;
+    let format = crate::svs_run_reads::format_of(&format)?;
+    let (service, max) = (web.service, web.config.max_export_rows);
+    let changed_since = Params::of(raw)?.time("changed_since")?;
+    let total = service
+        .svs_feed_count(&actor, &ace_service::SvsFeed::TestHosts(changed_since), max)
+        .await?;
+    let first = service
+        .test_hosts_page(&actor, changed_since, None, Some(EXPORT_PAGE))
+        .await?;
+    let first = (
+        first.hosts.into_iter().map(TestHostBody::from).collect(),
+        first.next_cursor,
+    );
+    crate::export::respond(
+        format,
+        "svs-test-hosts",
+        max,
+        total,
+        first,
+        move |cursor: String| {
+            let (service, actor) = (service.clone(), actor.clone());
+            async move {
+                let page = service
+                    .test_hosts_page(&actor, changed_since, Some(&cursor), Some(EXPORT_PAGE))
+                    .await?;
+                Ok((
+                    page.hosts.into_iter().map(TestHostBody::from).collect(),
+                    page.next_cursor,
+                ))
+            }
+        },
+    )
 }
 
 /// Adds a test host.
@@ -879,12 +1027,16 @@ pub(crate) async fn test_host(
     Ok(Json(web.service.test_host(&actor, id).await?.into()))
 }
 
-/// Replaces a test host's fields.
+/// Replaces a test host's fields. With `If-Match`, the host's `updated_at` as it was last read, the change
+/// applies only while the host is unchanged since.
 #[utoipa::path(
     put,
     path = "/api/svs/v1/test-hosts/{host}",
     tag = "svs",
-    params(("host" = i64, Path, description = "The test host's id")),
+    params(
+        ("host" = i64, Path, description = "The test host's id"),
+        ("If-Match" = Option<String>, Header, description = "The host's updated_at as last read"),
+    ),
     request_body = TestHostRequest,
     responses(
         (status = 200, description = "The test host", body = TestHostBody),
@@ -893,6 +1045,7 @@ pub(crate) async fn test_host(
         (status = 403, description = "The actor doesn't hold svs:admin", body = ErrorBody),
         (status = 404, description = "No test host with that id", body = ErrorBody),
         (status = 409, description = "Its new short name is already a test host", body = ErrorBody),
+        (status = 412, description = "The host changed since the `If-Match` it was read with; read it again", body = ErrorBody),
         (status = 413, description = "The body is too large", body = ErrorBody),
     )
 )]
@@ -900,13 +1053,15 @@ pub(crate) async fn update_test_host(
     Authenticated(actor): Authenticated,
     State(web): State<Web>,
     path: Result<Path<String>, PathRejection>,
+    headers: axum::http::HeaderMap,
     body: Result<Json<TestHostRequest>, JsonRejection>,
 ) -> Result<Json<TestHostBody>, ApiError> {
     let id = host_id(path)?;
+    let precondition = crate::svs_decisions::precondition(&headers)?;
     let Json(body) = body?;
     let host = web
         .service
-        .update_test_host(&actor, id, &body.into())
+        .update_test_host(&actor, id, &body.into(), precondition)
         .await?;
     Ok(Json(host.into()))
 }

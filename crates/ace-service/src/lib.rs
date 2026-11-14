@@ -77,7 +77,12 @@
 //! Atomic Red Team test catalog (batch 4): its tests and repositories under `svs:run_read`, and its
 //! refresh under `svs:catalog_refresh`. `svs_runs` is a test run's life (batch 5): registration and a
 //! launcher's calls under `svs:run_register`, the timers under `svs:run_timers`, refused registrations
-//! and the test hosts' maintenance windows.
+//! and the test hosts' maintenance windows. `svs_results` is a run's result (batch 5): what fired against
+//! what its test is expected to fire, computed as the run ends and whenever it's stale. `svs_decisions`
+//! is what's decided about a test's signatures: its expectations, ignores and settings, under
+//! `svs:run_manage` (a global ignore under `svs:admin`), each with a precondition for a write made from a
+//! page. `svs_run_reads` is the runs screen: the runs with ace3's filters, their batches, the event and
+//! result feeds, a run's result, history and comments.
 //!
 //! `routing` is alert routing (7.13), ace3's `saq/alert_routing/`: the routers that decide which queue an
 //! alert belongs in, run by `ace serve`'s routing worker when an alert's pass completes, and the audited move
@@ -125,6 +130,9 @@ mod source;
 mod submit;
 mod svs;
 mod svs_catalog;
+mod svs_decisions;
+mod svs_results;
+mod svs_run_reads;
 mod svs_runs;
 mod svs_samples;
 mod svs_validations;
@@ -146,6 +154,8 @@ pub use ace_core::svs::catalog::{
     RefreshResult as CatalogRefresh, RepositoryStatus as CatalogRepository,
     Skipped as CatalogSkipped,
 };
+pub use ace_core::svs::hosts::HostFields;
+pub use ace_core::svs::results::{Precondition, ResultRow, ResultStatus};
 pub use ace_core::svs::runs::{
     HostHolder, ObservationSource, Registration, RunsConfig, TargetSpec,
 };
@@ -252,9 +262,22 @@ pub use saved_filters::{
     NewSavedFilter, SavedFilter, SavedFilterChange,
 };
 pub use source::with_source_ip;
-pub use svs::{AlertSvsStatus, AlertSvsView, MarkerMismatch, RunRef, TestHost};
+pub use svs::{
+    AlertSvsStatus, AlertSvsView, MAX_TEST_HOSTS_PAGE, MarkerMismatch, RunRef, TestHost,
+    TestHostPage,
+};
 pub use svs_catalog::{
     CatalogTest, CatalogTestDetail, CatalogTestPage, CatalogTestQuery, MAX_CATALOG_TESTS_PAGE,
+};
+pub use svs_decisions::{
+    Expectation, ExpectationPage, ExpectationQuery, ExpectationState, Ignore, IgnorePage,
+    IgnoreQuery, MAX_DECISION_REASON, MAX_DECISIONS_PAGE, TestSettings,
+};
+pub use svs_results::ComputedResult;
+pub use svs_run_reads::{
+    HistoryRun, MAX_RUN_COMMENT_CHARS, MAX_RUN_HISTORY, MAX_RUNS_PAGE, RunBatch, RunBatchPage,
+    RunComment, RunEventFeedPage, RunEventRow, RunHistory, RunPage, RunQuery, RunResult,
+    RunResultPage, RunResults, RunRow, RunSummary, SignatureHistory, SuppressionShare, SvsFeed,
 };
 pub use svs_runs::{
     MAX_MAINTENANCE_PAGE, MAX_RUN_EVENTS_PAGE, MaintenanceWindow, REFUSAL_ALERT_TYPE, REFUSAL_TOOL,
@@ -354,6 +377,10 @@ pub enum ServiceError {
     /// uses. Nothing was written.
     #[error("{0}")]
     Conflict(String),
+    /// A write made from a row that someone else has changed, added or removed since the client read it
+    /// (`ace_core::svs::results::Precondition`): HTTP's 412. Nothing was written.
+    #[error("{0}")]
+    StaleWrite(String),
     #[error(transparent)]
     Bucket(#[from] BucketError),
     /// What the request needs isn't set up on this node, such as the email archive's key, or failed
@@ -386,6 +413,7 @@ impl Retryable for ServiceError {
             | ServiceError::TooLarge(_)
             | ServiceError::Forbidden(_)
             | ServiceError::Conflict(_)
+            | ServiceError::StaleWrite(_)
             | ServiceError::PermissionDenied { .. }
             | ServiceError::InvalidPermission(_)
             | ServiceError::AuditEncoding(_)
@@ -467,6 +495,9 @@ pub struct Service {
     /// What a launcher may register and how long a run's windows last, the overlay's `svs.runs` (PLAN.md
     /// 7.10 batch 5). ace3's defaults unless the binary sets others.
     runs: std::sync::Arc<ace_core::svs::runs::RunsConfig>,
+    /// How long a changed-since page holds a row back after it changed (PLAN.md 7.10 batch 5):
+    /// `svs_decisions`' docs.
+    feed_settle: chrono::TimeDelta,
 }
 
 impl Service {
@@ -484,6 +515,7 @@ impl Service {
             catalog: std::sync::Arc::default(),
             routers: routing::Routers::builtin(),
             runs: std::sync::Arc::default(),
+            feed_settle: chrono::TimeDelta::seconds(5),
         }
     }
 

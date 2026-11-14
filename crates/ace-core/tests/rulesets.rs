@@ -173,4 +173,40 @@ async fn a_new_commit_gets_a_row_that_lists_the_files_left_out() {
     assert_eq!((filled.id, &filled.key), (row4.id, &row4.key));
     assert_eq!(filled.qa_rules, row4.qa_rules);
     assert!(build_new(db, &bucket, &signatures).await.unwrap().is_none());
+
+    // what SVS reads of each rule with a uuid is in the row (PLAN.md 7.10 batch 5): the QA rule, whose
+    // tags don't count, with the hash of its own text
+    let signed = row4.signatures.clone().expect("recorded");
+    let qa_rule = signed
+        .iter()
+        .find(|s| s.uuid == "qa-rule-uuid")
+        .unwrap_or_else(|| panic!("the QA rule is a signature: {signed:?}"));
+    assert_eq!(
+        (qa_rule.name.as_str(), qa_rule.counts),
+        ("fixture_qa", false)
+    );
+    assert_eq!(
+        qa_rule.content_hash,
+        ace_yara::source::rules(QA.as_bytes())[0].content_hash
+    );
+    // a row built before the signatures were recorded is filled in the same way, keeping its QA rules
+    sqlx::query("UPDATE yara.rulesets SET signatures = NULL WHERE id = $1")
+        .bind(row4.id)
+        .execute(db.pool())
+        .await
+        .unwrap();
+    assert_eq!(
+        rulesets::current(db).await.unwrap().unwrap().signatures,
+        None
+    );
+    let filled = build_new(db, &bucket, &signatures)
+        .await
+        .unwrap()
+        .expect("fills the row in");
+    assert_eq!((filled.id, &filled.key), (row4.id, &row4.key));
+    assert_eq!(
+        (&filled.signatures, &filled.qa_rules),
+        (&row4.signatures, &row4.qa_rules)
+    );
+    assert!(build_new(db, &bucket, &signatures).await.unwrap().is_none());
 }

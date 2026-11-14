@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO yara.rulesets AS r\n             (key, commit, tree, sources_sha256, yara_x_version, files, left_out, qa_rules,\n              signatures)\n         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)\n         ON CONFLICT (commit, yara_x_version) DO UPDATE\n         SET qa_rules = COALESCE(r.qa_rules, EXCLUDED.qa_rules),\n             signatures = COALESCE(r.signatures, EXCLUDED.signatures)\n         WHERE r.qa_rules IS NULL OR r.signatures IS NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Jsonb",
+        "Jsonb",
+        "Jsonb",
+        "Jsonb"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "2e05309c18b9b2f880f2f57d93581d0d0d667248e54d08604c4016f59e024858"
+}

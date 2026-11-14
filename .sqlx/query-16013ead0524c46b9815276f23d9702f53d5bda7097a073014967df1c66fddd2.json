@@ -1,0 +1,218 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT x.id, $2::uuid AS \"run!\", x.signature_uuid, x.signature_family,\n                                  x.signature_name, x.status, x.alert_count, x.late_only,\n                                  x.context_only, x.fallback_time, x.content_hash,\n                                  x.suppressing_root_id, x.reviewed_status, x.reviewed_alert_count,\n                                  x.reviewed_late_only, x.reviewed_content_hash, x.updated_at\n                           FROM svs.run_results x\n                           WHERE x.run_id = $1 AND x.id > $3\n                           ORDER BY x.id LIMIT $4",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "svs.run_results",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "run!",
+        "type_info": "Uuid",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 2,
+        "name": "signature_uuid",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.run_results",
+            "name": "signature_uuid"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "signature_family",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.run_results",
+            "name": "signature_family"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "signature_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.run_results",
+            "name": "signature_name"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "status",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.run_results",
+            "name": "status"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "alert_count",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "svs.run_results",
+            "name": "alert_count"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "late_only",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "svs.run_results",
+            "name": "late_only"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "context_only",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "svs.run_results",
+            "name": "context_only"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "fallback_time",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "svs.run_results",
+            "name": "fallback_time"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "content_hash",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.run_results",
+            "name": "content_hash"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "suppressing_root_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "svs.run_results",
+            "name": "suppressing_root_id"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "reviewed_status",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.run_results",
+            "name": "reviewed_status"
+          }
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "reviewed_alert_count",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "svs.run_results",
+            "name": "reviewed_alert_count"
+          }
+        }
+      },
+      {
+        "ordinal": 14,
+        "name": "reviewed_late_only",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "svs.run_results",
+            "name": "reviewed_late_only"
+          }
+        }
+      },
+      {
+        "ordinal": 15,
+        "name": "reviewed_content_hash",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.run_results",
+            "name": "reviewed_content_hash"
+          }
+        }
+      },
+      {
+        "ordinal": 16,
+        "name": "updated_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "svs.run_results",
+            "name": "updated_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Uuid",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      null,
+      false,
+      true,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "16013ead0524c46b9815276f23d9702f53d5bda7097a073014967df1c66fddd2"
+}

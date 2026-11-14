@@ -1,0 +1,65 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT signature_uuid, state, signature_family, signature_name\n         FROM svs.expectations WHERE test_guid = $1 AND platform = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "signature_uuid",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.expectations",
+            "name": "signature_uuid"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "state",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.expectations",
+            "name": "state"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "signature_family",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.expectations",
+            "name": "signature_family"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "signature_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.expectations",
+            "name": "signature_name"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "50bbb5b4331f7a11ce3584a29bcddc2b9d120a1631a71da0ae38ee83b4bfa939"
+}

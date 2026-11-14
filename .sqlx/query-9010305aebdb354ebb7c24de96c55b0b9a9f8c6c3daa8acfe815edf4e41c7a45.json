@@ -1,0 +1,132 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT i.id, i.test_guid, i.signature_uuid, i.signature_family,\n                                  i.signature_name, i.reason, i.created_by AS \"created_by!: Value\",\n                                  i.created_at, i.updated_at\n                           FROM svs.ignores i\n                           WHERE ($1::text IS NULL OR (i.test_guid IS NULL) = ($1 = 'global'))\n                             AND ($2::uuid IS NULL OR i.test_guid IS NULL OR i.test_guid = $2)\n                             AND ($3::text IS NULL OR i.signature_uuid = $3)\n                             AND ($4::timestamptz IS NULL\n                                  OR (i.updated_at >= $4\n                                      AND i.updated_at < now() - make_interval(secs => $8)))\n                             AND ($5::bigint IS NULL\n                                  OR CASE WHEN $7 THEN (i.updated_at, i.id) > ($6::timestamptz, $5)\n                                          ELSE i.id > $5 END)\n                           ORDER BY CASE WHEN $7 THEN i.updated_at END, i.id\n                           LIMIT $9",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "svs.ignores",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "test_guid",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "svs.ignores",
+            "name": "test_guid"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "signature_uuid",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.ignores",
+            "name": "signature_uuid"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "signature_family",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.ignores",
+            "name": "signature_family"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "signature_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.ignores",
+            "name": "signature_name"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "reason",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.ignores",
+            "name": "reason"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "created_by!: Value",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "svs.ignores",
+            "name": "created_by"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "svs.ignores",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "updated_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "svs.ignores",
+            "name": "updated_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Uuid",
+        "Text",
+        "Timestamptz",
+        "Int8",
+        "Timestamptz",
+        "Bool",
+        "Float8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      false,
+      true,
+      true,
+      true,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "9010305aebdb354ebb7c24de96c55b0b9a9f8c6c3daa8acfe815edf4e41c7a45"
+}

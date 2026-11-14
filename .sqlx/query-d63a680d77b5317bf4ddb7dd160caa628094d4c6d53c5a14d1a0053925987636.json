@@ -1,0 +1,49 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT run_id, count(*) AS \"alerts!\",\n                  count(*) FILTER (WHERE marker) AS \"marker!\",\n                  count(*) FILTER (WHERE late) AS \"late!\"\n           FROM (SELECT run_id, bool_or(confidence = 'marker') AS marker, bool_or(late) AS late\n                 FROM svs.attributions\n                 WHERE run_id = ANY ($1) AND removed_at IS NULL\n                 GROUP BY run_id, root_id) alerts\n           GROUP BY run_id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "run_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "svs.attributions",
+            "name": "run_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "alerts!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 2,
+        "name": "marker!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 3,
+        "name": "late!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8Array"
+      ]
+    },
+    "nullable": [
+      false,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "d63a680d77b5317bf4ddb7dd160caa628094d4c6d53c5a14d1a0053925987636"
+}

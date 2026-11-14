@@ -1,0 +1,52 @@
+{#- ace3's svs/runs.html, its runs view (PLAN.md 7.10 batch 5): the test runs, newest first, with the runs
+    screen's filters folded into `f`, its pages and the exports (src/svs.rs). -#}
+{% extends "base.html" %}
+{% block title %}Runs · SVS · ACE{% endblock %}
+{% block content %}
+<section class="signatures detection svs-runs">
+  {%- include "svs/tabs.html" %}
+  <p><b>Runs</b> · <a href="{{ view.batches }}">Batches</a> · <a href="/svs/runs?f=needs_attention%3Atrue">Needs attention</a> · <a href="/svs/runs">Every run</a></p>
+  <p class="muted">Atomic Red Team test runs registered by the launcher, newest first. Times are UTC.</p>
+  {%- if let Some(share) = view.share %}
+  <p class="muted" title="the revisit trigger of preventing hunt suppression for test targets">{{ share }}</p>
+  {%- endif %}
+  <form method="get" action="/svs/runs" class="detection-filters">
+    {%- for field in view.fields %}
+    <label for="filter-{{ field.slug }}">{{ field.name }}</label>
+    <input type="text" id="filter-{{ field.slug }}" name="{{ field.slug }}" value="{{ field.value }}" placeholder="{% if field.options.is_empty() %}{{ field.hint }}{% else %}{{ field.options|join(", ") }}{% endif %}">
+    {%- endfor %}
+    <button type="submit">Apply</button>
+    <a href="/svs/runs">Reset</a>
+  </form>
+  <p class="muted">{{ view.total }} matching · export as <a href="{{ view.csv }}">CSV</a> or <a href="{{ view.ndjson }}">NDJSON</a></p>
+  <table class="keys">
+    <thead><tr><th>Registered</th><th>Test</th><th>State</th><th>Platform</th><th>Targets</th><th>Launcher</th><th>Batch</th><th title="expected signatures that fired, of those the result judged">Hits</th><th>Missing</th><th>Candidates</th><th>Alerts</th><th>Owner</th></tr></thead>
+    <tbody>
+      {%- for row in view.rows %}
+      <tr>
+        <td class="nowrap"><a href="{{ row.href }}">{{ row.created }}</a></td>
+        <td class="qa-text">{{ row.test_name }}{% if !row.technique.is_empty() %} <code class="muted">{{ row.technique }}</code>{% endif %}</td>
+        <td><span class="badge disposition-{{ row.state_class }}">{{ row.state }}</span>{% if row.needs_attention %} <span class="muted">needs attention</span>{% endif %}</td>
+        <td>{{ row.platform }}</td>
+        <td class="qa-text">{{ row.targets }}</td>
+        <td class="qa-text">{{ row.launcher }}</td>
+        <td class="qa-text">{% if let Some(batch_href) = row.batch_href %}<a href="{{ batch_href }}">{{ row.batch }}</a>{% endif %}</td>
+        <td>{{ row.hits }}{% if row.stale %} <span class="muted" title="the result is about to be recomputed">stale</span>{% endif %}</td>
+        <td>{% if row.missing > 0 %}{{ row.missing }}{% endif %}</td>
+        <td>{% if row.candidates > 0 %}{{ row.candidates }}{% endif %}</td>
+        <td>{% if row.alerts > 0 %}{{ row.alerts }}{% endif %}</td>
+        <td class="qa-text">{{ row.owner }}</td>
+      </tr>
+      {%- else %}
+      <tr><td colspan="12" class="muted">No runs.</td></tr>
+      {%- endfor %}
+    </tbody>
+  </table>
+  {%- if view.first.is_some() || view.next.is_some() %}
+  <nav class="pager" aria-label="Pages">
+    {%- if let Some(first) = view.first %} <a href="{{ first }}">First</a>{% endif %}
+    {%- if let Some(next) = view.next %} <a href="{{ next }}" rel="next">Next</a>{% endif %}
+  </nav>
+  {%- endif %}
+</section>
+{% endblock %}

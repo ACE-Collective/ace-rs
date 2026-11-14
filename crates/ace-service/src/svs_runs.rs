@@ -43,11 +43,12 @@
 //! - `extra` is measured as compact JSON, where ace3 measures Python's spaced form, so the same limit
 //!   admits slightly more.
 //! - Closing a run doesn't yet close its alerts as SIMULATED, nor does the timers' pass close late alerts:
-//!   that needs the attributions and an alert's owner, which batches 6 and 7 bring. A run's result isn't
-//!   computed when it ends: its result is marked stale (`svs.run_result_state`), which part 5b's results
-//!   compute. A maintenance window's alerts aren't recorded or closed as IGNORE until batch 6's judgment
-//!   says which they are.
-//! - ace3's refusals of a call's `If-Match` are the routes' (part 5b).
+//!   that needs the attributions and an alert's owner, which batches 6 and 7 bring. A maintenance window's
+//!   alerts aren't recorded or closed as IGNORE until batch 6's judgment says which they are.
+//! - A run's result is computed as it ends (`svs_results`): by the timers in a transaction of its own
+//!   after the end's, and by a person's end in a savepoint of the end's transaction, so in both a
+//!   computation that fails leaves the end, and the run stale for the timers' next pass. Each pass of the
+//!   timers also recomputes the stale results of ended and reviewed runs.
 
 use std::collections::BTreeSet;
 
@@ -211,6 +212,8 @@ pub struct TimerResult {
     pub closed: u64,
     /// Maintenance windows whose time passed.
     pub expired_windows: u64,
+    /// Stale results of ended and reviewed runs computed again.
+    pub results_computed: u64,
     pub pruned_refusals: u64,
     /// Moves that failed; each is logged, and the next pass tries it again.
     pub failed: u64,
@@ -382,7 +385,7 @@ async fn locked_run(conn: &mut PgConnection, uuid: Uuid) -> Result<Loaded, Servi
 
 /// Appends a row to a run's event log.
 #[allow(clippy::too_many_arguments)]
-async fn add_event(
+pub(crate) async fn add_event(
     conn: &mut PgConnection,
     run: i64,
     kind: &str,
@@ -2073,6 +2076,31 @@ impl Service {
                     )
                     .await?;
                     mark_stale(tx.conn(), &[loaded.id]).await?;
+                    // the result, as the run ends: in a savepoint, so a computation that fails leaves
+                    // the end and the run stale, for the timers to compute
+                    let computed = async {
+                        let mut inner = tx.savepoint().await?;
+                        let computed =
+                            crate::svs_results::compute(inner.conn(), loaded.id, actor, now)
+                                .await?;
+                        inner.commit().await?;
+                        Ok::<_, ServiceError>(computed)
+                    }
+                    .await;
+                    let computed = match computed {
+                        Ok(computed) => computed,
+                        Err(error) => {
+                            use ace_core::db::Retryable;
+                            if error.is_retryable() {
+                                return Err(error);
+                            }
+                            tracing::error!(
+                                svs_run = %uuid,
+                                "unable to compute the result of an svs run as it ended: {error}"
+                            );
+                            None
+                        }
+                    };
                     let run = reloaded(tx.conn(), uuid).await?;
                     let change = moved_change(
                         uuid,
@@ -2082,10 +2110,11 @@ impl Service {
                         "ended",
                         Some(reason),
                     )?;
-                    Ok(Audited::changed(run, change))
+                    Ok(Audited::changed((run, computed), change))
                 })
             })
             .await?;
+        let (run, computed) = run;
         log_transition(
             &run,
             Some(RunState::Started),
@@ -2093,6 +2122,9 @@ impl Service {
             actor,
             Some(reason),
         );
+        if let Some(computed) = &computed {
+            crate::svs_results::log_computed(computed);
+        }
         Ok(run)
     }
 
@@ -2344,7 +2376,19 @@ impl Service {
                 .await;
             match (moved, step) {
                 (Ok(count), Step::TimeOut(_)) => result.timed_out += count,
-                (Ok(count), Step::End(_)) => result.ended += count,
+                (Ok(count), Step::End(uuid)) => {
+                    result.ended += count;
+                    // the result, as the run ends: a computation that fails leaves the end, and the
+                    // run stale for a later pass
+                    if count > 0
+                        && let Err(error) = self.compute_svs_result(actor, *uuid, now).await
+                    {
+                        tracing::error!(
+                            svs_run = %uuid,
+                            "unable to compute the result of an svs run as it ended: {error}"
+                        );
+                    }
+                }
                 (Ok(count), Step::Close(_)) => result.closed += count,
                 (Ok(count), Step::Expire(_)) => result.expired_windows += count,
                 (Ok(count), Step::PruneRefusals) => result.pruned_refusals += count,
@@ -2353,6 +2397,14 @@ impl Service {
                     result.failed += 1;
                     result.first_error.get_or_insert_with(|| error.to_string());
                 }
+            }
+        }
+        match self.recompute_stale_svs_results(actor, now, None).await {
+            Ok(computed) => result.results_computed = computed,
+            Err(error) => {
+                tracing::error!("the svs timers couldn't recompute the stale results: {error}");
+                result.failed += 1;
+                result.first_error.get_or_insert_with(|| error.to_string());
             }
         }
         Ok(result)

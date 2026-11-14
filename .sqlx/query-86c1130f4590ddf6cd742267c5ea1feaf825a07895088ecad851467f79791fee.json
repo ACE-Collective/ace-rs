@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT hunt_uuid FROM svs.suppressed_matches WHERE run_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "hunt_uuid",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.suppressed_matches",
+            "name": "hunt_uuid"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "86c1130f4590ddf6cd742267c5ea1feaf825a07895088ecad851467f79791fee"
+}

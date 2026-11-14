@@ -17,6 +17,10 @@
 //! A row also lists the rules in QA mode (`qa_rules`), which 5.6's `yara_qa` router serves. A row
 //! built before that column has none, and the next run builds its commit again to fill it in: the
 //! bytes come out the same, so the key and the pools don't change.
+//!
+//! A row lists what SVS reads of each rule with a `uuid` meta as well (`signatures`, PLAN.md 7.10 batch
+//! 5): its name, the hash of its own text, its tags and whether they count. A row built before that
+//! column is filled in the same way.
 
 use std::path::PathBuf;
 use std::time::Duration;
@@ -24,8 +28,8 @@ use std::time::Duration;
 use ace_results::Sha256;
 use ace_yara::LoadOptions;
 pub use ace_yara::YARA_X_VERSION;
-pub use ace_yara::ruleset::QaRule;
 use ace_yara::ruleset::{self, BuildError, IncludedFile, LeftOutFile};
+pub use ace_yara::ruleset::{QaRule, RuleSignature};
 use chrono::{DateTime, Utc};
 use tokio_util::sync::CancellationToken;
 use tracing::Instrument;
@@ -93,6 +97,9 @@ pub struct RulesetRow {
     pub left_out: Vec<LeftOutFile>,
     /// The rules in QA mode, or None for a row built before they were recorded.
     pub qa_rules: Option<Vec<QaRule>>,
+    /// What SVS reads of each rule with a `uuid` meta, or None for a row built before they were
+    /// recorded.
+    pub signatures: Option<Vec<RuleSignature>>,
     pub built_at: DateTime<Utc>,
 }
 
@@ -154,7 +161,8 @@ pub async fn build_new(
     let version = ace_yara::YARA_X_VERSION;
     let built = sqlx::query_scalar!(
         "SELECT id FROM yara.rulesets
-         WHERE commit = $1 AND yara_x_version = $2 AND qa_rules IS NOT NULL",
+         WHERE commit = $1 AND yara_x_version = $2 AND qa_rules IS NOT NULL
+           AND signatures IS NOT NULL",
         commit,
         version,
     )
@@ -188,15 +196,18 @@ async fn build_commit(
 
     // the same tree built before gives the same bytes, so its row's build serves this commit
     let earlier = sqlx::query!(
-        r#"SELECT key, sources_sha256, files, left_out, qa_rules AS "qa_rules!" FROM yara.rulesets
+        r#"SELECT key, sources_sha256, files, left_out, qa_rules AS "qa_rules!",
+                  signatures AS "signatures!"
+           FROM yara.rulesets
            WHERE tree = $1 AND yara_x_version = $2 AND qa_rules IS NOT NULL
+             AND signatures IS NOT NULL
            ORDER BY id DESC LIMIT 1"#,
         tree,
         version,
     )
     .fetch_optional(db.pool())
     .await?;
-    let (key, sources_sha256, files, left_out, qa_rules) = match earlier {
+    let (key, sources_sha256, files, left_out, qa_rules, signatures) = match earlier {
         Some(row) => {
             tracing::info!(key = %row.key, "the signature directory is unchanged since an earlier build");
             (
@@ -205,6 +216,7 @@ async fn build_commit(
                 row.files,
                 row.left_out,
                 row.qa_rules,
+                row.signatures,
             )
         }
         None => {
@@ -240,17 +252,21 @@ async fn build_commit(
                 json(serde_json::to_value(&manifest.files))?,
                 json(serde_json::to_value(&manifest.left_out))?,
                 json(serde_json::to_value(&manifest.qa_rules))?,
+                json(serde_json::to_value(&manifest.signatures))?,
             )
         }
     };
     // a core on another node may have built the same commit meanwhile; a row from before QA
-    // rules were recorded gets them, and keeps the rest
+    // rules or SVS's signatures were recorded gets them, and keeps the rest
     sqlx::query!(
         "INSERT INTO yara.rulesets AS r
-             (key, commit, tree, sources_sha256, yara_x_version, files, left_out, qa_rules)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-         ON CONFLICT (commit, yara_x_version) DO UPDATE SET qa_rules = EXCLUDED.qa_rules
-         WHERE r.qa_rules IS NULL",
+             (key, commit, tree, sources_sha256, yara_x_version, files, left_out, qa_rules,
+              signatures)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+         ON CONFLICT (commit, yara_x_version) DO UPDATE
+         SET qa_rules = COALESCE(r.qa_rules, EXCLUDED.qa_rules),
+             signatures = COALESCE(r.signatures, EXCLUDED.signatures)
+         WHERE r.qa_rules IS NULL OR r.signatures IS NULL",
         key,
         commit,
         tree,
@@ -259,6 +275,7 @@ async fn build_commit(
         files,
         left_out,
         qa_rules,
+        signatures,
     )
     .execute(db.pool())
     .await?;
@@ -286,6 +303,7 @@ struct Record {
     files: serde_json::Value,
     left_out: serde_json::Value,
     qa_rules: Option<serde_json::Value>,
+    signatures: Option<serde_json::Value>,
     built_at: DateTime<Utc>,
 }
 
@@ -312,6 +330,11 @@ impl Record {
                 .map(serde_json::from_value)
                 .transpose()
                 .map_err(|e| decode("qa_rules", e.to_string()))?,
+            signatures: self
+                .signatures
+                .map(serde_json::from_value)
+                .transpose()
+                .map_err(|e| decode("signatures", e.to_string()))?,
             built_at: self.built_at,
         })
     }
@@ -322,7 +345,7 @@ pub async fn by_commit(db: &Db, commit: &str) -> Result<Option<RulesetRow>, DbEr
     sqlx::query_as!(
         Record,
         "SELECT id, key, commit, tree, sources_sha256, yara_x_version, files, left_out, qa_rules,
-                built_at
+                signatures, built_at
          FROM yara.rulesets WHERE commit = $1 AND yara_x_version = $2",
         commit,
         ace_yara::YARA_X_VERSION,
@@ -346,7 +369,7 @@ pub async fn current_with<'c>(
     sqlx::query_as!(
         Record,
         "SELECT id, key, commit, tree, sources_sha256, yara_x_version, files, left_out, qa_rules,
-                built_at
+                signatures, built_at
          FROM yara.rulesets WHERE yara_x_version = $1 ORDER BY id DESC LIMIT 1",
         ace_yara::YARA_X_VERSION,
     )

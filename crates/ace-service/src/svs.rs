@@ -5,7 +5,7 @@
 //! fields, where ace3 logs an AUDIT line with them; `svs:run_read` reads them, as ace3's `test-hosts`
 //! router does. A short name is one host: a second host of that name in another domain is a `Conflict`, as
 //! ace3's `DuplicateTestHost` is. Removing a host ends its open maintenance window (`svs_runs`); a run keeps
-//! the targets it was registered with. ace3's `If-Match` precondition comes with batch 5's part 5b.
+//! the targets it was registered with. A change may carry ace3's `If-Match` precondition (`ace_core::svs::results::Precondition`): a host changed since the form was loaded is `StaleWrite`. The list pages by name, with `changed_since` (`test_hosts_page`).
 //!
 //! **An alert's SVS status.** Derived whenever it's read from the attributions that hold, as ace3's is: an
 //! alert all of whose detections are attributed is `test` (`test?` by context alone), one some are
@@ -18,6 +18,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use ace_core::svs::hosts::{HostFields, HostSpec, build_spec};
+use ace_core::svs::results::Precondition;
 use ace_core::svs::{
     AttributionConfidence, MARKER_MISMATCH_SIGNATURE, RunState, SvsStatus, derive_status,
 };
@@ -45,6 +46,16 @@ pub struct TestHost {
     pub created_by: Option<RecordedActor>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+}
+
+/// The most test hosts one page holds.
+pub const MAX_TEST_HOSTS_PAGE: u32 = 1000;
+
+/// A page of test hosts.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TestHostPage {
+    pub hosts: Vec<TestHost>,
+    pub next_cursor: Option<String>,
 }
 
 struct TestHostRow {
@@ -320,6 +331,66 @@ impl Service {
             .await
     }
 
+    /// A page of the test hosts, by name, after where `cursor` left off: ace3's `fetch_page`. With
+    /// `changed_since`, only those added or changed at or after it. It needs `svs:run_read`. A limit out
+    /// of range, or a cursor that isn't one, is `InvalidRequest`.
+    pub async fn test_hosts_page(
+        &self,
+        actor: &Actor,
+        changed_since: Option<DateTime<Utc>>,
+        cursor: Option<&str>,
+        limit: Option<u32>,
+    ) -> Result<TestHostPage, ServiceError> {
+        let limit = crate::alerts::page_limit(limit, MAX_TEST_HOSTS_PAGE)?;
+        let after = &match cursor {
+            Some(text) => Some(
+                hex::decode(text)
+                    .ok()
+                    .and_then(|bytes| String::from_utf8(bytes).ok())
+                    .filter(|name| !name.is_empty())
+                    .ok_or_else(|| {
+                        ServiceError::InvalidRequest(format!("{text:?} isn't a cursor"))
+                    })?,
+            ),
+            None => None,
+        };
+        self.gate
+            .read(actor, "test_hosts_page", &SVS_RUN_READ, &|tx| {
+                Box::pin(async move {
+                    let mut rows = sqlx::query_as!(
+                        TestHostRow,
+                        r#"SELECT id, hostname, fqdn, usernames, ips, platform, notes,
+                                  created_by AS "created_by!: Value", created_at, updated_at
+                           FROM svs.test_hosts
+                           WHERE ($1::timestamptz IS NULL OR updated_at >= $1)
+                             AND ($2::text IS NULL OR hostname COLLATE "C" > $2)
+                           ORDER BY hostname COLLATE "C"
+                           LIMIT $3"#,
+                        changed_since,
+                        after.as_deref(),
+                        limit + 1,
+                    )
+                    .fetch_all(tx.conn())
+                    .await?;
+                    let next_cursor = if rows.len() as i64 > limit {
+                        rows.truncate(limit as usize);
+                        rows.last()
+                            .map(|last| hex::encode(last.hostname.as_bytes()))
+                    } else {
+                        None
+                    };
+                    Ok(TestHostPage {
+                        hosts: rows
+                            .into_iter()
+                            .map(TestHostRow::into_host)
+                            .collect::<Result<_, _>>()?,
+                        next_cursor,
+                    })
+                })
+            })
+            .await
+    }
+
     /// One test host. It needs `svs:run_read`; one that isn't there is `NotFound`.
     pub async fn test_host(&self, actor: &Actor, id: i64) -> Result<TestHost, ServiceError> {
         self.gate
@@ -366,18 +437,27 @@ impl Service {
     }
 
     /// Replaces a test host's fields: ace3's `update_host`. It needs `svs:admin`. One that isn't there is
-    /// `NotFound`; otherwise as `create_test_host`. A change to nothing has no audit row.
+    /// `NotFound`; otherwise as `create_test_host`. A change to nothing has no audit row. A write from a
+    /// form loaded before someone else changed the host is `StaleWrite`, not applied over it
+    /// (`precondition`).
     pub async fn update_test_host(
         &self,
         actor: &Actor,
         id: i64,
         fields: &HostFields,
+        precondition: Precondition,
     ) -> Result<TestHost, ServiceError> {
         let spec = &checked(fields)?;
         self.gate
             .write(actor, "update_test_host", &SVS_ADMIN, &|tx| {
                 Box::pin(async move {
                     let before = host_row(tx.conn(), id, true).await?;
+                    if let Some(why) = precondition.refuses(
+                        Some(before.updated_at),
+                        &format!("test host {}", before.hostname),
+                    ) {
+                        return Err(ServiceError::StaleWrite(why));
+                    }
                     let same = before.hostname == spec.hostname
                         && before.fqdn == spec.fqdn
                         && before.usernames == spec.usernames

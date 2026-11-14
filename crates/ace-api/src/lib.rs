@@ -255,7 +255,7 @@
 //! | `GET /tests/export/ndjson`, `GET /tests/export/csv` | `GET /api/svs/v1/tests/export/ndjson`, `.../export/csv` |
 //! | `GET /tests/{guid}` | `GET /api/svs/v1/tests/{guid}` |
 //! | `GET /catalog/repositories` | `GET /api/svs/v1/catalog/repositories` |
-//! | `PUT`/`DELETE /tests/{guid}/expectations/{platform}/{signature_uuid}`, `PUT`/`DELETE /tests/{guid}/ignores/{signature_uuid}`, `GET`/`PUT`/`DELETE /tests/{guid}/settings` | batch 5's part 5b: they write a test's decisions and settings under `svs:run_manage`, with `saq/svs/expectations.py` |
+//! | `PUT`/`DELETE /tests/{guid}/expectations/{platform}/{signature_uuid}`, `PUT`/`DELETE /tests/{guid}/ignores/{signature_uuid}`, `GET`/`PUT`/`DELETE /tests/{guid}/settings` | the same paths under `/api/svs/v1`, with part 5b's decisions, below |
 //!
 //! What differs: a page is `{tests, next}`; a bad request is 400 where ace3's is 422; a test's state and run
 //! history (`test_state`, `run_count`, `last_run_*`, `last_reviewed_*`, `expected_signatures`,
@@ -272,17 +272,48 @@
 //! | `POST /runs/`, 201 | `POST /api/svs/v1/runs`, 201, audited; a refusal is 403 and alerts |
 //! | `POST /runs/validate` | `POST /api/svs/v1/runs/validate` |
 //! | `POST /runs/{run_id}/start`, `executed`, `cleanup`, `cancel` | `POST /api/svs/v1/runs/{run_id}/start`, `executed`, `cleanup`, `cancel`, audited |
-//! | `GET /runs/{run_id}` | `GET /api/svs/v1/runs/{run_id}`, without its result's summary, review blockers and owner yet |
+//! | `GET /runs/{run_id}` | `GET /api/svs/v1/runs/{run_id}`, with what the runs' list shows of it and its log search; its review blockers come with batch 7 |
 //! | `GET /runs/{run_id}/events?cursor=&limit=` | `GET /api/svs/v1/runs/{run_id}/events?after=&limit=` |
-//! | `GET /test-hosts/?changed_since=&cursor=&limit=` | `GET /api/svs/v1/test-hosts`, every host |
+//! | `GET /test-hosts/?changed_since=&cursor=&limit=` | `GET /api/svs/v1/test-hosts`, the same, a page `{hosts, next}` |
+//! | `GET /test-hosts/export/ndjson`, `.../csv` | `GET /api/svs/v1/test-hosts/export/{format}` |
 //! | `POST /test-hosts/`, `GET`, `PUT`, `DELETE /test-hosts/{host_id}` | `POST /api/svs/v1/test-hosts`, `GET`, `PUT`, `DELETE /api/svs/v1/test-hosts/{host}`, audited |
 //! | `POST`, `DELETE`, `GET /test-hosts/{host}/maintenance` | `POST`, `DELETE`, `GET /api/svs/v1/test-hosts/{host}/maintenance`, audited |
 //!
-//! Part 5b brings the runs' list, count, batches, event, result and attribution feeds, their exports, a
-//! run's results, alerts, history and comments, the test hosts' `changed_since` paging and exports, and
-//! the `If-Match` preconditions (`aceapi_v2/svs/preconditions.py`); batch 7 a person's bulk actions
-//! (`/runs/bulk/*`), association (`/runs/{run_id}/alerts/*`) and review; `/runs/suppression-share` waits
-//! for batch 6's suppressed matches.
+//! `PUT /test-hosts/{host}` takes `If-Match`, and a host changed since it was read is 412.
+//!
+//! Part 5b (`svs_run_reads` and `svs_decisions`): the runs' reads under ace3's `svs:run_read`, a run's
+//! comments under `svs:run_manage`, and what's decided about a test's signatures under `svs:run_manage`,
+//! a global ignore under `svs:admin` (`ace_service`'s `svs_run_reads`, `svs_results` and `svs_decisions`
+//! docs):
+//!
+//! | ace3 `/api/v2/svs` | here |
+//! |---|---|
+//! | `GET /runs/?f=&changed_since=&cursor=&limit=&tz=` | `GET /api/svs/v1/runs`, the same filters, orders and keyset paging |
+//! | `GET /runs/export/ndjson`, `.../csv` | `GET /api/svs/v1/runs/export/{format}` |
+//! | `GET /runs/count?f=` | `GET /api/svs/v1/runs/count` |
+//! | `GET /runs/suppression-share` | `GET /api/svs/v1/runs/suppression-share` |
+//! | `GET /runs/batches?f=&cursor=&limit=`, its exports | `GET /api/svs/v1/runs/batches`, `.../batches/export/{format}` |
+//! | `GET /runs/events?f=&changed_since=&cursor=&limit=`, its exports | `GET /api/svs/v1/runs/events`, `.../events/export/{format}` |
+//! | `GET /runs/results?f=&changed_since=&cursor=&limit=`, its exports | `GET /api/svs/v1/runs/results`, `.../results/export/{format}` |
+//! | `GET /runs/{run_id}/events/export/ndjson`, `.../csv` | `GET /api/svs/v1/runs/{run_id}/events/export/{format}` |
+//! | `GET /runs/{run_id}/results?cursor=&limit=`, its exports | `GET /api/svs/v1/runs/{run_id}/results?after=&limit=`, `.../results/export/{format}` |
+//! | `GET /runs/{run_id}/history?runs=` | `GET /api/svs/v1/runs/{run_id}/history` |
+//! | `GET`, `POST /runs/{run_id}/comments`, `PATCH`, `DELETE /runs/{run_id}/comments/{comment_id}` | the same under `/api/svs/v1`, the writes audited |
+//! | `GET /expectations/?test=&platform=&signature=&state=&changed_since=&cursor=&limit=`, its exports | `GET /api/svs/v1/expectations`, `.../expectations/export/{format}` |
+//! | `GET /ignores/?scope=&test=&signature=&changed_since=&cursor=&limit=`, its exports | `GET /api/svs/v1/ignores`, `.../ignores/export/{format}` |
+//! | `PUT`, `DELETE /ignores/global/{signature_uuid}` | the same under `/api/svs/v1`, audited |
+//! | `PUT`, `DELETE /tests/{guid}/expectations/{platform}/{signature_uuid}` | the same under `/api/svs/v1`, audited |
+//! | `PUT`, `DELETE /tests/{guid}/ignores/{signature_uuid}` | the same under `/api/svs/v1`, audited |
+//! | `GET`, `PUT`, `DELETE /tests/{guid}/settings` | the same under `/api/svs/v1`, the writes audited |
+//!
+//! What differs: a page is its rows under their own name and `next`; a refused parameter or decision is 400
+//! where ace3's is 422; an export is one operation with `csv` or `ndjson` as its last segment, at ace3's
+//! two URLs; a write's `If-Match` and `If-None-Match: *` (`aceapi_v2/svs/preconditions.py`) are taken as
+//! in ace3, and a 412's body is `{"error": ...}`, where ace3's carries the row as it is now; who did
+//! something is an actor, so a key that belongs to nobody decides, where ace3 refuses it, but can't
+//! comment, as in ace3. Still to come: the attribution feed, a run's attributions and its alerts, with
+//! batch 6's attribution; a person's bulk actions (`/runs/bulk/*`), association
+//! (`/runs/{run_id}/alerts/*`), review and a run's review blockers, with batch 7.
 //!
 //! ace3's `observable_comments` router (PLAN.md 5.6), under ace3's `observable:read` and `observable:write`
 //! (`ace_service`'s `observable_comments` docs). A comment is on a type and value, across alerts:
@@ -497,6 +528,8 @@ mod observables;
 mod params;
 mod remediation;
 mod svs_catalog;
+mod svs_decisions;
+mod svs_run_reads;
 mod svs_runs;
 mod svs_samples;
 mod svs_validations;
@@ -893,7 +926,100 @@ impl Web {
             )
             .route(
                 "/api/svs/v1/runs",
-                post(svs_runs::register).layer(json_limit),
+                get(svs_run_reads::list)
+                    .post(svs_runs::register)
+                    .layer(json_limit),
+            )
+            .route(
+                "/api/svs/v1/runs/export/{format}",
+                get(svs_run_reads::export),
+            )
+            .route("/api/svs/v1/runs/count", get(svs_run_reads::count))
+            .route(
+                "/api/svs/v1/runs/suppression-share",
+                get(svs_run_reads::suppression_share),
+            )
+            .route("/api/svs/v1/runs/batches", get(svs_run_reads::batches))
+            .route(
+                "/api/svs/v1/runs/batches/export/{format}",
+                get(svs_run_reads::export_batches),
+            )
+            .route("/api/svs/v1/runs/events", get(svs_run_reads::event_feed))
+            .route(
+                "/api/svs/v1/runs/events/export/{format}",
+                get(svs_run_reads::export_event_feed),
+            )
+            .route("/api/svs/v1/runs/results", get(svs_run_reads::result_feed))
+            .route(
+                "/api/svs/v1/runs/results/export/{format}",
+                get(svs_run_reads::export_result_feed),
+            )
+            .route(
+                "/api/svs/v1/runs/{run_id}/events/export/{format}",
+                get(svs_run_reads::export_run_events),
+            )
+            .route(
+                "/api/svs/v1/runs/{run_id}/results",
+                get(svs_run_reads::run_results),
+            )
+            .route(
+                "/api/svs/v1/runs/{run_id}/results/export/{format}",
+                get(svs_run_reads::export_run_results),
+            )
+            .route(
+                "/api/svs/v1/runs/{run_id}/history",
+                get(svs_run_reads::history),
+            )
+            .route(
+                "/api/svs/v1/runs/{run_id}/comments",
+                get(svs_run_reads::comments)
+                    .post(svs_run_reads::add_comment)
+                    .layer(json_limit),
+            )
+            .route(
+                "/api/svs/v1/runs/{run_id}/comments/{id}",
+                patch(svs_run_reads::update_comment)
+                    .delete(svs_run_reads::delete_comment)
+                    .layer(json_limit),
+            )
+            .route("/api/svs/v1/expectations", get(svs_decisions::expectations))
+            .route(
+                "/api/svs/v1/expectations/export/{format}",
+                get(svs_decisions::export_expectations),
+            )
+            .route("/api/svs/v1/ignores", get(svs_decisions::ignores))
+            .route(
+                "/api/svs/v1/ignores/export/{format}",
+                get(svs_decisions::export_ignores),
+            )
+            .route(
+                "/api/svs/v1/ignores/global/{signature_uuid}",
+                put(svs_decisions::set_global_ignore)
+                    .delete(svs_decisions::remove_global_ignore)
+                    .layer(json_limit),
+            )
+            .route(
+                "/api/svs/v1/tests/{guid}/expectations/{platform}/{signature_uuid}",
+                put(svs_decisions::set_expectation)
+                    .delete(svs_decisions::remove_expectation)
+                    .layer(json_limit),
+            )
+            .route(
+                "/api/svs/v1/tests/{guid}/ignores/{signature_uuid}",
+                put(svs_decisions::set_test_ignore)
+                    .delete(svs_decisions::remove_test_ignore)
+                    .layer(json_limit),
+            )
+            .route(
+                "/api/svs/v1/tests/{guid}/settings",
+                get(svs_decisions::settings)
+                    .put(svs_decisions::set_settings)
+                    .delete(svs_decisions::remove_settings)
+                    .layer(json_limit),
+            )
+            .route(
+                "/api/svs/v1/test-hosts/export/{format}",
+                get(svs_runs::export_test_hosts),
             )
             .route(
                 "/api/svs/v1/runs/validate",
@@ -1211,7 +1337,39 @@ impl Web {
         svs_runs::executed,
         svs_runs::cleanup,
         svs_runs::cancel,
+        svs_run_reads::list,
+        svs_run_reads::export,
+        svs_run_reads::count,
+        svs_run_reads::suppression_share,
+        svs_run_reads::batches,
+        svs_run_reads::export_batches,
+        svs_run_reads::event_feed,
+        svs_run_reads::export_event_feed,
+        svs_run_reads::result_feed,
+        svs_run_reads::export_result_feed,
+        svs_run_reads::export_run_events,
+        svs_run_reads::run_results,
+        svs_run_reads::export_run_results,
+        svs_run_reads::history,
+        svs_run_reads::comments,
+        svs_run_reads::add_comment,
+        svs_run_reads::update_comment,
+        svs_run_reads::delete_comment,
+        svs_decisions::expectations,
+        svs_decisions::export_expectations,
+        svs_decisions::ignores,
+        svs_decisions::export_ignores,
+        svs_decisions::set_global_ignore,
+        svs_decisions::remove_global_ignore,
+        svs_decisions::set_expectation,
+        svs_decisions::remove_expectation,
+        svs_decisions::set_test_ignore,
+        svs_decisions::remove_test_ignore,
+        svs_decisions::settings,
+        svs_decisions::set_settings,
+        svs_decisions::remove_settings,
         svs_runs::test_hosts,
+        svs_runs::export_test_hosts,
         svs_runs::create_test_host,
         svs_runs::test_host,
         svs_runs::update_test_host,

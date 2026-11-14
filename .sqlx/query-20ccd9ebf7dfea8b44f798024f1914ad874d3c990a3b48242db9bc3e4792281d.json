@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE svs.run_result_state\n                 SET stale = false, computed_generation = $2, computed_at = $3\n                 WHERE run_id = $1 AND generation = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "20ccd9ebf7dfea8b44f798024f1914ad874d3c990a3b48242db9bc3e4792281d"
+}

@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO svs.run_result_state\n                     (run_id, generation, stale, computed_generation, computed_at)\n                 VALUES ($1, 0, false, 0, $2)\n                 ON CONFLICT (run_id) DO NOTHING",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "18b9900dd582a81c0a5c0cc9ff42fba48a6083bdf3bc2dc8823880d4b0df1ab2"
+}

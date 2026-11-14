@@ -1,0 +1,52 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT r.id, s.stale AS \"stale?\", s.computed_at\n                           FROM svs.runs r\n                           LEFT JOIN svs.run_result_state s ON s.run_id = r.id\n                           WHERE r.uuid = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "svs.runs",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "stale?",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "svs.run_result_state",
+            "name": "stale"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "computed_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "svs.run_result_state",
+            "name": "computed_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "ba8864836050053f8a91ca740de921a3396d65d25f474d08390a210d247456cf"
+}

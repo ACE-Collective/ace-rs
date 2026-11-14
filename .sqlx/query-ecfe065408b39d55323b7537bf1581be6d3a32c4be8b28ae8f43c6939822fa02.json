@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM svs.ignores\n                         WHERE test_guid IS NOT DISTINCT FROM $1 AND signature_uuid = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "ecfe065408b39d55323b7537bf1581be6d3a32c4be8b28ae8f43c6939822fa02"
+}

@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM svs.test_settings WHERE test_guid = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "1857792f3c713cf095eca477fdbcf968c0ecc5fa73ba712296234c81e0bb4635"
+}

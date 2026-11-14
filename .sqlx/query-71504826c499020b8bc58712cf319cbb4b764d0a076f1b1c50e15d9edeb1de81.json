@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE svs.ignores SET reason = $3\n                                 WHERE test_guid IS NOT DISTINCT FROM $1 AND signature_uuid = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "71504826c499020b8bc58712cf319cbb4b764d0a076f1b1c50e15d9edeb1de81"
+}

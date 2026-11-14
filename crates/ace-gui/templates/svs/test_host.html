@@ -1,0 +1,14 @@
+{#- One test host's form (PLAN.md 7.10 batch 5): ace3's test host modal, as a page (src/svs.rs). -#}
+{% extends "base.html" %}
+{% block title %}Test host · SVS · ACE{% endblock %}
+{% block content %}
+<section class="signatures detection svs-hosts">
+  {%- include "svs/tabs.html" %}
+  <p><a href="/svs/test-hosts">Test hosts</a> / <span class="qa-text">{{ view.hostname }}</span></p>
+  <p class="muted">A change made from this form applies only while nobody else has changed the host since the page was loaded.</p>
+  {%- include "svs/host_form.html" %}
+  <h2>Remove</h2>
+  <p class="muted">Runs already registered keep their targets, and the host's open maintenance window ends.</p>
+  <form method="post" action="{{ view.delete }}"><button type="submit">Remove this test host</button></form>
+</section>
+{% endblock %}

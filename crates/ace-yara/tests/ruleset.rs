@@ -206,6 +206,65 @@ rule qa_blank_uuid { meta: modifiers = "qa" uuid = "  " condition: false }
     assert!(old.qa_rules.is_empty());
 }
 
+/// What SVS reads of each rule with a `uuid` meta (PLAN.md 7.10 batch 5): its name, the hash of its own
+/// text, its tags with its `mitre_attack` meta's techniques, and whether they count.
+#[test]
+fn the_manifest_lists_each_rule_with_a_uuid_as_a_signature() {
+    let temp = tempfile::tempdir().unwrap();
+    let dir = temp.path();
+    std::fs::create_dir_all(dir.join("ns")).unwrap();
+    let plain = "rule plain : zeta alpha {\n    meta:\n        uuid = \" 11111111-1111-1111-1111-111111111111 \"\n        mitre_attack = \"T1059.001, T1105 ,\"\n    condition: false\n}\n";
+    let source = format!(
+        "{plain}rule in_qa {{ meta: uuid = \"22222222-2222-2222-2222-222222222222\" modifiers = \"qa\" condition: false }}\n\
+         rule off {{ meta: uuid = \"33333333-3333-3333-3333-333333333333\" enabled = \"false\" condition: false }}\n\
+         rule nameless {{ condition: false }}\n\
+         rule again {{ meta: uuid = \"11111111-1111-1111-1111-111111111111\" condition: false }}\n"
+    );
+    std::fs::write(dir.join("ns/rules.yar"), &source).unwrap();
+    let built = build(dir, &LoadOptions::default()).unwrap();
+    let signatures: Vec<_> = built
+        .manifest
+        .signatures
+        .iter()
+        .map(|s| (s.uuid.as_str(), s.name.as_str(), s.counts, s.tags.clone()))
+        .collect();
+    assert_eq!(
+        signatures,
+        [
+            (
+                "11111111-1111-1111-1111-111111111111",
+                "plain",
+                true,
+                vec![
+                    "alpha".to_string(),
+                    "mitre:T1059.001".into(),
+                    "mitre:T1105".into(),
+                    "zeta".into()
+                ]
+            ),
+            (
+                "22222222-2222-2222-2222-222222222222",
+                "in_qa",
+                false,
+                vec![]
+            ),
+            ("33333333-3333-3333-3333-333333333333", "off", false, vec![]),
+        ],
+        "a rule without a uuid isn't one, and a uuid's first rule is its signature"
+    );
+    // the hash is the sha256 of the rule's own text, as ace3's inventory computes it
+    use sha2::{Digest, Sha256};
+    let expected: String = Sha256::digest(plain.as_bytes())
+        .iter()
+        .map(|b| format!("{b:02x}"))
+        .collect();
+    assert_eq!(built.manifest.signatures[0].content_hash, expected);
+    let mut old = serde_json::to_value(&built.manifest).unwrap();
+    old.as_object_mut().unwrap().remove("signatures");
+    let old: Manifest = serde_json::from_value(old).unwrap();
+    assert!(old.signatures.is_empty());
+}
+
 #[test]
 fn a_directory_outside_git_is_known_by_the_hash_of_its_sources() {
     let temp = tempfile::tempdir().unwrap();

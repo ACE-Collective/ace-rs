@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT count(*) AS \"missing!\",\n                                  count(*) FILTER (WHERE reviewed_status = 'possibly_suppressed')\n                                      AS \"suppressed!\"\n                           FROM svs.run_results\n                           WHERE reviewed_status IN ('missing', 'possibly_suppressed')",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "missing!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "suppressed!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      null,
+      null
+    ]
+  },
+  "hash": "cd52c022684a45785fb40b708946794dd0c11ee4e39ad6f91af34e64ab901a9e"
+}

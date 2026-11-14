@@ -1,0 +1,76 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT test_guid, observation_minutes, holds_host, set_by AS \"set_by: Value\", updated_at\n           FROM svs.test_settings WHERE test_guid = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "test_guid",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "svs.test_settings",
+            "name": "test_guid"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "observation_minutes",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "svs.test_settings",
+            "name": "observation_minutes"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "holds_host",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "svs.test_settings",
+            "name": "holds_host"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "set_by: Value",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "svs.test_settings",
+            "name": "set_by"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "updated_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "svs.test_settings",
+            "name": "updated_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "ea942f1a15dce31b3bea59c941b238f1bb514fbeaa0be1a8568d3bd19905cd3e"
+}

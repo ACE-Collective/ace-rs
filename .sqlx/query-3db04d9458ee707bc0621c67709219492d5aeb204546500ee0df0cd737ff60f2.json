@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT guid, platforms FROM svs.catalog_tests WHERE guid = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "guid",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "svs.catalog_tests",
+            "name": "guid"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "platforms",
+        "type_info": "TextArray",
+        "origin": {
+          "Table": {
+            "table": "svs.catalog_tests",
+            "name": "platforms"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "3db04d9458ee707bc0621c67709219492d5aeb204546500ee0df0cd737ff60f2"
+}

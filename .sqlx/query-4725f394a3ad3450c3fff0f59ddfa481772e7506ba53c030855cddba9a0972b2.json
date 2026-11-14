@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO svs.expectations AS e\n                             (test_guid, platform, signature_uuid, state, signature_family,\n                              signature_name, reason, decided_from_run_id, decided_by, decided_at)\n                         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10)\n                         ON CONFLICT ON CONSTRAINT expectations_are_unique DO UPDATE\n                         SET state = EXCLUDED.state, signature_family = EXCLUDED.signature_family,\n                             signature_name = EXCLUDED.signature_name, reason = EXCLUDED.reason,\n                             decided_from_run_id = EXCLUDED.decided_from_run_id,\n                             decided_by = EXCLUDED.decided_by, decided_at = EXCLUDED.decided_at\n                         WHERE $11",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Int8",
+        "Jsonb",
+        "Timestamptz",
+        "Bool"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "4725f394a3ad3450c3fff0f59ddfa481772e7506ba53c030855cddba9a0972b2"
+}

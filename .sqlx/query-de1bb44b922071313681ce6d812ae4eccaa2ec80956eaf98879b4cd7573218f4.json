@@ -1,0 +1,47 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT run_id, reviewed_status AS \"status!\", count(*) AS \"count!\" FROM svs.run_results\n           WHERE run_id = ANY ($1) AND reviewed_status IN ('hit', 'missing', 'possibly_suppressed')\n           GROUP BY run_id, reviewed_status",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "run_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "svs.run_results",
+            "name": "run_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "status!",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.run_results",
+            "name": "reviewed_status"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "count!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8Array"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      null
+    ]
+  },
+  "hash": "de1bb44b922071313681ce6d812ae4eccaa2ec80956eaf98879b4cd7573218f4"
+}

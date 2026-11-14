@@ -1,0 +1,24 @@
+{#- A test host's form (src/svs.rs): adding one, or changing one from the `updated_at` it was drawn with. -#}
+  <form method="post" action="{{ view.form.action }}" class="detection-add">
+    {%- if !view.form.seen.is_empty() %}
+    <input type="hidden" name="seen" value="{{ view.form.seen }}">
+    {%- endif %}
+    <label for="host-hostname">Host name</label>
+    <input type="text" id="host-hostname" name="hostname" value="{{ view.form.hostname }}" maxlength="255" required placeholder="the short name; a fully qualified one is split into both">
+    <label for="host-fqdn">FQDN</label>
+    <input type="text" id="host-fqdn" name="fqdn" value="{{ view.form.fqdn }}" maxlength="255" placeholder="empty: a target in any domain matches">
+    <label for="host-platform">Platform</label>
+    <select id="host-platform" name="platform">
+      <option value="">not set (not checked)</option>
+      {%- for platform in view.platforms %}
+      <option value="{{ platform }}"{% if view.form.is_platform(platform) %} selected{% endif %}>{{ platform }}</option>
+      {%- endfor %}
+    </select>
+    <label for="host-usernames">Users</label>
+    <input type="text" id="host-usernames" name="usernames" value="{{ view.form.usernames }}" placeholder="empty: any user">
+    <label for="host-ips">IP addresses</label>
+    <input type="text" id="host-ips" name="ips" value="{{ view.form.ips }}">
+    <label for="host-notes">Notes</label>
+    <input type="text" id="host-notes" name="notes" value="{{ view.form.notes }}">
+    <button type="submit">Save</button>
+  </form>

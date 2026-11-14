@@ -1,0 +1,26 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT count(*) AS \"n!\" FROM (\n                                   SELECT FROM svs.run_events e\n                                   JOIN svs.runs r ON r.id = e.run_id\n                                   WHERE svs.run_matches(r, $1)\n                                     AND ($2::timestamptz IS NULL OR e.updated_at >= $2)\n                                     AND e.updated_at < now() - make_interval(secs => $3)\n                                   LIMIT $4) x",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "n!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Jsonb",
+        "Timestamptz",
+        "Float8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "19c613831a367af19bd7f0f7d5512dbb57e2ba6ab066f8544b8b2eb3b31bc457"
+}

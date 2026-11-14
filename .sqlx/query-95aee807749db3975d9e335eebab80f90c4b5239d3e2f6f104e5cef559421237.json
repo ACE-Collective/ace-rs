@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO svs.run_result_state (run_id, generation, stale)\n         SELECT id, 1, true FROM svs.runs\n         WHERE state IN ('started', 'ended', 'reviewed')\n           AND ($1::uuid IS NULL OR test_guid = $1)\n           AND ($2::text IS NULL OR platform = $2)\n         ORDER BY id\n         ON CONFLICT (run_id) DO UPDATE\n         SET generation = svs.run_result_state.generation + 1, stale = true",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "95aee807749db3975d9e335eebab80f90c4b5239d3e2f6f104e5cef559421237"
+}

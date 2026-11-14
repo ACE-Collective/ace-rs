@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE svs.run_results SET status = NULL WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "ff7e150dda1cb0ee67ed6a18539162e600aa5e8d97cf9e8a08595ae28e3da10b"
+}

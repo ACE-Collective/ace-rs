@@ -12693,3 +12693,1019 @@ async fn the_validations_pages_need_signature_read() {
         "{page}"
     );
 }
+
+// ---- the SVS area: runs, the run page and the test hosts (PLAN.md 7.10 batch 5) ----
+
+use ace_gui::svs::{
+    BatchesPage, HostPage, HostsPage, RunPage, RunPageData, RunsPage, Tabs, batches_view,
+    host_view, hosts_view, run_href, run_view, runs_view,
+};
+use ace_service::{
+    HistoryRun, Ignore, Run, RunBatch, RunComment, RunEvent, RunHistory, RunQuery, RunResult,
+    RunRow, RunSummary, RunTarget, SignatureHistory, SuppressionShare, TestHost,
+};
+
+fn svs_at() -> chrono::DateTime<chrono::Utc> {
+    chrono::DateTime::from_timestamp(1_700_000_000, 0).expect("a time")
+}
+
+fn svs_actor() -> RecordedActor {
+    RecordedActor {
+        kind: "api_key".to_owned(),
+        id: "k".to_owned(),
+        name: Some(HOSTILE.to_owned()),
+    }
+}
+
+/// A run with text from its launcher in every field that can hold it.
+fn fixture_run_row() -> RunRow {
+    let at = svs_at();
+    RunRow {
+        run: Run {
+            uuid: uuid::Uuid::from_u128(0x5b),
+            test_guid: uuid::Uuid::from_u128(0x7e57),
+            platform: "windows".to_owned(),
+            test_content_hash: "0".repeat(64),
+            catalog_commit: "a".repeat(40),
+            state: ace_core::svs::RunState::Ended,
+            marker: "svs-aaaaaaaaaaaaaaaaaaaaaaaaaa".to_owned(),
+            launcher: HOSTILE.to_owned(),
+            batch_id: Some(HOSTILE.to_owned()),
+            extra: serde_json::json!({"ticket": "<b>42</b>"}),
+            registered_by: Some(svs_actor()),
+            created_at: at,
+            started_at: Some(at),
+            executed_at: Some(at),
+            cleanup_at: None,
+            exit_code: Some(1),
+            launcher_error: Some(HOSTILE.to_owned()),
+            ended_at: Some(at),
+            end_reason: Some(HOSTILE.to_owned()),
+            canceled_at: None,
+            closed_at: None,
+            close_reason: Some(HOSTILE.to_owned()),
+            error_reason: Some(HOSTILE.to_owned()),
+            observation_seconds: 5400,
+            attribution_seconds: 90000,
+            observation_ends_at: Some(at),
+            attribution_ends_at: Some(at),
+            holds_host: true,
+            updated_at: at,
+            targets: vec![RunTarget {
+                hostname: HOSTILE.to_owned(),
+                username: Some(HOSTILE.to_owned()),
+                host: "win10-01".to_owned(),
+                fqdn: None,
+                user: None,
+            }],
+        },
+        test_name: Some(HOSTILE.to_owned()),
+        technique: Some("T1059.001".to_owned()),
+        technique_name: Some(HOSTILE.to_owned()),
+        owner: Some(HOSTILE.to_owned()),
+        reviewer: None,
+        reviewed_at: None,
+        changed_since_review: false,
+        needs_attention: true,
+        summary: RunSummary {
+            hit: 1,
+            missing: 1,
+            possibly_suppressed: 1,
+            candidate: 2,
+            alerts: 3,
+            marker_alerts: 2,
+            context_alerts: 1,
+            late_alerts: 1,
+            result_stale: true,
+            ..RunSummary::default()
+        },
+    }
+}
+
+fn fixture_run_result(id: i64, signature: &str, status: Option<&str>) -> RunResult {
+    RunResult {
+        id,
+        run: uuid::Uuid::from_u128(0x5b),
+        signature_uuid: signature.to_owned(),
+        signature_family: Some(HOSTILE.to_owned()),
+        signature_name: Some(HOSTILE.to_owned()),
+        status: status.map(str::to_owned),
+        alert_count: 2,
+        late_only: true,
+        context_only: true,
+        fallback_time: true,
+        content_hash: None,
+        suppressing_alert: (status == Some("possibly_suppressed"))
+            .then(|| uuid::Uuid::from_u128(0xa1e7)),
+        reviewed_status: status.is_none().then(|| "hit".to_owned()),
+        reviewed_alert_count: None,
+        reviewed_late_only: None,
+        reviewed_content_hash: None,
+        updated_at: svs_at(),
+    }
+}
+
+fn fixture_host() -> TestHost {
+    TestHost {
+        id: 7,
+        hostname: "win10-01".to_owned(),
+        fqdn: Some("win10-01.lab.example".to_owned()),
+        usernames: vec!["svc_art".to_owned(), "other".to_owned()],
+        ips: vec!["10.0.0.5".to_owned()],
+        platform: Some("linux".to_owned()),
+        notes: Some(HOSTILE.to_owned()),
+        created_by: Some(svs_actor()),
+        created_at: svs_at(),
+        updated_at: svs_at(),
+    }
+}
+
+/// The SVS area's views, called directly: the runs with their filters, pages and exports, the batches, a
+/// run's page with its result's decisions by what its viewer holds, its history, comments and event log,
+/// and the test hosts with their forms, each with hostile text escaped and nothing inline.
+#[test]
+fn the_svs_views_draw_runs_a_run_and_test_hosts() {
+    let layout = || Layout::new("n", Theme::default(), Some("analyst".to_owned()), "/svs");
+    let tabs = |admin| Tabs {
+        open: "runs",
+        admin,
+    };
+    let share = SuppressionShare {
+        missing: 4,
+        possibly_suppressed: 1,
+        reviewed_runs: 60,
+        first_reviewed_at: Some(svs_at()),
+        trigger_reached: true,
+    };
+    let row = fixture_run_row();
+    let filters = vec!["state:ended".to_owned()];
+    let query = RunQuery {
+        filters: vec![FilterEntry::text("State", false, &["ended"])],
+        ..RunQuery::default()
+    };
+    let list = drawn_safely(&RunsPage {
+        layout: layout(),
+        view: runs_view(
+            tabs(false),
+            &query,
+            &filters,
+            1,
+            &share,
+            std::slice::from_ref(&row),
+            Some("c1"),
+            Some("c2"),
+        ),
+    });
+    assert!(
+        list.contains(&format!(
+            r#"<a href="{}">2023-11-14 22:13:20 UTC</a>"#,
+            run_href(row.run.uuid)
+        )),
+        "{list}"
+    );
+    assert!(list.contains(HOSTILE_ESCAPED), "{list}");
+    assert!(
+        list.contains(r#"<span class="badge disposition-warning">ended</span> <span class="muted">needs attention</span>"#),
+        "{list}"
+    );
+    assert!(list.contains("<td>1/3 <span"), "{list}");
+    assert!(
+        list.contains(r#"<a href="/svs/runs?f=state%3Aended">First</a>"#)
+            && list.contains(
+                r#"<a href="/svs/runs?f=state%3Aended&#38;cursor=c2" rel="next">Next</a>"#
+            ),
+        "{list}"
+    );
+    assert!(
+        list.contains(r#"href="/api/svs/v1/runs/export/csv?f=state%3Aended""#)
+            && list.contains(r#"href="/svs/runs/batches?f=state%3Aended""#),
+        "{list}"
+    );
+    assert!(
+        list.contains(r#"id="filter-state" name="state" value="ended""#),
+        "{list}"
+    );
+    // the batch is a link to its runs, its id percent-encoded in the filter
+    assert!(list.contains(r#"<a href="/svs/runs?f=batch%3A"#), "{list}");
+    assert!(
+        list.contains("1 of 4 expected signatures missing from 60 reviewed runs were possibly suppressed (25%). Keeping the hunter from suppressing test targets is worth reconsidering."),
+        "{list}"
+    );
+    // only an admin gets the Test hosts tab
+    assert!(!list.contains(r#"href="/svs/test-hosts""#), "{list}");
+    let empty = drawn_safely(&RunsPage {
+        layout: layout(),
+        view: runs_view(
+            tabs(true),
+            &RunQuery::default(),
+            &[],
+            0,
+            &SuppressionShare {
+                missing: 0,
+                possibly_suppressed: 0,
+                reviewed_runs: 0,
+                first_reviewed_at: None,
+                trigger_reached: false,
+            },
+            &[],
+            None,
+            None,
+        ),
+    });
+    assert!(
+        empty.contains("No runs.")
+            && empty.contains(r#"href="/svs/test-hosts""#)
+            && !empty.contains("possibly suppressed"),
+        "{empty}"
+    );
+
+    let batch = RunBatch {
+        batch_id: HOSTILE.to_owned(),
+        runs: 3,
+        states: vec![
+            (ace_core::svs::RunState::Created, 0),
+            (ace_core::svs::RunState::Ended, 2),
+            (ace_core::svs::RunState::Started, 1),
+        ],
+        needs_attention: 2,
+        first_created_at: svs_at(),
+        last_created_at: svs_at(),
+        result_hit: 1,
+        result_expected: 4,
+        result_missing: 3,
+        result_candidate: 0,
+    };
+    let batches = drawn_safely(&BatchesPage {
+        layout: layout(),
+        view: batches_view(tabs(false), &query, &filters, &[batch], None, Some("b2")),
+    });
+    assert!(
+        batches.contains("<td>2 ended, 1 started</td>") && batches.contains("<td>1/4</td>"),
+        "{batches}"
+    );
+    assert!(
+        batches.contains(
+            r#"<a href="/svs/runs/batches?f=state%3Aended&#38;cursor=b2" rel="next">Next</a>"#
+        ) && batches.contains(r#"href="/api/svs/v1/runs/batches/export/ndjson?f=state%3Aended""#),
+        "{batches}"
+    );
+
+    // the run page
+    let results = [
+        fixture_run_result(1, "sig-candidate", Some("candidate")),
+        fixture_run_result(2, "sig-hit", Some("hit")),
+        fixture_run_result(3, "sig-ignored", Some("ignored")),
+        fixture_run_result(4, "sig-suppressed", Some("possibly_suppressed")),
+        fixture_run_result(5, "sig-left", None),
+    ];
+    let history = RunHistory {
+        runs: vec![HistoryRun {
+            run: uuid::Uuid::from_u128(0x01d),
+            state: ace_core::svs::RunState::Reviewed,
+            created_at: svs_at(),
+            reviewed_at: Some(svs_at()),
+        }],
+        signatures: results
+            .iter()
+            .map(|result| SignatureHistory {
+                signature_uuid: result.signature_uuid.clone(),
+                statuses: vec![(result.id == 2).then(|| "missing".to_owned())],
+            })
+            .collect(),
+    };
+    let ignore = |test: Option<u128>| Ignore {
+        test_guid: test.map(uuid::Uuid::from_u128),
+        signature_uuid: "sig-ignored".to_owned(),
+        signature_family: None,
+        signature_name: None,
+        reason: None,
+        created_by: Some(svs_actor()),
+        created_at: svs_at(),
+        updated_at: svs_at(),
+    };
+    let ignores = [ignore(Some(0x7e57)), ignore(None)];
+    let comment = |id: i64, user: &str| RunComment {
+        id,
+        run: row.run.uuid,
+        user: Some(user.to_owned()),
+        comment: HOSTILE.to_owned(),
+        created_at: svs_at(),
+        updated_at: svs_at() + chrono::TimeDelta::minutes(5),
+    };
+    let comments = [comment(1, "analyst"), comment(2, "someone-else")];
+    let events = [RunEvent {
+        id: 1,
+        kind: "transition".to_owned(),
+        from_state: Some(ace_core::svs::RunState::Started),
+        to_state: Some(ace_core::svs::RunState::Ended),
+        actor: Some(svs_actor()),
+        details: Some(serde_json::json!({"reason": "<b>nothing fired</b>"})),
+        created_at: svs_at(),
+    }];
+    let data = |manage: bool, admin: bool, log_search: Option<&str>| RunPageData {
+        row: &row,
+        launcher_output: Some(HOSTILE),
+        log_search: log_search.map(str::to_owned),
+        results: &results,
+        result_stale: true,
+        computed_at: Some(svs_at()),
+        history: &history,
+        ignores: &ignores,
+        comments: &comments,
+        events: &events,
+        viewer: Some("analyst"),
+        manage,
+        admin,
+        notice: Some("The comment is added.".to_owned()),
+    };
+    let page = drawn_safely(&RunPage {
+        layout: layout(),
+        view: run_view(
+            tabs(false),
+            &data(false, false, Some("https://logs.example/search?q=svs-aaa")),
+        ),
+    });
+    assert!(
+        page.contains(r#"<a href="https://logs.example/search?q=svs-aaa" rel="noopener noreferrer">Search the logs for this run</a>"#),
+        "{page}"
+    );
+    assert!(
+        page.contains("<tr><th>Observation window</th><td class=\"qa-text\">1 h 30 min, until 2023-11-14 22:13:20 UTC</td></tr>")
+            && page.contains("25 h, until 2023-11-14 22:13:20 UTC, holding its hosts"),
+        "{page}"
+    );
+    assert!(
+        page.contains("3 (2 by a marker, 1 by context alone, 1 late)")
+            && page.contains("Something changed since this result was computed."),
+        "{page}"
+    );
+    assert!(
+        page.contains(r#"<span class="badge disposition-warning">candidate</span> <span class="muted">late, context only, fallback time</span>"#)
+            && page.contains(r#"<span class="badge disposition-secondary">left the result</span>"#)
+            && page.contains(r#"<a href="/alerts/00000000-0000-0000-0000-00000000a1e7">the alert that may have suppressed it</a>"#),
+        "{page}"
+    );
+    // the earlier run is a column, and the hit was missing there
+    assert!(
+        page.contains(r#"<a href="/svs/runs/00000000-0000-0000-0000-00000000001d""#)
+            && page.contains("<td>missing</td>"),
+        "{page}"
+    );
+    assert!(
+        page.contains("&#60;b&#62;nothing fired&#60;/b&#62;")
+            && page.contains("&#60;b&#62;42&#60;/b&#62;")
+            && page.contains("started → ended"),
+        "{page}"
+    );
+    assert!(
+        page.contains(r#"<p class="notice" role="status">The comment is added.</p>"#),
+        "{page}"
+    );
+    // without svs:run_manage there are no forms
+    assert!(
+        !page.contains("<form method=\"post\" action=\"/svs"),
+        "{page}"
+    );
+    // a link that isn't http or https isn't one
+    let unsafe_link = drawn_safely(&RunPage {
+        layout: layout(),
+        view: run_view(
+            tabs(false),
+            &data(false, false, Some("javascript:alert(1)")),
+        ),
+    });
+    assert!(!unsafe_link.contains("Search the logs"), "{unsafe_link}");
+
+    // a manager decides, and changes only their own comment
+    let managed = drawn_safely(&RunPage {
+        layout: layout(),
+        view: run_view(tabs(false), &data(true, false, None)),
+    });
+    let form = |signature: &str, decision: &str, text: &str| {
+        format!(
+            r#"<form method="post" action="/svs/runs/00000000-0000-0000-0000-00000000005b/decide" class="inline"><input type="hidden" name="signature" value="{signature}"><input type="hidden" name="decision" value="{decision}"><button type="submit">{text}</button></form>"#
+        )
+    };
+    for (signature, decision, text) in [
+        ("sig-candidate", "expected", "Expect"),
+        ("sig-candidate", "rejected", "Reject"),
+        ("sig-candidate", "ignore", "Ignore for this test"),
+        ("sig-hit", "undecide", "Undecide"),
+        ("sig-suppressed", "undecide", "Undecide"),
+        ("sig-ignored", "unignore", "Stop ignoring for this test"),
+    ] {
+        assert!(
+            managed.contains(&form(signature, decision, text)),
+            "{signature} {decision}: {managed}"
+        );
+    }
+    assert!(
+        !managed.contains("ignore_globally") && !managed.contains(r#"value="sig-left""#),
+        "{managed}"
+    );
+    assert!(
+        managed.contains(r#"<form method="post" action="/svs/runs/00000000-0000-0000-0000-00000000005b/comments/1">"#)
+            && !managed.contains("/comments/2\""),
+        "{managed}"
+    );
+    assert!(
+        managed.contains(r#"<form method="post" action="/svs/runs/00000000-0000-0000-0000-00000000005b/comments">"#)
+            && managed.contains(", changed 2023-11-14 22:18:20 UTC"),
+        "{managed}"
+    );
+    // an admin ignores, and stops ignoring, for every test
+    let admin = drawn_safely(&RunPage {
+        layout: layout(),
+        view: run_view(tabs(true), &data(true, true, None)),
+    });
+    assert!(
+        admin.contains(&form(
+            "sig-candidate",
+            "ignore_globally",
+            "Ignore for every test"
+        )) && admin.contains(&form(
+            "sig-ignored",
+            "unignore_globally",
+            "Stop ignoring for every test"
+        )),
+        "{admin}"
+    );
+
+    // the test hosts, and a host's form
+    let hosts_tab = || Tabs {
+        open: "test_hosts",
+        admin: true,
+    };
+    let host = fixture_host();
+    let hosts = drawn_safely(&HostsPage {
+        layout: layout(),
+        view: hosts_view(
+            hosts_tab(),
+            std::slice::from_ref(&host),
+            Some("c1"),
+            Some("c2"),
+            Some("The test host is added.".to_owned()),
+        ),
+    });
+    assert!(
+        hosts.contains(r#"<a href="/svs/test-hosts/7">win10-01</a>"#)
+            && hosts.contains("<td class=\"qa-text\">svc_art, other</td>")
+            && hosts.contains(r#"<a href="/svs/test-hosts?cursor=c2" rel="next">Next</a>"#)
+            && hosts
+                .contains(r#"<form method="post" action="/svs/test-hosts" class="detection-add">"#)
+            && hosts.contains(r#"<a href="/svs/test-hosts" aria-current="page">Test hosts</a>"#),
+        "{hosts}"
+    );
+    assert!(!hosts.contains(r#"name="seen""#), "{hosts}");
+    let edit = drawn_safely(&HostPage {
+        layout: layout(),
+        view: host_view(hosts_tab(), &host),
+    });
+    assert!(
+        edit.contains(r#"<form method="post" action="/svs/test-hosts/7" class="detection-add">"#)
+            && edit.contains(
+                r#"<input type="hidden" name="seen" value="2023-11-14T22:13:20.000000Z">"#
+            )
+            && edit.contains(r#"<option value="linux" selected>linux</option>"#)
+            && edit.contains(r#"<option value="windows">windows</option>"#)
+            && edit.contains(r#"name="usernames" value="svc_art, other""#)
+            && edit.contains(r#"<form method="post" action="/svs/test-hosts/7/delete">"#),
+        "{edit}"
+    );
+}
+
+/// A catalog test and a run of it in the GUI's database, with hostile text where a launcher and a
+/// repository put theirs, ended, with a result of one candidate and one hit.
+async fn gui_run(stack: &Stack, registrar: &Actor) -> uuid::Uuid {
+    let db = stack.test_db.db();
+    let guid = uuid::Uuid::from_u128(0x7e57);
+    sqlx::query(
+        "INSERT INTO svs.catalog_tests
+             (guid, repository, technique, name, platforms, test, content_hash, commit, path)
+         VALUES ($1, 'atomic-red-team', 'T1059.001', $2, '{windows}', '{}', repeat('0', 64),
+                 repeat('a', 40), 'atomics/T1059.001/T1059.001.yaml')",
+    )
+    .bind(guid)
+    .bind(HOSTILE)
+    .execute(db.pool())
+    .await
+    .expect("a catalog test");
+    stack
+        .service
+        .create_test_host(registrar, &ace_service::HostFields::new("gui-host-01"))
+        .await
+        .expect("a test host");
+    let run = stack
+        .service
+        .register_svs_run(
+            registrar,
+            &ace_service::Registration {
+                test_guid: guid.to_string(),
+                targets: vec![ace_service::TargetSpec::new("gui-host-01", None)],
+                launcher: HOSTILE.to_owned(),
+                batch_id: Some("nightly".to_owned()),
+                extra: serde_json::json!({}),
+            },
+            chrono::Utc::now(),
+        )
+        .await
+        .expect("registers");
+    stack
+        .service
+        .start_svs_run(registrar, run.uuid, chrono::Utc::now())
+        .await
+        .expect("starts");
+    sqlx::query("UPDATE svs.runs SET state = 'ended', ended_at = now() WHERE uuid = $1")
+        .bind(run.uuid)
+        .execute(db.pool())
+        .await
+        .expect("ends");
+    for (signature, status) in [
+        ("11111111-aaaa-4aaa-8aaa-111111111111", "candidate"),
+        ("22222222-bbbb-4bbb-8bbb-222222222222", "hit"),
+    ] {
+        sqlx::query(
+            "INSERT INTO svs.run_results
+                 (run_id, signature_uuid, signature_family, signature_name, status, alert_count)
+             VALUES ((SELECT id FROM svs.runs WHERE uuid = $1), $2, 'yara', $3, $4, 1)",
+        )
+        .bind(run.uuid)
+        .bind(signature)
+        .bind(HOSTILE)
+        .bind(status)
+        .execute(db.pool())
+        .await
+        .expect("a result row");
+    }
+    run.uuid
+}
+
+/// The SVS pages through the server: signed out goes to the login; without `svs:run_read` each page and
+/// post is 403; with it the layout's link, the runs, the batches and a run with no forms, and the errors;
+/// `svs:run_manage` adds the decisions and the comments, whose posts decide once, comment, and change
+/// only one's own; `svs:admin` opens the test hosts, whose form adds, changes from a fresh form only, and
+/// removes; a post from another site is refused; and each write has its audit row.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn the_svs_pages_need_run_read_then_run_manage_and_svs_admin() {
+    let stack = stack_of_db(Catalog::new(vec![]), |service, _| {
+        Gui::new(service, Transport::Plain)
+    })
+    .await;
+    let alice = user(&stack, "alice").await;
+    let bob = user(&stack, "bob").await;
+    // whoever set the lab up: its test host and the launcher's run
+    let boss = user(&stack, "boss").await;
+    for minor in ["admin", "run_register"] {
+        grant_to(&stack, &boss, "svs", minor).await;
+    }
+    let run = gui_run(&stack, &boss).await;
+    let page_of = run_href(run);
+    let candidate = "11111111-aaaa-4aaa-8aaa-111111111111";
+
+    let pages = [
+        "/svs".to_owned(),
+        "/svs/runs".to_owned(),
+        "/svs/runs/batches".to_owned(),
+        page_of.clone(),
+        "/svs/test-hosts".to_owned(),
+    ];
+    for path in &pages {
+        let page = stack.get(path).send().await.expect("answered");
+        assert_eq!(page.status(), StatusCode::SEE_OTHER, "{path}");
+        assert!(location(&page).starts_with("/login?next="), "{path}");
+    }
+    let session = session_of(&stack, "alice").await;
+    let get = |path: String| stack.get(&path).header("cookie", cookie(&session)).send();
+    let post = |path: String, form: Vec<(&'static str, String)>| {
+        let form: Vec<(&str, &str)> = form.iter().map(|(k, v)| (*k, v.as_str())).collect();
+        stack
+            .post(&path, &form)
+            .header("cookie", cookie(&session))
+            .send()
+    };
+    for path in &pages {
+        assert_eq!(
+            get(path.clone()).await.expect("answered").status(),
+            StatusCode::FORBIDDEN,
+            "{path}"
+        );
+    }
+    let decide = |decision: &'static str| {
+        post(
+            format!("{page_of}/decide"),
+            vec![
+                ("signature", candidate.to_owned()),
+                ("decision", decision.to_owned()),
+            ],
+        )
+    };
+    for refused in [
+        decide("expected").await,
+        post(
+            format!("{page_of}/comments"),
+            vec![("comment", "x".to_owned())],
+        )
+        .await,
+        post(
+            "/svs/test-hosts".to_owned(),
+            vec![("hostname", "nope".to_owned())],
+        )
+        .await,
+    ] {
+        assert_eq!(refused.expect("answered").status(), StatusCode::FORBIDDEN);
+    }
+
+    // svs:run_read: the pages, with no forms
+    grant_to(&stack, &alice, "svs", "run_read").await;
+    // the audit rows of SVS's own writes: grants and logins have theirs too
+    let svs_writes = || {
+        sqlx_count(
+            &stack.test_db,
+            "SELECT count(*) FROM service.audit
+             WHERE action LIKE '%svs%' OR action LIKE '%test_host%'",
+        )
+    };
+    let audit = svs_writes().await;
+    let home = get("/svs".to_owned()).await.expect("answered");
+    assert_eq!(home.status(), StatusCode::SEE_OTHER);
+    assert_eq!(location(&home), "/svs/runs?f=needs_attention%3Atrue");
+    let list = get(location(&home).to_owned()).await.expect("answered");
+    assert_eq!(list.status(), StatusCode::OK);
+    let list = list.text().await.expect("a page");
+    assert!(list.contains(&format!(r#"<a href="{page_of}">"#)), "{list}");
+    assert!(list.contains(r#"<a href="/svs">SVS</a>"#), "{list}");
+    assert!(
+        !list.contains("<script>alert") && !list.contains(r#"href="/svs/test-hosts""#),
+        "{list}"
+    );
+    assert!(list.contains("1 matching"), "{list}");
+    let folded = get("/svs/runs?state=ended&batch=nightly".to_owned())
+        .await
+        .expect("answered");
+    assert_eq!(folded.status(), StatusCode::SEE_OTHER);
+    assert_eq!(
+        location(&folded),
+        "/svs/runs?f=state%3Aended&f=batch%3Anightly"
+    );
+    let none = get("/svs/runs?f=state%3Astarted".to_owned())
+        .await
+        .expect("answered")
+        .text()
+        .await
+        .expect("a page");
+    assert!(none.contains("No runs."), "{none}");
+    let batches = get("/svs/runs/batches".to_owned()).await.expect("answered");
+    assert_eq!(batches.status(), StatusCode::OK);
+    let batches = batches.text().await.expect("a page");
+    assert!(
+        batches.contains(r#"<a href="/svs/runs?f=batch%3Anightly">nightly</a>"#)
+            && batches.contains("<td>1 ended</td>"),
+        "{batches}"
+    );
+    let page = get(page_of.clone()).await.expect("answered");
+    assert_eq!(page.status(), StatusCode::OK);
+    let page = page.text().await.expect("a page");
+    assert!(
+        page.contains(candidate)
+            && page.contains(r#"<span class="badge disposition-warning">candidate</span>"#)
+            && !page.contains("<script>alert")
+            && !page.contains("<form method=\"post\" action=\"/svs"),
+        "{page}"
+    );
+    for (path, status) in [
+        (
+            "/svs/runs?f=state%3Afinished".to_owned(),
+            StatusCode::BAD_REQUEST,
+        ),
+        ("/svs/runs?cursor=nope".to_owned(), StatusCode::BAD_REQUEST),
+        (
+            "/svs/runs/batches?cursor=nope".to_owned(),
+            StatusCode::BAD_REQUEST,
+        ),
+        ("/svs/runs/nope".to_owned(), StatusCode::BAD_REQUEST),
+        (run_href(uuid::Uuid::new_v4()), StatusCode::NOT_FOUND),
+        ("/svs/test-hosts".to_owned(), StatusCode::FORBIDDEN),
+        ("/svs/test-hosts/1".to_owned(), StatusCode::FORBIDDEN),
+    ] {
+        assert_eq!(
+            get(path.clone()).await.expect("answered").status(),
+            status,
+            "{path}"
+        );
+    }
+    // reading writes nothing, and a reader's post is the service's refusal
+    assert_eq!(
+        decide("expected").await.expect("answered").status(),
+        StatusCode::FORBIDDEN
+    );
+    assert_eq!(svs_writes().await, audit);
+
+    // svs:run_manage: the decisions and the comments
+    grant_to(&stack, &alice, "svs", "run_manage").await;
+    let page = get(page_of.clone())
+        .await
+        .expect("answered")
+        .text()
+        .await
+        .expect("a page");
+    assert!(
+        page.contains(&format!(
+            r#"<form method="post" action="{page_of}/decide" class="inline"><input type="hidden" name="signature" value="{candidate}"><input type="hidden" name="decision" value="expected"><button type="submit">Expect</button></form>"#
+        )) && !page.contains("ignore_globally"),
+        "{page}"
+    );
+    let decided = decide("expected").await.expect("answered");
+    assert_eq!(decided.status(), StatusCode::SEE_OTHER);
+    assert_eq!(location(&decided), format!("{page_of}?done=expected"));
+    let after = get(location(&decided).to_owned())
+        .await
+        .expect("answered")
+        .text()
+        .await
+        .expect("a page");
+    assert!(
+        after.contains("The signature is expected of this test on this platform.")
+            && after.contains("candidate_decision"),
+        "{after}"
+    );
+    // the same decision from a page loaded before it: refused, not made twice
+    assert_eq!(
+        decide("rejected").await.expect("answered").status(),
+        StatusCode::PRECONDITION_FAILED
+    );
+    assert_eq!(
+        decide("undecide").await.expect("answered").status(),
+        StatusCode::SEE_OTHER
+    );
+    assert_eq!(
+        decide("ignore").await.expect("answered").status(),
+        StatusCode::SEE_OTHER
+    );
+    assert_eq!(
+        decide("unignore").await.expect("answered").status(),
+        StatusCode::SEE_OTHER
+    );
+    for (decision, status) in [
+        // a global ignore is svs:admin's
+        ("ignore_globally", StatusCode::FORBIDDEN),
+        ("promote", StatusCode::BAD_REQUEST),
+        // nothing to remove
+        ("undecide", StatusCode::NOT_FOUND),
+    ] {
+        assert_eq!(
+            decide(decision).await.expect("answered").status(),
+            status,
+            "{decision}"
+        );
+    }
+    assert_eq!(
+        post(format!("{page_of}/decide"), vec![])
+            .await
+            .expect("answered")
+            .status(),
+        StatusCode::BAD_REQUEST
+    );
+
+    let commented = post(
+        format!("{page_of}/comments"),
+        vec![("comment", HOSTILE.to_owned())],
+    )
+    .await
+    .expect("answered");
+    assert_eq!(location(&commented), format!("{page_of}?done=commented"));
+    let comment: i64 =
+        sqlx::query_scalar("SELECT id FROM svs.run_comments ORDER BY id DESC LIMIT 1")
+            .fetch_one(stack.test_db.db().pool())
+            .await
+            .expect("the comment");
+    let with_comment = get(page_of.clone())
+        .await
+        .expect("answered")
+        .text()
+        .await
+        .expect("a page");
+    assert!(
+        with_comment.contains(&format!(
+            r#"<form method="post" action="{page_of}/comments/{comment}">"#
+        )) && !with_comment.contains("<script>alert"),
+        "{with_comment}"
+    );
+    assert_eq!(
+        post(
+            format!("{page_of}/comments"),
+            vec![("comment", "  ".to_owned())]
+        )
+        .await
+        .expect("answered")
+        .status(),
+        StatusCode::BAD_REQUEST
+    );
+    // another manager sees it with no form, and can't change it
+    grant_to(&stack, &bob, "svs", "run_read").await;
+    grant_to(&stack, &bob, "svs", "run_manage").await;
+    let bobs = session_of(&stack, "bob").await;
+    let bobs_page = stack
+        .get(&page_of)
+        .header("cookie", cookie(&bobs))
+        .send()
+        .await
+        .expect("answered")
+        .text()
+        .await
+        .expect("a page");
+    assert!(
+        !bobs_page.contains(&format!("{page_of}/comments/{comment}\"")),
+        "{bobs_page}"
+    );
+    let theirs = stack
+        .post(
+            &format!("{page_of}/comments/{comment}"),
+            &[("comment", "theirs")],
+        )
+        .header("cookie", cookie(&bobs))
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(theirs.status(), StatusCode::FORBIDDEN);
+    let edited = post(
+        format!("{page_of}/comments/{comment}"),
+        vec![("comment", "edited".to_owned())],
+    )
+    .await
+    .expect("answered");
+    assert_eq!(location(&edited), format!("{page_of}?done=edited"));
+    for (path, status) in [
+        (format!("{page_of}/comments/999999"), StatusCode::NOT_FOUND),
+        (format!("{page_of}/comments/first"), StatusCode::BAD_REQUEST),
+        (
+            format!("{}/comments/{comment}", run_href(uuid::Uuid::new_v4())),
+            StatusCode::NOT_FOUND,
+        ),
+    ] {
+        assert_eq!(
+            post(path.clone(), vec![("comment", "x".to_owned())])
+                .await
+                .expect("answered")
+                .status(),
+            status,
+            "{path}"
+        );
+    }
+    // a post from another site's page is refused, and changes nothing
+    let cross = stack
+        .http
+        .post(format!("{}{page_of}/comments/{comment}", stack.url))
+        .header("origin", "https://evil.example")
+        .header("cookie", cookie(&session))
+        .form(&[("delete", "1")])
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(cross.status(), StatusCode::FORBIDDEN);
+    let deleted = post(
+        format!("{page_of}/comments/{comment}"),
+        vec![("delete", "1".to_owned())],
+    )
+    .await
+    .expect("answered");
+    assert_eq!(location(&deleted), format!("{page_of}?done=deleted"));
+    // expected, undecided, ignored, unignored, commented, edited, deleted
+    assert_eq!(svs_writes().await, audit + 7);
+
+    // svs:admin: the test hosts
+    grant_to(&stack, &alice, "svs", "admin").await;
+    let hosts = get("/svs/test-hosts".to_owned()).await.expect("answered");
+    assert_eq!(hosts.status(), StatusCode::OK);
+    let hosts = hosts.text().await.expect("a page");
+    assert!(
+        hosts.contains("gui-host-01")
+            && hosts.contains(r#"<a href="/svs/test-hosts" aria-current="page">Test hosts</a>"#),
+        "{hosts}"
+    );
+    let added = post(
+        "/svs/test-hosts".to_owned(),
+        vec![
+            ("hostname", "WIN10-02.lab.example".to_owned()),
+            ("platform", "windows".to_owned()),
+            ("usernames", "LAB\\svc_art, other".to_owned()),
+            ("ips", "10.0.0.6".to_owned()),
+            ("notes", HOSTILE.to_owned()),
+        ],
+    )
+    .await
+    .expect("answered");
+    assert_eq!(location(&added), "/svs/test-hosts?done=added");
+    let host: i64 = sqlx::query_scalar("SELECT id FROM svs.test_hosts WHERE hostname = 'win10-02'")
+        .fetch_one(stack.test_db.db().pool())
+        .await
+        .expect("the host");
+    let listed = get("/svs/test-hosts?done=added".to_owned())
+        .await
+        .expect("answered")
+        .text()
+        .await
+        .expect("a page");
+    assert!(
+        listed.contains("The test host is added.")
+            && listed.contains("<td class=\"qa-text\">other, svc_art</td>")
+            && !listed.contains("<script>alert"),
+        "{listed}"
+    );
+    for (form, status) in [
+        (
+            vec![("hostname", "not a host".to_owned())],
+            StatusCode::BAD_REQUEST,
+        ),
+        (
+            vec![("hostname", "win10-02".to_owned())],
+            StatusCode::CONFLICT,
+        ),
+    ] {
+        assert_eq!(
+            post("/svs/test-hosts".to_owned(), form)
+                .await
+                .expect("answered")
+                .status(),
+            status
+        );
+    }
+    let edit = get(format!("/svs/test-hosts/{host}"))
+        .await
+        .expect("answered");
+    assert_eq!(edit.status(), StatusCode::OK);
+    let edit = edit.text().await.expect("a page");
+    let seen = edit
+        .split(r#"name="seen" value=""#)
+        .nth(1)
+        .and_then(|rest| rest.split('"').next())
+        .expect("the form's seen")
+        .to_owned();
+    let change = |notes: &'static str, seen: String| {
+        post(
+            format!("/svs/test-hosts/{host}"),
+            vec![
+                ("hostname", "win10-02".to_owned()),
+                ("notes", notes.to_owned()),
+                ("seen", seen),
+            ],
+        )
+    };
+    let changed = change("lab 4", seen.clone()).await.expect("answered");
+    assert_eq!(location(&changed), "/svs/test-hosts?done=changed");
+    // the same form again: someone changed the host since it was loaded
+    let stale = change("lab 5", seen).await.expect("answered");
+    assert_eq!(stale.status(), StatusCode::PRECONDITION_FAILED);
+    assert!(
+        stale
+            .text()
+            .await
+            .expect("a page")
+            .contains("was changed by someone else since you loaded it")
+    );
+    assert_eq!(
+        change("x", "yesterday".to_owned())
+            .await
+            .expect("answered")
+            .status(),
+        StatusCode::BAD_REQUEST
+    );
+    for (path, status) in [
+        ("/svs/test-hosts/nope".to_owned(), StatusCode::BAD_REQUEST),
+        ("/svs/test-hosts/999999".to_owned(), StatusCode::NOT_FOUND),
+        (
+            "/svs/test-hosts?cursor=nope".to_owned(),
+            StatusCode::BAD_REQUEST,
+        ),
+    ] {
+        assert_eq!(
+            get(path.clone()).await.expect("answered").status(),
+            status,
+            "{path}"
+        );
+    }
+    let removed = post(format!("/svs/test-hosts/{host}/delete"), vec![])
+        .await
+        .expect("answered");
+    assert_eq!(location(&removed), "/svs/test-hosts?done=removed");
+    assert_eq!(
+        post(format!("/svs/test-hosts/{host}/delete"), vec![])
+            .await
+            .expect("answered")
+            .status(),
+        StatusCode::NOT_FOUND
+    );
+    // added, changed, removed
+    assert_eq!(svs_writes().await, audit + 10);
+    // and an admin ignores for every test from the run page
+    let page = get(page_of.clone())
+        .await
+        .expect("answered")
+        .text()
+        .await
+        .expect("a page");
+    assert!(page.contains("ignore_globally"), "{page}");
+    assert_eq!(
+        decide("ignore_globally").await.expect("answered").status(),
+        StatusCode::SEE_OTHER
+    );
+}

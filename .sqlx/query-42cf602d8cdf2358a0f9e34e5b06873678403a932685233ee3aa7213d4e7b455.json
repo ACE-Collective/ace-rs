@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT count(*) AS \"n!\" FROM (\n                                   SELECT FROM svs.test_hosts\n                                   WHERE $1::timestamptz IS NULL OR updated_at >= $1\n                                   LIMIT $2) x",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "n!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Timestamptz",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "42cf602d8cdf2358a0f9e34e5b06873678403a932685233ee3aa7213d4e7b455"
+}

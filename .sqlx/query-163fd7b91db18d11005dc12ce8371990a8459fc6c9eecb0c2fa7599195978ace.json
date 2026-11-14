@@ -1,0 +1,125 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, test_guid, signature_uuid, signature_family, signature_name, reason,\n                  created_by AS \"created_by!: Value\", created_at, updated_at\n           FROM svs.ignores WHERE test_guid IS NOT DISTINCT FROM $1 AND signature_uuid = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "svs.ignores",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "test_guid",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "svs.ignores",
+            "name": "test_guid"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "signature_uuid",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.ignores",
+            "name": "signature_uuid"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "signature_family",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.ignores",
+            "name": "signature_family"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "signature_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.ignores",
+            "name": "signature_name"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "reason",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.ignores",
+            "name": "reason"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "created_by!: Value",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "svs.ignores",
+            "name": "created_by"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "svs.ignores",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "updated_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "svs.ignores",
+            "name": "updated_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      false,
+      true,
+      true,
+      true,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "163fd7b91db18d11005dc12ce8371990a8459fc6c9eecb0c2fa7599195978ace"
+}

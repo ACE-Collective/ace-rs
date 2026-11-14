@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT count(*) AS \"n!\" FROM (\n                                   SELECT FROM svs.runs r\n                                   WHERE r.batch_id IS NOT NULL AND svs.run_matches(r, $1)\n                                   GROUP BY lower(r.batch_id)\n                                   LIMIT $2) x",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "n!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Jsonb",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "59900a5aaef041b89e37af94ec0f91cff36597b22d07d7a0e3d70ea61cdea6c2"
+}

@@ -6939,7 +6939,732 @@
         }
       }
     },
+    "/api/svs/v1/expectations": {
+      "get": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "Every test's decided signatures, per platform. Follow `next`, with the same filters, until it's null.",
+        "operationId": "expectations",
+        "parameters": [
+          {
+            "name": "test",
+            "in": "query",
+            "description": "Only this test's, by its guid.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "platform",
+            "in": "query",
+            "description": "Only those about this platform, such as `windows`.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "signature",
+            "in": "query",
+            "description": "Only this signature's.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "description": "Only `expected` or only `rejected`.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "changed_since",
+            "in": "query",
+            "description": "Only decisions made or changed at or after this time; the rows then come in (updated_at, id) order,\nand none changed in the last few seconds.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "How many, 1 to 1000; 100 when left out.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "description": "The `next` of the previous page.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of decisions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExpectationPageBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A state, time, limit or cursor that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold svs:run_read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/svs/v1/expectations/export/{format}": {
+      "get": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "The decisions the list's filters match, as CSV or NDJSON.",
+        "operationId": "export_expectations",
+        "parameters": [
+          {
+            "name": "format",
+            "in": "path",
+            "description": "`csv` or `ndjson`",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "test",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "platform",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "signature",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "changed_since",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The decisions, as text/csv or application/x-ndjson",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A format, state or time that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold svs:run_read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "More decisions than an export holds",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/svs/v1/ignores": {
+      "get": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "The ignores. Follow `next`, with the same filters, until it's null.",
+        "operationId": "ignores",
+        "parameters": [
+          {
+            "name": "scope",
+            "in": "query",
+            "description": "Only `global` or only `test` ignores.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "test",
+            "in": "query",
+            "description": "The ignores that apply to this test, by its guid: its own and the global ones.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "signature",
+            "in": "query",
+            "description": "Only this signature's.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "changed_since",
+            "in": "query",
+            "description": "Only ignores added or changed at or after this time; the rows then come in (updated_at, id) order.\nA removed ignore is gone, not listed.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "How many, 1 to 1000; 100 when left out.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "description": "The `next` of the previous page.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of ignores",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IgnorePageBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A scope, time, limit or cursor that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold svs:run_read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/svs/v1/ignores/export/{format}": {
+      "get": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "The ignores the list's filters match, as CSV or NDJSON.",
+        "operationId": "export_ignores",
+        "parameters": [
+          {
+            "name": "format",
+            "in": "path",
+            "description": "`csv` or `ndjson`",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "scope",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "test",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "signature",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "changed_since",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The ignores, as text/csv or application/x-ndjson",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A format, scope or time that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold svs:run_read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "More ignores than an export holds",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/svs/v1/ignores/global/{signature_uuid}": {
+      "put": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "Ignores a signature during every test's runs; setting it again replaces its reason. The preconditions\nare a decision's.",
+        "operationId": "set_global_ignore",
+        "parameters": [
+          {
+            "name": "signature_uuid",
+            "in": "path",
+            "description": "The signature",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "The ignore's updated_at as last read",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          {
+            "name": "If-None-Match",
+            "in": "header",
+            "description": "`*`: no ignore was seen",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IgnoreRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The ignore",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IgnoreBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A body, signature or precondition that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold svs:admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "The ignore was added, changed or removed since it was read; read it again",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The body is too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "Stops ignoring a signature globally.",
+        "operationId": "remove_global_ignore",
+        "parameters": [
+          {
+            "name": "signature_uuid",
+            "in": "path",
+            "description": "The signature",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Removed"
+          },
+          "400": {
+            "description": "A signature that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold svs:admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The signature isn't ignored globally",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/svs/v1/runs": {
+      "get": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "The runs the filters match, newest first, a page at a time; with `changed_since`, in (updated_at, id)\norder. Follow `next` with the same filters and `changed_since` until it's null.",
+        "operationId": "list",
+        "parameters": [
+          {
+            "name": "f",
+            "in": "query",
+            "description": "A filter in the share-link encoding (`[!]slug:v1,v2`) with the runs screen's slugs:\nneeds_attention, state, test, test_name, technique (T1059 also finds its sub-techniques), target,\nplatform, launcher, batch, created, started, ended, reviewed, owner, reviewer, reason,\nchanged_since_review, has_open_alerts, has_missing, has_possibly_suppressed, has_candidates,\nhas_late, has_context_only. Repeat it for more; filters are ANDed, the values of one ORed.",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "style": "form",
+            "explode": true
+          },
+          {
+            "name": "changed_since",
+            "in": "query",
+            "description": "Only what was written or changed at or after this time; the pages are then in (updated_at, id)\norder, and hold nothing changed in the last few seconds.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tz",
+            "in": "query",
+            "description": "The timezone relative date filters (`-7d`) resolve in; UTC when left out.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "How many, 1 to 1000; 100 when left out.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "description": "The `next` of the previous page.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of runs",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunPageBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A filter, time, timezone, limit or cursor that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold svs:run_read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      },
       "post": {
         "tags": [
           "svs"
@@ -7009,6 +7734,863 @@
           },
           "413": {
             "description": "The body is too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/svs/v1/runs/batches": {
+      "get": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "One row per `batch_id` over the runs the filters match, summing only those runs: their states, how\nmany need attention, and their results. The batch with the latest run comes first; runs without a\n`batch_id` are left out. Follow `next`, with the same filters, until it's null.",
+        "operationId": "batches",
+        "parameters": [
+          {
+            "name": "f",
+            "in": "query",
+            "description": "A filter in the share-link encoding (`[!]slug:v1,v2`) with the runs screen's slugs:\nneeds_attention, state, test, test_name, technique (T1059 also finds its sub-techniques), target,\nplatform, launcher, batch, created, started, ended, reviewed, owner, reviewer, reason,\nchanged_since_review, has_open_alerts, has_missing, has_possibly_suppressed, has_candidates,\nhas_late, has_context_only. Repeat it for more; filters are ANDed, the values of one ORed.",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "style": "form",
+            "explode": true
+          },
+          {
+            "name": "changed_since",
+            "in": "query",
+            "description": "Only what was written or changed at or after this time; the pages are then in (updated_at, id)\norder, and hold nothing changed in the last few seconds.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tz",
+            "in": "query",
+            "description": "The timezone relative date filters (`-7d`) resolve in; UTC when left out.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "How many, 1 to 1000; 100 when left out.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "description": "The `next` of the previous page.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of batches",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunBatchPageBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A filter, timezone, limit or cursor that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold svs:run_read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/svs/v1/runs/batches/export/{format}": {
+      "get": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "Every batch, as CSV (one `state_<state>` column per state) or NDJSON.",
+        "operationId": "export_batches",
+        "parameters": [
+          {
+            "name": "format",
+            "in": "path",
+            "description": "`csv` or `ndjson`",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "f",
+            "in": "query",
+            "description": "A filter, as the runs' list takes it; repeat it for more.",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "style": "form",
+            "explode": true
+          },
+          {
+            "name": "changed_since",
+            "in": "query",
+            "description": "Only what was written or changed at or after this time, where the listing takes it.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tz",
+            "in": "query",
+            "description": "The timezone relative date filters resolve in; UTC when left out.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The batches, as text/csv or application/x-ndjson",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A format, filter or timezone that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold svs:run_read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "More batches than an export holds",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/svs/v1/runs/count": {
+      "get": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "How many runs the filters match: `f=needs_attention:true` is the count on the GUI's SVS entry.",
+        "operationId": "count",
+        "parameters": [
+          {
+            "name": "f",
+            "in": "query",
+            "description": "A filter, as the runs' list takes it; repeat it for more.",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "style": "form",
+            "explode": true
+          },
+          {
+            "name": "changed_since",
+            "in": "query",
+            "description": "Only what was written or changed at or after this time, where the listing takes it.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tz",
+            "in": "query",
+            "description": "The timezone relative date filters resolve in; UTC when left out.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The count",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunCountBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A filter or timezone that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold svs:run_read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/svs/v1/runs/events": {
+      "get": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "The events of every run the filters match, in (updated_at, id) order: the runs' change feed. An event\nshows up a few seconds after it's written, so a pull resumed from its last `updated_at` never misses\none, and may repeat one.",
+        "operationId": "event_feed",
+        "parameters": [
+          {
+            "name": "f",
+            "in": "query",
+            "description": "A filter in the share-link encoding (`[!]slug:v1,v2`) with the runs screen's slugs:\nneeds_attention, state, test, test_name, technique (T1059 also finds its sub-techniques), target,\nplatform, launcher, batch, created, started, ended, reviewed, owner, reviewer, reason,\nchanged_since_review, has_open_alerts, has_missing, has_possibly_suppressed, has_candidates,\nhas_late, has_context_only. Repeat it for more; filters are ANDed, the values of one ORed.",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "style": "form",
+            "explode": true
+          },
+          {
+            "name": "changed_since",
+            "in": "query",
+            "description": "Only what was written or changed at or after this time; the pages are then in (updated_at, id)\norder, and hold nothing changed in the last few seconds.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tz",
+            "in": "query",
+            "description": "The timezone relative date filters (`-7d`) resolve in; UTC when left out.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "How many, 1 to 1000; 100 when left out.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "description": "The `next` of the previous page.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of events",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunFeedEventPageBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A filter, time, timezone, limit or cursor that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold svs:run_read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/svs/v1/runs/events/export/{format}": {
+      "get": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "The event feed, as CSV (details as a JSON string) or NDJSON.",
+        "operationId": "export_event_feed",
+        "parameters": [
+          {
+            "name": "format",
+            "in": "path",
+            "description": "`csv` or `ndjson`",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "f",
+            "in": "query",
+            "description": "A filter, as the runs' list takes it; repeat it for more.",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "style": "form",
+            "explode": true
+          },
+          {
+            "name": "changed_since",
+            "in": "query",
+            "description": "Only what was written or changed at or after this time, where the listing takes it.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tz",
+            "in": "query",
+            "description": "The timezone relative date filters resolve in; UTC when left out.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The events, as text/csv or application/x-ndjson",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A format, filter, time or timezone that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold svs:run_read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "More events than an export holds",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/svs/v1/runs/export/{format}": {
+      "get": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "Every run the list's filters match, in its order, as CSV (targets joined as host or host/user with\n`,`) or NDJSON (one run as the list gives it on each line). A failure part-way ends a CSV there and an\nNDJSON with an `{\"error\": ...}` line.",
+        "operationId": "export",
+        "parameters": [
+          {
+            "name": "format",
+            "in": "path",
+            "description": "`csv` or `ndjson`",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "f",
+            "in": "query",
+            "description": "A filter, as the runs' list takes it; repeat it for more.",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "style": "form",
+            "explode": true
+          },
+          {
+            "name": "changed_since",
+            "in": "query",
+            "description": "Only what was written or changed at or after this time, where the listing takes it.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tz",
+            "in": "query",
+            "description": "The timezone relative date filters resolve in; UTC when left out.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The runs, as text/csv or application/x-ndjson",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A format, filter, time or timezone that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold svs:run_read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "More runs than an export holds",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/svs/v1/runs/results": {
+      "get": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "The result rows of every run the filters match, in (updated_at, id) order: what reports pull. A row\nshows up a few seconds after it's written, so a pull resumed from its last `updated_at` never misses\none, and may repeat one.",
+        "operationId": "result_feed",
+        "parameters": [
+          {
+            "name": "f",
+            "in": "query",
+            "description": "A filter in the share-link encoding (`[!]slug:v1,v2`) with the runs screen's slugs:\nneeds_attention, state, test, test_name, technique (T1059 also finds its sub-techniques), target,\nplatform, launcher, batch, created, started, ended, reviewed, owner, reviewer, reason,\nchanged_since_review, has_open_alerts, has_missing, has_possibly_suppressed, has_candidates,\nhas_late, has_context_only. Repeat it for more; filters are ANDed, the values of one ORed.",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "style": "form",
+            "explode": true
+          },
+          {
+            "name": "changed_since",
+            "in": "query",
+            "description": "Only what was written or changed at or after this time; the pages are then in (updated_at, id)\norder, and hold nothing changed in the last few seconds.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tz",
+            "in": "query",
+            "description": "The timezone relative date filters (`-7d`) resolve in; UTC when left out.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "How many, 1 to 1000; 100 when left out.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "description": "The `next` of the previous page.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of result rows",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunResultFeedPageBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A filter, time, timezone, limit or cursor that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold svs:run_read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/svs/v1/runs/results/export/{format}": {
+      "get": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "The result feed, as CSV or NDJSON.",
+        "operationId": "export_result_feed",
+        "parameters": [
+          {
+            "name": "format",
+            "in": "path",
+            "description": "`csv` or `ndjson`",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "f",
+            "in": "query",
+            "description": "A filter, as the runs' list takes it; repeat it for more.",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "style": "form",
+            "explode": true
+          },
+          {
+            "name": "changed_since",
+            "in": "query",
+            "description": "Only what was written or changed at or after this time, where the listing takes it.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tz",
+            "in": "query",
+            "description": "The timezone relative date filters resolve in; UTC when left out.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The result rows, as text/csv or application/x-ndjson",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A format, filter, time or timezone that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold svs:run_read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "More result rows than an export holds",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/svs/v1/runs/suppression-share": {
+      "get": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "How many of the expected signatures missing from reviewed runs were possibly suppressed, and whether\nthe trigger to revisit keeping the hunter from suppressing test targets is reached.",
+        "operationId": "suppression_share",
+        "responses": {
+          "200": {
+            "description": "The share",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuppressionShareBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold svs:run_read",
             "content": {
               "application/json": {
                 "schema": {
@@ -7096,7 +8678,7 @@
         "tags": [
           "svs"
         ],
-        "summary": "One run, with what its launcher sent and what its test printed.",
+        "summary": "One run, with what its launcher sent, what its test printed, and what the runs screen shows of it: its\ntest's name, who owns and reviewed it, whether it needs attention, and its result's and alerts' summary.\nIts history is `GET .../events`.",
         "operationId": "detail",
         "parameters": [
           {
@@ -7327,6 +8909,346 @@
         }
       }
     },
+    "/api/svs/v1/runs/{run_id}/comments": {
+      "get": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "The run's comments, oldest first.",
+        "operationId": "comments",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "description": "The run's uuid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The comments",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RunCommentBody"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "An id that isn't a uuid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold svs:run_read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No run with that id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "Adds a comment to a run.",
+        "operationId": "add_comment",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "description": "The run's uuid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RunCommentRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "The comment",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunCommentBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "An id that isn't a uuid, a body that isn't one, a comment that is empty or too long, or a key that belongs to no user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold svs:run_manage",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No run with that id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The body is too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/svs/v1/runs/{run_id}/comments/{id}": {
+      "delete": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "Deletes a comment; only its author can.",
+        "operationId": "delete_comment",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "description": "The run's uuid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The comment's id",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "400": {
+            "description": "An id that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold svs:run_manage, or isn't the comment's author",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No run with that id, or no such comment on it",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "Changes a comment; only its author can.",
+        "operationId": "update_comment",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "description": "The run's uuid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The comment's id",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RunCommentRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The comment",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunCommentBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "An id that isn't one, a body that isn't one, or a comment that is empty or too long",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold svs:run_manage, or isn't the comment's author",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No run with that id, or no such comment on it",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The body is too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/svs/v1/runs/{run_id}/events": {
       "get": {
         "tags": [
@@ -7408,6 +9330,97 @@
           },
           "404": {
             "description": "No run with that id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/svs/v1/runs/{run_id}/events/export/{format}": {
+      "get": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "A run's event log, oldest first, as CSV (details as a JSON string) or NDJSON.",
+        "operationId": "export_run_events",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "description": "The run's uuid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "format",
+            "in": "path",
+            "description": "`csv` or `ndjson`",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The events, as text/csv or application/x-ndjson",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "An id that isn't a uuid, or a format that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold svs:run_read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No run with that id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "More events than an export holds",
             "content": {
               "application/json": {
                 "schema": {
@@ -7510,6 +9523,272 @@
           },
           "413": {
             "description": "The body is too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/svs/v1/runs/{run_id}/history": {
+      "get": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "How each signature of the run's result did in the test's ended and reviewed runs on the run's platform\nregistered before it, latest first.",
+        "operationId": "history",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "description": "The run's uuid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "runs",
+            "in": "query",
+            "description": "How many earlier runs, 1 to 50; 10 when left out.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The history",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunHistoryBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "An id that isn't a uuid, or a number of runs out of range",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold svs:run_read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No run with that id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/svs/v1/runs/{run_id}/results": {
+      "get": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "A run's result, one row per signature. `stale` says it is about to be recomputed.",
+        "operationId": "run_results",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "description": "The run's uuid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "description": "The `next` of the page before.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "At most this many, 1 to 1000; 100 when left out.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of the run's result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunResultPageBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "An id that isn't a uuid, or a parameter that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold svs:run_read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No run with that id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/svs/v1/runs/{run_id}/results/export/{format}": {
+      "get": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "A run's result, as CSV or NDJSON.",
+        "operationId": "export_run_results",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "description": "The run's uuid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "format",
+            "in": "path",
+            "description": "`csv` or `ndjson`",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The result rows, as text/csv or application/x-ndjson",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "An id that isn't a uuid, or a format that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold svs:run_read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No run with that id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "More result rows than an export holds",
             "content": {
               "application/json": {
                 "schema": {
@@ -8960,18 +11239,56 @@
         "tags": [
           "svs"
         ],
-        "summary": "The test hosts, by host name.",
+        "summary": "The test hosts, by host name, a page at a time. Follow `next` until it's null.",
         "operationId": "test_hosts",
+        "parameters": [
+          {
+            "name": "changed_since",
+            "in": "query",
+            "description": "Only test hosts added or changed at or after this time.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "How many, 1 to 1000; 100 when left out.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "description": "The `next` of the previous page.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
-            "description": "The test hosts",
+            "description": "A page of test hosts",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/TestHostBody"
-                  }
+                  "$ref": "#/components/schemas/TestHostPageBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A time, limit or cursor that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
                 }
               }
             }
@@ -9078,6 +11395,87 @@
         }
       }
     },
+    "/api/svs/v1/test-hosts/export/{format}": {
+      "get": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "Every test host, by host name, as CSV (usernames and ips joined with `,`) or NDJSON.",
+        "operationId": "export_test_hosts",
+        "parameters": [
+          {
+            "name": "format",
+            "in": "path",
+            "description": "`csv` or `ndjson`",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "changed_since",
+            "in": "query",
+            "description": "Only test hosts added or changed at or after this time.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The test hosts, as text/csv or application/x-ndjson",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A format or time that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold svs:run_read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "More test hosts than an export holds",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/svs/v1/test-hosts/{host}": {
       "get": {
         "tags": [
@@ -9154,7 +11552,7 @@
         "tags": [
           "svs"
         ],
-        "summary": "Replaces a test host's fields.",
+        "summary": "Replaces a test host's fields. With `If-Match`, the host's `updated_at` as it was last read, the change\napplies only while the host is unchanged since.",
         "operationId": "update_test_host",
         "parameters": [
           {
@@ -9165,6 +11563,18 @@
             "schema": {
               "type": "integer",
               "format": "int64"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "The host's updated_at as last read",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
             }
           }
         ],
@@ -9231,6 +11641,16 @@
           },
           "409": {
             "description": "Its new short name is already a test host",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "The host changed since the `If-Match` it was read with; read it again",
             "content": {
               "application/json": {
                 "schema": {
@@ -9895,6 +12315,643 @@
           },
           "404": {
             "description": "No test with that guid in the catalog",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/svs/v1/tests/{guid}/expectations/{platform}/{signature_uuid}": {
+      "put": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "Decides a signature for the test's runs on the platform: expected or rejected. With `If-None-Match: *`\nit applies only while there's no decision yet, and with `If-Match`, the decision's `updated_at` as last\nread, only while it's unchanged since.",
+        "operationId": "set_expectation",
+        "parameters": [
+          {
+            "name": "guid",
+            "in": "path",
+            "description": "The test's auto_generated_guid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "platform",
+            "in": "path",
+            "description": "One of the test's platforms, such as windows",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "signature_uuid",
+            "in": "path",
+            "description": "The signature",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "The decision's updated_at as last read",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          {
+            "name": "If-None-Match",
+            "in": "header",
+            "description": "`*`: no decision was seen",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExpectationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The decision",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExpectationBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A body, state, signature or precondition that isn't one, a platform the test doesn't support, or a run that isn't one of the test's on the platform",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold svs:run_manage",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No test with that guid in the catalog",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "The decision was made, changed or removed since it was read; read it again",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The body is too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "Removes a decision: the signature is a candidate again the next time a run on the platform fires it.",
+        "operationId": "remove_expectation",
+        "parameters": [
+          {
+            "name": "guid",
+            "in": "path",
+            "description": "The test's auto_generated_guid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "platform",
+            "in": "path",
+            "description": "The platform the decision is about",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "signature_uuid",
+            "in": "path",
+            "description": "The signature",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Removed"
+          },
+          "400": {
+            "description": "A signature that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold svs:run_manage",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such test, or no decision about the signature there",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/svs/v1/tests/{guid}/ignores/{signature_uuid}": {
+      "put": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "Ignores a signature during the test's runs; setting it again replaces its reason. The preconditions are\na decision's.",
+        "operationId": "set_test_ignore",
+        "parameters": [
+          {
+            "name": "guid",
+            "in": "path",
+            "description": "The test's auto_generated_guid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "signature_uuid",
+            "in": "path",
+            "description": "The signature",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "The ignore's updated_at as last read",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          {
+            "name": "If-None-Match",
+            "in": "header",
+            "description": "`*`: no ignore was seen",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IgnoreRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The ignore",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IgnoreBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A body, signature or precondition that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold svs:run_manage",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No test with that guid in the catalog",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "The ignore was added, changed or removed since it was read; read it again",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The body is too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "Stops ignoring a signature during the test's runs.",
+        "operationId": "remove_test_ignore",
+        "parameters": [
+          {
+            "name": "guid",
+            "in": "path",
+            "description": "The test's auto_generated_guid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "signature_uuid",
+            "in": "path",
+            "description": "The signature",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Removed"
+          },
+          "400": {
+            "description": "A signature that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold svs:run_manage",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such test, or the signature isn't ignored for it",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/svs/v1/tests/{guid}/settings": {
+      "get": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "The test's settings; 404 when it has none, and its runs get the computed window.",
+        "operationId": "settings",
+        "parameters": [
+          {
+            "name": "guid",
+            "in": "path",
+            "description": "The test's auto_generated_guid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The settings",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestSettingsBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold svs:run_read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such test, or it has no settings",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "Sets the settings of the test's runs registered from now on, replacing what was set.",
+        "operationId": "set_settings",
+        "parameters": [
+          {
+            "name": "guid",
+            "in": "path",
+            "description": "The test's auto_generated_guid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TestSettingsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The settings",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestSettingsBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A body that isn't one, or minutes outside 1 to the configured ceiling",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold svs:run_manage",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No test with that guid in the catalog",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The body is too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "Back to the computed window and `holds_host` false.",
+        "operationId": "remove_settings",
+        "parameters": [
+          {
+            "name": "guid",
+            "in": "path",
+            "description": "The test's auto_generated_guid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Removed"
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold svs:run_manage",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such test, or it has no settings",
             "content": {
               "application/json": {
                 "schema": {
@@ -15607,6 +18664,131 @@
           }
         }
       },
+      "ExpectationBody": {
+        "type": "object",
+        "description": "A decision about a signature for a test on one platform.",
+        "required": [
+          "test_guid",
+          "platform",
+          "signature_uuid",
+          "state",
+          "decided_at",
+          "updated_at"
+        ],
+        "properties": {
+          "decided_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "decided_by": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ActorBody"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "decided_from_run_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "The uuid of the run the decision was made from."
+          },
+          "platform": {
+            "type": "string",
+            "description": "The platform the decision is about: only the test's runs on it are judged by it."
+          },
+          "reason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "signature_family": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The signature's family and name as last known."
+          },
+          "signature_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "signature_uuid": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string",
+            "description": "`expected` or `rejected`."
+          },
+          "test_guid": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The `changed_since` key, and what an `If-Match` names."
+          }
+        }
+      },
+      "ExpectationPageBody": {
+        "type": "object",
+        "description": "A page of decisions.",
+        "required": [
+          "expectations"
+        ],
+        "properties": {
+          "expectations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExpectationBody"
+            }
+          },
+          "next": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Pass it as `cursor`, with the same filters, for the next page; null on the last."
+          }
+        }
+      },
+      "ExpectationRequest": {
+        "type": "object",
+        "description": "A decision to make.",
+        "required": [
+          "state"
+        ],
+        "properties": {
+          "reason": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "At most 4096 characters."
+          },
+          "run_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The run (of this test, on this platform) whose result the decision was made from; its event log\nrecords it."
+          },
+          "state": {
+            "type": "string",
+            "description": "`expected`: a run of the test should fire it; `rejected`: it fires, but it isn't what the test is\nabout, and it isn't proposed again."
+          }
+        },
+        "additionalProperties": false
+      },
       "ExpirationRequest": {
         "type": "object",
         "properties": {
@@ -16083,6 +19265,35 @@
           }
         }
       },
+      "HistoryRunBody": {
+        "type": "object",
+        "description": "An earlier run of a run's history.",
+        "required": [
+          "run_id",
+          "state",
+          "created_at"
+        ],
+        "properties": {
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "reviewed_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "run_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "state": {
+            "type": "string"
+          }
+        }
+      },
       "HolderBody": {
         "type": "object",
         "description": "Who a grant is for. A component's grants come with the migration that adds it.",
@@ -16270,6 +19481,107 @@
             }
           }
         }
+      },
+      "IgnoreBody": {
+        "type": "object",
+        "description": "A signature ignored during a test's runs, or every test's.",
+        "required": [
+          "scope",
+          "signature_uuid",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "created_by": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ActorBody"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "scope": {
+            "type": "string",
+            "description": "`global` (every test's runs) or `test`."
+          },
+          "signature_family": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The signature's family and name as last known."
+          },
+          "signature_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "signature_uuid": {
+            "type": "string"
+          },
+          "test_guid": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "The test, for a test's ignore."
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The `changed_since` key, and what an `If-Match` names."
+          }
+        }
+      },
+      "IgnorePageBody": {
+        "type": "object",
+        "description": "A page of ignores.",
+        "required": [
+          "ignores"
+        ],
+        "properties": {
+          "ignores": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/IgnoreBody"
+            }
+          },
+          "next": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Pass it as `cursor`, with the same filters, for the next page; null on the last."
+          }
+        }
+      },
+      "IgnoreRequest": {
+        "type": "object",
+        "description": "An ignore to set.",
+        "properties": {
+          "reason": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Why its detections during runs are noise; at most 4096 characters."
+          }
+        },
+        "additionalProperties": false
       },
       "LabelBody": {
         "type": "string",
@@ -18197,10 +21509,163 @@
           }
         }
       },
+      "RunBatchBody": {
+        "type": "object",
+        "description": "One `batch_id` over the runs the filters match: only those runs are counted.",
+        "required": [
+          "batch_id",
+          "runs",
+          "states",
+          "needs_attention",
+          "first_created_at",
+          "last_created_at",
+          "result_hit",
+          "result_expected",
+          "result_missing",
+          "result_candidate"
+        ],
+        "properties": {
+          "batch_id": {
+            "type": "string"
+          },
+          "first_created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When its first run was registered."
+          },
+          "last_created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When its latest run was registered; the batches are newest first by it."
+          },
+          "needs_attention": {
+            "type": "integer",
+            "format": "int64",
+            "description": "The runs in the Needs attention view."
+          },
+          "result_candidate": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "result_expected": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "result_hit": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Summed over the runs: expected signatures that fired, that the results judged, that didn't fire\n(possibly suppressed ones included), and undecided ones that fired."
+          },
+          "result_missing": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "runs": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "states": {
+            "type": "object",
+            "description": "The runs per state, every state named."
+          }
+        }
+      },
+      "RunBatchPageBody": {
+        "type": "object",
+        "description": "A page of batches.",
+        "required": [
+          "batches"
+        ],
+        "properties": {
+          "batches": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RunBatchBody"
+            }
+          },
+          "next": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Pass it as `cursor`, with the same filters, for the next page; null on the last."
+          }
+        }
+      },
+      "RunCommentBody": {
+        "type": "object",
+        "description": "A person's comment on a run.",
+        "required": [
+          "id",
+          "run_id",
+          "comment",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "comment": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "run_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "user": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Its author's username."
+          }
+        }
+      },
+      "RunCommentRequest": {
+        "type": "object",
+        "description": "A comment's text.",
+        "required": [
+          "comment"
+        ],
+        "properties": {
+          "comment": {
+            "type": "string",
+            "description": "1 to 16384 characters."
+          }
+        },
+        "additionalProperties": false
+      },
+      "RunCountBody": {
+        "type": "object",
+        "description": "How many runs the filters match.",
+        "required": [
+          "count"
+        ],
+        "properties": {
+          "count": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
       "RunDetailBody": {
         "allOf": [
           {
             "$ref": "#/components/schemas/RunLifecycleBody"
+          },
+          {
+            "$ref": "#/components/schemas/RunDetailSeenBody",
+            "description": "What the runs screen shows of it, and its log search."
           },
           {
             "type": "object",
@@ -18306,6 +21771,26 @@
         ],
         "description": "One run, whole."
       },
+      "RunDetailSeenBody": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/RunSeenBody"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "log_search_url": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "The run's search in the site's log tooling, from `svs.log_search_url`; null when that isn't set."
+              }
+            }
+          }
+        ],
+        "description": "What a run's detail adds to what its launcher sees: what the runs screen shows of it, and its search\nin the site's log tooling."
+      },
       "RunEventBody": {
         "type": "object",
         "description": "One row of a run's event log.",
@@ -18409,6 +21894,119 @@
           }
         },
         "additionalProperties": false
+      },
+      "RunFeedEventBody": {
+        "type": "object",
+        "description": "One row of a run's event log, as the feed over every run's has it.",
+        "required": [
+          "id",
+          "run_id",
+          "kind",
+          "created_at"
+        ],
+        "properties": {
+          "actor": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ActorBody"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "details": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "description": "What the event carries; its shape depends on `kind`."
+          },
+          "from_state": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "description": "The event's id; a run's events are in id order."
+          },
+          "kind": {
+            "type": "string",
+            "description": "What happened: `registered`, `transition`, `launcher_call`, `result_computed`,\n`candidate_decision` and the kinds later parts write."
+          },
+          "run_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The run's uuid."
+          },
+          "to_state": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "updated_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "The feed's `changed_since` key; null in a run's own log, which is in id order."
+          }
+        }
+      },
+      "RunFeedEventPageBody": {
+        "type": "object",
+        "description": "A page of the event feed.",
+        "required": [
+          "events"
+        ],
+        "properties": {
+          "events": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RunFeedEventBody"
+            }
+          },
+          "next": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Pass it as `cursor`, with the same filters and `changed_since`, for the next page; null on the\nlast."
+          }
+        }
+      },
+      "RunHistoryBody": {
+        "type": "object",
+        "description": "How the signatures of a run's result did in the test's earlier runs.",
+        "required": [
+          "runs",
+          "signatures"
+        ],
+        "properties": {
+          "runs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HistoryRunBody"
+            },
+            "description": "The test's ended and reviewed runs on this run's platform registered before this one, newest\nfirst."
+          },
+          "signatures": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SignatureHistoryBody"
+            },
+            "description": "One per signature of this run's result, in its order."
+          }
+        }
       },
       "RunLifecycleBody": {
         "type": "object",
@@ -18514,6 +22112,28 @@
           }
         }
       },
+      "RunPageBody": {
+        "type": "object",
+        "description": "A page of runs.",
+        "required": [
+          "runs"
+        ],
+        "properties": {
+          "next": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Pass it as `cursor`, with the same filters and `changed_since`, for the next page; null on the\nlast."
+          },
+          "runs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RunRowBody"
+            }
+          }
+        }
+      },
       "RunRegistrationBody": {
         "type": "object",
         "description": "A run to register.",
@@ -18551,6 +22171,482 @@
           }
         },
         "additionalProperties": false
+      },
+      "RunResultBody": {
+        "type": "object",
+        "description": "One signature of a run's result.",
+        "required": [
+          "id",
+          "run_id",
+          "signature_uuid",
+          "alert_count",
+          "late_only",
+          "context_only",
+          "fallback_time",
+          "updated_at"
+        ],
+        "properties": {
+          "alert_count": {
+            "type": "integer",
+            "format": "int32",
+            "description": "The run's attributed alerts that carry the signature."
+          },
+          "content_hash": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The rule's own content hash when the result was computed."
+          },
+          "context_only": {
+            "type": "boolean",
+            "description": "Every attribution of it is by context alone."
+          },
+          "fallback_time": {
+            "type": "boolean",
+            "description": "Some attribution of it was judged by a fallback event time: a hunt's query time, when its producer\nmade the alert, or the alert's insert time."
+          },
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "description": "The row's id."
+          },
+          "late_only": {
+            "type": "boolean",
+            "description": "Every attribution of it is late."
+          },
+          "reviewed_alert_count": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32"
+          },
+          "reviewed_content_hash": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "reviewed_late_only": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "reviewed_status": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The status as signed off; null until the run is reviewed."
+          },
+          "run_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The run's uuid."
+          },
+          "signature_family": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "`yara`, `hunt`, `builtin` and so on."
+          },
+          "signature_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "signature_uuid": {
+            "type": "string"
+          },
+          "status": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "`hit`, `missing`, `possibly_suppressed`, `candidate`, `rejected`, `ignored` or `cleanup`; null once\nthe signature left the live result and the row holds only the reviewed result."
+          },
+          "suppressing_alert": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "possibly_suppressed: the hunt's latest alert within its suppression period; null when the hunter\nrecorded that it dropped the run's match."
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The feed's `changed_since` key."
+          }
+        }
+      },
+      "RunResultFeedPageBody": {
+        "type": "object",
+        "description": "A page of the result feed.",
+        "required": [
+          "results"
+        ],
+        "properties": {
+          "next": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Pass it as `cursor`, with the same filters and `changed_since`, for the next page; null on the\nlast."
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RunResultBody"
+            }
+          }
+        }
+      },
+      "RunResultPageBody": {
+        "type": "object",
+        "description": "A page of one run's result.",
+        "required": [
+          "results",
+          "stale"
+        ],
+        "properties": {
+          "computed_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "When it was last computed."
+          },
+          "next": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "Pass it as `after` for the next page; null on the last."
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RunResultBody"
+            }
+          },
+          "stale": {
+            "type": "boolean",
+            "description": "Something changed since the result was computed, and the timers recompute it shortly."
+          }
+        }
+      },
+      "RunRowBody": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/RunSeenBody"
+          },
+          {
+            "type": "object",
+            "required": [
+              "run_id",
+              "state",
+              "test_guid",
+              "platform",
+              "marker",
+              "targets",
+              "launcher",
+              "created_at",
+              "updated_at"
+            ],
+            "properties": {
+              "attribution_ends_at": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "date-time"
+              },
+              "batch_id": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "canceled_at": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "date-time"
+              },
+              "cleanup_at": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "date-time",
+                "description": "When the launcher said the test's cleanup began: detections after it are the cleanup's."
+              },
+              "close_reason": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "closed_at": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "date-time"
+              },
+              "created_at": {
+                "type": "string",
+                "format": "date-time",
+                "description": "When the run was registered."
+              },
+              "end_reason": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Why a person ended it before its observation window passed; null when the window passed."
+              },
+              "ended_at": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "date-time"
+              },
+              "error_reason": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "executed_at": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "date-time",
+                "description": "When the launcher reported how the test executed."
+              },
+              "exit_code": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "format": "int32"
+              },
+              "launcher": {
+                "type": "string"
+              },
+              "marker": {
+                "type": "string",
+                "description": "The run's marker."
+              },
+              "observation_ends_at": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "date-time"
+              },
+              "platform": {
+                "type": "string",
+                "description": "The platform the run is on, an ATT&CK platform slug."
+              },
+              "run_id": {
+                "type": "string",
+                "format": "uuid",
+                "description": "The run's uuid."
+              },
+              "started_at": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "date-time"
+              },
+              "state": {
+                "type": "string",
+                "description": "`created`, `started`, `ended`, `reviewed`, `canceled`, `error` or `closed`."
+              },
+              "targets": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/RunTargetBody"
+                }
+              },
+              "test_guid": {
+                "type": "string",
+                "format": "uuid",
+                "description": "The catalog test (`/api/svs/v1/tests/{guid}`)."
+              },
+              "updated_at": {
+                "type": "string",
+                "format": "date-time",
+                "description": "When the row last changed: the `changed_since` key. A change to its result or alerts doesn't change\nit: pull `/api/svs/v1/runs/results`."
+              }
+            }
+          }
+        ],
+        "description": "A run as the runs screen lists it."
+      },
+      "RunSeenBody": {
+        "type": "object",
+        "description": "What the runs screen adds to a run: its test's name, who owns and reviewed it, whether it needs\nattention, and its result's and alerts' summary.",
+        "required": [
+          "changed_since_review",
+          "needs_attention",
+          "result_hit",
+          "result_expected",
+          "result_missing",
+          "result_possibly_suppressed",
+          "result_candidate",
+          "result_rejected",
+          "result_ignored",
+          "result_cleanup",
+          "result_stale",
+          "reviewed_hit",
+          "reviewed_expected",
+          "reviewed_missing",
+          "reviewed_possibly_suppressed",
+          "alerts",
+          "marker_alerts",
+          "context_alerts",
+          "late_alerts"
+        ],
+        "properties": {
+          "alerts": {
+            "type": "integer",
+            "format": "int64",
+            "description": "The alerts attributed to the run; of those, attributed by a marker, by context alone, and late."
+          },
+          "changed_since_review": {
+            "type": "boolean",
+            "description": "A late alert or a manual association came after the review."
+          },
+          "context_alerts": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "late_alerts": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "marker_alerts": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "needs_attention": {
+            "type": "boolean",
+            "description": "The run is in the Needs attention view: ended and not reviewed, failed, changed since it was\nreviewed, or reviewed or closed with an alert still open."
+          },
+          "owner": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The owner's username."
+          },
+          "result_candidate": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Signatures that fired and nobody has decided about."
+          },
+          "result_cleanup": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Signatures that fired only during the test's cleanup."
+          },
+          "result_expected": {
+            "type": "integer",
+            "format": "int64",
+            "description": "The expected signatures the result judged: hit, missing or possibly suppressed."
+          },
+          "result_hit": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Expected signatures that fired."
+          },
+          "result_ignored": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "result_missing": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Expected signatures that didn't fire, possibly suppressed ones included."
+          },
+          "result_possibly_suppressed": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "result_rejected": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "result_stale": {
+            "type": "boolean",
+            "description": "The result is about to be recomputed."
+          },
+          "reviewed_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "reviewed_expected": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "reviewed_hit": {
+            "type": "integer",
+            "format": "int64",
+            "description": "`result_hit` as signed off at the run's latest review; 0 until it is reviewed."
+          },
+          "reviewed_missing": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "reviewed_possibly_suppressed": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "reviewer": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Who reviewed it, by username."
+          },
+          "technique": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The test's ATT&CK technique, from the catalog."
+          },
+          "technique_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "test_name": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "From the catalog."
+          }
+        }
       },
       "RunTargetBody": {
         "type": "object",
@@ -19238,6 +23334,29 @@
         },
         "additionalProperties": false
       },
+      "SignatureHistoryBody": {
+        "type": "object",
+        "description": "How one signature of a run's result did in the earlier runs.",
+        "required": [
+          "signature_uuid",
+          "statuses"
+        ],
+        "properties": {
+          "signature_uuid": {
+            "type": "string"
+          },
+          "statuses": {
+            "type": "array",
+            "items": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "description": "Its status in each of the runs, in their order: as reviewed for a reviewed run, else live; null\nwhen it isn't in that run's result."
+          }
+        }
+      },
       "SkippedDetectionBody": {
         "type": "object",
         "description": "A contributing detection that couldn't take the verdict, and why.",
@@ -19540,6 +23659,58 @@
           "duplicate"
         ]
       },
+      "SuppressionShareBody": {
+        "type": "object",
+        "description": "How many of the expected signatures missing from reviewed runs were possibly suppressed: the trigger to\nrevisit keeping the hunter from suppressing test targets. Read from every run's result as signed off.",
+        "required": [
+          "missing",
+          "possibly_suppressed",
+          "reviewed_runs",
+          "trigger_reached",
+          "reconsider"
+        ],
+        "properties": {
+          "first_reviewed_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "When the first run was reviewed."
+          },
+          "missing": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Expected signatures missing from the signed-off results, possibly suppressed ones included."
+          },
+          "possibly_suppressed": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Of those, the possibly suppressed."
+          },
+          "reconsider": {
+            "type": "boolean",
+            "description": "The trigger is reached and more than 10% of the missing signatures were possibly suppressed:\npreventing suppression is worth reconsidering."
+          },
+          "reviewed_runs": {
+            "type": "integer",
+            "format": "int64",
+            "description": "The runs with a signed-off result."
+          },
+          "share": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double",
+            "description": "`possibly_suppressed / missing`; null while nothing is missing."
+          },
+          "trigger_reached": {
+            "type": "boolean",
+            "description": "50 runs are reviewed, or 90 days passed since the first review."
+          }
+        }
+      },
       "TargetBody": {
         "type": "object",
         "description": "What a remediator acts on.",
@@ -19685,6 +23856,28 @@
           }
         }
       },
+      "TestHostPageBody": {
+        "type": "object",
+        "description": "A page of test hosts.",
+        "required": [
+          "hosts"
+        ],
+        "properties": {
+          "hosts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TestHostBody"
+            }
+          },
+          "next": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Pass it as `cursor` for the next page; null on the last."
+          }
+        }
+      },
       "TestHostRequest": {
         "type": "object",
         "description": "A test host's fields.",
@@ -19728,6 +23921,65 @@
               "type": "string"
             },
             "description": "The users runs may use, in any of `CORP\\alice`, `alice@corp.example` or `alice`; none means any."
+          }
+        },
+        "additionalProperties": false
+      },
+      "TestSettingsBody": {
+        "type": "object",
+        "description": "A test's settings.",
+        "required": [
+          "test_guid",
+          "holds_host",
+          "updated_at"
+        ],
+        "properties": {
+          "holds_host": {
+            "type": "boolean"
+          },
+          "observation_minutes": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "description": "Null: the computed window."
+          },
+          "set_by": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ActorBody"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "test_guid": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "TestSettingsRequest": {
+        "type": "object",
+        "description": "A test's settings to set.",
+        "properties": {
+          "holds_host": {
+            "type": "boolean",
+            "description": "The test leaves something behind on its hosts, so each run of it registered from now on holds them\nuntil its attribution window ends, not its observation window."
+          },
+          "observation_minutes": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "description": "The observation window of the test's runs registered from now on, used as it is (no slack, no\nfloor), from 1 minute up to `svs.runs.observation_window.ceiling_hours`; null for the computed\nwindow."
           }
         },
         "additionalProperties": false

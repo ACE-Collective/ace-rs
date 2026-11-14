@@ -93,6 +93,14 @@ pub(crate) async fn layout_for(gui: &Gui, actor: Option<&Actor>, parts: &Parts) 
             tracing::warn!(%actor, "checking signature:read failed, so the page has no signatures link: {error}");
             false
         });
+    layout.svs = gui
+        .service
+        .allowed(actor, &ace_service::SVS_RUN_READ)
+        .await
+        .unwrap_or_else(|error| {
+            tracing::warn!(%actor, "checking svs:run_read failed, so the page has no SVS link: {error}");
+            false
+        });
     layout.events = gui
         .service
         .allowed(actor, &ace_service::EVENT_READ)
@@ -249,6 +257,7 @@ impl Failure {
             | ServiceError::CantDropYourOwnUserWrite => StatusCode::BAD_REQUEST,
             ServiceError::NotFound(_) | ServiceError::NoUser(_) => StatusCode::NOT_FOUND,
             ServiceError::TooLarge(_) => StatusCode::PAYLOAD_TOO_LARGE,
+            ServiceError::StaleWrite(_) => StatusCode::PRECONDITION_FAILED,
             ServiceError::UsernameTaken
             | ServiceError::GroupNameTaken
             | ServiceError::FilterNameTaken(_)

@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM svs.expectations\n                         WHERE test_guid = $1 AND platform = $2 AND signature_uuid = $3",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "24512a94db10144e5b29da4428ecda6a912a05e47684877c1a50c052f0831e49"
+}

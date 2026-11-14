@@ -6,7 +6,7 @@
 //! From ace3: a page is `{tests, next}`, as the API's other pages, where ace3's is `{data, next_cursor}`; a
 //! refused parameter is 400 where ace3 answers 422; and a test doesn't yet carry its state and run history
 //! (`test_state`, `run_count` and the rest), which batches 5 and 8 bring with the runs and decisions they
-//! come from. The same router's expectations, ignores and settings come with batch 5's decisions.
+//! come from. The same router's expectations, ignores and settings are `svs_decisions`'.
 
 use ace_service::filters::{FilterScreen, decode};
 use ace_service::{CatalogRepository, CatalogTest, CatalogTestDetail, CatalogTestQuery};

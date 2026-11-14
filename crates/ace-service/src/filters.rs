@@ -56,7 +56,7 @@ pub const USER_QUEUE: &str = "$USER_QUEUE";
 /// The observable filter's type that matches any type.
 pub const ANY_TYPE: &str = "Any";
 
-/// A screen whose list has filters, saved filters and share links: ace3's `FilterScreen`. Six of ace3's
+/// A screen whose list has filters, saved filters and share links: ace3's `FilterScreen`. Eight of ace3's
 /// eleven exist here; the other SVS screens come with their batches of SVS (7.10).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum FilterScreen {
@@ -74,6 +74,8 @@ pub enum FilterScreen {
     SvsValidations,
     /// SVS's Atomic Red Team tests (PLAN.md 7.10 batch 4), ace3's `SVS_TESTS_SCREEN`.
     SvsTests,
+    /// SVS's test runs (PLAN.md 7.10 batch 5), ace3's `SVS_RUNS_SCREEN`.
+    SvsRuns,
 }
 
 /// How an editor edits one filter.
@@ -621,6 +623,136 @@ const SVS_TEST_FILTERS: &[FilterSpec] = &[
     spec("Removed", "removed", FilterKind::Multi, BOOLEANS, "false"),
 ];
 
+/// A test run's states, in ace3's order (`RUN_STATES`).
+pub const RUN_STATES: &[&str] = &[
+    "created", "started", "ended", "reviewed", "canceled", "error", "closed",
+];
+
+/// ace3's runs screen (`SVS_RUNS_SCREEN`), the test runs'. Needs Attention is one filter rather than a
+/// list of them because it is an OR: ended and not reviewed, failed, changed since it was reviewed, or
+/// reviewed or closed with an alert still open.
+const SVS_RUN_FILTERS: &[FilterSpec] = &[
+    spec(
+        "Needs Attention",
+        "needs_attention",
+        FilterKind::Multi,
+        BOOLEANS,
+        "true",
+    ),
+    spec("State", "state", FilterKind::Multi, RUN_STATES, "ended"),
+    spec("Test", "test", FilterKind::Text, &[], "a test's guid"),
+    spec(
+        "Test Name",
+        "test_name",
+        FilterKind::Text,
+        &[],
+        "text the test's name contains",
+    ),
+    spec(
+        "Technique",
+        "technique",
+        FilterKind::Text,
+        &[],
+        "T1059, which also finds its sub-techniques, or T1059.001",
+    ),
+    spec(
+        "Target",
+        "target",
+        FilterKind::Text,
+        &[],
+        "a target's short or fully qualified host name",
+    ),
+    spec(
+        "Platform",
+        "platform",
+        FilterKind::Text,
+        &[],
+        "the platform a run is on, such as windows",
+    ),
+    spec(
+        "Launcher",
+        "launcher",
+        FilterKind::Text,
+        &[],
+        "text the launcher's name contains",
+    ),
+    spec("Batch", "batch", FilterKind::Text, &[], "a batch id"),
+    spec(
+        "Created",
+        "created",
+        FilterKind::DateRange,
+        &[],
+        CREATED_HINT,
+    ),
+    spec(
+        "Started",
+        "started",
+        FilterKind::DateRange,
+        &[],
+        CREATED_HINT,
+    ),
+    spec("Ended", "ended", FilterKind::DateRange, &[], CREATED_HINT),
+    spec(
+        "Reviewed",
+        "reviewed",
+        FilterKind::DateRange,
+        &[],
+        CREATED_HINT,
+    ),
+    spec("Owner", "owner", FilterKind::Text, &[], "a username"),
+    spec("Reviewer", "reviewer", FilterKind::Text, &[], "a username"),
+    spec(
+        "Reason",
+        "reason",
+        FilterKind::Text,
+        &[],
+        "text a run's end, error or close reason contains",
+    ),
+    spec(
+        "Changed Since Review",
+        "changed_since_review",
+        FilterKind::Multi,
+        BOOLEANS,
+        "true",
+    ),
+    spec(
+        "Has Open Alerts",
+        "has_open_alerts",
+        FilterKind::Multi,
+        BOOLEANS,
+        "true",
+    ),
+    spec(
+        "Has Missing",
+        "has_missing",
+        FilterKind::Multi,
+        BOOLEANS,
+        "true",
+    ),
+    spec(
+        "Has Possibly Suppressed",
+        "has_possibly_suppressed",
+        FilterKind::Multi,
+        BOOLEANS,
+        "true",
+    ),
+    spec(
+        "Has Candidates",
+        "has_candidates",
+        FilterKind::Multi,
+        BOOLEANS,
+        "true",
+    ),
+    spec("Has Late", "has_late", FilterKind::Multi, BOOLEANS, "true"),
+    spec(
+        "Has Context Only",
+        "has_context_only",
+        FilterKind::Multi,
+        BOOLEANS,
+        "true",
+    ),
+];
+
 impl FilterScreen {
     pub const ALL: &'static [FilterScreen] = &[
         FilterScreen::Alerts,
@@ -630,6 +762,7 @@ impl FilterScreen {
         FilterScreen::SvsSamples,
         FilterScreen::SvsValidations,
         FilterScreen::SvsTests,
+        FilterScreen::SvsRuns,
     ];
 
     /// Its name, ace3's `saved_filters.screen`.
@@ -642,6 +775,7 @@ impl FilterScreen {
             FilterScreen::SvsSamples => "svs_samples",
             FilterScreen::SvsValidations => "svs_validations",
             FilterScreen::SvsTests => "svs_tests",
+            FilterScreen::SvsRuns => "svs_runs",
         }
     }
 
@@ -660,7 +794,7 @@ impl FilterScreen {
             FilterScreen::Remediations => REMEDIATION_READ,
             FilterScreen::FileCollections => FILE_COLLECTION_READ,
             FilterScreen::SvsSamples | FilterScreen::SvsValidations => SIGNATURE_READ,
-            FilterScreen::SvsTests => SVS_RUN_READ,
+            FilterScreen::SvsTests | FilterScreen::SvsRuns => SVS_RUN_READ,
         }
     }
 
@@ -673,6 +807,7 @@ impl FilterScreen {
             FilterScreen::SvsSamples => SVS_SAMPLE_FILTERS,
             FilterScreen::SvsValidations => SVS_VALIDATION_FILTERS,
             FilterScreen::SvsTests => SVS_TEST_FILTERS,
+            FilterScreen::SvsRuns => SVS_RUN_FILTERS,
         }
     }
 
@@ -685,7 +820,8 @@ impl FilterScreen {
             | FilterScreen::FileCollections
             | FilterScreen::SvsSamples
             | FilterScreen::SvsValidations
-            | FilterScreen::SvsTests => &[],
+            | FilterScreen::SvsTests
+            | FilterScreen::SvsRuns => &[],
         }
     }
 
@@ -918,6 +1054,56 @@ fn canonical(
                     return Err(invalid(format!("a {name} value can't be empty")));
                 }
                 return Ok(FilterValue::Text(lower));
+            }
+            _ => {}
+        }
+    }
+    if screen == FilterScreen::SvsRuns {
+        // ace3's `RunFilterEntry`: a technique is an ATT&CK id, upper case; a test is its guid, lower
+        // case; a target and a flag are compared lower case; a platform is the slug Atomic Red Team's
+        // name counts as (iaas:aws finds iaas); a username is trimmed
+        match spec.slug {
+            "technique" => {
+                return ace_core::svs::attack::normalize_technique_id(text)
+                    .map(FilterValue::Text)
+                    .ok_or_else(|| {
+                        invalid(format!(
+                            "{name}: invalid technique {text:?} (expected an ATT&CK id such as T1059 or \
+                             T1059.001)"
+                        ))
+                    });
+            }
+            "test" => {
+                return text
+                    .trim()
+                    .parse::<uuid::Uuid>()
+                    .map(|guid| FilterValue::Text(guid.to_string()))
+                    .map_err(|_| invalid(format!("{name}: invalid test guid {text:?}")));
+            }
+            "target" | "owner" | "reviewer" | "platform" => {
+                let value = match spec.slug {
+                    "target" => text.trim().to_lowercase(),
+                    "platform" => ace_core::svs::attack::normalize_platform(text),
+                    _ => text.trim().to_owned(),
+                };
+                if value.is_empty() {
+                    return Err(invalid(format!("a {name} value can't be empty")));
+                }
+                return Ok(FilterValue::Text(value));
+            }
+            _ if spec.kind == FilterKind::Multi => {
+                let value = text.trim().to_lowercase();
+                return spec
+                    .options
+                    .iter()
+                    .find(|option| **option == value)
+                    .map(|option| FilterValue::Text((*option).to_owned()))
+                    .ok_or_else(|| {
+                        invalid(format!(
+                            "{name}: {text:?} isn't one of {}",
+                            spec.options.join(", ")
+                        ))
+                    });
             }
             _ => {}
         }

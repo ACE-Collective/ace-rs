@@ -1,0 +1,20 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO svs.ignores\n                                 (test_guid, signature_uuid, signature_family, signature_name, reason,\n                                  created_by, created_at)\n                             VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7)\n                             ON CONFLICT DO NOTHING",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Jsonb",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "3118fad66e117d4f8230f4d61e2cfae9364aa1a91735b34c866e60940448b273"
+}

@@ -1,0 +1,110 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT lower(r.batch_id) AS \"key!\", min(r.batch_id) AS \"batch_id!\",\n                                  count(*) AS \"runs!\", min(r.created_at) AS \"first!\",\n                                  max(r.created_at) AS \"last!\",\n                                  count(*) FILTER (WHERE svs.run_needs_attention(r)) AS \"attention!\",\n                                  count(*) FILTER (WHERE r.state = 'created') AS \"created!\",\n                                  count(*) FILTER (WHERE r.state = 'started') AS \"started!\",\n                                  count(*) FILTER (WHERE r.state = 'ended') AS \"ended!\",\n                                  count(*) FILTER (WHERE r.state = 'reviewed') AS \"reviewed!\",\n                                  count(*) FILTER (WHERE r.state = 'canceled') AS \"canceled!\",\n                                  count(*) FILTER (WHERE r.state = 'error') AS \"error!\",\n                                  count(*) FILTER (WHERE r.state = 'closed') AS \"closed!\"\n                           FROM svs.runs r\n                           WHERE r.batch_id IS NOT NULL AND svs.run_matches(r, $1)\n                           GROUP BY lower(r.batch_id)\n                           HAVING $2::timestamptz IS NULL\n                               OR (max(r.created_at), lower(r.batch_id) COLLATE \"C\")\n                                  < ($2::timestamptz, $3::text COLLATE \"C\")\n                           ORDER BY max(r.created_at) DESC, lower(r.batch_id) COLLATE \"C\" DESC\n                           LIMIT $4",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "key!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "batch_id!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 2,
+        "name": "runs!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 3,
+        "name": "first!",
+        "type_info": "Timestamptz",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 4,
+        "name": "last!",
+        "type_info": "Timestamptz",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 5,
+        "name": "attention!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 6,
+        "name": "created!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 7,
+        "name": "started!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 8,
+        "name": "ended!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 9,
+        "name": "reviewed!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 10,
+        "name": "canceled!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 11,
+        "name": "error!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 12,
+        "name": "closed!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Jsonb",
+        "Timestamptz",
+        "Text",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "f19a95e5ea08614c5024adcf5733eef2c3d8e45cd104dff6b4efe7085841b6db"
+}

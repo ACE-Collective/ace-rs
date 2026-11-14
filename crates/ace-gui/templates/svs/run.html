@@ -1,0 +1,106 @@
+{#- ace3's svs/run.html (PLAN.md 7.10 batch 5): one run, what its launcher sent and its test printed, its
+    result with the decisions its viewer may make, how its signatures did before, its comments and its
+    event log (src/svs.rs). Its alerts and its review come with batches 6 and 7. -#}
+{% extends "base.html" %}
+{% block title %}Run · SVS · ACE{% endblock %}
+{% block content %}
+<section class="signatures detection svs-run">
+  {%- include "svs/tabs.html" %}
+  <p><a href="/svs/runs">Runs</a> / <code>{{ view.uuid }}</code></p>
+  <h2 class="qa-text">{{ view.title }}{% if !view.technique.is_empty() %} <span class="muted">{{ view.technique }}</span>{% endif %}</h2>
+  <p><span class="badge disposition-{{ view.state_class }}">{{ view.state }}</span>{% if view.needs_attention %} <span class="muted">needs attention</span>{% endif %}</p>
+  {%- if let Some(notice) = view.notice %}
+  <p class="notice" role="status">{{ notice }}</p>
+  {%- endif %}
+  <table class="keys">
+    <tbody>
+      {%- for fact in view.facts %}
+      <tr><th>{{ fact.name }}</th><td class="qa-text">{{ fact.value }}</td></tr>
+      {%- endfor %}
+    </tbody>
+  </table>
+  {%- if let Some(log_search) = view.log_search %}
+  <p><a href="{{ log_search }}" rel="noopener noreferrer">Search the logs for this run</a></p>
+  {%- endif %}
+  {%- if !view.launcher_error.is_empty() %}
+  <h3>What the launcher reported</h3>
+  <pre class="qa-meta">{{ view.launcher_error }}</pre>
+  {%- endif %}
+  {%- if !view.launcher_output.is_empty() %}
+  <h3>What the test printed</h3>
+  <pre class="qa-meta">{{ view.launcher_output }}</pre>
+  {%- endif %}
+
+  <h3>Result</h3>
+  <p class="muted">{{ view.result_note }} <a href="{{ view.results_csv }}">CSV</a></p>
+  <table class="keys">
+    <thead><tr><th>Signature</th><th>Family</th><th>Status</th><th>Alerts</th><th>As reviewed</th>{% for earlier in view.earlier %}<th class="nowrap"><a href="{{ earlier.0 }}" title="an earlier run of this test on this platform">{{ earlier.1 }}</a></th>{% endfor %}{% if view.manage %}<th>Decide</th>{% endif %}</tr></thead>
+    <tbody>
+      {%- for row in view.results %}
+      <tr>
+        <td class="qa-text">{{ row.name }} <code class="muted">{{ row.signature }}</code></td>
+        <td>{{ row.family }}</td>
+        <td><span class="badge disposition-{{ row.status_class }}">{{ row.status }}</span>{% if !row.notes.is_empty() %} <span class="muted">{{ row.notes }}</span>{% endif %}{% if let Some(suppressing) = row.suppressing %} <a href="{{ suppressing }}">the alert that may have suppressed it</a>{% endif %}</td>
+        <td>{% if row.alerts > 0 %}{{ row.alerts }}{% endif %}</td>
+        <td>{{ row.reviewed }}</td>
+        {%- for status in row.history %}
+        <td>{{ status }}</td>
+        {%- endfor %}
+        {%- if view.manage %}
+        <td>
+          {%- for decision in row.decisions %}
+          <form method="post" action="{{ view.href }}/decide" class="inline"><input type="hidden" name="signature" value="{{ row.signature }}"><input type="hidden" name="decision" value="{{ decision.0 }}"><button type="submit">{{ decision.1 }}</button></form>
+          {%- endfor %}
+        </td>
+        {%- endif %}
+      </tr>
+      {%- else %}
+      <tr><td colspan="6" class="muted">No signatures.</td></tr>
+      {%- endfor %}
+    </tbody>
+  </table>
+
+  <h3>Comments</h3>
+  {%- for comment in view.comments %}
+  <div class="comment">
+    <p class="muted"><b>{{ comment.user }}</b> at {{ comment.created }}{% if let Some(edited) = comment.edited %}, changed {{ edited }}{% endif %}</p>
+    {%- if comment.own %}
+    <form method="post" action="{{ comment.action }}">
+      <label for="comment-{{ comment.id }}">Your comment</label>
+      <textarea id="comment-{{ comment.id }}" name="comment" rows="2" maxlength="16384" required>{{ comment.comment }}</textarea>
+      <button type="submit">Save</button>
+      <button type="submit" name="delete" value="1">Delete</button>
+    </form>
+    {%- else %}
+    <pre class="qa-meta">{{ comment.comment }}</pre>
+    {%- endif %}
+  </div>
+  {%- else %}
+  <p class="muted">No comments.</p>
+  {%- endfor %}
+  {%- if view.manage %}
+  <form method="post" action="{{ view.href }}/comments">
+    <label for="new-comment">Add a comment</label>
+    <textarea id="new-comment" name="comment" rows="2" maxlength="16384" required></textarea>
+    <button type="submit">Comment</button>
+  </form>
+  {%- endif %}
+
+  <h3>Event log</h3>
+  <p class="muted">Oldest first. <a href="{{ view.events_csv }}">CSV</a>{% if view.more_events %} · the page shows the first of them; the export has them all{% endif %}</p>
+  <table class="keys">
+    <thead><tr><th>When</th><th>What</th><th>State</th><th>By</th><th>Details</th></tr></thead>
+    <tbody>
+      {%- for event in view.events %}
+      <tr>
+        <td class="nowrap">{{ event.at }}</td>
+        <td>{{ event.kind }}</td>
+        <td class="nowrap">{{ event.states }}</td>
+        <td class="qa-text">{{ event.actor }}</td>
+        <td class="qa-text"><code>{{ event.details }}</code></td>
+      </tr>
+      {%- endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

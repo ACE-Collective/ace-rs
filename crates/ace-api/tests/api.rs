@@ -165,6 +165,8 @@ async fn stack_of(archive: ace_core::email_archive::ArchiveConfig, catalog: Cata
         .with_actions(test_actions())
         // what a refused SVS registration submits its alert with (PLAN.md 7.10 batch 5)
         .with_bucket(bucket.clone())
+        // a changed-since page here holds nothing back: `ace-service`'s tests cover the wait
+        .with_feed_settle(chrono::TimeDelta::zero())
         .with_dispositions(ace_service::Dispositions::configured(&overlay).expect("good sections"))
         // a repository the validations' requests may name; requesting doesn't fetch it (PLAN.md 7.10)
         .with_validation(
@@ -567,6 +569,30 @@ const RUN_CANCEL: &str = "/api/svs/v1/runs/{run_id}/cancel";
 const TEST_HOSTS: &str = "/api/svs/v1/test-hosts";
 const TEST_HOST: &str = "/api/svs/v1/test-hosts/{host}";
 const MAINTENANCE: &str = "/api/svs/v1/test-hosts/{host}/maintenance";
+const RUNS_EXPORT: &str = "/api/svs/v1/runs/export/{format}";
+const RUN_COUNT: &str = "/api/svs/v1/runs/count";
+const RUN_SUPPRESSION: &str = "/api/svs/v1/runs/suppression-share";
+const RUN_BATCHES: &str = "/api/svs/v1/runs/batches";
+const RUN_BATCHES_EXPORT: &str = "/api/svs/v1/runs/batches/export/{format}";
+const RUN_EVENT_FEED: &str = "/api/svs/v1/runs/events";
+const RUN_EVENT_FEED_EXPORT: &str = "/api/svs/v1/runs/events/export/{format}";
+const RUN_RESULT_FEED: &str = "/api/svs/v1/runs/results";
+const RUN_RESULT_FEED_EXPORT: &str = "/api/svs/v1/runs/results/export/{format}";
+const RUN_EVENTS_EXPORT: &str = "/api/svs/v1/runs/{run_id}/events/export/{format}";
+const RUN_RESULTS: &str = "/api/svs/v1/runs/{run_id}/results";
+const RUN_RESULTS_EXPORT: &str = "/api/svs/v1/runs/{run_id}/results/export/{format}";
+const RUN_HISTORY: &str = "/api/svs/v1/runs/{run_id}/history";
+const RUN_COMMENTS: &str = "/api/svs/v1/runs/{run_id}/comments";
+const RUN_COMMENT: &str = "/api/svs/v1/runs/{run_id}/comments/{id}";
+const EXPECTATIONS: &str = "/api/svs/v1/expectations";
+const EXPECTATIONS_EXPORT: &str = "/api/svs/v1/expectations/export/{format}";
+const IGNORES: &str = "/api/svs/v1/ignores";
+const IGNORES_EXPORT: &str = "/api/svs/v1/ignores/export/{format}";
+const GLOBAL_IGNORE: &str = "/api/svs/v1/ignores/global/{signature_uuid}";
+const EXPECTATION: &str = "/api/svs/v1/tests/{guid}/expectations/{platform}/{signature_uuid}";
+const TEST_IGNORE: &str = "/api/svs/v1/tests/{guid}/ignores/{signature_uuid}";
+const TEST_SETTINGS: &str = "/api/svs/v1/tests/{guid}/settings";
+const TEST_HOSTS_EXPORT: &str = "/api/svs/v1/test-hosts/export/{format}";
 const COLLECTIONS_CSV: &str = "/api/file-collections/v1/collections/export/csv";
 const COLLECTIONS_NDJSON: &str = "/api/file-collections/v1/collections/export/ndjson";
 const COLLECTION: &str = "/api/file-collections/v1/collections/{id}";
@@ -605,7 +631,10 @@ fn fill(route: &str, id: Uuid, observable: i64) -> String {
             .replace("{uuid}", &id.to_string())
             .replace("{guid}", &id.to_string())
             .replace("{run_id}", &id.to_string())
-            .replace("{host}", "1");
+            .replace("{host}", "1")
+            .replace("{format}", "csv")
+            .replace("{platform}", "windows")
+            .replace("{signature_uuid}", "7d1c2a4e-5b6f-4c3d-9e8f-0a1b2c3d4e5f");
     }
     if route.starts_with("/api/lists/") {
         return route
@@ -698,6 +727,9 @@ fn good_body(route: &str) -> Send {
             "test_guid": Uuid::nil(), "targets": [{"hostname": "refused"}], "launcher": "refused",
         })),
         RUN_EXECUTED => Send::Json(json!({"exit_code": 0})),
+        RUN_COMMENTS | RUN_COMMENT => Send::Json(json!({"comment": "refused"})),
+        EXPECTATION => Send::Json(json!({"state": "expected"})),
+        TEST_IGNORE | GLOBAL_IGNORE | TEST_SETTINGS => Send::Json(json!({})),
         TEST_HOSTS | TEST_HOST => Send::Json(json!({"hostname": "refused"})),
         MAINTENANCE => Send::Json(json!({"minutes": 30, "reason": "refused"})),
         TARGETS => Send::Json(json!({"observables": [{"type": "test", "value": "SUCCESS"}]})),
@@ -735,7 +767,7 @@ async fn refuses_without_a_credential_or_a_permission(
         .map(|(method, route, _)| (method, route))
         .filter(|route| !public.contains(route))
         .collect();
-    assert_eq!(routes.len(), 168, "{routes:?}");
+    assert_eq!(routes.len(), 200, "{routes:?}");
     for (method, route) in routes {
         let method: Method = method.to_uppercase().parse().expect("a method");
         let path = fill(&route, id, file);
@@ -4504,6 +4536,7 @@ async fn every_documented_status_is_tested() {
     svs_validations(&mut client, &token).await;
     svs_catalog(&mut client).await;
     svs_runs(&mut client).await;
+    svs_run_reads(&mut client).await;
     pings(&mut client, &token).await;
 
     assert_eq!(
@@ -5078,7 +5111,7 @@ async fn filters_and_exports(client: &mut Client<'_>, token: &str) {
         .json(
             Method::GET,
             SCREEN,
-            "/api/filters/v1/screens/svs_runs",
+            "/api/filters/v1/screens/svs_coverage",
             Some(token),
             Send::Nothing,
             StatusCode::NOT_FOUND,
@@ -8962,7 +8995,7 @@ async fn catalog_test(
 /// The runs' launcher calls and the test hosts with their maintenance windows (PLAN.md 7.10 batch 5, part
 /// 5a): ace3's `tests/aceapi_v2/svs/test_runs.py` and `test_test_hosts.py`, each case named where it's
 /// ported. `test_a_change_from_a_stale_form_is_refused`, `test_the_listing_pages_by_hostname` and
-/// `test_exports` come with part 5b's preconditions, paging and exports.
+/// `test_exports` are `svs_run_reads`', with part 5b's preconditions, paging and exports.
 async fn svs_runs(client: &mut Client<'_>) {
     use Method as M;
     use StatusCode as S;
@@ -9062,13 +9095,14 @@ async fn svs_runs(client: &mut Client<'_>) {
     let listed = client
         .json(M::GET, TEST_HOSTS, TEST_HOSTS, r, Send::Nothing, S::OK)
         .await;
-    let names: Vec<&str> = listed
+    let names: Vec<&str> = listed["hosts"]
         .as_array()
         .expect("hosts")
         .iter()
         .map(|h| h["hostname"].as_str().expect("a name"))
         .collect();
     assert_eq!(names, ["anyuser-01", "win10-01"]);
+    assert_eq!(listed["next"], Value::Null);
     let srv = client
         .json(
             M::POST,
@@ -11269,6 +11303,1830 @@ async fn svs_validations(client: &mut Client<'_>, token: &str) {
             VALIDATION_DOWNLOAD,
             &VALIDATION_DOWNLOAD.replace("{uuid}", &large.to_string()),
             t,
+            Send::Nothing,
+            S::PAYLOAD_TOO_LARGE,
+        )
+        .await;
+}
+
+/// A request with headers, which `Client::call` doesn't send; seen as its calls are.
+async fn with_headers(
+    client: &mut Client<'_>,
+    method: Method,
+    route: &str,
+    path: &str,
+    token: &str,
+    headers: &[(&str, &str)],
+    body: Value,
+) -> (StatusCode, Value) {
+    let mut request = client
+        .stack
+        .http
+        .request(method.clone(), format!("{}{path}", client.stack.url))
+        .bearer_auth(token)
+        .json(&body);
+    for (name, value) in headers {
+        request = request.header(*name, *value);
+    }
+    let response = request.send().await.expect("answered");
+    let status = response.status();
+    client.seen.insert((
+        method.as_str().to_lowercase(),
+        route.to_owned(),
+        status.as_u16(),
+    ));
+    let text = response.text().await.expect("a body");
+    (status, serde_json::from_str(&text).unwrap_or(Value::Null))
+}
+
+/// The runs' lists, feeds, results, history and comments, the decisions, and the test hosts' paging and
+/// exports (PLAN.md 7.10 batch 5, part 5b): ace3's `tests/aceapi_v2/svs/test_run_reads.py`,
+/// `test_run_results.py`, `test_run_page_reads.py` (its detail and history), `test_expectations.py`, and
+/// `test_test_hosts.py`'s `test_a_change_from_a_stale_form_is_refused`,
+/// `test_the_listing_pages_by_hostname` and `test_exports`, each case named where it's ported. What
+/// isn't here: `TestAlerts` and `test_review_blockers` (batches 6 and 7), and
+/// `test_a_config_key_is_refused`, since a key that belongs to nobody is an actor here and decides. The
+/// stack's exports hold two rows, so each export is read narrowed to that and refused wider.
+async fn svs_run_reads(client: &mut Client<'_>) {
+    use Method as M;
+    use StatusCode as S;
+    let stack = client.stack;
+    let db = stack.test_db.db();
+    let reader = key(stack, &["svs:run_read"]).await;
+    let launcher = key(stack, &["svs:run_register"]).await;
+    let manager = key(stack, &["svs:run_manage", "svs:run_read"]).await;
+    let admin = key(stack, &["svs:admin", "svs:run_read"]).await;
+    let (r, l, m, a) = (
+        Some(reader.as_str()),
+        Some(launcher.as_str()),
+        Some(manager.as_str()),
+        Some(admin.as_str()),
+    );
+    let (_, author) = session_of(stack, "svs-author", &["svs:run_manage", "svs:run_read"]).await;
+    let (_, other) = session_of(stack, "svs-other", &["svs:run_manage", "svs:run_read"]).await;
+    let (author, other) = (Some(author.as_str()), Some(other.as_str()));
+    catalog_test(
+        stack,
+        31,
+        "T1566.001",
+        "A read run's test",
+        &["windows", "linux"],
+        "powershell",
+        false,
+    )
+    .await;
+    let guid = catalog_guid(31);
+    let since = chrono::Utc::now();
+
+    // three hosts and a run on each, in one batch, by one launcher; the first started
+    let mut runs = Vec::new();
+    for (n, platform) in [(1, "windows"), (2, "windows"), (3, "linux")] {
+        let host = format!("feed-{n}");
+        client
+            .json(
+                M::POST,
+                TEST_HOSTS,
+                TEST_HOSTS,
+                a,
+                Send::Json(json!({"hostname": host, "platform": platform})),
+                S::CREATED,
+            )
+            .await;
+        let run = client
+            .json(
+                M::POST,
+                RUNS,
+                RUNS,
+                l,
+                Send::Json(json!({
+                    "test_guid": guid, "targets": [{"hostname": host}], "launcher": "feedart",
+                    "batch_id": format!("feed-batch-{}", n.min(2)),
+                })),
+                S::CREATED,
+            )
+            .await;
+        runs.push(run["run_id"].as_str().expect("a run").to_owned());
+    }
+    let (first, second, third) = (runs[0].as_str(), runs[1].as_str(), runs[2].as_str());
+    let run_path = |route: &str, run: &str| route.replace("{run_id}", run);
+    client
+        .json(
+            M::POST,
+            RUN_START,
+            &run_path(RUN_START, first),
+            l,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    // its cleanup, so its log has more events than an export of the stack holds
+    client
+        .json(
+            M::POST,
+            RUN_CLEANUP,
+            &run_path(RUN_CLEANUP, first),
+            l,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    let mine = "f=launcher:feedart";
+
+    // test_newest_first_in_pages, test_a_row
+    let page = client
+        .json(
+            M::GET,
+            RUNS,
+            &format!("{RUNS}?{mine}&limit=2"),
+            r,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    let listed: Vec<&str> = page["runs"]
+        .as_array()
+        .expect("runs")
+        .iter()
+        .map(|run| run["run_id"].as_str().expect("an id"))
+        .collect();
+    assert_eq!(listed, [third, second]);
+    let next = page["next"].as_str().expect("a next page");
+    let rest = client
+        .json(
+            M::GET,
+            RUNS,
+            &format!("{RUNS}?{mine}&limit=2&cursor={next}"),
+            r,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    let row = &rest["runs"][0];
+    assert_eq!(rest["next"], Value::Null);
+    assert_eq!(
+        (
+            &row["run_id"],
+            &row["state"],
+            &row["test_name"],
+            &row["technique"],
+            &row["platform"],
+            &row["launcher"],
+            &row["batch_id"],
+            &row["owner"],
+            &row["needs_attention"],
+            &row["result_hit"],
+            &row["alerts"],
+            &row["targets"][0]["hostname"]
+        ),
+        (
+            &json!(first),
+            &json!("started"),
+            &json!("A read run's test"),
+            &json!("T1566.001"),
+            &json!("windows"),
+            &json!("feedart"),
+            &json!("feed-batch-1"),
+            &Value::Null,
+            &json!(false),
+            &json!(0),
+            &json!(0),
+            &json!("feed-1")
+        )
+    );
+
+    // a run's result, which batch 6's attribution will give rows through the computation: here its rows
+    // are written as a computation leaves them
+    for (run, signature, status, alerts) in [
+        (first, "sig-hit", "hit", 2),
+        (first, "sig-missing", "missing", 0),
+        (first, "sig-candidate", "candidate", 1),
+        (second, "sig-hit", "candidate", 1),
+    ] {
+        sqlx::query(
+            "INSERT INTO svs.run_results
+                 (run_id, signature_uuid, signature_family, signature_name, status, alert_count)
+             VALUES ((SELECT id FROM svs.runs WHERE uuid = $1::uuid), $2, 'yara', '<b>rule</b>', $3, $4)",
+        )
+        .bind(run)
+        .bind(signature)
+        .bind(status)
+        .bind(alerts)
+        .execute(db.pool())
+        .await
+        .expect("a result row");
+    }
+
+    // test_a_rows_result_and_alerts, test_detail
+    let detail = client
+        .json(M::GET, RUN, &run_path(RUN, first), r, Send::Nothing, S::OK)
+        .await;
+    assert_eq!(
+        (
+            &detail["result_hit"],
+            &detail["result_expected"],
+            &detail["result_missing"],
+            &detail["result_candidate"],
+            &detail["result_stale"],
+            &detail["test_name"],
+            &detail["needs_attention"],
+            &detail["log_search_url"]
+        ),
+        (
+            &json!(1),
+            &json!(2),
+            &json!(1),
+            &json!(1),
+            &json!(false),
+            &json!("A read run's test"),
+            &json!(false),
+            &Value::Null
+        )
+    );
+
+    // test_filters, test_count, test_a_bad_filter_is_422, test_a_bad_cursor_is_400
+    for (filter, expected) in [
+        ("f=state:started", 1),
+        ("f=!state:started", 2),
+        ("f=platform:linux", 1),
+        ("f=batch:FEED-BATCH-2", 2),
+        ("f=has_missing:true", 1),
+        ("f=has_candidates:true", 2),
+        ("f=technique:T1566", 3),
+        ("f=target:feed-2", 1),
+        ("f=needs_attention:true", 0),
+    ] {
+        let counted = client
+            .json(
+                M::GET,
+                RUN_COUNT,
+                &format!("{RUN_COUNT}?{mine}&{filter}"),
+                r,
+                Send::Nothing,
+                S::OK,
+            )
+            .await;
+        assert_eq!(counted, json!({"count": expected}), "{filter}");
+    }
+    for bad in [
+        "f=state:finished",
+        "f=surprise:1",
+        "f=created:soon",
+        "tz=Mars/Olympus",
+        "changed_since=yesterday",
+    ] {
+        for route in [
+            RUNS,
+            RUN_COUNT,
+            RUN_BATCHES,
+            RUN_EVENT_FEED,
+            RUN_RESULT_FEED,
+        ] {
+            // a count takes no changed_since, and so refuses nothing about it
+            if route == RUN_COUNT && bad.starts_with("changed_since") {
+                continue;
+            }
+            client
+                .json(
+                    M::GET,
+                    route,
+                    &format!("{route}?{bad}"),
+                    r,
+                    Send::Nothing,
+                    S::BAD_REQUEST,
+                )
+                .await;
+        }
+    }
+    for route in [RUNS, RUN_BATCHES, RUN_EVENT_FEED, RUN_RESULT_FEED] {
+        for bad in ["cursor=garbage", "limit=0", "limit=1001"] {
+            client
+                .json(
+                    M::GET,
+                    route,
+                    &format!("{route}?{bad}"),
+                    r,
+                    Send::Nothing,
+                    S::BAD_REQUEST,
+                )
+                .await;
+        }
+    }
+    // a cursor of one order doesn't page the other
+    let error = client
+        .json(
+            M::GET,
+            RUNS,
+            &format!("{RUNS}?{mine}&changed_since=2020-01-01T00:00:00Z&cursor={next}"),
+            r,
+            Send::Nothing,
+            S::BAD_REQUEST,
+        )
+        .await;
+    assert!(
+        error["error"]
+            .as_str()
+            .is_some_and(|e| e.contains("ordered by created, not updated_at")),
+        "{error}"
+    );
+
+    // test_a_changed_run_comes_back, test_the_future_is_empty
+    let changed = client
+        .json(
+            M::GET,
+            RUNS,
+            &format!("{RUNS}?{mine}&changed_since=2020-01-01T00:00:00Z"),
+            r,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    let order: Vec<&str> = changed["runs"]
+        .as_array()
+        .expect("runs")
+        .iter()
+        .map(|run| run["run_id"].as_str().expect("an id"))
+        .collect();
+    assert_eq!(
+        order,
+        [second, third, first],
+        "the started run changed last"
+    );
+    let future = client
+        .json(
+            M::GET,
+            RUNS,
+            &format!("{RUNS}?changed_since=2099-01-01T00:00:00Z"),
+            r,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(future["runs"], json!([]));
+
+    // TestBatches
+    let batches = client
+        .json(
+            M::GET,
+            RUN_BATCHES,
+            &format!("{RUN_BATCHES}?{mine}&limit=1"),
+            r,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    let batch = &batches["batches"][0];
+    assert_eq!(
+        (
+            &batch["batch_id"],
+            &batch["runs"],
+            &batch["states"]["created"],
+            &batch["states"]["closed"],
+            &batch["result_candidate"]
+        ),
+        (
+            &json!("feed-batch-2"),
+            &json!(2),
+            &json!(2),
+            &json!(0),
+            &json!(1)
+        )
+    );
+    let older = client
+        .json(
+            M::GET,
+            RUN_BATCHES,
+            &format!(
+                "{RUN_BATCHES}?{mine}&limit=1&cursor={}",
+                batches["next"].as_str().expect("a next page")
+            ),
+            r,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(
+        (
+            &older["batches"][0]["batch_id"],
+            &older["batches"][0]["result_hit"],
+            &older["batches"][0]["result_expected"],
+            &older["next"]
+        ),
+        (&json!("feed-batch-1"), &json!(1), &json!(2), &Value::Null)
+    );
+
+    // TestEvents: the feed, in (updated_at, id) order
+    let feed = client
+        .json(
+            M::GET,
+            RUN_EVENT_FEED,
+            &format!("{RUN_EVENT_FEED}?{mine}"),
+            r,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    let events = feed["events"].as_array().expect("events");
+    assert!(events.len() >= 4, "{feed}");
+    assert_eq!(events[0]["kind"], "registered");
+    assert!(events.iter().all(|event| event["updated_at"].is_string()));
+    let of_third = client
+        .json(
+            M::GET,
+            RUN_EVENT_FEED,
+            &format!("{RUN_EVENT_FEED}?{mine}&f=platform:linux"),
+            r,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(
+        of_third["events"]
+            .as_array()
+            .expect("events")
+            .iter()
+            .map(|event| (event["run_id"].as_str(), event["kind"].as_str()))
+            .collect::<Vec<_>>(),
+        [(Some(third), Some("registered"))]
+    );
+
+    // test_the_feed_takes_the_runs_filters
+    let results = client
+        .json(
+            M::GET,
+            RUN_RESULT_FEED,
+            &format!("{RUN_RESULT_FEED}?{mine}&f=batch:feed-batch-2"),
+            r,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(
+        results["results"]
+            .as_array()
+            .expect("results")
+            .iter()
+            .map(|row| (row["run_id"].as_str(), row["status"].as_str()))
+            .collect::<Vec<_>>(),
+        [(Some(second), Some("candidate"))]
+    );
+
+    // test_a_runs_result, test_a_run_without_a_result
+    let result = client
+        .json(
+            M::GET,
+            RUN_RESULTS,
+            &format!("{}?limit=2", run_path(RUN_RESULTS, first)),
+            r,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(result["results"].as_array().map(Vec::len), Some(2));
+    assert_eq!(
+        (
+            &result["results"][0]["signature_uuid"],
+            &result["results"][0]["signature_name"],
+            &result["results"][0]["alert_count"],
+            &result["stale"],
+            &result["computed_at"]
+        ),
+        (
+            &json!("sig-hit"),
+            &json!("<b>rule</b>"),
+            &json!(2),
+            &json!(false),
+            &Value::Null
+        )
+    );
+    let after = result["next"].as_i64().expect("a next page");
+    let last = client
+        .json(
+            M::GET,
+            RUN_RESULTS,
+            &format!("{}?after={after}", run_path(RUN_RESULTS, first)),
+            r,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(
+        (&last["results"][0]["status"], &last["next"]),
+        (&json!("candidate"), &Value::Null)
+    );
+    let none = client
+        .json(
+            M::GET,
+            RUN_RESULTS,
+            &run_path(RUN_RESULTS, third),
+            r,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(
+        none,
+        json!({"results": [], "next": null, "stale": false, "computed_at": null})
+    );
+
+    // TestHistory: test_a_first_run, test_bad_requests
+    let history = client
+        .json(
+            M::GET,
+            RUN_HISTORY,
+            &run_path(RUN_HISTORY, second),
+            r,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(
+        history,
+        json!({"runs": [], "signatures": [{"signature_uuid": "sig-hit", "statuses": []}]})
+    );
+    for bad in ["runs=0", "runs=51", "runs=many"] {
+        client
+            .json(
+                M::GET,
+                RUN_HISTORY,
+                &format!("{}?{bad}", run_path(RUN_HISTORY, second)),
+                r,
+                Send::Nothing,
+                S::BAD_REQUEST,
+            )
+            .await;
+    }
+    client
+        .json(
+            M::GET,
+            RUN_RESULTS,
+            &format!("{}?limit=0", run_path(RUN_RESULTS, first)),
+            r,
+            Send::Nothing,
+            S::BAD_REQUEST,
+        )
+        .await;
+
+    // TestSuppressionShare's test_nothing_reviewed
+    let share = client
+        .json(
+            M::GET,
+            RUN_SUPPRESSION,
+            RUN_SUPPRESSION,
+            r,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(
+        share,
+        json!({
+            "missing": 0, "possibly_suppressed": 0, "share": null, "reviewed_runs": 0,
+            "first_reviewed_at": null, "trigger_reached": false, "reconsider": false,
+        })
+    );
+
+    // a run's own routes: an id that isn't one, and a run that isn't there
+    let nowhere = Uuid::from_u128(0xFEED).to_string();
+    for route in [RUN_RESULTS, RUN_HISTORY, RUN_COMMENTS] {
+        client
+            .json(
+                M::GET,
+                route,
+                &run_path(route, "not-a-run"),
+                r,
+                Send::Nothing,
+                S::BAD_REQUEST,
+            )
+            .await;
+        client
+            .json(
+                M::GET,
+                route,
+                &run_path(route, &nowhere),
+                r,
+                Send::Nothing,
+                S::NOT_FOUND,
+            )
+            .await;
+    }
+
+    // TestExport: each export, narrowed to what the stack's exports hold, then refused wider
+    let export = |route: &str, format: &str, run: &str| {
+        route.replace("{format}", format).replace("{run_id}", run)
+    };
+    let exports: [(&str, &str, String, usize); 6] = [
+        // (route, run, the narrow query, its rows)
+        (RUNS_EXPORT, "", format!("{mine}&f=batch:feed-batch-2"), 2),
+        (RUN_BATCHES_EXPORT, "", mine.to_owned(), 2),
+        (
+            RUN_EVENT_FEED_EXPORT,
+            "",
+            format!("{mine}&f=batch:feed-batch-2"),
+            2,
+        ),
+        (
+            RUN_RESULT_FEED_EXPORT,
+            "",
+            format!("{mine}&f=batch:feed-batch-2"),
+            1,
+        ),
+        (RUN_EVENTS_EXPORT, third, String::new(), 1),
+        (RUN_RESULTS_EXPORT, second, String::new(), 1),
+    ];
+    for (route, run, narrow, rows) in &exports {
+        let path = |format: &str, query: &str| format!("{}?{query}", export(route, format, run));
+        let response = client
+            .call(M::GET, route, &path("ndjson", narrow), r, Send::Nothing)
+            .await;
+        assert_eq!(response.status(), S::OK, "{route}");
+        assert_eq!(
+            response.headers()["content-type"],
+            "application/x-ndjson",
+            "{route}"
+        );
+        let text = response.text().await.expect("a body");
+        let lines: Vec<Value> = text
+            .lines()
+            .map(|line| serde_json::from_str(line).expect("a line of JSON"))
+            .collect();
+        assert_eq!(lines.len(), *rows, "{route}: {text}");
+        let response = client
+            .call(M::GET, route, &path("csv", narrow), r, Send::Nothing)
+            .await;
+        assert_eq!(response.status(), S::OK, "{route}");
+        assert!(
+            response.headers()["content-type"]
+                .to_str()
+                .expect("text")
+                .starts_with("text/csv"),
+            "{route}"
+        );
+        let csv = response.text().await.expect("a body");
+        assert_eq!(
+            csv.lines().count(),
+            rows + 1,
+            "{route}: a header and the rows: {csv}"
+        );
+        // a format that isn't one, and for a listing a filter that isn't one, before the first byte
+        client
+            .json(
+                M::GET,
+                route,
+                &path("xlsx", narrow),
+                r,
+                Send::Nothing,
+                S::BAD_REQUEST,
+            )
+            .await;
+        if run.is_empty() {
+            client
+                .json(
+                    M::GET,
+                    route,
+                    &path("csv", "f=state:finished"),
+                    r,
+                    Send::Nothing,
+                    S::BAD_REQUEST,
+                )
+                .await;
+        }
+    }
+    // the runs' CSV: test_runs
+    let csv = client
+        .call(
+            M::GET,
+            RUNS_EXPORT,
+            &format!("{}?{mine}&f=platform:linux", export(RUNS_EXPORT, "csv", "")),
+            r,
+            Send::Nothing,
+        )
+        .await
+        .text()
+        .await
+        .expect("a body");
+    let mut lines = csv.lines();
+    let header: Vec<&str> = lines.next().expect("a header").split(',').collect();
+    let cells: Vec<&str> = lines.next().expect("a row").split(',').collect();
+    let column = |name: &str| cells[header.iter().position(|h| *h == name).expect(name)];
+    assert_eq!(
+        (
+            column("run_id"),
+            column("targets"),
+            column("state"),
+            column("result_hit")
+        ),
+        (third, "feed-3", "created", "0")
+    );
+    // wider than the stack's exports hold: the run with three result rows, and the started run's log
+    for (route, run, query) in [
+        (RUNS_EXPORT, "", mine),
+        (RUN_EVENT_FEED_EXPORT, "", mine),
+        (RUN_RESULT_FEED_EXPORT, "", mine),
+        (RUN_BATCHES_EXPORT, "", ""),
+        (RUN_EVENTS_EXPORT, first, ""),
+        (RUN_RESULTS_EXPORT, first, ""),
+    ] {
+        // the batches of every run of the stack: the three of test_runs.py's too
+        if route == RUN_BATCHES_EXPORT {
+            sqlx::query("UPDATE svs.runs SET batch_id = 'feed-batch-3' WHERE uuid = $1::uuid")
+                .bind(third)
+                .execute(db.pool())
+                .await
+                .expect("a third batch");
+        }
+        client
+            .json(
+                M::GET,
+                route,
+                &format!("{}?{query}", export(route, "csv", run)),
+                r,
+                Send::Nothing,
+                S::PAYLOAD_TOO_LARGE,
+            )
+            .await;
+    }
+    for route in [RUN_EVENTS_EXPORT, RUN_RESULTS_EXPORT] {
+        client
+            .json(
+                M::GET,
+                route,
+                &export(route, "csv", "not-a-run"),
+                r,
+                Send::Nothing,
+                S::BAD_REQUEST,
+            )
+            .await;
+        client
+            .json(
+                M::GET,
+                route,
+                &export(route, "csv", &nowhere),
+                r,
+                Send::Nothing,
+                S::NOT_FOUND,
+            )
+            .await;
+    }
+
+    // a run's comments: anyone who manages runs adds one, and only its author changes or deletes it
+    let comments = run_path(RUN_COMMENTS, first);
+    let added = client
+        .json(
+            M::POST,
+            RUN_COMMENTS,
+            &comments,
+            author,
+            Send::Json(json!({"comment": "  <script>alert(1)</script>\r\nsecond line "})),
+            S::CREATED,
+        )
+        .await;
+    assert_eq!(
+        (&added["comment"], &added["user"], &added["run_id"]),
+        (
+            &json!("<script>alert(1)</script>\nsecond line"),
+            &json!("svs-author"),
+            &json!(first)
+        )
+    );
+    let comment = |id: &Value| {
+        RUN_COMMENT
+            .replace("{run_id}", first)
+            .replace("{id}", &id.to_string())
+    };
+    let listed = client
+        .json(M::GET, RUN_COMMENTS, &comments, r, Send::Nothing, S::OK)
+        .await;
+    assert_eq!(listed, json!([added]));
+    let edited = client
+        .json(
+            M::PATCH,
+            RUN_COMMENT,
+            &comment(&added["id"]),
+            author,
+            Send::Json(json!({"comment": "edited"})),
+            S::OK,
+        )
+        .await;
+    assert_eq!(edited["comment"], "edited");
+    // another manager's, a reader's, and a key that belongs to nobody
+    for (method, send) in [
+        (M::PATCH, Send::Json(json!({"comment": "theirs"}))),
+        (M::DELETE, Send::Nothing),
+    ] {
+        let refused = client
+            .json(
+                method,
+                RUN_COMMENT,
+                &comment(&added["id"]),
+                other,
+                send,
+                S::FORBIDDEN,
+            )
+            .await;
+        assert_eq!(
+            refused["error"],
+            "only its author changes or deletes a comment"
+        );
+    }
+    let nobody = client
+        .json(
+            M::POST,
+            RUN_COMMENTS,
+            &comments,
+            m,
+            Send::Json(json!({"comment": "from a service's key"})),
+            S::BAD_REQUEST,
+        )
+        .await;
+    assert!(
+        nobody["error"]
+            .as_str()
+            .is_some_and(|e| e.contains("records who took it")),
+        "{nobody}"
+    );
+    for bad in [
+        json!({"comment": ""}),
+        json!({"comment": "x".repeat(16385)}),
+        json!({"text": "x"}),
+    ] {
+        client
+            .json(
+                M::POST,
+                RUN_COMMENTS,
+                &comments,
+                author,
+                Send::Json(bad.clone()),
+                S::BAD_REQUEST,
+            )
+            .await;
+        client
+            .json(
+                M::PATCH,
+                RUN_COMMENT,
+                &comment(&added["id"]),
+                author,
+                Send::Json(bad),
+                S::BAD_REQUEST,
+            )
+            .await;
+    }
+    client
+        .json(
+            M::POST,
+            RUN_COMMENTS,
+            &comments,
+            author,
+            too_large(),
+            S::PAYLOAD_TOO_LARGE,
+        )
+        .await;
+    client
+        .json(
+            M::PATCH,
+            RUN_COMMENT,
+            &comment(&added["id"]),
+            author,
+            too_large(),
+            S::PAYLOAD_TOO_LARGE,
+        )
+        .await;
+    client
+        .json(
+            M::POST,
+            RUN_COMMENTS,
+            &run_path(RUN_COMMENTS, &nowhere),
+            author,
+            Send::Json(json!({"comment": "x"})),
+            S::NOT_FOUND,
+        )
+        .await;
+    client
+        .json(
+            M::POST,
+            RUN_COMMENTS,
+            &run_path(RUN_COMMENTS, "not-a-run"),
+            author,
+            Send::Json(json!({"comment": "x"})),
+            S::BAD_REQUEST,
+        )
+        .await;
+    // a comment of another run, and one that isn't there or isn't an id
+    let elsewhere = RUN_COMMENT
+        .replace("{run_id}", second)
+        .replace("{id}", &added["id"].to_string());
+    for (path, status) in [
+        (elsewhere.as_str(), S::NOT_FOUND),
+        (&comment(&json!(999_999_999)), S::NOT_FOUND),
+        (&comment(&json!("first")).replace('"', ""), S::BAD_REQUEST),
+    ] {
+        client
+            .json(
+                M::PATCH,
+                RUN_COMMENT,
+                path,
+                author,
+                Send::Json(json!({"comment": "x"})),
+                status,
+            )
+            .await;
+        client
+            .json(M::DELETE, RUN_COMMENT, path, author, Send::Nothing, status)
+            .await;
+    }
+    let deleted = client
+        .call(
+            M::DELETE,
+            RUN_COMMENT,
+            &comment(&added["id"]),
+            author,
+            Send::Nothing,
+        )
+        .await;
+    assert_eq!(deleted.status(), S::NO_CONTENT);
+    let listed = client
+        .json(M::GET, RUN_COMMENTS, &comments, r, Send::Nothing, S::OK)
+        .await;
+    assert_eq!(listed, json!([]));
+
+    // test_expectations.py: TestExpectations' test_decide_list_and_remove and test_per_platform
+    let signature = "7d1c2a4e-5b6f-4c3d-9e8f-0a1b2c3d4e5f";
+    let expectation = |platform: &str, signature: &str| {
+        EXPECTATION
+            .replace("{guid}", &guid.to_string())
+            .replace("{platform}", platform)
+            .replace("{signature_uuid}", signature)
+    };
+    let decided = client
+        .json(
+            M::PUT,
+            EXPECTATION,
+            &expectation("Windows", signature),
+            m,
+            Send::Json(json!({"state": "expected", "reason": "the macro", "run_id": first})),
+            S::OK,
+        )
+        .await;
+    assert_eq!(
+        (
+            &decided["state"],
+            &decided["platform"],
+            &decided["reason"],
+            &decided["decided_from_run_id"],
+            &decided["decided_by"]["kind"],
+            &decided["test_guid"]
+        ),
+        (
+            &json!("expected"),
+            &json!("windows"),
+            &json!("the macro"),
+            &json!(first),
+            &json!("api_key"),
+            &json!(guid)
+        )
+    );
+    // the decision is in the run's log, and the run's result is to recompute
+    let log = client
+        .json(
+            M::GET,
+            RUN_EVENTS,
+            &run_path(RUN_EVENTS, first),
+            r,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert!(
+        log["events"]
+            .as_array()
+            .expect("events")
+            .iter()
+            .any(|event| event["kind"] == "candidate_decision"
+                && event["details"]["signature_uuid"] == signature),
+        "{log}"
+    );
+    let stale = client
+        .json(M::GET, RUN, &run_path(RUN, first), r, Send::Nothing, S::OK)
+        .await;
+    assert_eq!(stale["result_stale"], true);
+    client
+        .json(
+            M::PUT,
+            EXPECTATION,
+            &expectation("linux", signature),
+            m,
+            Send::Json(json!({"state": "rejected"})),
+            S::OK,
+        )
+        .await;
+
+    // TestConflictingDecisions: test_a_candidate_decided_twice
+    let candidate = "8e2d3b5f-6c7a-4d4e-8f90-1b2c3d4e5f6a";
+    let (status, first_decision) = with_headers(
+        client,
+        M::PUT,
+        EXPECTATION,
+        &expectation("windows", candidate),
+        &manager,
+        &[("If-None-Match", "*")],
+        json!({"state": "expected"}),
+    )
+    .await;
+    assert_eq!(status, S::OK, "{first_decision}");
+    let (status, second_decision) = with_headers(
+        client,
+        M::PUT,
+        EXPECTATION,
+        &expectation("windows", candidate),
+        &manager,
+        &[("If-None-Match", "*")],
+        json!({"state": "rejected"}),
+    )
+    .await;
+    assert_eq!(status, S::PRECONDITION_FAILED);
+    assert!(
+        second_decision["error"]
+            .as_str()
+            .is_some_and(|e| e.ends_with("was decided by someone else since you loaded it")),
+        "{second_decision}"
+    );
+    let seen = first_decision["updated_at"].as_str().expect("a time");
+    let (status, changed) = with_headers(
+        client,
+        M::PUT,
+        EXPECTATION,
+        &expectation("windows", candidate),
+        &manager,
+        &[("If-Match", &format!("\"{seen}\""))],
+        json!({"state": "rejected"}),
+    )
+    .await;
+    assert_eq!((status, &changed["state"]), (S::OK, &json!("rejected")));
+    let (status, _) = with_headers(
+        client,
+        M::PUT,
+        EXPECTATION,
+        &expectation("windows", candidate),
+        &manager,
+        &[("If-Match", seen)],
+        json!({"state": "expected"}),
+    )
+    .await;
+    assert_eq!(status, S::PRECONDITION_FAILED);
+    // preconditions that aren't ones
+    for headers in [
+        vec![("If-Match", "yesterday")],
+        vec![("If-None-Match", "\"abc\"")],
+        vec![("If-Match", seen), ("If-None-Match", "*")],
+    ] {
+        for (route, path) in [
+            (EXPECTATION, expectation("windows", candidate)),
+            (
+                TEST_IGNORE,
+                TEST_IGNORE
+                    .replace("{guid}", &guid.to_string())
+                    .replace("{signature_uuid}", candidate),
+            ),
+            (
+                GLOBAL_IGNORE,
+                GLOBAL_IGNORE.replace("{signature_uuid}", candidate),
+            ),
+        ] {
+            let token = if route == GLOBAL_IGNORE {
+                &admin
+            } else {
+                &manager
+            };
+            let (status, body) = with_headers(
+                client,
+                M::PUT,
+                route,
+                &path,
+                token,
+                &headers,
+                json!({"state": "expected"}),
+            )
+            .await;
+            assert_eq!(status, S::BAD_REQUEST, "{route}: {body}");
+        }
+    }
+
+    // test_errors
+    for (path, body, status) in [
+        (
+            expectation("macos", signature),
+            json!({"state": "expected"}),
+            S::BAD_REQUEST,
+        ),
+        (
+            expectation("windows", "not a uuid"),
+            json!({"state": "expected"}),
+            S::BAD_REQUEST,
+        ),
+        (
+            expectation("windows", signature),
+            json!({"state": "candidate"}),
+            S::BAD_REQUEST,
+        ),
+        (
+            expectation("linux", signature),
+            json!({"state": "expected", "run_id": first}),
+            S::BAD_REQUEST,
+        ),
+        (
+            expectation("windows", signature),
+            json!({"state": "expected", "run_id": "not-a-run"}),
+            S::BAD_REQUEST,
+        ),
+        (
+            expectation("windows", signature),
+            json!({"state": "expected", "surprise": 1}),
+            S::BAD_REQUEST,
+        ),
+        (
+            EXPECTATION
+                .replace("{guid}", &nowhere)
+                .replace("{platform}", "windows")
+                .replace("{signature_uuid}", signature),
+            json!({"state": "expected"}),
+            S::NOT_FOUND,
+        ),
+    ] {
+        client
+            .json(M::PUT, EXPECTATION, &path, m, Send::Json(body), status)
+            .await;
+    }
+    client
+        .json(
+            M::PUT,
+            EXPECTATION,
+            &expectation("windows", signature),
+            m,
+            too_large(),
+            S::PAYLOAD_TOO_LARGE,
+        )
+        .await;
+
+    // test_paging_changed_since_and_exports
+    let of_test = format!("test={guid}");
+    let listed = client
+        .json(
+            M::GET,
+            EXPECTATIONS,
+            &format!("{EXPECTATIONS}?{of_test}&limit=2"),
+            r,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(listed["expectations"].as_array().map(Vec::len), Some(2));
+    let rest = client
+        .json(
+            M::GET,
+            EXPECTATIONS,
+            &format!(
+                "{EXPECTATIONS}?{of_test}&limit=2&cursor={}",
+                listed["next"].as_str().expect("a next page")
+            ),
+            r,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(
+        (
+            rest["expectations"].as_array().map(Vec::len),
+            &rest["expectations"][0]["signature_uuid"],
+            &rest["next"]
+        ),
+        (Some(1), &json!(candidate), &Value::Null)
+    );
+    let on_linux = client
+        .json(
+            M::GET,
+            EXPECTATIONS,
+            &format!(
+                "{EXPECTATIONS}?{of_test}&platform=linux&state=rejected&signature={signature}"
+            ),
+            r,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(on_linux["expectations"].as_array().map(Vec::len), Some(1));
+    let changed = client
+        .json(
+            M::GET,
+            EXPECTATIONS,
+            &format!("{EXPECTATIONS}?{of_test}&changed_since=2020-01-01T00:00:00Z"),
+            r,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(
+        changed["expectations"]
+            .as_array()
+            .expect("decisions")
+            .last()
+            .map(|e| &e["signature_uuid"]),
+        Some(&json!(candidate)),
+        "the decision changed last comes last"
+    );
+    for bad in [
+        "state=candidate",
+        "limit=0",
+        "cursor=garbage",
+        "changed_since=soon",
+    ] {
+        client
+            .json(
+                M::GET,
+                EXPECTATIONS,
+                &format!("{EXPECTATIONS}?{bad}"),
+                r,
+                Send::Nothing,
+                S::BAD_REQUEST,
+            )
+            .await;
+    }
+
+    // TestIgnores: test_a_tests_and_global_ignores, and test_an_ignore_added_twice_and_a_stale_reason
+    let test_ignore = |signature: &str| {
+        TEST_IGNORE
+            .replace("{guid}", &guid.to_string())
+            .replace("{signature_uuid}", signature)
+    };
+    let global_ignore = |signature: &str| GLOBAL_IGNORE.replace("{signature_uuid}", signature);
+    let noise = "9f3e4c60-7d8b-4e5f-9a01-2c3d4e5f6a7b";
+    for (route, path, token, scope) in [
+        (TEST_IGNORE, test_ignore(noise), &manager, "test"),
+        (GLOBAL_IGNORE, global_ignore(noise), &admin, "global"),
+    ] {
+        let (status, added) = with_headers(
+            client,
+            M::PUT,
+            route,
+            &path,
+            token,
+            &[("If-None-Match", "*")],
+            json!({"reason": "winrm"}),
+        )
+        .await;
+        assert_eq!(status, S::OK, "{added}");
+        assert_eq!(
+            (&added["scope"], &added["reason"], &added["signature_uuid"]),
+            (&json!(scope), &json!("winrm"), &json!(noise))
+        );
+        let (status, _) = with_headers(
+            client,
+            M::PUT,
+            route,
+            &path,
+            token,
+            &[("If-None-Match", "*")],
+            json!({"reason": "again"}),
+        )
+        .await;
+        assert_eq!(status, S::PRECONDITION_FAILED, "{route}");
+        let seen = added["updated_at"].as_str().expect("a time");
+        let (status, replaced) = with_headers(
+            client,
+            M::PUT,
+            route,
+            &path,
+            token,
+            &[("If-Match", seen)],
+            json!({"reason": "the launcher's own"}),
+        )
+        .await;
+        assert_eq!(
+            (status, &replaced["reason"]),
+            (S::OK, &json!("the launcher's own"))
+        );
+        let (status, _) = with_headers(
+            client,
+            M::PUT,
+            route,
+            &path,
+            token,
+            &[("If-Match", seen)],
+            json!({"reason": "stale"}),
+        )
+        .await;
+        assert_eq!(status, S::PRECONDITION_FAILED, "{route}");
+        let token = Some(token.as_str());
+        for body in [json!({"reason": "x".repeat(4097)}), json!({"why": "x"})] {
+            client
+                .json(
+                    M::PUT,
+                    route,
+                    &path,
+                    token,
+                    Send::Json(body),
+                    S::BAD_REQUEST,
+                )
+                .await;
+        }
+        client
+            .json(
+                M::PUT,
+                route,
+                &path.replace(noise, "not%20a%20uuid"),
+                token,
+                Send::Json(json!({})),
+                S::BAD_REQUEST,
+            )
+            .await;
+        client
+            .json(
+                M::PUT,
+                route,
+                &path,
+                token,
+                too_large(),
+                S::PAYLOAD_TOO_LARGE,
+            )
+            .await;
+    }
+    client
+        .json(
+            M::PUT,
+            TEST_IGNORE,
+            &TEST_IGNORE
+                .replace("{guid}", &nowhere)
+                .replace("{signature_uuid}", noise),
+            m,
+            Send::Json(json!({})),
+            S::NOT_FOUND,
+        )
+        .await;
+    // a manager ignores for a test, and only an admin for every test
+    client
+        .json(
+            M::PUT,
+            GLOBAL_IGNORE,
+            &global_ignore(candidate),
+            m,
+            Send::Json(json!({})),
+            S::FORBIDDEN,
+        )
+        .await;
+    let listed = client
+        .json(
+            M::GET,
+            IGNORES,
+            &format!("{IGNORES}?{of_test}&signature={noise}"),
+            r,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(
+        listed["ignores"]
+            .as_array()
+            .expect("ignores")
+            .iter()
+            .map(|ignore| (ignore["scope"].as_str(), ignore["test_guid"].as_str()))
+            .collect::<Vec<_>>(),
+        [
+            (Some("test"), Some(guid.to_string().as_str())),
+            (Some("global"), None)
+        ],
+        "a test's ignores are its own and the global ones"
+    );
+    let global_only = client
+        .json(
+            M::GET,
+            IGNORES,
+            &format!("{IGNORES}?scope=global&signature={noise}&limit=1&changed_since=2020-01-01T00:00:00Z"),
+            r,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(
+        (
+            global_only["ignores"].as_array().map(Vec::len),
+            &global_only["next"]
+        ),
+        (Some(1), &Value::Null)
+    );
+    for bad in [
+        "scope=everywhere",
+        "limit=0",
+        "cursor=garbage",
+        "changed_since=soon",
+    ] {
+        client
+            .json(
+                M::GET,
+                IGNORES,
+                &format!("{IGNORES}?{bad}"),
+                r,
+                Send::Nothing,
+                S::BAD_REQUEST,
+            )
+            .await;
+    }
+
+    // the decisions' exports: test_exports, both
+    for (route, narrow, wide, rows) in [
+        (
+            EXPECTATIONS_EXPORT,
+            format!("{of_test}&platform=linux"),
+            of_test.clone(),
+            1,
+        ),
+        (
+            IGNORES_EXPORT,
+            format!("{of_test}&signature={noise}"),
+            String::new(),
+            2,
+        ),
+    ] {
+        let path = |format: &str, query: &str| format!("{}?{query}", export(route, format, ""));
+        let text = client
+            .call(M::GET, route, &path("ndjson", &narrow), r, Send::Nothing)
+            .await
+            .text()
+            .await
+            .expect("a body");
+        assert_eq!(text.lines().count(), rows, "{route}: {text}");
+        let csv = client
+            .call(M::GET, route, &path("csv", &narrow), r, Send::Nothing)
+            .await
+            .text()
+            .await
+            .expect("a body");
+        assert_eq!(csv.lines().count(), rows + 1, "{route}: {csv}");
+        for bad in ["state=candidate&scope=everywhere", "changed_since=soon"] {
+            client
+                .json(
+                    M::GET,
+                    route,
+                    &path("csv", bad),
+                    r,
+                    Send::Nothing,
+                    S::BAD_REQUEST,
+                )
+                .await;
+        }
+        client
+            .json(
+                M::GET,
+                route,
+                &path("xlsx", &narrow),
+                r,
+                Send::Nothing,
+                S::BAD_REQUEST,
+            )
+            .await;
+        // a third ignore, so the ignores are more than an export holds
+        if route == IGNORES_EXPORT {
+            client
+                .json(
+                    M::PUT,
+                    TEST_IGNORE,
+                    &test_ignore(candidate),
+                    m,
+                    Send::Json(json!({})),
+                    S::OK,
+                )
+                .await;
+        }
+        client
+            .json(
+                M::GET,
+                route,
+                &path("csv", &wide),
+                r,
+                Send::Nothing,
+                S::PAYLOAD_TOO_LARGE,
+            )
+            .await;
+    }
+
+    // removing: a decision, a test's ignore and a global one
+    for (route, path, token, missing) in [
+        (
+            EXPECTATION,
+            expectation("windows", candidate),
+            m,
+            expectation("windows", noise),
+        ),
+        (TEST_IGNORE, test_ignore(noise), m, test_ignore(signature)),
+        (
+            GLOBAL_IGNORE,
+            global_ignore(noise),
+            a,
+            global_ignore(signature),
+        ),
+    ] {
+        let removed = client
+            .call(M::DELETE, route, &path, token, Send::Nothing)
+            .await;
+        assert_eq!(removed.status(), S::NO_CONTENT, "{route}");
+        for path in [&path, &missing] {
+            client
+                .json(M::DELETE, route, path, token, Send::Nothing, S::NOT_FOUND)
+                .await;
+        }
+        client
+            .json(
+                M::DELETE,
+                route,
+                &path
+                    .replace(candidate, "not%20a%20uuid")
+                    .replace(noise, "not%20a%20uuid"),
+                token,
+                Send::Nothing,
+                S::BAD_REQUEST,
+            )
+            .await;
+    }
+
+    // TestSettings: test_set_read_and_remove
+    let settings = TEST_SETTINGS.replace("{guid}", &guid.to_string());
+    client
+        .json(
+            M::GET,
+            TEST_SETTINGS,
+            &settings,
+            r,
+            Send::Nothing,
+            S::NOT_FOUND,
+        )
+        .await;
+    let set = client
+        .json(
+            M::PUT,
+            TEST_SETTINGS,
+            &settings,
+            m,
+            Send::Json(json!({"observation_minutes": 90, "holds_host": true})),
+            S::OK,
+        )
+        .await;
+    assert_eq!(
+        (
+            &set["observation_minutes"],
+            &set["holds_host"],
+            &set["set_by"]["kind"]
+        ),
+        (&json!(90), &json!(true), &json!("api_key"))
+    );
+    let read = client
+        .json(M::GET, TEST_SETTINGS, &settings, r, Send::Nothing, S::OK)
+        .await;
+    assert_eq!(read, set);
+    for body in [
+        json!({"observation_minutes": 0}),
+        json!({"observation_minutes": 100_000}),
+        json!({"observation_minutes": "long"}),
+        json!({"minutes": 5}),
+    ] {
+        client
+            .json(
+                M::PUT,
+                TEST_SETTINGS,
+                &settings,
+                m,
+                Send::Json(body),
+                S::BAD_REQUEST,
+            )
+            .await;
+    }
+    client
+        .json(
+            M::PUT,
+            TEST_SETTINGS,
+            &settings,
+            m,
+            too_large(),
+            S::PAYLOAD_TOO_LARGE,
+        )
+        .await;
+    let unknown = TEST_SETTINGS.replace("{guid}", &nowhere);
+    client
+        .json(
+            M::PUT,
+            TEST_SETTINGS,
+            &unknown,
+            m,
+            Send::Json(json!({})),
+            S::NOT_FOUND,
+        )
+        .await;
+    let removed = client
+        .call(M::DELETE, TEST_SETTINGS, &settings, m, Send::Nothing)
+        .await;
+    assert_eq!(removed.status(), S::NO_CONTENT);
+    for path in [&settings, &unknown] {
+        client
+            .json(
+                M::DELETE,
+                TEST_SETTINGS,
+                path,
+                m,
+                Send::Nothing,
+                S::NOT_FOUND,
+            )
+            .await;
+    }
+
+    // test_test_hosts.py: test_the_listing_pages_by_hostname
+    let hosts = client
+        .json(
+            M::GET,
+            TEST_HOSTS,
+            &format!(
+                "{TEST_HOSTS}?limit=2&changed_since={}",
+                since.to_rfc3339().replace('+', "%2B")
+            ),
+            r,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    let names = |page: &Value| -> Vec<String> {
+        page["hosts"]
+            .as_array()
+            .expect("hosts")
+            .iter()
+            .map(|host| host["hostname"].as_str().expect("a name").to_owned())
+            .collect()
+    };
+    assert_eq!(names(&hosts), ["feed-1", "feed-2"]);
+    let rest = client
+        .json(
+            M::GET,
+            TEST_HOSTS,
+            &format!(
+                "{TEST_HOSTS}?limit=2&changed_since={}&cursor={}",
+                since.to_rfc3339().replace('+', "%2B"),
+                hosts["next"].as_str().expect("a next page")
+            ),
+            r,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(
+        (names(&rest), &rest["next"]),
+        (vec!["feed-3".to_owned()], &Value::Null)
+    );
+    let future = client
+        .json(
+            M::GET,
+            TEST_HOSTS,
+            &format!("{TEST_HOSTS}?changed_since=2099-01-01T00:00:00Z"),
+            r,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(future["hosts"], json!([]));
+    for bad in ["cursor=garbage", "limit=0", "changed_since=soon"] {
+        client
+            .json(
+                M::GET,
+                TEST_HOSTS,
+                &format!("{TEST_HOSTS}?{bad}"),
+                r,
+                Send::Nothing,
+                S::BAD_REQUEST,
+            )
+            .await;
+    }
+
+    // test_a_change_from_a_stale_form_is_refused
+    let host = &hosts["hosts"][0];
+    let host_path = TEST_HOST.replace("{host}", &host["id"].to_string());
+    let seen = host["updated_at"].as_str().expect("a time");
+    let (status, changed) = with_headers(
+        client,
+        M::PUT,
+        TEST_HOST,
+        &host_path,
+        &admin,
+        &[("If-Match", seen)],
+        json!({"hostname": "feed-1", "platform": "windows", "notes": "lab 4"}),
+    )
+    .await;
+    assert_eq!((status, &changed["notes"]), (S::OK, &json!("lab 4")));
+    let (status, refused) = with_headers(
+        client,
+        M::PUT,
+        TEST_HOST,
+        &host_path,
+        &admin,
+        &[("If-Match", seen)],
+        json!({"hostname": "feed-1", "platform": "windows", "usernames": ["svc_art"]}),
+    )
+    .await;
+    assert_eq!(status, S::PRECONDITION_FAILED);
+    assert_eq!(
+        refused["error"],
+        "test host feed-1 was changed by someone else since you loaded it"
+    );
+    let current = client
+        .json(M::GET, TEST_HOST, &host_path, r, Send::Nothing, S::OK)
+        .await;
+    assert_eq!(
+        (&current["notes"], &current["usernames"]),
+        (&json!("lab 4"), &json!([]))
+    );
+    let (status, _) = with_headers(
+        client,
+        M::PUT,
+        TEST_HOST,
+        &host_path,
+        &admin,
+        &[("If-Match", changed["updated_at"].as_str().expect("a time"))],
+        json!({"hostname": "feed-1", "platform": "windows", "usernames": ["svc_art"]}),
+    )
+    .await;
+    assert_eq!(status, S::OK);
+
+    // test_exports
+    let hosts_export = |format: &str, query: &str| {
+        format!("{}?{query}", TEST_HOSTS_EXPORT.replace("{format}", format))
+    };
+    let recent = format!(
+        "changed_since={}",
+        chrono::Utc::now().to_rfc3339().replace('+', "%2B")
+    );
+    // one host changed after now: the one whose users this sets
+    client
+        .json(
+            M::PUT,
+            TEST_HOST,
+            &host_path,
+            a,
+            Send::Json(json!({
+                "hostname": "feed-1", "platform": "windows", "usernames": ["a", "b"],
+                "ips": ["10.0.0.5"],
+            })),
+            S::OK,
+        )
+        .await;
+    let lines = client
+        .call(
+            M::GET,
+            TEST_HOSTS_EXPORT,
+            &hosts_export("ndjson", &recent),
+            r,
+            Send::Nothing,
+        )
+        .await
+        .text()
+        .await
+        .expect("a body");
+    let exported: Vec<Value> = lines
+        .lines()
+        .map(|line| serde_json::from_str(line).expect("a line of JSON"))
+        .collect();
+    assert_eq!(
+        exported
+            .iter()
+            .map(|host| host["hostname"].as_str())
+            .collect::<Vec<_>>(),
+        [Some("feed-1")]
+    );
+    let csv = client
+        .call(
+            M::GET,
+            TEST_HOSTS_EXPORT,
+            &hosts_export("csv", &recent),
+            r,
+            Send::Nothing,
+        )
+        .await
+        .text()
+        .await
+        .expect("a body");
+    assert!(csv.contains("feed-1,,\"a,b\",10.0.0.5,windows"), "{csv}");
+    for bad in [
+        hosts_export("xlsx", ""),
+        hosts_export("csv", "changed_since=soon"),
+    ] {
+        client
+            .json(
+                M::GET,
+                TEST_HOSTS_EXPORT,
+                &bad,
+                r,
+                Send::Nothing,
+                S::BAD_REQUEST,
+            )
+            .await;
+    }
+    client
+        .json(
+            M::GET,
+            TEST_HOSTS_EXPORT,
+            &hosts_export("csv", ""),
+            r,
             Send::Nothing,
             S::PAYLOAD_TOO_LARGE,
         )

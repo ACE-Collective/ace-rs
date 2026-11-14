@@ -52,6 +52,11 @@
 //!   `validations.html`, `_validations_page.html` and `validation_detail.html`: the validations with their
 //!   filters, and a validation's report with its rows by category and the download of their files, over
 //!   the `svs_validations` service.
+//! - `svs`: the SVS area under `svs:run_read` (PLAN.md 7.10 batch 5), ace3's `app/svs`: the Runs tab (the
+//!   runs and their batches, with the runs screen's filters), the run page (its result with the decisions
+//!   as forms, its history, comments and event log) and, for `svs:admin`, the Test hosts tab, over the
+//!   `svs_run_reads`, `svs_decisions` and `svs` services. The base layout links to it for whoever holds
+//!   `svs:run_read`.
 //! - `events`: the events area under `event:read` (5.11's events area): ace3's event list with its
 //!   filters, sorts and CSV export, an event's page with Close Event behind a confirm, and its
 //!   add-to-event modal as a page, opened from the alert list's bulk form, and Create Event, the same
@@ -94,6 +99,7 @@ pub mod remediation;
 pub mod saved_filters;
 mod session;
 pub mod signatures;
+pub mod svs;
 pub mod svs_samples;
 pub mod svs_validations;
 pub mod templates;
@@ -290,6 +296,25 @@ impl Gui {
                 get(admin::key_page).post(admin::save_key),
             )
             .route("/admin/keys/{id}/revoke", post(admin::revoke_key))
+            .route("/svs", get(svs::home))
+            .route("/svs/runs", get(svs::runs))
+            .route("/svs/runs/batches", get(svs::batches))
+            .route("/svs/runs/{run_id}", get(svs::run))
+            .route("/svs/runs/{run_id}/decide", post(svs::decide))
+            .route("/svs/runs/{run_id}/comments", post(svs::comment))
+            .route(
+                "/svs/runs/{run_id}/comments/{id}",
+                post(svs::change_comment),
+            )
+            .route(
+                "/svs/test-hosts",
+                get(svs::test_hosts).post(svs::add_test_host),
+            )
+            .route(
+                "/svs/test-hosts/{id}",
+                get(svs::test_host).post(svs::change_test_host),
+            )
+            .route("/svs/test-hosts/{id}/delete", post(svs::remove_test_host))
             .route("/signatures", get(signatures::hub))
             .route("/signatures/yara-qa", get(signatures::yara_qa))
             .route(
