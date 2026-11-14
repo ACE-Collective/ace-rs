@@ -96,6 +96,8 @@ pub struct AlertSummary {
     pub dispositioned_by: Option<RecordedActor>,
     pub submitted_by: Option<RecordedActor>,
     pub analysis: AnalysisState,
+    /// The queue it's in (PLAN.md 7.13), ace3's `alerts.queue`.
+    pub queue: String,
 }
 
 /// One page of the alert list, the cursor for the next, None on the last, and how many alerts the filters
@@ -111,8 +113,7 @@ pub struct AlertPage {
 pub const LIST_TIMEOUT: &str = "10s";
 
 /// The alert list's orders, ace3's sort filters that ace4's alerts have fields for. ace3's owner order comes
-/// with its field (`FilterScreen::left_out`). Its queue order isn't here: 7.13 brought the queue and its
-/// filter, and not the list's queue column or order.
+/// with its field (`FilterScreen::left_out`).
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub enum AlertSort {
     /// When each became an alert, ace3's `Alert Date`, its default.
@@ -122,6 +123,8 @@ pub enum AlertSort {
     Description,
     /// Its disposition, `OPEN` for none, ace3's `Disposition`.
     Disposition,
+    /// Its queue (PLAN.md 7.13), ace3's `Queue`, by its bytes.
+    Queue,
 }
 
 impl AlertSort {
@@ -129,6 +132,7 @@ impl AlertSort {
         AlertSort::AlertDate,
         AlertSort::Description,
         AlertSort::Disposition,
+        AlertSort::Queue,
     ];
 
     /// Its name in a request.
@@ -137,11 +141,17 @@ impl AlertSort {
             AlertSort::AlertDate => "alert_date",
             AlertSort::Description => "description",
             AlertSort::Disposition => "disposition",
+            AlertSort::Queue => "queue",
         }
     }
 
     pub fn named(name: &str) -> Option<Self> {
         Self::ALL.iter().copied().find(|sort| sort.as_str() == name)
+    }
+
+    /// Whether a cursor of this order carries its last alert's key: a value that can change between pages.
+    fn keyed(self) -> bool {
+        matches!(self, AlertSort::Disposition | AlertSort::Queue)
     }
 }
 
@@ -167,9 +177,10 @@ impl Default for AlertQuery {
     }
 }
 
-/// Where a page of the alert list ends: the order it's in, its last alert, and for the disposition order
-/// the disposition that alert had. As text it's `<sort>.<asc|desc>.<uuid>[.<disposition>]`, and a bare
-/// uuid is the default order's, 5.5's cursor.
+/// Where a page of the alert list ends: the order it's in, its last alert, and for the disposition and
+/// queue orders the disposition or queue that alert had, which may have changed since. As text it's
+/// `<sort>.<asc|desc>.<uuid>[.<disposition or queue>]`, and a bare uuid is the default order's, 5.5's
+/// cursor. The key is the text's last part, so a queue's name may hold a `.`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct AlertCursor {
     sort: AlertSort,
@@ -209,13 +220,16 @@ impl AlertCursor {
                 .and_then(|id| id.parse().ok())
                 .ok_or_else(bad)?;
             let key = parts.next().map(str::to_owned);
-            let keyed = sort == AlertSort::Disposition;
-            let shaped = key.as_deref().is_some_and(|key| {
-                key.len() <= 64
-                    && !key.is_empty()
-                    && key
-                        .bytes()
-                        .all(|b| b.is_ascii_uppercase() || b.is_ascii_digit() || b == b'_')
+            let keyed = sort.keyed();
+            let shaped = key.as_deref().is_some_and(|key| match sort {
+                AlertSort::Queue => ace_core::tree::check_queue_name(key).is_ok(),
+                _ => {
+                    key.len() <= 64
+                        && !key.is_empty()
+                        && key
+                            .bytes()
+                            .all(|b| b.is_ascii_uppercase() || b.is_ascii_digit() || b == b'_')
+                }
             });
             if keyed != shaped || (!keyed && key.is_some()) {
                 return Err(bad());
@@ -362,6 +376,7 @@ struct AlertRow {
     pass: i32,
     completed_pass: i32,
     cancelled: bool,
+    queue: String,
 }
 
 impl AlertRow {
@@ -380,6 +395,7 @@ impl AlertRow {
             dispositioned_by: RecordedActor::from_row(self.dispositioned_by)?,
             submitted_by: RecordedActor::from_row(self.submitted_by)?,
             analysis,
+            queue: self.queue,
         })
     }
 }
@@ -543,6 +559,7 @@ impl Service {
                              SELECT r.id, r.alerted_at,
                                     (CASE $1::text WHEN 'description' THEN r.description
                                                    WHEN 'disposition' THEN COALESCE(r.disposition, 'OPEN')
+                                                   WHEN 'queue' THEN r.queue::text
                                      END) COLLATE "C" AS k,
                                     count(*) OVER () AS total
                              FROM analysis.roots r
@@ -684,6 +701,7 @@ impl Service {
                                   r.submitted_by AS "submitted_by: Value",
                                   r.pass, r.completed_pass,
                                   r.cancelled_at IS NOT NULL AS "cancelled!",
+                                  r.queue::text AS "queue!",
                                   m.k AS "key?", m.total AS "total!"
                            FROM matched m JOIN analysis.roots r ON r.id = m.id
                            WHERE $3::uuid IS NULL OR CASE
@@ -774,6 +792,7 @@ impl Service {
                                 pass: row.pass,
                                 completed_pass: row.completed_pass,
                                 cancelled: row.cancelled,
+                                queue: row.queue,
                             }
                             .summary()?,
                         );
@@ -784,7 +803,7 @@ impl Service {
                                 sort,
                                 descending,
                                 id: last.id,
-                                key: (sort == AlertSort::Disposition).then(|| last_key.unwrap_or_default()),
+                                key: sort.keyed().then(|| last_key.unwrap_or_default()),
                             }
                             .encode(),
                         ),
@@ -915,7 +934,8 @@ pub(crate) async fn alert_in(
                   r.dispositioned_by AS "dispositioned_by: Value",
                   r.submitted_by AS "submitted_by: Value",
                   r.pass, r.completed_pass,
-                  r.cancelled_at IS NOT NULL AS "cancelled!"
+                  r.cancelled_at IS NOT NULL AS "cancelled!",
+                  r.queue::text AS "queue!"
            FROM analysis.roots r
            WHERE r.id = $1 AND r.alerted_at IS NOT NULL"#,
         id,

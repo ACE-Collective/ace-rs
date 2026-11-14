@@ -2,7 +2,7 @@
 //! `disposition_classification:` and `saq/disposition.py`, the one list of dispositions there is.
 //!
 //! Each disposition has ace3's four keys: `rank`, which an event's roll-up takes the highest of and the
-//! event list sorts by; `css`, its badge's colour; `show_save_to_event`, whether choosing it offers Save to
+//! event list sorts by; `css`, its badge's class; `show_save_to_event`, whether choosing it offers Save to
 //! Event; and `analyst_selectable`, false for one only ACE sets. The defaults are ace3's `saq.default.yaml`
 //! (`Dispositions::ace3`), and the site overlay's sections are merged over them (`Dispositions::configured`),
 //! which `ace serve` checks when it starts. The service holds the result (`Service::with_dispositions`), and
@@ -16,6 +16,8 @@
 //!   event list's query (`Dispositions::ranks`).
 //! - The detection verdicts' classes (`DispositionClasses`) are the classification, and which dispositions
 //!   only ACE sets.
+//! - `Service::disposition_list` is the set for a client, under `alert:read`: whoever reads alerts reads
+//!   what their dispositions mean (the owner's decision of 2026-11-14).
 //!
 //! **What a site can change.** As in ace3, whose merge only adds and replaces, a site changes a disposition's
 //! keys or adds a disposition, and can't remove one: a disposition a site no longer wants is set
@@ -31,19 +33,28 @@
 //! twice, a null entry): a new disposition's name has the shape `Service::disposition` takes, up to 64 of
 //! A-Z, 0-9 and `_` starting with a letter, which is within ace3's rule (upper case, at most 64 characters);
 //! a new disposition has `rank` and `css`, as ace3's schema requires; a rank is 0 to `MAX_RANK`, which ace3
-//! doesn't bound, since the event list sorts on its digits; `css` is one of `BADGE_STYLES`, where ace3 takes
-//! any text, since the stylesheet has a class for each and nothing else; a classification names a configured
-//! disposition, as ace3's schema checks. Ranks needn't be unique, as in ace3; a tie in an event's roll-up goes
+//! doesn't bound, since the event list sorts on its digits; `css` is a class token (`is_badge_class`); a
+//! classification names a configured disposition, as ace3's schema checks. Ranks needn't be unique, as in ace3; a tie in an event's roll-up goes
 //! to the name that sorts first, where ace3's goes to whichever alert it reads first.
+//!
+//! **`css`.** ace3 takes any text and writes it into a badge's class attribute as `text-bg-<css>`, escaped
+//! by Jinja. ace4 writes `disposition-<css>` the same way, escaped by the templates (the owner's decision of
+//! 2026-11-14: any text, not only Bootstrap's eight colours). One restriction keeps it one class: `css` is 1
+//! to `MAX_BADGE_CLASS_CHARS` of ASCII letters, digits, `-` and `_`. That leaves out white space, which
+//! would add other classes of the stylesheet's to the badge, and every character that means something in
+//! HTML or a CSS selector. The stylesheet (`static/ace.css`) has a `disposition-` class for each of
+//! `BADGE_STYLES`; a badge with any other `css` is the plain badge, the page's text colour in the standard
+//! border, until the site's own stylesheet gives `.badge.disposition-<css>` a rule.
 
 use std::collections::BTreeSet;
 
-use crate::Actor;
 use crate::detection_verdicts::{DispositionClass, DispositionClasses};
 use crate::observables::OPEN;
+use crate::permission::ALERT_READ;
+use crate::{Actor, Service, ServiceError};
 
-/// The badge colours a disposition takes: Bootstrap's names, as ace3's `css` is one, each a class in the
-/// GUI's stylesheet, `disposition-<name>`.
+/// The badge classes the GUI's stylesheet has a rule for, `disposition-<name>`: Bootstrap's colours, which
+/// ace3's defaults use. A disposition's `css` may be any other class token, which shows as the plain badge.
 pub const BADGE_STYLES: &[&str] = &[
     "primary",
     "secondary",
@@ -57,6 +68,19 @@ pub const BADGE_STYLES: &[&str] = &[
 
 /// The badge of a disposition the set doesn't have, ace3's `DEFAULT_DISPOSITION_CSS`.
 pub const DEFAULT_BADGE: &str = "secondary";
+
+/// The longest `css`.
+pub const MAX_BADGE_CLASS_CHARS: usize = 64;
+
+/// Whether a `css` is one class token: 1 to `MAX_BADGE_CLASS_CHARS` of ASCII letters, digits, `-` and `_`.
+/// It's written after `disposition-` in a class attribute, so it needn't start with a letter.
+pub fn is_badge_class(css: &str) -> bool {
+    !css.is_empty()
+        && css.len() <= MAX_BADGE_CLASS_CHARS
+        && css
+            .bytes()
+            .all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'_')
+}
 
 /// The highest rank: the event list sorts on a rank's digits, ten of them.
 pub const MAX_RANK: i64 = 999_999_999;
@@ -73,8 +97,8 @@ pub struct Disposition {
     pub name: String,
     /// An event's disposition is its alerts' highest ranked.
     pub rank: i32,
-    /// Its badge's colour, one of `BADGE_STYLES`.
-    pub css: &'static str,
+    /// Its badge's class, a class token (`is_badge_class`): the badge is `disposition-<css>`.
+    pub css: String,
     /// Whether choosing it offers Save to Event.
     pub show_save_to_event: bool,
     /// False when only ACE sets it.
@@ -143,7 +167,7 @@ impl Dispositions {
                 |&(name, rank, css, show_save_to_event, analyst_selectable)| Disposition {
                     name: name.to_owned(),
                     rank,
-                    css,
+                    css: css.to_owned(),
                     show_save_to_event,
                     analyst_selectable,
                 },
@@ -211,17 +235,15 @@ impl Dispositions {
                 .css
                 .as_deref()
                 .map(|css| {
-                    BADGE_STYLES
-                        .iter()
-                        .copied()
-                        .find(|style| *style == css)
-                        .ok_or_else(|| {
-                            format!(
-                                "{}: {css:?} isn't a badge colour, which is one of {}",
-                                at("css"),
-                                BADGE_STYLES.join(", ")
-                            )
-                        })
+                    if is_badge_class(css) {
+                        Ok(css.to_owned())
+                    } else {
+                        Err(format!(
+                            "{}: {css:?} isn't a badge class, which is 1 to {MAX_BADGE_CLASS_CHARS} of \
+                             letters, digits, - and _",
+                            at("css")
+                        ))
+                    }
                 })
                 .transpose()?;
             if name == OPEN {
@@ -331,10 +353,15 @@ impl Dispositions {
         self.get(name).map(|d| d.rank)
     }
 
-    /// A disposition's badge colour, `DEFAULT_BADGE` for a name the set doesn't have; none is OPEN.
-    pub fn css(&self, disposition: Option<&str>) -> &'static str {
+    /// A disposition's badge class, `DEFAULT_BADGE` for a name the set doesn't have; none is OPEN.
+    pub fn css(&self, disposition: Option<&str>) -> &str {
         self.get(disposition.unwrap_or(OPEN))
-            .map_or(DEFAULT_BADGE, |d| d.css)
+            .map_or(DEFAULT_BADGE, |d| d.css.as_str())
+    }
+
+    /// A disposition's class in the detection verdicts, None for an unclassified one.
+    pub fn class(&self, name: &str) -> Option<DispositionClass> {
+        self.classes.class(Some(name))
     }
 
     /// Whether choosing the disposition offers Save to Event.
@@ -387,5 +414,18 @@ impl Dispositions {
             }
         }
         best.map_or(OPEN, |(_, name)| name).to_owned()
+    }
+}
+
+impl Service {
+    /// The site's dispositions for a client, under `alert:read`: the same set the alert list's filter and
+    /// badges show to whoever reads alerts.
+    pub async fn disposition_list(&self, actor: &Actor) -> Result<&Dispositions, ServiceError> {
+        self.gate
+            .read(actor, "dispositions", &ALERT_READ, &|_tx| {
+                Box::pin(async { Ok(()) })
+            })
+            .await?;
+        Ok(self.dispositions())
     }
 }

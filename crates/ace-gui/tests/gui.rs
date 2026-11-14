@@ -114,7 +114,7 @@ async fn stack_of_db(catalog: Catalog, build: impl FnOnce(Service, &ace_core::Db
     let orchestrator = Orchestrator::new(catalog, Modes::ace3());
     // ace3's dispositions with two of the site's own, one of which only ACE sets
     let overlay = ace_sdk::Overlay::from_yaml(
-        "dispositions:\n  SITE_CHECKED: {rank: 45, css: info, show_save_to_event: true}\n  \
+        "dispositions:\n  SITE_CHECKED: {rank: 45, css: site-checked_1, show_save_to_event: true}\n  \
          SITE_SWEEP: {rank: 5, css: dark, analyst_selectable: false}\n  DAMAGE: {css: warning}\n",
     )
     .expect("the overlay parses");
@@ -1424,6 +1424,7 @@ fn summary(id: uuid::Uuid, title: &str) -> AlertSummary {
             name: Some("<the submitter>".to_owned()),
         }),
         analysis: AnalysisState::Running,
+        queue: "<q>ueue & \"co\"".to_owned(),
     }
 }
 
@@ -1615,6 +1616,11 @@ fn the_view_function_draws_a_fixture_tree() {
     );
     assert!(page.contains(r#"<details class="section" data-section-id="alert_details" open>"#));
     assert!(page.contains("<th>Submitted by</th><td>&#60;the submitter&#62;</td>"));
+    // the alert's queue is among its details, as ace3's alert.html has it (PLAN.md 7.13), as text
+    assert!(
+        page.contains("<th>Queue</th><td>&#60;q&#62;ueue &#38; &#34;co&#34;</td>"),
+        "{page}"
+    );
     assert!(page.contains(r#"<div id="alert-tree" class="tree">"#));
     assert!(
         !page.contains("style="),
@@ -3808,8 +3814,45 @@ fn the_list_view_draws_a_page_of_alerts() {
     let ids: Vec<&str> = view.list.headers.iter().map(|header| header.id).collect();
     assert_eq!(
         ids,
-        ["disposition", "description", "date"],
-        "the viewer's order, status hidden"
+        ["disposition", "description", "date", "queue"],
+        "the viewer's order, status hidden, and queue, which the stored order predates, last"
+    );
+    // the Queue column (PLAN.md 7.13): its header sorts by it, ascending first, and a row's queue is a
+    // link that narrows the list to it, keeping the other filters, as a click on a disposition does
+    let queue = view
+        .list
+        .headers
+        .iter()
+        .find(|h| h.id == "queue")
+        .expect("queue");
+    assert_eq!((queue.label.as_str(), queue.arrow), ("Queue", ""));
+    let sorts = queue.href.as_deref().expect("it sorts");
+    assert!(
+        sorts.contains("sort=queue") && sorts.contains("dir=asc") && !sorts.contains("after="),
+        "{sorts}"
+    );
+    let cell = view.list.rows[0]
+        .cells
+        .iter()
+        .find(|cell| cell.id == "queue")
+        .expect("a queue cell");
+    assert_eq!(cell.text, "<q>ueue & \"co\"");
+    let narrows = cell.href.as_deref().expect("a link");
+    assert!(
+        narrows.contains("f=description") && narrows.contains("f=%21disposition"),
+        "{narrows}"
+    );
+    let decoded = ListQuery::parse(
+        &serde_urlencoded::from_str::<Vec<(String, String)>>(narrows.trim_start_matches("/?"))
+            .expect("pairs"),
+    )
+    .expect("a list")
+    .query
+    .filters;
+    assert_eq!(
+        decoded.last(),
+        Some(&FilterEntry::text("Queue", false, &["<q>ueue & \"co\""])),
+        "the link holds the queue itself"
     );
     assert_eq!(view.chips.len(), 2);
     assert!(view.chips[1].inverted);
@@ -3823,6 +3866,11 @@ fn the_list_view_draws_a_page_of_alerts() {
     assert!(!html.contains("<script>alert"), "{html}");
     assert!(!html.contains("<img"), "{html}");
     assert!(!html.contains("<warning>"));
+    assert!(!html.contains("<q>"), "{html}");
+    assert!(
+        html.contains(">&#60;q&#62;ueue &#38; &#34;co&#34;</a></td>"),
+        "{html}"
+    );
     // the hostile title's handler is text: every_template_escapes_html checks the templates themselves
     assert!(!html.contains("style="), "{html}");
     assert_eq!(row_ids(&html), [one.to_string(), two.to_string()]);
@@ -4254,6 +4302,27 @@ async fn a_bulk_disposition_is_each_alert_s_own_write() {
         list.contains(r#"class="badge disposition-warning">DAMAGE</a>"#),
         "{list}"
     );
+    // css is any class token, as ace3's is any text: the site's own class, which the stylesheet has no
+    // rule for, so it shows as the plain badge
+    sqlx::query("UPDATE analysis.roots SET disposition = 'SITE_CHECKED' WHERE id = $1")
+        .bind(one)
+        .execute(stack.test_db.db().pool())
+        .await
+        .expect("dispositions");
+    let list = stack
+        .http
+        .get(format!("{}/?f=disposition:SITE_CHECKED", stack.url))
+        .header("cookie", cookie(&session))
+        .send()
+        .await
+        .expect("answered")
+        .text()
+        .await
+        .expect("a page");
+    assert!(
+        list.contains(r#"class="badge disposition-site-checked_1">SITE_CHECKED</a>"#),
+        "{list}"
+    );
     let audit = stack.audit_count().await;
     // and another site can't post it
     let cross = stack
@@ -4351,6 +4420,7 @@ async fn saved_filters_and_columns_are_forms() {
     for (column, action) in [
         ("disposition", "up"),
         ("disposition", "up"),
+        ("disposition", "up"),
         ("date", "hide"),
     ] {
         let moved = post(
@@ -4363,7 +4433,7 @@ async fn saved_filters_and_columns_are_forms() {
     let columns = stack.service.manage_columns(&alice).await.expect("reads");
     assert_eq!(
         columns.order,
-        ["disposition", "date", "description", "status"]
+        ["disposition", "date", "description", "queue", "status"]
     );
     assert_eq!(columns.hidden, ["date"]);
     let page = stack
@@ -4380,9 +4450,9 @@ async fn saved_filters_and_columns_are_forms() {
         .skip(1)
         .filter_map(|rest| rest.split('"').next())
         .collect();
-    assert_eq!(headers, ["disposition", "description", "status"]);
+    assert_eq!(headers, ["disposition", "description", "queue", "status"]);
     for bad in [
-        vec![("column", "queue"), ("action", "up")],
+        vec![("column", "owner"), ("action", "up")],
         vec![("column", "date"), ("action", "drag")],
     ] {
         assert_eq!(
@@ -4400,6 +4470,214 @@ async fn saved_filters_and_columns_are_forms() {
         stack.service.manage_columns(&alice).await.expect("reads"),
         ManageColumnsPreference::default()
     );
+}
+
+/// 7.13's queue pieces through the server, where ace3 has them: the list's Queue column and order, the
+/// alert page's queue, the `Last 24h` and `Last 7d` quick filters a person new to the list gets when the
+/// page is drawn (never from its refresh), and the `$USER_QUEUE` tip on the saved filters page.
+#[tokio::test]
+async fn the_queue_is_on_the_list_and_the_alert_and_new_people_get_ace3_s_quick_filters() {
+    let stack = stack().await;
+    let alice = user(&stack, "alice").await;
+    grant_alert_read(&stack, &alice).await;
+    let session = session_of(&stack, "alice").await;
+    let db = stack.test_db.db();
+    let hostile = "<q>ueue & \"co\"";
+    let mut made = Vec::new();
+    for (title, queue, age) in [
+        ("in triage, old", "triage", "30 days"),
+        ("in triage, new", "triage", "1 hour"),
+        ("in default", "default", "2 hours"),
+        ("in a hostile queue", hostile, "3 days"),
+    ] {
+        let id = list_alert(&stack, title, "2026-01-01T10:00:00Z", None).await;
+        sqlx::query(
+            "UPDATE analysis.roots SET queue = $2, alerted_at = now() - $3::interval WHERE id = $1",
+        )
+        .bind(id)
+        .bind(queue)
+        .bind(age)
+        .execute(db.pool())
+        .await
+        .expect("sets its queue");
+        made.push(id);
+    }
+    let (triage_old, triage_new, default, odd) = (made[0], made[1], made[2], made[3]);
+    sqlx::query("UPDATE service.users SET queue = 'triage' WHERE username = 'alice'")
+        .execute(db.pool())
+        .await
+        .expect("alice works triage");
+    let get = |path: String| {
+        let request = stack.get(&path).header("cookie", cookie(&session));
+        async move {
+            let response = request.send().await.expect("answered");
+            let status = response.status();
+            (status, response.text().await.expect("a page"))
+        }
+    };
+    let ids = |list: &[uuid::Uuid]| list.iter().map(|id| id.to_string()).collect::<Vec<_>>();
+    let saved = || async {
+        stack
+            .service
+            .saved_filters(&alice, FilterScreen::Alerts)
+            .await
+            .expect("lists")
+    };
+
+    // the refresh writes nothing: a list that only refreshes seeds no filter
+    let audits = stack.audit_count().await;
+    let request = stack
+        .get("/alerts/list")
+        .header("cookie", cookie(&session))
+        .header("datastar-request", "true");
+    assert_eq!(
+        request.send().await.expect("answered").status(),
+        StatusCode::OK
+    );
+    assert!(saved().await.is_empty());
+    assert_eq!(stack.audit_count().await, audits);
+
+    // the page, drawn for someone new: the two quick filters, with one audit row, once
+    let (status, page) = get("/".to_owned()).await;
+    assert_eq!(status, StatusCode::OK, "{page}");
+    assert_eq!(stack.audit_count().await, audits + 1);
+    let filters = saved().await;
+    assert_eq!(
+        filters
+            .iter()
+            .map(|filter| (filter.name.as_str(), filter.quick_filter_order))
+            .collect::<Vec<_>>(),
+        [("Last 24h", Some(0)), ("Last 7d", Some(1))]
+    );
+    // each is a badge on the page that drew them, a link to the list in the viewer's queue and window
+    let badge = |name: &str| {
+        let link = page
+            .split(&format!(">{name}</a>"))
+            .next()
+            .and_then(|before| before.rsplit("href=\"").next())
+            .and_then(|rest| rest.split('"').next())
+            .unwrap_or_else(|| panic!("no {name} badge in {page}"));
+        link.replace("&#38;", "&")
+    };
+    let (day, week) = (badge("Last 24h"), badge("Last 7d"));
+    assert!(day.contains("USER_QUEUE") && day.contains("-24h"), "{day}");
+    let (_, listed) = get(day).await;
+    assert_eq!(row_ids(&listed), ids(&[triage_new]));
+    let (_, listed) = get(week).await;
+    assert_eq!(
+        row_ids(&listed),
+        ids(&[triage_new]),
+        "the old one is past it"
+    );
+    get("/".to_owned()).await;
+    assert_eq!(stack.audit_count().await, audits + 1, "seeded once");
+    assert_eq!(saved().await.len(), 2);
+
+    // the Queue column: after the alert, before the disposition, each queue a link that narrows to it
+    let headers: Vec<&str> = page
+        .split("<th data-col-id=\"")
+        .skip(1)
+        .filter_map(|rest| rest.split('"').next())
+        .collect();
+    assert_eq!(
+        headers,
+        ["date", "description", "queue", "disposition", "status"]
+    );
+    assert!(!page.contains("<q>"), "{page}");
+    assert!(
+        page.contains(">&#60;q&#62;ueue &#38; &#34;co&#34;</a></td>"),
+        "{page}"
+    );
+    let (_, narrowed) = get("/?f=queue:triage".to_owned()).await;
+    assert_eq!(row_ids(&narrowed), ids(&[triage_new, triage_old]));
+    // and its order, both ways, by the queue's bytes then the id: "<q>…" sorts before "default"
+    let (first, second) = if triage_old < triage_new {
+        (triage_old, triage_new)
+    } else {
+        (triage_new, triage_old)
+    };
+    let (status, sorted) = get("/?sort=queue&dir=asc".to_owned()).await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(row_ids(&sorted), ids(&[odd, default, first, second]));
+    assert!(sorted.contains("Queue↑"), "{sorted}");
+    let (_, sorted) = get("/?sort=queue".to_owned()).await;
+    assert_eq!(row_ids(&sorted), ids(&[second, first, default, odd]));
+    // paged one at a time, the cursor carries the queue, hostile text and all
+    let mut seen = Vec::new();
+    let mut path = "/?sort=queue&dir=asc&size=1".to_owned();
+    loop {
+        let (status, page) = get(path.clone()).await;
+        assert_eq!(status, StatusCode::OK, "{path}: {page}");
+        seen.extend(row_ids(&page));
+        let Some(next) = page
+            .split(r#"rel="next""#)
+            .next()
+            .and_then(|before| before.rsplit("href=\"").next())
+            .filter(|_| page.contains(r#"rel="next""#))
+        else {
+            break;
+        };
+        path = next
+            .split('"')
+            .next()
+            .expect("a link")
+            .replace("&#38;", "&");
+        assert!(seen.len() <= 4, "paging ends");
+    }
+    assert_eq!(seen, ids(&[odd, default, first, second]));
+
+    // the alert's page has its queue among its details, as text
+    let (status, alert) = get(format!("/alerts/{odd}")).await;
+    assert_eq!(status, StatusCode::OK, "{alert}");
+    assert!(
+        alert.contains("<th>Queue</th><td>&#60;q&#62;ueue &#38; &#34;co&#34;</td>"),
+        "{alert}"
+    );
+    let (_, alert) = get(format!("/alerts/{triage_new}")).await;
+    assert!(alert.contains("<th>Queue</th><td>triage</td>"), "{alert}");
+
+    // the saved filters page has ace3's tip under its table
+    let (status, manage) = get("/filters/saved".to_owned()).await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(
+        manage.contains("Tip: use <code>$USER_QUEUE</code> as a Queue value"),
+        "{manage}"
+    );
+    assert!(manage.contains(">Last 24h</a>") && manage.contains(">Last 7d</a>"));
+
+    // deleted, they stay deleted
+    for filter in &filters {
+        let deleted = stack
+            .post(
+                &format!("/filters/saved/{}/delete", filter.id),
+                &[("next", "/")],
+            )
+            .header("cookie", cookie(&session))
+            .send()
+            .await
+            .expect("answered");
+        assert_eq!(deleted.status(), StatusCode::SEE_OTHER);
+    }
+    let (_, page) = get("/".to_owned()).await;
+    assert!(!page.contains(">Last 24h</a>"), "{page}");
+    assert!(saved().await.is_empty());
+
+    // someone without alert:read is refused the page and is given nothing
+    user(&stack, "bob").await;
+    let bobs = session_of(&stack, "bob").await;
+    let refused = stack
+        .get("/")
+        .header("cookie", cookie(&bobs))
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(refused.status(), StatusCode::FORBIDDEN);
+    let seeds = sqlx_count(
+        &stack.test_db,
+        "SELECT count(*) FROM service.saved_filter_seeds",
+    )
+    .await;
+    assert_eq!(seeds, 1, "alice's");
 }
 
 /// The refresh is bounded as 5.8's stream is: past its places, in all or for one user, it answers 503 and
@@ -5304,6 +5582,14 @@ fn the_saved_filters_views_draw_the_order_and_the_rename_form() {
     .render()
     .expect("renders");
     assert!(empty.contains("You have no saved filters yet."), "{empty}");
+    // ace3's tip under the table (PLAN.md 7.13)
+    assert!(
+        page.contains(
+            "Tip: use <code>$USER_QUEUE</code> as a Queue value to make a shared link adapt to whoever \
+             opens it."
+        ),
+        "{page}"
+    );
     assert!(empty.contains(r#"<a href="/">Back to the alert list</a>"#));
 
     let edit = EditPage {

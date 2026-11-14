@@ -38,7 +38,7 @@
 //!
 //! `dispositions:` and `disposition_classification:` are ace3's sections of those names (PLAN.md 7.14,
 //! `ace_service`'s `Dispositions`). `dispositions` is the set of alert dispositions, each with ace3's `rank`
-//! (an event takes its alerts' highest), `css` (its badge's colour), `show_save_to_event` (the disposition
+//! (an event takes its alerts' highest), `css` (its badge's class), `show_save_to_event` (the disposition
 //! offers Save to Event) and `analyst_selectable` (false for one only ACE sets).
 //! `disposition_classification` maps a disposition to `tp` or `fp`. Each entry is merged over ace3's own, as
 //! ace3 merges a site's config over its `saq.default.yaml`, so a site names only what it changes, and a new
@@ -242,6 +242,11 @@ pub struct SvsRepository {
     /// the ruleset build loads it. `yara` by default, as the core's `ACE4_SIGNATURES_DIR`.
     #[serde(default = "default_signature_dir")]
     pub signature_dir: String,
+    /// The SSH private key the mirror fetches with, ace3's `git_repo_*` section's `ssh_key_path`: the name
+    /// of a secret in the overlay's `secrets:`, whose value is the key's text. None by default: git then
+    /// runs with `ace serve`'s environment. `ace_core::svs::yara::repository` says how git is given it.
+    #[serde(default)]
+    pub ssh_key: Option<String>,
 }
 
 fn default_signature_dir() -> String {
@@ -320,6 +325,9 @@ impl SvsYaraSection {
                     repository.branch
                 ));
             }
+            if repository.ssh_key.as_deref() == Some("") {
+                return Err(format!("repository {name}: ssh_key is empty"));
+            }
             let dir = std::path::Path::new(&repository.signature_dir);
             if dir.is_absolute()
                 || dir
@@ -370,8 +378,8 @@ pub const ACE3_DISPOSITION_CLASSES: &[(&str, DispositionClass)] = &[
 pub struct DispositionSection {
     /// An event's disposition is its alerts' highest ranked.
     pub rank: Option<i64>,
-    /// Its badge's colour, one of Bootstrap's names, as ace3's: `primary`, `secondary`, `success`,
-    /// `danger`, `warning`, `info`, `light` or `dark`.
+    /// Its badge's class, any class token, as ace3's is any text. The stylesheet colours Bootstrap's
+    /// `primary`, `secondary`, `success`, `danger`, `warning`, `info`, `light` and `dark`.
     pub css: Option<String>,
     /// Whether choosing it offers Save to Event.
     pub show_save_to_event: Option<bool>,
@@ -591,6 +599,17 @@ impl Overlay {
             .yara
             .check()
             .map_err(|message| parse_error("svs.yara".to_owned(), message))?;
+        // a repository's ssh_key is a secret's name, and a name with no source is a mistake in this file
+        for (name, repository) in &overlay.svs.yara.repositories {
+            if let Some(secret) = &repository.ssh_key
+                && !overlay.secrets.contains_key(secret)
+            {
+                return Err(parse_error(
+                    format!("svs.yara.repositories.{name}.ssh_key"),
+                    format!("{secret:?} isn't a secret in secrets:"),
+                ));
+            }
+        }
         Ok(overlay)
     }
 
@@ -1047,6 +1066,46 @@ mod tests {
             super::tests::components("modules: {example_resolver: {instances: {Bad-Name: {}}}}")
                 .unwrap_err();
         assert!(matches!(err, OverlayError::BadName(_)), "{err}");
+    }
+
+    /// A repository's `ssh_key` is the name of a secret this file gives a source for (PLAN.md 7.10).
+    #[test]
+    fn a_repository_names_its_ssh_key_secret() {
+        let overlay = Overlay::from_yaml(
+            "secrets: {rules_key: file:/run/secrets/rules_key}\n\
+             svs: {yara: {repositories: {\n\
+               keyed: {url: 'ssh://git@forge.example/rules.git', branch: main, ssh_key: rules_key},\n\
+               plain: {url: /x, branch: main}}}}\n",
+        )
+        .expect("parses");
+        let repositories = &overlay.svs.yara.repositories;
+        assert_eq!(repositories["keyed"].ssh_key.as_deref(), Some("rules_key"));
+        assert_eq!(repositories["plain"].ssh_key, None);
+        // a name with no source, an empty one, and a key's text where its name goes
+        for (yaml, at, said) in [
+            (
+                "svs: {yara: {repositories: {r: {url: /x, branch: main, ssh_key: rules_key}}}}",
+                "svs.yara.repositories.r.ssh_key",
+                "\"rules_key\" isn't a secret in secrets:",
+            ),
+            (
+                "secrets: {other: env:OTHER}\n\
+                 svs: {yara: {repositories: {r: {url: /x, branch: main, ssh_key: rules_key}}}}",
+                "svs.yara.repositories.r.ssh_key",
+                "\"rules_key\" isn't a secret in secrets:",
+            ),
+            (
+                "svs: {yara: {repositories: {r: {url: /x, branch: main, ssh_key: ''}}}}",
+                "svs.yara",
+                "repository r: ssh_key is empty",
+            ),
+        ] {
+            let err = Overlay::from_yaml(yaml).expect_err(yaml);
+            assert!(
+                matches!(&err, OverlayError::Parse { path, message } if path == at && message.contains(said)),
+                "{yaml}: {err:?}"
+            );
+        }
     }
 
     #[test]

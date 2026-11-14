@@ -603,6 +603,11 @@ impl AlertPage {
                     .clone()
                     .unwrap_or_else(|| "OPEN".to_owned()),
             },
+            // ace3's alert.html has the queue among its details (PLAN.md 7.13)
+            Detail {
+                name: "Queue",
+                value: summary.queue.clone(),
+            },
             Detail {
                 name: "Observables",
                 value: tree.alert.observables.to_string(),

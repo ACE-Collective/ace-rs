@@ -55,9 +55,14 @@
 //! `crate::events`' page with the ticked alerts (5.11's events area). ace3's other bulk actions (review,
 //! comment, ownership, tags, remediation, add observable) come with what they write.
 //!
-//! What ace3's page has that this leaves out: its search box (7.11), the remediation, queue and owner
-//! columns and the queue-mix warning, the tag badges and comments under a title, the SVS status, and the
-//! favicon dot.
+//! The Queue column is ace3's (PLAN.md 7.13): the alert's queue, which a click narrows the list to, as a
+//! click on a disposition does, and its header sorts by it. A person new to the list gets ace3's `Last 24h`
+//! and `Last 7d` quick filters (`Service::seed_saved_filters`), written when the page is drawn and never by
+//! the refresh, as in ace3.
+//!
+//! What ace3's page has that this leaves out: its search box (7.11), the remediation and owner columns
+//! and the queue-mix warning, the tag badges and comments under a title, the SVS status, and the favicon
+//! dot.
 
 use std::collections::HashMap;
 
@@ -328,8 +333,8 @@ pub struct Header {
 pub struct Cell {
     pub id: &'static str,
     pub text: String,
-    /// A badge's colour, one of `ace_service::BADGE_STYLES`: the Disposition cell's.
-    pub badge: Option<&'static str>,
+    /// A badge's class, the disposition's `css`: the Disposition cell's.
+    pub badge: Option<String>,
     pub title: Option<String>,
     pub href: Option<String>,
 }
@@ -508,6 +513,13 @@ fn row(
                 title: None,
                 href: Some(format!("/alerts/{}", alert.id)),
             },
+            "queue" => Cell {
+                id: "queue",
+                href: Some(query.with_filters(&overlaid(&query.filters, "Queue", &alert.queue))),
+                text: alert.queue.clone(),
+                badge: None,
+                title: None,
+            },
             "disposition" => Cell {
                 id: "disposition",
                 href: Some(query.with_filters(&overlaid(
@@ -516,7 +528,7 @@ fn row(
                     &disposition,
                 ))),
                 text: disposition.clone(),
-                badge: Some(dispositions.css(Some(&disposition))),
+                badge: Some(dispositions.css(Some(&disposition)).to_owned()),
                 title: None,
             },
             _ => Cell {
@@ -791,6 +803,15 @@ pub(crate) async fn page(
         tracing::warn!(%actor, "reading manage_columns failed, so the list has the default: {error}");
         ManageColumnsPreference::default()
     });
+    // a person new to the list gets ace3's Last 24h and Last 7d: here, where the page is drawn, and never
+    // in the refresh, which writes nothing
+    if let Err(error) = gui
+        .service
+        .seed_saved_filters(actor, FilterScreen::Alerts)
+        .await
+    {
+        tracing::warn!(%actor, "seeding the default saved filters failed, so the list has none of them: {error}");
+    }
     let saved = match gui.service.saved_filters(actor, FilterScreen::Alerts).await {
         Ok(saved) => saved,
         Err(ServiceError::Forbidden(_)) => Vec::new(),

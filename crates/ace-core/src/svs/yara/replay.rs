@@ -608,6 +608,11 @@ impl Replayer {
             &repo_config.url,
             &self.config.mirror_dir,
             self.config.fetch_timeout,
+        )
+        .with_ssh_key(
+            self.config
+                .ssh_key(&request.repository)
+                .map_err(ReplayError::Failed)?,
         );
         let trees = [
             workdir.join(BASE).join("tree"),

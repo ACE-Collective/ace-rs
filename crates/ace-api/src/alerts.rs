@@ -1,5 +1,9 @@
 //! `/api/alerts/v1`: the alert list with its filters, sorts and exports, one alert, its observables, its
-//! relationship graph, a file's download and the disposition.
+//! relationship graph, a file's download and the disposition, and the site's dispositions.
+//!
+//! `GET /api/alerts/v1/dispositions` has no ace3 route: ace3's clients read `dispositions:` from its
+//! config. It's the site's set in order with each disposition's metadata (the owner's decision of
+//! 2026-11-14), under `alert:read`.
 
 use std::io::{Seek, SeekFrom};
 
@@ -94,6 +98,8 @@ pub(crate) struct AlertBody {
     dispositioned_by: Option<ActorBody>,
     submitted_by: Option<ActorBody>,
     analysis: AnalysisBody,
+    /// The queue it's in. Show it as text.
+    queue: String,
 }
 
 impl From<AlertSummary> for AlertBody {
@@ -115,6 +121,7 @@ impl From<AlertSummary> for AlertBody {
                 AnalysisState::Complete => AnalysisBody::Complete,
                 AnalysisState::Cancelled => AnalysisBody::Cancelled,
             },
+            queue: alert.queue,
         }
     }
 }
@@ -133,6 +140,7 @@ impl ExportRow for AlertBody {
         "dispositioned_by",
         "submitted_by",
         "analysis",
+        "queue",
     ];
 
     fn cells(&self) -> Vec<String> {
@@ -160,6 +168,7 @@ impl ExportRow for AlertBody {
                 AnalysisBody::Cancelled => "cancelled",
             }
             .to_owned(),
+            self.queue.clone(),
         ]
     }
 }
@@ -192,7 +201,7 @@ pub(crate) struct AlertsQuery {
     /// ORed, and `!` inverts one.
     #[param(style = Form, explode)]
     f: Option<Vec<String>>,
-    /// `alert_date`, the default, `description` or `disposition`.
+    /// `alert_date`, the default, `description`, `disposition` or `queue`.
     sort: Option<String>,
     /// `desc`, the default, or `asc`.
     dir: Option<String>,
@@ -212,7 +221,7 @@ pub(crate) struct AlertExportQuery {
     /// A filter, as the list takes it; repeat it for more.
     #[param(style = Form, explode)]
     f: Option<Vec<String>>,
-    /// `alert_date`, the default, `description` or `disposition`.
+    /// `alert_date`, the default, `description`, `disposition` or `queue`.
     sort: Option<String>,
     /// `desc`, the default, or `asc`.
     dir: Option<String>,
@@ -227,7 +236,7 @@ fn alert_query(params: &Params) -> Result<AlertQuery, ApiError> {
         None => AlertSort::default(),
         Some(name) => AlertSort::named(name).ok_or_else(|| {
             ApiError::bad_request(format!(
-                "sort is alert_date, description or disposition, not {name:?}"
+                "sort is alert_date, description, disposition or queue, not {name:?}"
             ))
         })?,
     };
@@ -803,6 +812,68 @@ pub(crate) async fn file(
         body,
     )
         .into_response())
+}
+
+/// One of the site's dispositions.
+#[derive(Debug, Serialize, ToSchema)]
+pub(crate) struct DispositionBody {
+    name: String,
+    /// An event's disposition is its alerts' highest ranked. OPEN is 0.
+    rank: i32,
+    /// The badge's class: a class token of letters, digits, `-` and `_`, such as Bootstrap's `danger`.
+    css: String,
+    /// Whether choosing it offers Save to Event.
+    show_save_to_event: bool,
+    /// False when only ACE sets it: `PUT .../disposition` refuses it from an analyst or an API key, and
+    /// refuses a change to an alert that has it.
+    analyst_selectable: bool,
+    /// What it says about an alert's detections: `tp`, `fp`, or null for an unclassified one.
+    #[schema(value_type = Option<String>)]
+    class: Option<&'static str>,
+}
+
+/// The site's dispositions.
+#[derive(Debug, Serialize, ToSchema)]
+pub(crate) struct DispositionsBody {
+    /// In the site's order: ace3's, then the site's own.
+    dispositions: Vec<DispositionBody>,
+}
+
+/// The site's dispositions in order, each with its rank, badge class, whether it offers Save to Event,
+/// whether an analyst may choose it, and its class in the detection verdicts. An alert may still carry a
+/// disposition that isn't listed, one the site has since dropped from its configuration.
+#[utoipa::path(
+    get,
+    path = "/api/alerts/v1/dispositions",
+    tag = "alerts",
+    responses(
+        (status = 200, description = "The site's dispositions", body = DispositionsBody),
+        (status = 401, description = "No credential, or one that isn't valid", body = ErrorBody),
+        (status = 403, description = "The actor doesn't hold alert:read", body = ErrorBody),
+    )
+)]
+pub(crate) async fn dispositions(
+    Authenticated(actor): Authenticated,
+    State(web): State<Web>,
+) -> Result<Json<DispositionsBody>, ApiError> {
+    let set = web.service.disposition_list(&actor).await?;
+    Ok(Json(DispositionsBody {
+        dispositions: set
+            .all()
+            .iter()
+            .map(|disposition| DispositionBody {
+                name: disposition.name.clone(),
+                rank: disposition.rank,
+                css: disposition.css.clone(),
+                show_save_to_event: disposition.show_save_to_event,
+                analyst_selectable: disposition.analyst_selectable,
+                class: set.class(&disposition.name).map(|class| match class {
+                    ace_service::DispositionClass::Tp => "tp",
+                    ace_service::DispositionClass::Fp => "fp",
+                }),
+            })
+            .collect(),
+    }))
 }
 
 /// Records an analyst's verdict on the alert. Its analysis is cancelled and it moves to the

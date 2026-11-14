@@ -156,8 +156,9 @@ async fn stack_of(archive: ace_core::email_archive::ArchiveConfig, catalog: Cata
     let orchestrator = Orchestrator::new(catalog, Modes::ace3());
     // the site's dispositions are ace3's with two of its own, one of which only ACE sets
     let overlay = ace_sdk::Overlay::from_yaml(
-        "dispositions:\n  SITE_CHECKED: {rank: 45, css: info}\n  \
-         SITE_SWEEP: {rank: 5, css: dark, analyst_selectable: false}\n",
+        "dispositions:\n  SITE_CHECKED: {rank: 45, css: site-checked, show_save_to_event: true}\n  \
+         SITE_SWEEP: {rank: 5, css: dark, analyst_selectable: false}\n\
+         disposition_classification: {SITE_CHECKED: fp}\n",
     )
     .expect("the overlay parses");
     let service = Service::new(test_db.db().clone(), orchestrator.clone())
@@ -433,6 +434,7 @@ const OBSERVABLES: &str = "/api/alerts/v1/alerts/{id}/observables";
 const GRAPH: &str = "/api/alerts/v1/alerts/{id}/graph";
 const FILE: &str = "/api/alerts/v1/alerts/{id}/observables/{observable}/file";
 const DISPOSITION: &str = "/api/alerts/v1/alerts/{id}/disposition";
+const DISPOSITIONS: &str = "/api/alerts/v1/dispositions";
 const SUBMIT: &str = "/api/analysis/v1/submit";
 const LOOKUP: &str = "/api/observables/v1/lookup";
 const TYPES: &str = "/api/observables/v1/types";
@@ -691,7 +693,7 @@ async fn refuses_without_a_credential_or_a_permission(
         .map(|(method, route, _)| (method, route))
         .filter(|route| !public.contains(route))
         .collect();
-    assert_eq!(routes.len(), 146, "{routes:?}");
+    assert_eq!(routes.len(), 147, "{routes:?}");
     for (method, route) in routes {
         let method: Method = method.to_uppercase().parse().expect("a method");
         let path = fill(&route, id, file);
@@ -1881,6 +1883,99 @@ async fn downloads(client: &mut Client<'_>, token: &str, id: Uuid, file: i64, by
 }
 
 async fn dispositions(client: &mut Client<'_>, token: &str) {
+    // the site's set, in order, with every key and the class: ace3's, then the site's two
+    let listed = client
+        .json(
+            Method::GET,
+            DISPOSITIONS,
+            DISPOSITIONS,
+            Some(token),
+            Send::Nothing,
+            StatusCode::OK,
+        )
+        .await;
+    let listed = listed["dispositions"].as_array().expect("a list");
+    let names: Vec<&str> = listed
+        .iter()
+        .map(|d| d["name"].as_str().expect("a name"))
+        .collect();
+    assert_eq!(
+        names,
+        [
+            "OPEN",
+            "FALSE_POSITIVE",
+            "IGNORE",
+            "UNKNOWN",
+            "REVIEWED",
+            "GRAYWARE",
+            "POLICY_VIOLATION",
+            "RECONNAISSANCE",
+            "WEAPONIZATION",
+            "DELIVERY",
+            "EXPLOITATION",
+            "INSTALLATION",
+            "COMMAND_AND_CONTROL",
+            "EXFIL",
+            "DAMAGE",
+            "SIMULATED",
+            "SITE_CHECKED",
+            "SITE_SWEEP",
+        ]
+    );
+    assert_eq!(
+        listed[0],
+        json!({"name": "OPEN", "rank": 0, "css": "light", "show_save_to_event": false,
+               "analyst_selectable": true, "class": null})
+    );
+    assert_eq!(
+        listed[1],
+        json!({"name": "FALSE_POSITIVE", "rank": 20, "css": "success", "show_save_to_event": false,
+               "analyst_selectable": true, "class": "fp"})
+    );
+    assert_eq!(
+        listed[9],
+        json!({"name": "DELIVERY", "rank": 100, "css": "danger", "show_save_to_event": true,
+               "analyst_selectable": true, "class": "tp"})
+    );
+    assert_eq!(
+        listed[15],
+        json!({"name": "SIMULATED", "rank": 55, "css": "info", "show_save_to_event": false,
+               "analyst_selectable": false, "class": "tp"})
+    );
+    assert_eq!(
+        listed[16],
+        json!({"name": "SITE_CHECKED", "rank": 45, "css": "site-checked", "show_save_to_event": true,
+               "analyst_selectable": true, "class": "fp"})
+    );
+    assert_eq!(
+        listed[17],
+        json!({"name": "SITE_SWEEP", "rank": 5, "css": "dark", "show_save_to_event": false,
+               "analyst_selectable": false, "class": null})
+    );
+    // whoever reads alerts reads them: alert:read alone, and not a key that only writes
+    let reader = key(client.stack, &["alert:read"]).await;
+    client
+        .json(
+            Method::GET,
+            DISPOSITIONS,
+            DISPOSITIONS,
+            Some(&reader),
+            Send::Nothing,
+            StatusCode::OK,
+        )
+        .await;
+    let writer = key(client.stack, &["alert:write"]).await;
+    let refused = client
+        .json(
+            Method::GET,
+            DISPOSITIONS,
+            DISPOSITIONS,
+            Some(&writer),
+            Send::Nothing,
+            StatusCode::FORBIDDEN,
+        )
+        .await;
+    assert_eq!(refused["error"], "this needs alert:read");
     let id = alert(
         client.stack,
         "to disposition",
@@ -4138,7 +4233,7 @@ async fn preferences(client: &mut Client<'_>) {
             {"key": "alert_sections", "value": {"sections": {}}, "updated_at": null, "is_default": true},
             {
                 "key": "manage_columns",
-                "value": {"order": ["date", "description", "disposition", "status"], "hidden": []},
+                "value": {"order": ["date", "description", "queue", "disposition", "status"], "hidden": []},
                 "updated_at": null,
                 "is_default": true,
             },
@@ -4645,6 +4740,62 @@ async fn filters_and_exports(client: &mut Client<'_>, token: &str) {
         )
         .await;
     assert_eq!(ids(&page), [made[0].to_string()]);
+    // the queue order (PLAN.md 7.13): each alert has its queue, a formula in one is data, and the cursor
+    // carries the queue its last alert was read in
+    for (alert, queue) in [(made[0], "=cmd|' /C calc'!A0"), (made[1], "night.shift 2")] {
+        sqlx::query("UPDATE analysis.roots SET queue = $2 WHERE id = $1")
+            .bind(alert)
+            .bind(queue)
+            .execute(stack.test_db.db().pool())
+            .await
+            .expect("sets the queue");
+    }
+    let by_queue = format!("{LIST}?f=observable:fqdn:csv.example&sort=queue&dir=asc&limit=2");
+    let page = client
+        .json(
+            Method::GET,
+            LIST,
+            &by_queue,
+            Some(token),
+            Send::Nothing,
+            StatusCode::OK,
+        )
+        .await;
+    assert_eq!(
+        ids(&page),
+        [made[0].to_string(), made[2].to_string()],
+        "by the queue's bytes: =cmd…, default, night.shift 2"
+    );
+    assert_eq!(page["alerts"][0]["queue"], "=cmd|' /C calc'!A0");
+    assert_eq!(page["alerts"][1]["queue"], "default");
+    let next = page["next"].as_str().expect("more").to_owned();
+    assert_eq!(next, format!("queue.asc.{}.default", made[2]));
+    let rest = client
+        .json(
+            Method::GET,
+            LIST,
+            &format!("{by_queue}&after={next}"),
+            Some(token),
+            Send::Nothing,
+            StatusCode::OK,
+        )
+        .await;
+    assert_eq!(ids(&rest), [made[1].to_string()]);
+    assert_eq!(rest["alerts"][0]["queue"], "night.shift 2");
+    let unknown = client
+        .json(
+            Method::GET,
+            LIST,
+            &format!("{LIST}?sort=owner"),
+            Some(token),
+            Send::Nothing,
+            StatusCode::BAD_REQUEST,
+        )
+        .await;
+    assert_eq!(
+        unknown["error"],
+        "sort is alert_date, description, disposition or queue, not \"owner\""
+    );
     for bad in [
         "?f=nope:x",
         "?f=owner:alice",
@@ -4679,6 +4830,14 @@ async fn filters_and_exports(client: &mut Client<'_>, token: &str) {
     let lines: Vec<&str> = csv.split("\r\n").collect();
     assert_eq!(lines.len(), 4, "a header, two rows and the end: {csv:?}");
     assert!(lines[0].starts_with("id,title,analysis_mode,"), "{csv}");
+    assert!(lines[0].ends_with(",analysis,queue"), "{csv}");
+    // a queue that starts a formula is guarded as a title is
+    assert!(
+        lines[2].ends_with(",'=cmd|' /C calc'!A0")
+            || lines[2].ends_with(r#","'=cmd|' /C calc'!A0""#),
+        "{csv}"
+    );
+    assert!(lines[1].ends_with(",night.shift 2"), "{csv}");
     assert!(
         lines[1].contains(r#","'+plain, ""quoted""","#)
             || lines[1].contains(r#""'+plain, ""quoted""""#),
@@ -4703,6 +4862,7 @@ async fn filters_and_exports(client: &mut Client<'_>, token: &str) {
         .collect();
     assert_eq!(rows.len(), 2);
     assert_eq!(rows[1]["title"], titles[0], "NDJSON is the data as it is");
+    assert_eq!(rows[1]["queue"], "=cmd|' /C calc'!A0");
     for route in [ALERT_CSV, ALERT_NDJSON] {
         let (status, _, body) = client
             .text(

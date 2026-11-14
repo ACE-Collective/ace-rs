@@ -136,6 +136,8 @@ async fn serve(app: &App) -> Result<ExitCode> {
     let validation = ace_core::svs::yara::ValidationConfig::from_section(&overlay.svs.yara)
         .map_err(anyhow::Error::msg)
         .context("the overlay's svs.yara section")?;
+    // the repositories' SSH keys, and no other secret (PLAN.md 2.24)
+    let validation = crate::svs::with_ssh_keys(validation, &overlay);
     for (name, repository) in &validation.repositories {
         tracing::info!(repository = name, branch = %repository.branch, "svs validates this repository");
     }

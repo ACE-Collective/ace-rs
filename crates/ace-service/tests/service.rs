@@ -1567,6 +1567,7 @@ async fn every_write_function_has_an_audit_test() {
         update_saved_filter_records_its_row(db).await,
         delete_saved_filter_records_its_row(db).await,
         set_quick_filters_records_its_row(db).await,
+        seed_saved_filters_records_its_row(db).await,
         set_event_status_records_its_row(db).await,
         create_threat_type_records_its_row(db).await,
         rename_threat_type_records_its_row(db).await,
@@ -3756,6 +3757,15 @@ async fn every_write_fails_when_its_audit_fails() {
             "set_quick_filters",
             service
                 .set_quick_filters(&bob_actor, FilterScreen::Alerts, &[bobs_filter.id])
+                .await
+                .map(|_| ())
+                .expect_err("refused"),
+        ),
+        // the admin has no saved filter yet, so the seeding has two to add
+        (
+            "seed_saved_filters",
+            service
+                .seed_saved_filters(&actor, FilterScreen::Alerts)
                 .await
                 .map(|_| ())
                 .expect_err("refused"),
@@ -8500,6 +8510,28 @@ async fn the_alert_list_filters_and_pages_through_fixture_alerts() {
         .await
         .0;
     assert_eq!(summaries.len(), 4);
+    // each row has its queue, the list's Queue column
+    let mut queues: Vec<(Uuid, String)> = service
+        .alerts(&actor, &AlertQuery::default(), Some(10), None)
+        .await
+        .expect("lists")
+        .alerts
+        .into_iter()
+        .map(|alert| (alert.id, alert.queue))
+        .collect();
+    queues.sort();
+    let mut expected_queues = vec![
+        (a, "default".to_owned()),
+        (b, "triage".to_owned()),
+        (c, "external".to_owned()),
+        (d, "default".to_owned()),
+    ];
+    expected_queues.sort();
+    assert_eq!(queues, expected_queues);
+    assert_eq!(
+        service.alert(&actor, b).await.expect("reads").summary.queue,
+        "triage"
+    );
     let titles: std::collections::HashMap<Uuid, (&str, &str)> = [
         (a, ("Phish from evil.example.com", "OPEN")),
         (b, (r"100% off_sale \ invoice", "FALSE_POSITIVE")),
@@ -8528,6 +8560,15 @@ async fn the_alert_list_filters_and_pages_through_fixture_alerts() {
                 }
                 AlertSort::Disposition => {
                     expected.sort_by(|x, y| (titles[x].1, x).cmp(&(titles[y].1, y)));
+                }
+                // ace3's Queue order (PLAN.md 7.13): A and D in default, C in external, B in triage
+                AlertSort::Queue => {
+                    let queue = |id: &Uuid| match id {
+                        id if *id == b => "triage",
+                        id if *id == c => "external",
+                        _ => "default",
+                    };
+                    expected.sort_by(|x, y| (queue(x), x).cmp(&(queue(y), y)));
                 }
             }
             if descending {
@@ -8613,6 +8654,74 @@ async fn the_alert_list_filters_and_pages_through_fixture_alerts() {
         .await
         .expect("lists");
     assert_eq!((last.alerts.len(), last.next, last.total), (0, None, 5));
+
+    // a queue order's cursor holds the queue its last alert was read in, whatever text a queue's name
+    // has: one with dots and a space pages like any other. An alert moved to a later queue between two
+    // pages is met again there, and the page still starts after the queue it was read in, hiding none
+    let by_queue = AlertQuery {
+        sort: AlertSort::Queue,
+        descending: false,
+        ..AlertQuery::default()
+    };
+    set_queues(db, &[(a, "night.shift 2.0"), (d, "night.shift 2.0")]).await;
+    let page = service
+        .alerts(&actor, &by_queue, Some(4), None)
+        .await
+        .expect("lists");
+    let (ad_first, ad_second) = if a < d { (a, d) } else { (d, a) };
+    assert_eq!(
+        page.alerts[1..]
+            .iter()
+            .map(|alert| alert.id)
+            .collect::<Vec<_>>(),
+        [c, ad_first, ad_second],
+        "default (the late one), external, night.shift 2.0 twice by id; triage is next"
+    );
+    let cursor = page.next.expect("more");
+    assert_eq!(cursor, format!("queue.asc.{ad_second}.night.shift 2.0"));
+    set_queues(db, &[(ad_second, "zebra")]).await;
+    let rest = service
+        .alerts(&actor, &by_queue, Some(4), Some(&cursor))
+        .await
+        .expect("the cursor's own queue, not the alert's new one");
+    assert_eq!(
+        rest.alerts
+            .iter()
+            .map(|alert| (alert.id, alert.queue.as_str()))
+            .collect::<Vec<_>>(),
+        [(b, "triage"), (ad_second, "zebra")]
+    );
+    assert_eq!(rest.next, None);
+    for cursor in [
+        // no queue, an empty one, one too long, one with a control character, another order's key
+        format!("queue.asc.{a}"),
+        format!("queue.asc.{a}."),
+        format!("queue.asc.{a}.{}", "q".repeat(65)),
+        format!("queue.asc.{a}.a\u{7}b"),
+        format!("queue.desc.{a}.default"),
+        "queue.asc.not-a-uuid.default".to_owned(),
+    ] {
+        assert!(
+            matches!(
+                service
+                    .alerts(&actor, &by_queue, Some(1), Some(&cursor))
+                    .await,
+                Err(ServiceError::InvalidRequest(_))
+            ),
+            "{cursor:?}"
+        );
+    }
+    // a hostile queue in a cursor is a bound value
+    let hostile = format!("queue.asc.{a}.'; DROP TABLE analysis.roots; --");
+    service
+        .alerts(&actor, &by_queue, Some(1), Some(&hostile))
+        .await
+        .expect("a queue's name is any text");
+    assert_eq!(
+        root_count(db).await,
+        6,
+        "five alerts and the root that isn't one"
+    );
 }
 
 /// Values are data: whatever text a filter holds reaches the query as a bound parameter, a pattern's
@@ -9425,12 +9534,13 @@ async fn manage_columns_is_normalized() {
     let normal = ManageColumnsPreference::default();
     assert_eq!(
         normal.order,
-        ["date", "description", "disposition", "status"]
+        ["date", "description", "queue", "disposition", "status"],
+        "ace3's order, without the columns that come later"
     );
     assert!(normal.hidden.is_empty());
     let parsed = PreferenceKey::ManageColumns
         .parse(json!({
-            "order": ["status", "queue", "status", "description"],
+            "order": ["status", "remediation", "status", "description"],
             "hidden": ["description", "date", "owner", "date"],
         }))
         .expect("parses");
@@ -9439,7 +9549,7 @@ async fn manage_columns_is_normalized() {
     };
     assert_eq!(
         columns.order,
-        ["status", "description", "date", "disposition"]
+        ["status", "description", "date", "queue", "disposition"]
     );
     assert_eq!(columns.hidden, ["date"], "description is always shown");
     assert_eq!(
@@ -9448,7 +9558,7 @@ async fn manage_columns_is_normalized() {
             .iter()
             .map(|column| column.id)
             .collect::<Vec<_>>(),
-        ["status", "description", "disposition"]
+        ["status", "description", "queue", "disposition"]
     );
     assert!(
         PreferenceKey::ManageColumns
@@ -9650,6 +9760,233 @@ async fn set_quick_filters_records_its_row(db: &Db) -> String {
         }
     );
     "set_quick_filters".to_owned()
+}
+
+async fn seed_saved_filters_records_its_row(db: &Db) -> String {
+    let service = service(db);
+    let me = holding(&service, db, "audited-seed", &[("alert", "read")]).await;
+    let seeded = service
+        .seed_saved_filters(&me, FilterScreen::Alerts)
+        .await
+        .expect("seeds");
+    assert_eq!(seeded.len(), 2);
+    let record = |name: &str, description: &str, window: &str, order: i32| {
+        json!({
+            "screen": "alerts",
+            "owner": actor_id(&me).0,
+            "name": name,
+            "description": description,
+            "filters": [
+                {"name": "Queue", "inverted": false, "values": ["$USER_QUEUE"]},
+                {"name": "Alert Date", "inverted": false, "values": [window]},
+            ],
+            "quick_filter_order": order,
+            "quick_filter_indicator": false,
+        })
+    };
+    assert_eq!(
+        last_audit(db).await,
+        AuditRow {
+            actor: actor_json(&me),
+            action: "seed_saved_filters".to_owned(),
+            target: (
+                "quick_filters".to_owned(),
+                format!("{}/alerts", actor_id(&me).0)
+            ),
+            before: None,
+            after: Some(json!({"filters": [
+                record("Last 24h", "Alerts in your queue from the last 24 hours", "-24h", 0),
+                record("Last 7d", "Alerts in your queue from the last 7 days", "-7d", 1),
+            ]})),
+            details: json!({}),
+        }
+    );
+    "seed_saved_filters".to_owned()
+}
+
+/// ace3's `ensure_default_saved_filters` (PLAN.md 7.13): a person new to the alert list gets `Last 24h` and
+/// `Last 7d` as quick filters, once. Each is the viewer's queue and a relative window, so it lists what its
+/// name says for whoever has it. Someone who had filters already gets none, and someone who deletes the
+/// two doesn't get them back.
+#[tokio::test]
+async fn a_person_new_to_the_alert_list_gets_ace3_s_quick_filters() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let service = service(db);
+    let me = holding(&service, db, "new-analyst", &[("alert", "read")]).await;
+    let (a, b, _, d) = list_fixtures(db).await;
+    // D alerted just now, A and B in January; the viewer works triage, where B and D are
+    set_queues(db, &[(b, "triage"), (d, "triage")]).await;
+    sqlx::query("UPDATE service.users SET queue = 'triage' WHERE id = $1")
+        .bind(actor_id(&me).0)
+        .execute(db.pool())
+        .await
+        .expect("sets the viewer's queue");
+    sqlx::query("UPDATE analysis.roots SET alerted_at = now() - interval '3 days' WHERE id = $1")
+        .bind(b)
+        .execute(db.pool())
+        .await
+        .expect("B alerted three days ago");
+    sqlx::query("UPDATE analysis.roots SET alerted_at = now() - interval '1 hour' WHERE id = $1")
+        .bind(a)
+        .execute(db.pool())
+        .await
+        .expect("A alerted an hour ago, in the default queue");
+
+    assert!(
+        service
+            .saved_filters(&me, FilterScreen::Alerts)
+            .await
+            .expect("lists")
+            .is_empty(),
+        "reading seeds nothing"
+    );
+    let audits = audit_rows(db).await.len();
+    let seeded = service
+        .seed_saved_filters(&me, FilterScreen::Alerts)
+        .await
+        .expect("seeds");
+    assert_eq!(audit_rows(db).await.len(), audits + 1, "one row for both");
+    let listed = service
+        .saved_filters(&me, FilterScreen::Alerts)
+        .await
+        .expect("lists");
+    assert_eq!(seeded, listed);
+    assert_eq!(
+        listed
+            .iter()
+            .map(|filter| (
+                filter.name.as_str(),
+                filter.description.as_deref(),
+                filter.quick_filter_order,
+                filter.quick_filter_indicator
+            ))
+            .collect::<Vec<_>>(),
+        [
+            (
+                "Last 24h",
+                Some("Alerts in your queue from the last 24 hours"),
+                Some(0),
+                false
+            ),
+            (
+                "Last 7d",
+                Some("Alerts in your queue from the last 7 days"),
+                Some(1),
+                false
+            ),
+        ]
+    );
+    // each lists what it says: the viewer's queue, in its window
+    assert_eq!(
+        matching(&service, &me, listed[0].filters.clone()).await,
+        [d]
+    );
+    assert_eq!(
+        matching(&service, &me, listed[1].filters.clone()).await,
+        sorted(vec![b, d])
+    );
+
+    // once: a second call adds nothing, and nor does one after the person deleted them
+    let audits = audit_rows(db).await.len();
+    assert!(
+        service
+            .seed_saved_filters(&me, FilterScreen::Alerts)
+            .await
+            .expect("nothing to do")
+            .is_empty()
+    );
+    for filter in &listed {
+        service
+            .delete_saved_filter(&me, filter.id)
+            .await
+            .expect("deletes");
+    }
+    assert!(
+        service
+            .seed_saved_filters(&me, FilterScreen::Alerts)
+            .await
+            .expect("nothing to do")
+            .is_empty()
+    );
+    assert!(
+        service
+            .saved_filters(&me, FilterScreen::Alerts)
+            .await
+            .expect("lists")
+            .is_empty(),
+        "deleted filters stay deleted"
+    );
+    assert_eq!(
+        audit_rows(db).await.len(),
+        audits + 2,
+        "only the two deletes"
+    );
+
+    // someone with a saved filter already isn't new: they get none, then or later
+    let settled = holding(&service, db, "settled-analyst", &[("alert", "read")]).await;
+    let own = service
+        .create_saved_filter(
+            &settled,
+            FilterScreen::Alerts,
+            &new_filter("Last 24h", vec![text("Disposition", false, &["OPEN"])]),
+        )
+        .await
+        .expect("saves");
+    for _ in 0..2 {
+        assert!(
+            service
+                .seed_saved_filters(&settled, FilterScreen::Alerts)
+                .await
+                .expect("nothing to do")
+                .is_empty()
+        );
+    }
+    service
+        .delete_saved_filter(&settled, own.id)
+        .await
+        .expect("deletes");
+    assert!(
+        service
+            .seed_saved_filters(&settled, FilterScreen::Alerts)
+            .await
+            .expect("nothing to do")
+            .is_empty()
+    );
+
+    // a screen with no defaults has none, and seeding is a person's, under the screen's permission
+    assert!(
+        service
+            .seed_saved_filters(&me, FilterScreen::DetectionPoints)
+            .await
+            .expect("nothing to do")
+            .is_empty()
+    );
+    let outsider = holding(&service, db, "seed-outsider", &[]).await;
+    assert!(matches!(
+        service
+            .seed_saved_filters(&outsider, FilterScreen::Alerts)
+            .await,
+        Err(ServiceError::PermissionDenied { .. })
+    ));
+    let ace = component("alert_reader");
+    grant(
+        db,
+        &Holder::Component(Component::new("alert_reader").expect("valid")),
+        "alert",
+        "read",
+        Effect::Allow,
+    )
+    .await;
+    assert!(matches!(
+        service.seed_saved_filters(&ace, FilterScreen::Alerts).await,
+        Err(ServiceError::Forbidden(_))
+    ));
+    let seeds: i64 = sqlx::query_scalar("SELECT count(*) FROM service.saved_filter_seeds")
+        .fetch_one(db.pool())
+        .await
+        .expect("counts");
+    assert_eq!(seeds, 2, "the two people, and nobody refused");
 }
 
 // PLAN.md 5.11's events (6a): ace3's events, threat types and threats.
@@ -12739,6 +13076,7 @@ fn graph_tree(
                 dispositioned_by: None,
                 submitted_by: None,
                 analysis: AnalysisState::Complete,
+                queue: "default".to_owned(),
             },
             observables: i64::try_from(observables.len()).expect("a count"),
             files: 0,
@@ -15876,7 +16214,11 @@ fn the_overlay_configures_the_dispositions() {
     );
     let delivery = ace3.get("DELIVERY").expect("ace3's");
     assert_eq!(
-        (delivery.rank, delivery.css, delivery.show_save_to_event),
+        (
+            delivery.rank,
+            delivery.css.as_str(),
+            delivery.show_save_to_event
+        ),
         (100, "danger", true)
     );
     assert_eq!(ace3.css(None), "light", "OPEN's");
@@ -15888,7 +16230,7 @@ fn the_overlay_configures_the_dispositions() {
            SIMULATED: {analyst_selectable: true}\n  \
            DAMAGE: {analyst_selectable: false, css: dark}\n  \
            EXFIL: {}\n  \
-           SITE_BAD: {rank: 170, css: danger, show_save_to_event: true}\n  \
+           SITE_BAD: {rank: 170, css: site-Alarm_2, show_save_to_event: true}\n  \
            SITE_ARCHIVED: {rank: 1, css: light, analyst_selectable: false}\n  \
            OPEN: {css: secondary, rank: 0}\n",
     )
@@ -15921,6 +16263,15 @@ fn the_overlay_configures_the_dispositions() {
     );
     assert_eq!(site.css(Some("DAMAGE")), "dark");
     assert_eq!(site.css(None), "secondary");
+    // css is any class token, as ace3 takes any text: not only the stylesheet's eight
+    assert_eq!(site.css(Some("SITE_BAD")), "site-Alarm_2");
+    assert!(!ace_service::BADGE_STYLES.contains(&"site-Alarm_2"));
+    assert_eq!(site.class("SITE_BAD"), Some(DispositionClass::Tp));
+    assert_eq!(site.class("IGNORE"), None);
+    assert_eq!(site.class("OPEN"), None);
+    for css in ["red", "9", "-", "_", "text-bg-danger", &"a".repeat(64)] {
+        assert!(ace_service::is_badge_class(css), "{css}");
+    }
     assert!(site.show_save_to_event("SITE_BAD") && !site.show_save_to_event("SITE_ARCHIVED"));
     assert!(site.is_frozen(Some("DAMAGE")) && !site.is_frozen(Some("SIMULATED")));
     assert!(!site.is_frozen(None) && !site.is_frozen(Some("GONE")));
@@ -15962,9 +16313,34 @@ fn the_overlay_configures_the_dispositions() {
             "dispositions: {MAL-ICIOUS: {rank: 10, css: danger}}",
             "dispositions.MAL-ICIOUS: a disposition's name is up to 64",
         ),
+        // css is one class token: nothing that ends the class, the attribute or the tag, or adds a class
         (
-            "dispositions: {MALICIOUS: {rank: 10, css: red}}",
-            "dispositions.MALICIOUS.css: \"red\" isn't a badge colour",
+            "dispositions: {MALICIOUS: {rank: 10, css: 'danger current'}}",
+            "dispositions.MALICIOUS.css: \"danger current\" isn't a badge class",
+        ),
+        (
+            "dispositions: {MALICIOUS: {rank: 10, css: ''}}",
+            "dispositions.MALICIOUS.css: \"\" isn't a badge class",
+        ),
+        (
+            "dispositions: {DELIVERY: {css: 'x\" onmouseover=\"alert(1)'}}",
+            "dispositions.DELIVERY.css: \"x\\\" onmouseover=\\\"alert(1)\" isn't a badge class",
+        ),
+        (
+            "dispositions: {DELIVERY: {css: '\"><script>'}}",
+            "dispositions.DELIVERY.css: ",
+        ),
+        (
+            "dispositions: {DELIVERY: {css: \"a\\tb\"}}",
+            "dispositions.DELIVERY.css: ",
+        ),
+        (
+            "dispositions: {DELIVERY: {css: dangér}}",
+            "dispositions.DELIVERY.css: ",
+        ),
+        (
+            "dispositions: {DELIVERY: {css: 'a.b'}}",
+            "dispositions.DELIVERY.css: ",
         ),
         (
             "dispositions: {DELIVERY: {rank: -1}}",
@@ -15987,6 +16363,10 @@ fn the_overlay_configures_the_dispositions() {
     let err = configured(&format!("dispositions: {{{long}: {{rank: 1, css: info}}}}"))
         .expect_err("too long");
     assert!(err.contains("up to 64"), "{err}");
+    let long = "a".repeat(65);
+    let err = configured(&format!("dispositions: {{DELIVERY: {{css: {long}}}}}"))
+        .expect_err("too long a css");
+    assert!(err.contains("isn't a badge class"), "{err}");
     // a disposition can't be both TP and FP: it's one key, and a key written twice doesn't parse; and one
     // can't be removed, since an entry is a mapping
     for yaml in [
@@ -20540,6 +20920,7 @@ fn svs_repository_with(change: impl FnOnce(&mut ace_sdk::SvsYaraSection)) -> Svs
                 url: repo.origin.to_string_lossy().into_owned(),
                 branch: "main".to_owned(),
                 signature_dir: "yara".to_owned(),
+                ssh_key: None,
             },
         )]
         .into(),

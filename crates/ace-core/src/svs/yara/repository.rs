@@ -16,9 +16,23 @@
 //!
 //! What differs from ace3's: ace3 exports with `git archive` and unpacks with tarfile's `data` filter, which
 //! honours the commit's `.gitattributes` (`export-ignore`, `export-subst`) and keeps a symbolic link that
-//! stays inside the tree. ace4's ruleset build does neither, so the export doesn't either. ace3 fetches with
-//! its `git_repo_*` section's SSH key; here git runs with `ace serve`'s environment, so a site gives a key
-//! through `GIT_SSH_COMMAND` or a credential in the URL, which no error shows.
+//! stays inside the tree. ace4's ruleset build does neither, so the export doesn't either.
+//!
+//! **The SSH key.** ace3 fetches with its `git_repo_*` section's `ssh_key_path`, a file on the node, as
+//! `GIT_SSH_COMMAND="ssh -i <path> -o IdentitiesOnly=yes -o StrictHostKeyChecking=no"` (`saq/git.py`). Here
+//! a repository's `ssh_key` names a secret of the overlay's `secrets:` (`env:` or `file:`, PLAN.md 2.24),
+//! whose value is the private key's text, and `ace serve` and `ace svs yara validate` resolve only the
+//! names the repositories give. ssh takes a key only as a file, and refuses one others can read, which a
+//! Compose secret in `/run/secrets` is. So each fetch writes the key to a file of its own, mode 0600 in a
+//! directory of mode 0700 beside the mirror, gives git ace3's command with that path, and removes the
+//! directory when git has ended, whatever happened; one a killed process left goes when the mirror is next
+//! locked. Only `git fetch` gets it: no other command reaches the remote. The key is never logged:
+//! `Secret`'s `Debug` hides it, and an error has git's stderr with the URL replaced and any line of the key
+//! replaced too, though neither git nor ssh prints one. The host key is not checked, as in ace3
+//! (`StrictHostKeyChecking=no`); `IdentitiesOnly=yes` keeps ssh to this key.
+//! A repository with no `ssh_key` fetches with `ace serve`'s environment, as before, so a site may still
+//! give `GIT_SSH_COMMAND` there or a credential in the URL, which no error shows. A repository whose
+//! `ssh_key` names a secret that isn't set doesn't fetch at all (`ValidationConfig::ssh_key`).
 
 use std::collections::BTreeSet;
 use std::io::{BufRead, BufReader, Read, Write};
@@ -30,7 +44,13 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant};
 
+use ace_sdk::Secret;
 use serde::{Deserialize, Serialize};
+
+/// The options ace3 gives ssh after the key (`saq/git.py`): only this key, and no host key check.
+const SSH_OPTIONS: &str = "-o IdentitiesOnly=yes -o StrictHostKeyChecking=no";
+/// The shortest line of a key an error replaces: shorter ones (`-----END`'s are longer) aren't secret.
+const KEY_LINE_MIN: usize = 16;
 
 /// How long a local git command (`rev-parse`, `ls-tree`, `remote`) may take.
 const LOCAL_COMMAND_TIMEOUT: Duration = Duration::from_secs(60);
@@ -66,6 +86,74 @@ pub struct Mirror {
     url: String,
     pub path: PathBuf,
     fetch_timeout: Duration,
+    /// The SSH private key a fetch gives git, if the repository has one.
+    ssh_key: Option<Secret>,
+    /// The ssh program of `GIT_SSH_COMMAND`, as a shell word: `ssh`, or a test's stand-in.
+    ssh_program: String,
+}
+
+/// A fetch's copy of the SSH key: a file only this user reads, in a directory of its own that goes when
+/// this is dropped.
+struct KeyFile {
+    dir: tempfile::TempDir,
+}
+
+impl KeyFile {
+    /// Writes `key` beside the mirror. A private key's file ends with a newline, which a secret's value
+    /// has lost.
+    fn write(beside: &Path, mirror: &str, key: &Secret) -> std::io::Result<KeyFile> {
+        use std::os::unix::fs::{OpenOptionsExt, PermissionsExt};
+        std::fs::create_dir_all(beside)?;
+        let dir = tempfile::Builder::new()
+            .prefix(&KeyFile::prefix(mirror))
+            .tempdir_in(beside)?;
+        std::fs::set_permissions(dir.path(), std::fs::Permissions::from_mode(0o700))?;
+        let mut file = std::fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .mode(0o600)
+            .open(dir.path().join("key"))?;
+        let text = key.expose();
+        file.write_all(text.as_bytes())?;
+        if !text.ends_with('\n') {
+            file.write_all(b"\n")?;
+        }
+        file.sync_all()?;
+        Ok(KeyFile { dir })
+    }
+
+    fn path(&self) -> PathBuf {
+        self.dir.path().join("key")
+    }
+
+    /// What the directory of a key of the mirror named `mirror` starts with. A repository's name has no
+    /// `@` and doesn't start with `.`, so it's no mirror's path and no other mirror's prefix.
+    fn prefix(mirror: &str) -> String {
+        format!(".ssh-key@{mirror}@")
+    }
+
+    /// Removes the key directories a killed process left for the mirror named `mirror`. Only the holder of
+    /// the mirror's lock calls it: every fetch into a mirror runs under that lock, so none of them is in use.
+    fn remove_left_over(beside: &Path, mirror: &str) {
+        let prefix = KeyFile::prefix(mirror);
+        let Ok(entries) = std::fs::read_dir(beside) else {
+            return;
+        };
+        for entry in entries.flatten() {
+            if entry.file_name().to_string_lossy().starts_with(&prefix)
+                && let Err(e) = std::fs::remove_dir_all(entry.path())
+            {
+                tracing::warn!(
+                    "unable to remove a left over ssh key directory of repository {mirror}: {e}"
+                );
+            }
+        }
+    }
+}
+
+/// `text` as one word of a shell command, as git runs `GIT_SSH_COMMAND` through a shell.
+fn shell_word(text: &str) -> String {
+    format!("'{}'", text.replace('\'', "'\\''"))
 }
 
 /// The mirror held for one fetch and export; dropping it lets go.
@@ -80,15 +168,32 @@ impl Mirror {
             url: url.to_owned(),
             path: mirror_root.join(name),
             fetch_timeout,
+            ssh_key: None,
+            ssh_program: "ssh".to_owned(),
         }
     }
 
+    /// The mirror fetching with this SSH private key (the module's docs), or with the process's
+    /// environment for None.
+    pub fn with_ssh_key(mut self, key: Option<Secret>) -> Mirror {
+        self.ssh_key = key;
+        self
+    }
+
     fn redact(&self, text: &str) -> String {
-        if self.url.is_empty() {
+        let mut text = if self.url.is_empty() {
             text.to_owned()
         } else {
             text.replace(&self.url, "<url>")
+        };
+        if let Some(key) = &self.ssh_key {
+            for line in key.expose().lines().map(str::trim) {
+                if line.len() >= KEY_LINE_MIN && !line.starts_with("-----") {
+                    text = text.replace(line, "<key>");
+                }
+            }
         }
+        text
     }
 
     fn command(&self) -> Command {
@@ -116,6 +221,25 @@ impl Mirror {
             .args(args)
             .stdout(Stdio::piped())
             .stderr(Stdio::piped());
+        // only a fetch reaches the remote, so only a fetch has the key; its file goes when git has ended
+        let _key_file = match &self.ssh_key {
+            Some(key) if args.first() == Some(&"fetch") => {
+                let beside = self.path.parent().unwrap_or(Path::new("/"));
+                let file = KeyFile::write(beside, &self.name, key).map_err(|e| {
+                    RepositoryError(format!("{error}: unable to write the ssh key's file: {e}"))
+                })?;
+                command.env(
+                    "GIT_SSH_COMMAND",
+                    format!(
+                        "{} -i {} {SSH_OPTIONS}",
+                        self.ssh_program,
+                        shell_word(&file.path().to_string_lossy())
+                    ),
+                );
+                Some(file)
+            }
+            _ => None,
+        };
         let child = command
             .spawn()
             .map_err(|e| RepositoryError(format!("{error}: unable to run git: {e}")))?;
@@ -161,6 +285,7 @@ impl Mirror {
                 std::io::Error::last_os_error()
             )));
         }
+        KeyFile::remove_left_over(parent, &self.name);
         Ok(MirrorLock { _file: file })
     }
 
@@ -784,6 +909,193 @@ mod tests {
         let error = mirror.ensure(&["main"], &[]).expect_err("can't fetch");
         assert!(!error.0.contains("s3cret"), "{error}");
         assert!(error.0.contains("<url>"), "{error}");
+    }
+
+    /// A stand-in for ssh, run as `sh <script>`: it writes its arguments, the key file `-i` names and that
+    /// file's and its directory's modes under `record`, then runs the command git asked the remote for
+    /// here, so the fetch reads the origin on this machine and nothing uses the network. With `fail`, it
+    /// prints the key's file instead and exits 1, as no ssh does. git asks an ssh it doesn't know for
+    /// `-G` first, to learn its options, and takes a failure as an ssh with none.
+    fn stand_in_ssh(dir: &Path, fail: bool) -> (String, PathBuf) {
+        let record = dir.join("ssh-record");
+        std::fs::create_dir_all(&record).expect("makes it");
+        let script = dir.join("stand-in-ssh.sh");
+        let end = if fail {
+            "cat \"$key\" >&2; exit 1"
+        } else {
+            "eval \"exec $last\""
+        };
+        std::fs::write(
+            &script,
+            format!(
+                "for a in \"$@\"; do [ \"$a\" = -G ] && exit 1; done\n\
+                 r={}\n\
+                 printf '%s\\n' \"$@\" > \"$r/args\"\n\
+                 env > \"$r/env\"\n\
+                 key=\n\
+                 while [ $# -gt 0 ]; do\n\
+                   case \"$1\" in\n\
+                     -i) key=\"$2\"; cp \"$2\" \"$r/key\"; stat -c %a \"$2\" > \"$r/mode\"; \
+                         stat -c %a \"$(dirname \"$2\")\" > \"$r/dirmode\"; printf '%s' \"$2\" > \"$r/path\"; shift 2;;\n\
+                     *) last=\"$1\"; shift;;\n\
+                   esac\n\
+                 done\n\
+                 {end}\n",
+                shell_word(record.to_str().unwrap())
+            ),
+        )
+        .expect("writes the stand-in");
+        (
+            format!("sh {}", shell_word(script.to_str().unwrap())),
+            record,
+        )
+    }
+
+    const TEST_KEY: &str = "-----BEGIN OPENSSH PRIVATE KEY-----\n\
+        b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW\n\
+        QyNTUxOQAAACBub3QgYSByZWFsIGtleSwgb25seSBhIHRlc3QgZml4dHVyZSEhISE=\n\
+        -----END OPENSSH PRIVATE KEY-----";
+
+    /// The repository's configured key is what git is given: ace3's `GitRepo.env`, which
+    /// `SvsRepository._env` uses. The key reaches ssh as a file of its own that only this user reads, with
+    /// ace3's options, for a fetch and for nothing else, and is gone afterwards.
+    #[test]
+    fn a_fetch_gives_git_the_configured_ssh_key() {
+        let tmp = tempfile::tempdir().expect("a directory");
+        // a mirror directory with a space and a quote in it: the command is a shell's
+        let root = tmp.path().join("it's a root");
+        let repo = RuleRepo::new(&tmp.path().join("repo"));
+        let sha = repo.commit(
+            &[("yara/acme/a.yar", "rule a { condition: true }\n")],
+            "main",
+        );
+        let url = format!("ssh://git@rules.invalid{}", repo.origin.to_str().unwrap());
+        let (program, record) = stand_in_ssh(tmp.path(), false);
+        let mut mirror = Mirror::new(
+            "rules",
+            &url,
+            &root.join("mirrors"),
+            Duration::from_secs(60),
+        )
+        .with_ssh_key(Some(Secret::new(TEST_KEY)));
+        mirror.ssh_program = program.clone();
+        let _lock = mirror.lock().expect("locks");
+        mirror.ensure(&["main"], &[]).expect("fetches through ssh");
+        assert_eq!(mirror.resolve(&sha).unwrap().as_deref(), Some(sha.as_str()));
+
+        let read = |name: &str| std::fs::read_to_string(record.join(name)).expect(name);
+        // the key, whole, ending in the newline a key file has
+        assert_eq!(read("key"), format!("{TEST_KEY}\n"));
+        assert_eq!(read("mode").trim(), "600");
+        assert_eq!(read("dirmode").trim(), "700");
+        let args = read("args");
+        let args: Vec<&str> = args.lines().collect();
+        let key_path = read("path");
+        assert_eq!(
+            args[..6],
+            [
+                "-i",
+                key_path.as_str(),
+                "-o",
+                "IdentitiesOnly=yes",
+                "-o",
+                "StrictHostKeyChecking=no"
+            ],
+            "ace3's command"
+        );
+        assert!(args.contains(&"git@rules.invalid"), "{args:?}");
+        // beside the mirror, and gone once git ended
+        assert!(
+            Path::new(&key_path).starts_with(root.join("mirrors")),
+            "{key_path}"
+        );
+        assert!(!Path::new(&key_path).exists());
+        let left: Vec<String> = std::fs::read_dir(root.join("mirrors"))
+            .unwrap()
+            .map(|e| e.unwrap().file_name().to_string_lossy().into_owned())
+            .filter(|name| name.starts_with(".ssh-key"))
+            .collect();
+        assert!(left.is_empty(), "{left:?}");
+        // the key is in no variable of git's or ssh's environment
+        assert!(!read("env").contains("b3BlbnNzaC1rZXktdjE"));
+        // and Debug hides it
+        assert!(!format!("{mirror:?}").contains("b3BlbnNzaC1rZXktdjE"));
+
+        // a command that doesn't reach the remote has no key: nothing is recorded again
+        std::fs::remove_dir_all(&record).unwrap();
+        std::fs::create_dir_all(&record).unwrap();
+        mirror.resolve(&sha).unwrap();
+        assert!(!record.join("args").exists());
+        // fetching one commit by id is a fetch too: one the mirror doesn't have, so git asks the remote
+        let side = repo.commit(
+            &[("yara/acme/b.yar", "rule b { condition: true }\n")],
+            "side",
+        );
+        mirror.fetch_commit(&side).expect("fetches by id");
+        assert_eq!(
+            mirror.resolve(&side).unwrap().as_deref(),
+            Some(side.as_str())
+        );
+        assert_eq!(read("key"), format!("{TEST_KEY}\n"));
+
+        // a mirror with no key leaves ssh to the environment: git isn't given this command
+        std::fs::remove_dir_all(&record).unwrap();
+        std::fs::create_dir_all(&record).unwrap();
+        let mut plain = Mirror::new(
+            "plain",
+            &url,
+            &root.join("mirrors"),
+            Duration::from_secs(60),
+        );
+        plain.ssh_program = program;
+        let mut command = plain.command();
+        command.args(["fetch", "origin"]);
+        assert!(
+            !command
+                .get_envs()
+                .any(|(name, _)| name == "GIT_SSH_COMMAND")
+        );
+    }
+
+    /// A fetch that fails never shows the key, even from an ssh that prints it, and its file still goes.
+    /// A key directory a killed process left goes when the mirror is next locked.
+    #[test]
+    fn a_failing_fetch_does_not_show_the_ssh_key() {
+        let tmp = tempfile::tempdir().expect("a directory");
+        let repo = RuleRepo::new(&tmp.path().join("repo"));
+        repo.commit(
+            &[("yara/acme/a.yar", "rule a { condition: true }\n")],
+            "main",
+        );
+        let url = format!("ssh://git@rules.invalid{}", repo.origin.to_str().unwrap());
+        let (program, record) = stand_in_ssh(tmp.path(), true);
+        let mirrors = tmp.path().join("mirrors");
+        let mut mirror = Mirror::new("rules", &url, &mirrors, Duration::from_secs(60))
+            .with_ssh_key(Some(Secret::new(TEST_KEY)));
+        mirror.ssh_program = program;
+        let error = mirror.ensure(&["main"], &[]).expect_err("ssh fails");
+        assert!(error.0.contains("unable to fetch main"), "{error}");
+        assert!(
+            error.0.contains("<key>"),
+            "the stand-in printed it: {error}"
+        );
+        for line in TEST_KEY.lines().filter(|line| !line.starts_with("-----")) {
+            assert!(!error.0.contains(line.trim()), "{error}");
+        }
+        assert!(!error.0.contains("rules.invalid"), "{error}");
+        let key_path = std::fs::read_to_string(record.join("path")).expect("ran");
+        assert!(!Path::new(&key_path).exists());
+
+        // what a killed fetch left: this mirror's goes at its next lock, another mirror's stays
+        let left = mirrors.join(format!("{}left", KeyFile::prefix("rules")));
+        let other = mirrors.join(format!("{}left", KeyFile::prefix("rules-2")));
+        for dir in [&left, &other] {
+            std::fs::create_dir_all(dir).unwrap();
+            std::fs::write(dir.join("key"), TEST_KEY).unwrap();
+        }
+        let _lock = mirror.lock().expect("locks");
+        assert!(!left.exists());
+        assert!(other.exists());
     }
 
     /// test_repository.py's `test_an_unknown_commit_is_refused_before_git_sees_it`.

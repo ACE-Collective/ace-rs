@@ -23,11 +23,13 @@
 //!   manage dialog renames, and its API's `PATCH` takes a name and a description, but the dialog
 //!   `saved_filters.js` draws has no control for it; this is that control.
 //!
-//! What's left out: ace3's confirm before a delete, which needs a script; its tip on `$USER_QUEUE` and
-//! `$USER`, which waits for `$USER` and the owner filter, since only `$USER_QUEUE` works yet (7.13). ace3's `saveCurrent`, which overwrites a saved filter with
-//! the editor's rows from the alert list's Edit dialog, belongs to that list (5.10) and isn't here. Every
-//! other screen that draws ace3's dialogs (file collection, remediation, SVS, signatures' samples and
-//! validations) comes with its screen.
+//! The hint under the table has ace3's tip (`manageTipHtml`) for `$USER_QUEUE` (7.13), where ace3 has it;
+//! its `$USER` half waits for the owner filter (7.10 batch 7).
+//!
+//! What's left out: ace3's confirm before a delete, which needs a script. ace3's `saveCurrent`, which
+//! overwrites a saved filter with the editor's rows from the alert list's Edit dialog, belongs to that list
+//! (5.10) and isn't here. Every other screen that draws ace3's dialogs (file collection, remediation, SVS,
+//! signatures' samples and validations) comes with its screen.
 //!
 //! Each reorder reads the quick filters and writes the whole order, as ace3's dialog does, so a pin made
 //! in another tab between the two is undone by the write; the audit row records both.

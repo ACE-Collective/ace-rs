@@ -395,12 +395,29 @@ pub async fn prune(service: &ace_service::Service, dry_run: bool) -> Result<Stri
     })
 }
 
+/// The settings with the SSH keys their repositories name, read from the overlay's `secrets:` as a pool
+/// reads its modules' (PLAN.md 2.24): only the names `ssh_key` gives. One that isn't set is a warning
+/// here, and its repository's validations fail saying so.
+pub(crate) fn with_ssh_keys(
+    config: ValidationConfig,
+    overlay: &ace_sdk::Overlay,
+) -> ValidationConfig {
+    let names = config.secret_names();
+    if names.is_empty() {
+        return config;
+    }
+    let secrets =
+        ace_pool::secrets::resolve_names("svs", &names, overlay, &ace_pool::secrets::process_env);
+    config.with_secrets(&secrets)
+}
+
 pub fn run(_app: &crate::App, command: SvsCommand) -> Result<ExitCode> {
     let SvsCommand::Yara(command) = command;
     let overlay = crate::cli::overlay()?;
     let config = ValidationConfig::from_section(&overlay.svs.yara)
         .map_err(anyhow::Error::msg)
         .context("the overlay's svs.yara section")?;
+    let config = with_ssh_keys(config, &overlay);
     if let SvsYaraCommand::Layout = command {
         print!("{}", layout(&config));
         return Ok(ExitCode::SUCCESS);

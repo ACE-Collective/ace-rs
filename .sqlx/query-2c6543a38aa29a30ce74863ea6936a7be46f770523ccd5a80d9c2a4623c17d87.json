@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO service.saved_filter_seeds (user_id, screen) VALUES ($1, $2)\n                         ON CONFLICT DO NOTHING",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "2c6543a38aa29a30ce74863ea6936a7be46f770523ccd5a80d9c2a4623c17d87"
+}

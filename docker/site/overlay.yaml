@@ -7,8 +7,9 @@
 #
 # The dispositions are ace3's (rank, css, show_save_to_event, analyst_selectable) unless a site
 # changes them. Each entry is merged over ace3's, so a site names only what it changes, and a new
-# disposition needs a rank and a css (primary, secondary, success, danger, warning, info, light or
-# dark). None can be removed: one a site no longer wants is set analyst_selectable: false, which
+# disposition needs a rank and a css. css is the badge's class, `disposition-<css>`: up to 64 letters,
+# digits, - and _. The stylesheet colours primary, secondary, success, danger, warning, info, light
+# and dark; any other shows as a plain badge. None can be removed: one a site no longer wants is set analyst_selectable: false, which
 # takes it out of the menus and refuses it from analysts. `ace serve` refuses to start on a bad
 # section. For example:
 #

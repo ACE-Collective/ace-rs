@@ -567,6 +567,7 @@ impl Web {
             .route("/api/health/v1/ping", get(health::ping))
             .route("/api/alerts/v1/alerts", get(alerts::list))
             .route("/api/alerts/v1/alerts/{id}", get(alerts::one))
+            .route("/api/alerts/v1/dispositions", get(alerts::dispositions))
             .route("/api/alerts/v1/alerts/export/csv", get(alerts::export_csv))
             .route(
                 "/api/alerts/v1/alerts/export/ndjson",
@@ -987,6 +988,7 @@ impl Web {
         alerts::graph,
         alerts::file,
         alerts::disposition,
+        alerts::dispositions,
         alerts::export_csv,
         alerts::export_ndjson,
         detection_points::list,

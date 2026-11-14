@@ -35,7 +35,7 @@
           {
             "name": "sort",
             "in": "query",
-            "description": "`alert_date`, the default, `description` or `disposition`.",
+            "description": "`alert_date`, the default, `description`, `disposition` or `queue`.",
             "required": false,
             "schema": {
               "type": "string"
@@ -149,7 +149,7 @@
           {
             "name": "sort",
             "in": "query",
-            "description": "`alert_date`, the default, `description` or `disposition`.",
+            "description": "`alert_date`, the default, `description`, `disposition` or `queue`.",
             "required": false,
             "schema": {
               "type": "string"
@@ -253,7 +253,7 @@
           {
             "name": "sort",
             "in": "query",
-            "description": "`alert_date`, the default, `description` or `disposition`.",
+            "description": "`alert_date`, the default, `description`, `disposition` or `queue`.",
             "required": false,
             "schema": {
               "type": "string"
@@ -1390,6 +1390,47 @@
           },
           "413": {
             "description": "More detections than an export holds",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/alerts/v1/dispositions": {
+      "get": {
+        "tags": [
+          "alerts"
+        ],
+        "summary": "The site's dispositions in order, each with its rank, badge class, whether it offers Save to Event,\nwhether an analyst may choose it, and its class in the detection verdicts. An alert may still carry a\ndisposition that isn't listed, one the site has since dropped from its configuration.",
+        "operationId": "dispositions",
+        "responses": {
+          "200": {
+            "description": "The site's dispositions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DispositionsBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold alert:read",
             "content": {
               "application/json": {
                 "schema": {
@@ -11936,7 +11977,8 @@
           "event_time_source",
           "created_at",
           "alerted_at",
-          "analysis"
+          "analysis",
+          "queue"
         ],
         "properties": {
           "alerted_at": {
@@ -11991,6 +12033,10 @@
           "id": {
             "type": "string",
             "format": "uuid"
+          },
+          "queue": {
+            "type": "string",
+            "description": "The queue it's in. Show it as text."
           },
           "submitted_by": {
             "oneOf": [
@@ -13077,6 +13123,46 @@
           }
         }
       },
+      "DispositionBody": {
+        "type": "object",
+        "description": "One of the site's dispositions.",
+        "required": [
+          "name",
+          "rank",
+          "css",
+          "show_save_to_event",
+          "analyst_selectable"
+        ],
+        "properties": {
+          "analyst_selectable": {
+            "type": "boolean",
+            "description": "False when only ACE sets it: `PUT .../disposition` refuses it from an analyst or an API key, and\nrefuses a change to an alert that has it."
+          },
+          "class": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "What it says about an alert's detections: `tp`, `fp`, or null for an unclassified one."
+          },
+          "css": {
+            "type": "string",
+            "description": "The badge's class: a class token of letters, digits, `-` and `_`, such as Bootstrap's `danger`."
+          },
+          "name": {
+            "type": "string"
+          },
+          "rank": {
+            "type": "integer",
+            "format": "int32",
+            "description": "An event's disposition is its alerts' highest ranked. OPEN is 0."
+          },
+          "show_save_to_event": {
+            "type": "boolean",
+            "description": "Whether choosing it offers Save to Event."
+          }
+        }
+      },
       "DispositionRequest": {
         "type": "object",
         "required": [
@@ -13113,6 +13199,22 @@
             "type": "integer",
             "description": "Running tasks it asked to stop.",
             "minimum": 0
+          }
+        }
+      },
+      "DispositionsBody": {
+        "type": "object",
+        "description": "The site's dispositions.",
+        "required": [
+          "dispositions"
+        ],
+        "properties": {
+          "dispositions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DispositionBody"
+            },
+            "description": "In the site's order: ace3's, then the site's own."
           }
         }
       },

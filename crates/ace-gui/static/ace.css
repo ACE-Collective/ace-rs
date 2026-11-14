@@ -515,7 +515,8 @@ form.inline {
 }
 
 /* a disposition's badge, its `css` in the site's dispositions (PLAN.md 7.14), ace3's text-bg-<css> in the
-   theme's few colours: success as the accent, danger and warning as danger, info and primary dashed */
+   theme's few colours: success as the accent, danger and warning as danger, info and primary dashed. A
+   `css` with no rule here (a site's own class) is the plain .badge: the page's text in the standard border */
 .badge.disposition-success {
   border-color: var(--accent);
   color: var(--accent);

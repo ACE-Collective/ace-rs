@@ -179,8 +179,8 @@ pub use detection_verdicts::{
     SkippedDetection, Verdict, VerdictBatch, VerdictSource, effective_verdict,
 };
 pub use dispositions::{
-    BADGE_STYLES, DEFAULT_BADGE, Disposition, Dispositions, MAX_DISPOSITION_CHARS, MAX_RANK,
-    is_disposition_name,
+    BADGE_STYLES, DEFAULT_BADGE, Disposition, Dispositions, MAX_BADGE_CLASS_CHARS,
+    MAX_DISPOSITION_CHARS, MAX_RANK, is_badge_class, is_disposition_name,
 };
 pub use email_archive::ArchivedEmail;
 pub use events::{

@@ -17,9 +17,17 @@
 //! What differs: each write has an audit row, which ace3 doesn't write. A user has at most
 //! `MAX_SAVED_FILTERS` on a screen, where ace3 has no bound. ace3's `working` and `temp` rows, and its
 //! `PUT /scratch/{kind}`, hold the filter a page shows because ace3's session cookie can't: ace4's list
-//! keeps it in the page's URL, so there's nothing to hold. ace3 seeds a new analyst's `Last 24h` and
-//! `Last 7d`, which filter on the viewer's queue; they aren't seeded here, though 7.13 brought the queue
-//! filter they need: a user here has no saved filters until they save one.
+//! keeps it in the page's URL, so there's nothing to hold.
+//!
+//! **Seeding.** ace3 gives an analyst new to the alert list two quick filters, `Last 24h` and `Last 7d`
+//! (`DEFAULT_ALERT_SAVED_FILTERS`): the viewer's queue, `$USER_QUEUE`, and a relative Alert Date, so each
+//! keeps meaning what its name says. `Service::seed_saved_filters` does the same (PLAN.md 7.13), called by
+//! the alert list's page when it's drawn, never by its refresh or the API, as ace3's is. ace3 seeds a user
+//! with no row of any kind on the screen, which its working row makes once only; here migration 0051's
+//! `service.saved_filter_seeds` says a screen was seeded for a user, so someone who deletes the two doesn't
+//! get them back. A user who already has saved filters when the list is first drawn is marked and given
+//! none, as ace3 gives none to a user with rows. One audit row records both filters. ace3's defaults on
+//! its other screens come with those screens' steps.
 
 use chrono::{DateTime, Utc};
 use serde::Serialize;
@@ -112,6 +120,46 @@ struct QuickFilters {
 }
 
 impl Recorded for QuickFilters {}
+
+/// The filters a seeding added, as its row records them.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+struct SeededFilters {
+    filters: Vec<SavedFilterRecord>,
+}
+
+impl Recorded for SeededFilters {}
+
+/// What a person new to a screen starts with, ace3's `DEFAULT_SAVED_FILTERS`: each a name, a description
+/// and its filters, pinned in this order. Only the alert list has any so far.
+fn default_filters(screen: FilterScreen) -> Vec<(&'static str, &'static str, Vec<FilterEntry>)> {
+    match screen {
+        FilterScreen::Alerts => [
+            (
+                "Last 24h",
+                "Alerts in your queue from the last 24 hours",
+                "-24h",
+            ),
+            (
+                "Last 7d",
+                "Alerts in your queue from the last 7 days",
+                "-7d",
+            ),
+        ]
+        .into_iter()
+        .map(|(name, description, window)| {
+            (
+                name,
+                description,
+                vec![
+                    FilterEntry::text("Queue", false, &[filters::USER_QUEUE]),
+                    FilterEntry::text("Alert Date", false, &[window]),
+                ],
+            )
+        })
+        .collect(),
+        _ => Vec::new(),
+    }
+}
 
 /// The user a saved filter of this actor's belongs to.
 fn owner_of(actor: &Actor) -> Result<UserId, ServiceError> {
@@ -306,6 +354,81 @@ impl Service {
                 Box::pin(async move {
                     let owner = owner_of(actor)?;
                     rows_of(tx.conn(), owner, screen).await
+                })
+            })
+            .await
+    }
+
+    /// Gives the caller the screen's default quick filters the first time, ace3's
+    /// `ensure_default_saved_filters` (the module's docs): the alert list's `Last 24h` and `Last 7d`. It
+    /// answers the filters it added, none on every later call, for a caller who had saved filters already,
+    /// and on a screen with no defaults. It needs the screen's permission, and the caller is a person.
+    pub async fn seed_saved_filters(
+        &self,
+        actor: &Actor,
+        screen: FilterScreen,
+    ) -> Result<Vec<SavedFilter>, ServiceError> {
+        let defaults = default_filters(screen)
+            .into_iter()
+            .map(|(name, description, entries)| {
+                let stored = serde_json::to_value(checked_filters(screen, &entries)?)?;
+                Ok((name, description, stored))
+            })
+            .collect::<Result<Vec<_>, ServiceError>>()?;
+        if defaults.is_empty() {
+            return Ok(Vec::new());
+        }
+        let defaults = &defaults;
+        self.gate
+            .write(actor, "seed_saved_filters", &screen.permission(), &|tx| {
+                Box::pin(async move {
+                    let owner = owner_of(actor)?;
+                    // one user's saves are one at a time, as create_saved_filter's
+                    sqlx::query!(
+                        "SELECT id FROM service.users WHERE id = $1 FOR UPDATE",
+                        owner.0
+                    )
+                    .fetch_optional(tx.conn())
+                    .await?
+                    .ok_or(ServiceError::NoUser(owner.0))?;
+                    let first = sqlx::query!(
+                        "INSERT INTO service.saved_filter_seeds (user_id, screen) VALUES ($1, $2)
+                         ON CONFLICT DO NOTHING",
+                        owner.0,
+                        screen.name(),
+                    )
+                    .execute(tx.conn())
+                    .await?
+                    .rows_affected()
+                        == 1;
+                    if !first || !rows_of(tx.conn(), owner, screen).await?.is_empty() {
+                        return Ok(Audited::unchanged(Vec::new()));
+                    }
+                    for (order, (name, description, stored)) in defaults.iter().enumerate() {
+                        sqlx::query!(
+                            "INSERT INTO service.saved_filters
+                                 (id, user_id, screen, name, description, filters, quick_filter_order,
+                                  quick_filter_indicator)
+                             VALUES ($1, $2, $3, $4, $5, $6, $7, false)",
+                            Uuid::new_v4(),
+                            owner.0,
+                            screen.name(),
+                            name,
+                            description,
+                            stored,
+                            i32::try_from(order).unwrap_or(i32::MAX),
+                        )
+                        .execute(tx.conn())
+                        .await?;
+                    }
+                    let seeded = rows_of(tx.conn(), owner, screen).await?;
+                    let change = Change::added(
+                        Target::quick_filters(owner.0, screen.name()),
+                        &SeededFilters {
+                            filters: seeded.iter().map(SavedFilterRecord::of).collect(),
+                        },
+                    )?;
+                    Ok(Audited::changed(seeded, change))
                 })
             })
             .await

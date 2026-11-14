@@ -606,8 +606,8 @@ pub struct EventRow {
     pub malware: Vec<String>,
     pub risk_level: String,
     pub disposition: String,
-    /// The disposition's badge colour (`Dispositions::css`).
-    pub disposition_badge: &'static str,
+    /// The disposition's badge class (`Dispositions::css`).
+    pub disposition_badge: String,
     pub prevention_tool: String,
     pub remediation: String,
     pub status: String,
@@ -636,7 +636,7 @@ impl EventRow {
             malware: event.malware.iter().map(|m| m.name.clone()).collect(),
             risk_level: event.risk_level.clone(),
             disposition: event.disposition.clone(),
-            disposition_badge: dispositions.css(Some(&event.disposition)),
+            disposition_badge: dispositions.css(Some(&event.disposition)).to_owned(),
             prevention_tool: event.prevention_tool.clone(),
             remediation: event.remediation.clone(),
             status: event.status.clone(),
@@ -879,8 +879,8 @@ pub struct EventAlertRow {
     pub title: String,
     pub tags: Vec<String>,
     pub disposition: String,
-    /// The disposition's badge colour (`Dispositions::css`).
-    pub disposition_badge: &'static str,
+    /// The disposition's badge class (`Dispositions::css`).
+    pub disposition_badge: String,
     pub status: &'static str,
     /// Its remediation coverage badge (PLAN.md 7.9), for a viewer with `remediation:read`.
     pub coverage: Option<crate::remediation::CoverageBadge>,
@@ -905,8 +905,8 @@ pub struct EventView {
     /// The six times, labelled, in ace3's order.
     pub times: Vec<(&'static str, String)>,
     pub disposition: String,
-    /// The disposition's badge colour (`Dispositions::css`).
-    pub disposition_badge: &'static str,
+    /// The disposition's badge class (`Dispositions::css`).
+    pub disposition_badge: String,
     pub status: String,
     pub owner: String,
     pub remediation: String,
@@ -981,7 +981,7 @@ pub fn event_view(event: &Event, may: EventMay, dispositions: &Dispositions) -> 
         .map(|(label, time)| (label, utc(time)))
         .collect(),
         disposition: event.disposition.clone(),
-        disposition_badge: dispositions.css(Some(&event.disposition)),
+        disposition_badge: dispositions.css(Some(&event.disposition)).to_owned(),
         status: event.status.clone(),
         owner: owner_name(event.owner.as_ref()),
         remediation: event.remediation.clone(),
@@ -1008,7 +1008,7 @@ pub fn event_view(event: &Event, may: EventMay, dispositions: &Dispositions) -> 
                 title: alert.title.clone(),
                 tags: alert.tags.clone(),
                 disposition: alert.disposition.clone().unwrap_or_else(|| OPEN.to_owned()),
-                disposition_badge: dispositions.css(alert.disposition.as_deref()),
+                disposition_badge: dispositions.css(alert.disposition.as_deref()).to_owned(),
                 status: analysis_status(alert.analysis),
                 coverage: None,
             })

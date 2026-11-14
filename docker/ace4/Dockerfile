@@ -133,10 +133,11 @@ RUN useradd --system --uid 10000 --user-group --no-create-home --home-dir /nonex
         --shell /usr/sbin/nologin ace4
 
 # The core: `ace serve`. git reads the signatures repository for ruleset builds, and curl is
-# the healthcheck's.
+# the healthcheck's. ssh is git's for an SVS validation's repository fetched over SSH with its
+# `ssh_key` (PLAN.md 7.10 batch 3).
 FROM runtime AS ace
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends git curl \
+    && apt-get install -y --no-install-recommends git curl openssh-client \
     && rm -rf /var/lib/apt/lists/*
 COPY --from=build /out/ace /usr/local/bin/ace
 USER ace4

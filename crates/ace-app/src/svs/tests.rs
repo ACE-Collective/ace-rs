@@ -325,6 +325,43 @@ fn layout_prints_every_repository() {
     );
 }
 
+/// A repository's SSH key comes through the overlay's `secrets:`, here a file as a Compose secret is: the
+/// key's text, and only the secrets the repositories name. One whose file is missing is left unset.
+#[test]
+fn the_ssh_keys_come_from_the_overlay_s_secrets() {
+    let dir = tempfile::tempdir().expect("a directory");
+    let key = dir.path().join("rules_key");
+    std::fs::write(&key, "-----BEGIN KEY-----\nabc\n-----END KEY-----\n").expect("writes it");
+    let overlay = ace_sdk::Overlay::from_yaml(&format!(
+        "secrets:\n  rules_key: file:{}\n  missing_key: file:{}\n  unrelated: file:{}\n\
+         svs:\n  yara:\n    repositories:\n      \
+           keyed: {{url: /x, branch: main, ssh_key: rules_key}}\n      \
+           missing: {{url: /y, branch: main, ssh_key: missing_key}}\n      \
+           plain: {{url: /z, branch: main}}\n",
+        key.display(),
+        dir.path().join("nothing").display(),
+        key.display(),
+    ))
+    .expect("parses");
+    let config = ValidationConfig::from_section(&overlay.svs.yara).expect("valid");
+    let config = with_ssh_keys(config, &overlay);
+    assert_eq!(
+        config
+            .ssh_key("keyed")
+            .expect("set")
+            .map(|key| key.expose().to_owned()),
+        Some("-----BEGIN KEY-----\nabc\n-----END KEY-----".to_owned())
+    );
+    assert!(
+        config
+            .ssh_key("missing")
+            .expect_err("unset")
+            .contains("missing_key")
+    );
+    assert_eq!(config.ssh_key("plain"), Ok(None));
+    assert_eq!(config.ssh_keys.keys().collect::<Vec<_>>(), ["keyed"]);
+}
+
 /// test_svs_cli.py's `test_layout_with_no_repositories`.
 #[test]
 fn layout_with_no_repositories() {
