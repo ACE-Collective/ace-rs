@@ -1501,3 +1501,29 @@ fn only_the_export_s_index_is_read() {
         assert_eq!(loaded.ruleset.detection(id), None, "{id}");
     }
 }
+
+/// A template is the site's text, from the overlay, and compiles in the core. One that includes a
+/// file is refused when `ace serve` checks its settings, and yara-x opens nothing for it: before
+/// this, `include "/etc/passwd"` in a template put that file's first line in the refusal.
+#[test]
+fn a_template_can_not_include_a_file() {
+    let dir = tempfile::tempdir().expect("a directory");
+    let outside = dir.path().join("secret.txt");
+    std::fs::write(&outside, "SECRET-TOKEN-hunter2 not a rule\n").expect("writes");
+    for path in ["/etc/passwd", outside.to_str().expect("text"), "secret.txt"] {
+        let mut config = config();
+        config.templates.insert(
+            "user_agent".to_owned(),
+            format!(
+                "include \"{path}\"\nrule detect_TEMPLATE_RULE_NAME {{\n  strings:\nTEMPLATE_STRINGS\n  \
+                 condition:\n    any of ($obsd_*)\n}}\n"
+            ),
+        );
+        let error = config.check().expect_err("refused");
+        assert!(error.contains("include statements not allowed"), "{error}");
+        assert!(
+            !error.contains("root:") && !error.contains("SECRET-TOKEN"),
+            "{error}"
+        );
+    }
+}

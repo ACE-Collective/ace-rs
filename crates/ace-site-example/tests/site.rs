@@ -539,10 +539,12 @@ async fn a_site_module_adds_an_observable_of_the_sites_type() {
 }
 
 /// PLAN.md 7.10 batch 3, ace3's test_child.py `test_the_sandboxed_scan_cannot_read_saq_home`: a validation's
-/// scan, `ace yara replay --contained` as `ace serve` runs it, reads only its validation's directory. A rule
-/// file including a file outside it is left out with the include's error, and the rest of the namespace
-/// still matches; the same replay uncontained reads the include. Through a site's binary, so the command
-/// comes with `ace-app`.
+/// scan, `ace yara replay --contained` as `ace serve` runs it, reads only its validation's directory. ace3's
+/// case shows it with a rule file that includes a file outside. Here no include leaves its signature
+/// directory, contained or not (`ace_yara::include`), so that file is left out both times with the
+/// include's error and the outside file is never compiled in; what shows the containment is a unit whose
+/// file is outside the validation, which the contained replay can't open and the same replay uncontained
+/// scans. Through a site's binary, so the command comes with `ace-app`.
 #[test]
 fn a_contained_replay_reads_only_its_validation() {
     let work = tempfile::Builder::new()
@@ -572,13 +574,18 @@ fn a_contained_replay_reads_only_its_validation() {
     let unit = work.path().join("u/0/files/x.bin");
     std::fs::create_dir_all(unit.parent().unwrap()).expect("makes it");
     std::fs::write(&unit, "some evil text\n").expect("writes");
+    let outside_unit = outside.path().join("x.bin");
+    std::fs::write(&outside_unit, "more evil text outside\n").expect("writes");
     let side = work.path().join("base");
     let job = json!({
         "version": 1,
         "tree_root": work.path().join("base/tree"),
         "file_timeout": 10,
         "namespaces": [{"name": "acme", "directory": namespace, "files": [plain, steal]}],
-        "units": [{"id": 0, "path": unit, "meta_tags": []}],
+        "units": [
+            {"id": 0, "path": unit, "meta_tags": []},
+            {"id": 1, "path": outside_unit, "meta_tags": []},
+        ],
     });
     std::fs::write(side.join("job.json"), job.to_string()).expect("writes the job");
     let replay = |contained: bool| {
@@ -618,21 +625,28 @@ fn a_contained_replay_reads_only_its_validation() {
             .map(|m| m["rule"].as_str().unwrap().to_owned())
             .collect();
         matched.sort();
-        (stolen, matched)
+        let outside = &result["units"]["1"];
+        let outside = (
+            outside["matches"].as_array().expect("matches").len(),
+            outside["errors"].as_array().expect("errors").len(),
+        );
+        (stolen, matched, outside)
     };
 
-    let (error, matched) = replay(true);
+    let (error, matched, outside_unit) = replay(true);
     let error = error.as_str().expect("left out");
     assert!(
-        error.contains("include") && error.contains("secret.yar"),
+        error.contains("include") && error.contains("secret.yar") && error.contains("absolute"),
         "{error}"
     );
     assert_eq!(matched, ["plain"]);
+    assert_eq!(outside_unit, (0, 1), "the file outside can't be opened");
 
-    // uncontained, the include is read
-    let (error, matched) = replay(false);
-    assert_eq!(error, Value::Null);
-    assert_eq!(matched, ["plain", "secret", "x"]);
+    // uncontained, the include is refused the same, and the file outside is scanned
+    let (again, matched, outside_unit) = replay(false);
+    assert_eq!(again.as_str(), Some(error));
+    assert_eq!(matched, ["plain"]);
+    assert_eq!(outside_unit, (1, 0));
 }
 
 /// An alert as a router reads it, with these tags.

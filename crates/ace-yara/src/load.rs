@@ -8,8 +8,12 @@
 //! - The files that are left then compile together. If they don't, nothing loads, as in ace3,
 //!   where the yara service keeps its previous generation.
 //!
-//! Three deliberate differences:
+//! Four deliberate differences:
 //!
+//! - A rule file, and every file it includes, is a regular file inside the signature directory,
+//!   reached through no symbolic link, and yara-x opens no file: `crate::include` reads them and puts
+//!   an included file's text in place. ace3 follows a link and lets an include reach any file its
+//!   process can read. A file that breaks the rule is left out like a file YARA rejects.
 //! - A file is held to `crate::guard`'s bounds before yara-x reads it, and one past them is left out
 //!   like a file YARA rejects: yara-x overflows its stack on it, which would abort the process.
 //! - Every `re:` item in a rule's filter directives compiles with the regex crate while the
@@ -27,6 +31,7 @@ use std::path::{Path, PathBuf};
 use yara_x::{Compiler, SourceCode};
 
 use crate::filter::RuleFilter;
+use crate::include::{Boundary, Resolved};
 use crate::meta::Meta;
 
 /// The external variables yara_scanner_v2 defines for every rule (`DEFAULT_YARA_EXTERNALS`),
@@ -318,25 +323,20 @@ pub fn compile_together(
     for namespace in namespaces {
         let mut sources = Vec::new();
         for path in &namespace.files {
-            let source = std::fs::read(path).map_err(|e| LoadError::Combined {
-                path: path.clone(),
-                error: format!("unable to read the file: {e}"),
-                files: Vec::new(),
-            })?;
-            guard(namespace, path, &source).map_err(|error| LoadError::Combined {
+            let resolved = resolve(namespace, path).map_err(|error| LoadError::Combined {
                 path: path.clone(),
                 error,
                 files: Vec::new(),
             })?;
-            sources.push((path.clone(), source));
+            sources.push((path.clone(), resolved));
         }
         survivors.push((namespace, sources));
     }
     compile_sources(&survivors, options)
 }
 
-/// Each file's path and source.
-type Sources = Vec<(PathBuf, Vec<u8>)>;
+/// Each file's path and what yara-x is given of it: its text with its includes in place.
+type Sources = Vec<(PathBuf, Resolved)>;
 
 fn compile_sources(
     survivors: &[(&Namespace, Sources)],
@@ -345,12 +345,12 @@ fn compile_sources(
     let mut compiler = new_compiler();
     for (namespace, sources) in survivors {
         compiler.new_namespace(&namespace.name);
-        compiler.add_include_dir(&namespace.dir);
-        for (path, source) in sources {
-            if let Err(error) = compiler.add_source(source_code(namespace, path, source)) {
+        for (path, resolved) in sources {
+            if let Err(error) = compiler.add_source(source_code(namespace, path, &resolved.source))
+            {
                 return Err(LoadError::Combined {
                     path: path.clone(),
-                    error: error.to_string(),
+                    error: with_note(error.to_string(), resolved),
                     files: Vec::new(),
                 });
             }
@@ -368,8 +368,11 @@ fn compile_sources(
     Ok((ruleset, warnings))
 }
 
+/// A compiler with the default externals, which opens no file: an `include` is an error to it.
+/// `crate::include` puts an included file's text in place before a source reaches it.
 pub(crate) fn new_compiler<'a>() -> Compiler<'a> {
     let mut compiler = Compiler::new();
+    compiler.enable_includes(false);
     for name in EXTERNALS {
         // The names are valid identifiers and defined once, so this can't fail.
         compiler
@@ -386,26 +389,43 @@ fn source_code<'a>(namespace: &Namespace, path: &Path, source: &'a [u8]) -> Sour
     SourceCode::from(source).with_origin(format!("{}/{file_name}", namespace.name))
 }
 
-/// Holds a file, and every file it includes, to `crate::guard`'s bounds before yara-x reads it: past them
-/// yara-x overflows its stack, which would abort the process and not just fail the file.
-fn guard(namespace: &Namespace, path: &Path, source: &[u8]) -> Result<(), String> {
-    let own = path.parent().unwrap_or(&namespace.dir);
-    crate::guard::check_file(source, &[own, &namespace.dir]).map_err(|refusal| refusal.to_string())
+/// What yara-x is given of a namespace's rule file: its text, read inside the signature directory
+/// through no symbolic link, with the files it includes in place, held to `crate::guard`'s bounds
+/// (`crate::include`). Past the bounds yara-x overflows its stack, which would abort the process and
+/// not just fail the file.
+fn resolve(namespace: &Namespace, path: &Path) -> Result<Resolved, String> {
+    Boundary::of_namespace(&namespace.dir)
+        .load(&namespace.dir, path)
+        .map_err(|refusal| refusal.to_string())
+}
+
+/// A rule file's own bytes, as the loader reads them: inside the signature directory, through no
+/// symbolic link.
+pub fn read_rule_file(namespace_dir: &Path, path: &Path) -> Result<Vec<u8>, String> {
+    Boundary::of_namespace(namespace_dir)
+        .read_rule_file(path)
+        .map_err(|refusal| refusal.to_string())
+}
+
+/// yara-x's report, with which lines are an included file's when the file has includes.
+fn with_note(report: String, resolved: &Resolved) -> String {
+    match resolved.note() {
+        Some(note) => format!("{report}\n{note}"),
+        None => report,
+    }
 }
 
 /// Compiles one file alone, as yara_scanner_v2 does before compiling the files together, and
-/// compiles each rule's filter directives. Returns the file's source and its rules, or why it
-/// is left out if either fails.
-fn compile_file(namespace: &Namespace, path: &Path) -> Result<(Vec<u8>, Vec<RuleInfo>), String> {
-    let source = std::fs::read(path).map_err(|e| format!("unable to read the file: {e}"))?;
-    guard(namespace, path, &source)?;
+/// compiles each rule's filter directives. Returns what yara-x was given and the file's rules, or why
+/// it is left out if either fails.
+fn compile_file(namespace: &Namespace, path: &Path) -> Result<(Resolved, Vec<RuleInfo>), String> {
+    let resolved = resolve(namespace, path)?;
 
     let mut compiler = new_compiler();
     compiler.new_namespace(&namespace.name);
-    compiler.add_include_dir(&namespace.dir);
     compiler
-        .add_source(source_code(namespace, path, &source))
-        .map_err(|e| e.to_string())?;
+        .add_source(source_code(namespace, path, &resolved.source))
+        .map_err(|e| with_note(e.to_string(), &resolved))?;
 
     let mut rules = Vec::new();
     for rule in compiler.build().iter() {
@@ -420,5 +440,5 @@ fn compile_file(namespace: &Namespace, path: &Path) -> Result<(Vec<u8>, Vec<Rule
         RuleFilter::from_meta(&info.meta).map_err(|e| format!("rule {}: {e}", info.name))?;
         rules.push(info);
     }
-    Ok((source, rules))
+    Ok((resolved, rules))
 }

@@ -373,6 +373,15 @@ fn build_with(
             .to_string_lossy()
             .replace('\\', "/")
     };
+    let namespace_dir = |name: &str| {
+        namespaces
+            .iter()
+            .find(|namespace| namespace.name == name)
+            .map_or_else(
+                || signature_dir.join(name),
+                |namespace| namespace.dir.clone(),
+            )
+    };
     let mut files = Vec::new();
     let mut left_out = Vec::new();
     let mut qa_rules = Vec::new();
@@ -385,7 +394,7 @@ fn build_with(
                 // each rule's own text, by its name: a file that can't be read again has none, and
                 // its rules are then left out of the signatures, never given another rule's hash
                 let hashes: std::collections::BTreeMap<String, String> =
-                    std::fs::read(&report.path)
+                    load::read_rule_file(&namespace_dir(&report.namespace), &report.path)
                         .map(|source| {
                             crate::source::rules(&source)
                                 .into_iter()
@@ -482,7 +491,8 @@ fn sources_sha256(signature_dir: &Path, namespaces: &[Namespace]) -> String {
             hasher.update([0]);
             hasher.update(relative.to_string_lossy().as_bytes());
             hasher.update([0]);
-            match std::fs::read(path) {
+            // as the loader reads it: a file it refuses, such as a symbolic link, counts unread
+            match load::read_rule_file(&namespace.dir, path) {
                 Ok(bytes) => {
                     hasher.update((bytes.len() as u64).to_le_bytes());
                     hasher.update(&bytes);

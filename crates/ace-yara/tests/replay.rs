@@ -488,29 +488,65 @@ fn a_file_that_is_not_utf8_is_left_out_as_the_pool_leaves_it_out() {
 
 /// test_child.py's `test_a_missing_include_compiles_and_is_reported`. yara_scanner compiles a missing include
 /// as empty; ace4's loader leaves the file that includes it out, with the include's error, and the child
-/// reports that. An include that resolves compiles.
+/// reports that. An include that resolves inside the signature directory compiles, another namespace's
+/// file too.
+///
+/// What ace3 warns of and compiles, an include that leaves the repository, is refused here, and so is one
+/// that leaves the signature directory for the rest of the commit: the ruleset build exports the signature
+/// directory alone, so such an include could only work in a validation (`ace_yara::include`). The child
+/// reads a validation's samples, so an include that named one would otherwise put a line of an alert's
+/// file in the report.
 #[test]
 fn a_missing_include_leaves_its_file_out_and_is_reported() {
     let root = tempfile::tempdir().unwrap();
+    let unit = sample(
+        root.path(),
+        0,
+        "x.bin",
+        b"SAMPLE-LINE-ONE of an alert's file\n",
+    );
+    let to_sample =
+        "include \"../../../u/0/files/x.bin\"\nrule reads { condition: false }\n".to_owned();
+    let absolute = format!(
+        "include \"{}\"\nrule reads_absolute {{ condition: false }}\n",
+        unit.display()
+    );
     let dir = signature_dir(
         root.path(),
-        &[(
-            "acme",
-            &[
-                (
-                    "inc.yar",
-                    b"include \"common.yar\"\nrule uses { strings: $a = \"evil\" condition: $a }\n",
-                ),
-                (
-                    "local.yar",
-                    b"include \"../../shared/strings.yar\"\nrule shared { condition: false }\n",
-                ),
-            ],
-        )],
+        &[
+            (
+                "acme",
+                &[
+                    (
+                        "inc.yar",
+                        b"include \"common.yar\"\nrule uses { strings: $a = \"evil\" condition: $a }\n",
+                    ),
+                    (
+                        "local.yar",
+                        b"include \"../../shared/strings.yar\"\nrule shared { condition: false }\n",
+                    ),
+                    (
+                        "cross.yar",
+                        b"include \"../other/strings.yar\"\nrule crosses { condition: other_rule }\n",
+                    ),
+                    ("sample.yar", to_sample.as_bytes()),
+                    ("absolute.yar", absolute.as_bytes()),
+                ],
+            ),
+            (
+                "other",
+                &[("strings.yar", b"rule other_rule { condition: false }\n")],
+            ),
+        ],
     );
     std::fs::create_dir_all(root.path().join("tree/shared")).unwrap();
     std::fs::write(root.path().join("tree/shared/strings.yar"), "").unwrap();
-    let result = child(root.path(), &dir, job_namespaces(&dir), vec![]);
+    let result = child(
+        root.path(),
+        &dir,
+        job_namespaces(&dir),
+        vec![json!({"id": 0, "path": unit, "meta_tags": []})],
+    );
     assert_eq!(result["ruleset_error"], Value::Null);
     let error_of = |name: &str| {
         result["files"]
@@ -521,12 +557,33 @@ fn a_missing_include_leaves_its_file_out_and_is_reported() {
             .unwrap()["error"]
             .clone()
     };
+    let inc = error_of("inc.yar");
     assert!(
-        error_of("inc.yar").as_str().unwrap().contains("common.yar"),
-        "{}",
-        error_of("inc.yar")
+        inc.as_str().unwrap().contains("common.yar")
+            && inc.as_str().unwrap().contains("no such file"),
+        "{inc}"
     );
-    assert_eq!(error_of("local.yar"), Value::Null);
+    assert_eq!(error_of("cross.yar"), Value::Null);
+    for name in ["local.yar", "sample.yar"] {
+        let error = error_of(name);
+        assert!(
+            error
+                .as_str()
+                .unwrap()
+                .contains("leaves the signature directory"),
+            "{name}: {error}"
+        );
+    }
+    assert!(
+        error_of("absolute.yar")
+            .as_str()
+            .unwrap()
+            .contains("an absolute path"),
+        "{}",
+        error_of("absolute.yar")
+    );
+    assert!(!result.to_string().contains("SAMPLE-LINE-ONE"), "{result}");
+    assert_eq!(result["include_warnings"], json!([]));
 }
 
 /// test_child.py's `test_compiler_warnings_and_rules_are_reported`.

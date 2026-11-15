@@ -106,7 +106,8 @@ pub struct ReplayResult {
     pub files: Vec<FileEntry>,
     pub ruleset_error: Option<String>,
     pub warnings: Vec<String>,
-    /// ace3 reports includes that resolve outside the repository; ace4 reports none.
+    /// ace3 warns of an include that resolves outside the repository and compiles it anyway. Here
+    /// such a file is left out, with why as its error (`crate::include`), so there is none to report.
     pub include_warnings: Vec<String>,
     pub namespaces: BTreeMap<String, NamespaceTiming>,
     pub units: BTreeMap<String, UnitOutcome>,

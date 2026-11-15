@@ -185,7 +185,7 @@ fn hostile_files() -> Vec<(&'static str, String, &'static str)> {
         (
             "including.yar",
             "include \"parens.yar\"\nrule h10 { condition: true }".to_owned(),
-            "the included file parens.yar",
+            "the include \"parens.yar\" at line 1: line 1 nests brackets",
         ),
     ]
 }

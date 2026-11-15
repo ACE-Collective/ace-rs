@@ -296,50 +296,50 @@ fn ordinary_rules_pass() {
     assert_eq!(check(source.as_bytes()), Ok(()));
 }
 
+/// The include statements of a source, as yara-x's tokenizer makes them: the keyword and the string
+/// after it, across space and comments, and whether it stands outside every rule. `crate::include`
+/// resolves the ones that do, and holds each included file to these bounds (its tests).
 #[test]
-fn an_included_file_is_held_to_the_same_bounds() {
-    let dir = tempfile::tempdir().unwrap();
-    let write = |name: &str, text: &str| std::fs::write(dir.path().join(name), text).unwrap();
-    write("good.yar", "rule g { condition: true }");
-    write("deep.yar", &crafted("parens", 5000));
-    write("chain.yar", "include \"deep.yar\"");
-    write(
-        "self.yar",
-        "include \"self.yar\"\nrule s { condition: true }",
-    );
-    let dirs = [dir.path()];
-
-    assert_eq!(check_file(b"include \"good.yar\"", &dirs), Ok(()));
-    assert_eq!(check_file(b"include \"missing.yar\"", &dirs), Ok(()));
-    // a file that includes itself is yara-x's to refuse: it's read once here
-    assert_eq!(check_file(b"include \"self.yar\"", &dirs), Ok(()));
-    for including in [
-        "include \"deep.yar\"",
-        "include \"chain.yar\"",
-        "include\n/* x */ \"./deep.yar\"",
-    ] {
-        let refusal = check_file(including.as_bytes(), &dirs).unwrap_err();
-        assert!(
-            matches!(&refusal, Refusal::Include { reason, .. } if reason.contains("nests brackets")),
-            "{refusal}"
-        );
-    }
-
-    // a chain deeper than the limit, and more files than the limit
-    for i in 0..=MAX_INCLUDE_DEPTH {
-        write(&format!("c{i}.yar"), &format!("include \"c{}.yar\"", i + 1));
-    }
+fn include_statements_are_found_where_yara_x_takes_them() {
+    let source = "include \"one.yar\"\n\
+                  rule r { strings: $a = { 01 02 } $b = \"include \\\"no.yar\\\"\" condition: true }\n\
+                  // include \"commented.yar\"\n/* include \"also.yar\" */\n\
+                  include\n/* x */ \"./two.yar\" include\"three.yar\"\n\
+                  rule s { condition: true\ninclude \"inside.yar\" }\n\
+                  include \"\"\"triple.yar\"\"\"\ninclude four\n\"not.yar\"";
+    let sites = includes(source.as_bytes()).expect("within the bounds");
+    let found: Vec<(&str, usize, bool)> = sites
+        .iter()
+        .map(|site| {
+            (
+                std::str::from_utf8(&site.path).expect("text"),
+                site.line,
+                site.top_level,
+            )
+        })
+        .collect();
     assert_eq!(
-        check_file(b"include \"c0.yar\"", &dirs),
-        Err(Refusal::IncludeDepth)
+        found,
+        [
+            ("one.yar", 1, true),
+            ("./two.yar", 5, true),
+            ("three.yar", 6, true),
+            ("inside.yar", 8, false),
+        ]
     );
-    let mut many = String::new();
-    for i in 0..=MAX_INCLUDED_FILES {
-        write(&format!("m{i}.yar"), "rule m { condition: true }");
-        many.push_str(&format!("include \"m{i}.yar\"\n"));
-    }
+    // the span is the whole statement
+    assert_eq!(&source[sites[0].span.clone()], "include \"one.yar\"");
     assert_eq!(
-        check_file(many.as_bytes(), &dirs),
-        Err(Refusal::IncludeCount)
+        &source[sites[1].span.clone()],
+        "include\n/* x */ \"./two.yar\""
     );
+    // a source past a bound has no includes to give: it is refused first
+    let deep = format!(
+        "include \"x.yar\" rule r {{ condition: {} }}",
+        "(".repeat(5000)
+    );
+    assert!(matches!(
+        includes(deep.as_bytes()),
+        Err(Refusal::Nesting { .. })
+    ));
 }

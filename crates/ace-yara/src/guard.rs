@@ -42,17 +42,16 @@
 //! zero: the parser has unwound there, as it has after any syntax error (measured: two runs of 2,304
 //! open parentheses either side of a `}` or a `?` parse, where 2,432 in one run overflow).
 //!
-//! **Includes.** `include "file"` compiles another file as part of this one, so each file a source
-//! includes is checked the same way, wherever yara-x might look for it, to eight levels. yara-x
-//! refuses a circular include itself.
+//! **Includes.** `include "file"` compiles another file as part of this one. yara-x never opens one:
+//! `crate::include` reads each file a source includes itself, holds it to these bounds, and puts its
+//! text where the statement was, so [`check`] over what yara-x is given covers every file in it.
+//! [`includes`] finds the statements, with the same lexing as the nesting bounds.
 //!
 //! What a bound refuses that yara-x would compile: a line with more than 1,024 backslash pairs, even
 //! in a `//` comment; and a `/*` inside a string followed by more than 1,024 runs of `*` before the
 //! next `*/`. Neither is in ace3's rules or in the signatures repository as measured.
 
-use std::collections::BTreeSet;
 use std::fmt;
-use std::path::{Path, PathBuf};
 
 /// The most escape sequences one string or regex holds. A third of what overflows 2 MiB in a debug
 /// build, and what the export of detections has held its own strings to since 7.16.
@@ -67,9 +66,6 @@ pub const MAX_NESTING: usize = 32;
 /// The deepest nesting of calls, `name(`. Each level triples the parser's time: six cost about 20 ms
 /// in a debug build, and eight 180 ms.
 pub const MAX_CALL_NESTING: usize = 6;
-/// How deep includes may nest, and how many files one source may include in all.
-pub const MAX_INCLUDE_DEPTH: usize = 8;
-pub const MAX_INCLUDED_FILES: usize = 64;
 
 /// Why a source is refused.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -80,9 +76,6 @@ pub enum Refusal {
     WideSpaces { line: usize },
     Nesting { line: usize },
     CallNesting { line: usize },
-    Include { path: String, reason: String },
-    IncludeDepth,
-    IncludeCount,
 }
 
 impl fmt::Display for Refusal {
@@ -119,85 +112,42 @@ impl fmt::Display for Refusal {
                 "line {line} nests calls more than {MAX_CALL_NESTING} deep, and each level triples \
                  the time yara-x's parser takes"
             ),
-            Refusal::Include { path, reason } => write!(f, "the included file {path}: {reason}"),
-            Refusal::IncludeDepth => {
-                write!(f, "includes nest more than {MAX_INCLUDE_DEPTH} files deep")
-            }
-            Refusal::IncludeCount => write!(
-                f,
-                "the file includes more than {MAX_INCLUDED_FILES} files in all"
-            ),
         }
     }
 }
 
 impl std::error::Error for Refusal {}
 
-/// Checks one source against every bound. It doesn't follow includes: [`check_file`] does.
+/// Checks one source against every bound. An `include` in it is a statement like any other here:
+/// `crate::include` resolves them before yara-x is given the source.
 pub fn check(source: &[u8]) -> Result<(), Refusal> {
     scan(source).map(|_| ())
 }
 
-/// [`check`], and the same for every file the source includes, and theirs. `dirs` are where a
-/// relative include is looked for: the including file's directory and the compiler's include
-/// directory. yara-x picks one; a file found in either is checked, and one found in neither is left
-/// for yara-x to report.
-pub fn check_file(source: &[u8], dirs: &[&Path]) -> Result<(), Refusal> {
-    let mut seen = BTreeSet::new();
-    check_includes(source, dirs, 0, &mut seen)
+/// One `include "path"` statement of a source.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct IncludeSite {
+    /// The statement's bytes in the source: from the `include` keyword to the path's closing quote.
+    pub span: std::ops::Range<usize>,
+    /// The path as written between the quotes, escapes and all.
+    pub path: Vec<u8>,
+    /// The line the keyword is on.
+    pub line: usize,
+    /// It stands outside every `{`, where yara-x takes an include. One inside a rule is a syntax
+    /// error to yara-x, and is left for it to report.
+    pub top_level: bool,
 }
 
-fn check_includes(
-    source: &[u8],
-    dirs: &[&Path],
-    depth: usize,
-    seen: &mut BTreeSet<PathBuf>,
-) -> Result<(), Refusal> {
-    let includes = scan(source)?;
-    if includes.is_empty() {
-        return Ok(());
-    }
-    if depth == MAX_INCLUDE_DEPTH {
-        return Err(Refusal::IncludeDepth);
-    }
-    for include in includes {
-        let named = Path::new(&include);
-        let candidates: Vec<PathBuf> = if named.is_absolute() {
-            vec![named.to_path_buf()]
-        } else {
-            dirs.iter().map(|dir| dir.join(named)).collect()
-        };
-        for candidate in candidates {
-            // a file that can't be read is yara-x's to report
-            let Ok(canonical) = candidate.canonicalize() else {
-                continue;
-            };
-            if !seen.insert(canonical.clone()) {
-                continue;
-            }
-            if seen.len() > MAX_INCLUDED_FILES {
-                return Err(Refusal::IncludeCount);
-            }
-            let Ok(included) = std::fs::read(&canonical) else {
-                continue;
-            };
-            let parent = canonical.parent().unwrap_or(Path::new("/")).to_path_buf();
-            let mut inner: Vec<&Path> = vec![&parent];
-            inner.extend(dirs.iter().copied().filter(|dir| *dir != parent));
-            check_includes(&included, &inner, depth + 1, seen).map_err(|reason| match reason {
-                Refusal::IncludeDepth | Refusal::IncludeCount | Refusal::Include { .. } => reason,
-                other => Refusal::Include {
-                    path: include.clone(),
-                    reason: other.to_string(),
-                },
-            })?;
-        }
-    }
-    Ok(())
+/// [`check`], returning the source's `include` statements in order: an `include` keyword and the
+/// string after it, with only space and comments between, as yara-x's tokenizer makes them. A path
+/// in a triple-quoted string isn't listed, and yara-x, which is never allowed an include of its own,
+/// refuses the file.
+pub fn includes(source: &[u8]) -> Result<Vec<IncludeSite>, Refusal> {
+    scan(source)
 }
 
-/// Every bound over one source. Returns the files it includes, as written.
-fn scan(source: &[u8]) -> Result<Vec<String>, Refusal> {
+/// Every bound over one source. Returns its include statements.
+fn scan(source: &[u8]) -> Result<Vec<IncludeSite>, Refusal> {
     lexer_bounds(source)?;
     parser_bounds(source)
 }
@@ -296,8 +246,11 @@ enum Previous {
 }
 
 /// The nesting bounds, by lexing as yara-x's tokenizer does in its normal mode.
-fn parser_bounds(source: &[u8]) -> Result<Vec<String>, Refusal> {
+fn parser_bounds(source: &[u8]) -> Result<Vec<IncludeSite>, Refusal> {
     let mut includes = Vec::new();
+    // where the last `include` keyword starts, its line, and how many `{` were open at it
+    let mut include_at = (0usize, 0usize, 0usize);
+    let mut braces = 0usize;
     let mut line = 1;
     // each open bracket: what it adds to the depth (itself and the unary operators before it), and
     // whether it's a call's
@@ -364,6 +317,7 @@ fn parser_bounds(source: &[u8]) -> Result<Vec<String>, Refusal> {
                 open.clear();
                 depth = 0;
                 calls = 0;
+                braces = braces.saturating_sub(1);
                 i += 1;
             }
             b'-' | b'~' => {
@@ -373,7 +327,13 @@ fn parser_bounds(source: &[u8]) -> Result<Vec<String>, Refusal> {
             b'"' => match string_end(rest) {
                 Some(end) => {
                     if previous == Previous::Include && !rest.starts_with(b"\"\"\"") {
-                        includes.push(String::from_utf8_lossy(&rest[1..end - 1]).into_owned());
+                        let (start, line, braces) = include_at;
+                        includes.push(IncludeSite {
+                            span: start..i + end,
+                            path: rest[1..end - 1].to_vec(),
+                            line,
+                            top_level: braces == 0,
+                        });
                     }
                     line += newlines(&rest[..end]);
                     i += end;
@@ -407,7 +367,10 @@ fn parser_bounds(source: &[u8]) -> Result<Vec<String>, Refusal> {
                     .unwrap_or(rest.len());
                 match &rest[..end] {
                     b"not" | b"defined" => is_unary = true,
-                    b"include" => now = Previous::Include,
+                    b"include" => {
+                        include_at = (i, line, braces);
+                        now = Previous::Include;
+                    }
                     // an expression in brackets follows these: it isn't a call
                     b"and" | b"or" | b"in" | b"of" | b"at" | b"for" | b"contains"
                     | b"icontains" | b"startswith" | b"istartswith" | b"endswith"
@@ -416,9 +379,13 @@ fn parser_bounds(source: &[u8]) -> Result<Vec<String>, Refusal> {
                 }
                 i += end;
             }
+            b'{' => {
+                braces += 1;
+                i += 1;
+            }
             // the rest of yara-x's one-byte tokens, and the starts of its pattern identifiers
-            b'{' | b'<' | b'>' | b'=' | b'!' | b'&' | b'*' | b'\\' | b':' | b',' | b'.' | b'+'
-            | b'%' | b'|' | b'^' | b'$' | b'#' | b'@' => i += 1,
+            b'<' | b'>' | b'=' | b'!' | b'&' | b'*' | b'\\' | b':' | b',' | b'.' | b'+' | b'%'
+            | b'|' | b'^' | b'$' | b'#' | b'@' => i += 1,
             _ => {
                 // not the start of any token: yara-x makes one unknown token of what follows, to
                 // the next space

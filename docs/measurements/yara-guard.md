@@ -67,6 +67,8 @@ What is left after the bounds: time is still linear in what a file holds. A file
 
 ## What the bounds refuse of real rules
 
-`ace_yara::guard::check_file` over the signatures repository (102 rule files) and over ace3's `etc/` (42) refused none. The check read the files and wrote nothing.
+The guard, over each file and the files it includes (`ace_yara::guard::check_file` then, `ace_yara::include` now), run over the signatures repository (102 rule files) and over ace3's `etc/` (42), refused none. The check read the files and wrote nothing.
+
+After includes were bounded to the signature directory (2026-11-15, `ace_yara::include`), `ace yara build` over the repository's signature directory, mounted read-only, loaded all 91 rule files of its 3 namespaces, 344 rules, and left none out. The repository's other 11 rule files are outside a namespace and never load. It holds no `include` statement and no symbolic link.
 
 What the number could include: the debug build's frames, which are larger than an optimized build's; one yara-x version; and the constructs tried, which are the ones yara-x's grammar nests. A construct that recurses and isn't a bracket, a unary operator, an escape, a comment run or a space isn't bounded, and none was found.
