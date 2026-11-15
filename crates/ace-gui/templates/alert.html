@@ -6,7 +6,7 @@
 {% block content %}
 <section class="alert" data-init="@get('/alerts/{{ id }}/live?v={{ version }}')">
   <h1>{{ title }}</h1>
-  <p class="alert-links"><a href="/alerts/{{ id }}/graph">Graph</a></p>
+  <p class="alert-links"><a href="/alerts/{{ id }}/graph">Graph</a> <a href="/search?similar={{ id }}" title="Other alerts whose text is like this one's">Similar alerts</a></p>
   {%- if let Some(own) = ownership %}
   {#- ace3's Take Ownership and Assign Ownership (PLAN.md 7.17, src/list.rs's bulk_owner) -#}
   <form method="post" action="/alerts/owner" class="inline ownership">

@@ -86,6 +86,10 @@
 //!   `file_collections` services, and the event page's remediation coverage badges. The base layout links
 //!   to each for whoever holds its `:read`.
 //!
+//! - `search`: ace3's search box and its "similar alerts" (PLAN.md 7.11), as a page whose URL says the
+//!   search, `/search`, which the alert list's box and an alert's page lead to, over
+//!   `Service::search_alerts` and `Service::similar_alerts`.
+//!
 //! From ace3's `app/templates/base.html` and `core.html`, and what differs: the layout keeps ace3's
 //! theme attribute on `<html>`, its five themes and its log out by POST. It has none of ace3's jQuery,
 //! Bootstrap, Google Fonts or CDN links: the stylesheet is this crate's own, and Datastar is the only
@@ -115,6 +119,7 @@ mod places;
 pub mod preferences;
 pub mod remediation;
 pub mod saved_filters;
+pub mod search;
 mod session;
 pub mod signatures;
 pub mod svs;
@@ -215,6 +220,7 @@ impl Gui {
         Router::new()
             .route("/", get(list::page))
             .route("/alerts/list", get(list::refresh))
+            .route("/search", get(search::page))
             .route(
                 "/alerts/disposition",
                 post(list::bulk_disposition)

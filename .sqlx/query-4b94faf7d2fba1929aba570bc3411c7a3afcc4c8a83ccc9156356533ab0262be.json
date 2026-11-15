@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO search.indexed (root_id, documents, chunks, left_out, model)\n                             SELECT r.id, $2, $3, $4, $5 FROM analysis.roots r WHERE r.id = $1\n                             ON CONFLICT (root_id) DO UPDATE\n                                 SET documents = EXCLUDED.documents, chunks = EXCLUDED.chunks,\n                                     left_out = EXCLUDED.left_out, model = EXCLUDED.model,\n                                     indexed_at = now()",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Int4",
+        "Int4",
+        "Int4",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "4b94faf7d2fba1929aba570bc3411c7a3afcc4c8a83ccc9156356533ab0262be"
+}

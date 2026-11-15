@@ -1,0 +1,127 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT c.root_id, c.kind, c.key, c.chunk, c.title, c.text, c.result_id,\n                                  c.observable_id,\n                                  1 - (c.embedding <=> $1::real[]::vector) AS \"score!\"\n                           FROM search.chunks c\n                           JOIN analysis.roots r ON r.id = c.root_id\n                           WHERE r.alerted_at IS NOT NULL\n                             AND search.in_scope(r.id, r.queue::text, r.disposition, r.alerted_at,\n                                   $2, $3, $4, $5, $6::text::tstzmultirange,\n                                   $7::text::tstzmultirange, $8)\n                           ORDER BY c.embedding <=> $1::real[]::vector\n                           LIMIT $9",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "root_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "search.chunks",
+            "name": "root_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "kind",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "search.chunks",
+            "name": "kind"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "key",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "search.chunks",
+            "name": "key"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "chunk",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "search.chunks",
+            "name": "chunk"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "title",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "search.chunks",
+            "name": "title"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "text",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "search.chunks",
+            "name": "text"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "result_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "search.chunks",
+            "name": "result_id"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "observable_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "search.chunks",
+            "name": "observable_id"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "score!",
+        "type_info": "Float8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Float4Array",
+        "TextArray",
+        "TextArray",
+        "TextArray",
+        "TextArray",
+        "Text",
+        "Text",
+        "UuidArray",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      true,
+      true,
+      null
+    ]
+  },
+  "hash": "b0f576879a6b8f2449713f471b8fefe438830acd9babfe6552f5aefda6999c3a"
+}

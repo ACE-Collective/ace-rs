@@ -128,6 +128,100 @@ fn archive_key() -> ace_core::email_archive::ArchiveKey {
     ace_core::email_archive::ArchiveKey::new(*b"ace4 test-only email archive key")
 }
 
+/// A search index for the router's tests: an alert matches a text its title contains, every match as
+/// near as the next, and alerts like one are those that share its title's first word.
+#[derive(Debug)]
+struct TitleIndex(ace_core::Db);
+
+impl TitleIndex {
+    async fn titled(
+        &self,
+        pattern: String,
+        scope: &ace_service::search::Scoped,
+    ) -> ace_service::search::LaneResult {
+        let rows: Vec<(Uuid, String)> = sqlx::query_as(
+            "SELECT id, description FROM analysis.roots
+             WHERE alerted_at IS NOT NULL AND description ILIKE $1
+               AND ($2::text[] IS NULL OR NOT queue = ANY ($2)) AND ($3::text[] IS NULL OR queue = ANY ($3))
+               AND ($4::uuid[] IS NULL OR NOT id = ANY ($4))
+             ORDER BY alerted_at, id",
+        )
+        .bind(pattern)
+        .bind(&scope.not_queues)
+        .bind(&scope.queues)
+        .bind(&scope.except)
+        .fetch_all(self.0.pool())
+        .await
+        .expect("reads");
+        rows.into_iter()
+            .map(|(alert, title)| {
+                (
+                    alert,
+                    vec![ace_service::search::SearchHit {
+                        lane: ace_service::search::SearchLane::Semantic,
+                        kind: "alert".to_owned(),
+                        key: "alert:header:0".to_owned(),
+                        title: Some(title.clone()),
+                        text: title,
+                        score: 0.9,
+                        result_id: None,
+                        observable_id: None,
+                    }],
+                )
+            })
+            .collect()
+    }
+}
+
+impl ace_service::search::SearchIndex for TitleIndex {
+    fn dense<'a>(
+        &'a self,
+        text: &'a str,
+        scope: &'a ace_service::search::Scoped,
+        _: usize,
+        _: usize,
+        _: f64,
+    ) -> ace_service::search::IndexFuture<'a, ace_service::search::LaneResult> {
+        Box::pin(async move { Ok(self.titled(format!("%{text}%"), scope).await) })
+    }
+
+    fn sparse<'a>(
+        &'a self,
+        _: &'a str,
+        _: &'a ace_service::search::Scoped,
+        _: usize,
+        _: usize,
+    ) -> ace_service::search::IndexFuture<'a, Option<ace_service::search::LaneResult>> {
+        Box::pin(async { Ok(None) })
+    }
+
+    fn similar<'a>(
+        &'a self,
+        root: Uuid,
+        scope: &'a ace_service::search::Scoped,
+        _: usize,
+        _: usize,
+        _: f64,
+    ) -> ace_service::search::IndexFuture<'a, ace_service::search::LaneResult> {
+        Box::pin(async move {
+            let title: String =
+                sqlx::query_scalar("SELECT description FROM analysis.roots WHERE id = $1")
+                    .bind(root)
+                    .fetch_one(self.0.pool())
+                    .await
+                    .expect("reads");
+            let first = title.split(' ').next().unwrap_or_default();
+            Ok(self.titled(format!("{first}%"), scope).await)
+        })
+    }
+
+    fn index_next(
+        &self,
+    ) -> ace_service::search::IndexFuture<'_, Option<ace_service::search::Indexed>> {
+        Box::pin(async { Ok(None) })
+    }
+}
+
 async fn stack() -> Stack {
     stack_with(ace_core::email_archive::ArchiveConfig::default().with_key(archive_key())).await
 }
@@ -170,6 +264,12 @@ async fn stack_of(archive: ace_core::email_archive::ArchiveConfig, catalog: Cata
         // coverage is computed against ace3's small test release, v99.0 (PLAN.md 7.10 batch 8)
         .with_attack_catalog(std::sync::Arc::new(ace_core::testing::attack_catalog()))
         .with_dispositions(ace_service::Dispositions::configured(&overlay).expect("good sections"))
+        // a search index that finds a text in the alerts' titles (PLAN.md 7.11): the real one, with its
+        // model, is `ace-search`'s to test
+        .with_search(
+            std::sync::Arc::new(TitleIndex(test_db.db().clone())),
+            ace_service::search::SearchConfig::default(),
+        )
         // a repository the validations' requests may name; requesting doesn't fetch it (PLAN.md 7.10)
         .with_validation(
             ace_core::svs::yara::ValidationConfig::from_section(
@@ -524,6 +624,8 @@ const OBSERVED: &str = "/api/observables/v1/detections";
 const OBSERVED_TYPES: &str = "/api/observables/v1/detections/types";
 const OBSERVED_EXPORT: &str = "/api/observables/v1/detections/yara-export";
 const MONITORING: &str = "/api/monitoring/v1/state";
+const SEARCH_ALERTS: &str = "/api/search/v1/alerts";
+const SEARCH_SIMILAR: &str = "/api/search/v1/similar";
 const OBSERVED_ONE: &str = "/api/observables/v1/detections/{id}";
 const OBSERVED_EXPIRY: &str = "/api/observables/v1/detections/{id}/expiration";
 const TARGETS: &str = "/api/remediation/v1/targets";
@@ -746,6 +848,8 @@ fn good_body(route: &str) -> Send {
         COMMENT => Send::Json(json!({"comment": "x"})),
         PREFERENCE => Send::Json(json!({"mode": "dark"})),
         ENCODE => Send::Json(json!({"filters": []})),
+        SEARCH_ALERTS => Send::Json(json!({"query": "docusign"})),
+        SEARCH_SIMILAR => Send::Json(json!({"alert_uuid": Uuid::nil()})),
         SAVED => Send::Json(json!({
             "name": "refused",
             "filters": [{"name": "Disposition", "values": ["OPEN"]}],
@@ -813,7 +917,7 @@ async fn refuses_without_a_credential_or_a_permission(
         .map(|(method, route, _)| (method, route))
         .filter(|route| !public.contains(route))
         .collect();
-    assert_eq!(routes.len(), 234, "{routes:?}");
+    assert_eq!(routes.len(), 236, "{routes:?}");
     for (method, route) in routes {
         let method: Method = method.to_uppercase().parse().expect("a method");
         let path = fill(&route, id, file);
@@ -4978,6 +5082,7 @@ async fn every_documented_status_is_tested() {
     lists_router(&mut client).await;
     detection_router(&mut client).await;
     monitoring(&mut client).await;
+    search_router(&mut client).await;
     hunts_router(&mut client).await;
     remediation_routers(&mut client).await;
     svs_samples(&mut client, &token).await;
@@ -17074,4 +17179,458 @@ async fn svs_association(client: &mut Client<'_>) {
             S::FORBIDDEN,
         )
         .await;
+}
+
+/// ace3's `search` router (PLAN.md 7.11): `tests/aceapi_v2/search/test_router.py`'s cases, each named
+/// where it's asserted. Its `test_requires_auth` is `refuses_without_a_credential_or_a_permission`'s, and
+/// `TestNodeScoping` has no counterpart: ace4 has one node. The index behind the stack finds a text in
+/// the alerts' titles (`TitleIndex`); the real one is `ace-search`'s to test.
+async fn search_router(client: &mut Client<'_>) {
+    use Method as M;
+    use StatusCode as S;
+    let stack = client.stack;
+    let reader = key(stack, &["alert:read"]).await;
+    let r = Some(reader.as_str());
+    let hostile = "<script>alert(1)</script> docusign invoice";
+    let first = alert(stack, hostile, &[(ObservableKind::Ipv4, "10.77.30.40")]).await;
+    let second = alert(
+        stack,
+        "docusign reminder",
+        &[(ObservableKind::Ipv4, "10.77.30.41")],
+    )
+    .await;
+    let test_run = alert(
+        stack,
+        "docusign test run",
+        &[(ObservableKind::Ipv4, "10.77.30.40")],
+    )
+    .await;
+    sqlx::query("UPDATE analysis.roots SET queue = 'svs' WHERE id = $1")
+        .bind(test_run)
+        .execute(stack.test_db.db().pool())
+        .await
+        .expect("moved");
+    let ids = |body: &Value| -> Vec<String> {
+        body["results"]
+            .as_array()
+            .expect("results")
+            .iter()
+            .map(|result| result["alert"]["id"].as_str().expect("an id").to_owned())
+            .collect()
+    };
+
+    // test_requires_alert_read
+    let other = key(stack, &["monitoring:read"]).await;
+    for (route, body) in [
+        (SEARCH_ALERTS, json!({"query": "docusign"})),
+        (SEARCH_SIMILAR, json!({"alert_uuid": first})),
+    ] {
+        let refused = client
+            .json(
+                M::POST,
+                route,
+                route,
+                Some(other.as_str()),
+                Send::Json(body),
+                S::FORBIDDEN,
+            )
+            .await;
+        assert_eq!(refused["error"], "this needs alert:read");
+    }
+
+    // test_response_shape_and_filter_translation, test_left_out_by_default_and_counted
+    let found = client
+        .json(
+            M::POST,
+            SEARCH_ALERTS,
+            SEARCH_ALERTS,
+            r,
+            Send::Json(json!({"query": "docusign"})),
+            S::OK,
+        )
+        .await;
+    assert_eq!(ids(&found), vec![first.to_string(), second.to_string()]);
+    assert_eq!(found["query"], "docusign");
+    assert_eq!(
+        (
+            found["total"].as_u64(),
+            found["offset"].as_u64(),
+            found["limit"].as_u64()
+        ),
+        (Some(2), Some(0), Some(20))
+    );
+    assert_eq!(found["lanes_used"], json!(["semantic"]));
+    assert_eq!(found["excluded_test_alerts"], 1);
+    assert_eq!(found["errors"], json!([]));
+    assert_eq!(found["warnings"], json!([]));
+    assert_eq!(found["hint"], Value::Null);
+    assert!(found["timings_ms"]["semantic"].is_u64());
+    let result = &found["results"][0];
+    assert_eq!(
+        (result["rank"].as_u64(), &result["tier"], &result["lanes"]),
+        (Some(1), &json!("strong"), &json!(["semantic"]))
+    );
+    assert!(result["score"].as_f64().expect("a score") > 0.0);
+    // the alert is the alert list's own body, its title as it was stored
+    assert_eq!(result["alert"]["title"], hostile, "as it was stored");
+    assert_eq!(result["alert"]["queue"], "default");
+    assert_eq!(result["alert"]["disposition"], Value::Null);
+    assert_eq!(
+        result["hits"],
+        json!([{"lane": "semantic", "kind": "alert", "title": hostile, "text": hostile, "score": 0.9}])
+    );
+    // an exact term's matches come first, with the term's own hit
+    let exact = client
+        .json(
+            M::POST,
+            SEARCH_ALERTS,
+            SEARCH_ALERTS,
+            r,
+            Send::Json(json!({"query": "docusign ipv4:10.77.30.41", "limit": 1})),
+            S::OK,
+        )
+        .await;
+    assert_eq!(
+        (ids(&exact), exact["total"].as_u64()),
+        (vec![second.to_string()], Some(2))
+    );
+    assert_eq!(exact["results"][0]["tier"], "exact");
+    assert_eq!(exact["results"][0]["lanes"], json!(["lexical", "semantic"]));
+    assert_eq!(
+        exact["results"][0]["hits"][0],
+        json!({"lane": "lexical", "kind": "observable", "title": "ipv4", "text": "10.77.30.41", "score": 1.0})
+    );
+    assert_eq!(exact["lanes_used"], json!(["lexical", "semantic"]));
+    let page = client
+        .json(
+            M::POST,
+            SEARCH_ALERTS,
+            SEARCH_ALERTS,
+            r,
+            Send::Json(json!({"query": "docusign", "limit": 1, "offset": 1, "include_hits": false, "lanes": ["semantic"]})),
+            S::OK,
+        )
+        .await;
+    assert_eq!(
+        (ids(&page), page["results"][0]["rank"].as_u64()),
+        (vec![second.to_string()], Some(2))
+    );
+    assert_eq!(page["results"][0]["hits"], json!([]));
+    // a bare indicator comes back with how to name it
+    let hinted = client
+        .json(
+            M::POST,
+            SEARCH_ALERTS,
+            SEARCH_ALERTS,
+            r,
+            Send::Json(json!({"query": "10.77.30.40"})),
+            S::OK,
+        )
+        .await;
+    assert!(
+        hinted["hint"]
+            .as_str()
+            .expect("a hint")
+            .contains("ipv4:10.77.30.40")
+    );
+
+    // test_include_test_alerts, and a queue named either way
+    let included = client
+        .json(
+            M::POST,
+            SEARCH_ALERTS,
+            SEARCH_ALERTS,
+            r,
+            Send::Json(json!({"query": "docusign", "include_test_alerts": true})),
+            S::OK,
+        )
+        .await;
+    assert_eq!(
+        (
+            included["total"].as_u64(),
+            &included["excluded_test_alerts"]
+        ),
+        (Some(3), &Value::Null)
+    );
+    let queued = client
+        .json(
+            M::POST,
+            SEARCH_ALERTS,
+            SEARCH_ALERTS,
+            r,
+            Send::Json(json!({"query": "docusign", "filters": {"queues": ["svs"]}})),
+            S::OK,
+        )
+        .await;
+    assert_eq!(
+        (ids(&queued), &queued["excluded_test_alerts"]),
+        (vec![test_run.to_string()], &Value::Null)
+    );
+
+    // test_filters_alone_are_enough: a listing, newest first, every tier null
+    let listed = client
+        .json(
+            M::POST,
+            SEARCH_ALERTS,
+            SEARCH_ALERTS,
+            r,
+            Send::Json(
+                json!({"filters": {"observables": [{"type": "ipv4", "value": "10.77.30.40"}]}}),
+            ),
+            S::OK,
+        )
+        .await;
+    assert_eq!(ids(&listed), vec![first.to_string()]);
+    assert_eq!(
+        (
+            &listed["results"][0]["tier"],
+            &listed["lanes_used"],
+            listed["excluded_test_alerts"].as_u64()
+        ),
+        (&Value::Null, &json!([]), Some(1))
+    );
+    // each typed filter is one of the alert screen's
+    // the stack holds other routers' alerts, so each is narrowed to these by their titles
+    let titled = json!([{"name": "Description", "values": ["docusign"]}]);
+    for (filters, expected) in [
+        (
+            json!({"dispositions": ["OPEN"], "queues": ["default"], "exclude_alert_uuids": [first], "filters": titled}),
+            vec![second],
+        ),
+        (
+            json!({"filters": [{"name": "Description", "values": ["docusign reminder"]}]}),
+            vec![second],
+        ),
+        (
+            json!({"insert_date_start": "2020-01-01T00:00:00Z", "queues": ["svs"], "filters": titled}),
+            vec![test_run],
+        ),
+        (
+            json!({"insert_date_end": "2020-01-01T00:00:00+00:00", "queues": ["svs"], "filters": titled}),
+            vec![],
+        ),
+        (
+            json!({"tags": ["nothing-has-this"], "queues": ["default"]}),
+            vec![],
+        ),
+    ] {
+        let listed = client
+            .json(
+                M::POST,
+                SEARCH_ALERTS,
+                SEARCH_ALERTS,
+                r,
+                Send::Json(json!({"filters": filters})),
+                S::OK,
+            )
+            .await;
+        let expected: Vec<String> = expected.iter().map(Uuid::to_string).collect();
+        assert_eq!(ids(&listed), expected, "{filters}");
+    }
+    // test_detection_points_filter
+    let signature = "4c3c8330-545d-4673-9a7c-7bd4597d00aa";
+    sqlx::query(
+        "INSERT INTO analysis.detections (root_id, observable_id, description, signature_uuid, signature_version, signature_family)
+         SELECT $1, min(id), 'a rule matched', $2, 'v1', 'yara' FROM analysis.observables WHERE root_id = $1",
+    )
+    .bind(second)
+    .bind(signature)
+    .execute(stack.test_db.db().pool())
+    .await
+    .expect("a detection");
+    for (points, expected) in [
+        (json!([signature]), vec![second.to_string()]),
+        (json!([format!("{signature}:v1")]), vec![second.to_string()]),
+        (json!([format!("{signature}:v2")]), vec![]),
+    ] {
+        let listed = client
+            .json(
+                M::POST,
+                SEARCH_ALERTS,
+                SEARCH_ALERTS,
+                r,
+                Send::Json(json!({"filters": {"detection_points": points}})),
+                S::OK,
+            )
+            .await;
+        assert_eq!(ids(&listed), expected);
+    }
+
+    // test_query_language_errors_are_returned: 200, with nothing searched
+    let wrong = client
+        .json(
+            M::POST,
+            SEARCH_ALERTS,
+            SEARCH_ALERTS,
+            r,
+            Send::Json(json!({"query": "docusign alert_date:-7dd"})),
+            S::OK,
+        )
+        .await;
+    assert_eq!(
+        (
+            wrong["total"].as_u64(),
+            wrong["results"].as_array().map(Vec::len)
+        ),
+        (Some(0), Some(0))
+    );
+    assert_eq!(wrong["errors"].as_array().map(Vec::len), Some(1));
+
+    // test_validation, test_detection_points_filter_rejects_a_bad_value,
+    // test_observable_filter_rejects_an_impossible_value: 400 where ace3 answers 422
+    for (body, status) in [
+        (Send::Json(json!({})), S::BAD_REQUEST),
+        (Send::Json(json!({"query": "   "})), S::BAD_REQUEST),
+        (
+            Send::Json(json!({"query": "x", "limit": 0})),
+            S::BAD_REQUEST,
+        ),
+        (
+            Send::Json(json!({"query": "x", "limit": 101})),
+            S::BAD_REQUEST,
+        ),
+        (
+            Send::Json(json!({"query": "x", "offset": -1})),
+            S::BAD_REQUEST,
+        ),
+        (
+            Send::Json(json!({"query": "x", "lanes": []})),
+            S::BAD_REQUEST,
+        ),
+        (
+            Send::Json(json!({"query": "x", "lanes": ["psychic"]})),
+            S::BAD_REQUEST,
+        ),
+        (
+            Send::Json(json!({"query": "x", "tz": "Mars/Olympus"})),
+            S::BAD_REQUEST,
+        ),
+        (
+            Send::Json(json!({"query": "x".repeat(2001)})),
+            S::BAD_REQUEST,
+        ),
+        (
+            Send::Json(json!({"query": "x", "bogus": 1})),
+            S::BAD_REQUEST,
+        ),
+        (
+            Send::Json(json!({"query": "x", "filters": {"alert_types": ["mailbox"]}})),
+            S::BAD_REQUEST,
+        ),
+        (
+            Send::Json(json!({"filters": {"detection_points": ["not-a-uuid"]}})),
+            S::BAD_REQUEST,
+        ),
+        (
+            Send::Json(
+                json!({"filters": {"observables": [{"type": "file", "value": "not-a-hash"}]}}),
+            ),
+            S::BAD_REQUEST,
+        ),
+        (
+            Send::Json(json!({"filters": {"observables": [{"type": "made_up", "value": "x"}]}})),
+            S::BAD_REQUEST,
+        ),
+        (
+            Send::Json(
+                json!({"filters": {"filters": [{"name": "No Such Filter", "values": ["x"]}]}}),
+            ),
+            S::BAD_REQUEST,
+        ),
+        (
+            Send::Json(json!({"filters": {"filters": "not a list"}})),
+            S::BAD_REQUEST,
+        ),
+        (
+            Send::Json(json!({"filters": {"insert_date_start": "2026-01-01T00:00:00"}})),
+            S::BAD_REQUEST,
+        ),
+        (
+            Send::Json(json!({"filters": {"queues": ["default"]}, "offset": 10001})),
+            S::BAD_REQUEST,
+        ),
+        (too_large(), S::PAYLOAD_TOO_LARGE),
+    ] {
+        client
+            .json(M::POST, SEARCH_ALERTS, SEARCH_ALERTS, r, body, status)
+            .await;
+    }
+
+    // TestSimilarAlerts: test_similar, with the test alerts left out and counted (TestTestAlerts' test_similar)
+    let similar = client
+        .json(
+            M::POST,
+            SEARCH_SIMILAR,
+            SEARCH_SIMILAR,
+            r,
+            Send::Json(json!({"alert_uuid": second})),
+            S::OK,
+        )
+        .await;
+    assert_eq!(
+        ids(&similar),
+        Vec::<String>::new(),
+        "only the test run shares its first word"
+    );
+    assert_eq!(similar["excluded_test_alerts"], 1);
+    assert_eq!(similar["query"], format!("similar:{second}"));
+    assert_eq!(similar["limit"], 10);
+    let similar = client
+        .json(
+            M::POST,
+            SEARCH_SIMILAR,
+            SEARCH_SIMILAR,
+            r,
+            Send::Json(json!({"alert_uuid": second, "include_test_alerts": true, "limit": 5})),
+            S::OK,
+        )
+        .await;
+    assert_eq!(ids(&similar), vec![test_run.to_string()]);
+    assert_eq!(similar["results"][0]["tier"], "strong");
+    assert_eq!(similar["lanes_used"], json!(["semantic"]));
+    // test_invalid_and_missing_alert
+    client
+        .json(
+            M::POST,
+            SEARCH_SIMILAR,
+            SEARCH_SIMILAR,
+            r,
+            Send::Json(json!({"alert_uuid": Uuid::new_v4()})),
+            S::NOT_FOUND,
+        )
+        .await;
+    for (body, status) in [
+        (
+            Send::Json(json!({"alert_uuid": "not-a-uuid"})),
+            S::BAD_REQUEST,
+        ),
+        (Send::Json(json!({})), S::BAD_REQUEST),
+        (
+            Send::Json(json!({"alert_uuid": second, "limit": 51})),
+            S::BAD_REQUEST,
+        ),
+        (
+            Send::Json(json!({"alert_uuid": second, "tz": "Mars/Olympus"})),
+            S::BAD_REQUEST,
+        ),
+        (
+            Send::Json(
+                json!({"alert_uuid": second, "filters": {"filters": [{"name": "No Such Filter", "values": ["x"]}]}}),
+            ),
+            S::BAD_REQUEST,
+        ),
+        (too_large(), S::PAYLOAD_TOO_LARGE),
+    ] {
+        client
+            .json(M::POST, SEARCH_SIMILAR, SEARCH_SIMILAR, r, body, status)
+            .await;
+    }
+    // neither route writes anything
+    let audited: i64 = sqlx::query_scalar(
+        "SELECT count(*) FROM service.audit WHERE action LIKE '%search%' OR action LIKE '%similar%'",
+    )
+    .fetch_one(stack.test_db.db().pool())
+    .await
+    .expect("counts");
+    assert_eq!(audited, 0);
 }

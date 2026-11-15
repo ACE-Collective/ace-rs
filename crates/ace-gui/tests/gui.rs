@@ -16850,18 +16850,22 @@ fn guide_references(set: &GuideSet, slug: &str) -> GuideReferences {
     references(ace_gui::help::rendered(set.slug, slug).expect("a guide of the set"))
 }
 
-/// The files of a directory of this crate's `help/`, by name.
+/// The files of a directory of this crate's `help/`, by name. A directory that isn't there has none: a set
+/// with no images has no `images/`, and one that registered an image without the directory still differs.
 fn help_files(path: &str) -> BTreeSet<String> {
-    std::fs::read_dir(
-        Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("help")
-            .join(path),
-    )
-    .expect("reads the directory")
-    .map(|entry| entry.expect("an entry"))
-    .filter(|entry| entry.path().is_file())
-    .map(|entry| entry.file_name().to_string_lossy().into_owned())
-    .collect()
+    let directory = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("help")
+        .join(path);
+    let entries = match std::fs::read_dir(&directory) {
+        Ok(entries) => entries,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return BTreeSet::new(),
+        Err(error) => panic!("reads {}: {error}", directory.display()),
+    };
+    entries
+        .map(|entry| entry.expect("an entry"))
+        .filter(|entry| entry.path().is_file())
+        .map(|entry| entry.file_name().to_string_lossy().into_owned())
+        .collect()
 }
 
 /// A guide's links to pages of the GUI, as paths.
@@ -18298,4 +18302,595 @@ async fn each_seeded_screen_shows_ace3_s_quick_filters_once() {
     }
     assert_eq!(seeds().await, 8, "alice's eight");
     let _ = db;
+}
+
+/// PLAN.md 7.11: the search page, `ace_gui::search`, ace3's manage-page search box and its "similar
+/// alerts". The view called directly and through the server, with a viewer who may search, one who
+/// may not and one signed out, its errors, and hostile text as text. ace3's
+/// `tests/app/analysis/views/test_manage.py` search cases are these: the box, the evidence under each
+/// alert, the notices, and the count of test-run alerts left out with its link.
+mod search_pages {
+    use ace_gui::search::{MAX_SNIPPET_CHARS, SearchPage, SearchQuery, search_view};
+    use ace_service::search::{
+        IndexFuture, Indexed, LaneResult, Scoped, SearchConfig, SearchHit, SearchIndex, SearchLane,
+        SearchResponse, SearchResult, Tier,
+    };
+    use uuid::Uuid;
+
+    use super::*;
+
+    fn pairs(pairs: &[(&str, &str)]) -> Vec<(String, String)> {
+        pairs
+            .iter()
+            .map(|(key, value)| ((*key).to_owned(), (*value).to_owned()))
+            .collect()
+    }
+
+    fn hit(lane: SearchLane, kind: &str, title: Option<&str>, text: &str) -> SearchHit {
+        SearchHit {
+            lane,
+            kind: kind.to_owned(),
+            key: format!("{kind}:{text}"),
+            title: title.map(str::to_owned),
+            text: text.to_owned(),
+            score: 1.0,
+            result_id: None,
+            observable_id: None,
+        }
+    }
+
+    /// The view draws what a search found: each alert with its tier and its hits as text, the notices,
+    /// the count with the test-run alerts left out, and the pager, with every value escaped.
+    #[test]
+    fn the_search_view_draws_results_as_text() {
+        let (one, two, three) = (Uuid::from_u128(1), Uuid::from_u128(2), Uuid::from_u128(3));
+        let (query, warnings) = SearchQuery::parse(&pairs(&[
+            ("q", HOSTILE),
+            ("f", "disposition:OPEN"),
+            ("f", "!tag:whitelisted"),
+            ("page", "2"),
+        ]))
+        .expect("a search");
+        assert!(warnings.is_empty());
+        assert_eq!(
+            (
+                query.q.as_str(),
+                query.page,
+                query.tests,
+                query.filters.len()
+            ),
+            (HOSTILE, 2, false, 2)
+        );
+        let long = "x".repeat(MAX_SNIPPET_CHARS + 50);
+        let result = |id, title: &str, rank, tier, hits| SearchResult {
+            alert: fixture_summary(id, title, None),
+            rank,
+            tier,
+            score: 0.5,
+            lanes: vec![SearchLane::Semantic],
+            hits,
+            dense_score: None,
+            sparse_score: None,
+        };
+        let response = SearchResponse {
+            query: HOSTILE.to_owned(),
+            total: 47,
+            offset: 20,
+            limit: 20,
+            results: vec![
+                result(
+                    one,
+                    HOSTILE,
+                    21,
+                    Some(Tier::Exact),
+                    vec![
+                        hit(
+                            SearchLane::Lexical,
+                            "observable",
+                            Some("ipv4"),
+                            "10.20.30.40",
+                        ),
+                        hit(SearchLane::Semantic, "analysis", Some(HOSTILE), HOSTILE),
+                        hit(SearchLane::Semantic, "comment", None, &long),
+                        hit(
+                            SearchLane::Semantic,
+                            "detection",
+                            Some("detections"),
+                            "a rule matched",
+                        ),
+                        hit(SearchLane::Semantic, "made-up kind", None, "fifth"),
+                        hit(
+                            SearchLane::Semantic,
+                            "alert",
+                            None,
+                            "a sixth hit isn't shown",
+                        ),
+                    ],
+                ),
+                result(two, "second", 22, Some(Tier::Weak), vec![]),
+                result(three, "a listed alert", 23, None, vec![]),
+            ],
+            lanes_used: vec![SearchLane::Lexical, SearchLane::Semantic],
+            excluded_test_alerts: Some(3),
+            hint: Some(format!("did you mean ipv4:{HOSTILE}")),
+            warnings: vec![
+                "The text search failed, so its matches are missing. Try again.".to_owned(),
+            ],
+            ..SearchResponse::default()
+        };
+        let view = search_view(
+            &query,
+            Some(&response),
+            vec![HOSTILE.to_owned()],
+            chrono_tz::Tz::UTC,
+        );
+        assert_eq!(view.rows.len(), 3);
+        assert_eq!(view.rows[0].tier, Some("exact"));
+        assert_eq!(view.rows[0].hits.len(), 5, "ace3's five");
+        assert_eq!(
+            view.rows[0].hits[2].text.chars().count(),
+            MAX_SNIPPET_CHARS + 1,
+            "cut, with a mark"
+        );
+        assert_eq!(
+            view.rows[0].hits[4].kind, "other",
+            "a kind is one of the index's or none"
+        );
+        assert_eq!(view.rows[2].tier, None);
+        assert_eq!(view.left_out.as_ref().map(|left| left.0), Some(3));
+        let html = drawn_safely(&SearchPage {
+            layout: Layout::new("n0nce", Theme::Dark, Some("alice".to_owned()), "/search"),
+            view,
+        });
+        for part in [
+            // the query back in the box, the filters kept, and the list they lead to
+            &format!(r#"name="q" maxlength="2000" value="{HOSTILE_ESCAPED}""#) as &str,
+            r#"<input type="hidden" name="f" value="disposition:OPEN">"#,
+            r#"<input type="hidden" name="f" value="!tag:whitelisted">"#,
+            r#"href="/?f=disposition%3AOPEN&#38;f=%21tag%3Awhitelisted""#,
+            r#"href="/help/search/query-language""#,
+            // the notices
+            &format!(r#"<p class="warning">{HOSTILE_ESCAPED}</p>"#),
+            r#"<p class="warning">The text search failed, so its matches are missing. Try again.</p>"#,
+            &format!(r#"<p class="search-hint">did you mean ipv4:{HOSTILE_ESCAPED}</p>"#),
+            // the count, and what was left out with the link that includes it
+            "47 alerts",
+            "3 test-run alerts left out.",
+            r#"tests=1">Include them</a>"#,
+            // each alert, its tier as text, its hits with where they came from
+            "<td>21</td>",
+            &format!(r#"<a href="/alerts/{one}">{HOSTILE_ESCAPED}</a>"#),
+            r#"<span class="search-tier search-tier-exact">exact match</span>"#,
+            r#"<div class="search-hit search-hit-observable"><span class="search-hit-kind">observable</span> <span class="search-hit-title">ipv4</span> <span class="search-hit-text">10.20.30.40</span></div>"#,
+            &format!(
+                r#"<span class="search-hit-title">{HOSTILE_ESCAPED}</span> <span class="search-hit-text">{HOSTILE_ESCAPED}</span>"#
+            ),
+            r#"<span class="search-tier search-tier-weak">weak match</span>"#,
+            r#"<div class="search-hit search-hit-other">"#,
+            &format!(r#"<a href="/alerts/{three}">a listed alert</a>"#),
+            // the pages either side
+            r#"rel="prev">Previous</a>"#,
+            r#"page=3" rel="next">Next</a>"#,
+        ] {
+            assert!(html.contains(part), "{part}: {html}");
+        }
+        assert!(!html.contains("a sixth hit"), "{html}");
+        assert_eq!(
+            html.matches("search-evidence").count(),
+            2,
+            "a listing has no evidence row: {html}"
+        );
+        assert!(
+            !html.contains("data-on-interval"),
+            "a search doesn't refresh itself"
+        );
+
+        // a query the language refused: its errors, and no count
+        let refused = SearchResponse {
+            errors: vec![format!("alert_date:{HOSTILE} can't be used")],
+            ..SearchResponse::default()
+        };
+        let html = drawn_safely(&SearchPage {
+            layout: Layout::new("n0nce", Theme::Dark, Some("alice".to_owned()), "/search"),
+            view: search_view(&query, Some(&refused), Vec::new(), chrono_tz::Tz::UTC),
+        });
+        assert!(
+            html.contains(&format!(
+                r#"<p class="error">alert_date:{HOSTILE_ESCAPED} can&#39;t be used</p>"#
+            )),
+            "{html}"
+        );
+        assert!(!html.contains(r#"class="count""#), "{html}");
+        // nothing asked: the box alone
+        let (blank, _) = SearchQuery::parse(&[]).expect("a search");
+        let html = drawn_safely(&SearchPage {
+            layout: Layout::new("n0nce", Theme::Dark, Some("alice".to_owned()), "/search"),
+            view: search_view(&blank, None, Vec::new(), chrono_tz::Tz::UTC),
+        });
+        assert!(
+            html.contains(r#"name="q""#) && !html.contains("Nothing matched"),
+            "{html}"
+        );
+        // similar alerts, with the test runs included and the link that leaves them out
+        let (similar, _) =
+            SearchQuery::parse(&pairs(&[("similar", &one.to_string()), ("tests", "1")]))
+                .expect("a search");
+        let found = SearchResponse {
+            total: 0,
+            ..SearchResponse::default()
+        };
+        let html = drawn_safely(&SearchPage {
+            layout: Layout::new("n0nce", Theme::Dark, Some("alice".to_owned()), "/search"),
+            view: search_view(&similar, Some(&found), Vec::new(), chrono_tz::Tz::UTC),
+        });
+        for part in [
+            "<h1>Similar alerts</h1>",
+            &format!(r#"Alerts whose text is like <a href="/alerts/{one}">{one}</a>"#) as &str,
+            "test-run alerts included.",
+            &format!(r#"<a href="/search?similar={one}">Leave them out</a>"#),
+            "Nothing matched.",
+        ] {
+            assert!(html.contains(part), "{part}: {html}");
+        }
+
+        // a URL only a hand makes is refused
+        for bad in [
+            pairs(&[("similar", "not-an-id")]),
+            pairs(&[("q", "x"), ("page", "0")]),
+            pairs(&[("q", "x"), ("page", "501")]),
+            pairs(&[("q", "x"), ("page", "two")]),
+            pairs(&[("q", "x"), ("f", "no_such_filter:x")]),
+            pairs(&[("q", &"x".repeat(2001))]),
+        ] {
+            assert!(SearchQuery::parse(&bad).is_err(), "{bad:?}");
+        }
+    }
+
+    /// An index for the pages' tests: an alert matches a text its title contains.
+    #[derive(Debug)]
+    struct TitleIndex(ace_core::Db);
+
+    impl TitleIndex {
+        async fn titled(&self, pattern: String, scope: &Scoped) -> LaneResult {
+            let rows: Vec<(Uuid, String)> = sqlx::query_as(
+                "SELECT id, description FROM analysis.roots
+                 WHERE alerted_at IS NOT NULL AND description ILIKE $1
+                   AND ($2::text[] IS NULL OR NOT queue = ANY ($2)) AND ($3::text[] IS NULL OR queue = ANY ($3))
+                   AND ($4::uuid[] IS NULL OR NOT id = ANY ($4))
+                 ORDER BY alerted_at, id",
+            )
+            .bind(pattern)
+            .bind(&scope.not_queues)
+            .bind(&scope.queues)
+            .bind(&scope.except)
+            .fetch_all(self.0.pool())
+            .await
+            .expect("reads");
+            rows.into_iter()
+                .map(|(alert, title)| {
+                    (
+                        alert,
+                        vec![hit(SearchLane::Semantic, "alert", None, &title)],
+                    )
+                })
+                .collect()
+        }
+    }
+
+    impl SearchIndex for TitleIndex {
+        fn dense<'a>(
+            &'a self,
+            text: &'a str,
+            scope: &'a Scoped,
+            _: usize,
+            _: usize,
+            _: f64,
+        ) -> IndexFuture<'a, LaneResult> {
+            Box::pin(async move { Ok(self.titled(format!("%{text}%"), scope).await) })
+        }
+
+        fn sparse<'a>(
+            &'a self,
+            _: &'a str,
+            _: &'a Scoped,
+            _: usize,
+            _: usize,
+        ) -> IndexFuture<'a, Option<LaneResult>> {
+            Box::pin(async { Ok(None) })
+        }
+
+        fn similar<'a>(
+            &'a self,
+            _: Uuid,
+            scope: &'a Scoped,
+            _: usize,
+            _: usize,
+            _: f64,
+        ) -> IndexFuture<'a, LaneResult> {
+            Box::pin(async move { Ok(self.titled("%invoice%".to_owned(), scope).await) })
+        }
+
+        fn index_next(&self) -> IndexFuture<'_, Option<Indexed>> {
+            Box::pin(async { Ok(None) })
+        }
+    }
+
+    /// The page through the server: the login page for someone signed out, 403 without `alert:read`, a
+    /// search, an exact term, a listing, similar alerts, the test-run alerts left out and included, the
+    /// errors, and the two places that lead to it.
+    #[tokio::test]
+    async fn search_is_asked_through_the_server() {
+        let stack = stack_of_db(Catalog::new(vec![]), |service, db| {
+            Gui::with_limits(
+                service.with_search(Arc::new(TitleIndex(db.clone())), SearchConfig::default()),
+                Transport::Plain,
+                LiveLimits::default(),
+            )
+        })
+        .await;
+        let hostile_title = format!("{HOSTILE} docusign invoice");
+        let first = list_alert(&stack, &hostile_title, "2026-03-01T00:00:00Z", None).await;
+        let second = list_alert(
+            &stack,
+            "docusign reminder",
+            "2026-03-02T00:00:00Z",
+            Some("DELIVERY"),
+        )
+        .await;
+        let test_run = list_alert(
+            &stack,
+            "docusign invoice test run",
+            "2026-03-03T00:00:00Z",
+            None,
+        )
+        .await;
+        sqlx::query("UPDATE analysis.roots SET queue = 'svs' WHERE id = $1")
+            .bind(test_run)
+            .execute(stack.test_db.db().pool())
+            .await
+            .expect("moved");
+        sqlx::query("INSERT INTO analysis.observables (root_id, type, value) VALUES ($1, 'ipv4', '10.20.30.41')")
+            .bind(second)
+            .execute(stack.test_db.db().pool())
+            .await
+            .expect("an observable");
+
+        // signed out: the login page, and back here after
+        let page = stack
+            .get("/search?q=docusign")
+            .send()
+            .await
+            .expect("answered");
+        assert_eq!(page.status(), StatusCode::SEE_OTHER);
+        assert_eq!(location(&page), "/login?next=%2Fsearch%3Fq%3Ddocusign");
+
+        let analyst = user(&stack, "analyst").await;
+        grant_alert_read(&stack, &analyst).await;
+        let _outsider = user(&stack, "outsider").await;
+        let (an, out) = (
+            session_of(&stack, "analyst").await,
+            session_of(&stack, "outsider").await,
+        );
+        let get =
+            |session: &str, path: &str| stack.get(path).header("cookie", cookie(session)).send();
+        let text =
+            |response: reqwest::Response| async move { response.text().await.expect("a page") };
+
+        // without alert:read: 403, whatever is asked, and nothing of the alerts
+        for path in [
+            "/search",
+            "/search?q=docusign",
+            &format!("/search?similar={first}") as &str,
+            "/search?f=disposition:OPEN",
+        ] {
+            let refused = get(&out, path).await.expect("answered");
+            assert_eq!(refused.status(), StatusCode::FORBIDDEN, "{path}");
+            let body = text(refused).await;
+            assert!(
+                body.contains("alert:read") && !body.contains("docusign reminder"),
+                "{path}: {body}"
+            );
+        }
+
+        // the box alone
+        let blank = get(&an, "/search").await.expect("answered");
+        assert_eq!(blank.status(), StatusCode::OK);
+        let body = text(blank).await;
+        assert!(
+            body.contains(
+                r#"<form method="get" action="/search" class="search-box" role="search">"#
+            ),
+            "{body}"
+        );
+        assert!(!body.contains("Nothing matched"), "{body}");
+
+        // a search: the alerts found, best first, a hostile title as text, the test run left out and counted
+        let found = get(&an, "/search?q=docusign").await.expect("answered");
+        assert_eq!(found.status(), StatusCode::OK);
+        let body = text(found).await;
+        assert!(
+            body.contains("2 alerts, and 1 test-run alert left out."),
+            "{body}"
+        );
+        assert!(
+            body.contains(&format!(
+                r#"<a href="/alerts/{first}">{HOSTILE_ESCAPED} docusign invoice</a>"#
+            )),
+            "{body}"
+        );
+        assert!(
+            body.contains(&format!(
+                r#"<a href="/alerts/{second}">docusign reminder</a>"#
+            )),
+            "{body}"
+        );
+        assert!(
+            body.contains(r#"<span class="search-hit-text">docusign reminder</span>"#),
+            "{body}"
+        );
+        assert!(body.contains("strong match"), "{body}");
+        assert!(
+            !body.contains("<script>alert") && !body.contains("test run</a>"),
+            "{body}"
+        );
+        assert!(
+            body.contains(r#"href="/search?q=docusign&#38;tests=1">Include them</a>"#),
+            "{body}"
+        );
+        // including them
+        let body = text(
+            get(&an, "/search?q=docusign&tests=1")
+                .await
+                .expect("answered"),
+        )
+        .await;
+        assert!(
+            body.contains("3 alerts, test-run alerts included."),
+            "{body}"
+        );
+        assert!(
+            body.contains(r#"<a href="/search?q=docusign">Leave them out</a>"#),
+            "{body}"
+        );
+        // an exact term first, with what it matched; a filter from a share link narrows it
+        let body = text(
+            get(&an, "/search?q=docusign+ipv4:10.20.30.41")
+                .await
+                .expect("answered"),
+        )
+        .await;
+        assert!(
+            body.contains("exact match")
+                && body.contains(r#"<span class="search-hit-title">ipv4</span>"#),
+            "{body}"
+        );
+        let exact_at = body.find("docusign reminder</a>").expect("the exact match");
+        assert!(
+            exact_at < body.find("docusign invoice</a>").expect("the other"),
+            "exact matches come first: {body}"
+        );
+        let body = text(
+            get(&an, "/search?q=docusign&f=disposition:DELIVERY")
+                .await
+                .expect("answered"),
+        )
+        .await;
+        assert!(
+            body.contains("1 alert")
+                && body.contains("docusign reminder</a>")
+                && !body.contains("docusign invoice</a>"),
+            "{body}"
+        );
+        assert!(
+            body.contains(r#"<input type="hidden" name="f" value="disposition:DELIVERY">"#),
+            "{body}"
+        );
+        // a listing: filters and no text, with no evidence under an alert
+        let body = text(
+            get(&an, "/search?q=disposition:DELIVERY")
+                .await
+                .expect("answered"),
+        )
+        .await;
+        assert!(
+            body.contains("docusign reminder</a>") && !body.contains("search-evidence"),
+            "{body}"
+        );
+        // similar alerts: the alert itself is never among them
+        let body = text(
+            get(&an, &format!("/search?similar={second}"))
+                .await
+                .expect("answered"),
+        )
+        .await;
+        assert!(
+            body.contains("<h1>Similar alerts</h1>") && body.contains(&format!("/alerts/{first}")),
+            "{body}"
+        );
+        assert!(
+            body.contains("1 alert, and 1 test-run alert left out."),
+            "{body}"
+        );
+        // nothing found, and a bare indicator's hint
+        let body = text(get(&an, "/search?q=10.99.99.99").await.expect("answered")).await;
+        assert!(
+            body.contains("Nothing matched.") && body.contains("ipv4:10.99.99.99"),
+            "{body}"
+        );
+        // a term the language can't honor is said, and nothing is searched
+        let wrong = get(&an, "/search?q=docusign+alert_date:-7dd")
+            .await
+            .expect("answered");
+        assert_eq!(wrong.status(), StatusCode::OK);
+        let body = text(wrong).await;
+        assert!(
+            body.contains(r#"<p class="error">alert_date:"#)
+                && !body.contains("docusign reminder</a>"),
+            "{body}"
+        );
+
+        // what only a hand-made URL asks
+        for (path, status) in [
+            (
+                "/search?similar=not-an-id".to_owned(),
+                StatusCode::BAD_REQUEST,
+            ),
+            ("/search?q=x&page=0".to_owned(), StatusCode::BAD_REQUEST),
+            (
+                "/search?q=x&f=no_such_filter:x".to_owned(),
+                StatusCode::BAD_REQUEST,
+            ),
+            (
+                format!("/search?q={}", "x".repeat(2001)),
+                StatusCode::BAD_REQUEST,
+            ),
+            (
+                format!("/search?similar={}", Uuid::new_v4()),
+                StatusCode::NOT_FOUND,
+            ),
+        ] {
+            let refused = get(&an, &path).await.expect("answered");
+            assert_eq!(refused.status(), status, "{path}");
+        }
+
+        // the two places that lead here: the alert list's box, with the list's filters, and an alert's page
+        let body = text(
+            get(&an, "/?f=disposition:DELIVERY")
+                .await
+                .expect("answered"),
+        )
+        .await;
+        let form = body
+            .split(r#"<form method="get" action="/search" class="search-box" role="search">"#)
+            .nth(1)
+            .and_then(|rest| rest.split("</form>").next())
+            .expect("the search box");
+        assert!(
+            form.contains(r#"<input type="hidden" name="f" value="disposition:DELIVERY">"#),
+            "{form}"
+        );
+        assert!(form.contains(r#"name="q""#), "{form}");
+        let body = text(
+            get(&an, &format!("/alerts/{second}"))
+                .await
+                .expect("answered"),
+        )
+        .await;
+        assert!(
+            body.contains(&format!(r#"<a href="/search?similar={second}""#)),
+            "{body}"
+        );
+        // and the guide the box links to
+        let guide = get(&an, "/help/search/query-language")
+            .await
+            .expect("answered");
+        assert_eq!(guide.status(), StatusCode::OK);
+        assert!(text(guide).await.contains("Searching alerts"));
+        // nothing here wrote anything
+        let audited: i64 = sqlx::query_scalar("SELECT count(*) FROM service.audit WHERE action LIKE '%search%' OR action LIKE '%similar%'")
+            .fetch_one(stack.test_db.db().pool())
+            .await
+            .expect("counts");
+        assert_eq!(audited, 0);
+    }
 }

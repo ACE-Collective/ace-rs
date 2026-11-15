@@ -119,6 +119,18 @@ pub struct AlertPage {
     pub total: i64,
 }
 
+/// What search keeps a page of the list to (PLAN.md 7.11): only these alerts, none of those, and past
+/// the first `offset` of what's left. The list itself asks for none of it.
+#[derive(Debug, Clone, Copy, Default)]
+pub(crate) struct Scope<'a> {
+    pub only: Option<&'a [Uuid]>,
+    pub except: Option<&'a [Uuid]>,
+    pub offset: i64,
+    /// Only alerts made in this window, both ends included: a search request's own times, which the
+    /// alert date filter's minutes in the viewer's timezone can't say.
+    pub window: Option<(DateTime<Utc>, DateTime<Utc>)>,
+}
+
 /// How long the alert list's query may run. A filter that takes longer is refused, to be narrowed.
 pub const LIST_TIMEOUT: &str = "10s";
 
@@ -200,7 +212,7 @@ impl Default for AlertQuery {
 /// default order's, 5.5's cursor. The key is the text's last part, so a queue's name may hold a `.`, and
 /// an owner's name anything; an alert nobody owns has the empty key.
 #[derive(Debug, Clone, PartialEq, Eq)]
-struct AlertCursor {
+pub(crate) struct AlertCursor {
     sort: AlertSort,
     descending: bool,
     id: Uuid,
@@ -547,10 +559,14 @@ impl Service {
         let after = after
             .map(|after| AlertCursor::decode(after, query))
             .transpose()?;
-        let page = self.alert_page(actor, query, limit, after.as_ref()).await?;
+        let page = self
+            .alert_page(actor, query, limit, after.as_ref(), Scope::default())
+            .await?;
         if page.alerts.is_empty() && after.is_some() {
             // past the end, the page has no row to carry the total, so the first page counts
-            let first = self.alert_page(actor, query, 1, None).await?;
+            let first = self
+                .alert_page(actor, query, 1, None, Scope::default())
+                .await?;
             return Ok(AlertPage {
                 total: first.total,
                 ..page
@@ -559,12 +575,16 @@ impl Service {
         Ok(page)
     }
 
-    async fn alert_page(
+    /// A page of the list within `scope`: search's (PLAN.md 7.11), which filters the alerts it found
+    /// through this one query and pages a listing by offset, as ace3's does. A page past the end has no
+    /// row to carry `total`: `crate::search` asks again for it.
+    pub(crate) async fn alert_page(
         &self,
         actor: &crate::Actor,
         query: &AlertQuery,
         limit: i64,
         after: Option<&AlertCursor>,
+        scope: Scope<'_>,
     ) -> Result<AlertPage, ServiceError> {
         let f = Resolved::new(FilterScreen::Alerts, &query.filters, Utc::now(), query.tz)?;
         let window = |slug, inverted| f.windows(slug, inverted).map(split);
@@ -670,6 +690,10 @@ impl Service {
                                     count(*) OVER () AS total
                              FROM analysis.roots r
                              WHERE r.alerted_at IS NOT NULL
+                               -- search's: only the alerts it found
+                               AND ($49::uuid[] IS NULL OR r.id = ANY ($49::uuid[]))
+                               AND ($51::uuid[] IS NULL OR NOT r.id = ANY ($51::uuid[]))
+                               AND ($52::timestamptz IS NULL OR r.alerted_at BETWEEN $52 AND $53)
                                -- Alert Date, Event Date and Disposition Date: any of the windows, or none
                                AND ($6::timestamptz[] IS NULL OR EXISTS (
                                      SELECT FROM unnest($6::timestamptz[], $7::timestamptz[]) w(s, e)
@@ -843,7 +867,7 @@ impl Service {
                              CASE WHEN $1 <> 'alert_date' AND NOT $2 THEN m.k END ASC,
                              CASE WHEN $2 THEN m.id END DESC,
                              CASE WHEN NOT $2 THEN m.id END ASC
-                           LIMIT $5"#,
+                           LIMIT $5 OFFSET $50"#,
                         sort.as_str(),
                         descending,
                         after_id,
@@ -892,6 +916,11 @@ impl Service {
                         owned_none,
                         not_owned.as_deref(),
                         not_owned_none,
+                        scope.only,
+                        scope.offset,
+                        scope.except,
+                        scope.window.map(|(start, _)| start),
+                        scope.window.map(|(_, end)| end),
                     )
                     .fetch_all(tx.conn())
                     .await

@@ -26,6 +26,8 @@ ace-mod-splunk = { path = "../ace-mod-splunk" }
 ace-pool = { path = "../ace-pool" }
 ace-results = { path = "../ace-results" }
 ace-sdk = { path = "../ace-sdk" }
+# The search index and its embedding model, which `ace serve` gives the service (PLAN.md 7.11).
+ace-search = { path = "../ace-search" }
 ace-service = { path = "../ace-service" }
 ace-store = { path = "../ace-store" }
 ace-x509 = { path = "../ace-x509" }

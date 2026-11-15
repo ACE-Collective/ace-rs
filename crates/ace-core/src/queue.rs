@@ -237,6 +237,18 @@ pub async fn check_completion(tx: &mut Tx<'_>, root: Uuid) -> Result<Option<i32>
         )
         .execute(tx.conn())
         .await?;
+        // an alert's text is indexed for search on its completion (PLAN.md 7.11, `ace_search`): a new
+        // request, or the one waiting made new, so an indexing under way doesn't count for this pass
+        sqlx::query!(
+            "INSERT INTO search.due (root_id)
+             SELECT id FROM analysis.roots WHERE id = $1 AND alerted_at IS NOT NULL
+             ON CONFLICT (root_id) DO UPDATE
+                 SET due_at = now(), version = search.due.version + 1, attempts = 0,
+                     claimed_until = NULL, failed_at = NULL, error = NULL",
+            root,
+        )
+        .execute(tx.conn())
+        .await?;
         // ace3's email archiver indexes the URLs below an email it archived in its post-analysis
         crate::email_archive::index_urls(tx, root).await?;
     }

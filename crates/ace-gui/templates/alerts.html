@@ -33,6 +33,17 @@
     <span class="exports">Export: <a href="{{ view.export_csv }}">CSV</a> <a href="{{ view.export_ndjson }}">NDJSON</a></span>
   </div>
 
+  {#- ace3's search box (PLAN.md 7.11, src/search.rs): a search within this list's filters -#}
+  <form method="get" action="/search" class="search-box" role="search">
+    {%- for f in view.f %}
+    <input type="hidden" name="f" value="{{ f }}">
+    {%- endfor %}
+    <label for="search-query">Search</label>
+    <input type="search" id="search-query" name="q" maxlength="2000" placeholder="docusign invoice, ipv4:10.20.30.40, tag:phish">
+    <button type="submit">Search</button>
+    <a href="/help/search/query-language">How to search</a>
+  </form>
+
   <div id="alert-filter-bar" class="filter-bar">
     {%- if let Some(error) = view.error %}
     <p class="error">That filter couldn't be used: {{ error }}</p>

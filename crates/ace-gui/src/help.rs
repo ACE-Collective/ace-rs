@@ -121,47 +121,62 @@ macro_rules! svs_image {
 }
 
 /// The guide sets, in the index's order: ace3's `GUIDE_SETS`.
-pub static GUIDE_SETS: &[GuideSet] = &[GuideSet {
-    slug: "svs",
-    title: "Signature Validation System (SVS)",
-    description: "Testing ACE's detection signatures: YARA regression testing against graded samples, \
+pub static GUIDE_SETS: &[GuideSet] = &[
+    GuideSet {
+        slug: "svs",
+        title: "Signature Validation System (SVS)",
+        description: "Testing ACE's detection signatures: YARA regression testing against graded samples, \
                   and Atomic Red Team runs that measure which ATT&CK techniques ACE detects.",
-    guides: &[
-        Guide {
-            slug: "beginners",
-            title: "Beginner's guide",
-            audience: "New to ACE, or to signature validation and regression testing? Start here.",
-            source: include_str!("../help/svs/beginners.md"),
-        },
-        Guide {
-            slug: "users",
-            title: "User's guide",
-            audience: "For analysts who run atomics, review their results and write or fix \
+        guides: &[
+            Guide {
+                slug: "beginners",
+                title: "Beginner's guide",
+                audience: "New to ACE, or to signature validation and regression testing? Start here.",
+                source: include_str!("../help/svs/beginners.md"),
+            },
+            Guide {
+                slug: "users",
+                title: "User's guide",
+                audience: "For analysts who run atomics, review their results and write or fix \
                        signatures from them.",
-            source: include_str!("../help/svs/users.md"),
-        },
-        Guide {
-            slug: "administrators",
-            title: "Administrator's guide",
-            audience: "For ACE administrators who set SVS up and keep it running.",
-            source: include_str!("../help/svs/administrators.md"),
-        },
-        Guide {
-            slug: "developers",
-            title: "Developer's guide",
-            audience: "For developers who want to understand how SVS works, to improve it, build \
+                source: include_str!("../help/svs/users.md"),
+            },
+            Guide {
+                slug: "administrators",
+                title: "Administrator's guide",
+                audience: "For ACE administrators who set SVS up and keep it running.",
+                source: include_str!("../help/svs/administrators.md"),
+            },
+            Guide {
+                slug: "developers",
+                title: "Developer's guide",
+                audience: "For developers who want to understand how SVS works, to improve it, build \
                        on it or fix it.",
-            source: include_str!("../help/svs/developers.md"),
-        },
-    ],
-    images: &[
-        svs_image!("admin-components.svg"),
-        svs_image!("architecture.svg"),
-        svs_image!("attribution.svg"),
-        svs_image!("run-states.svg"),
-        svs_image!("svs-loop.svg"),
-    ],
-}];
+                source: include_str!("../help/svs/developers.md"),
+            },
+        ],
+        images: &[
+            svs_image!("admin-components.svg"),
+            svs_image!("architecture.svg"),
+            svs_image!("attribution.svg"),
+            svs_image!("run-states.svg"),
+            svs_image!("svs-loop.svg"),
+        ],
+    },
+    GuideSet {
+        slug: "search",
+        title: "Search",
+        description: "Finding alerts: by the meaning of their text, by an indicator, a tag or an id named \
+                  exactly, and the alerts like one you have open.",
+        guides: &[Guide {
+            slug: "query-language",
+            title: "Searching alerts",
+            audience: "For anyone using the search box on the alert list.",
+            source: include_str!("../help/search/query-language.md"),
+        }],
+        images: &[],
+    },
+];
 
 /// The SVS guides, which the SVS tabs and the signatures hub link to.
 pub const SVS_GUIDES: &str = "/help/svs/";

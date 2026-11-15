@@ -512,6 +512,23 @@
 //! task's state, the runs of all of them or of one (`?task=`, `?runs=` up to 500), newest first, and the
 //! records the monitoring checks last emitted (`ace_core::monitoring` maps each of ace3's monitors). ace3
 //! has no route for either: its monitors' records and its cron runs' outcomes go to fluent-bit.
+//!
+//! `/api/search/v1` is ace3's `search` router (PLAN.md 7.11), over `ace_service::search`, under
+//! `alert:read` as ace3's is: `POST /alerts` and `POST /similar`, each a read whose question is its
+//! body. A request with neither a query nor a filter is 400, where ace3 answers 422. What differs in
+//! the bodies:
+//! - `filters` has no `alert_types`: a root has no alert type yet. Its `filters` member takes the rest
+//!   of the alert screen's filters as entries, as ace3's does, and `insert_date_start` and
+//!   `insert_date_end` are a window of their own that an `Alert Date` entry can't be combined with.
+//! - An observable pair that its type can't take is one of the query's `errors` when it's typed in the
+//!   query, and 400 when it's in `filters`, as ace3's is.
+//! - A result's `alert` is the alert list's own body, with its analysis state, its owner and its SVS
+//!   status, where ace3's is a summary with its tool, its type and its node, which roots here don't
+//!   have.
+//! - `hint` and `warnings` are new: how to name a bare indicator, which ace3's GUI and CLI work out for
+//!   themselves, and the lanes that didn't run, which ace3 only logs. `tz` says where a relative date is.
+//! - ace3's AI API (`/ai/v1/search`), the same two routes under `ai:search` with a rate limit and its
+//!   own audit lines, isn't here: no step brings the AI API.
 use std::net::SocketAddr;
 
 use ace_core::bucket::Bucket;
@@ -542,6 +559,7 @@ mod observable_comments;
 mod observables;
 mod params;
 mod remediation;
+mod search;
 mod svs_association;
 mod svs_catalog;
 mod svs_coverage;
@@ -770,6 +788,14 @@ impl Web {
                 patch(detection::set_expiration).layer(json_limit),
             )
             .route("/api/monitoring/v1/state", get(monitoring::state))
+            .route(
+                "/api/search/v1/alerts",
+                post(search::alerts).layer(json_limit),
+            )
+            .route(
+                "/api/search/v1/similar",
+                post(search::similar).layer(json_limit),
+            )
             .route("/api/hunts/v1/hunts", get(hunts::list))
             .route("/api/hunts/v1/hunts/{uuid}", get(hunts::one))
             .route(
@@ -1370,6 +1396,8 @@ impl Web {
         detection::delete,
         detection::set_expiration,
         monitoring::state,
+        search::alerts,
+        search::similar,
         hunts::list,
         hunts::one,
         hunts::suppressions,
@@ -1587,6 +1615,7 @@ impl Web {
         (name = "file_collections", description = "Files fetched from hosts for alerts, and their tries"),
         (name = "lists", description = "The analyst-edited lists, such as the email whitelists, which apply to the next task that reads them"),
         (name = "monitoring", description = "What the monitoring checks last found, and the scheduled tasks' runs"),
+        (name = "search", description = "Search over alerts: exact lookups, the meaning of their text, and alerts like one"),
     )
 )]
 pub struct ApiDoc;

@@ -1054,14 +1054,14 @@ async fn an_actor_with_no_grants_is_refused_every_write() {
     let (rows,): (i64,) = sqlx::query_as(
         "SELECT count(*) FROM service.permissions
          WHERE component IS NULL
-            OR (component NOT IN ('bootstrap', 'hunter', 'alert_routing')
+            OR (component NOT IN ('bootstrap', 'hunter', 'alert_routing', 'search_indexer')
                 AND component NOT LIKE 'scheduler:%')",
     )
     .fetch_one(db.pool())
     .await
     .expect("counts");
-    // the migrations' grants are the bootstrap's, the hunter's, the scheduler's tasks' and alert
-    // routing's (0022, 0034, 0036, 0050)
+    // the migrations' grants are the bootstrap's, the hunter's, the scheduler's tasks', alert
+    // routing's and the search indexer's (0022, 0034, 0036, 0050, 0061)
     assert_eq!(rows, 0, "nothing was granted, and no admin was seeded");
 }
 
@@ -47818,5 +47818,1602 @@ mod ownership_tests {
             .await
             .expect("seeds")[0]
             .id
+    }
+}
+
+/// PLAN.md 7.11: ace3's `tests/saq/search/` cases that are the read path's, as Rust tests. The index's
+/// own (documents, chunks, the model, the retrieval regression) are `ace-search`'s, whose `tests.rs`
+/// maps every file. Here:
+///
+/// - `test_syntax.py`: `syntax_*`, one test for each of its classes, each case an assertion in it.
+/// - `test_query.py`: `TestFuse` and `TestTiers` are `fusion_and_tiers`; `TestSearchAlerts` is
+///   `search_*` over a stub index; `TestFilterListing` and `test_listing.py` are `listing_*`;
+///   `TestMergeParsedFilters` is `the_query_s_filters_narrow_the_request_s`; `TestTestAlerts` is
+///   `test_alerts_*`. `TestPayloadFilter` and `TestQdrantCalls` are the Qdrant index's, which
+///   `ace-search`'s comparison runs for real.
+/// - `test_lexical.py`: `lexical_*`.
+/// - `tests/app/analysis/views/session/test_search_filters.py`: `the_lanes_scope_is_the_filters_they_can_apply`,
+///   with its owner case, which 7.17 left for this step.
+/// - `test_service.py`'s permission and task cases that aren't Redis's: `the_indexer_*`.
+mod search_tests {
+    use std::sync::Mutex;
+
+    use ace_service::search::syntax::{self, ExactTerm};
+    use ace_service::search::{
+        self, IndexError, IndexFuture, Indexed, LaneResult, Scoped, SearchConfig, SearchHit,
+        SearchIndex, SearchLane, SearchRequest, SimilarRequest, Tier,
+    };
+    use chrono_tz::Tz;
+
+    use super::*;
+
+    fn text(name: &str, inverted: bool, values: &[&str]) -> FilterEntry {
+        FilterEntry::text(name, inverted, values)
+    }
+
+    /// ace3's `TestFreeText`.
+    #[test]
+    fn syntax_free_text() {
+        // test_prose_produces_no_terms
+        let parsed = syntax::parse("vendor mailer false positive");
+        assert_eq!(parsed.text, "vendor mailer false positive");
+        assert!(parsed.exact.is_empty() && parsed.filters.is_empty() && parsed.errors.is_empty());
+        // test_bare_indicator_is_free_text
+        for bare in [
+            "10.20.30.40",
+            "bob@example.com",
+            FILE_SHA256,
+            "credential-harvest",
+        ] {
+            let parsed = syntax::parse(bare);
+            assert_eq!(parsed.text, bare);
+            assert!(parsed.exact.is_empty() && parsed.filters.is_empty());
+        }
+        // test_url_is_not_a_field_term, test_windows_path_is_not_a_field_term, test_unknown_field_stays_literal
+        for literal in [
+            "https://evil.example/a?b=c",
+            r"C:\windows\system32\cmd.exe",
+            "foo:bar",
+        ] {
+            let parsed = syntax::parse(literal);
+            assert_eq!(parsed.text, literal);
+            assert!(
+                parsed.exact.is_empty() && parsed.filters.is_empty() && parsed.errors.is_empty()
+            );
+        }
+        // test_blank
+        for blank in ["", "   "] {
+            assert!(syntax::parse(blank).is_empty());
+            assert_eq!(syntax::parse(blank), syntax::ParsedQuery::default());
+        }
+    }
+
+    /// ace3's `TestExactTerms`.
+    #[test]
+    fn syntax_exact_terms() {
+        // test_tag
+        assert_eq!(
+            syntax::parse("tag:phish").exact,
+            vec![ExactTerm::Tags(vec!["phish".to_owned()])]
+        );
+        // test_observable_type_shorthand, any case
+        let pair = |kind: &str, value: &str| {
+            ExactTerm::Observables(vec![(kind.to_owned(), value.to_owned())])
+        };
+        assert_eq!(
+            syntax::parse("ipv4:10.20.30.40").exact,
+            vec![pair("ipv4", "10.20.30.40")]
+        );
+        assert_eq!(
+            syntax::parse("IPv4:10.20.30.40").exact,
+            vec![pair("ipv4", "10.20.30.40")]
+        );
+        // test_signature_id_shorthand: any type this binary has is a prefix
+        for kind in ObservableKind::all() {
+            if *kind == ObservableKind::File {
+                continue;
+            }
+            let parsed = syntax::parse(&format!("{}:some-value", kind.as_str()));
+            if FilterScreen::Alerts
+                .filters()
+                .iter()
+                .any(|spec| spec.slug == kind.as_str())
+            {
+                continue;
+            }
+            assert_eq!(
+                parsed.exact,
+                vec![pair(kind.as_str(), "some-value")],
+                "{kind:?}"
+            );
+        }
+        // test_explicit_observable_splits_at_first_colon_only
+        assert_eq!(
+            syntax::parse("observable:url:https://evil.example:8443/a").exact,
+            vec![pair("url", "https://evil.example:8443/a")]
+        );
+        // test_explicit_observable_accepts_an_unregistered_type: ace4 has no types beyond its own, so
+        // an unknown one is refused by the one gate for a filter, and reported
+        let parsed = syntax::parse("observable:made_up:value");
+        assert!(parsed.exact.is_empty());
+        assert_eq!(parsed.errors.len(), 1, "{:?}", parsed.errors);
+        // test_explicit_observable_needs_a_type
+        let parsed = syntax::parse("observable:justavalue");
+        assert!(parsed.exact.is_empty());
+        assert!(
+            parsed.errors[0].contains("observable:<type>:<value>"),
+            "{:?}",
+            parsed.errors
+        );
+        // test_alert_uuid_and_prefix
+        let id = "1F2E3D4C-0000-4000-8000-000000000001";
+        assert_eq!(
+            syntax::parse(&format!("uuid:{id}")).exact,
+            vec![ExactTerm::Uuids(vec![id.to_lowercase()])]
+        );
+        assert_eq!(
+            syntax::parse("uuid:1f2e3d4c").exact,
+            vec![ExactTerm::Uuids(vec!["1f2e3d4c".to_owned()])]
+        );
+        assert_eq!(
+            syntax::parse("uuid:1f2e3d4c-00").exact,
+            vec![ExactTerm::Uuids(vec!["1f2e3d4c-00".to_owned()])]
+        );
+        // test_uuid_field_wins_over_the_uuid_observable_type: `uuid:` is the alert's id. ace4 has no
+        // observable type of that name, so the explicit form names a type that isn't one
+        assert!(matches!(
+            syntax::parse("uuid:1f2e3d4c").exact[0],
+            ExactTerm::Uuids(_)
+        ));
+        assert!("uuid".parse::<ObservableKind>().is_err());
+        let parsed = syntax::parse(&format!("observable:uuid:{id}"));
+        assert!(parsed.exact.is_empty());
+        assert_eq!(parsed.errors.len(), 1, "{:?}", parsed.errors);
+        // test_file_hash: a file is looked up by its sha256, lowercased
+        assert_eq!(
+            syntax::parse(&format!("file:{}", FILE_SHA256.to_uppercase())).exact,
+            vec![pair("file", FILE_SHA256)]
+        );
+        // test_terms_and_free_text_together
+        let parsed = syntax::parse("docusign tag:phish invoice ipv4:10.20.30.40");
+        assert_eq!(parsed.text, "docusign invoice");
+        assert_eq!(parsed.exact.len(), 2);
+        assert!(parsed.errors.is_empty());
+    }
+
+    /// ace3's `TestFilterTerms`, `TestDetectionPointTerms` and `TestAnalysisTerms`.
+    #[test]
+    fn syntax_filter_terms() {
+        // test_queue_and_disposition
+        let parsed = syntax::parse("queue:default disposition:DELIVERY,IGNORE");
+        assert!(parsed.exact.is_empty() && parsed.text.is_empty());
+        assert_eq!(
+            parsed.filters,
+            vec![
+                text("Queue", false, &["default"]),
+                text("Disposition", false, &["DELIVERY", "IGNORE"])
+            ]
+        );
+        // test_relative_date
+        assert_eq!(
+            syntax::parse("alert_date:-7d").filters,
+            vec![text("Alert Date", false, &["-7d"])]
+        );
+        // test_bad_date_is_an_error_not_a_dropped_filter
+        let parsed = syntax::parse("alert_date:-7dd docusign");
+        assert!(parsed.filters.is_empty());
+        assert_eq!(parsed.errors.len(), 1);
+        assert!(
+            parsed.errors[0].starts_with("alert_date:\"-7dd\""),
+            "{:?}",
+            parsed.errors
+        );
+        // test_inverted_tag_becomes_a_filter, with either mark
+        for query in ["-tag:whitelisted", "!tag:whitelisted"] {
+            let parsed = syntax::parse(query);
+            assert!(parsed.exact.is_empty());
+            assert_eq!(parsed.filters, vec![text("Tag", true, &["whitelisted"])]);
+        }
+        // test_inverted_observable_becomes_a_filter
+        let parsed = syntax::parse("-ipv4:10.20.30.40");
+        assert!(parsed.exact.is_empty());
+        assert_eq!(
+            parsed.filters,
+            vec![FilterEntry::new(
+                "Observable",
+                true,
+                vec![FilterValue::Pair(
+                    "ipv4".to_owned(),
+                    "10.20.30.40".to_owned()
+                )]
+            )]
+        );
+        // test_wildcard_tag_becomes_a_filter
+        let parsed = syntax::parse("tag:phish*");
+        assert!(parsed.exact.is_empty());
+        assert_eq!(parsed.filters, vec![text("Tag", false, &["phish*"])]);
+        // test_repeated_field_is_merged_not_anded
+        assert_eq!(
+            syntax::parse("queue:a queue:b").filters,
+            vec![text("Queue", false, &["a", "b"])]
+        );
+        // test_inverted_and_positive_forms_stay_separate
+        assert_eq!(
+            syntax::parse("queue:a -queue:b").filters,
+            vec![text("Queue", false, &["a"]), text("Queue", true, &["b"])]
+        );
+        // test_inverted_uuid_is_rejected
+        let parsed = syntax::parse("-uuid:1f2e3d4c");
+        assert!(parsed.exact.is_empty() && parsed.filters.is_empty());
+        assert!(parsed.errors[0].contains("cannot be inverted"));
+
+        // TestDetectionPointTerms: test_uuid_alone, test_uuid_and_version_split_at_the_first_colon,
+        // test_uuid_is_lowercased, test_values_are_ored_and_inversion_works
+        let lower = SIGNATURE_ONE.to_lowercase();
+        assert_eq!(
+            syntax::parse(&format!("detection_point:{SIGNATURE_ONE}")).filters,
+            vec![text("Detection Point", false, &[&lower])]
+        );
+        assert_eq!(
+            syntax::parse(&format!("detection_point:{SIGNATURE_ONE}:v1:x")).filters,
+            vec![text("Detection Point", false, &[&format!("{lower}:v1:x")])]
+        );
+        assert_eq!(
+            syntax::parse(&format!("-detection_point:{SIGNATURE_ONE},{SIGNATURE_TWO}")).filters,
+            vec![text("Detection Point", true, &[&lower, SIGNATURE_TWO])]
+        );
+        // test_bad_value_is_an_error_not_a_dropped_filter
+        for bad in ["detection_point:not-a-uuid", "detection_point::v1"] {
+            let parsed = syntax::parse(bad);
+            assert!(parsed.filters.is_empty(), "{bad}");
+            assert_eq!(parsed.errors.len(), 1, "{bad}");
+        }
+        // TestAnalysisTerms: the Analysis filter takes a module's name here, where ace3's takes a
+        // module path with its class, and test_bad_value_is_an_error_not_a_dropped_filter
+        assert_eq!(
+            syntax::parse("analysis:rdap_analyzer").filters,
+            vec![text("Analysis", false, &["rdap_analyzer"])]
+        );
+        let parsed = syntax::parse("analysis:saq.modules.email:EmailAnalysis docusign");
+        assert!(parsed.filters.is_empty());
+        assert_eq!(parsed.errors.len(), 1, "{:?}", parsed.errors);
+        assert!(
+            parsed.errors[0].contains("isn't a module's name"),
+            "{:?}",
+            parsed.errors
+        );
+        // a filter ace3 has and this screen doesn't yet is a term that can't be honored, not text
+        let parsed = syntax::parse("alert_type:mailbox");
+        assert!(parsed.text.is_empty() && parsed.filters.is_empty());
+        assert!(
+            parsed.errors[0].starts_with("alert_type: isn't a filter here yet"),
+            "{:?}",
+            parsed.errors
+        );
+    }
+
+    /// ace3's `TestQuoting`, `TestErrors` and `TestHint`.
+    #[test]
+    fn syntax_quoting_errors_and_hints() {
+        // test_quoted_value_with_a_space, test_quoted_value_with_a_comma_is_one_value
+        assert_eq!(
+            syntax::parse(r#"tag:"vendor mailer""#).exact,
+            vec![ExactTerm::Tags(vec!["vendor mailer".to_owned()])]
+        );
+        assert_eq!(
+            syntax::parse(r#"tag:"a, b",c"#).exact,
+            vec![ExactTerm::Tags(vec!["a, b".to_owned(), "c".to_owned()])]
+        );
+        // test_quoted_free_text_keeps_its_space
+        assert_eq!(
+            syntax::parse(r#""docusign  invoice" overdue"#).text,
+            "docusign  invoice overdue"
+        );
+        // test_unterminated_quote_is_an_error
+        let parsed = syntax::parse(r#"tag:"vendor mailer"#);
+        assert_eq!(
+            parsed.errors,
+            vec!["unterminated quote in query".to_owned()]
+        );
+        assert!(parsed.exact.is_empty() && parsed.text.is_empty());
+
+        // test_invalid_value_for_its_type: the one type whose value is checked here is a file's
+        let parsed = syntax::parse("file:not-a-hash");
+        assert!(parsed.exact.is_empty() && parsed.text.is_empty());
+        assert_eq!(parsed.errors.len(), 1);
+        assert!(
+            parsed.errors[0].starts_with("file:file:\"not-a-hash\" can't be used"),
+            "{:?}",
+            parsed.errors
+        );
+        // test_bad_uuid
+        let parsed = syntax::parse("uuid:nope uuid:1f2e");
+        assert!(parsed.exact.is_empty());
+        assert_eq!(parsed.errors.len(), 2);
+        // test_too_many_terms
+        let many: Vec<String> = (0..syntax::MAX_TERMS + 3)
+            .map(|n| format!("tag:t{n}"))
+            .collect();
+        let parsed = syntax::parse(&many.join(" "));
+        assert!(
+            parsed
+                .errors
+                .iter()
+                .any(|error| error.starts_with("too many field terms"))
+        );
+        let values: Vec<String> = (0..syntax::MAX_VALUES_PER_TERM + 1)
+            .map(|n| format!("t{n}"))
+            .collect();
+        let parsed = syntax::parse(&format!("tag:{}", values.join(",")));
+        assert!(
+            parsed
+                .errors
+                .iter()
+                .any(|error| error.contains("more than 64 values"))
+        );
+
+        // test_bare_ip_gets_a_hint, test_bare_hash_gets_a_hint
+        for bare in [
+            "10.20.30.40",
+            FILE_SHA256,
+            "bob@example.com",
+            "https://evil.example/a",
+        ] {
+            let hint = syntax::parse(bare).hint().expect("a hint");
+            assert!(
+                hint.contains(&format!("ipv4:{bare}")) && hint.contains("observable:<type>:"),
+                "{hint}"
+            );
+        }
+        // test_no_hint_when_an_exact_term_was_given, test_no_hint_for_prose
+        assert_eq!(syntax::parse("ipv4:10.20.30.40 10.20.30.40").hint(), None);
+        assert_eq!(syntax::parse("docusign invoice").hint(), None);
+        assert_eq!(syntax::parse("").hint(), None);
+    }
+
+    fn id(n: u128) -> Uuid {
+        Uuid::from_u128(n)
+    }
+
+    /// ace3's `TestFuse` and `TestTiers`, and `_merge_hits`.
+    #[test]
+    fn fusion_and_tiers() {
+        // test_weighted_rrf
+        let (a, b, c) = (id(1), id(2), id(3));
+        let fused = search::fuse(
+            &[(2.0, vec![a, b]), (1.0, vec![b, c]), (1.0, vec![c])],
+            60.0,
+        );
+        let score = |alert: Uuid| {
+            fused
+                .iter()
+                .find(|(found, _)| *found == alert)
+                .expect("fused")
+                .1
+        };
+        assert!((score(a) - 2.0 / 61.0).abs() < 1e-12);
+        assert!((score(b) - (2.0 / 62.0 + 1.0 / 61.0)).abs() < 1e-12);
+        assert!((score(c) - (1.0 / 62.0 + 1.0 / 61.0)).abs() < 1e-12);
+        assert_eq!(
+            fused.iter().map(|(alert, _)| *alert).collect::<Vec<_>>(),
+            vec![b, a, c]
+        );
+        // ties keep the order they first appeared in
+        let tied = search::fuse(&[(1.0, vec![a]), (1.0, vec![b])], 60.0);
+        assert_eq!(
+            tied.iter().map(|(alert, _)| *alert).collect::<Vec<_>>(),
+            vec![a, b]
+        );
+        // test_exact_first_keeps_lexical_order_then_fused
+        let ordered = search::exact_first(vec![(c, 0.9), (a, 0.5), (b, 0.4)], &[b, a]);
+        assert_eq!(
+            ordered.iter().map(|(alert, _)| *alert).collect::<Vec<_>>(),
+            vec![b, a, c]
+        );
+        assert_eq!(search::exact_first(vec![(c, 0.9)], &[]), vec![(c, 0.9)]);
+        // test_tiers_come_from_evidence_not_position
+        let config = SearchConfig::default();
+        assert_eq!(search::assign_tier(&config, true, None, None), Tier::Exact);
+        assert_eq!(
+            search::assign_tier(&config, true, Some(0.1), Some(0.1)),
+            Tier::Exact
+        );
+        assert_eq!(
+            search::assign_tier(&config, false, Some(0.55), None),
+            Tier::Strong
+        );
+        assert_eq!(
+            search::assign_tier(&config, false, Some(0.31), Some(2.0)),
+            Tier::Strong
+        );
+        assert_eq!(
+            search::assign_tier(&config, false, Some(0.31), None),
+            Tier::Good
+        );
+        assert_eq!(
+            search::assign_tier(&config, false, None, Some(9.0)),
+            Tier::Weak
+        );
+        // a chunk both semantic lanes reached is there once, with its best score, after the exact hits
+        let hit = |lane, key: &str, score| SearchHit {
+            lane,
+            kind: "analysis".to_owned(),
+            key: key.to_owned(),
+            title: None,
+            text: key.to_owned(),
+            score,
+            result_id: None,
+            observable_id: None,
+        };
+        let merged = search::merge_hits(vec![
+            vec![
+                hit(SearchLane::Semantic, "analysis:1:0", 0.4),
+                hit(SearchLane::Semantic, "alert:header:0", 0.7),
+            ],
+            vec![hit(SearchLane::Semantic, "analysis:1:0", 3.2)],
+            vec![hit(SearchLane::Lexical, "tag:phish", 1.0)],
+        ]);
+        let keys: Vec<(&str, f64)> = merged
+            .iter()
+            .map(|hit| (hit.key.as_str(), hit.score))
+            .collect();
+        assert_eq!(
+            keys,
+            vec![
+                ("tag:phish", 1.0),
+                ("analysis:1:0", 3.2),
+                ("alert:header:0", 0.7)
+            ]
+        );
+    }
+
+    /// ace3's `TestMergeParsedFilters`: a term the query types narrows what the request's filters say.
+    #[test]
+    fn the_query_s_filters_narrow_the_request_s() {
+        // test_nothing_parsed_leaves_the_filters_alone, test_existing_filter_list_entries_are_kept
+        let request = vec![text("Disposition", false, &["OPEN"])];
+        assert_eq!(
+            search::merge_filters(&request, &[]).expect("merges"),
+            Some(request.clone())
+        );
+        // test_a_term_with_no_payload_field_goes_to_the_filter_list, test_a_payload_expressible_term_becomes_a_pre_filter
+        let merged = search::merge_filters(
+            &request,
+            &[
+                text("Queue", false, &["default"]),
+                text("Owner", false, &["jdoe"]),
+            ],
+        )
+        .expect("merges")
+        .expect("something can match");
+        assert_eq!(merged.len(), 3);
+        // test_a_field_the_caller_already_set_is_anded_in_sql_instead: one alert has one queue, so both
+        // naming a queue keeps the queues both name, and nothing when they name none
+        let request = vec![text("Queue", false, &["default", "edr"])];
+        assert_eq!(
+            search::merge_filters(&request, &[text("Queue", false, &["edr", "soc"])])
+                .expect("merges"),
+            Some(vec![text("Queue", false, &["edr"])])
+        );
+        assert_eq!(
+            search::merge_filters(&request, &[text("Queue", false, &["soc"])]).expect("merges"),
+            None
+        );
+        // test_inversion_is_carried_onto_the_pre_filter: neither of them, as one entry
+        let request = vec![text("Tag", true, &["whitelisted"])];
+        assert_eq!(
+            search::merge_filters(&request, &[text("Tag", true, &["benign"])]).expect("merges"),
+            Some(vec![text("Tag", true, &["whitelisted", "benign"])])
+        );
+        // what one list can't say is reported, never widened: both of two tags, a date in two windows, and a
+        // queue that stands for the viewer's own
+        let request = vec![text("Tag", false, &["phish"])];
+        let error = search::merge_filters(&request, &[text("Tag", false, &["vip"])])
+            .expect_err("can't be one");
+        assert!(
+            error.starts_with("tag: is also one of the request's filters"),
+            "{error}"
+        );
+        let request = vec![text("Alert Date", false, &["-7d"])];
+        assert!(search::merge_filters(&request, &[text("Alert Date", false, &["-1d"])]).is_err());
+        let request = vec![text("Queue", false, &["$USER_QUEUE"])];
+        assert!(search::merge_filters(&request, &[text("Queue", false, &["default"])]).is_err());
+        // and a request's filter the alert screen doesn't have is refused as the list refuses it
+        assert!(search::merge_filters(&[text("No Such Filter", false, &["x"])], &[]).is_err());
+    }
+
+    /// ace3's `test_search_filters.py`: the filters every lane applies before it ranks, and the rest,
+    /// its owner case among them, which is the alert list's query's alone.
+    #[test]
+    fn the_lanes_scope_is_the_filters_they_can_apply() {
+        // test_mapped_filters
+        let scope = search::lane_scope(
+            &[
+                text("Disposition", true, &["FALSE_POSITIVE"]),
+                text("Queue", false, &["external"]),
+                text("Tag", true, &["Phish", "malware"]),
+            ],
+            &[],
+            None,
+            Tz::UTC,
+        )
+        .expect("a scope");
+        assert_eq!(
+            scope.not_dispositions,
+            Some(vec!["FALSE_POSITIVE".to_owned()])
+        );
+        assert_eq!(scope.dispositions, None);
+        assert_eq!(scope.queues, Some(vec!["external".to_owned()]));
+        assert_eq!(scope.not_queues, None);
+        // test_a_relative_alert_date_resolves_in_the_analysts_timezone: today began at midnight there
+        let tz: Tz = "America/New_York".parse().expect("a timezone");
+        let scope = search::lane_scope(&[text("Alert Date", true, &["@d"])], &[], None, tz)
+            .expect("a scope");
+        let windows = scope.not_windows.expect("a window");
+        assert_eq!(windows.len(), 1);
+        let (start, end) = windows[0];
+        assert_eq!(start.with_timezone(&tz).time(), chrono::NaiveTime::MIN);
+        assert!(end > start && (Utc::now() - end).num_seconds().abs() < 60);
+        assert_eq!(scope.windows, None);
+        // test_unusable_filters_are_left_out: a wildcard tag and an owner are no lane's to apply, and a
+        // queue that stands for the viewer's own isn't either
+        let scope = search::lane_scope(
+            &[
+                text("Tag", false, &["phish*"]),
+                text("Owner", false, &["john"]),
+                text("Queue", false, &["$USER_QUEUE"]),
+            ],
+            &[],
+            None,
+            Tz::UTC,
+        )
+        .expect("a scope");
+        assert_eq!(scope, Scoped::default());
+        // a value that isn't one is refused where ace3 drops it: dropping a filter widens the search
+        assert!(
+            search::lane_scope(
+                &[text("Alert Date", false, &["whenever"])],
+                &[],
+                None,
+                Tz::UTC
+            )
+            .is_err()
+        );
+        // test_no_filters_and_no_timezone, with the alerts a request leaves out and its own window
+        assert_eq!(
+            search::lane_scope(&[], &[], None, Tz::UTC).expect("a scope"),
+            Scoped::default()
+        );
+        let at = |text: &str| text.parse::<chrono::DateTime<Utc>>().expect("a time");
+        let window = (at("2026-01-01T00:00:00Z"), at("2026-01-02T00:00:00Z"));
+        let scope = search::lane_scope(&[], &[id(7)], Some(window), Tz::UTC).expect("a scope");
+        assert_eq!(scope.except, Some(vec![id(7)]));
+        assert_eq!(scope.windows, Some(vec![window]));
+        assert_eq!(
+            Scoped::multirange(&scope.windows).as_deref(),
+            Some("{[\"2026-01-01T00:00:00.000000Z\",\"2026-01-02T00:00:00.000000Z\"]}")
+        );
+        assert_eq!(Scoped::multirange(&None), None);
+    }
+
+    /// An index that answers what it was given, and records what it was asked.
+    #[derive(Debug, Default)]
+    struct StubIndex {
+        dense: Vec<(Uuid, f64)>,
+        /// None answers as an index does for a text with no terms.
+        sparse: Option<Vec<(Uuid, f64)>>,
+        similar: Vec<(Uuid, f64)>,
+        fails: bool,
+        asked: Mutex<Vec<(String, String, Scoped)>>,
+        due: Mutex<Vec<Indexed>>,
+    }
+
+    impl StubIndex {
+        fn lane(found: &[(Uuid, f64)], scope: &Scoped) -> LaneResult {
+            found
+                .iter()
+                .filter(|(alert, _)| {
+                    scope
+                        .except
+                        .as_ref()
+                        .is_none_or(|except| !except.contains(alert))
+                })
+                .map(|(alert, score)| {
+                    (
+                        *alert,
+                        vec![SearchHit {
+                            lane: SearchLane::Semantic,
+                            kind: "analysis".to_owned(),
+                            key: "analysis:1:0".to_owned(),
+                            title: Some("a title".to_owned()),
+                            text: format!("the text of {alert}"),
+                            score: *score,
+                            result_id: Some(1),
+                            observable_id: None,
+                        }],
+                    )
+                })
+                .collect()
+        }
+
+        fn note(&self, lane: &str, text: &str, scope: &Scoped) -> Result<(), IndexError> {
+            self.asked.lock().expect("asked").push((
+                lane.to_owned(),
+                text.to_owned(),
+                scope.clone(),
+            ));
+            if self.fails {
+                return Err(IndexError::Failed("the index is down".to_owned()));
+            }
+            Ok(())
+        }
+
+        fn asked(&self) -> Vec<(String, String)> {
+            self.asked
+                .lock()
+                .expect("asked")
+                .iter()
+                .map(|(lane, text, _)| (lane.clone(), text.clone()))
+                .collect()
+        }
+    }
+
+    impl SearchIndex for StubIndex {
+        fn dense<'a>(
+            &'a self,
+            text: &'a str,
+            scope: &'a Scoped,
+            _: usize,
+            _: usize,
+            _: f64,
+        ) -> IndexFuture<'a, LaneResult> {
+            Box::pin(async move {
+                self.note("dense", text, scope)?;
+                Ok(StubIndex::lane(&self.dense, scope))
+            })
+        }
+
+        fn sparse<'a>(
+            &'a self,
+            text: &'a str,
+            scope: &'a Scoped,
+            _: usize,
+            _: usize,
+        ) -> IndexFuture<'a, Option<LaneResult>> {
+            Box::pin(async move {
+                self.note("sparse", text, scope)?;
+                Ok(self
+                    .sparse
+                    .as_ref()
+                    .map(|found| StubIndex::lane(found, scope)))
+            })
+        }
+
+        fn similar<'a>(
+            &'a self,
+            root: Uuid,
+            scope: &'a Scoped,
+            _: usize,
+            _: usize,
+            _: f64,
+        ) -> IndexFuture<'a, LaneResult> {
+            Box::pin(async move {
+                self.note("similar", &root.to_string(), scope)?;
+                Ok(StubIndex::lane(&self.similar, scope))
+            })
+        }
+
+        fn index_next(&self) -> IndexFuture<'_, Option<Indexed>> {
+            Box::pin(async move {
+                if self.fails {
+                    return Err(IndexError::Failed("the index is down".to_owned()));
+                }
+                Ok(self.due.lock().expect("due").pop())
+            })
+        }
+    }
+
+    fn searching(db: &Db, index: StubIndex) -> (Service, Arc<StubIndex>) {
+        let index = Arc::new(index);
+        (
+            bare(db).with_search(index.clone(), SearchConfig::default()),
+            index,
+        )
+    }
+
+    fn bare(db: &Db) -> Service {
+        Service::new(
+            db.clone(),
+            Orchestrator::new(Catalog::new(vec![]), Modes::ace3()),
+        )
+    }
+
+    async fn reader(db: &Db) -> Actor {
+        let id = UserId(Uuid::from_u128(0x5EA));
+        grant(db, &Holder::User(id), "alert", "read", Effect::Allow).await;
+        user(id)
+    }
+
+    /// Five alerts, a day apart, oldest first: each with an address of its own, the third and fifth with
+    /// a shared one and the tag `phish`, the fourth dispositioned.
+    async fn alerts_of(db: &Db) -> Vec<Uuid> {
+        let mut alerts = Vec::new();
+        for n in 1..=5 {
+            let own = format!("10.0.0.{n}");
+            let mut observables: Vec<(ObservableKind, &str, &[&str])> =
+                vec![(ObservableKind::Ipv4, own.as_str(), &[])];
+            if n == 3 || n == 5 {
+                observables.push((ObservableKind::Fqdn, "shared.example.com", &["Phish"]));
+            }
+            if n == 2 {
+                observables.push((ObservableKind::File, FILE_SHA256, &[]));
+            }
+            alerts.push(
+                listed(
+                    db,
+                    Fixture {
+                        title: &format!("alert {n}"),
+                        alerted: &format!("2026-03-0{n}T00:00:00Z"),
+                        disposition: (n == 4).then_some((
+                            "DELIVERY",
+                            "alice",
+                            "2026-03-05T00:00:00Z",
+                        )),
+                        observables: &observables,
+                        ..Fixture::default()
+                    },
+                )
+                .await,
+            );
+        }
+        alerts
+    }
+
+    async fn queue(db: &Db, root: Uuid, queue: &str) {
+        sqlx::query("UPDATE analysis.roots SET queue = $2 WHERE id = $1")
+            .bind(root)
+            .bind(queue)
+            .execute(db.pool())
+            .await
+            .expect("moved");
+    }
+
+    fn request(query: &str) -> SearchRequest {
+        SearchRequest {
+            query: query.to_owned(),
+            ..SearchRequest::default()
+        }
+    }
+
+    /// ace3's `TestSearchAlerts`.
+    #[tokio::test]
+    async fn search_fuses_filters_and_pages() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let alerts = alerts_of(db).await;
+        let actor = reader(db).await;
+        let (service, index) = searching(
+            db,
+            StubIndex {
+                dense: vec![(alerts[0], 0.8), (alerts[3], 0.6), (alerts[1], 0.4)],
+                sparse: Some(vec![(alerts[1], 5.0), (alerts[0], 2.0), (id(0xDEAD), 1.0)]),
+                ..StubIndex::default()
+            },
+        );
+
+        // test_ranking_happens_before_pagination, test_post_filter_drives_total: an alert the index holds
+        // and the database doesn't isn't counted
+        let all = service
+            .search_alerts(&actor, &request("docusign invoice"))
+            .await
+            .expect("searched");
+        assert_eq!(all.alert_ids(), vec![alerts[0], alerts[1], alerts[3]]);
+        assert_eq!(all.total, 3);
+        assert_eq!(all.query, "docusign invoice");
+        assert_eq!(all.lanes_used, vec![SearchLane::Semantic]);
+        assert!(all.errors.is_empty() && all.warnings.is_empty() && all.hint.is_none());
+        assert_eq!(
+            all.results.iter().map(|r| r.rank).collect::<Vec<_>>(),
+            vec![1, 2, 3]
+        );
+        assert_eq!(
+            all.results.iter().map(|r| r.tier).collect::<Vec<_>>(),
+            vec![Some(Tier::Strong), Some(Tier::Strong), Some(Tier::Strong)]
+        );
+        assert_eq!(all.results[0].dense_score, Some(0.8));
+        assert_eq!(all.results[2].sparse_score, None);
+        assert_eq!(all.results[0].alert.title, "alert 1");
+        let second = service
+            .search_alerts(
+                &actor,
+                &SearchRequest {
+                    limit: 1,
+                    offset: 1,
+                    ..request("docusign invoice")
+                },
+            )
+            .await
+            .expect("searched");
+        assert_eq!((second.total, second.alert_ids()), (3, vec![alerts[1]]));
+        assert_eq!(second.results[0].rank, 2);
+        // test_hits_merge_exact_first: the chunk both lanes reached is one hit
+        assert_eq!(all.results[0].hits.len(), 1);
+        assert_eq!(all.results[0].hits[0].key, "analysis:1:0");
+        // test_include_hits_false
+        let bare_results = service
+            .search_alerts(
+                &actor,
+                &SearchRequest {
+                    include_hits: false,
+                    ..request("docusign invoice")
+                },
+            )
+            .await
+            .expect("searched");
+        assert!(bare_results.results.iter().all(|r| r.hits.is_empty()));
+        assert_eq!(bare_results.results[0].tier, Some(Tier::Strong));
+        // the filters are the whole list's: a disposition narrows both the lanes' scope and the list
+        let delivered = service
+            .search_alerts(
+                &actor,
+                &SearchRequest {
+                    filters: vec![text("Disposition", false, &["DELIVERY"])],
+                    ..request("docusign invoice")
+                },
+            )
+            .await
+            .expect("searched");
+        assert_eq!(delivered.alert_ids(), vec![alerts[3]]);
+        let scope = index
+            .asked
+            .lock()
+            .expect("asked")
+            .last()
+            .expect("asked")
+            .2
+            .clone();
+        assert_eq!(scope.dispositions, Some(vec!["DELIVERY".to_owned()]));
+        // and a typed term narrows on top of it
+        let none = service
+            .search_alerts(
+                &actor,
+                &SearchRequest {
+                    filters: vec![text("Disposition", false, &["DELIVERY"])],
+                    ..request("docusign invoice disposition:OPEN")
+                },
+            )
+            .await
+            .expect("searched");
+        assert_eq!((none.total, none.results.len()), (0, 0));
+        // alerts left out by id
+        let without = service
+            .search_alerts(
+                &actor,
+                &SearchRequest {
+                    exclude: vec![alerts[0]],
+                    ..request("docusign invoice")
+                },
+            )
+            .await
+            .expect("searched");
+        assert_eq!(without.alert_ids(), vec![alerts[1], alerts[3]]);
+
+        // test_prose_never_reaches_the_exact_lane: a word that is also a tag is text
+        let prose = service
+            .search_alerts(&actor, &request("phish"))
+            .await
+            .expect("searched");
+        assert_eq!(prose.lanes_used, vec![SearchLane::Semantic]);
+        assert!(prose.results.iter().all(|r| r.tier != Some(Tier::Exact)));
+        // test_semantic_lane_is_skipped_without_free_text
+        let before = index.asked().len();
+        let exact = service
+            .search_alerts(&actor, &request("tag:phish"))
+            .await
+            .expect("searched");
+        assert_eq!(index.asked().len(), before, "the index wasn't asked");
+        assert_eq!(exact.lanes_used, vec![SearchLane::Lexical]);
+        assert_eq!(exact.alert_ids(), vec![alerts[4], alerts[2]]);
+        // test_lane_selection
+        let only_lexical = service
+            .search_alerts(
+                &actor,
+                &SearchRequest {
+                    semantic: false,
+                    ..request("docusign tag:phish")
+                },
+            )
+            .await
+            .expect("searched");
+        assert_eq!(only_lexical.lanes_used, vec![SearchLane::Lexical]);
+        assert_eq!(only_lexical.alert_ids(), vec![alerts[4], alerts[2]]);
+        let only_semantic = service
+            .search_alerts(
+                &actor,
+                &SearchRequest {
+                    lexical: false,
+                    ..request("docusign tag:phish")
+                },
+            )
+            .await
+            .expect("searched");
+        assert_eq!(only_semantic.lanes_used, vec![SearchLane::Semantic]);
+        assert_eq!(
+            only_semantic.alert_ids(),
+            vec![alerts[0], alerts[1], alerts[3]]
+        );
+        // both: exact matches first, newest first, then the rest as fused
+        let both = service
+            .search_alerts(&actor, &request("docusign tag:phish"))
+            .await
+            .expect("searched");
+        assert_eq!(
+            both.alert_ids(),
+            vec![alerts[4], alerts[2], alerts[0], alerts[1], alerts[3]]
+        );
+        assert_eq!(both.results[0].tier, Some(Tier::Exact));
+        assert_eq!(both.results[0].lanes, vec![SearchLane::Lexical]);
+        assert_eq!(both.results[2].tier, Some(Tier::Strong));
+        assert_eq!(both.results[0].hits[0].kind, "tag");
+        assert_eq!(
+            index.asked().last().expect("asked").1,
+            "docusign",
+            "only the free text is embedded"
+        );
+
+        // test_query_errors_are_reported_and_nothing_is_searched
+        let before = index.asked().len();
+        let wrong = service
+            .search_alerts(&actor, &request("docusign alert_date:-7dd"))
+            .await
+            .expect("answered");
+        assert_eq!(
+            (wrong.total, wrong.results.len(), wrong.errors.len()),
+            (0, 0, 1)
+        );
+        assert_eq!(index.asked().len(), before);
+        // a bare indicator comes back with how to name it
+        let hinted = service
+            .search_alerts(&actor, &request("10.0.0.1"))
+            .await
+            .expect("searched");
+        assert!(hinted.hint.expect("a hint").contains("ipv4:10.0.0.1"));
+
+        // a request out of bounds is refused, and so is a filter the screen can't take
+        for bad in [
+            SearchRequest {
+                limit: 0,
+                ..request("x")
+            },
+            SearchRequest {
+                limit: search::MAX_SEARCH_PAGE + 1,
+                ..request("x")
+            },
+            SearchRequest {
+                semantic: false,
+                lexical: false,
+                ..request("x")
+            },
+            request(&"x".repeat(search::MAX_QUERY_CHARS + 1)),
+            SearchRequest {
+                exclude: vec![id(1); search::MAX_EXCLUDED + 1],
+                ..request("x")
+            },
+            SearchRequest {
+                filters: vec![text("No Such Filter", false, &["x"])],
+                ..request("x")
+            },
+            SearchRequest {
+                offset: search::MAX_LISTING_OFFSET + 1,
+                ..request("queue:default")
+            },
+        ] {
+            let refused = service.search_alerts(&actor, &bad).await;
+            assert!(
+                matches!(refused, Err(ServiceError::InvalidRequest(_))),
+                "{refused:?}"
+            );
+        }
+        // an actor without alert:read learns nothing, before anything is asked of the index
+        let before = index.asked().len();
+        let nobody = user(UserId(Uuid::from_u128(0xB0B)));
+        exists(db, &Holder::User(UserId(Uuid::from_u128(0xB0B)))).await;
+        for refused in [
+            service.search_alerts(&nobody, &request("docusign")).await,
+            service
+                .similar_alerts(&nobody, &SimilarRequest::of(alerts[0]))
+                .await,
+        ] {
+            assert!(
+                matches!(refused, Err(ServiceError::PermissionDenied { .. })),
+                "{refused:?}"
+            );
+        }
+        assert_eq!(index.asked().len(), before);
+    }
+
+    /// ace3's `test_lane_failure_is_contained`, `test_missing_model_is_reported` and `test_max_results_cap`.
+    #[tokio::test]
+    async fn search_degrades_and_caps() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let alerts = alerts_of(db).await;
+        let actor = reader(db).await;
+        // a failing index: the exact lane's matches still come back, and the answer says what is missing
+        let (failing, _) = searching(
+            db,
+            StubIndex {
+                fails: true,
+                ..StubIndex::default()
+            },
+        );
+        let found = failing
+            .search_alerts(&actor, &request("docusign tag:phish"))
+            .await
+            .expect("searched");
+        assert_eq!(found.alert_ids(), vec![alerts[4], alerts[2]]);
+        assert_eq!(found.warnings.len(), 1);
+        assert!(found.warnings[0].starts_with("The text search failed"));
+        let nothing = failing
+            .search_alerts(&actor, &request("docusign"))
+            .await
+            .expect("searched");
+        assert_eq!((nothing.total, nothing.warnings.len()), (0, 1));
+        // no index at all: ace3's missing model
+        let none = bare(db);
+        let found = none
+            .search_alerts(&actor, &request("docusign tag:phish"))
+            .await
+            .expect("searched");
+        assert_eq!(found.alert_ids(), vec![alerts[4], alerts[2]]);
+        assert_eq!(found.lanes_used, vec![SearchLane::Lexical]);
+        assert!(found.warnings[0].contains("no search index"));
+        let similar = none
+            .similar_alerts(&actor, &SimilarRequest::of(alerts[0]))
+            .await
+            .expect("answered");
+        assert_eq!((similar.total, similar.warnings.len()), (0, 1));
+        // the cap on the fused list
+        let index = Arc::new(StubIndex {
+            dense: alerts.iter().map(|alert| (*alert, 0.9)).collect(),
+            sparse: Some(Vec::new()),
+            ..StubIndex::default()
+        });
+        let capped = bare(db).with_search(
+            index,
+            SearchConfig {
+                max_results: 2,
+                ..SearchConfig::default()
+            },
+        );
+        let found = capped
+            .search_alerts(&actor, &request("docusign"))
+            .await
+            .expect("searched");
+        assert_eq!(
+            (found.total, found.alert_ids()),
+            (2, vec![alerts[0], alerts[1]])
+        );
+        // a text with no terms: only the dense lane answers, and its matches are good, not strong
+        let (dense_only, _) = searching(
+            db,
+            StubIndex {
+                dense: vec![(alerts[0], 0.4)],
+                sparse: None,
+                ..StubIndex::default()
+            },
+        );
+        let found = dense_only
+            .search_alerts(&actor, &request("the"))
+            .await
+            .expect("searched");
+        assert_eq!(found.results[0].tier, Some(Tier::Good));
+    }
+
+    /// ace3's `test_lexical.py`.
+    #[tokio::test]
+    async fn lexical_lookups_are_exact_and_newest_first() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let alerts = alerts_of(db).await;
+        let actor = reader(db).await;
+        let service = bare(db);
+        let ids = |response: search::SearchResponse| response.alert_ids();
+        let search = |query: &'static str| {
+            let (service, actor) = (service.clone(), actor.clone());
+            async move {
+                service
+                    .search_alerts(&actor, &request(query))
+                    .await
+                    .expect("searched")
+            }
+        };
+        // test_a_word_that_is_also_a_tag_matches_nothing, test_nothing_to_look_up
+        assert_eq!(search("phish").await.total, 0);
+        assert_eq!(search("shared.example.com").await.total, 0);
+        // test_exact_observable_value_newest_first
+        let found = search("fqdn:shared.example.com").await;
+        assert_eq!(found.results[0].tier, Some(Tier::Exact));
+        assert_eq!(found.results[0].hits[0].kind, "observable");
+        assert_eq!(found.results[0].hits[0].title.as_deref(), Some("fqdn"));
+        assert_eq!(found.results[0].hits[0].text, "shared.example.com");
+        assert_eq!(found.results[0].hits[0].score, 1.0);
+        assert_eq!(ids(found), vec![alerts[4], alerts[2]]);
+        // test_the_type_has_to_match, and a value is matched as it is stored: ace4's types don't fold case
+        assert_eq!(search("ipv4:shared.example.com").await.total, 0);
+        assert_eq!(search("fqdn:SHARED.example.com").await.total, 0);
+        assert_eq!(
+            ids(search("observable:Any:shared.example.com").await),
+            vec![alerts[4], alerts[2]]
+        );
+        // test_file_observable_matches_its_content_hash, whatever its case
+        assert_eq!(
+            ids(
+                search("file:9F86D081884C7D659A2FEAA0C55AD015A3BF4F1B2B0B822CD15D6C15B0F00A08")
+                    .await
+            ),
+            vec![alerts[1]]
+        );
+        // test_tag, whatever its case
+        assert_eq!(ids(search("tag:PHISH").await), vec![alerts[4], alerts[2]]);
+        // test_uuid_and_prefix
+        let whole = service
+            .search_alerts(&actor, &request(&format!("uuid:{}", alerts[1])))
+            .await
+            .expect("searched");
+        assert_eq!(whole.results[0].hits[0].kind, "uuid");
+        assert_eq!(whole.alert_ids(), vec![alerts[1]]);
+        let prefix = &alerts[1].to_string()[..8];
+        let by_prefix = service
+            .search_alerts(&actor, &request(&format!("uuid:{prefix}")))
+            .await
+            .expect("searched");
+        assert!(by_prefix.alert_ids().contains(&alerts[1]));
+        // test_several_terms_are_ored_into_one_result_set, each alert with a hit for each thing it matched
+        let found = search("ipv4:10.0.0.1 tag:phish fqdn:shared.example.com").await;
+        assert_eq!(found.results[0].hits.len(), 2);
+        assert_eq!(ids(found), vec![alerts[4], alerts[2], alerts[0]]);
+        // test_comma_separated_values
+        assert_eq!(
+            ids(search("ipv4:10.0.0.1,10.0.0.2").await),
+            vec![alerts[1], alerts[0]]
+        );
+        // test_filters_apply: the lane's scope and the list's filters both
+        assert_eq!(
+            ids(search("tag:phish disposition:DELIVERY").await),
+            Vec::<Uuid>::new()
+        );
+        assert_eq!(
+            ids(search("ipv4:10.0.0.4,10.0.0.1 disposition:DELIVERY").await),
+            vec![alerts[3]]
+        );
+        assert_eq!(
+            ids(search("tag:phish -ipv4:10.0.0.5").await),
+            vec![alerts[2]]
+        );
+        assert_eq!(
+            ids(search("tag:phish alert_date:\"03-02-2026 00:00 - 03-04-2026 00:00\"").await),
+            vec![alerts[2]]
+        );
+        // test_limit: the page is cut after the ranking
+        let page = service
+            .search_alerts(
+                &actor,
+                &SearchRequest {
+                    limit: 1,
+                    ..request("tag:phish")
+                },
+            )
+            .await
+            .expect("searched");
+        assert_eq!((page.total, page.alert_ids()), (2, vec![alerts[4]]));
+    }
+
+    /// ace3's `TestFilterListing` and `test_listing.py`.
+    #[tokio::test]
+    async fn listing_is_the_filters_newest_first() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let alerts = alerts_of(db).await;
+        let actor = reader(db).await;
+        let (service, index) = searching(db, StubIndex::default());
+        // test_no_query_no_filters_is_still_empty
+        let empty = service
+            .search_alerts(&actor, &request(""))
+            .await
+            .expect("answered");
+        assert_eq!(
+            (empty.total, empty.results.len(), empty.excluded_test_alerts),
+            (0, 0, None)
+        );
+        // test_no_query_with_filters_lists, test_no_tier_and_no_hits
+        let open = SearchRequest {
+            filters: vec![text("Disposition", false, &["OPEN"])],
+            ..request("")
+        };
+        let listed = service.search_alerts(&actor, &open).await.expect("listed");
+        assert_eq!(
+            listed.alert_ids(),
+            vec![alerts[4], alerts[2], alerts[1], alerts[0]]
+        );
+        assert!(
+            listed
+                .results
+                .iter()
+                .all(|r| r.tier.is_none() && r.hits.is_empty() && r.lanes.is_empty())
+        );
+        assert!(listed.lanes_used.is_empty());
+        assert_eq!(listed.query, "");
+        assert!(
+            index.asked().is_empty(),
+            "a listing asks nothing of the index"
+        );
+        // test_total_is_the_full_count_not_the_page, test_pagination, and a page past the end
+        let page = service
+            .search_alerts(
+                &actor,
+                &SearchRequest {
+                    limit: 2,
+                    offset: 1,
+                    ..open.clone()
+                },
+            )
+            .await
+            .expect("listed");
+        assert_eq!(
+            (page.total, page.alert_ids()),
+            (4, vec![alerts[2], alerts[1]])
+        );
+        assert_eq!(
+            page.results.iter().map(|r| r.rank).collect::<Vec<_>>(),
+            vec![2, 3]
+        );
+        let past = service
+            .search_alerts(
+                &actor,
+                &SearchRequest {
+                    offset: 9,
+                    ..open.clone()
+                },
+            )
+            .await
+            .expect("listed");
+        assert_eq!((past.total, past.results.len()), (4, 0));
+        // test_a_typed_filter_term_alone_also_lists, test_a_typed_sql_only_term_alone_also_lists
+        let typed = service
+            .search_alerts(&actor, &request("disposition:DELIVERY"))
+            .await
+            .expect("listed");
+        assert_eq!(typed.alert_ids(), vec![alerts[3]]);
+        assert_eq!(typed.results[0].tier, None);
+        let typed = service
+            .search_alerts(&actor, &request("description:\"alert 2\""))
+            .await
+            .expect("listed");
+        assert_eq!(typed.alert_ids(), vec![alerts[1]]);
+        // test_scalar_filters_narrow_it_too: the request's own window and the alerts it leaves out
+        let at = |text: &str| text.parse::<chrono::DateTime<Utc>>().expect("a time");
+        let windowed = SearchRequest {
+            window: Some((at("2026-03-02T00:00:00Z"), at("2026-03-04T00:00:00Z"))),
+            exclude: vec![alerts[2]],
+            ..request("")
+        };
+        let listed = service
+            .search_alerts(&actor, &windowed)
+            .await
+            .expect("listed");
+        assert_eq!(listed.alert_ids(), vec![alerts[3], alerts[1]]);
+        let both = service
+            .search_alerts(
+                &actor,
+                &SearchRequest {
+                    filters: vec![text("Alert Date", false, &["-7d"])],
+                    ..windowed
+                },
+            )
+            .await
+            .expect("answered");
+        assert_eq!(
+            both.errors.len(),
+            1,
+            "a window and an Alert Date filter can't both hold"
+        );
+        // test_no_match
+        let none = service
+            .search_alerts(&actor, &request("queue:nowhere"))
+            .await
+            .expect("listed");
+        assert_eq!((none.total, none.results.len()), (0, 0));
+        // test_an_exact_term_is_a_search_not_a_listing
+        let exact = service
+            .search_alerts(&actor, &request("tag:phish"))
+            .await
+            .expect("searched");
+        assert_eq!(exact.results[0].tier, Some(Tier::Exact));
+        // TestDetectionPointTerm: test_any_version, test_one_version
+        let signed = super::listed(
+            db,
+            Fixture {
+                title: "signed",
+                alerted: "2026-03-09T00:00:00Z",
+                observables: &[(ObservableKind::Fqdn, "s.example.com", &[])],
+                signature: Some((SIGNATURE_ONE, Some("v2"))),
+                ..Fixture::default()
+            },
+        )
+        .await;
+        for (query, found) in [
+            (format!("detection_point:{SIGNATURE_ONE}"), vec![signed]),
+            (format!("detection_point:{SIGNATURE_ONE}:v2"), vec![signed]),
+            (format!("detection_point:{SIGNATURE_ONE}:v1"), vec![]),
+        ] {
+            assert_eq!(
+                service
+                    .search_alerts(&actor, &request(&query))
+                    .await
+                    .expect("listed")
+                    .alert_ids(),
+                found,
+                "{query}"
+            );
+        }
+    }
+
+    /// ace3's `TestTestAlerts`.
+    #[tokio::test]
+    async fn test_alerts_are_left_out_and_counted() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let alerts = alerts_of(db).await;
+        let actor = reader(db).await;
+        let stub = || StubIndex {
+            dense: alerts.iter().map(|alert| (*alert, 0.9)).collect(),
+            sparse: Some(Vec::new()),
+            similar: alerts.iter().map(|alert| (*alert, 0.9)).collect(),
+            ..StubIndex::default()
+        };
+        // test_no_counting_pass_while_no_test_alert_exists: nothing left out, counted without a second pass
+        let (service, index) = searching(db, stub());
+        let found = service
+            .search_alerts(&actor, &request("docusign"))
+            .await
+            .expect("searched");
+        assert_eq!((found.total, found.excluded_test_alerts), (5, Some(0)));
+        assert_eq!(index.asked().len(), 2, "one pass: dense and sparse");
+        // the scope every lane got leaves the test queue out
+        assert_eq!(
+            index.asked.lock().expect("asked")[0].2.not_queues,
+            Some(vec!["svs".to_owned()])
+        );
+
+        // test_search_leaves_them_out_and_counts_them
+        queue(db, alerts[1], "svs").await;
+        queue(db, alerts[4], "svs").await;
+        let (service, index) = searching(db, stub());
+        let found = service
+            .search_alerts(&actor, &request("docusign"))
+            .await
+            .expect("searched");
+        assert_eq!(found.alert_ids(), vec![alerts[0], alerts[2], alerts[3]]);
+        assert_eq!((found.total, found.excluded_test_alerts), (3, Some(2)));
+        assert!(found.timings_ms.contains_key("excluded_test_alerts"));
+        assert_eq!(
+            index.asked().len(),
+            4,
+            "the second pass is the same search over the test queue"
+        );
+        assert_eq!(
+            index.asked.lock().expect("asked")[2].2.queues,
+            Some(vec!["svs".to_owned()])
+        );
+        // test_the_count_respects_the_post_filter: the count is of what the same filters find there
+        let found = service
+            .search_alerts(
+                &actor,
+                &SearchRequest {
+                    exclude: vec![alerts[4]],
+                    ..request("docusign")
+                },
+            )
+            .await
+            .expect("searched");
+        assert_eq!((found.total, found.excluded_test_alerts), (3, Some(1)));
+        let found = service
+            .search_alerts(&actor, &request("docusign ipv4:10.0.0.2"))
+            .await
+            .expect("searched");
+        assert_eq!(found.excluded_test_alerts, Some(2));
+        // test_a_request_that_names_a_queue_gets_what_it_asked_for, test_a_typed_queue_term_brings_them_back,
+        // either way round
+        for (query, filters, expected) in [
+            ("docusign queue:svs", vec![], vec![alerts[1], alerts[4]]),
+            ("docusign -queue:nowhere", vec![], alerts.clone()),
+            (
+                "docusign",
+                vec![text("Queue", false, &["svs", "default"])],
+                alerts.clone(),
+            ),
+            (
+                "docusign",
+                vec![text("Queue", true, &["default"])],
+                vec![alerts[1], alerts[4]],
+            ),
+        ] {
+            let found = service
+                .search_alerts(
+                    &actor,
+                    &SearchRequest {
+                        filters,
+                        ..request(query)
+                    },
+                )
+                .await
+                .expect("searched");
+            assert_eq!(
+                (found.alert_ids(), found.excluded_test_alerts),
+                (expected, None),
+                "{query}"
+            );
+        }
+        // test_include_test_alerts, test_asking_for_test_alerts
+        let found = service
+            .search_alerts(
+                &actor,
+                &SearchRequest {
+                    include_test_alerts: true,
+                    ..request("docusign")
+                },
+            )
+            .await
+            .expect("searched");
+        assert_eq!((found.total, found.excluded_test_alerts), (5, None));
+        // test_a_listing_counts_them_too
+        let found = service
+            .search_alerts(&actor, &request("disposition:OPEN"))
+            .await
+            .expect("listed");
+        assert_eq!(found.alert_ids(), vec![alerts[2], alerts[0]]);
+        assert_eq!(found.excluded_test_alerts, Some(2));
+        let found = service
+            .search_alerts(&actor, &request("tag:phish"))
+            .await
+            .expect("searched");
+        assert_eq!(
+            (found.alert_ids(), found.excluded_test_alerts),
+            (vec![alerts[2]], Some(1))
+        );
+        // test_similar_alerts: the alert itself is never among them, and the test alerts are counted
+        let similar = service
+            .similar_alerts(&actor, &SimilarRequest::of(alerts[0]))
+            .await
+            .expect("searched");
+        assert_eq!(similar.alert_ids(), vec![alerts[2], alerts[3]]);
+        assert_eq!(similar.excluded_test_alerts, Some(2));
+        assert_eq!(similar.query, format!("similar:{}", alerts[0]));
+        assert_eq!(similar.lanes_used, vec![SearchLane::Semantic]);
+        let similar = service
+            .similar_alerts(
+                &actor,
+                &SimilarRequest {
+                    include_test_alerts: true,
+                    limit: 2,
+                    offset: 1,
+                    ..SimilarRequest::of(alerts[0])
+                },
+            )
+            .await
+            .expect("searched");
+        assert_eq!(
+            (
+                similar.total,
+                similar.alert_ids(),
+                similar.excluded_test_alerts
+            ),
+            (4, vec![alerts[2], alerts[3]], None)
+        );
+        // an id that names no alert, and a page out of bounds
+        let missing = service
+            .similar_alerts(&actor, &SimilarRequest::of(id(0xDEAD)))
+            .await;
+        assert!(
+            matches!(missing, Err(ServiceError::NotFound(_))),
+            "{missing:?}"
+        );
+        let large = service
+            .similar_alerts(
+                &actor,
+                &SimilarRequest {
+                    limit: search::MAX_SIMILAR_PAGE + 1,
+                    ..SimilarRequest::of(alerts[0])
+                },
+            )
+            .await;
+        assert!(
+            matches!(large, Err(ServiceError::InvalidRequest(_))),
+            "{large:?}"
+        );
+    }
+
+    /// The indexer acts as a component that holds `search:index` and nothing else, and anyone else is
+    /// refused before the index is asked: ace3's indexer runs under no permission.
+    #[tokio::test]
+    async fn the_indexer_holds_only_its_grant() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let indexed = Indexed {
+            root: id(9),
+            documents: 2,
+            chunks: 3,
+            left_out: 0,
+            skipped: None,
+            error: None,
+        };
+        let (service, index) = searching(
+            db,
+            StubIndex {
+                due: Mutex::new(vec![indexed.clone()]),
+                ..StubIndex::default()
+            },
+        );
+        let indexer = search::indexer_actor();
+        assert_eq!(
+            indexer.to_string(),
+            component(search::SEARCH_COMPONENT).to_string()
+        );
+        // migration 0061's grant, and no other
+        for (permission, held) in [
+            (ace_service::SEARCH_INDEX, true),
+            (ace_service::ALERT_READ, false),
+            (ace_service::ALERT_WRITE, false),
+            (ace_service::ALERT_QUEUE, false),
+            (ace_service::USER_WRITE, false),
+        ] {
+            assert_eq!(
+                service
+                    .allowed(&indexer, &permission)
+                    .await
+                    .expect("checked"),
+                held,
+                "{permission}"
+            );
+        }
+        let admin = admin(db).await;
+        let reader = reader(db).await;
+        let refused = service.index_due(&reader).await;
+        assert!(
+            matches!(refused, Err(ServiceError::PermissionDenied { .. })),
+            "{refused:?}"
+        );
+        assert_eq!(index.due.lock().expect("due").len(), 1, "nothing was taken");
+        // the index's answer is the service's
+        assert_eq!(
+            service.index_due(&indexer).await.expect("indexed"),
+            Some(indexed)
+        );
+        assert_eq!(service.index_due(&indexer).await.expect("asked"), None);
+        // an admin holds everything, the indexer's too
+        assert_eq!(service.index_due(&admin).await.expect("asked"), None);
+        // an index that fails is an error the worker logs, and a service without one says so
+        let (failing, _) = searching(
+            db,
+            StubIndex {
+                fails: true,
+                ..StubIndex::default()
+            },
+        );
+        assert!(matches!(
+            failing.index_due(&indexer).await,
+            Err(ServiceError::Unconfigured(_))
+        ));
+        assert!(matches!(
+            bare(db).index_due(&indexer).await,
+            Err(ServiceError::Unconfigured(_))
+        ));
+        // and it can't search: the component's grant isn't a reader's
+        let refused = service.search_alerts(&indexer, &request("docusign")).await;
+        assert!(
+            matches!(refused, Err(ServiceError::PermissionDenied { .. })),
+            "{refused:?}"
+        );
     }
 }

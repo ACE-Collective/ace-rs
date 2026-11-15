@@ -1,0 +1,54 @@
+[package]
+name = "ace-search"
+version = "0.1.0"
+description = "The search indexer: an alert's text as chunks, their embeddings and terms, in Postgres"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lib]
+doctest = false
+
+[features]
+# The Qdrant index ace3 uses, as a second `SearchIndex`, for the retrieval comparison
+# (docs/decisions/0002-search-index.md). Nothing ships with it: only this crate's tests turn it on.
+qdrant = ["dep:reqwest"]
+
+[dependencies]
+ace-core = { path = "../ace-core" }
+ace-results = { path = "../ace-results" }
+ace-service = { path = "../ace-service" }
+# A term's id is ace3's: blake2b's first four bytes.
+blake2 = "0.11.0"
+# erf, for the model's GELU.
+libm = "0.2.16"
+# The embedding model's matrix products (model/bert.rs).
+matrixmultiply = { version = "0.3.11", default-features = false, features = ["std"] }
+chrono = { version = "0.4.45", default-features = false, features = ["std", "clock"] }
+hex = "0.4.3"
+regex = "1.13.1"
+reqwest = { version = "0.13.5", default-features = false, features = ["json"], optional = true }
+# The embedding model's weights are read from its safetensors file.
+safetensors = "0.8.0"
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+sha2 = "0.11.1"
+sqlx = { version = "0.9.0", default-features = false, features = ["runtime-tokio", "tls-rustls-aws-lc-rs", "postgres", "macros", "uuid", "json", "chrono"] }
+thiserror = "2.0.21"
+# The model's own tokenizer, read from its tokenizer.json, so a chunk is cut where the model counts.
+tokenizers = { version = "0.23.2", default-features = false, features = ["fancy-regex"] }
+tokio = { version = "1.54.1", features = ["macros", "rt", "sync", "time", "fs", "io-util"] }
+tracing = "0.1.44"
+uuid = { version = "1.29.0", features = ["serde", "v4", "v5"] }
+
+[dev-dependencies]
+ace-core = { path = "../ace-core", features = ["testing"] }
+ace-search = { path = ".", features = ["qdrant"] }
+ace-store = { path = "../ace-store" }
+tempfile = "3.27.0"
+tokio = { version = "1.54.1", features = ["macros", "rt-multi-thread", "time"] }
+tokio-util = "0.7.20"
+
+[lints]
+workspace = true

@@ -84,6 +84,22 @@ RUN dotnet tool install --tool-path /opt/dotnet ilspycmd --version 11.0.0.9375 \
     && chmod +x /opt/de4dotEx/de4dot \
     && rm -rf /usr/src/de4dotEx /root/.nuget
 
+# The search index's embedding model (PLAN.md 7.11): sentence-transformers/all-MiniLM-L6-v2, the model
+# ace3's search uses, from its repository on Hugging Face at one commit, each file pinned by hash
+# (vendor/README.md says what it is and its licence). `ace_search::model` checks the same hashes when
+# it loads the files. docker/dev/Dockerfile and docker/ace4/Dockerfile have this same stage.
+FROM debian:13.7-slim AS search-model
+ADD --checksum=sha256:53aa51172d142c89d9012cce15ae4d6cc0ca6895895114379cacb4fab128d9db \
+    https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/1110a243fdf4706b3f48f1d95db1a4f5529b4d41/model.safetensors \
+    /model/model.safetensors
+ADD --checksum=sha256:be50c3628f2bf5bb5e3a7f17b1f74611b2561a3a27eeab05e5aa30f411572037 \
+    https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/1110a243fdf4706b3f48f1d95db1a4f5529b4d41/tokenizer.json \
+    /model/tokenizer.json
+ADD --checksum=sha256:953f9c0d463486b10a6871cc2fd59f223b2c70184f49815e7efbcab5d8908b41 \
+    https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/1110a243fdf4706b3f48f1d95db1a4f5529b4d41/config.json \
+    /model/config.json
+RUN chmod 755 /model && chmod 644 /model/*
+
 FROM rust:1.99.1-trixie AS build
 
 RUN apt-get update \
@@ -140,6 +156,9 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends git curl openssh-client \
     && rm -rf /var/lib/apt/lists/*
 COPY --from=build /out/ace /usr/local/bin/ace
+# the search index's embedding model, which `ace serve` loads when ACE4_SEARCH_MODEL names it
+COPY --from=search-model /model /usr/local/share/ace4/search-model/all-MiniLM-L6-v2
+ENV ACE4_SEARCH_MODEL=/usr/local/share/ace4/search-model/all-MiniLM-L6-v2
 USER ace4
 # the lease API for the pools, and the JSON API for people (crates/ace-app/src/serve.rs)
 EXPOSE 8080 8000

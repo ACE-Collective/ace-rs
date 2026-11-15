@@ -1,0 +1,79 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT x.id, x.observable_id, x.analysis_type, x.details AS \"details: Value\",\n                              o.value\n                       FROM analysis.results x\n                       JOIN analysis.observables o\n                         ON o.root_id = x.root_id AND o.id = x.observable_id\n                       WHERE x.root_id = $1 AND x.analysis_type = ANY ($2)\n                         AND pg_column_size(x.details) <= $3\n                       ORDER BY x.id LIMIT $4",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "analysis.results",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "observable_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "analysis.results",
+            "name": "observable_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "analysis_type",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "analysis.results",
+            "name": "analysis_type"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "details: Value",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "analysis.results",
+            "name": "details"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "value",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "analysis.observables",
+            "name": "value"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "TextArray",
+        "Int4",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "777ef035f86a150e8386da21e52be6e9b8401d6b9fcc5988ac8f6a58cf7fcbdd"
+}

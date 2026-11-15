@@ -250,6 +250,10 @@ pub const MONITORING_REPORT: PermissionName = PermissionName::known("monitoring"
 /// Read what the monitoring checks last found and how the scheduled tasks ran (PLAN.md 7.12). ace3 has
 /// no such permission: its records go to fluent-bit and it shows them nowhere.
 pub const MONITORING_READ: PermissionName = PermissionName::known("monitoring", "read");
+/// Index an alert's text for search (PLAN.md 7.11): read the alert and replace its chunks. ace3's
+/// indexer service runs with the database's and Qdrant's credentials, under no permission. Only ACE's
+/// indexer, the component `search_indexer`, holds it.
+pub const SEARCH_INDEX: PermissionName = PermissionName::known("search", "index");
 /// Enter the GUI's administration area: ace3's `admin:read`, its umbrella gate. Each page there needs its
 /// own permission too, such as `user:read` for Users & Roles.
 pub const ADMIN_READ: PermissionName = PermissionName::known("admin", "read");
@@ -510,6 +514,11 @@ pub static CATALOG: &[CatalogEntry] = &[
         description: "Queue, stop, retry, restore and clear remediations: the event page's remediation \
                       links and the Remediations page. A remediator acts outside ACE, such as removing an \
                       email from a mailbox.",
+    },
+    CatalogEntry {
+        name: SEARCH_INDEX,
+        description: "Index an alert's text for search: read the alert and replace its chunks. ACE's search \
+                      indexer holds it.",
     },
     CatalogEntry {
         name: SIGNATURE_DOWNLOAD,

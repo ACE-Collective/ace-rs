@@ -1,0 +1,41 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE search.due d SET claimed_until = now() + make_interval(secs => $1)\n             WHERE d.root_id = (\n                 SELECT root_id FROM search.due\n                 WHERE attempts < $2 AND (claimed_until IS NULL OR claimed_until < now())\n                 ORDER BY due_at, root_id LIMIT 1 FOR UPDATE SKIP LOCKED)\n             RETURNING d.root_id, d.version",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "root_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "search.due",
+            "name": "root_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "version",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "search.due",
+            "name": "version"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Float8",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "2cc10a8e06b7ddba51fc3c11041a2e1c7bdc6d1e22690198a4f22cbe4f82d89f"
+}

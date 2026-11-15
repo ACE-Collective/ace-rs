@@ -132,6 +132,7 @@ mod preferences;
 mod remediation;
 pub mod routing;
 mod saved_filters;
+pub mod search;
 mod source;
 mod submit;
 mod svs;
@@ -270,9 +271,10 @@ pub use permission::{
     FILE_COLLECTION_PRUNE, FILE_COLLECTION_READ, FILE_COLLECTION_WRITE, HUNT_READ, HUNT_WRITE,
     InvalidPermission, LIST_READ, LIST_WRITE, MONITORING_READ, MONITORING_REPORT, NRD_REFRESH,
     OBSERVABLE_READ, OBSERVABLE_WRITE, PermissionName, PermissionPattern, REMEDIATION_READ,
-    REMEDIATION_WRITE, SIGNATURE_DOWNLOAD, SIGNATURE_QA_PURGE, SIGNATURE_READ, SVS_ADMIN,
-    SVS_COVERAGE_REFRESH, SVS_COVERAGE_SNAPSHOT, SVS_RUN_MANAGE, SVS_RUN_READ, SVS_RUN_REGISTER,
-    SVS_RUN_TIMERS, SVS_VALIDATE, SVS_VALIDATION_PRUNE, USER_READ, USER_SELF, USER_WRITE,
+    REMEDIATION_WRITE, SEARCH_INDEX, SIGNATURE_DOWNLOAD, SIGNATURE_QA_PURGE, SIGNATURE_READ,
+    SVS_ADMIN, SVS_COVERAGE_REFRESH, SVS_COVERAGE_SNAPSHOT, SVS_RUN_MANAGE, SVS_RUN_READ,
+    SVS_RUN_REGISTER, SVS_RUN_TIMERS, SVS_VALIDATE, SVS_VALIDATION_PRUNE, USER_READ, USER_SELF,
+    USER_WRITE,
 };
 pub use preferences::{
     AlertSectionsPreference, MANAGE_COLUMNS, MAX_ALERT_SECTIONS, ManageColumn,
@@ -288,6 +290,10 @@ pub use remediation::{
 pub use saved_filters::{
     MAX_SAVED_FILTER_DESCRIPTION_CHARS, MAX_SAVED_FILTER_NAME_CHARS, MAX_SAVED_FILTERS,
     NewSavedFilter, SavedFilter, SavedFilterChange,
+};
+pub use search::{
+    IndexError, Indexed, LaneResult, Scoped, SearchConfig, SearchHit, SearchIndex, SearchLane,
+    SearchRequest, SearchResponse, SearchResult, SimilarRequest, Tier,
 };
 pub use source::with_source_ip;
 pub use svs::{
@@ -567,6 +573,11 @@ pub struct Service {
     /// The ATT&CK release coverage is computed against, the overlay's `svs.attack_release` (PLAN.md 7.10
     /// batch 8). None is ace3's default release, which every build has.
     attack: Option<std::sync::Arc<ace_core::svs::attack::AttackCatalog>>,
+    /// The search index (PLAN.md 7.11), `search`'s docs. None unless the binary sets one, and then a
+    /// search runs its exact lane and its listings only.
+    search: Option<std::sync::Arc<dyn search::SearchIndex>>,
+    /// Search's settings, ace3's defaults unless the binary sets others.
+    search_config: std::sync::Arc<search::SearchConfig>,
 }
 
 impl Service {
@@ -586,6 +597,8 @@ impl Service {
             runs: std::sync::Arc::default(),
             feed_settle: chrono::TimeDelta::seconds(5),
             attack: None,
+            search: None,
+            search_config: std::sync::Arc::default(),
         }
     }
 

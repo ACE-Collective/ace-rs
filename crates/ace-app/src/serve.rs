@@ -2,7 +2,9 @@
 //! (5.5, `ace-api`), the reaper that takes back tasks whose lease expired, the recorder of YARA QA
 //! matches (2.27), the worker that runs the core's hooks at the end of a root's pass (7.6,
 //! `ace_core::hooks`), the worker that routes an alert to its queue when its pass completes (7.13,
-//! `ace_service::routing`), the scheduler of ace3's maintenance tasks (6.7, `crate::scheduler`), and the ruleset
+//! `ace_service::routing`), the indexer that keeps an alert's text searchable (7.11, `ace_search`,
+//! `ace_service::search`) when `ACE4_SEARCH_MODEL` names the embedding model's directory, the
+//! scheduler of ace3's maintenance tasks (6.7, `crate::scheduler`), and the ruleset
 //! builder (2.25) when `ACE4_SIGNATURES_REPO` names the signatures repository's checkout
 //! (`SignatureRepo::from_env`), every `ACE4_RULESET_POLL_SECONDS` (60), and SVS's YARA validation workers
 //! (7.10 batch 3, `ace_core::svs::validations`) when the overlay's `svs.yara` names a repository, each
@@ -200,6 +202,37 @@ async fn serve(app: &App) -> Result<ExitCode> {
         .with_attack_catalog(attack)
         .with_runs(runs)
         .with_routers(routers);
+    // search (PLAN.md 7.11): the index in Postgres, with the embedding model the image carries. The
+    // model is read here once, each file checked against its pinned hash, and nothing is downloaded.
+    // With no model named, alerts aren't indexed and a search runs its exact lane and its listings.
+    let search_model = tokio::task::spawn_blocking(ace_search::Model::from_env)
+        .await
+        .context("loading the embedding model")?
+        .with_context(|| format!("the embedding model {} names", ace_search::model::MODEL_VAR))?;
+    let indexing = search_model.is_some();
+    let service = match search_model {
+        Some(model) => {
+            tracing::info!(
+                model = ace_search::model::MODEL_NAME,
+                "search embeds with this model, in this process"
+            );
+            service.with_search(
+                std::sync::Arc::new(ace_search::PgIndex::new(
+                    db.clone(),
+                    Some(bucket.clone()),
+                    model,
+                )),
+                ace_service::search::SearchConfig::default(),
+            )
+        }
+        None => {
+            tracing::warn!(
+                "{} isn't set: alerts aren't indexed, and a search finds exact matches only",
+                ace_search::model::MODEL_VAR
+            );
+            service
+        }
+    };
     // each scan runs in this binary again, contained (`ace yara replay --contained`)
     let validators = (!validation.repositories.is_empty())
         .then(|| -> Result<ace_core::svs::validations::Workers> {
@@ -237,6 +270,7 @@ async fn serve(app: &App) -> Result<ExitCode> {
         );
     }
     let routing_service = service.clone();
+    let indexing_service = service.clone();
     let gui = ace_gui::Gui::new(service.clone(), web_config.transport)
         .with_views(app.views().clone())
         .with_actions(app.actions().clone());
@@ -281,6 +315,13 @@ async fn serve(app: &App) -> Result<ExitCode> {
         Duration::from_secs(5),
         stop.clone(),
     ));
+    let indexer = indexing.then(|| {
+        tokio::spawn(ace_service::search::run_worker(
+            indexing_service,
+            Duration::from_secs(5),
+            stop.clone(),
+        ))
+    });
     let scheduler = tokio::spawn(scheduler.run(stop.clone()));
     let validators = validators.map(|workers| tokio::spawn(workers.run(stop.clone())));
     let builder = signatures.map(|repo| {
@@ -350,6 +391,14 @@ async fn serve(app: &App) -> Result<ExitCode> {
         .is_err()
     {
         tracing::warn!("the routing worker didn't stop within 5 seconds");
+    }
+    // an alert the indexer was embedding stays due: its claim lapses, and the next start takes it
+    if let Some(indexer) = indexer
+        && tokio::time::timeout(Duration::from_secs(5), indexer)
+            .await
+            .is_err()
+    {
+        tracing::warn!("the search indexer didn't stop within 5 seconds");
     }
     // the scheduler stops its running tasks and waits STOP_WAIT for their ends to be recorded
     if tokio::time::timeout(

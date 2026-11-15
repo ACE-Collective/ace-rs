@@ -1017,3 +1017,76 @@ table.saved-filters .place {
   margin-left: 0.25rem;
   font-size: 0.85em;
 }
+
+/* Search (PLAN.md 7.11): the box, and under each alert found its tier and its hits. As in ace3, none of
+   it is a badge: the row above uses badges for its disposition. */
+.search-box {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.5rem 0;
+}
+
+.search-box input[type="search"] {
+  flex: 1 1 24rem;
+  max-width: 48rem;
+}
+
+.search-hint {
+  border-left: 3px solid currentColor;
+  padding-left: 0.5rem;
+}
+
+.search-evidence td {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.search-tier {
+  font-size: 0.85em;
+}
+
+.search-tier-exact {
+  font-weight: bold;
+}
+
+.search-tier-exact,
+.search-tier-strong {
+  color: #2e7d32;
+}
+
+.search-tier-weak {
+  opacity: 0.6;
+}
+
+.search-hit {
+  border-left: 3px solid #888;
+  margin: 0.15rem 0;
+  padding-left: 0.5rem;
+  overflow-wrap: anywhere;
+}
+
+.search-hit-observable,
+.search-hit-tag,
+.search-hit-uuid {
+  border-left-color: #2e7d32;
+}
+
+.search-hit-comment {
+  border-left-color: #1565c0;
+}
+
+.search-hit-detection {
+  border-left-color: #c62828;
+}
+
+.search-hit-kind {
+  font-size: 0.8em;
+  opacity: 0.7;
+  text-transform: uppercase;
+}
+
+.search-hit-title {
+  font-weight: bold;
+}

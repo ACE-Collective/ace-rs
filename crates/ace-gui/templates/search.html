@@ -1,0 +1,79 @@
+{#- Search (PLAN.md 7.11): ace3's manage-page search box and the search rows of analysis/manage.html, as
+    a page of its own whose URL says all of the search (src/search.rs). Every control is a link or a GET
+    form, and the page has no script of its own. A title, a hit's title and its snippet are text other
+    people wrote: each is drawn as text, and none is markup. -#}
+{% extends "base.html" %}
+{% block title %}Search · ACE{% endblock %}
+{% block content %}
+<section class="search">
+  <h1>{% if view.similar.is_some() %}Similar alerts{% else %}Search{% endif %}</h1>
+  <form method="get" action="/search" class="search-box" role="search">
+    {%- for f in view.f %}
+    <input type="hidden" name="f" value="{{ f }}">
+    {%- endfor %}
+    <label for="search-query">Search</label>
+    <input type="search" id="search-query" name="q" maxlength="2000" value="{{ view.q }}" placeholder="docusign invoice, ipv4:10.20.30.40, tag:phish">
+    <button type="submit">Search</button>
+    <a href="/help/search/query-language">How to search</a>
+    <a href="{{ view.list }}">The alert list{% if !view.f.is_empty() %} with these filters{% endif %}</a>
+  </form>
+  {%- if let Some(similar) = view.similar %}
+  <p class="search-subject">Alerts whose text is like <a href="{{ similar.0 }}">{{ similar.1 }}</a>'s.</p>
+  {%- endif %}
+  {%- if !view.f.is_empty() %}
+  <p class="muted">Within the filters:{% for f in view.f %} <code>{{ f }}</code>{% endfor %}</p>
+  {%- endif %}
+
+  {%- for error in view.errors %}
+  <p class="error">{{ error }}</p>
+  {%- endfor %}
+  {%- for warning in view.warnings %}
+  <p class="warning">{{ warning }}</p>
+  {%- endfor %}
+  {%- if let Some(hint) = view.hint %}
+  <p class="search-hint">{{ hint }}</p>
+  {%- endif %}
+
+  {%- if view.asked && view.errors.is_empty() %}
+  <p class="count">{{ view.total }} alert{% if view.total != 1 %}s{% endif %}
+    {%- if let Some(left) = view.left_out %}, and {{ left.0 }} test-run alert{% if left.0 != 1 %}s{% endif %} left out. <a href="{{ left.1 }}">Include them</a>{% endif %}
+    {%- if let Some(leave) = view.leave_out %}, test-run alerts included. <a href="{{ leave }}">Leave them out</a>{% endif %}</p>
+  {%- if view.rows.is_empty() %}
+  <p class="muted">Nothing matched.</p>
+  {%- else %}
+  <table class="alerts search-results">
+    <thead>
+      <tr><th>#</th><th>Alert</th><th>Queue</th><th>Disposition</th><th>Owner</th><th>Alert Date</th></tr>
+    </thead>
+    <tbody>
+      {%- for row in view.rows %}
+      <tr>
+        <td>{{ row.rank }}</td>
+        <td><a href="{{ row.href }}">{{ row.title }}</a></td>
+        <td>{{ row.queue }}</td>
+        <td>{{ row.disposition }}</td>
+        <td>{{ row.owner }}</td>
+        <td>{{ row.alerted }}</td>
+      </tr>
+      {%- if let Some(tier) = row.tier %}
+      <tr class="search-evidence">
+        <td></td>
+        <td colspan="5">
+          <span class="search-tier search-tier-{{ tier }}">{{ tier }} match</span>
+          {%- for hit in row.hits %}
+          <div class="search-hit search-hit-{{ hit.kind }}"><span class="search-hit-kind">{{ hit.kind }}</span>{% if let Some(title) = hit.title %} <span class="search-hit-title">{{ title }}</span>{% endif %} <span class="search-hit-text">{{ hit.text }}</span></div>
+          {%- endfor %}
+        </td>
+      </tr>
+      {%- endif %}
+      {%- endfor %}
+    </tbody>
+  </table>
+  {%- endif %}
+  <nav class="pager" aria-label="Pages">
+    {%- if let Some(previous) = view.previous %}<a href="{{ previous }}" rel="prev">Previous</a>{% endif %}
+    {%- if let Some(next) = view.next %} <a href="{{ next }}" rel="next">Next</a>{% endif %}
+  </nav>
+  {%- endif %}
+</section>
+{% endblock %}

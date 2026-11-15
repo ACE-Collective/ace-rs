@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT avg(embedding)::real[] AS \"mean\"\n                   FROM (SELECT embedding FROM search.chunks WHERE root_id = $1\n                         ORDER BY kind, key, chunk LIMIT $2) own",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "mean",
+        "type_info": "Float4Array",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "bab49b8c4ba68c76b6642771c3b91704a9fcc1f5180d7d0537960f27a0898340"
+}

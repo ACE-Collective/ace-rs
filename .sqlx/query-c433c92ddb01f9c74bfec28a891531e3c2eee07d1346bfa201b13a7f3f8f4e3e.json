@@ -1,0 +1,73 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT r.id, r.alerted_at AS \"alerted_at!\", o.type, o.value\n                               FROM unnest($1::text[], $2::text[]) p(t, v)\n                               JOIN analysis.observables o\n                                 ON (p.t = '' OR o.type = p.t)\n                                AND o.value_hash = analysis.value_hash(p.v) AND o.value = p.v\n                               JOIN analysis.roots r ON r.id = o.root_id\n                               WHERE r.alerted_at IS NOT NULL\n                                 AND search.in_scope(r.id, r.queue::text, r.disposition, r.alerted_at,\n                                       $3, $4, $5, $6, $7::text::tstzmultirange,\n                                       $8::text::tstzmultirange, $9)\n                               ORDER BY r.alerted_at DESC, r.id DESC LIMIT $10",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "analysis.roots",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "alerted_at!",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "analysis.roots",
+            "name": "alerted_at"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "type",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "analysis.observables",
+            "name": "type"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "value",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "analysis.observables",
+            "name": "value"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "TextArray",
+        "TextArray",
+        "TextArray",
+        "TextArray",
+        "TextArray",
+        "TextArray",
+        "Text",
+        "Text",
+        "UuidArray",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "c433c92ddb01f9c74bfec28a891531e3c2eee07d1346bfa201b13a7f3f8f4e3e"
+}

@@ -1,0 +1,130 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH q AS MATERIALIZED (\n                               -- each term, with how many chunks hold it, counted no further than the cap\n                               SELECT u.term, u.weight, (\n                                          SELECT count(*) FROM (\n                                              SELECT FROM search.chunks x\n                                              WHERE x.terms @@ u.term::tsquery LIMIT $11::bigint + 1) held\n                                      )::float8 AS n\n                               FROM unnest($1::text[], $2::float8[]) u(term, weight)\n                           ),\n                           total AS (\n                               SELECT GREATEST(COALESCE((SELECT sum(chunks) FROM search.indexed), 0),\n                                               (SELECT max(n) FROM q), 1)::float8 AS n\n                           ),\n                           w AS MATERIALIZED (\n                               SELECT q.term::tsquery AS term, q.n <= $11::bigint AS selective,\n                                      q.weight * ln(1 + (total.n - q.n + 0.5) / (q.n + 0.5)) AS weight\n                               FROM q, total WHERE q.n > 0\n                           ),\n                           wanted AS (\n                               -- the chunks to score: those that hold a selective term, or, when the\n                               -- query has none, those that hold every term\n                               SELECT CASE WHEN bool_or(q.n <= $11::bigint)\n                                           THEN string_agg(q.term, ' | ') FILTER (WHERE q.n <= $11::bigint)\n                                           ELSE string_agg(q.term, ' & ') END::tsquery AS query\n                               FROM q WHERE q.n > 0\n                           ),\n                           candidates AS MATERIALIZED (\n                               SELECT c.root_id, c.kind, c.key, c.chunk, c.terms\n                               FROM search.chunks c\n                               JOIN analysis.roots r ON r.id = c.root_id\n                               WHERE c.terms @@ (SELECT query FROM wanted)\n                                 AND r.alerted_at IS NOT NULL\n                                 AND search.in_scope(r.id, r.queue::text, r.disposition, r.alerted_at,\n                                       $3, $4, $5, $6, $7::text::tstzmultirange,\n                                       $8::text::tstzmultirange, $9)\n                               LIMIT $12\n                           ),\n                           scored AS (\n                               SELECT c.root_id, c.kind, c.key, c.chunk,\n                                      sum(w.weight * ts_rank(c.terms, w.term)) AS score\n                               FROM candidates c, w\n                               GROUP BY c.root_id, c.kind, c.key, c.chunk\n                               ORDER BY score DESC, c.root_id, c.kind, c.key, c.chunk\n                               LIMIT $10\n                           )\n                           SELECT c.root_id, c.kind, c.key, c.chunk, c.title, c.text, c.result_id,\n                                  c.observable_id, s.score AS \"score!\"\n                           FROM scored s\n                           JOIN search.chunks c\n                             ON c.root_id = s.root_id AND c.kind = s.kind AND c.key = s.key\n                            AND c.chunk = s.chunk\n                           ORDER BY s.score DESC, c.root_id, c.kind, c.key, c.chunk",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "root_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "search.chunks",
+            "name": "root_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "kind",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "search.chunks",
+            "name": "kind"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "key",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "search.chunks",
+            "name": "key"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "chunk",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "search.chunks",
+            "name": "chunk"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "title",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "search.chunks",
+            "name": "title"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "text",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "search.chunks",
+            "name": "text"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "result_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "search.chunks",
+            "name": "result_id"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "observable_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "search.chunks",
+            "name": "observable_id"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "score!",
+        "type_info": "Float8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "TextArray",
+        "Float8Array",
+        "TextArray",
+        "TextArray",
+        "TextArray",
+        "TextArray",
+        "Text",
+        "Text",
+        "UuidArray",
+        "Int8",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      true,
+      true,
+      null
+    ]
+  },
+  "hash": "fcce3ffbc9ee7f733aed7e933a97368ddd6fe92868ab6386d154862eef869de8"
+}

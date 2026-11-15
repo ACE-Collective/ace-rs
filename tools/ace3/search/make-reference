@@ -1,0 +1,50 @@
+#!/usr/bin/env python3
+"""ace3's search code and embedding model over tools/ace3/search/cases.json (PLAN.md step 7.11).
+
+    tools/ace3/search/make-reference
+
+reference.py runs in ace3's dev container (ace-dev-1) with ace3's own `saq.search` and the model its
+indexer downloaded, and its output lands in crates/ace-search/src/fixtures/ace3-reference.json, which
+ace-search's tests read: the sparse terms, the token bounds, the chunks and the embeddings have to be
+ace3's. The cases are texts written for this comparison. Nothing is written under /opt/ace, and ace3's
+database and Qdrant aren't touched. Rerun this when ace3's search code or its model moves.
+"""
+
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+CONTAINER = os.environ.get("ACE4_ACE3_CONTAINER", "ace-dev-1")
+REMOTE = "/tmp/ace4-dumps/search"
+MODEL = os.environ.get("ACE4_ACE3_SEARCH_MODEL", "/opt/ace/data/search/models/all-minilm-l6-v2")
+HERE = Path(__file__).resolve().parent
+OUT = HERE.parents[2] / "crates" / "ace-search" / "src" / "fixtures" / "ace3-reference.json"
+
+
+def docker(*args, stdin=None, check=True):
+    return subprocess.run(["docker", *args], input=stdin, capture_output=True, check=check)
+
+
+def main():
+    # /tmp in the container is a tmpfs, which `docker cp` can't write to, so a tar stream
+    docker("exec", CONTAINER, "rm", "-rf", REMOTE)
+    docker("exec", CONTAINER, "mkdir", "-p", REMOTE)
+    archive = subprocess.run(
+        ["tar", "--no-xattrs", "-C", str(HERE), "-cf", "-", "reference.py", "cases.json"],
+        capture_output=True, check=True, env={**os.environ, "COPYFILE_DISABLE": "1"},
+    ).stdout
+    docker("exec", "-i", CONTAINER, "tar", "-C", REMOTE, "-xf", "-", stdin=archive)
+    run = docker(
+        "exec", CONTAINER, "/venv/bin/python3", f"{REMOTE}/reference.py", f"{REMOTE}/cases.json", MODEL,
+        f"{REMOTE}/out.json", check=False,
+    )
+    if run.returncode != 0:
+        sys.exit(f"make-reference: reference.py failed:\n{run.stderr.decode(errors='replace')}")
+    OUT.write_bytes(docker("exec", CONTAINER, "cat", f"{REMOTE}/out.json").stdout)
+    docker("exec", CONTAINER, "rm", "-rf", REMOTE)
+    print(f"make-reference: wrote {OUT}")
+
+
+if __name__ == "__main__":
+    main()

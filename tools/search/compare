@@ -1,0 +1,61 @@
+#!/usr/bin/env python3
+"""Runs ace3's retrieval regression against ace4's Postgres index and against Qdrant (PLAN.md 7.11).
+
+    tools/search/compare            the retrieval cases on both sides, their measurements, and the model's cost
+    tools/search/compare --scale    also both indexes at production's size: 26,000 alerts of six chunks,
+                                    or ACE4_SEARCH_SCALE_ALERTS of ACE4_SEARCH_SCALE_CHUNKS_PER_ALERT
+    tools/search/compare --keep     leave the Qdrant up afterwards
+
+It needs ace4's dev stack up (`docker compose up -d --wait dev postgres bucket`). It starts a
+throwaway Qdrant of ace3's version in the Compose project `ace4-search`
+(tools/search/qdrant.compose.yaml), runs ace-search's tests in the dev container, the Postgres ones
+and then the ones ignored without a Qdrant, with ACE4_TEST_QDRANT_URL pointing at it, prints what
+they measured, and removes the Qdrant and its volume. It never touches ace3's Qdrant.
+docs/decisions/0002-search-index.md holds the numbers of the run it was written from.
+"""
+
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[2]
+QDRANT = ["docker", "compose", "-f", str(ROOT / "tools/search/qdrant.compose.yaml")]
+DEV = ["docker", "compose", "exec", "-T", "-e", "ACE4_TEST_QDRANT_URL=http://qdrant:6333"]
+
+
+def run(command, **kwargs):
+    return subprocess.run(command, cwd=ROOT, **kwargs)
+
+
+def tests(filter_, ignored, scale):
+    command = [*DEV]
+    for name in ("ACE4_SEARCH_SCALE_ALERTS", "ACE4_SEARCH_SCALE_CHUNKS_PER_ALERT", "ACE4_SEARCH_SCALE_HOLD"):
+        if scale and name in os.environ:
+            command += ["-e", f"{name}={os.environ[name]}"]
+    command += ["dev", "cargo", "test", "--locked", "-p", "ace-search", filter_, "--", "--nocapture",
+                "--test-threads=1"]
+    if ignored:
+        command.append("--ignored")
+    return run(command).returncode
+
+
+def main():
+    keep = "--keep" in sys.argv[1:]
+    scale = "--scale" in sys.argv[1:]
+    if run([*QDRANT, "up", "-d", "--wait"]).returncode != 0:
+        sys.exit("compare: the Qdrant didn't start")
+    try:
+        failed = tests("tests::postgres::", False, False)
+        failed |= tests("tests::qdrant::", True, False)
+        failed |= tests("tests::model_cost", True, False)
+        if scale:
+            failed |= tests("tests::scale", True, True)
+    finally:
+        if not keep:
+            run([*QDRANT, "down", "-v", "--remove-orphans"])
+    sys.exit(1 if failed else 0)
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO search.chunks AS c\n                                 (root_id, kind, key, chunk, title, text, result_id, observable_id,\n                                  embedding, terms)\n                             SELECT r.id, $2, $3, $4, $5, $6, $7, $8, $9::real[]::vector, $10::text::tsvector\n                             FROM analysis.roots r WHERE r.id = $1\n                             ON CONFLICT (root_id, kind, key, chunk) DO UPDATE\n                                 SET title = EXCLUDED.title, text = EXCLUDED.text,\n                                     result_id = EXCLUDED.result_id,\n                                     observable_id = EXCLUDED.observable_id,\n                                     embedding = EXCLUDED.embedding, terms = EXCLUDED.terms,\n                                     indexed_at = now()",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Int4",
+        "Text",
+        "Text",
+        "Int8",
+        "Int8",
+        "Float4Array",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "f979796a29718dc9a9658680cf6ed9fbd1276b9608e472d027e8a1da7d9f4eb2"
+}

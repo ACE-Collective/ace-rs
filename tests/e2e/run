@@ -27,6 +27,12 @@ results from all five modules and complete; the second only later. The same emai
 times, so their trees in the normal form (PLAN.md 3.1) must be the same text, which goes to
 <work>/normal-form.json.
 
+Then search (PLAN.md 7.11): the indexer, a task of `ace serve`, has to have indexed both alerts once
+their passes completed, embedding their text with the model the ace image carries into the pgvector
+the Postgres image carries, and a search through the JSON API has to find them by their title's words,
+one by its id as an exact match, nothing for a query that resembles nothing, and each as the alert
+most like the other.
+
 Then the browser test (PLAN.md 5.8, 5.9 and 5.10): the e2e profile's headless Chromium, pinned by digest in
 compose.yaml, logs in to the GUI as an analyst that `ace user create-first` makes and opens a third
 submission's alert page while the network pool is frozen, so the page has no RDAP result. The pool is
@@ -1176,6 +1182,79 @@ def check_alert_list(page, root, expect):
     expect(not refused, f"the list's policy refused nothing: {refused}")
 
 
+def check_search(first, second, failures):
+    """PLAN.md 7.11: the indexer indexed both alerts when their passes completed, embedding with the
+    model the ace image carries into the pgvector the Postgres image carries, and a search through the
+    JSON API finds an alert by its own words, by its id, and as the other's near duplicate."""
+
+    def expect(ok, message):
+        log(("ok    " if ok else "FAIL  ") + message)
+        if not ok:
+            failures.append(f"search: {message}")
+        return ok
+
+    for root in (first, second):
+        indexed = wait_for(
+            f"the search indexer to index {root}",
+            lambda root=root: sql(
+                f"SELECT documents, chunks, model FROM search.indexed WHERE root_id = '{root}'"),
+            within=180,
+        )[0]
+        expect(int(indexed[0]) >= 2 and int(indexed[1]) >= 2 and indexed[2] == "all-MiniLM-L6-v2",
+               f"the indexer indexed {root}: {indexed[0]} documents, {indexed[1]} chunks, with {indexed[2]}")
+    wait_for("the indexer to have nothing due",
+             lambda: sql("SELECT count(*) FROM search.due")[0][0] == "0", within=180)
+    stored = sql(f"""SELECT count(*), min(vector_dims(embedding)), count(DISTINCT kind)
+                     FROM search.chunks WHERE root_id = '{first}'""")[0]
+    expect(int(stored[0]) >= 2 and stored[1] == "384" and int(stored[2]) >= 2,
+           f"its chunks are in Postgres, each with an embedding of 384: {stored}")
+    out = compose(
+        "exec", "-T", "ace", ACE_COMMAND, "user", "create-key", "e2e-searcher",
+        "--grant", "alert:read", capture=True,
+    )
+    token = next(
+        (line.split(": ", 1)[1] for line in out.splitlines()
+         if line.startswith("token (shown once): ")),
+        None,
+    )
+    if not token:
+        raise SystemExit(f"e2e: `ace user create-key` printed no token:\n{out}")
+
+    def search(route, body):
+        request = urllib.request.Request(
+            f"http://127.0.0.1:{PORT}/api/search/v1/{route}",
+            data=json.dumps(body).encode(),
+            method="POST",
+            headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+        )
+        with urllib.request.urlopen(request, timeout=60) as response:
+            return json.load(response)
+
+    # the alert's own title, as plain words: a colon or a quote would make a field term of one
+    title = sql(f"SELECT description FROM analysis.roots WHERE id = '{first}'")[0][0]
+    words = " ".join(title.replace(":", " ").replace('"', " ").split())
+    found = search("alerts", {"query": words, "limit": 10})
+    ids = [result["alert"]["id"] for result in found["results"]]
+    tiers = {result["alert"]["id"]: result["tier"] for result in found["results"]}
+    expect(first in ids and second in ids and not found["errors"] and not found["warnings"]
+           and "semantic" in found["lanes_used"] and tiers.get(first) in ("strong", "good"),
+           f"a search for the alert's title {words!r} finds both alerts by their text: "
+           f"{[(i, tiers[i]) for i in ids]}, lanes {found['lanes_used']}, in {found['timings_ms']} ms")
+    hits = next((result["hits"] for result in found["results"] if result["alert"]["id"] == first), [])
+    expect(bool(hits) and all(hit["lane"] == "semantic" and hit["text"] for hit in hits),
+           f"with the text that matched: {[hit['kind'] for hit in hits]}")
+    exact = search("alerts", {"query": f"uuid:{first}"})
+    expect([result["alert"]["id"] for result in exact["results"]] == [first]
+           and exact["results"][0]["tier"] == "exact" and exact["lanes_used"] == ["lexical"],
+           "a search for its id finds it alone, as an exact match")
+    nothing = search("alerts", {"query": "xyzzy plugh"})
+    expect(nothing["total"] == 0, f"a query that resembles nothing finds nothing: {nothing['total']}")
+    similar = search("similar", {"alert_uuid": first, "limit": 5})
+    like = [result["alert"]["id"] for result in similar["results"]]
+    expect(second in like and first not in like,
+           f"the same email's other alert is among those like it, and it isn't among its own: {like}")
+
+
 def check_library_diff(failures):
     """That the library diff (PLAN.md 4.8) has teeth. Its full run over the sample set is a separate
     invocation, tools/library-diff/run --all, since it takes as long as the comparison."""
@@ -1414,6 +1493,7 @@ def main(argv):
         else:
             log("FAIL  the roots' normal forms differ; see normal-form*.json in " + str(WORK))
             failures.append("the same email's two roots have different normal forms")
+        check_search(first, second, failures)
         check_whitelist(email, failures)
         check_scanners(failures)
         if browser:

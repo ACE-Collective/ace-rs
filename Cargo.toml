@@ -121,3 +121,12 @@ opt-level = 3
 opt-level = 3
 [profile.dev.package.image-webp]
 opt-level = 3
+
+# The search index's embedding model is a BERT forward pass (crates/ace-search): unoptimized, one
+# text takes seconds, and the retrieval tests embed a corpus.
+[profile.dev.package.ace-search]
+opt-level = 3
+[profile.dev.package.matrixmultiply]
+opt-level = 3
+[profile.dev.package.tokenizers]
+opt-level = 3

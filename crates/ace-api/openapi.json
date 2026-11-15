@@ -7351,6 +7351,159 @@
         }
       }
     },
+    "/api/search/v1/alerts": {
+      "post": {
+        "tags": [
+          "search"
+        ],
+        "summary": "Searches alerts by free text, indicator, tag or id.",
+        "description": "Exact matches, an observable, a tag or an alert's id named by a `field:value` term, come first,\nnewest first, with the tier `exact`; matches by the meaning of the alert's text follow. The ranking\nis made before the page is cut, so page one holds the best. With filters and no query the answer is\na listing, newest first, every tier null.",
+        "operationId": "alerts",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AlertSearchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "A page of the alerts found, or the query's errors with nothing searched",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlertSearchBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Neither a query nor a filter, a filter, lane, timezone, limit or offset that isn't one, a body that isn't one, or filters that took too long",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold alert:read, or a session's request came from another site",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The body is too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/search/v1/similar": {
+      "post": {
+        "tags": [
+          "search"
+        ],
+        "summary": "The alerts most like one alert, by its own indexed text, with their dispositions: \"have we seen this\nbefore?\".",
+        "operationId": "similar",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SimilarAlertsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "A page of the alerts most like it, itself left out",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AlertSearchBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A filter, timezone or limit that isn't one, a body that isn't one, or filters that took too long",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold alert:read, or a session's request came from another site",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No alert with that id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The body is too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/svs/v1/catalog/repositories": {
       "get": {
         "tags": [
@@ -20006,6 +20159,148 @@
           }
         }
       },
+      "AlertSearchBody": {
+        "type": "object",
+        "description": "ace3's `AlertSearchResponse`.",
+        "required": [
+          "query",
+          "total",
+          "offset",
+          "limit",
+          "results",
+          "lanes_used",
+          "timings_ms",
+          "errors",
+          "warnings"
+        ],
+        "properties": {
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "What the query language couldn't honor. When it isn't empty nothing was searched: a term that\ncan't be honored is reported, since dropping it would return more alerts than were asked for."
+          },
+          "excluded_test_alerts": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "How many test-run alerts matched and were left out; null when none were left out, because the\nrequest named a queue or set `include_test_alerts`.",
+            "minimum": 0
+          },
+          "hint": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "How to name a bare indicator so it's looked up exactly."
+          },
+          "lanes_used": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "limit": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "offset": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "query": {
+            "type": "string"
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SearchResultBody"
+            }
+          },
+          "timings_ms": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 0
+            },
+            "propertyNames": {
+              "type": "string"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64",
+            "description": "How many alerts matched: for a search, within the 500 it ranks.",
+            "minimum": 0
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Lanes that didn't run or failed, so less came back than might have."
+          }
+        }
+      },
+      "AlertSearchRequest": {
+        "type": "object",
+        "description": "ace3's `AlertSearchRequest`: a query, filters, or both.",
+        "properties": {
+          "filters": {
+            "$ref": "#/components/schemas/SearchFiltersRequest"
+          },
+          "include_hits": {
+            "type": "boolean",
+            "description": "Whether each alert comes with the snippets that matched."
+          },
+          "include_test_alerts": {
+            "type": "boolean",
+            "description": "Whether SVS's test-run alerts are searched. They are left out unless the filters or the query\nname a queue, and `excluded_test_alerts` says how many were."
+          },
+          "lanes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "`semantic`, `lexical` or both."
+          },
+          "limit": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "description": "The page's size, 1 to 100; 20 when left out.",
+            "minimum": 0
+          },
+          "offset": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "query": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Free text for the semantic lanes, and any number of `field:value` terms: `tag:phish`,\n`uuid:<alert id>`, `<observable type>:<value>` such as `ipv4:1.2.3.4`,\n`observable:<type>:<value>` for a value with colons in it, or a filter's slug such as\n`queue:default`, `disposition:DELIVERY` or `alert_date:-7d`. `-` before a term inverts it, quotes\nkeep a value with a space or a comma whole, and commas separate ORed values. A prefix that names\nnothing is text. A bare word or indicator is searched by meaning only, never looked up exactly.\nAt most 2,000 characters."
+          },
+          "tz": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The IANA timezone relative date filters resolve in; UTC when left out."
+          }
+        },
+        "additionalProperties": false
+      },
       "AlertSvsBody": {
         "type": "object",
         "description": "What SVS makes of an alert.",
@@ -24593,6 +24888,22 @@
           }
         }
       },
+      "ObservablePair": {
+        "type": "object",
+        "required": [
+          "type",
+          "value"
+        ],
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
       "ObservableTypeBody": {
         "type": "object",
         "description": "One observable type.",
@@ -28497,6 +28808,156 @@
         },
         "additionalProperties": false
       },
+      "SearchFiltersRequest": {
+        "type": "object",
+        "description": "ace3's `SearchFiltersBody`. Lists match any of their values, and the filters are ANDed.",
+        "properties": {
+          "detection_points": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Only alerts with a detection from any of these signatures, each `<signature uuid>[:<version>]`."
+          },
+          "dispositions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Such as `OPEN`, `FALSE_POSITIVE`, `DELIVERY`."
+          },
+          "exclude_alert_uuids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "filters": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "The rest of the alert list's filters, as `POST /api/filters/v1/screens/alerts/encode` takes them."
+          },
+          "insert_date_end": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "Only alerts made at or before this time."
+          },
+          "insert_date_start": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "Only alerts made at or after this time, with its UTC offset."
+          },
+          "observables": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ObservablePair"
+            },
+            "description": "Only alerts carrying all of these observables. A file's value is its sha256."
+          },
+          "queues": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Exact tag names, whatever their case."
+          }
+        },
+        "additionalProperties": false
+      },
+      "SearchHitBody": {
+        "type": "object",
+        "description": "One snippet that matched: ace3's `SearchHitOut`.",
+        "required": [
+          "lane",
+          "kind",
+          "text",
+          "score"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "description": "`alert`, `comment`, `detection`, `analysis` or `context` for a semantic hit; `observable`, `tag`\nor `uuid` for a lexical one."
+          },
+          "lane": {
+            "type": "string",
+            "description": "`semantic` or `lexical`."
+          },
+          "score": {
+            "type": "number",
+            "format": "double",
+            "description": "The lane's own score: 1 for an exact match. Not comparable between lanes."
+          },
+          "text": {
+            "type": "string",
+            "description": "What matched, as it was written. Show it as text."
+          },
+          "title": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "SearchResultBody": {
+        "type": "object",
+        "description": "One alert a search found: ace3's `AlertSearchResultOut`.",
+        "required": [
+          "alert",
+          "rank",
+          "score",
+          "lanes",
+          "hits"
+        ],
+        "properties": {
+          "alert": {
+            "$ref": "#/components/schemas/AlertBody"
+          },
+          "hits": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SearchHitBody"
+            }
+          },
+          "lanes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "rank": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "score": {
+            "type": "number",
+            "format": "double",
+            "description": "The fused rank score, for ordering only."
+          },
+          "tier": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The evidence behind the match: `exact` for a field term matched as written, `strong` for clearly\nsimilar text or similar text sharing terms with the query, `good` for similar text above the\nfloor, `weak` for only a term in common. Null for a filter-only request, which is a listing."
+          }
+        }
+      },
       "SignatureHistoryBody": {
         "type": "object",
         "description": "How one signature of a run's result did in the earlier runs.",
@@ -28559,6 +29020,49 @@
             "type": "string"
           }
         }
+      },
+      "SimilarAlertsRequest": {
+        "type": "object",
+        "description": "ace3's `SimilarAlertsRequest`.",
+        "required": [
+          "alert_uuid"
+        ],
+        "properties": {
+          "alert_uuid": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "filters": {
+            "$ref": "#/components/schemas/SearchFiltersRequest"
+          },
+          "include_hits": {
+            "type": "boolean"
+          },
+          "include_test_alerts": {
+            "type": "boolean"
+          },
+          "limit": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "description": "The page's size, 1 to 50; 10 when left out.",
+            "minimum": 0
+          },
+          "offset": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "tz": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "additionalProperties": false
       },
       "SkippedDetectionBody": {
         "type": "object",
@@ -30378,6 +30882,10 @@
     {
       "name": "monitoring",
       "description": "What the monitoring checks last found, and the scheduled tasks' runs"
+    },
+    {
+      "name": "search",
+      "description": "Search over alerts: exact lookups, the meaning of their text, and alerts like one"
     }
   ]
 }
