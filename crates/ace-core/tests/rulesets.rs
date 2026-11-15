@@ -311,6 +311,51 @@ async fn a_new_commit_gets_a_row_that_lists_the_files_left_out() {
             ),
         ]
     );
+
+    // a file yara-x would overflow its stack on is left out with why, and the build goes on: before
+    // `ace_yara::guard` a literal of this many escapes aborted the core (PLAN.md 7.16)
+    write(
+        repo,
+        "yara/fixture/hostile_escapes.yar",
+        &format!(
+            "rule hostile {{ strings: $a = \"{}\" condition: $a }}",
+            "\\\\".repeat(20_000)
+        ),
+    );
+    write(
+        repo,
+        "yara/fixture/hostile_nesting.yar",
+        &format!(
+            "rule hostile {{ condition: {}true{} }}",
+            "(".repeat(20_000),
+            ")".repeat(20_000)
+        ),
+    );
+    let hostile = commit(repo, "two files past the guard's bounds");
+    let guarded = build_new(db, &bucket, &signatures)
+        .await
+        .expect("the build survives")
+        .expect("a row for the commit");
+    assert_eq!(guarded.commit, hostile);
+    let left_out: Vec<(&str, bool)> = guarded
+        .left_out
+        .iter()
+        .map(|f| {
+            (
+                f.path.as_str(),
+                f.error.contains("escape sequences") || f.error.contains("nests brackets"),
+            )
+        })
+        .collect();
+    assert_eq!(
+        left_out,
+        [
+            ("fixture/broken.yar", false),
+            ("fixture/hostile_escapes.yar", true),
+            ("fixture/hostile_nesting.yar", true),
+        ]
+    );
+    assert!(guarded.files.iter().any(|f| f.path == "fixture/good.yar"));
 }
 
 /// One of the observables enabled for detection, written as the service stores it.

@@ -8,8 +8,10 @@
 //! - The files that are left then compile together. If they don't, nothing loads, as in ace3,
 //!   where the yara service keeps its previous generation.
 //!
-//! Two deliberate differences:
+//! Three deliberate differences:
 //!
+//! - A file is held to `crate::guard`'s bounds before yara-x reads it, and one past them is left out
+//!   like a file YARA rejects: yara-x overflows its stack on it, which would abort the process.
 //! - Every `re:` item in a rule's filter directives compiles with the regex crate while the
 //!   file compiles alone, and a file with one that doesn't is left out like a file YARA
 //!   rejects. ace3 compiles them with Python's `re` at scan time, where a bad pattern fails
@@ -321,6 +323,11 @@ pub fn compile_together(
                 error: format!("unable to read the file: {e}"),
                 files: Vec::new(),
             })?;
+            guard(namespace, path, &source).map_err(|error| LoadError::Combined {
+                path: path.clone(),
+                error,
+                files: Vec::new(),
+            })?;
             sources.push((path.clone(), source));
         }
         survivors.push((namespace, sources));
@@ -379,11 +386,19 @@ fn source_code<'a>(namespace: &Namespace, path: &Path, source: &'a [u8]) -> Sour
     SourceCode::from(source).with_origin(format!("{}/{file_name}", namespace.name))
 }
 
+/// Holds a file, and every file it includes, to `crate::guard`'s bounds before yara-x reads it: past them
+/// yara-x overflows its stack, which would abort the process and not just fail the file.
+fn guard(namespace: &Namespace, path: &Path, source: &[u8]) -> Result<(), String> {
+    let own = path.parent().unwrap_or(&namespace.dir);
+    crate::guard::check_file(source, &[own, &namespace.dir]).map_err(|refusal| refusal.to_string())
+}
+
 /// Compiles one file alone, as yara_scanner_v2 does before compiling the files together, and
 /// compiles each rule's filter directives. Returns the file's source and its rules, or why it
 /// is left out if either fails.
 fn compile_file(namespace: &Namespace, path: &Path) -> Result<(Vec<u8>, Vec<RuleInfo>), String> {
     let source = std::fs::read(path).map_err(|e| format!("unable to read the file: {e}"))?;
+    guard(namespace, path, &source)?;
 
     let mut compiler = new_compiler();
     compiler.new_namespace(&namespace.name);

@@ -289,3 +289,53 @@ fn a_missing_rule_directory_fails() {
     assert_eq!(report.counts.failures, 1);
     assert!(text(&report).starts_with("FAIL no-such-yara\n    unable to list signature directory"));
 }
+
+/// A rule file yara-x would overflow its stack on fails the check and is named, with the reason, and the
+/// check itself survives (`ace_yara::guard`).
+#[test]
+fn a_rule_file_past_the_guard_s_bounds_fails_the_check_and_is_named() {
+    let checkout = tempfile::tempdir().expect("a temp dir");
+    let namespace = checkout.path().join("yara/alpha");
+    std::fs::create_dir_all(&namespace).expect("a namespace");
+    std::fs::write(
+        namespace.join("good.yar"),
+        "rule fixture_fine { strings: $a = \"EVIL\" condition: $a }",
+    )
+    .expect("a rule");
+    std::fs::write(
+        namespace.join("escapes.yar"),
+        format!(
+            "rule fixture_escapes {{ strings: $a = \"{}\" condition: $a }}",
+            "\\\\".repeat(20_000)
+        ),
+    )
+    .expect("a rule");
+    std::fs::write(
+        namespace.join("nested.yar"),
+        format!(
+            "rule fixture_nested {{ condition: {}true }}",
+            "not ".repeat(20_000)
+        ),
+    )
+    .expect("a rule");
+
+    let report = check(&app(), &args(checkout.path())).expect("the check runs");
+    assert!(!report.passed);
+    let files: Vec<(&str, Option<&str>)> = report
+        .yara
+        .files
+        .iter()
+        .map(|f| (f.path.as_str(), f.error.as_deref()))
+        .collect();
+    assert_eq!(files.len(), 3, "{files:?}");
+    assert_eq!(files[0].0, "yara/alpha/escapes.yar");
+    assert!(
+        files[0]
+            .1
+            .expect("fails")
+            .contains("line 1 holds more than 1024 escape sequences")
+    );
+    assert_eq!(files[1], ("yara/alpha/good.yar", None));
+    assert_eq!(files[2].0, "yara/alpha/nested.yar");
+    assert!(files[2].1.expect("fails").contains("nests brackets"));
+}

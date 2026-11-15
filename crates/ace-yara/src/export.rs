@@ -76,7 +76,7 @@ pub const MAX_SOURCE_BYTES: usize = 8 << 20;
 /// text string, which has an escape only for each backslash and quote. A bounded value of ASCII
 /// stays under it: 500 characters are at most 1,000 escapes as a wide regex, and 12 for its
 /// boundaries.
-pub const MAX_ESCAPES: usize = 1024;
+pub const MAX_ESCAPES: usize = crate::guard::MAX_ESCAPES;
 /// The longest template, in bytes.
 pub const MAX_TEMPLATE_BYTES: usize = 64 << 10;
 /// The most types an export list names.
@@ -813,6 +813,7 @@ type Shape = Vec<(String, Vec<String>, Meta, BTreeSet<String>)>;
 
 /// Compiles a source alone, as a file of the namespace, and says what it holds.
 fn shape(source: &str) -> Result<Shape, String> {
+    crate::guard::check(source.as_bytes()).map_err(|refusal| refusal.to_string())?;
     let mut compiler = new_compiler();
     compiler.new_namespace(NAMESPACE);
     compiler
@@ -1114,6 +1115,8 @@ fn compile_namespace(files: &[ExportFile]) -> Result<(), String> {
     let mut compiler = new_compiler();
     compiler.new_namespace(NAMESPACE);
     for file in files {
+        crate::guard::check(file.source.as_bytes())
+            .map_err(|refusal| format!("{}: {refusal}", file.name))?;
         compiler
             .add_source(file.source.as_bytes())
             .map_err(|e| format!("{}: {e}", file.name))?;

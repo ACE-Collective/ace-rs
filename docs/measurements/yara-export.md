@@ -21,6 +21,8 @@ A throwaway test compiled one rule with one string holding N escapes, on a threa
 
 What the number could include: only the debug build's frames, which are larger than a release build's, so a release build overflows later, not sooner. It wasn't measured against another yara-x version.
 
+`yara-guard.md` measures the same for a rule file from the signatures repository, with the other things yara-x recurses on, and finds that the escapes overflow only where yara-x's parser is built unoptimized.
+
 ## Generating the largest export
 
 `cargo test -p ace-yara --lib export -- --nocapture`, three runs. `the_export_is_bounded` generates the export of 1,000 detections of 4,096 bytes each, the most a list holds. 675 fit `MAX_SOURCE_BYTES` (8 MiB), as 8,354,159 bytes of rules, and the rest are reported.

@@ -251,3 +251,43 @@ fn a_matched_detection_adds_its_observable_tagged_with_the_rule() {
             .all(|r| r.rule == "own" || r.namespace == export::NAMESPACE)
     );
 }
+
+/// A rule file yara-x would overflow its stack on (`ace_yara::guard`) is left out when the pool loads a
+/// signature directory, and the rest scan.
+#[test]
+fn a_rule_file_past_the_guard_s_bounds_is_left_out_and_the_rest_scan() {
+    let dir = tempfile::tempdir().expect("a temp dir");
+    let namespace = dir.path().join("fixture");
+    std::fs::create_dir_all(&namespace).expect("a namespace");
+    std::fs::write(
+        namespace.join("escapes.yar"),
+        format!(
+            "rule hostile {{ strings: $a = \"{}\" condition: $a }}",
+            "\\\\".repeat(20_000)
+        ),
+    )
+    .expect("rules");
+    std::fs::write(
+        namespace.join("nested.yar"),
+        format!(
+            "rule nested {{ condition: {}true{} }}",
+            "(".repeat(20_000),
+            ")".repeat(20_000)
+        ),
+    )
+    .expect("rules");
+    let harness = harness(&dir);
+    let file = harness
+        .file_bytes("payload.bin", b"xxEVILxx", &[])
+        .expect("fixture");
+    let Outcome::Done(result) = harness.run_parser(file).expect("scans") else {
+        panic!("expected a result");
+    };
+    let rules: Vec<&str> = result
+        .details
+        .scan_results
+        .iter()
+        .map(|r| r.rule.as_str())
+        .collect();
+    assert_eq!(rules, ["plain", "tagged", "qa_only", "directs", "SIP_feed"]);
+}

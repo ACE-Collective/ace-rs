@@ -604,3 +604,55 @@ fn two_namespaces_of_one_directory_stay_apart() {
         ["acme", "alias"]
     );
 }
+
+/// A rule file yara-x would overflow its stack on (`ace_yara::guard`) is one more file with an error, and
+/// the replay goes on with the rest: a base or head that holds one fails that file, not the child.
+#[test]
+fn a_file_past_the_guard_s_bounds_drops_only_its_rules() {
+    let root = tempfile::tempdir().unwrap();
+    let escapes = format!(
+        "rule deep {{ meta: uuid = \"u-deep\" strings: $a = \"{}\" condition: $a }}\n",
+        "\\\\".repeat(20_000)
+    );
+    let nested = format!(
+        "rule nested {{ meta: uuid = \"u-nested\" condition: {}true{} }}\n",
+        "(".repeat(20_000),
+        ")".repeat(20_000)
+    );
+    let dir = signature_dir(
+        root.path(),
+        &[(
+            "acme",
+            &[
+                (
+                    "good.yar",
+                    b"rule good { meta: uuid = \"u-good\" strings: $a = \"evil\" condition: $a }\n",
+                ),
+                ("escapes.yar", escapes.as_bytes()),
+                ("nested.yar", nested.as_bytes()),
+            ],
+        )],
+    );
+    let path = sample(root.path(), 0, "x.bin", b"some evil text\n");
+    let result = child(
+        root.path(),
+        &dir,
+        job_namespaces(&dir),
+        vec![json!({"id": 0, "path": path, "meta_tags": []})],
+    );
+    let error = |name: &str| {
+        result["files"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|f| f["path"].as_str().unwrap().ends_with(name))
+            .unwrap()["error"]
+            .as_str()
+            .map(str::to_owned)
+    };
+    assert_eq!(error("good.yar"), None);
+    assert!(error("escapes.yar").unwrap().contains("escape sequences"));
+    assert!(error("nested.yar").unwrap().contains("nests brackets"));
+    assert_eq!(result["ruleset_error"], Value::Null);
+    assert_eq!(rules_of(&result["units"]["0"], "rule"), ["good"]);
+}

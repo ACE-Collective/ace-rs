@@ -10,7 +10,8 @@
 //!
 //! ace3 parses with plyara and ace4 with yara-x's own parser. They agree on well-formed rules; on a file
 //! neither can make sense of, each finds what it can. A file that isn't UTF-8 has no rules here: yara-x's
-//! parser needs text, and ace4's loader leaves such a file out (`crate::load`).
+//! parser needs text, and ace4's loader leaves such a file out (`crate::load`). Nor has a file past
+//! `crate::guard`'s bounds, which the loader leaves out too: yara-x's parser would overflow its stack on it.
 
 use sha2::{Digest, Sha256};
 use yara_x_parser::Parser;
@@ -33,6 +34,10 @@ pub fn rules(source: &[u8]) -> Vec<SourceRule> {
     let Ok(text) = std::str::from_utf8(source) else {
         return Vec::new();
     };
+    // yara-x's parser overflows its stack past these bounds; the loader leaves such a file out
+    if crate::guard::check(source).is_err() {
+        return Vec::new();
+    }
     let Ok(cst) = Parser::new(source).try_into_cst() else {
         return Vec::new();
     };

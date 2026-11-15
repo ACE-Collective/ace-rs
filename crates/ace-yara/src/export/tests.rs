@@ -1336,6 +1336,55 @@ fn a_value_of_escapes_can_t_overflow_the_compiler_s_stack() {
         .unwrap();
 }
 
+/// A template is a site's text, compiled like a rule file, so it is held to `crate::guard`'s bounds
+/// too: one that would overflow yara-x's stack is refused when the settings are checked, and exports
+/// nothing if it gets as far as an export. Runs on the stack the builder has.
+#[test]
+fn a_template_past_the_guard_s_bounds_is_refused_not_compiled() {
+    let work = || {
+        for (hostile, reason) in [
+            (
+                format!("meta:\n    note = \"{}\"\n", "\\\\".repeat(20_000)),
+                "escape sequences",
+            ),
+            (format!("/* {}*/\n", "* ".repeat(20_000)), "runs of `*`"),
+        ] {
+            let mut config = config();
+            config.templates.insert(
+                "user_agent".to_owned(),
+                format!(
+                    "rule detect_TEMPLATE_RULE_NAME {{\n  {hostile}  strings:\nTEMPLATE_STRINGS\n  \
+                     condition:\n    any of ($obsd_*)\n}}\n"
+                ),
+            );
+            let error = config.check().expect_err("the template is refused");
+            assert!(error.contains(reason), "{error}");
+            let export = generated(
+                &config,
+                &[
+                    detection(1, "user_agent", "Mozilla/4.0 (compatible; Evil)"),
+                    detection(2, "fqdn", "evil.example.com"),
+                ],
+            );
+            assert!(!has_file(&export, "user_agent"));
+            assert!(has_file(&export, "fqdn"));
+            let skipped: Vec<_> = export
+                .report
+                .skipped
+                .iter()
+                .map(|s| (s.id, s.error.contains(reason)))
+                .collect();
+            assert_eq!(skipped, [(1, true)], "{:?}", export.report.skipped);
+        }
+    };
+    std::thread::Builder::new()
+        .stack_size(2 << 20)
+        .spawn(work)
+        .unwrap()
+        .join()
+        .unwrap();
+}
+
 /// Two types whose templates give their rules one name don't load together, so nothing is
 /// exported and the report says why; the ruleset's own build is never handed them.
 #[test]
