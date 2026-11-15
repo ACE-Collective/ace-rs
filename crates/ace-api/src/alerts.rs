@@ -1,5 +1,13 @@
 //! `/api/alerts/v1`: the alert list with its filters, sorts and exports, one alert, its observables, its
-//! relationship graph, a file's download and the disposition, and the site's dispositions.
+//! relationship graph, a file's download, the disposition and the owner, and the site's dispositions.
+//!
+//! `PUT /api/alerts/v1/owner` is ace3's `PUT /api/v2/alerts/owner` (PLAN.md 7.17): take, assign or
+//! unassign alerts, leaving alone those another analyst owns unless `take_owned` confirms taking them.
+//! ace3's `owner_id` and `alert_uuids` are `owner` and `alerts` here, ids are uuids, and `skipped` says
+//! each owner's id beside their name, since a confirmation names the id. An alert's owner is on the alert
+//! itself (`owner`, `owner_name`, `owned_at`), where ace3's page polls `GET /alerts/{uuid}/meta` for it.
+//! `PUT .../disposition` takes `take_from`, the same confirmation for one alert, which ace3's API has no
+//! route for: its GUI's forms carry it.
 //!
 //! `GET /api/alerts/v1/dispositions` has no ace3 route: ace3's clients read `dispositions:` from its
 //! config. It's the site's set in order with each disposition's metadata (the owner's decision of
@@ -108,6 +116,12 @@ pub(crate) struct AlertBody {
     pub(crate) svs_status: Option<String>,
     /// The test runs it's attributed to, oldest first: `GET /api/svs/v1/runs/{run_id}`.
     svs_runs: Vec<Uuid>,
+    /// The analyst who took it; null when nobody owns it. What a confirmation to take it names.
+    owner: Option<Uuid>,
+    /// What the owner is called: their display name, or their username. Show it as text.
+    pub(crate) owner_name: Option<String>,
+    /// When they took it.
+    owned_at: Option<DateTime<Utc>>,
 }
 
 impl From<AlertSummary> for AlertBody {
@@ -116,7 +130,14 @@ impl From<AlertSummary> for AlertBody {
             Some(svs) => (Some(svs.status.as_str().to_owned()), svs.runs),
             None => (None, Vec::new()),
         };
+        let (owner, owner_name) = match alert.owner {
+            Some(owner) => (Some(owner.id.0), Some(owner.name)),
+            None => (None, None),
+        };
         AlertBody {
+            owner,
+            owner_name,
+            owned_at: alert.owned_at,
             tags: alert.tags,
             svs_status,
             svs_runs,
@@ -159,6 +180,8 @@ impl ExportRow for AlertBody {
         "tags",
         "svs_status",
         "svs_runs",
+        "owner",
+        "owned_at",
     ];
 
     fn cells(&self) -> Vec<String> {
@@ -194,6 +217,8 @@ impl ExportRow for AlertBody {
                 .map(Uuid::to_string)
                 .collect::<Vec<_>>()
                 .join(" "),
+            self.owner_name.clone().unwrap_or_default(),
+            time_cell(self.owned_at),
         ]
     }
 }
@@ -226,7 +251,7 @@ pub(crate) struct AlertsQuery {
     /// ORed, and `!` inverts one.
     #[param(style = Form, explode)]
     f: Option<Vec<String>>,
-    /// `alert_date`, the default, `description`, `disposition` or `queue`.
+    /// `alert_date`, the default, `description`, `disposition`, `queue` or `owner`.
     sort: Option<String>,
     /// `desc`, the default, or `asc`.
     dir: Option<String>,
@@ -246,7 +271,7 @@ pub(crate) struct AlertExportQuery {
     /// A filter, as the list takes it; repeat it for more.
     #[param(style = Form, explode)]
     f: Option<Vec<String>>,
-    /// `alert_date`, the default, `description`, `disposition` or `queue`.
+    /// `alert_date`, the default, `description`, `disposition`, `queue` or `owner`.
     sort: Option<String>,
     /// `desc`, the default, or `asc`.
     dir: Option<String>,
@@ -261,7 +286,7 @@ fn alert_query(params: &Params) -> Result<AlertQuery, ApiError> {
         None => AlertSort::default(),
         Some(name) => AlertSort::named(name).ok_or_else(|| {
             ApiError::bad_request(format!(
-                "sort is alert_date, description, disposition or queue, not {name:?}"
+                "sort is alert_date, description, disposition, queue or owner, not {name:?}"
             ))
         })?,
     };
@@ -435,6 +460,112 @@ pub(crate) struct DispositionRequest {
     /// `dispositions` over ace3's, so it's a string here, not an enum; `GET /api/filters/v1/screens/alerts`
     /// lists it as the `Disposition` filter's options. An analyst's must be one an analyst may choose.
     disposition: String,
+    /// The analyst the caller agrees to take the alert from: its `owner`, as the caller last read it. An
+    /// alert another analyst owns is changed only with it, and the caller then owns the alert.
+    #[serde(default)]
+    take_from: Option<Uuid>,
+}
+
+/// An owner that's required and may be null, so leaving it out never quietly unassigns.
+fn required_owner<'de, D: serde::Deserializer<'de>>(
+    deserializer: D,
+) -> Result<Option<Uuid>, D::Error> {
+    Option::<Uuid>::deserialize(deserializer)
+}
+
+#[derive(Debug, Deserialize, ToSchema)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct OwnerRequest {
+    /// The alerts, 1 to 500. One that names no alert is left out of the answer.
+    alerts: Vec<Uuid>,
+    /// The user who gets the alerts: the caller's own id takes them, another user's assigns them, and
+    /// null unassigns them. It has to be there.
+    #[serde(deserialize_with = "required_owner")]
+    #[schema(required = true)]
+    owner: Option<Uuid>,
+    /// Per alert, the analyst the caller agrees to take it from: its `owner`, as the caller last read it.
+    /// An alert another analyst owns is changed only when it's named here with that analyst; otherwise it's
+    /// left alone and listed in `skipped`.
+    #[serde(default)]
+    take_owned: std::collections::BTreeMap<Uuid, Uuid>,
+}
+
+/// The analyst an alert was left with.
+#[derive(Debug, Serialize, ToSchema)]
+pub(crate) struct SkippedOwnerBody {
+    /// Their id, which `take_owned` names to take the alert from them.
+    owner: Uuid,
+    /// What they're called. Show it as text.
+    name: String,
+}
+
+/// What a change of owner did.
+#[derive(Debug, Serialize, ToSchema)]
+pub(crate) struct OwnerChangeBody {
+    /// The alerts that now have the owner asked for, in the order asked for.
+    applied: Vec<Uuid>,
+    /// The alerts left alone, each with the analyst who owns it.
+    skipped: std::collections::BTreeMap<Uuid, SkippedOwnerBody>,
+    /// What to tell a person when alerts were skipped, such as `took ownership of 1 alerts; left 1 alert
+    /// owned by Jane alone`; null otherwise.
+    message: Option<String>,
+}
+
+/// Sets the owner of the alerts: the caller takes them when `owner` is their own id, assigns them to
+/// someone else otherwise, and unassigns them when it's null. An alert another analyst owns is left alone
+/// unless `take_owned` confirms taking it from them; one whose owner's account is disabled changes hands
+/// with no confirmation. The caller is a user, or an API key that belongs to one. Each alert that changes
+/// has an audit row.
+#[utoipa::path(
+    put,
+    path = "/api/alerts/v1/owner",
+    tag = "alerts",
+    request_body = OwnerRequest,
+    responses(
+        (status = 200, description = "The alerts that changed and those left alone", body = OwnerChangeBody),
+        (status = 400, description = "No alerts or more than 500, a new owner who doesn't exist or is disabled, a caller that isn't a user, or a body that isn't one", body = ErrorBody),
+        (status = 401, description = "No credential, or one that isn't valid", body = ErrorBody),
+        (status = 403, description = "The actor doesn't hold alert:write, or a session's request came from another site", body = ErrorBody),
+        (status = 413, description = "The body is too large", body = ErrorBody),
+    )
+)]
+pub(crate) async fn owner(
+    Authenticated(actor): Authenticated,
+    State(web): State<Web>,
+    body: Result<Json<OwnerRequest>, JsonRejection>,
+) -> Result<Json<OwnerChangeBody>, ApiError> {
+    let Json(body) = body?;
+    let confirmed = body
+        .take_owned
+        .into_iter()
+        .map(|(alert, owner)| (alert, ace_service::UserId(owner)))
+        .collect();
+    let changed = web
+        .service
+        .change_alert_owner(
+            &actor,
+            &body.alerts,
+            body.owner.map(ace_service::UserId),
+            &confirmed,
+        )
+        .await?;
+    Ok(Json(OwnerChangeBody {
+        applied: changed.applied,
+        skipped: changed
+            .skipped
+            .into_iter()
+            .map(|skipped| {
+                (
+                    skipped.alert,
+                    SkippedOwnerBody {
+                        owner: skipped.owner.0,
+                        name: skipped.name,
+                    },
+                )
+            })
+            .collect(),
+        message: changed.message,
+    }))
 }
 
 /// What the disposition did to the alert's analysis.
@@ -904,7 +1035,9 @@ pub(crate) async fn dispositions(
 /// Records an analyst's verdict on the alert. Its analysis is cancelled and it moves to the
 /// dispositioned mode. A later disposition replaces the earlier one and who made it. A root that no
 /// detection made an alert can be dispositioned too, as the service allows. The disposition is one of
-/// the site's, and one only ACE sets is refused, as is a change to an alert that has one.
+/// the site's, and one only ACE sets is refused, as is a change to an alert that has one. The caller, a
+/// user or a key of one, becomes the owner of an alert nobody owns. An alert another analyst owns is left
+/// alone, unless `take_from` names that analyst or their account is disabled, and is then the caller's.
 #[utoipa::path(
     put,
     path = "/api/alerts/v1/alerts/{id}/disposition",
@@ -917,7 +1050,7 @@ pub(crate) async fn dispositions(
         (status = 401, description = "No credential, or one that isn't valid", body = ErrorBody),
         (status = 403, description = "The actor doesn't hold alert:write, or a session's request came from another site", body = ErrorBody),
         (status = 404, description = "No such root", body = ErrorBody),
-        (status = 409, description = "The alert's disposition is one only ACE sets, which an analyst can't change", body = ErrorBody),
+        (status = 409, description = "The alert's disposition is one only ACE sets, which an analyst can't change, or another analyst owns the alert and `take_from` doesn't name them", body = ErrorBody),
         (status = 413, description = "The body is too large", body = ErrorBody),
     )
 )]
@@ -930,7 +1063,12 @@ pub(crate) async fn disposition(
     let (Path(id), Json(body)) = (id?, body?);
     let done = web
         .service
-        .disposition(&actor, id, &body.disposition)
+        .disposition(
+            &actor,
+            id,
+            &body.disposition,
+            body.take_from.map(ace_service::UserId),
+        )
         .await?;
     Ok(Json(DispositionedBody {
         cancelled: done.cancelled.cancelled.len(),

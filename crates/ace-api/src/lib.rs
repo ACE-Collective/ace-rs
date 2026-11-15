@@ -19,10 +19,11 @@
 //! | ace3 `/api/v2` | here |
 //! |---|---|
 //! | `GET /alerts?f=&cursor=&limit=&tz=` | `GET /api/alerts/v1/alerts?f=&sort=&dir=&tz=&after=&limit=`, newest first or in the order asked, a page at a time, with `total` (5.10's filters and orders) |
-//! | `GET /alerts/{uuid}`, `/meta` | `GET /api/alerts/v1/alerts/{id}`, and its observables, results and detections in pages at `/observables` |
+//! | `GET /alerts/{uuid}`, `/meta` | `GET /api/alerts/v1/alerts/{id}`, with its owner (7.17), and its observables, results and detections in pages at `/observables` |
 //! | the GUI's `GET /json?alert_uuid=`, which fed its vis.js graph until ace3 removed both in `9f63a496` (5.13) | `GET /api/alerts/v1/alerts/{id}/graph`, at most 1000 nodes and 2000 edges, with a note when cut |
 //! | `GET /alerts/{uuid}/observables/{o}/zip`, `/download` | `GET /api/alerts/v1/alerts/{id}/observables/{o}/file`, one file, audited |
-//! | the GUI's disposition | `PUT /api/alerts/v1/alerts/{id}/disposition` |
+//! | the GUI's disposition | `PUT /api/alerts/v1/alerts/{id}/disposition`, with `take_from` for an alert another analyst owns (7.17) |
+//! | `PUT /alerts/owner` | `PUT /api/alerts/v1/owner` (7.17): take, assign or unassign alerts, `alerts.rs`' docs |
 //! | `POST /analysis` | `POST /api/analysis/v1/submit` |
 //! | `POST /observables/lookup` | `POST /api/observables/v1/lookup` |
 //! | `GET /alerts/export/csv`, `/export/ndjson` (5.10) | `GET /api/alerts/v1/alerts/export/csv`, `/export/ndjson`, up to 100,000 alerts, or 413 |
@@ -30,7 +31,7 @@
 //! Left out, each for a reason:
 //! - The list's `f` takes ace3's share-link encoding and slugs, and the filters ace4's alerts have fields
 //!   for (`ace_service::filters`). Its order is ace3's manage page's: by when each became an alert, the
-//!   title or the disposition, either way, where ace3's API pages in id order. ace3's `changed_since` on
+//!   title, the disposition, the queue or the owner, either way, where ace3's API pages in id order. ace3's `changed_since` on
 //!   the alert list, its `(updated_at, id)` order, needs a time a root last changed, which roots don't
 //!   record. `count` is the list's `total`. `date-range`, the window a relative token means now, waits for
 //!   an editor that shows it; `ace_service::filters::date_window` computes it.
@@ -38,8 +39,8 @@
 //! - `/download` of a whole alert's directory: ace4 has none, and each file downloads on its own.
 //! - `/text`, `/hex` and `/image` views of a file, and the alert's `saq.log`, belong to the alert view
 //!   (5.8, 5.9). ace4 keeps a task's error on its row, not in a log file.
-//! - `PUT /owner`, comment editing and `bulk-add-observable`: roots have no owner or comments yet, and an
-//!   observable added by hand needs a decision about what it does to a dispositioned alert's analysis.
+//! - Comment editing and `bulk-add-observable`: roots have no comments yet, and an observable added by
+//!   hand needs a decision about what it does to a dispositioned alert's analysis.
 //! - `collect-file`, `render`, `crawl`, `check-for-clickers` and `clicker-searches` ask modules for more
 //!   analysis on one observable. File collection is 7.9 and phishkit 7.7, and the clicker check needs the
 //!   core to rerun a module on an observable that has its result, which nothing does yet.
@@ -649,6 +650,7 @@ impl Web {
             .route("/api/alerts/v1/alerts", get(alerts::list))
             .route("/api/alerts/v1/alerts/{id}", get(alerts::one))
             .route("/api/alerts/v1/dispositions", get(alerts::dispositions))
+            .route("/api/alerts/v1/owner", put(alerts::owner).layer(json_limit))
             .route("/api/alerts/v1/alerts/export/csv", get(alerts::export_csv))
             .route(
                 "/api/alerts/v1/alerts/export/ndjson",
@@ -1321,6 +1323,7 @@ impl Web {
         alerts::file,
         alerts::disposition,
         alerts::dispositions,
+        alerts::owner,
         alerts::export_csv,
         alerts::export_ndjson,
         detection_points::list,

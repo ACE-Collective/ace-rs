@@ -7,6 +7,7 @@
   <p><a href="/signatures">Signatures</a> / Validations</p>
   <h1>Validations</h1>
   <p class="muted">A YARA rule repository's CI asks ACE to check a change: every sample is scanned with the rules of the base commit and of the head commit, and the report lists what the change does to them. Validation warns and never blocks. A report is reused while the samples, their labels and the scanner are unchanged.</p>
+  {%- include "quick_filters.html" %}
   <form method="get" action="/signatures/validations" class="detection-filters">
     {%- for field in view.fields %}
     <label for="filter-{{ field.slug }}">{{ field.name }}</label>

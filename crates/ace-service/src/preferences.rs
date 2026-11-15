@@ -185,10 +185,10 @@ pub struct ManageColumn {
     pub required: bool,
 }
 
-/// The alert list's columns in their default order: ace3's, but `remediation` and `owner`, which come with
-/// what they show (`filters::FilterScreen::left_out`). `queue` is where ace3 has it, after the alert and
-/// before the disposition (PLAN.md 7.13). `status` is the analysis state, as ace3's shows whether an alert
-/// is still being analyzed.
+/// The alert list's columns in their default order: ace3's, but `remediation`, which comes with what it
+/// shows. `queue` and `owner` are where ace3 has them, after the alert and before the disposition (PLAN.md
+/// 7.13 and 7.17). `status` is the analysis state, as ace3's shows whether an alert is still being
+/// analyzed.
 pub const MANAGE_COLUMNS: &[ManageColumn] = &[
     ManageColumn {
         id: "date",
@@ -206,6 +206,12 @@ pub const MANAGE_COLUMNS: &[ManageColumn] = &[
         id: "queue",
         label: "Queue",
         sort: Some(crate::AlertSort::Queue),
+        required: false,
+    },
+    ManageColumn {
+        id: "owner",
+        label: "Owner",
+        sort: Some(crate::AlertSort::Owner),
         required: false,
     },
     ManageColumn {

@@ -20,8 +20,8 @@
 //! percent-encoded; the pull request is a link only when it's http or https, as the service already
 //! requires.
 //!
-//! Left out: ace3's saved filters for this screen, which the alert list's saved filters (5.10) don't cover
-//! yet for any SVS screen, and its copy buttons, which need a script.
+//! The list has the viewer's quick filters, ace3's `Has regressions` and `Failed` the first time
+//! (`crate::saved_filters::quick_filters`). Left out: ace3's copy buttons, which need a script.
 
 use ace_service::filters::FilterScreen;
 use ace_service::{
@@ -188,6 +188,8 @@ pub fn validations_view(
 #[template(path = "signatures/validations.html")]
 pub struct ValidationsPage {
     pub layout: Layout,
+    /// The viewer's quick filters on this screen (`crate::saved_filters::quick_filters`).
+    pub quick: Vec<crate::saved_filters::QuickLink>,
     pub view: ValidationsView,
 }
 
@@ -377,6 +379,10 @@ pub struct ValidationView {
     pub next: Option<String>,
     /// The API's download of the shown rows' files, for `signature:download`.
     pub download: Option<String>,
+    /// The API's exports of the chosen categories' rows, every one of them: ace3's Export links
+    /// (`signatures_validations.js`'s `export_links`).
+    pub export_csv: String,
+    pub export_ndjson: String,
 }
 
 impl ValidationView {
@@ -475,6 +481,14 @@ pub fn validation_view(
                 &base,
             )
         }),
+        export_csv: with_query(
+            &format!("/api/svs/v1/yara/validations/{uuid}/results/export/csv"),
+            &base,
+        ),
+        export_ndjson: with_query(
+            &format!("/api/svs/v1/yara/validations/{uuid}/results/export/ndjson"),
+            &base,
+        ),
         validation,
     }
 }
@@ -538,6 +552,13 @@ pub(crate) async fn validations(
         .await
     {
         Ok(page) => render(&ValidationsPage {
+            quick: crate::saved_filters::quick_filters(
+                &gui,
+                &viewer,
+                FilterScreen::SvsValidations,
+                "/signatures/validations",
+            )
+            .await,
             layout: viewer.layout,
             view: validations_view(
                 &query,

@@ -8,6 +8,7 @@
   <p><a href="/signatures">Signatures</a> / Samples</p>
   <h1>Samples</h1>
   <p class="muted">The files YARA rules matched on alerts graded TP or FP, one row per file and rule over every alert it was captured from. A label comes from the verdicts on those alerts' detections.</p>
+  {%- include "quick_filters.html" %}
   <form method="get" action="/signatures/samples" class="detection-filters">
     {%- for field in view.fields %}
     <label for="filter-{{ field.slug }}">{{ field.name }}</label>

@@ -68,6 +68,7 @@ impl From<ServiceError> for ApiError {
             | ServiceError::GroupNameTaken
             | ServiceError::FilterNameTaken(_)
             | ServiceError::Conflict(_)
+            | ServiceError::AlertOwned { .. }
             | ServiceError::UsersExist => StatusCode::CONFLICT,
             ServiceError::Bucket(BucketError::Deleting { .. }) => StatusCode::SERVICE_UNAVAILABLE,
             // its message is an operator's, such as a missing key, and holds nothing secret

@@ -10,8 +10,9 @@
 //! list, and nothing is written to look at one. Every control is a link or a form, so the page works
 //! without its script:
 //! - The filter bar is ace3's: each filter as a chip whose values and name are links that remove them, the
-//!   quick filters (the user's pinned saved filters) as links, Reset (`disposition:OPEN`, ace3's default
-//!   but for its owner and queue filters) and Clear.
+//!   quick filters (the user's pinned saved filters) as links, Reset (`disposition:OPEN` with
+//!   `owner:None,$USER`, ace3's default but for its queue filter: open alerts that are nobody's or the
+//!   viewer's) and Clear.
 //! - ace3's filter modal is a form whose fields fold one filter into the URL's and come back to it
 //!   (`ListQuery::parse`). An unknown filter in a link is left out with a warning, as ace3's link decoder
 //!   does; a malformed one shows the list without filters, saying why, where ace3 redirects to a bare page.
@@ -45,8 +46,12 @@
 //! Bulk disposition is ace3's "Set Disposition" on the ticked rows. Each alert is its own
 //! `Service::disposition`, which checks `alert:write` and writes its audit row, so the result is per alert:
 //! the page lists the alerts it dispositioned and those it couldn't, with why. ace3's runs them in one
-//! transaction and skips the ones another analyst owns; here a disposition doesn't look at an alert's owner
-//! (7.10 batch 7a brought the owner for routing and SVS's closing only). The menu offers the
+//! transaction. As in ace3, an alert another analyst owns is left alone (PLAN.md 7.17): the page says so
+//! in ace3's words (`left 1 alert owned by Jane alone`) and has a form that dispositions those too, taking
+//! them. That form is ace3's selection guard (`selection_guard.js`), which asks before the request is
+//! sent; here the first request leaves them alone and the second carries the confirmation, ace3's
+//! `take_owned` field: `alert:owner` pairs naming who owned each alert when the analyst looked, so one
+//! that changed hands since is left alone again. The menu offers the
 //! site's dispositions an analyst may choose, in their order, as ace3's modal does (`Dispositions`), and the
 //! filter editor's suggestions are all of them. A disposition with `show_save_to_event`, chosen in ace3's
 //! modal, shows its Save to Event button, which opens the event modal for the alerts; here the answer page
@@ -54,16 +59,23 @@
 //! `event:write`. The list's Disposition cell is a badge in the disposition's `css`. At most
 //! `MAX_BULK` alerts go in one request. "Add to Event" is the same form's other button, which opens
 //! `crate::events`' page with the ticked alerts (5.11's events area). ace3's other bulk actions (review,
-//! comment, ownership, tags, remediation, add observable) come with what they write.
+//! comment, tags, remediation, add observable) come with what they write.
+//!
+//! Ownership (PLAN.md 7.17) is ace3's Take Ownership and Assign Ownership, on the ticked rows here and on
+//! one alert on its page (`crate::alert`): two more buttons of the bulk form, for a viewer with
+//! `alert:write`, which post to `/alerts/owner`, through `Service::change_alert_owner`. Assign offers the
+//! enabled users and nobody, which unassigns. When nothing was left alone the answer goes back where it
+//! came from, as ace3 refreshes its list; otherwise a page says what was left with whom, with the same
+//! confirming form as a disposition's. The Owner column is ace3's: who owns the alert, which a click
+//! narrows the list to, and its header sorts by it.
 //!
 //! The Queue column is ace3's (PLAN.md 7.13): the alert's queue, which a click narrows the list to, as a
 //! click on a disposition does, and its header sorts by it. A person new to the list gets ace3's `Last 24h`
 //! and `Last 7d` quick filters (`Service::seed_saved_filters`), written when the page is drawn and never by
 //! the refresh, as in ace3.
 //!
-//! What ace3's page has that this leaves out: its search box (7.11), the remediation and owner columns
-//! and the queue-mix warning, the tag badges and comments under a title, the SVS status, and the favicon
-//! dot.
+//! What ace3's page has that this leaves out: its search box (7.11), the remediation column and the
+//! queue-mix warning, the tag badges and comments under a title, and the favicon dot.
 
 use std::collections::HashMap;
 
@@ -71,8 +83,8 @@ use ace_service::Dispositions;
 use ace_service::filters::{self, FilterKind, FilterScreen};
 use ace_service::{
     AlertPage, AlertQuery, AlertSort, AlertSummary, AnalysisState, FilterEntry, FilterValue,
-    MANAGE_COLUMNS, ManageColumn, ManageColumnsPreference, PreferenceValue, SavedFilter,
-    ServiceError,
+    MANAGE_COLUMNS, ManageColumn, ManageColumnsPreference, OwnerChoice, OwnershipCheck,
+    PreferenceValue, SavedFilter, ServiceError, SkippedAlert, UserId, describe_skipped,
 };
 use askama::Template;
 use axum::body::Bytes;
@@ -490,9 +502,44 @@ pub struct ListView {
     pub dispositions: Vec<String>,
     /// The filter editor's suggested dispositions: every one the site has, in order.
     pub filter_dispositions: Vec<String>,
+    /// Who Assign offers (PLAN.md 7.17): the enabled users, for a viewer with `alert:write`.
+    pub owners: Vec<OwnerOption>,
+    /// Whether the viewer may take and assign alerts: `alert:write`.
+    pub can_own: bool,
     pub warnings: Vec<String>,
     pub error: Option<String>,
     pub refresh_seconds: u32,
+}
+
+/// A user Assign offers.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct OwnerOption {
+    pub id: Uuid,
+    pub name: String,
+}
+
+/// The users Assign offers, and whether the viewer may assign at all: None for one without
+/// `alert:write`.
+pub(crate) async fn owner_options(gui: &Gui, viewer: &SignedIn) -> Option<Vec<OwnerChoice>> {
+    match gui.service.alert_owner_choices(&viewer.actor).await {
+        Ok(choices) => Some(choices),
+        Err(ServiceError::PermissionDenied { .. }) => None,
+        Err(error) => {
+            tracing::warn!(actor = %viewer.actor, "reading who an alert can be assigned to failed: {error}");
+            None
+        }
+    }
+}
+
+pub(crate) fn owner_option(choice: &OwnerChoice) -> OwnerOption {
+    OwnerOption {
+        id: choice.id.0,
+        name: if choice.name == choice.username {
+            choice.name.clone()
+        } else {
+            format!("{} ({})", choice.name, choice.username)
+        },
+    }
 }
 
 fn time_in(time: DateTime<Utc>, tz: Tz) -> String {
@@ -556,6 +603,23 @@ fn row(
                 text: alert.queue.clone(),
                 badge: None,
                 title: None,
+                marks: Vec::new(),
+            },
+            // ace3's owner cell: a click narrows the list to that owner's alerts
+            "owner" => Cell {
+                id: "owner",
+                href: alert.owner.as_ref().map(|owner| {
+                    query.with_filters(&overlaid(&query.filters, "Owner", &owner.name))
+                }),
+                text: alert
+                    .owner
+                    .as_ref()
+                    .map(|owner| owner.name.clone())
+                    .unwrap_or_default(),
+                badge: None,
+                title: alert
+                    .owned_at
+                    .map(|at| format!("since {}", at.to_rfc3339())),
                 marks: Vec::new(),
             },
             "disposition" => Cell {
@@ -656,6 +720,7 @@ pub fn list_view(
     warnings: Vec<String>,
     error: Option<String>,
     dispositions: &Dispositions,
+    owners: Option<&[OwnerChoice]>,
 ) -> ListView {
     let chips = query
         .filters
@@ -739,7 +804,11 @@ pub fn list_view(
         here: query.at("/"),
         manage: crate::saved_filters::manage_url(&query.at("/")),
         share: query.with_filters(&query.filters),
-        reset: query.with_filters(&[FilterEntry::text("Disposition", false, &["OPEN"])]),
+        // ace3's `_default_filters`, but for its queue: open alerts nobody owns, or the viewer does
+        reset: query.with_filters(&[
+            FilterEntry::text("Disposition", false, &["OPEN"]),
+            FilterEntry::text("Owner", false, &["None", filters::USER]),
+        ]),
         clear: query.with_filters(&[]),
         refresh: query.at("/alerts/list"),
         export_csv: export("csv"),
@@ -764,6 +833,12 @@ pub fn list_view(
             .collect(),
         dispositions: dispositions.selectable(),
         filter_dispositions: dispositions.names(),
+        owners: owners
+            .unwrap_or_default()
+            .iter()
+            .map(owner_option)
+            .collect(),
+        can_own: owners.is_some(),
         warnings,
         error,
         refresh_seconds: REFRESH_SECONDS,
@@ -786,6 +861,40 @@ pub struct AlertListFragment {
     pub list: AlertList,
 }
 
+/// The alerts a bulk action left with their owners, and the form that takes them (PLAN.md 7.17): ace3's
+/// selection guard.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct LeftAlone {
+    /// Each alert and what its owner is called.
+    pub alerts: Vec<(Uuid, String)>,
+    /// ace3's sentence: `left 2 alerts owned by Jane alone`.
+    pub summary: String,
+    /// The form's `take_owned`: `alert:owner` pairs, who owned each when it was looked at.
+    pub take_owned: String,
+}
+
+impl LeftAlone {
+    pub fn of(skipped: &[SkippedAlert]) -> Option<Self> {
+        let check = OwnershipCheck {
+            skipped: skipped.to_vec(),
+            ..OwnershipCheck::default()
+        };
+        let summary = describe_skipped(&check)?;
+        Some(LeftAlone {
+            alerts: skipped
+                .iter()
+                .map(|skipped| (skipped.alert, skipped.name.clone()))
+                .collect(),
+            summary,
+            take_owned: skipped
+                .iter()
+                .map(|skipped| format!("{}:{}", skipped.alert, skipped.owner.0))
+                .collect::<Vec<_>>()
+                .join(","),
+        })
+    }
+}
+
 /// What a bulk disposition did.
 #[derive(Debug, Template)]
 #[template(path = "bulk.html")]
@@ -794,10 +903,29 @@ pub struct BulkPage {
     pub disposition: String,
     pub done: Vec<Uuid>,
     pub failed: Vec<(Uuid, String)>,
+    /// The alerts left with the analysts who own them, and the form that takes them.
+    pub left_alone: Option<LeftAlone>,
     pub next: String,
     /// Whether to offer Save to Event for `done`: the disposition's `show_save_to_event`, to a viewer with
     /// `event:write`.
     pub save_to_event: bool,
+}
+
+/// What a change of owner left alone (PLAN.md 7.17): shown only when something was.
+#[derive(Debug, Template)]
+#[template(path = "owned.html")]
+pub struct OwnedPage {
+    pub layout: Layout,
+    /// `Take Ownership` or `Assign Ownership`.
+    pub heading: &'static str,
+    /// ace3's message: `took ownership of 1 alerts; left 1 alert owned by Jane alone`.
+    pub message: String,
+    pub applied: Vec<Uuid>,
+    pub left_alone: LeftAlone,
+    /// The form's `owner` and `assignee`, to ask again with the confirmation.
+    pub owner: &'static str,
+    pub assignee: String,
+    pub next: String,
 }
 
 /// The viewer's timezone, UTC when it can't be read.
@@ -874,6 +1002,7 @@ pub(crate) async fn page(
             counts.insert(filter.id, found.total);
         }
     }
+    let owners = owner_options(&gui, &viewer).await;
     let view = list_view(
         &page,
         &query,
@@ -884,6 +1013,7 @@ pub(crate) async fn page(
         parsed.warnings,
         parsed.error,
         gui.service.dispositions(),
+        owners.as_deref(),
     );
     render(&ListPage {
         layout: viewer.layout,
@@ -966,8 +1096,11 @@ pub(crate) async fn bulk_disposition(
         )
         .into_response();
     }
+    // ace3's take_owned: the alerts the analyst agreed to take, each with who owned it then
+    let takes = ace_service::confirmed_takes(one(&form, "take_owned").unwrap_or(""));
     let mut done = Vec::new();
     let mut failed = Vec::new();
+    let mut skipped = Vec::new();
     for raw in ids {
         let Ok(id) = raw.parse::<Uuid>() else {
             failed.push((Uuid::nil(), format!("{raw:?} isn't an alert's id")));
@@ -978,10 +1111,15 @@ pub(crate) async fn bulk_disposition(
         }
         match gui
             .service
-            .disposition(&viewer.actor, id, &disposition)
+            .disposition(&viewer.actor, id, &disposition, takes.get(&id).copied())
             .await
         {
             Ok(_) => done.push(id),
+            Err(ServiceError::AlertOwned { alert, owner, name }) => skipped.push(SkippedAlert {
+                alert,
+                owner: UserId(owner),
+                name,
+            }),
             Err(ServiceError::InvalidRequest(why)) => {
                 return Failure::new(StatusCode::BAD_REQUEST, why, &parts).into_response();
             }
@@ -1015,11 +1153,104 @@ pub(crate) async fn bulk_disposition(
         disposition,
         done,
         failed,
+        left_alone: LeftAlone::of(&skipped),
         next,
         save_to_event,
     });
     *response.status_mut() = status;
     response
+}
+
+/// `POST /alerts/owner`: ace3's Take Ownership and Assign Ownership, of the ticked alerts or of one from
+/// its page, through `Service::change_alert_owner`. `owner` is `me`, which takes them, or `assign`, which
+/// gives them to `assignee`, a user's id, or to nobody when it's empty. `take_owned` confirms taking the
+/// alerts it names from their owners.
+pub(crate) async fn bulk_owner(
+    State(gui): State<Gui>,
+    viewer: SignedIn,
+    parts: Parts,
+    body: Bytes,
+) -> Response {
+    let form = pairs(&body);
+    let next = next_of(&form);
+    let (owner_field, assignee) = (
+        one(&form, "owner").unwrap_or(""),
+        one(&form, "assignee").unwrap_or("").trim().to_owned(),
+    );
+    let (heading, owner_field, owner) = match owner_field {
+        "me" => match &viewer.actor {
+            ace_service::Actor::User { id, .. } => ("Take Ownership", "me", Some(*id)),
+            // only a user's session opens a page
+            _ => {
+                return Failure::new(StatusCode::FORBIDDEN, "Only a user owns alerts.", &parts)
+                    .into_response();
+            }
+        },
+        "assign" if assignee.is_empty() => ("Assign Ownership", "assign", None),
+        "assign" => match assignee.parse::<Uuid>() {
+            Ok(id) => ("Assign Ownership", "assign", Some(UserId(id))),
+            Err(_) => {
+                return Failure::new(StatusCode::BAD_REQUEST, "There's no such user.", &parts)
+                    .into_response();
+            }
+        },
+        _ => {
+            return Failure::new(StatusCode::BAD_REQUEST, "owner is me or assign.", &parts)
+                .into_response();
+        }
+    };
+    let ids = all(&form, "alert");
+    if ids.is_empty() {
+        return Failure::new(StatusCode::BAD_REQUEST, "No alerts were ticked.", &parts)
+            .into_response();
+    }
+    if ids.len() > MAX_BULK {
+        return Failure::new(
+            StatusCode::BAD_REQUEST,
+            format!("At most {MAX_BULK} alerts change owner at once."),
+            &parts,
+        )
+        .into_response();
+    }
+    let mut alerts = Vec::with_capacity(ids.len());
+    for raw in &ids {
+        match raw.parse::<Uuid>() {
+            Ok(id) => alerts.push(id),
+            Err(_) => {
+                return Failure::new(
+                    StatusCode::BAD_REQUEST,
+                    format!("{raw:?} isn't an alert's id."),
+                    &parts,
+                )
+                .into_response();
+            }
+        }
+    }
+    let takes = ace_service::confirmed_takes(one(&form, "take_owned").unwrap_or(""));
+    let changed = match gui
+        .service
+        .change_alert_owner(&viewer.actor, &alerts, owner, &takes)
+        .await
+    {
+        Ok(changed) => changed,
+        Err(error) => return Failure::from_service(error, &parts).into_response(),
+    };
+    let Some(left_alone) = LeftAlone::of(&changed.skipped) else {
+        // nothing was left alone: back where it came from, as ace3 refreshes its list
+        return see_other(&next, None);
+    };
+    render(&OwnedPage {
+        layout: viewer.layout,
+        heading,
+        message: changed
+            .message
+            .unwrap_or_else(|| left_alone.summary.clone()),
+        applied: changed.applied,
+        left_alone,
+        owner: owner_field,
+        assignee,
+        next,
+    })
 }
 
 /// `POST /preferences/manage-columns`: one move, show or hide of a column, or a reset, written to the

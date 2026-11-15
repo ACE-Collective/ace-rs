@@ -7,6 +7,7 @@
 <section class="signatures detection svs-worklist">
   {%- include "svs/tabs.html" %}
   <p class="muted">Each signature that a test measures, its technique tags against the techniques its tests measure. A tag no test confirms is kept or removed; a removed tag stops counting toward coverage. Statuses are as of the last coverage refresh. Times are UTC.</p>
+  {%- include "quick_filters.html" %}
   <form method="get" action="/svs/worklist" class="detection-filters">
     {%- for field in view.fields %}
     <label for="filter-{{ field.slug }}">{{ field.name }}</label>

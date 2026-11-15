@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT disposition, dispositioned_by AS \"dispositioned_by: Value\",\n                      analysis_mode, event_time, created_at,\n                      left(description, $2) AS \"title!\"\n               FROM analysis.roots WHERE id = $1 FOR UPDATE",
+  "query": "SELECT disposition, dispositioned_by AS \"dispositioned_by: Value\",\n                      analysis_mode, event_time, created_at, owner_id,\n                      left(description, $2) AS \"title!\"\n               FROM analysis.roots WHERE id = $1 FOR UPDATE",
   "describe": {
     "columns": [
       {
@@ -60,6 +60,17 @@
       },
       {
         "ordinal": 5,
+        "name": "owner_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "analysis.roots",
+            "name": "owner_id"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
         "name": "title!",
         "type_info": "Text",
         "origin": "Expression"
@@ -77,8 +88,9 @@
       false,
       true,
       false,
+      true,
       null
     ]
   },
-  "hash": "6bc157fe9b2392c8a7ea1c0878cb18f2734d52fd2bd00f80885aa0371eb5eec3"
+  "hash": "b830780832eca19b4bdb8994186055ae43e0df8b22d976b9515918bc4880e6b6"
 }

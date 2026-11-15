@@ -261,6 +261,7 @@ async fn the_base_layout_renders_for_a_visitor_and_a_user() {
         Vec::new(),
         None,
         &ace_service::Dispositions::ace3(),
+        None,
     );
     let signed_in = ListPage {
         layout: Layout::new("n0nce", Theme::Dark, Some("alice".to_owned()), "/"),
@@ -1429,6 +1430,8 @@ fn summary(id: uuid::Uuid, title: &str) -> AlertSummary {
         queue: "<q>ueue & \"co\"".to_owned(),
         tags: Vec::new(),
         svs: None,
+        owner: None,
+        owned_at: None,
     }
 }
 
@@ -3814,12 +3817,13 @@ fn the_list_view_draws_a_page_of_alerts() {
         vec!["a <warning>".to_owned()],
         None,
         &ace_service::Dispositions::ace3(),
+        None,
     );
     let ids: Vec<&str> = view.list.headers.iter().map(|header| header.id).collect();
     assert_eq!(
         ids,
-        ["disposition", "description", "date", "queue"],
-        "the viewer's order, status hidden, and queue, which the stored order predates, last"
+        ["disposition", "description", "date", "queue", "owner"],
+        "the viewer's order, status hidden, and the queue and the owner, which the stored order predates, last"
     );
     // the Queue column (PLAN.md 7.13): its header sorts by it, ascending first, and a row's queue is a
     // link that narrows the list to it, keeping the other filters, as a click on a disposition does
@@ -4034,15 +4038,15 @@ async fn the_list_filters_and_pages_through_fixture_alerts() {
     let (_, page) = get(to).await;
     assert_eq!(row_ids(&page), ids(&[made[4]]));
     // a filter the list doesn't have is left out, saying so; a broken one shows the list without filters
-    let (status, page) = get("/?f=owner:alice".to_owned()).await;
+    let (status, page) = get("/?f=reviewed:CORRECT".to_owned()).await;
     assert_eq!(status, StatusCode::OK);
-    assert!(page.contains("an alert has an owner"), "{page}");
+    assert!(page.contains("a disposition has no review yet"), "{page}");
     assert_eq!(row_ids(&page).len(), 5);
     let (status, page) = get("/?f=tag:a,,b".to_owned()).await;
     assert_eq!(status, StatusCode::OK);
     assert!(page.contains("That filter couldn"), "{page}");
     assert_eq!(row_ids(&page).len(), 5);
-    let (status, _) = get("/?sort=owner".to_owned()).await;
+    let (status, _) = get("/?sort=status".to_owned()).await;
     assert_eq!(status, StatusCode::BAD_REQUEST);
 
     // the refresh sends the same list as its fragment, and a request with no session gets 401
@@ -4420,8 +4424,10 @@ async fn saved_filters_and_columns_are_forms() {
             .is_empty()
     );
 
-    // the columns: move the disposition first, hide the date, and reset
+    // the columns: move the disposition first, past the owner (7.17), the queue, the alert and the
+    // date, hide the date, and reset
     for (column, action) in [
+        ("disposition", "up"),
         ("disposition", "up"),
         ("disposition", "up"),
         ("disposition", "up"),
@@ -4437,7 +4443,14 @@ async fn saved_filters_and_columns_are_forms() {
     let columns = stack.service.manage_columns(&alice).await.expect("reads");
     assert_eq!(
         columns.order,
-        ["disposition", "date", "description", "queue", "status"]
+        [
+            "disposition",
+            "date",
+            "description",
+            "queue",
+            "owner",
+            "status"
+        ]
     );
     assert_eq!(columns.hidden, ["date"]);
     let page = stack
@@ -4454,9 +4467,13 @@ async fn saved_filters_and_columns_are_forms() {
         .skip(1)
         .filter_map(|rest| rest.split('"').next())
         .collect();
-    assert_eq!(headers, ["disposition", "description", "queue", "status"]);
+    assert_eq!(
+        headers,
+        ["disposition", "description", "queue", "owner", "status"]
+    );
     for bad in [
-        vec![("column", "owner"), ("action", "up")],
+        // ace3's remediation column isn't here
+        vec![("column", "remediation"), ("action", "up")],
         vec![("column", "date"), ("action", "drag")],
     ] {
         assert_eq!(
@@ -4585,7 +4602,14 @@ async fn the_queue_is_on_the_list_and_the_alert_and_new_people_get_ace3_s_quick_
         .collect();
     assert_eq!(
         headers,
-        ["date", "description", "queue", "disposition", "status"]
+        [
+            "date",
+            "description",
+            "queue",
+            "owner",
+            "disposition",
+            "status"
+        ]
     );
     assert!(!page.contains("<q>"), "{page}");
     assert!(
@@ -5586,11 +5610,11 @@ fn the_saved_filters_views_draw_the_order_and_the_rename_form() {
     .render()
     .expect("renders");
     assert!(empty.contains("You have no saved filters yet."), "{empty}");
-    // ace3's tip under the table (PLAN.md 7.13)
+    // ace3's tip under the table (PLAN.md 7.13), with its `$USER` half (7.17)
     assert!(
         page.contains(
-            "Tip: use <code>$USER_QUEUE</code> as a Queue value to make a shared link adapt to whoever \
-             opens it."
+            "Tip: use <code>$USER_QUEUE</code> as a Queue value or <code>$USER</code> as an Owner value \
+             to make a shared link adapt to whoever opens it."
         ),
         "{page}"
     );
@@ -10895,6 +10919,7 @@ fn the_remediation_areas_draw_hostile_values_as_text() {
         next: Some(7),
     };
     let html = drawn_safely(&RemediationsPage {
+        quick: Vec::new(),
         layout: layout("/remediations"),
         view: remediations_view(&request, page(), true),
     });
@@ -10914,6 +10939,7 @@ fn the_remediation_areas_draw_hostile_values_as_text() {
         assert!(html.contains(part), "{part}: {html}");
     }
     let read = drawn_safely(&RemediationsPage {
+        quick: Vec::new(),
         layout: layout("/remediations"),
         view: remediations_view(&request, page(), false),
     });
@@ -11001,6 +11027,7 @@ fn the_remediation_areas_draw_hostile_values_as_text() {
     };
     let crequest = list_request(FilterScreen::FileCollections, None).expect("reads");
     let html = drawn_safely(&CollectionsPage {
+        quick: Vec::new(),
         layout: layout("/file-collections"),
         view: collections_view(
             &crequest,
@@ -11028,6 +11055,7 @@ fn the_remediation_areas_draw_hostile_values_as_text() {
         "a completed one isn't cancelled"
     );
     let cannot = drawn_safely(&CollectionsPage {
+        quick: Vec::new(),
         layout: layout("/file-collections"),
         view: collections_view(
             &crequest,
@@ -11932,6 +11960,7 @@ fn the_samples_views_draw_samples_captures_and_deletions() {
         &missing,
     );
     let page = drawn_safely(&SamplesPage {
+        quick: Vec::new(),
         layout: layout(),
         view,
     });
@@ -11958,6 +11987,7 @@ fn the_samples_views_draw_samples_captures_and_deletions() {
     assert!(page.contains("<h2>Captures missing something</h2>"));
     let plain = samples_view(&query, Vec::new(), &[], None, None, false, &[]);
     let page = drawn_safely(&SamplesPage {
+        quick: Vec::new(),
         layout: layout(),
         view: plain,
     });
@@ -12239,7 +12269,9 @@ async fn the_samples_pages_need_signature_read_then_alert_write_and_svs_admin() 
         let refused = post(path.clone(), form).await.expect("answered");
         assert_eq!(refused.status(), StatusCode::FORBIDDEN, "{path}");
     }
-    assert_eq!(stack.audit_count().await, audit, "no refusal has a row");
+    // the samples page seeded alice's quick filters when it was first drawn, which is the one row
+    assert_eq!(last_action(&stack).await, "seed_saved_filters");
+    assert_eq!(stack.audit_count().await, audit + 1, "no refusal has a row");
 
     // alert:write: the label forms and their posts
     grant_to(&stack, &alice, "alert", "write").await;
@@ -12443,6 +12475,7 @@ fn the_validations_views_draw_validations_and_a_report() {
     };
     let validation = fixture_validation(ValidationState::Completed);
     let list = drawn_safely(&ValidationsPage {
+        quick: Vec::new(),
         layout: layout(),
         view: validations_view(
             &ValidationQuery::default(),
@@ -12471,6 +12504,7 @@ fn the_validations_views_draw_validations_and_a_report() {
     let mut script = fixture_validation(ValidationState::Failed);
     script.pr_url = Some("javascript:alert(1)".to_owned());
     let refused = drawn_safely(&ValidationsPage {
+        quick: Vec::new(),
         layout: layout(),
         view: validations_view(&ValidationQuery::default(), vec![], &[script], None, None),
     });
@@ -12514,6 +12548,11 @@ fn the_validations_views_draw_validations_and_a_report() {
         "{page}"
     );
     assert!(page.contains(r#"href="/api/svs/v1/yara/validations/00000000-0000-0000-0000-00000000005a/download?category=regression""#), "{page}");
+    // ace3's Export links: the chosen categories' rows, every one of them, from the API
+    assert!(
+        page.contains(r#"Export the chosen categories' rows as <a href="/api/svs/v1/yara/validations/00000000-0000-0000-0000-00000000005a/results/export/csv?category=regression">CSV</a> or <a href="/api/svs/v1/yara/validations/00000000-0000-0000-0000-00000000005a/results/export/ndjson?category=regression">NDJSON</a>"#),
+        "{page}"
+    );
     assert!(page.contains("The ruleset would not load"), "{page}");
     assert!(page.contains("miss (matches, no detection)"), "{page}");
     assert!(
@@ -12542,6 +12581,11 @@ fn the_validations_views_draw_validations_and_a_report() {
     });
     assert!(
         waiting.contains("No rows.") && !waiting.contains("/download"),
+        "{waiting}"
+    );
+    assert!(
+        waiting.contains(r#"Export every row as <a href="/api/svs/v1/yara/validations/"#)
+            && waiting.contains(r#"/results/export/ndjson">NDJSON</a>"#),
         "{waiting}"
     );
 }
@@ -12849,6 +12893,7 @@ fn the_svs_views_draw_runs_a_run_and_test_hosts() {
         ..RunQuery::default()
     };
     let list = drawn_safely(&RunsPage {
+        quick: Vec::new(),
         layout: layout(),
         view: runs_view(
             tabs(false),
@@ -12901,6 +12946,7 @@ fn the_svs_views_draw_runs_a_run_and_test_hosts() {
     // only an admin gets the Test hosts tab
     assert!(!list.contains(r#"href="/svs/test-hosts""#), "{list}");
     let empty = drawn_safely(&RunsPage {
+        quick: Vec::new(),
         layout: layout(),
         view: runs_view(
             tabs(true),
@@ -13028,6 +13074,7 @@ fn the_svs_views_draw_runs_a_run_and_test_hosts() {
         viewer: Some("analyst"),
         manage,
         admin,
+        samples: false,
         notice: Some("The comment is added.".to_owned()),
     };
     let page = drawn_safely(&RunPage {
@@ -13096,24 +13143,52 @@ fn the_svs_views_draw_runs_a_run_and_test_hosts() {
         layout: layout(),
         view: run_view(tabs(false), &data(true, false, None)),
     });
-    let form = |signature: &str, decision: &str, text: &str| {
+    // one form a row: a decision that keeps its reason has the Why field beside its buttons, and
+    // undoing one has none
+    const WHY: &str =
+        r#"<input type="text" name="reason" maxlength="4096" placeholder="why" aria-label="Why">"#;
+    let row_form = |signature: &str, why: bool, decisions: &[(&str, &str)]| {
+        let buttons: String = decisions
+            .iter()
+            .map(|(decision, text)| {
+                format!(
+                    r#"<button type="submit" name="decision" value="{decision}">{text}</button>"#
+                )
+            })
+            .collect();
         format!(
-            r#"<form method="post" action="/svs/runs/00000000-0000-0000-0000-00000000005b/decide" class="inline"><input type="hidden" name="signature" value="{signature}"><input type="hidden" name="decision" value="{decision}"><button type="submit">{text}</button></form>"#
+            r#"<form method="post" action="/svs/runs/00000000-0000-0000-0000-00000000005b/decide" class="inline"><input type="hidden" name="signature" value="{signature}">{}{buttons}</form>"#,
+            if why { WHY } else { "" }
         )
     };
-    for (signature, decision, text) in [
-        ("sig-candidate", "expected", "Expect"),
-        ("sig-candidate", "rejected", "Reject"),
-        ("sig-candidate", "ignore", "Ignore for this test"),
-        ("sig-hit", "undecide", "Undecide"),
-        ("sig-suppressed", "undecide", "Undecide"),
-        ("sig-ignored", "unignore", "Stop ignoring for this test"),
+    for (signature, why, decisions) in [
+        (
+            "sig-candidate",
+            true,
+            vec![
+                ("expected", "Expect"),
+                ("rejected", "Reject"),
+                ("ignore", "Ignore for this test"),
+            ],
+        ),
+        ("sig-hit", false, vec![("undecide", "Undecide")]),
+        ("sig-suppressed", false, vec![("undecide", "Undecide")]),
+        (
+            "sig-ignored",
+            false,
+            vec![("unignore", "Stop ignoring for this test")],
+        ),
     ] {
         assert!(
-            managed.contains(&form(signature, decision, text)),
-            "{signature} {decision}: {managed}"
+            managed.contains(&row_form(signature, why, &decisions)),
+            "{signature}: {managed}"
         );
     }
+    assert_eq!(
+        managed.matches(WHY).count(),
+        1,
+        "only the candidate's decisions keep a reason: {managed}"
+    );
     assert!(
         !managed.contains("ignore_globally") && !managed.contains(r#"value="sig-left""#),
         "{managed}"
@@ -13134,17 +13209,27 @@ fn the_svs_views_draw_runs_a_run_and_test_hosts() {
         view: run_view(tabs(true), &data(true, true, None)),
     });
     assert!(
-        admin.contains(&form(
+        admin.contains(&row_form(
             "sig-candidate",
-            "ignore_globally",
-            "Ignore for every test"
-        )) && admin.contains(&form(
+            true,
+            &[
+                ("expected", "Expect"),
+                ("rejected", "Reject"),
+                ("ignore", "Ignore for this test"),
+                ("ignore_globally", "Ignore for every test"),
+            ],
+        )) && admin.contains(&row_form(
             "sig-ignored",
-            "unignore_globally",
-            "Stop ignoring for every test"
+            false,
+            &[
+                ("unignore", "Stop ignoring for this test"),
+                ("unignore_globally", "Stop ignoring for every test"),
+            ],
         )),
         "{admin}"
     );
+    // nobody's alerts were captured from: a run with no alerts has no link to the samples
+    assert!(!admin.contains("files captured from"), "{admin}");
 
     // the test hosts, and a host's form
     let hosts_tab = || Tabs {
@@ -13302,6 +13387,7 @@ fn the_svs_review_views_draw_alerts_a_review_and_the_banner() {
         viewer: Some("analyst"),
         manage,
         admin: false,
+        samples: true,
         notice: None,
     };
     let blockers: &'static ace_service::ReviewBlockers = Box::leak(Box::new(blockers));
@@ -13341,6 +13427,61 @@ fn the_svs_review_views_draw_alerts_a_review_and_the_banner() {
         )),
         "{read}"
     );
+    // ace3's link to the files captured from the run's alerts: the samples page, narrowed to them
+    let captured = ace_gui::svs::captured_files_href(
+        &alerts
+            .iter()
+            .map(|alert| alert.alert.id)
+            .collect::<Vec<_>>(),
+    )
+    .expect("a link");
+    assert!(
+        captured.starts_with("/signatures/samples?f=alert%3A00000000-0000-0000-0000-0000000000a1"),
+        "{captured}"
+    );
+    assert!(
+        read.contains(&format!(
+            r#" · <a href="{captured}" title="What the run's alerts captured for other rules: did this rule's target reach ACE?">files captured from this run's alerts</a></p>"#
+        )),
+        "{read}"
+    );
+    let (decoded, _) = ace_service::filters::decode(
+        FilterScreen::SvsSamples,
+        &serde_urlencoded::from_str::<Vec<(String, String)>>(
+            captured.trim_start_matches("/signatures/samples?"),
+        )
+        .expect("pairs")
+        .into_iter()
+        .map(|(_, f)| f)
+        .collect::<Vec<_>>(),
+        true,
+    )
+    .expect("the samples screen reads it");
+    assert_eq!(decoded.len(), 1);
+    assert_eq!(
+        (decoded[0].name.as_str(), decoded[0].values.len()),
+        ("Alert", alerts.len())
+    );
+    // a run with more alerts than a filter holds links the first of them, and one with none has no link
+    let many: Vec<uuid::Uuid> = (0..100).map(uuid::Uuid::from_u128).collect();
+    let capped = ace_gui::svs::captured_files_href(&many).expect("a link");
+    assert_eq!(
+        capped.matches("00000000-0000-0000-0000-").count(),
+        ace_gui::svs::MAX_CAPTURE_LINK_ALERTS
+    );
+    assert_eq!(ace_gui::svs::captured_files_href(&[]), None);
+    // without signature:read the samples page isn't theirs to open
+    let no_samples = drawn_safely(&RunPage {
+        layout: layout(),
+        view: run_view(
+            tabs(),
+            &RunPageData {
+                samples: false,
+                ..data(false, None)
+            },
+        ),
+    });
+    assert!(!no_samples.contains("files captured from"), "{no_samples}");
     assert!(
         read.contains("<li>Its result is being recomputed, which takes at most a minute.</li>")
             && read.contains("<li>2 candidate signature(s) are undecided: expect, reject or ignore each in the result.</li>")
@@ -13444,6 +13585,7 @@ fn the_svs_review_views_draw_alerts_a_review_and_the_banner() {
     let filters = vec!["state:ended".to_owned()];
     let list = |manage: bool| {
         drawn_safely(&RunsPage {
+            quick: Vec::new(),
             layout: layout(),
             view: runs_view(
                 tabs(),
@@ -13675,6 +13817,7 @@ fn the_svs_review_views_draw_alerts_a_review_and_the_banner() {
         Vec::new(),
         None,
         &ace_service::Dispositions::ace3(),
+        None,
     );
     let html = AlertListFragment {
         list: view.list.clone(),
@@ -14228,6 +14371,40 @@ async fn the_svs_review_pages_need_run_manage_and_the_banner_alert_write() {
     let released = release(held, "not_a_test").await.expect("answered");
     assert_eq!(released.status(), StatusCode::SEE_OTHER);
     assert_eq!(location(&released), format!("/alerts/{held}#svs"));
+    // the reason typed with Not a test is kept, in the run's event and the audit row; the attribution's
+    // own removal reason stays ace3's fixed text
+    let event: serde_json::Value = sqlx::query_scalar(
+        "SELECT details FROM svs.run_events
+         WHERE kind = 'disassociated' AND details ->> 'alert_uuid' = $1 ORDER BY id DESC LIMIT 1",
+    )
+    .bind(held.to_string())
+    .fetch_one(db.pool())
+    .await
+    .expect("the event");
+    assert_eq!(
+        (&event["reason"], &event["not_a_test"]),
+        (&serde_json::json!("mine"), &serde_json::json!(true))
+    );
+    let audited: serde_json::Value = sqlx::query_scalar(
+        "SELECT details FROM service.audit
+         WHERE action = 'release_alert_from_svs' AND target_id = $1 ORDER BY id DESC LIMIT 1",
+    )
+    .bind(held.to_string())
+    .fetch_one(db.pool())
+    .await
+    .expect("the audit row");
+    assert_eq!(
+        (&audited["action"], &audited["reason"]),
+        (&serde_json::json!("not_a_test"), &serde_json::json!("mine"))
+    );
+    let removal: Vec<Option<String>> = sqlx::query_scalar(
+        "SELECT DISTINCT removal_reason FROM svs.attributions WHERE root_id = $1",
+    )
+    .bind(held)
+    .fetch_all(db.pool())
+    .await
+    .expect("reads");
+    assert_eq!(removal, [Some("not a test".to_owned())]);
     let attributed: i64 = sqlx::query_scalar(
         "SELECT count(*) FROM svs.attributions WHERE root_id = $1 AND removed_at IS NULL",
     )
@@ -14317,6 +14494,36 @@ async fn the_svs_review_pages_need_run_manage_and_the_banner_alert_write() {
         assert!(audited.iter().any(|a| a == action), "{action}: {audited:?}");
     }
     let _ = bob;
+
+    // Not a test from a run's page keeps the reason typed with it, as the alert's page does
+    let another = gui_run_alert(&stack, run, "another by context", None, Some("context")).await;
+    let marked_not = post(
+        format!("{page_of}/alerts"),
+        vec![
+            ("action", "not_a_test".to_owned()),
+            ("alert", another.to_string()),
+            ("reason", " a lab rebuild ".to_owned()),
+        ],
+    )
+    .await
+    .expect("answered");
+    assert_eq!(marked_not.status(), StatusCode::SEE_OTHER);
+    assert_eq!(location(&marked_not), format!("{page_of}?done=not_a_test"));
+    let event: serde_json::Value = sqlx::query_scalar(
+        "SELECT details FROM svs.run_events
+         WHERE kind = 'disassociated' AND details ->> 'alert_uuid' = $1 ORDER BY id DESC LIMIT 1",
+    )
+    .bind(another.to_string())
+    .fetch_one(db.pool())
+    .await
+    .expect("the event");
+    assert_eq!(
+        (&event["reason"], &event["not_a_test"]),
+        (
+            &serde_json::json!("a lab rebuild"),
+            &serde_json::json!(true)
+        )
+    );
 }
 
 /// A catalog test and a run of it in the GUI's database, with hostile text where a launcher and a
@@ -14561,9 +14768,32 @@ async fn the_svs_pages_need_run_read_then_run_manage_and_svs_admin() {
         .expect("a page");
     assert!(
         page.contains(&format!(
-            r#"<form method="post" action="{page_of}/decide" class="inline"><input type="hidden" name="signature" value="{candidate}"><input type="hidden" name="decision" value="expected"><button type="submit">Expect</button></form>"#
+            r#"<form method="post" action="{page_of}/decide" class="inline"><input type="hidden" name="signature" value="{candidate}"><input type="text" name="reason" maxlength="4096" placeholder="why" aria-label="Why"><button type="submit" name="decision" value="expected">Expect</button>"#
         )) && !page.contains("ignore_globally"),
         "{page}"
+    );
+    // the form's Why reaches the decision: ace3's page asks for it, and the handler always read it
+    let reasoned = post(
+        format!("{page_of}/decide"),
+        vec![
+            ("signature", candidate.to_owned()),
+            ("reason", format!("  {HOSTILE}  ")),
+            ("decision", "rejected".to_owned()),
+        ],
+    )
+    .await
+    .expect("answered");
+    assert_eq!(reasoned.status(), StatusCode::SEE_OTHER);
+    let kept: Option<String> =
+        sqlx::query_scalar("SELECT reason FROM svs.expectations WHERE signature_uuid = $1")
+            .bind(candidate)
+            .fetch_one(stack.test_db.db().pool())
+            .await
+            .expect("the decision");
+    assert_eq!(kept.as_deref(), Some(HOSTILE), "trimmed, and kept as typed");
+    assert_eq!(
+        decide("undecide").await.expect("answered").status(),
+        StatusCode::SEE_OTHER
     );
     let decided = decide("expected").await.expect("answered");
     assert_eq!(decided.status(), StatusCode::SEE_OTHER);
@@ -14720,8 +14950,9 @@ async fn the_svs_pages_need_run_read_then_run_manage_and_svs_admin() {
     .await
     .expect("answered");
     assert_eq!(location(&deleted), format!("{page_of}?done=deleted"));
-    // expected, undecided, ignored, unignored, commented, edited, deleted
-    assert_eq!(svs_writes().await, audit + 7);
+    // rejected with its reason, undecided, expected, undecided, ignored, unignored, commented, edited,
+    // deleted
+    assert_eq!(svs_writes().await, audit + 9);
 
     // svs:admin: the test hosts
     grant_to(&stack, &alice, "svs", "admin").await;
@@ -14846,7 +15077,7 @@ async fn the_svs_pages_need_run_read_then_run_manage_and_svs_admin() {
         StatusCode::NOT_FOUND
     );
     // added, changed, removed
-    assert_eq!(svs_writes().await, audit + 10);
+    assert_eq!(svs_writes().await, audit + 12);
     // and an admin ignores for every test from the run page
     let page = get(page_of.clone())
         .await
@@ -15002,6 +15233,7 @@ fn the_svs_coverage_views_draw_tests_coverage_and_the_worklist() {
         ..CatalogTestQuery::default()
     };
     let list = drawn_safely(&TestsPage {
+        quick: Vec::new(),
         layout: layout(),
         view: tests_view(
             tabs("tests"),
@@ -15047,6 +15279,7 @@ fn the_svs_coverage_views_draw_tests_coverage_and_the_worklist() {
         "{list}"
     );
     let none = drawn_safely(&TestsPage {
+        quick: Vec::new(),
         layout: layout(),
         view: tests_view(
             tabs("tests"),
@@ -15220,6 +15453,7 @@ fn the_svs_coverage_views_draw_tests_coverage_and_the_worklist() {
         ..CoverageQuery::default()
     };
     let coverage = drawn_safely(&CoveragePage {
+        quick: Vec::new(),
         layout: layout(),
         view: coverage_view(
             tabs("coverage"),
@@ -15258,6 +15492,7 @@ fn the_svs_coverage_views_draw_tests_coverage_and_the_worklist() {
         "{coverage}"
     );
     let never = drawn_safely(&CoveragePage {
+        quick: Vec::new(),
         layout: layout(),
         view: coverage_view(
             tabs("coverage"),
@@ -15406,6 +15641,7 @@ fn the_svs_coverage_views_draw_tests_coverage_and_the_worklist() {
     };
     let draw_worklist = |manage: bool, notice: Option<String>| {
         drawn_safely(&WorklistPage {
+            quick: Vec::new(),
             layout: layout(),
             view: worklist_view(
                 tabs("worklist"),
@@ -16694,4 +16930,1027 @@ async fn the_svs_link_counts_the_runs_that_need_attention() {
         page.contains(r#"title="runs that need attention">(99+)</span>"#),
         "{page}"
     );
+}
+
+// ---- PLAN.md 7.17: alert ownership ----
+
+use ace_gui::alert::OwnershipForms;
+use ace_gui::list::{BulkPage, LeftAlone, OwnedPage, OwnerOption};
+use ace_service::{AlertOwner, OwnerChoice, SkippedAlert};
+
+fn hostile_owner(id: u128) -> AlertOwner {
+    AlertOwner {
+        id: UserId(uuid::Uuid::from_u128(id)),
+        name: HOSTILE.to_owned(),
+        username: "jane".to_owned(),
+        enabled: true,
+    }
+}
+
+/// The views of ownership (ace3's `test_manage.py` owner column cases, and its Take and Assign Ownership
+/// buttons): the list's Owner column, whose cell narrows the list to that owner and whose header sorts by
+/// it; the bulk form's two buttons and the users Assign offers, for a viewer who may; Reset's owner half;
+/// the alert page's owner and forms; and the pages that say what was left with its owner, with the form
+/// that takes it. An owner's name is a person's text, drawn escaped.
+#[test]
+fn the_ownership_views_draw_owners_as_text() {
+    let (one, two) = (uuid::Uuid::from_u128(1), uuid::Uuid::from_u128(2));
+    let at = chrono::DateTime::from_timestamp(1_793_000_000, 0).expect("a time");
+    let page = ListedPage {
+        alerts: vec![
+            AlertSummary {
+                owner: Some(hostile_owner(7)),
+                owned_at: Some(at),
+                ..fixture_summary(one, "owned", None)
+            },
+            fixture_summary(two, "nobody's", None),
+        ],
+        next: None,
+        total: 2,
+    };
+    let query = ListQuery {
+        filters: vec![FilterEntry::text("Owner", false, &["None", "$USER"])],
+        ..ListQuery::default()
+    };
+    let choices = [
+        OwnerChoice {
+            id: UserId(uuid::Uuid::from_u128(7)),
+            name: HOSTILE.to_owned(),
+            username: "jane".to_owned(),
+        },
+        OwnerChoice {
+            id: UserId(uuid::Uuid::from_u128(8)),
+            name: "plain".to_owned(),
+            username: "plain".to_owned(),
+        },
+    ];
+    let draw = |owners: Option<&[OwnerChoice]>| {
+        let view = list_view(
+            &page,
+            &query,
+            &ManageColumnsPreference::default(),
+            &[],
+            &std::collections::HashMap::new(),
+            chrono_tz::Tz::UTC,
+            Vec::new(),
+            None,
+            &ace_service::Dispositions::ace3(),
+            owners,
+        );
+        let html = drawn_safely(&ListPage {
+            layout: Layout::new("n0nce", Theme::Light, Some("alice".to_owned()), "/"),
+            list: view.list.clone(),
+            view: view.clone(),
+        });
+        (view, html)
+    };
+    let (view, html) = draw(Some(&choices));
+
+    // the column is where ace3 has it, between the queue and the disposition, and its header sorts
+    let ids: Vec<&str> = view.list.headers.iter().map(|header| header.id).collect();
+    assert_eq!(
+        ids,
+        [
+            "date",
+            "description",
+            "queue",
+            "owner",
+            "disposition",
+            "status"
+        ]
+    );
+    let header = &view.list.headers[3];
+    assert_eq!(header.label, "Owner");
+    assert!(
+        header
+            .href
+            .as_deref()
+            .is_some_and(|href| href.contains("sort=owner") && href.contains("dir=asc")),
+        "{header:?}"
+    );
+    // the owner's cell: their name, and a link that puts the Owner filter in place of the one in effect
+    let cell = view.list.rows[0]
+        .cells
+        .iter()
+        .find(|cell| cell.id == "owner")
+        .expect("the owner's cell");
+    assert_eq!(cell.text, HOSTILE);
+    let narrows = cell.href.as_deref().expect("a link");
+    let decoded = ListQuery::parse(
+        &serde_urlencoded::from_str::<Vec<(String, String)>>(narrows.trim_start_matches("/?"))
+            .expect("pairs"),
+    )
+    .expect("a list")
+    .query
+    .filters;
+    assert_eq!(decoded, [FilterEntry::text("Owner", false, &[HOSTILE])]);
+    assert!(
+        html.contains(&format!(r#"">{HOSTILE_ESCAPED}</a></td>"#)),
+        "{html}"
+    );
+    // nobody's alert has an empty cell and no link
+    let empty = view.list.rows[1]
+        .cells
+        .iter()
+        .find(|cell| cell.id == "owner")
+        .expect("the owner's cell");
+    assert_eq!((empty.text.as_str(), &empty.href), ("", &None));
+    assert!(html.contains(r#"<td data-col-id="owner"></td>"#), "{html}");
+
+    // Reset is ace3's default but for its queue: open, and nobody's or the viewer's
+    // a share link's value is quoted, then the URL's: the `$` of `$USER` twice
+    assert_eq!(
+        view.reset,
+        "/?f=disposition%3AOPEN&f=owner%3ANone%2C%2524USER"
+    );
+    // the bulk form's buttons, and who Assign offers
+    assert!(view.can_own);
+    assert_eq!(
+        view.owners,
+        [
+            OwnerOption {
+                id: uuid::Uuid::from_u128(7),
+                name: format!("{HOSTILE} (jane)"),
+            },
+            OwnerOption {
+                id: uuid::Uuid::from_u128(8),
+                name: "plain".to_owned(),
+            },
+        ]
+    );
+    assert!(
+        html.contains(r#"<button type="submit" formaction="/alerts/owner" name="owner" value="me""#)
+            && html.contains(
+                r#"<button type="submit" formaction="/alerts/owner" name="owner" value="assign">Assign</button>"#
+            )
+            && html.contains(r#"<option value="">nobody (unassign)</option>"#)
+            && html.contains(&format!(
+                r#"<option value="00000000-0000-0000-0000-000000000007">{HOSTILE_ESCAPED} (jane)</option>"#
+            )),
+        "{html}"
+    );
+    // someone who can't write has neither
+    let (reader, html) = draw(None);
+    assert!(!reader.can_own && reader.owners.is_empty());
+    assert!(
+        !html.contains("/alerts/owner") && !html.contains("bulk-assignee"),
+        "{html}"
+    );
+
+    // the alert's page: who owns it and since when, and the forms for a viewer who may
+    let (mut tree, comments) = fixture_tree();
+    tree.alert.summary.owner = Some(hostile_owner(7));
+    tree.alert.summary.owned_at = Some(at);
+    let id = tree.alert.summary.id;
+    let alert_page = |tree: &AlertTree, ownership: Option<OwnershipForms>| {
+        drawn_safely(
+            &AlertPage::new(
+                Layout::new("n0nce", Theme::Light, Some("alice".to_owned()), "/alerts/x"),
+                tree,
+                &comments,
+                &ObservableActions::empty(),
+                &std::collections::BTreeMap::new(),
+            )
+            .expect("a page")
+            .with_ownership(ownership),
+        )
+    };
+    let users = || view.owners.clone();
+    let theirs = alert_page(
+        &tree,
+        Some(OwnershipForms {
+            mine: false,
+            users: users(),
+        }),
+    );
+    assert!(
+        theirs.contains(&format!(
+            "<th>Owner</th><td>{HOSTILE_ESCAPED}, since 2026-10-26 07:33:20 UTC</td>"
+        )),
+        "{theirs}"
+    );
+    assert!(
+        theirs.contains(r#"<form method="post" action="/alerts/owner" class="inline ownership">"#)
+            && theirs.contains(&format!(r#"<input type="hidden" name="alert" value="{id}">"#))
+            && theirs.contains(&format!(
+                r#"<input type="hidden" name="next" value="/alerts/{id}">"#
+            ))
+            && theirs.contains(r#"<button type="submit" name="owner" value="me""#)
+            && theirs.contains(r#"<button type="submit" name="owner" value="assign">Assign</button>"#)
+            && theirs.contains(&format!(
+                r#"<option value="00000000-0000-0000-0000-000000000007">{HOSTILE_ESCAPED} (jane)</option>"#
+            )),
+        "{theirs}"
+    );
+    // their own alert has nothing to take, and can still be handed on
+    let mine = alert_page(
+        &tree,
+        Some(OwnershipForms {
+            mine: true,
+            users: users(),
+        }),
+    );
+    assert!(
+        !mine.contains(r#"name="owner" value="me""#)
+            && mine.contains(r#"name="owner" value="assign""#),
+        "{mine}"
+    );
+    // a reader sees who owns it, and no form
+    let read_only = alert_page(&tree, None);
+    assert!(
+        read_only.contains("<th>Owner</th><td>") && !read_only.contains("/alerts/owner"),
+        "{read_only}"
+    );
+    tree.alert.summary.owner = None;
+    tree.alert.summary.owned_at = None;
+    assert!(alert_page(&tree, None).contains("<th>Owner</th><td>nobody</td>"));
+
+    // what a bulk action left alone, in ace3's words, with the form that takes it
+    let skipped = [
+        SkippedAlert {
+            alert: one,
+            owner: UserId(uuid::Uuid::from_u128(7)),
+            name: HOSTILE.to_owned(),
+        },
+        SkippedAlert {
+            alert: two,
+            owner: UserId(uuid::Uuid::from_u128(8)),
+            name: "plain".to_owned(),
+        },
+    ];
+    let left = LeftAlone::of(&skipped).expect("something was left alone");
+    assert_eq!(
+        left.summary,
+        format!("left 2 alerts owned by other analysts alone ({HOSTILE} 1, plain 1)")
+    );
+    assert_eq!(
+        left.take_owned,
+        format!(
+            "{one}:00000000-0000-0000-0000-000000000007,{two}:00000000-0000-0000-0000-000000000008"
+        )
+    );
+    assert_eq!(LeftAlone::of(&[]), None);
+    let layout = || Layout::new("n0nce", Theme::Light, Some("alice".to_owned()), "/");
+    let bulk = drawn_safely(&BulkPage {
+        layout: layout(),
+        disposition: "FALSE_POSITIVE".to_owned(),
+        done: vec![uuid::Uuid::from_u128(3)],
+        failed: Vec::new(),
+        left_alone: Some(left.clone()),
+        next: "/?f=disposition:OPEN".to_owned(),
+        save_to_event: false,
+    });
+    assert!(
+        bulk.contains(&format!(
+            "1 alert dispositioned; left 2 alerts owned by other analysts alone ({HOSTILE_ESCAPED} 1, plain 1)."
+        )) && bulk.contains(&format!(
+            r#"<li><a href="/alerts/{one}">{one}</a>: owned by {HOSTILE_ESCAPED}</li>"#
+        )) && bulk.contains(r#"<form method="post" action="/alerts/disposition" class="take-owned">"#)
+            && bulk.contains(&format!(
+                r#"<input type="hidden" name="take_owned" value="{}">"#,
+                left.take_owned
+            ))
+            && bulk.contains(r#"<input type="hidden" name="disposition" value="FALSE_POSITIVE">"#)
+            && bulk.contains(&format!(r#"<input type="hidden" name="alert" value="{two}">"#)),
+        "{bulk}"
+    );
+    // nothing left alone: no such form
+    let plain = drawn_safely(&BulkPage {
+        layout: layout(),
+        disposition: "FALSE_POSITIVE".to_owned(),
+        done: vec![one],
+        failed: Vec::new(),
+        left_alone: None,
+        next: "/".to_owned(),
+        save_to_event: false,
+    });
+    assert!(
+        plain.contains("1 alert dispositioned.") && !plain.contains("take_owned"),
+        "{plain}"
+    );
+    let owned = drawn_safely(&OwnedPage {
+        layout: layout(),
+        heading: "Assign Ownership",
+        message: format!("assigned 1 alerts to {HOSTILE}; {}", left.summary),
+        applied: vec![uuid::Uuid::from_u128(3)],
+        left_alone: left.clone(),
+        owner: "assign",
+        assignee: "00000000-0000-0000-0000-000000000009".to_owned(),
+        next: "/".to_owned(),
+    });
+    assert!(
+        owned.contains("<h1>Assign Ownership</h1>")
+            && owned.contains(&format!("<p>assigned 1 alerts to {HOSTILE_ESCAPED}; left 2 alerts"))
+            && owned.contains(r#"<form method="post" action="/alerts/owner" class="take-owned">"#)
+            && owned.contains(r#"<input type="hidden" name="owner" value="assign">"#)
+            && owned.contains(
+                r#"<input type="hidden" name="assignee" value="00000000-0000-0000-0000-000000000009">"#
+            )
+            && owned.contains(&format!(
+                r#"<input type="hidden" name="take_owned" value="{}">"#,
+                left.take_owned
+            )),
+        "{owned}"
+    );
+}
+
+/// Ownership through the server (PLAN.md 7.17): ace3's Take Ownership and Assign Ownership of the ticked
+/// alerts and of one from its page, with what another analyst owns left alone until it's confirmed; a
+/// bulk disposition doing the same (ace3's `test_set_disposition_leaves_alert_owned_by_another_alone`
+/// and `test_set_disposition_takes_confirmed_alert`, and `test_bulk_set_disposition_respects_ownership`,
+/// whose event page posts to the same route here); the Owner column, filter and order; and the tip.
+#[tokio::test]
+async fn ownership_is_taken_and_assigned_through_the_server() {
+    let stack = stack().await;
+    let db = stack.test_db.db();
+    let alice = user(&stack, "alice").await;
+    grant_alert_read(&stack, &alice).await;
+    let jane = user(&stack, "jane").await;
+    grant_alert_read(&stack, &jane).await;
+    grant_to(&stack, &jane, "alert", "write").await;
+    let id_of = |actor: &Actor| match actor {
+        Actor::User { id, .. } => id.0,
+        _ => panic!("a user"),
+    };
+    let (alice_id, jane_id) = (id_of(&alice), id_of(&jane));
+    sqlx::query("UPDATE service.users SET display_name = $2 WHERE id = $1")
+        .bind(jane_id)
+        .bind(HOSTILE)
+        .execute(db.pool())
+        .await
+        .expect("names her");
+    let session = session_of(&stack, "alice").await;
+    let mut alerts = Vec::new();
+    for (title, at) in [
+        ("one", "2026-01-01T10:00:00Z"),
+        ("two", "2026-01-02T10:00:00Z"),
+        ("three", "2026-01-03T10:00:00Z"),
+        ("four", "2026-01-04T10:00:00Z"),
+        ("five", "2026-01-05T10:00:00Z"),
+    ] {
+        alerts.push(list_alert(&stack, title, at, None).await);
+    }
+    let (one, two, three, four, five) = (alerts[0], alerts[1], alerts[2], alerts[3], alerts[4]);
+    let give = async |alert: uuid::Uuid, user: uuid::Uuid| {
+        sqlx::query("UPDATE analysis.roots SET owner_id = $2, owned_at = now() WHERE id = $1")
+            .bind(alert)
+            .bind(user)
+            .execute(db.pool())
+            .await
+            .expect("sets the owner");
+    };
+    let owner_of = async |alert: uuid::Uuid| -> Option<uuid::Uuid> {
+        sqlx::query_scalar("SELECT owner_id FROM analysis.roots WHERE id = $1")
+            .bind(alert)
+            .fetch_one(db.pool())
+            .await
+            .expect("reads")
+    };
+    let disposition_of = async |alert: uuid::Uuid| -> Option<String> {
+        sqlx::query_scalar("SELECT disposition FROM analysis.roots WHERE id = $1")
+            .bind(alert)
+            .fetch_one(db.pool())
+            .await
+            .expect("reads")
+    };
+    give(two, jane_id).await;
+    give(three, jane_id).await;
+    let post = |path: &'static str, form: Vec<(&'static str, String)>| {
+        let request = stack
+            .http
+            .post(format!("{}{path}", stack.url))
+            .header("origin", &stack.url)
+            .header("cookie", cookie(&session))
+            .form(&form);
+        async move { request.send().await.expect("answered") }
+    };
+    let get = |path: String| {
+        let request = stack.get(&path).header("cookie", cookie(&session));
+        async move {
+            let response = request.send().await.expect("answered");
+            let status = response.status();
+            (status, response.text().await.expect("a page"))
+        }
+    };
+    let take = |ids: &[uuid::Uuid], take_owned: Option<String>| {
+        let mut form = vec![("owner", "me".to_owned()), ("next", "/?size=10".to_owned())];
+        form.extend(ids.iter().map(|id| ("alert", id.to_string())));
+        form.extend(take_owned.map(|pairs| ("take_owned", pairs)));
+        form
+    };
+    let escaped = HOSTILE_ESCAPED;
+
+    // signed out, a post goes to the login; a reader's is refused, and the reader's pages have no forms
+    let signed_out = stack
+        .post(
+            "/alerts/owner",
+            &[("owner", "me"), ("alert", &one.to_string())],
+        )
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(signed_out.status(), StatusCode::SEE_OTHER);
+    assert!(location(&signed_out).starts_with("/login"));
+    let audit = stack.audit_count().await;
+    let refused = post("/alerts/owner", take(&[one], None)).await;
+    assert_eq!(refused.status(), StatusCode::FORBIDDEN);
+    assert_eq!(owner_of(one).await, None);
+    assert_eq!(stack.audit_count().await, audit);
+    let (status, list) = get("/".to_owned()).await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(!list.contains("/alerts/owner"), "{list}");
+    // the Owner column, where ace3 has it, with the owner's name as text
+    assert!(
+        list.contains(
+            r#"<th data-col-id="owner"><a href="/?sort=owner&#38;dir=asc">Owner</a></th>"#
+        ),
+        "{list}"
+    );
+    assert_eq!(list.matches(&format!("{escaped}</a></td>")).count(), 2);
+    let (_, page) = get(format!("/alerts/{two}")).await;
+    assert!(
+        page.contains(&format!("<th>Owner</th><td>{escaped}, since "))
+            && !page.contains("/alerts/owner"),
+        "{page}"
+    );
+
+    // alert:write: the forms
+    grant_to(&stack, &alice, "alert", "write").await;
+    let (_, list) = get("/".to_owned()).await;
+    assert!(
+        list.contains(r#"formaction="/alerts/owner" name="owner" value="me""#)
+            && list.contains(&format!(
+                r#"<option value="{jane_id}">{escaped} (jane)</option>"#
+            ))
+            && list.contains(&format!(r#"<option value="{alice_id}">alice</option>"#)),
+        "{list}"
+    );
+    assert!(inline_free(&list.replace(escaped, "")), "{list}");
+
+    // take: jane's alert is left alone, in ace3's words, and the page has the form that takes it
+    let audit = stack.audit_count().await;
+    let taken = post("/alerts/owner", take(&[one, two], None)).await;
+    assert_eq!(taken.status(), StatusCode::OK);
+    let page = taken.text().await.expect("a page");
+    assert!(
+        page.contains("<h1>Take Ownership</h1>")
+            && page.contains(&format!(
+                "<p>took ownership of 1 alerts; left 1 alert owned by {escaped} alone.</p>"
+            ))
+            && page.contains(&format!(
+                r#"<li><a href="/alerts/{two}">{two}</a>: owned by {escaped}</li>"#
+            ))
+            && page.contains(&format!(
+                r#"<input type="hidden" name="take_owned" value="{two}:{jane_id}">"#
+            ))
+            && page.contains(r#"<a href="/?size=10">Back</a>"#),
+        "{page}"
+    );
+    assert!(!page.contains("<script>alert") && inline_free(&page.replace(escaped, "")));
+    assert_eq!(owner_of(one).await, Some(alice_id));
+    assert_eq!(owner_of(two).await, Some(jane_id));
+    assert_eq!(stack.audit_count().await, audit + 1, "the one that changed");
+    assert_eq!(last_action(&stack).await, "change_alert_owner");
+
+    // a confirmation that names someone who doesn't have it changes nothing
+    let stale = post(
+        "/alerts/owner",
+        take(&[two], Some(format!("{two}:{alice_id}"))),
+    )
+    .await;
+    assert_eq!(stale.status(), StatusCode::OK);
+    assert_eq!(owner_of(two).await, Some(jane_id));
+    // confirmed: taken, and back where it came from
+    let confirmed = post(
+        "/alerts/owner",
+        take(&[two], Some(format!("{two}:{jane_id}"))),
+    )
+    .await;
+    assert_eq!(confirmed.status(), StatusCode::SEE_OTHER);
+    assert_eq!(location(&confirmed), "/?size=10");
+    assert_eq!(owner_of(two).await, Some(alice_id));
+
+    // assign to jane, and to nobody
+    let assign = |ids: &[uuid::Uuid], assignee: String| {
+        let mut form = vec![
+            ("owner", "assign".to_owned()),
+            ("assignee", assignee),
+            ("disposition", "IGNORE".to_owned()),
+        ];
+        form.extend(ids.iter().map(|id| ("alert", id.to_string())));
+        form
+    };
+    let assigned = post("/alerts/owner", assign(&[four, one], jane_id.to_string())).await;
+    assert_eq!(assigned.status(), StatusCode::SEE_OTHER);
+    assert_eq!(location(&assigned), "/");
+    assert_eq!(owner_of(four).await, Some(jane_id));
+    assert_eq!(owner_of(one).await, Some(jane_id));
+    assert_eq!(
+        disposition_of(four).await,
+        None,
+        "the form's other fields do nothing"
+    );
+    let unassigned = post("/alerts/owner", assign(&[two], String::new())).await;
+    assert_eq!(unassigned.status(), StatusCode::SEE_OTHER);
+    assert_eq!(owner_of(two).await, None);
+    // unassigning someone else's is left alone too
+    let left = post("/alerts/owner", assign(&[four], String::new())).await;
+    assert_eq!(left.status(), StatusCode::OK);
+    let page = left.text().await.expect("a page");
+    assert!(
+        page.contains("<h1>Assign Ownership</h1>")
+            && page.contains(&format!(
+                "unassigned 0 alerts; left 1 alert owned by {escaped} alone"
+            ))
+            && page.contains(r#"<input type="hidden" name="owner" value="assign">"#)
+            && page.contains(r#"<input type="hidden" name="assignee" value="">"#),
+        "{page}"
+    );
+    assert_eq!(owner_of(four).await, Some(jane_id));
+
+    // requests that aren't ones
+    let audit = stack.audit_count().await;
+    for bad in [
+        vec![("owner", "them".to_owned()), ("alert", five.to_string())],
+        vec![("alert", five.to_string())],
+        vec![("owner", "me".to_owned())],
+        vec![("owner", "me".to_owned()), ("alert", "x".to_owned())],
+        assign(&[five], "x".to_owned()),
+        // a user who isn't there
+        assign(&[five], uuid::Uuid::new_v4().to_string()),
+        std::iter::once(("owner", "me".to_owned()))
+            .chain((0..=ace_gui::list::MAX_BULK).map(|_| ("alert", five.to_string())))
+            .collect(),
+    ] {
+        let response = post("/alerts/owner", bad.clone()).await;
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST, "{bad:?}");
+    }
+    // another site's page can't take an alert with alice's cookie
+    let cross = stack
+        .http
+        .post(format!("{}/alerts/owner", stack.url))
+        .header("origin", "https://evil.example")
+        .header("cookie", cookie(&session))
+        .form(&[("owner", "me"), ("alert", &five.to_string())])
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(cross.status(), StatusCode::FORBIDDEN);
+    assert_eq!(owner_of(five).await, None);
+    // and a GET is refused and changes nothing (ace3's `test_http_verbs.py`, whose `set_owner` once
+    // wrote from a query string)
+    let (status, _) = get(format!("/alerts/owner?owner=me&alert={five}")).await;
+    assert_eq!(status, StatusCode::METHOD_NOT_ALLOWED);
+    assert_eq!(owner_of(five).await, None);
+    assert_eq!(stack.audit_count().await, audit);
+
+    // a bulk disposition leaves jane's alert alone and takes the one nobody owned
+    let dispose = |ids: &[uuid::Uuid], take_owned: Option<String>| {
+        let mut form = vec![
+            ("disposition", "FALSE_POSITIVE".to_owned()),
+            ("next", "/".to_owned()),
+        ];
+        form.extend(ids.iter().map(|id| ("alert", id.to_string())));
+        form.extend(take_owned.map(|pairs| ("take_owned", pairs)));
+        form
+    };
+    let done = post("/alerts/disposition", dispose(&[three, five], None)).await;
+    assert_eq!(done.status(), StatusCode::OK);
+    let page = done.text().await.expect("a page");
+    assert!(
+        page.contains(&format!(
+            "<p>1 alert dispositioned; left 1 alert owned by {escaped} alone.</p>"
+        )) && page.contains(&format!(
+            r#"<input type="hidden" name="take_owned" value="{three}:{jane_id}">"#
+        )) && page
+            .contains(r#"<form method="post" action="/alerts/disposition" class="take-owned">"#),
+        "{page}"
+    );
+    assert!(inline_free(&page.replace(escaped, "")), "{page}");
+    assert_eq!(disposition_of(three).await, None);
+    assert_eq!(owner_of(three).await, Some(jane_id));
+    assert_eq!(
+        disposition_of(five).await.as_deref(),
+        Some("FALSE_POSITIVE")
+    );
+    assert_eq!(
+        owner_of(five).await,
+        Some(alice_id),
+        "a disposition takes it"
+    );
+    // the take_owned field is the analyst agreeing to take the alert from its owner
+    let done = post(
+        "/alerts/disposition",
+        dispose(&[three], Some(format!("{three}:{jane_id}"))),
+    )
+    .await;
+    assert_eq!(done.status(), StatusCode::OK);
+    let page = done.text().await.expect("a page");
+    assert!(
+        page.contains("<p>1 alert dispositioned.</p>") && !page.contains("take_owned"),
+        "{page}"
+    );
+    assert_eq!(
+        disposition_of(three).await.as_deref(),
+        Some("FALSE_POSITIVE")
+    );
+    assert_eq!(owner_of(three).await, Some(alice_id));
+
+    // the list by owner: $USER is alice, and the order is by what each owner is called
+    let ids = |list: &[uuid::Uuid]| list.iter().map(|id| id.to_string()).collect::<Vec<_>>();
+    let (status, mine) = get("/?f=owner:$USER".to_owned()).await;
+    assert_eq!(status, StatusCode::OK, "{mine}");
+    assert_eq!(row_ids(&mine), ids(&[five, three]));
+    let (_, nobodys) = get("/?f=owner:None".to_owned()).await;
+    assert_eq!(row_ids(&nobodys), ids(&[two]));
+    let (_, hers) = get("/?f=owner:jane".to_owned()).await;
+    assert_eq!(row_ids(&hers), ids(&[four, one]));
+    // nobody's first, then jane's by her display name, which starts with a quote, then alice's
+    let (status, sorted) = get("/?sort=owner&dir=asc".to_owned()).await;
+    assert_eq!(status, StatusCode::OK, "{sorted}");
+    let by_id = |mut pair: [uuid::Uuid; 2]| {
+        pair.sort();
+        pair
+    };
+    let (janes, alices) = (by_id([one, four]), by_id([three, five]));
+    assert_eq!(
+        row_ids(&sorted),
+        ids(&[two, janes[0], janes[1], alices[0], alices[1]])
+    );
+    assert!(sorted.contains("Owner↑"), "{sorted}");
+    // paged one at a time, the cursor carries the owner's name, hostile text and all
+    let mut seen = Vec::new();
+    let mut path = "/?sort=owner&dir=asc&size=1".to_owned();
+    loop {
+        let (status, page) = get(path.clone()).await;
+        assert_eq!(status, StatusCode::OK, "{path}: {page}");
+        seen.extend(row_ids(&page));
+        let Some(next) = page
+            .split(r#"rel="next""#)
+            .next()
+            .and_then(|before| before.rsplit("href=\"").next())
+            .filter(|_| page.contains(r#"rel="next""#))
+        else {
+            break;
+        };
+        path = next
+            .split('"')
+            .next()
+            .expect("a link")
+            .replace("&#38;", "&");
+        assert!(seen.len() <= 5, "paging ends");
+    }
+    assert_eq!(seen, ids(&[two, janes[0], janes[1], alices[0], alices[1]]));
+    // Reset is open alerts that are nobody's or the viewer's
+    assert!(
+        sorted.contains(r#"<a href="/?f=disposition%3AOPEN&#38;f=owner%3ANone%2C%2524USER&#38;sort=owner&#38;dir=asc">Reset</a>"#),
+        "{sorted}"
+    );
+    let (_, reset) = get("/?f=disposition%3AOPEN&f=owner%3ANone%2C%2524USER".to_owned()).await;
+    assert_eq!(row_ids(&reset), ids(&[two]));
+
+    // the alert's page: its owner, and the forms; taking from the page comes back to it
+    let (_, page) = get(format!("/alerts/{four}")).await;
+    assert!(
+        page.contains(&format!("<th>Owner</th><td>{escaped}, since "))
+            && page.contains(
+                r#"<form method="post" action="/alerts/owner" class="inline ownership">"#
+            )
+            && page.contains(r#"<button type="submit" name="owner" value="me""#),
+        "{page}"
+    );
+    let from_page = |take_owned: Option<String>| {
+        let mut form = vec![
+            ("owner", "me".to_owned()),
+            ("alert", four.to_string()),
+            ("next", format!("/alerts/{four}")),
+        ];
+        form.extend(take_owned.map(|pairs| ("take_owned", pairs)));
+        post("/alerts/owner", form)
+    };
+    let asked = from_page(None).await;
+    assert_eq!(asked.status(), StatusCode::OK);
+    let asking = asked.text().await.expect("a page");
+    assert!(
+        asking.contains(&format!(
+            "took ownership of 0 alerts; left 1 alert owned by {escaped} alone"
+        )) && asking.contains(&format!(
+            r#"<input type="hidden" name="next" value="/alerts/{four}">"#
+        )),
+        "{asking}"
+    );
+    let taken = from_page(Some(format!("{four}:{jane_id}"))).await;
+    assert_eq!(taken.status(), StatusCode::SEE_OTHER);
+    assert_eq!(location(&taken), format!("/alerts/{four}"));
+    let (_, page) = get(format!("/alerts/{four}")).await;
+    assert!(
+        page.contains("<th>Owner</th><td>alice, since ")
+            && !page.contains(r#"name="owner" value="me""#)
+            && page.contains(r#"name="owner" value="assign""#),
+        "{page}"
+    );
+    // a next that isn't this site's is the list
+    let elsewhere = post(
+        "/alerts/owner",
+        vec![
+            ("owner", "me".to_owned()),
+            ("alert", four.to_string()),
+            ("next", "//evil.example/".to_owned()),
+        ],
+    )
+    .await;
+    assert_eq!(location(&elsewhere), "/");
+
+    // each change left its audit row, by alice
+    let owners: i64 = sqlx::query_scalar(
+        "SELECT count(*) FROM service.audit
+         WHERE action = 'change_alert_owner' AND actor ->> 'name' = 'alice'",
+    )
+    .fetch_one(db.pool())
+    .await
+    .expect("counts");
+    assert_eq!(
+        owners, 6,
+        "one, two, four and one to jane, two to nobody, four back"
+    );
+
+    // the saved filters page's tip has its $USER half
+    let (_, manage) = get("/filters/saved".to_owned()).await;
+    assert!(
+        manage.contains(
+            "Tip: use <code>$USER_QUEUE</code> as a Queue value or <code>$USER</code> as an Owner value"
+        ),
+        "{manage}"
+    );
+}
+
+/// Each screen ace3 seeds shows its quick filters, ace3's defaults the first time a person opens it (the
+/// owner's decision of 2026-11-15), each a link to the screen with its filters, once: a deleted default
+/// stays deleted, and a person's own pinned filter joins them, its name as text.
+#[tokio::test]
+async fn each_seeded_screen_shows_ace3_s_quick_filters_once() {
+    let stack = stack().await;
+    let db = stack.test_db.db();
+    let alice = user(&stack, "alice").await;
+    for (major, minor) in [
+        ("svs", "run_read"),
+        ("signature", "read"),
+        ("remediation", "read"),
+        ("file_collection", "read"),
+    ] {
+        grant_to(&stack, &alice, major, minor).await;
+    }
+    let session = session_of(&stack, "alice").await;
+    let get = |path: &str, session: &str| {
+        let request = stack.get(path).header("cookie", cookie(session));
+        async move {
+            let response = request.send().await.expect("answered");
+            let status = response.status();
+            (status, response.text().await.expect("a page"))
+        }
+    };
+    let seeds = || {
+        sqlx_count(
+            &stack.test_db,
+            "SELECT count(*) FROM service.saved_filter_seeds",
+        )
+    };
+    let badge = |href: &str, title: &str, name: &str| {
+        format!(r#"<a class="badge" href="{href}" title="{title}">{name}</a>"#)
+    };
+    let screens: [(&str, FilterScreen, Vec<String>); 8] = [
+        (
+            "/svs/runs",
+            FilterScreen::SvsRuns,
+            vec![
+                badge(
+                    "/svs/runs?f=needs_attention%3Atrue",
+                    "Runs that ended and wait for review, failed, or changed since they were reviewed",
+                    "Needs attention",
+                ),
+                badge(
+                    "/svs/runs?f=state%3Astarted",
+                    "Runs in flight: their observation window is open",
+                    "Started",
+                ),
+            ],
+        ),
+        (
+            "/svs/tests",
+            FilterScreen::SvsTests,
+            vec![badge(
+                "/svs/tests?f=removed%3Afalse",
+                "Tests still in their repository",
+                "In the catalog",
+            )],
+        ),
+        (
+            "/svs/coverage",
+            FilterScreen::SvsCoverage,
+            vec![
+                badge(
+                    "/svs/coverage?f=platform%3Awindows%2Clinux%2Cmacos&#38;f=retired%3Afalse",
+                    "Techniques on windows, linux and macos",
+                    "Endpoint platforms",
+                ),
+                badge(
+                    "/svs/coverage?f=platform%3Awindows%2Clinux%2Cmacos&#38;f=state%3Afailing%2Cstale%2Cuntested%2Cnone&#38;f=retired%3Afalse",
+                    "Techniques on the endpoint platforms that are failing, stale, untested or not covered at all",
+                    "Gaps and failures",
+                ),
+                badge(
+                    "/svs/coverage?f=retired%3Afalse",
+                    "Techniques on every platform",
+                    "All",
+                ),
+            ],
+        ),
+        (
+            "/svs/worklist",
+            FilterScreen::SvsWorklist,
+            vec![
+                badge(
+                    "/svs/worklist?f=status%3Aopen",
+                    "Tags no test confirms that nobody has resolved",
+                    "Needs decision",
+                ),
+                badge(
+                    "/svs/worklist?f=status%3Aremove_pending",
+                    "Tags resolved remove that the signature still has",
+                    "Remove pending",
+                ),
+                badge(
+                    "/svs/worklist?f=status%3Aundeclared",
+                    "Techniques signatures are measured on that none of their tags names",
+                    "Undeclared",
+                ),
+            ],
+        ),
+        (
+            "/signatures/samples",
+            FilterScreen::SvsSamples,
+            vec![
+                badge(
+                    "/signatures/samples?f=label%3Aconflicted",
+                    "Samples whose votes disagree; excluded from validation until relabeled",
+                    "Conflicted",
+                ),
+                badge(
+                    "/signatures/samples?f=missing_data%3Atrue",
+                    "Samples with a capture that lacks its file or its match record",
+                    "Missing data",
+                ),
+            ],
+        ),
+        (
+            "/signatures/validations",
+            FilterScreen::SvsValidations,
+            vec![
+                badge(
+                    "/signatures/validations?f=has_regressions%3Atrue",
+                    "Validations whose head no longer matches samples labeled TP",
+                    "Has regressions",
+                ),
+                badge(
+                    "/signatures/validations?f=state%3Afailed",
+                    "Validations that could not run",
+                    "Failed",
+                ),
+            ],
+        ),
+        (
+            "/remediations",
+            FilterScreen::Remediations,
+            vec![
+                badge(
+                    "/remediations?f=status%3ANEW%2CIN_PROGRESS",
+                    "Remediations queued or waiting to be tried again",
+                    "Not completed",
+                ),
+                badge(
+                    "/remediations?f=result%3AERROR%2CFAILED",
+                    "Remediations whose latest attempt failed",
+                    "Failed",
+                ),
+            ],
+        ),
+        (
+            "/file-collections",
+            FilterScreen::FileCollections,
+            vec![
+                badge(
+                    "/file-collections?f=status%3ANEW%2CIN_PROGRESS",
+                    "Requests queued or waiting to be tried again",
+                    "Not completed",
+                ),
+                badge(
+                    "/file-collections?f=result%3AERROR%2CFAILED",
+                    "Requests whose latest attempt failed",
+                    "Failed",
+                ),
+            ],
+        ),
+    ];
+    assert_eq!(seeds().await, 0);
+    for (at, (path, _, badges)) in screens.iter().enumerate() {
+        let (status, page) = get(path, &session).await;
+        assert_eq!(status, StatusCode::OK, "{path}: {page}");
+        let line = page
+            .split(r#"<p class="quick-filters">"#)
+            .nth(1)
+            .and_then(|rest| rest.split("</p>").next())
+            .unwrap_or_else(|| panic!("{path} has no quick filters: {page}"));
+        assert_eq!(
+            line.trim(),
+            format!(
+                r#"<span class="label">Quick filters</span> {}"#,
+                badges.join(" ")
+            ),
+            "{path}"
+        );
+        assert_eq!(
+            seeds().await,
+            i64::try_from(at).expect("small") + 1,
+            "{path}"
+        );
+        assert!(inline_free(&page), "{path}");
+        // each link opens the screen: the screen's own list takes its filters
+        for badge in badges {
+            let href = badge
+                .split("href=\"")
+                .nth(1)
+                .and_then(|rest| rest.split('"').next())
+                .expect("a link")
+                .replace("&#38;", "&");
+            let (status, opened) = get(&href, &session).await;
+            assert_eq!(status, StatusCode::OK, "{href}: {opened}");
+        }
+    }
+    // once: drawing each again seeds nothing more and shows the same
+    let audit = stack.audit_count().await;
+    for (path, _, badges) in &screens {
+        let (_, page) = get(path, &session).await;
+        assert!(page.contains(&badges[0]), "{path}");
+    }
+    assert_eq!(seeds().await, 8);
+    assert_eq!(
+        stack.audit_count().await,
+        audit,
+        "a page drawn again writes nothing"
+    );
+
+    // a deleted default stays deleted, and the person's own pinned filter is there, as text
+    let runs = stack
+        .service
+        .saved_filters(&alice, FilterScreen::SvsRuns)
+        .await
+        .expect("lists");
+    stack
+        .service
+        .delete_saved_filter(&alice, runs[0].id)
+        .await
+        .expect("deletes");
+    stack
+        .service
+        .create_saved_filter(
+            &alice,
+            FilterScreen::SvsRuns,
+            &NewSavedFilter {
+                name: HOSTILE.to_owned(),
+                description: Some(HOSTILE.to_owned()),
+                filters: vec![FilterEntry::text("Launcher", false, &[HOSTILE])],
+                quick_filter: true,
+                quick_filter_indicator: false,
+            },
+        )
+        .await
+        .expect("saves");
+    let (_, page) = get("/svs/runs", &session).await;
+    let line = page
+        .split(r#"<p class="quick-filters">"#)
+        .nth(1)
+        .and_then(|rest| rest.split("</p>").next())
+        .expect("quick filters");
+    assert!(
+        !line.contains(">Needs attention</a>")
+            && line.contains(">Started</a>")
+            && line.contains(&format!(
+                r#"title="{HOSTILE_ESCAPED}">{HOSTILE_ESCAPED}</a>"#
+            )),
+        "{line}"
+    );
+    assert!(
+        !page.contains("<script>alert") && inline_free(&page.replace(HOSTILE_ESCAPED, "")),
+        "{page}"
+    );
+
+    // someone who can't open a screen is refused it and given nothing
+    user(&stack, "bob").await;
+    let bobs = session_of(&stack, "bob").await;
+    for (path, _, _) in &screens {
+        let (status, _) = get(path, &bobs).await;
+        assert_eq!(status, StatusCode::FORBIDDEN, "{path}");
+    }
+    assert_eq!(seeds().await, 8, "alice's eight");
+    let _ = db;
 }

@@ -17,6 +17,18 @@
       </select>
       <button type="submit">Set Disposition</button>
       <button type="submit" formaction="/events/add" formmethod="get">Add to Event</button>
+      {%- if view.can_own %}
+      {#- ace3's Take Ownership and Assign Ownership of the ticked alerts (PLAN.md 7.17) -#}
+      <button type="submit" formaction="/alerts/owner" name="owner" value="me" title="Make the ticked alerts yours. One another analyst owns is left alone until you confirm taking it.">Take Ownership</button>
+      <label for="bulk-assignee">Assign the ticked alerts to</label>
+      <select id="bulk-assignee" name="assignee">
+        <option value="">nobody (unassign)</option>
+        {%- for user in view.owners %}
+        <option value="{{ user.id }}">{{ user.name }}</option>
+        {%- endfor %}
+      </select>
+      <button type="submit" formaction="/alerts/owner" name="owner" value="assign">Assign</button>
+      {%- endif %}
     </form>
     <span class="exports">Export: <a href="{{ view.export_csv }}">CSV</a> <a href="{{ view.export_ndjson }}">NDJSON</a></span>
   </div>

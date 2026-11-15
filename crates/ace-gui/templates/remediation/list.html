@@ -13,6 +13,7 @@
   <p><a href="/remediations/targets">Add Remediation</a></p>
   {%- endif %}
   {%- let action = "/remediations" %}
+  {%- include "quick_filters.html" %}
   {%- include "remediation/filters.html" %}
   <table class="keys">
     <thead><tr><th>ID</th><th>Remediator</th><th>Type</th><th>Value</th><th>Action</th><th>Status</th><th>Result</th><th>Analyst</th><th>Created (UTC)</th><th>Updated (UTC)</th><th></th></tr></thead>

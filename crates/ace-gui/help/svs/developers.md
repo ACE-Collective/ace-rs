@@ -1039,11 +1039,10 @@ timers run is the overlay's `scheduler:` section.
   was closed when the pass ended, so no hooks task was queued. A later pass over the alert judges it.
 - **Windows fall back to the floor until a hunter has recorded its hunts.** The registration says so in
   `warnings`, but a run registered then keeps its short window.
-- **No saved filters on the SVS screens.** The filter screens are registered, and share links work, but
-  the saved filters of the alert list cover no SVS screen yet.
-- **Nobody can take an alert yet.** The owner column and the checks exist: a router does not move an
-  owned alert and SVS does not close one. Taking and assigning ownership of an alert in the GUI and the
-  API is `PLAN.md` step 7.17.
+- **Saved filters on the SVS screens are read-only in the GUI.** Each screen seeds ace3's default quick
+  filters the first time a person opens it and shows the person's pinned filters as links. Saving,
+  renaming, pinning and deleting one is `/api/filters/v1/saved`; the GUI's Manage page is the alert
+  list's.
 - **The test queue is a constant.** `SVS_QUEUE` is `svs`; it is not a setting, because the marker router
   joins the binary before the overlay is read.
 - **Rule and hunt lag.** As described under *Coverage and the worklist*, coverage sees a rule repository

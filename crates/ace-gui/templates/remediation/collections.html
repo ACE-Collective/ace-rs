@@ -13,6 +13,7 @@
   <p><a href="/file-collections/new">Request File Collection</a></p>
   {%- endif %}
   {%- let action = "/file-collections" %}
+  {%- include "quick_filters.html" %}
   {%- include "remediation/filters.html" %}
   <table class="keys">
     <thead><tr><th>ID</th><th>Collector</th><th>Type</th><th>Value</th><th>Status</th><th>Result</th><th>Tries</th><th>Alerts</th><th>File</th><th>Created (UTC)</th><th></th></tr></thead>

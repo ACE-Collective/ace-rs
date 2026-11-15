@@ -84,6 +84,7 @@
     <button type="submit">Show</button>
     <a href="{{ view.validation.href }}">All</a>
   </form>
+  <p class="muted">Export {% if view.chosen.is_empty() %}every row{% else %}the chosen categories' rows{% endif %} as <a href="{{ view.export_csv }}">CSV</a> or <a href="{{ view.export_ndjson }}">NDJSON</a></p>
   {%- if let Some(download) = view.download %}
   <p><a href="{{ download }}" title="password: infected">Download these rows' files</a></p>
   {%- endif %}

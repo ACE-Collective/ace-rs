@@ -11,6 +11,7 @@
   {%- if let Some(error) = view.error %}
   <p class="error" role="alert">{{ error }}</p>
   {%- endif %}
+  {%- include "quick_filters.html" %}
   <form method="get" action="/svs/coverage" class="detection-filters">
     {%- for field in view.fields %}
     <label for="filter-{{ field.slug }}">{{ field.name }}</label>

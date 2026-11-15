@@ -23,13 +23,20 @@
 //!   manage dialog renames, and its API's `PATCH` takes a name and a description, but the dialog
 //!   `saved_filters.js` draws has no control for it; this is that control.
 //!
-//! The hint under the table has ace3's tip (`manageTipHtml`) for `$USER_QUEUE` (7.13), where ace3 has it;
-//! its `$USER` half waits for the alert list's owner filter, which no step brings yet.
+//! The hint under the table has ace3's tip (`manageTipHtml`), where ace3 has it: `$USER_QUEUE` (7.13) and
+//! `$USER`, which came with the alert list's Owner filter (7.17).
 //!
 //! What's left out: ace3's confirm before a delete, which needs a script. ace3's `saveCurrent`, which
 //! overwrites a saved filter with the editor's rows from the alert list's Edit dialog, belongs to that list
-//! (5.10) and isn't here. Every other screen that draws ace3's dialogs (file collection, remediation, SVS,
-//! signatures' samples and validations) comes with its screen.
+//! (5.10) and isn't here.
+//!
+//! The other screens that draw ace3's quick filters (file collections, remediations, SVS's runs, tests,
+//! coverage and worklist, the signatures' samples and validations) show theirs as links above their filter
+//! form (`quick_filters`, the owner's decision of 2026-11-15): each page seeds ace3's defaults for its
+//! screen the first time a person opens it (`Service::seed_saved_filters`), then lists the person's pinned
+//! filters, each a link to the screen with its filters in `f`. Saving, renaming, pinning and deleting a
+//! filter of those screens is the JSON API's (`/api/filters/v1/saved`), which takes every screen; this
+//! module's pages are the alert list's.
 //!
 //! Each reorder reads the quick filters and writes the whole order, as ace3's dialog does, so a pin made
 //! in another tab between the two is undone by the write; the audit row records both.
@@ -113,6 +120,63 @@ pub struct EditPage {
     pub problem: Option<String>,
     pub max_name: usize,
     pub max_description: usize,
+}
+
+/// One of a screen's quick filters, as its page links it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct QuickLink {
+    pub label: String,
+    /// What it shows, the link's title.
+    pub description: String,
+    pub href: String,
+}
+
+/// The quick filters of `saved` as links to `path`, in their order. One whose filters no longer check for
+/// the screen is left out.
+pub fn quick_links(screen: FilterScreen, saved: &[SavedFilter], path: &str) -> Vec<QuickLink> {
+    saved
+        .iter()
+        .filter(|filter| filter.quick_filter_order.is_some())
+        .filter_map(|filter| {
+            let pairs: Vec<(&str, String)> = filters::encode(screen, &filter.filters)
+                .ok()?
+                .into_iter()
+                .map(|f| ("f", f))
+                .collect();
+            let query = serde_urlencoded::to_string(&pairs).ok()?;
+            Some(QuickLink {
+                label: filter.name.clone(),
+                description: filter.description.clone().unwrap_or_default(),
+                href: if query.is_empty() {
+                    path.to_owned()
+                } else {
+                    format!("{path}?{query}")
+                },
+            })
+        })
+        .collect()
+}
+
+/// A screen's quick filters for its page at `path`: ace3's defaults seeded the first time the viewer opens
+/// the screen, where the page is drawn as in ace3, then the viewer's pinned filters. A failure leaves the
+/// page without them, and is logged.
+pub(crate) async fn quick_filters(
+    gui: &Gui,
+    viewer: &SignedIn,
+    screen: FilterScreen,
+    path: &str,
+) -> Vec<QuickLink> {
+    let actor = &viewer.actor;
+    if let Err(error) = gui.service.seed_saved_filters(actor, screen).await {
+        tracing::warn!(%actor, %screen, "seeding the default saved filters failed, so the page has none of them: {error}");
+    }
+    match gui.service.saved_filters(actor, screen).await {
+        Ok(saved) => quick_links(screen, &saved, path),
+        Err(error) => {
+            tracing::warn!(%actor, %screen, "reading saved filters failed, so the page has none: {error}");
+            Vec::new()
+        }
+    }
 }
 
 /// The alert list with a saved filter's filters, or the bare list when they no longer check, which the

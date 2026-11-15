@@ -19,7 +19,14 @@
 //! `FilterScreen::left_out`. ace3's alert filters also take `$USER` and `$USER_QUEUE`, which stand for the
 //! viewer in a stored filter or a link, resolved when the list is read. `$USER_QUEUE` came with the Queue
 //! filter (PLAN.md 7.13) and is the viewer's default queue, a key's owner's for an API key, and matches
-//! nothing for a key with no owner or one of ACE's components. `$USER` waits for the owner filter.
+//! nothing for a key with no owner or one of ACE's components. `$USER` came with the Owner filter (PLAN.md
+//! 7.17) and is the viewer, under the same rule.
+//!
+//! The Owner filter takes what an owner is called, ace3's `Owner.display_name`, `None` for an alert nobody
+//! owns, and `$USER`. A display name is optional here, where every ace3 user has one, so a value also
+//! matches a username, and a user with no display name is called by their username. `$USER` matches the
+//! viewer by id, where ace3 puts the viewer's display name in its place, so two users with one display
+//! name aren't each other's `$USER`.
 //!
 //! ace3's event list isn't a filter screen, as it has no saved filters or share links: its filters are
 //! `events`, under the same rules (5.11's events area).
@@ -52,6 +59,10 @@ pub const SIGNATURE_FAMILIES: &[&str] = &["yara", "hunt", "observable_modifier",
 /// ace3's `FILTER_SENTINEL_USER_QUEUE`: in a Queue filter, the viewer's own default queue, resolved when the list
 /// is read, so a shared link shows each viewer their own queue.
 pub const USER_QUEUE: &str = "$USER_QUEUE";
+
+/// ace3's `FILTER_SENTINEL_USER`: in an Owner filter, the viewer, resolved when the list is read (PLAN.md
+/// 7.17).
+pub const USER: &str = "$USER";
 
 /// The observable filter's type that matches any type.
 pub const ANY_TYPE: &str = "Any";
@@ -226,6 +237,13 @@ const ALERT_FILTERS: &[FilterSpec] = &[
         "a type, or Any, and a value",
     ),
     spec(
+        "Owner",
+        "owner",
+        FilterKind::Text,
+        &[],
+        "an owner's name, None for nobody, or $USER for you",
+    ),
+    spec(
         "Queue",
         "queue",
         FilterKind::Multi,
@@ -253,11 +271,6 @@ const ALERT_LEFT_OUT: &[LeftOut] = &[
         name: "Alert Type",
         slug: "alert_type",
         why: "a root has no alert type yet: 6.1's collector submits the first, as mailbox",
-    },
-    LeftOut {
-        name: "Owner",
-        slug: "owner",
-        why: "an alert has an owner (7.10 batch 7a) but no filter for it yet, and no step in PLAN.md adds one",
     },
     LeftOut {
         name: "Reviewed",
@@ -1405,6 +1418,14 @@ fn canonical(
             }
             text.clone()
         }
+        // what an owner is called, trimmed as ace3 trims it; None and $USER are values like any other
+        ("owner", _) => {
+            let owner = text.trim();
+            if owner.is_empty() {
+                return Err(invalid(format!("a {name} value can't be empty")));
+            }
+            owner.to_owned()
+        }
         // a queue's name, or the viewer's own queue (PLAN.md 7.13)
         ("queue", _) => {
             if text != USER_QUEUE {
@@ -1793,9 +1814,8 @@ pub fn date_window(
     dates::window(value, now, tz).map_err(invalid)
 }
 
-/// A pair of arrays as two parameters, each None when the filter isn't set.
-/// The user whose default queue `$USER_QUEUE` stands for: the viewer, or an API key's owner. None for a key
-/// with no owner or one of ACE's components, for whom it matches nothing.
+/// The user whose default queue `$USER_QUEUE` stands for, and who `$USER` is: the viewer, or an API key's
+/// owner. None for a key with no owner or one of ACE's components, for whom each matches nothing.
 pub(crate) fn queue_holder(actor: &crate::Actor) -> Option<uuid::Uuid> {
     match actor {
         crate::Actor::User { id, .. } => Some(id.0),
@@ -1804,6 +1824,7 @@ pub(crate) fn queue_holder(actor: &crate::Actor) -> Option<uuid::Uuid> {
     }
 }
 
+/// A pair of arrays as two parameters, each None when the filter isn't set.
 pub(crate) fn split<T>(pair: Option<(Vec<T>, Vec<T>)>) -> (Option<Vec<T>>, Option<Vec<T>>) {
     match pair {
         Some((a, b)) => (Some(a), Some(b)),

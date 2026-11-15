@@ -35,7 +35,7 @@
           {
             "name": "sort",
             "in": "query",
-            "description": "`alert_date`, the default, `description`, `disposition` or `queue`.",
+            "description": "`alert_date`, the default, `description`, `disposition`, `queue` or `owner`.",
             "required": false,
             "schema": {
               "type": "string"
@@ -149,7 +149,7 @@
           {
             "name": "sort",
             "in": "query",
-            "description": "`alert_date`, the default, `description`, `disposition` or `queue`.",
+            "description": "`alert_date`, the default, `description`, `disposition`, `queue` or `owner`.",
             "required": false,
             "schema": {
               "type": "string"
@@ -253,7 +253,7 @@
           {
             "name": "sort",
             "in": "query",
-            "description": "`alert_date`, the default, `description`, `disposition` or `queue`.",
+            "description": "`alert_date`, the default, `description`, `disposition`, `queue` or `owner`.",
             "required": false,
             "schema": {
               "type": "string"
@@ -697,7 +697,7 @@
         "tags": [
           "alerts"
         ],
-        "summary": "Records an analyst's verdict on the alert. Its analysis is cancelled and it moves to the\ndispositioned mode. A later disposition replaces the earlier one and who made it. A root that no\ndetection made an alert can be dispositioned too, as the service allows. The disposition is one of\nthe site's, and one only ACE sets is refused, as is a change to an alert that has one.",
+        "summary": "Records an analyst's verdict on the alert. Its analysis is cancelled and it moves to the\ndispositioned mode. A later disposition replaces the earlier one and who made it. A root that no\ndetection made an alert can be dispositioned too, as the service allows. The disposition is one of\nthe site's, and one only ACE sets is refused, as is a change to an alert that has one. The caller, a\nuser or a key of one, becomes the owner of an alert nobody owns. An alert another analyst owns is left\nalone, unless `take_from` names that analyst or their account is disabled, and is then the caller's.",
         "operationId": "disposition",
         "parameters": [
           {
@@ -773,7 +773,7 @@
             }
           },
           "409": {
-            "description": "The alert's disposition is one only ACE sets, which an analyst can't change",
+            "description": "The alert's disposition is one only ACE sets, which an analyst can't change, or another analyst owns the alert and `take_from` doesn't name them",
             "content": {
               "application/json": {
                 "schema": {
@@ -1690,6 +1690,77 @@
           },
           "403": {
             "description": "The actor doesn't hold alert:read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/alerts/v1/owner": {
+      "put": {
+        "tags": [
+          "alerts"
+        ],
+        "summary": "Sets the owner of the alerts: the caller takes them when `owner` is their own id, assigns them to\nsomeone else otherwise, and unassigns them when it's null. An alert another analyst owns is left alone\nunless `take_owned` confirms taking it from them; one whose owner's account is disabled changes hands\nwith no confirmation. The caller is a user, or an API key that belongs to one. Each alert that changes\nhas an audit row.",
+        "operationId": "owner",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OwnerRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The alerts that changed and those left alone",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OwnerChangeBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "No alerts or more than 500, a new owner who doesn't exist or is disabled, a caller that isn't a user, or a body that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold alert:write, or a session's request came from another site",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The body is too large",
             "content": {
               "application/json": {
                 "schema": {
@@ -4338,7 +4409,7 @@
             }
           },
           "403": {
-            "description": "The actor doesn't hold alert:read, or isn't a person",
+            "description": "The actor doesn't hold the permission of the filter's screen (alert:read for a filter that isn't theirs), or isn't a person",
             "content": {
               "application/json": {
                 "schema": {
@@ -4402,7 +4473,7 @@
             }
           },
           "403": {
-            "description": "The actor doesn't hold alert:read, isn't the filter's owner, or a session's request came from another site",
+            "description": "The actor doesn't hold the permission of the filter's screen (alert:read for a filter that isn't theirs), isn't the filter's owner, or a session's request came from another site",
             "content": {
               "application/json": {
                 "schema": {
@@ -4483,7 +4554,7 @@
             }
           },
           "403": {
-            "description": "The actor doesn't hold alert:read, isn't the filter's owner, or a session's request came from another site",
+            "description": "The actor doesn't hold the permission of the filter's screen (alert:read for a filter that isn't theirs), isn't the filter's owner, or a session's request came from another site",
             "content": {
               "application/json": {
                 "schema": {
@@ -19619,6 +19690,29 @@
             "type": "string",
             "format": "uuid"
           },
+          "owned_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "When they took it."
+          },
+          "owner": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "The analyst who took it; null when nobody owns it. What a confirmation to take it names."
+          },
+          "owner_name": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "What the owner is called: their display name, or their username. Show it as text."
+          },
           "queue": {
             "type": "string",
             "description": "The queue it's in. Show it as text."
@@ -21818,6 +21912,14 @@
           "disposition": {
             "type": "string",
             "description": "One of the site's dispositions, such as `FALSE_POSITIVE`. The set is the site overlay's\n`dispositions` over ace3's, so it's a string here, not an enum; `GET /api/filters/v1/screens/alerts`\nlists it as the `Disposition` filter's options. An analyst's must be one an analyst may choose."
+          },
+          "take_from": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "The analyst the caller agrees to take the alert from: its `owner`, as the caller last read it. An\nalert another analyst owns is changed only with it, and the caller then owns the alert."
           }
         },
         "additionalProperties": false
@@ -24275,6 +24377,80 @@
         },
         "additionalProperties": false
       },
+      "OwnerChangeBody": {
+        "type": "object",
+        "description": "What a change of owner did.",
+        "required": [
+          "applied",
+          "skipped"
+        ],
+        "properties": {
+          "applied": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "The alerts that now have the owner asked for, in the order asked for."
+          },
+          "message": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "What to tell a person when alerts were skipped, such as `took ownership of 1 alerts; left 1 alert\nowned by Jane alone`; null otherwise."
+          },
+          "skipped": {
+            "type": "object",
+            "description": "The alerts left alone, each with the analyst who owns it.",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/SkippedOwnerBody"
+            },
+            "propertyNames": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        }
+      },
+      "OwnerRequest": {
+        "type": "object",
+        "required": [
+          "alerts",
+          "owner"
+        ],
+        "properties": {
+          "alerts": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "The alerts, 1 to 500. One that names no alert is left out of the answer."
+          },
+          "owner": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "The user who gets the alerts: the caller's own id takes them, another user's assigns them, and\nnull unassigns them. It has to be there."
+          },
+          "take_owned": {
+            "type": "object",
+            "description": "Per alert, the analyst the caller agrees to take it from: its `owner`, as the caller last read it.\nAn alert another analyst owns is changed only when it's named here with that analyst; otherwise it's\nleft alone and listed in `skipped`.",
+            "additionalProperties": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "propertyNames": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
       "PairBody": {
         "type": "object",
         "required": [
@@ -24471,7 +24647,7 @@
           },
           "value": {
             "type": "object",
-            "description": "Its value, in the shape its key has. `theme`'s is `{\"mode\": \"system\" | \"light\" | \"dark\" | \"jd\" |\n\"halloween\"}`. `alert_sections`' is `{\"sections\": {\"<section id>\": true | false}}`, whether each\nsection of the alert page starts open, with at most 100 ids of 1 to 64 of `a-z`, `0-9` and `_`.\n`manage_columns`' is `{\"order\": [...], \"hidden\": [...]}`, the alert list's column ids (`date`,\n`description`, `disposition`, `status`) in the order they show and those hidden, normalized: an\nunknown id dropped, a missing one appended, and `description` never hidden."
+            "description": "Its value, in the shape its key has. `theme`'s is `{\"mode\": \"system\" | \"light\" | \"dark\" | \"jd\" |\n\"halloween\"}`. `alert_sections`' is `{\"sections\": {\"<section id>\": true | false}}`, whether each\nsection of the alert page starts open, with at most 100 ids of 1 to 64 of `a-z`, `0-9` and `_`.\n`manage_columns`' is `{\"order\": [...], \"hidden\": [...]}`, the alert list's column ids (`date`,\n`description`, `queue`, `owner`, `disposition`, `status`) in the order they show and those hidden, normalized: an\nunknown id dropped, a missing one appended, and `description` never hidden."
           }
         }
       },
@@ -27965,6 +28141,25 @@
           },
           "reason": {
             "type": "string"
+          }
+        }
+      },
+      "SkippedOwnerBody": {
+        "type": "object",
+        "description": "The analyst an alert was left with.",
+        "required": [
+          "owner",
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "What they're called. Show it as text."
+          },
+          "owner": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Their id, which `take_owned` names to take the alert from them."
           }
         }
       },

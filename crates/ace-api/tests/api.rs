@@ -456,6 +456,7 @@ const GRAPH: &str = "/api/alerts/v1/alerts/{id}/graph";
 const FILE: &str = "/api/alerts/v1/alerts/{id}/observables/{observable}/file";
 const DISPOSITION: &str = "/api/alerts/v1/alerts/{id}/disposition";
 const DISPOSITIONS: &str = "/api/alerts/v1/dispositions";
+const OWNER: &str = "/api/alerts/v1/owner";
 const SUBMIT: &str = "/api/analysis/v1/submit";
 const LOOKUP: &str = "/api/observables/v1/lookup";
 const TYPES: &str = "/api/observables/v1/types";
@@ -721,6 +722,7 @@ fn scope_body(name: &str, scope: &[(&str, &str)]) -> Value {
 fn good_body(route: &str) -> Send {
     match route {
         DISPOSITION => Send::Json(json!({"disposition": "FALSE_POSITIVE"})),
+        OWNER => Send::Json(json!({"alerts": [Uuid::nil()], "owner": null})),
         VERDICT => Send::Json(json!({"verdict": "fp"})),
         SUBMIT => Send::Form(form(&json!({"description": "x"}), &[])),
         LOOKUP => Send::Json(json!({"observables": [{"type": "fqdn", "value": "a.example"}]})),
@@ -809,7 +811,7 @@ async fn refuses_without_a_credential_or_a_permission(
         .map(|(method, route, _)| (method, route))
         .filter(|route| !public.contains(route))
         .collect();
-    assert_eq!(routes.len(), 231, "{routes:?}");
+    assert_eq!(routes.len(), 232, "{routes:?}");
     for (method, route) in routes {
         let method: Method = method.to_uppercase().parse().expect("a method");
         let path = fill(&route, id, file);
@@ -2203,6 +2205,406 @@ async fn dispositions(client: &mut Client<'_>, token: &str) {
             Some(token),
             Send::Bytes(big.into_bytes()),
             StatusCode::PAYLOAD_TOO_LARGE,
+        )
+        .await;
+}
+
+async fn set_owner(stack: &Stack, alert: Uuid, user: Uuid) {
+    sqlx::query("UPDATE analysis.roots SET owner_id = $2, owned_at = now() WHERE id = $1")
+        .bind(alert)
+        .bind(user)
+        .execute(stack.test_db.db().pool())
+        .await
+        .expect("sets the owner");
+}
+
+async fn owner_of(stack: &Stack, alert: Uuid) -> Option<Uuid> {
+    sqlx::query_scalar("SELECT owner_id FROM analysis.roots WHERE id = $1")
+        .bind(alert)
+        .fetch_one(stack.test_db.db().pool())
+        .await
+        .expect("reads")
+}
+
+/// `PUT /api/alerts/v1/owner` (PLAN.md 7.17): ace3's `tests/aceapi_v2/alerts/test_owner.py`, its eleven
+/// cases, and `test_meta.py`'s two about the owner.
+///
+/// `test_requires_auth` and `test_requires_alert_write`: the sweep, and the reader below.
+/// `test_rejects_an_incomplete_request` (two): the bad bodies. `test_take`,
+/// `test_take_leaves_an_alert_another_analyst_owns_alone`, `test_take_a_confirmed_alert`,
+/// `test_a_confirmation_for_another_owner_changes_nothing`, `test_assign`, `test_unassign`,
+/// `test_the_new_owner_must_be_an_enabled_user` and
+/// `test_a_key_that_is_not_a_user_cannot_change_owners` are each a block here, in that order.
+/// `test_unowned_alert` and `test_owned_alert` read the owner from the alert itself. The disposition's
+/// `take_from` is ace3's GUI form field, `test_set_disposition_leaves_alert_owned_by_another_alone` and
+/// `test_set_disposition_takes_confirmed_alert`, through the API.
+async fn owners(client: &mut Client<'_>) {
+    use Method as M;
+    use StatusCode as S;
+    let json = Send::Json;
+    let stack = client.stack;
+    let grants = ["alert:read", "alert:write"];
+    let (me, mine) = session_of(stack, "owner-caller", &grants).await;
+    let (jane, _) = session_of(stack, "jane_owner", &grants).await;
+    let (raj, _) = session_of(stack, "raj_assignee", &grants).await;
+    for (user, display) in [(jane, "Jane"), (raj, "Raj")] {
+        sqlx::query("UPDATE service.users SET display_name = $2 WHERE id = $1")
+            .bind(user)
+            .bind(display)
+            .execute(stack.test_db.db().pool())
+            .await
+            .expect("names them");
+    }
+    let t = Some(mine.as_str());
+    let new = async |title: &str| alert(stack, title, &[]).await;
+    async fn one_of(client: &mut Client<'_>, id: Uuid, token: Option<&str>) -> Value {
+        client
+            .json(
+                Method::GET,
+                ONE,
+                &fill(ONE, id, 0),
+                token,
+                Send::Nothing,
+                StatusCode::OK,
+            )
+            .await["alert"]
+            .clone()
+    }
+
+    // nobody owns a new alert
+    let (first, second) = (new("owner one").await, new("owner two").await);
+    let unowned = one_of(client, first, t).await;
+    assert_eq!(
+        (
+            &unowned["owner"],
+            &unowned["owner_name"],
+            &unowned["owned_at"]
+        ),
+        (&Value::Null, &Value::Null, &Value::Null)
+    );
+
+    // take: each alert is the caller's, with an audit row
+    let rows = audit_count(stack).await;
+    let taken = client
+        .json(
+            M::PUT,
+            OWNER,
+            OWNER,
+            t,
+            json(json!({"alerts": [first, second], "owner": me})),
+            S::OK,
+        )
+        .await;
+    assert_eq!(
+        taken,
+        json!({"applied": [first, second], "skipped": {}, "message": null})
+    );
+    for alert in [first, second] {
+        assert_eq!(owner_of(stack, alert).await, Some(me));
+    }
+    assert_eq!(audit_count(stack).await, rows + 2);
+    let owned = one_of(client, first, t).await;
+    assert_eq!(owned["owner"], json!(me));
+    // no display name: the username
+    assert_eq!(owned["owner_name"], "owner-caller");
+    assert!(owned["owned_at"].is_string(), "{owned}");
+    // the list filters and sorts by it, $USER being the caller
+    let listed = client
+        .json(
+            M::GET,
+            LIST,
+            &format!("{LIST}?f=owner:$USER&sort=owner&dir=asc"),
+            t,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    let mut ids: Vec<&str> = listed["alerts"]
+        .as_array()
+        .expect("alerts")
+        .iter()
+        .map(|alert| alert["id"].as_str().expect("an id"))
+        .collect();
+    ids.sort_unstable();
+    let mut expected = [first.to_string(), second.to_string()];
+    expected.sort_unstable();
+    assert_eq!(ids, expected);
+
+    // take leaves an alert another analyst owns alone
+    let (theirs, free) = (new("jane's").await, new("free").await);
+    set_owner(stack, theirs, jane).await;
+    let left = client
+        .json(
+            M::PUT,
+            OWNER,
+            OWNER,
+            t,
+            json(json!({"alerts": [theirs, free], "owner": me})),
+            S::OK,
+        )
+        .await;
+    assert_eq!(
+        left,
+        json!({
+            "applied": [free],
+            "skipped": {(theirs.to_string()): {"owner": jane, "name": "Jane"}},
+            "message": "took ownership of 1 alerts; left 1 alert owned by Jane alone",
+        })
+    );
+    assert_eq!(owner_of(stack, theirs).await, Some(jane));
+    assert_eq!(owner_of(stack, free).await, Some(me));
+
+    // a confirmation for another owner changes nothing: it names who had the alert when the caller
+    // looked, and someone else has it now
+    let stale = client
+        .json(
+            M::PUT,
+            OWNER,
+            OWNER,
+            t,
+            json(json!({"alerts": [theirs], "owner": me,
+                        "take_owned": {(theirs.to_string()): raj}})),
+            S::OK,
+        )
+        .await;
+    assert_eq!(stale["applied"], json!([]));
+    assert_eq!(stale["skipped"][theirs.to_string()]["name"], "Jane");
+    assert_eq!(owner_of(stack, theirs).await, Some(jane));
+
+    // take a confirmed alert
+    let confirmed = client
+        .json(
+            M::PUT,
+            OWNER,
+            OWNER,
+            t,
+            json(json!({"alerts": [theirs], "owner": me,
+                        "take_owned": {(theirs.to_string()): jane}})),
+            S::OK,
+        )
+        .await;
+    assert_eq!(
+        confirmed,
+        json!({"applied": [theirs], "skipped": {}, "message": null})
+    );
+    assert_eq!(owner_of(stack, theirs).await, Some(me));
+
+    // assign: the new owner's own alert needs no confirmation, and a third analyst's is left alone
+    let (nobodys, already_rajs, janes) = (
+        new("nobody's").await,
+        new("already raj's").await,
+        new("jane's again").await,
+    );
+    set_owner(stack, already_rajs, raj).await;
+    set_owner(stack, janes, jane).await;
+    let assigned = client
+        .json(
+            M::PUT,
+            OWNER,
+            OWNER,
+            t,
+            json(json!({"alerts": [nobodys, already_rajs, janes], "owner": raj})),
+            S::OK,
+        )
+        .await;
+    assert_eq!(
+        assigned,
+        json!({
+            "applied": [nobodys, already_rajs],
+            "skipped": {(janes.to_string()): {"owner": jane, "name": "Jane"}},
+            "message": "assigned 2 alerts to Raj; left 1 alert owned by Jane alone",
+        })
+    );
+    assert_eq!(owner_of(stack, nobodys).await, Some(raj));
+    assert_eq!(owner_of(stack, janes).await, Some(jane));
+
+    // unassign
+    let unassigned = client
+        .json(
+            M::PUT,
+            OWNER,
+            OWNER,
+            t,
+            json(json!({"alerts": [first, janes], "owner": null})),
+            S::OK,
+        )
+        .await;
+    assert_eq!(
+        unassigned,
+        json!({
+            "applied": [first],
+            "skipped": {(janes.to_string()): {"owner": jane, "name": "Jane"}},
+            "message": "unassigned 1 alerts; left 1 alert owned by Jane alone",
+        })
+    );
+    assert_eq!(owner_of(stack, first).await, None);
+    assert_eq!(one_of(client, first, t).await["owned_at"], Value::Null);
+
+    // an incomplete request: no alerts, and no owner, which must not quietly unassign
+    let blank = new("blank").await;
+    let service_key = key(stack, &["alert:write"]).await;
+    let (reader_id, readers) = session_of(stack, "owner-reader", &["alert:read"]).await;
+    let rows = audit_count(stack).await;
+    for bad in [
+        json!({"alerts": [], "owner": null}),
+        json!({"alerts": [second]}),
+        json!({"alerts": [second], "owner": "me"}),
+        json!({"alerts": ["x"], "owner": null}),
+        json!({"alerts": [second], "owner": null, "take_owned": {"x": me}}),
+        json!({"alerts": [second], "owner": null, "force": true}),
+        json!({"owner": null}),
+        json!([]),
+        // the new owner must be an enabled user
+        json!({"alerts": [blank], "owner": Uuid::new_v4()}),
+    ] {
+        let refused = client
+            .json(M::PUT, OWNER, OWNER, t, json(bad.clone()), S::BAD_REQUEST)
+            .await;
+        assert!(refused["error"].is_string(), "{bad}: {refused}");
+    }
+    client
+        .json(
+            M::PUT,
+            OWNER,
+            OWNER,
+            t,
+            Send::Bytes(b"{".to_vec()),
+            S::BAD_REQUEST,
+        )
+        .await;
+    sqlx::query("UPDATE service.users SET enabled = false WHERE id = $1")
+        .bind(raj)
+        .execute(stack.test_db.db().pool())
+        .await
+        .expect("disables");
+    let disabled = client
+        .json(
+            M::PUT,
+            OWNER,
+            OWNER,
+            t,
+            json(json!({"alerts": [blank], "owner": raj})),
+            S::BAD_REQUEST,
+        )
+        .await;
+    assert_eq!(
+        disabled["error"],
+        format!("user {raj} does not exist or is disabled")
+    );
+    assert_eq!(owner_of(stack, blank).await, None);
+    assert_eq!(owner_of(stack, second).await, Some(me));
+
+    // a key that isn't a user can't change owners
+    let refused = client
+        .json(
+            M::PUT,
+            OWNER,
+            OWNER,
+            Some(&service_key),
+            json(json!({"alerts": [blank], "owner": null})),
+            S::BAD_REQUEST,
+        )
+        .await;
+    assert_eq!(
+        refused["error"],
+        "changing an alert's owner needs a caller that is a user"
+    );
+    // it needs alert:write
+    let refused = client
+        .json(
+            M::PUT,
+            OWNER,
+            OWNER,
+            Some(&readers),
+            json(json!({"alerts": [blank], "owner": reader_id})),
+            S::FORBIDDEN,
+        )
+        .await;
+    assert_eq!(refused["error"], "this needs alert:write");
+    assert_eq!(owner_of(stack, blank).await, None);
+    assert_eq!(audit_count(stack).await, rows, "none of those wrote a row");
+    client
+        .json(M::PUT, OWNER, OWNER, t, too_large(), S::PAYLOAD_TOO_LARGE)
+        .await;
+    // another site's page can't take alerts with the analyst's cookie
+    let cross = stack
+        .http
+        .put(format!("{}{OWNER}", stack.url))
+        .header("cookie", format!("ace4_session={mine}"))
+        .header("origin", "https://evil.example")
+        .json(&json!({"alerts": [blank], "owner": me}))
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(cross.status(), 403);
+    assert_eq!(owner_of(stack, blank).await, None);
+
+    // a disposition leaves an alert another analyst owns alone, and takes it when confirmed
+    let refused = client
+        .json(
+            M::PUT,
+            DISPOSITION,
+            &fill(DISPOSITION, janes, 0),
+            t,
+            json(json!({"disposition": "FALSE_POSITIVE"})),
+            S::CONFLICT,
+        )
+        .await;
+    assert_eq!(
+        refused["error"],
+        format!(
+            "alert {janes} is owned by Jane, so it was left alone: confirm taking it from them to \
+             change it"
+        )
+    );
+    assert_eq!(one_of(client, janes, t).await["disposition"], Value::Null);
+    for stale in [json!(raj), json!(me)] {
+        client
+            .json(
+                M::PUT,
+                DISPOSITION,
+                &fill(DISPOSITION, janes, 0),
+                t,
+                json(json!({"disposition": "FALSE_POSITIVE", "take_from": stale})),
+                S::CONFLICT,
+            )
+            .await;
+    }
+    client
+        .json(
+            M::PUT,
+            DISPOSITION,
+            &fill(DISPOSITION, janes, 0),
+            t,
+            json(json!({"disposition": "FALSE_POSITIVE", "take_from": jane})),
+            S::OK,
+        )
+        .await;
+    let taken = one_of(client, janes, t).await;
+    assert_eq!(
+        (&taken["disposition"], &taken["owner"]),
+        (&json!("FALSE_POSITIVE"), &json!(me))
+    );
+    // and makes the analyst the owner of one nobody owned
+    client
+        .json(
+            M::PUT,
+            DISPOSITION,
+            &fill(DISPOSITION, blank, 0),
+            t,
+            json(json!({"disposition": "IGNORE"})),
+            S::OK,
+        )
+        .await;
+    assert_eq!(owner_of(stack, blank).await, Some(me));
+    client
+        .json(
+            M::PUT,
+            DISPOSITION,
+            &fill(DISPOSITION, blank, 0),
+            t,
+            json(json!({"disposition": "IGNORE", "take_from": "x"})),
+            S::BAD_REQUEST,
         )
         .await;
 }
@@ -4349,7 +4751,7 @@ async fn preferences(client: &mut Client<'_>) {
             {"key": "alert_sections", "value": {"sections": {}}, "updated_at": null, "is_default": true},
             {
                 "key": "manage_columns",
-                "value": {"order": ["date", "description", "queue", "disposition", "status"], "hidden": []},
+                "value": {"order": ["date", "description", "queue", "owner", "disposition", "status"], "hidden": []},
                 "updated_at": null,
                 "is_default": true,
             },
@@ -4554,6 +4956,7 @@ async fn every_documented_status_is_tested() {
     verdicts(&mut client, &token).await;
     downloads(&mut client, &token, id, file, &bytes).await;
     dispositions(&mut client, &token).await;
+    owners(&mut client).await;
     looks_up(&mut client, &token, id, &bytes).await;
     lists_types(&mut client, &token).await;
     let admin = key(&stack, &["user:read", "user:write"]).await;
@@ -4908,7 +5311,7 @@ async fn filters_and_exports(client: &mut Client<'_>, token: &str) {
         .json(
             Method::GET,
             LIST,
-            &format!("{LIST}?sort=owner"),
+            &format!("{LIST}?sort=status"),
             Some(token),
             Send::Nothing,
             StatusCode::BAD_REQUEST,
@@ -4916,15 +5319,17 @@ async fn filters_and_exports(client: &mut Client<'_>, token: &str) {
         .await;
     assert_eq!(
         unknown["error"],
-        "sort is alert_date, description, disposition or queue, not \"owner\""
+        "sort is alert_date, description, disposition, queue or owner, not \"status\""
     );
     for bad in [
         "?f=nope:x",
-        "?f=owner:alice",
+        // ace3's Reviewed filter isn't here yet; its Owner filter came with 7.17
+        "?f=reviewed:CORRECT",
+        "?f=owner:%20",
         "?f=queue:%20",
         "?f=tag:a,,b",
         "?f=",
-        "?sort=owner",
+        "?sort=status",
         "?dir=up",
         "?tz=Mars/Base",
         "?limit=1&limit=2",
@@ -4952,18 +5357,19 @@ async fn filters_and_exports(client: &mut Client<'_>, token: &str) {
     let lines: Vec<&str> = csv.split("\r\n").collect();
     assert_eq!(lines.len(), 4, "a header, two rows and the end: {csv:?}");
     assert!(lines[0].starts_with("id,title,analysis_mode,"), "{csv}");
-    // the queue, then what SVS and the core say of the alert (PLAN.md 7.10 batch 7b): nothing, here
+    // the queue, then what SVS and the core say of the alert (PLAN.md 7.10 batch 7b), then who owns it
+    // and since when (7.17): nothing, here
     assert!(
-        lines[0].ends_with(",analysis,queue,tags,svs_status,svs_runs"),
+        lines[0].ends_with(",analysis,queue,tags,svs_status,svs_runs,owner,owned_at"),
         "{csv}"
     );
     // a queue that starts a formula is guarded as a title is
     assert!(
-        lines[2].ends_with(",'=cmd|' /C calc'!A0,,,")
-            || lines[2].ends_with(r#","'=cmd|' /C calc'!A0",,,"#),
+        lines[2].ends_with(",'=cmd|' /C calc'!A0,,,,,")
+            || lines[2].ends_with(r#","'=cmd|' /C calc'!A0",,,,,"#),
         "{csv}"
     );
-    assert!(lines[1].ends_with(",night.shift 2,,,"), "{csv}");
+    assert!(lines[1].ends_with(",night.shift 2,,,,,"), "{csv}");
     assert!(
         lines[1].contains(r#","'+plain, ""quoted""","#)
             || lines[1].contains(r#""'+plain, ""quoted""""#),
@@ -5189,7 +5595,7 @@ async fn filters_and_exports(client: &mut Client<'_>, token: &str) {
     for (path, body, status) in [
         (
             "/api/filters/v1/screens/alerts/encode",
-            Send::Json(json!({"filters": [{"name": "Owner", "values": ["x"]}]})),
+            Send::Json(json!({"filters": [{"name": "Reviewed", "values": ["x"]}]})),
             StatusCode::BAD_REQUEST,
         ),
         (
@@ -5216,7 +5622,7 @@ async fn filters_and_exports(client: &mut Client<'_>, token: &str) {
         .json(
             Method::GET,
             DECODE,
-            "/api/filters/v1/screens/alerts/decode?f=owner:alice&f=!tag:x",
+            "/api/filters/v1/screens/alerts/decode?f=reviewed:CORRECT&f=!tag:x",
             Some(token),
             Send::Nothing,
             StatusCode::OK,

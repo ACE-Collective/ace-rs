@@ -583,7 +583,7 @@ impl Service {
         if disposition.as_deref() == Some(SIMULATED) {
             // an analyst can't change a frozen alert, so ACE's component writes it; the association's
             // audit row names the person and says the alert was reopened
-            self.disposition_in(tx, alert, OPEN, &svs_component(), None)
+            self.disposition_in(tx, alert, OPEN, &svs_component(), None, None)
                 .await?;
             reopened = true;
         }
@@ -1052,7 +1052,7 @@ impl Service {
                 left_alone.push(alert);
                 continue;
             }
-            self.disposition_in(tx, alert, SIMULATED, by, Some(&comment))
+            self.disposition_in(tx, alert, SIMULATED, by, Some(&comment), None)
                 .await?;
             closed.push(alert);
         }
@@ -1160,7 +1160,7 @@ impl Service {
                 left_alone.push(*alert);
                 continue;
             }
-            self.disposition_in(tx, *alert, IGNORE, by, Some(&comment))
+            self.disposition_in(tx, *alert, IGNORE, by, Some(&comment), None)
                 .await?;
             closed.push(*alert);
             tracing::info!(

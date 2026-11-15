@@ -28,7 +28,7 @@
 //! - `actions`: the observable actions the tree offers, from the binary's list, and the comment form
 //!   ace3's "Add Comment" opens (5.9, #1032).
 //! - `list`: the alert list at `/` (5.10), ace3's manage page, with its filters, saved filters, columns,
-//!   sorts, bulk disposition and refresh.
+//!   sorts, bulk disposition and refresh, and taking and assigning ownership (7.17).
 //! - `saved_filters`: the saved filters' forms and their manage page (5.10, and 5.11's saved_filters
 //!   area), ace3's `saved_filters/_modals.html`, where a saved filter is renamed and the quick filters
 //!   reordered.
@@ -216,6 +216,10 @@ impl Gui {
                 "/alerts/disposition",
                 post(list::bulk_disposition)
                     .layer(DefaultBodyLimit::max(list::MAX_BULK_FORM_BYTES)),
+            )
+            .route(
+                "/alerts/owner",
+                post(list::bulk_owner).layer(DefaultBodyLimit::max(list::MAX_BULK_FORM_BYTES)),
             )
             .route("/events", get(events::list_page))
             .route("/events/export", get(events::export))

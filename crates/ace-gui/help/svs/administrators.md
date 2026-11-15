@@ -950,8 +950,6 @@ minutes hasn't been moved.
 - **No CI client ships.** A rule repository's CI calls the validation API itself.
 - **No CLI for runs or test hosts.** Use the GUI or `/api/svs/v1/runs` and `/api/svs/v1/test-hosts`.
 - **No alert retention.** `SIMULATED` and `IGNORE` alerts stay until ACE gains a cleanup.
-- **Alert ownership can't be changed by hand yet.** SVS leaves alone an alert that somebody owns, but no
-  page or API route takes or assigns an alert's owner. Run ownership works.
 - **An alert whose pass ended before its run was registered is not judged again.** Associate it by hand on
   the run page.
 

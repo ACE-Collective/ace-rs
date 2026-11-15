@@ -25,7 +25,7 @@ pub(crate) struct PreferenceBody {
     /// "halloween"}`. `alert_sections`' is `{"sections": {"<section id>": true | false}}`, whether each
     /// section of the alert page starts open, with at most 100 ids of 1 to 64 of `a-z`, `0-9` and `_`.
     /// `manage_columns`' is `{"order": [...], "hidden": [...]}`, the alert list's column ids (`date`,
-    /// `description`, `disposition`, `status`) in the order they show and those hidden, normalized: an
+    /// `description`, `queue`, `owner`, `disposition`, `status`) in the order they show and those hidden, normalized: an
     /// unknown id dropped, a missing one appended, and `description` never hidden.
     #[schema(value_type = Object)]
     value: Value,

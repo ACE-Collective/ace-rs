@@ -3,8 +3,9 @@
 //!
 //! As in ace3:
 //! - Every read and write needs the permission that reads the screen's data (`FilterScreen::permission`):
-//!   a saved filter holds nothing its owner couldn't type into the filter bar. What keeps one analyst out of
-//!   another's is the row's owner, checked here.
+//!   a saved filter holds nothing its owner couldn't type into the filter bar. A call that names a row by
+//!   its id needs its row's screen's (`Service::row_permission`). What keeps one analyst out of another's
+//!   is the row's owner, checked here.
 //! - A row is a person's. Its owner is the user, or the owner of the API key that wrote it, as ace3 takes a
 //!   key's user. A key with no owner, or one of ACE's components, is refused with 403, as a comment is.
 //! - Only the owner reads, changes or deletes a row. Another user's row is `NotFound` to a read and
@@ -26,8 +27,14 @@
 //! with no row of any kind on the screen, which its working row makes once only; here migration 0051's
 //! `service.saved_filter_seeds` says a screen was seeded for a user, so someone who deletes the two doesn't
 //! get them back. A user who already has saved filters when the list is first drawn is marked and given
-//! none, as ace3 gives none to a user with rows. One audit row records both filters. ace3's defaults on
-//! its other screens come with those screens' steps.
+//! none, as ace3 gives none to a user with rows. One audit row records a screen's filters.
+//!
+//! ace3 seeds eight more screens (`DEFAULT_SAVED_FILTERS`), and so does this, with the same names,
+//! descriptions and filters (the owner's decision of 2026-11-15): SVS's samples, validations, runs, tests,
+//! coverage and worklist, the remediations and the file collections. Each screen's page seeds its own
+//! when it's drawn (`ace_gui::saved_filters::quick_filters`). The record is per user and screen, so a
+//! user seeded for the alert list before these came still gets each of the others once. ace3 has no
+//! defaults for the detection points and the coverage history, and neither has this.
 
 use chrono::{DateTime, Utc};
 use serde::Serialize;
@@ -132,6 +139,17 @@ impl Recorded for SeededFilters {}
 /// What a person new to a screen starts with, ace3's `DEFAULT_SAVED_FILTERS`: each a name, a description
 /// and its filters, pinned in this order. Only the alert list has any so far.
 fn default_filters(screen: FilterScreen) -> Vec<(&'static str, &'static str, Vec<FilterEntry>)> {
+    let one = |name: &'static str,
+               description: &'static str,
+               filter: &str,
+               values: &[&str]|
+     -> (&'static str, &'static str, Vec<FilterEntry>) {
+        (
+            name,
+            description,
+            vec![FilterEntry::text(filter, false, values)],
+        )
+    };
     match screen {
         FilterScreen::Alerts => [
             (
@@ -157,7 +175,139 @@ fn default_filters(screen: FilterScreen) -> Vec<(&'static str, &'static str, Vec
             )
         })
         .collect(),
-        _ => Vec::new(),
+        // ace3's DEFAULT_SVS_SAMPLE_SAVED_FILTERS: the two lists that need someone's attention
+        FilterScreen::SvsSamples => vec![
+            one(
+                "Conflicted",
+                "Samples whose votes disagree; excluded from validation until relabeled",
+                "Label",
+                &["conflicted"],
+            ),
+            one(
+                "Missing data",
+                "Samples with a capture that lacks its file or its match record",
+                "Missing Data",
+                &["true"],
+            ),
+        ],
+        // DEFAULT_SVS_VALIDATION_SAVED_FILTERS: the reports that need someone's attention
+        FilterScreen::SvsValidations => vec![
+            one(
+                "Has regressions",
+                "Validations whose head no longer matches samples labeled TP",
+                "Has Regressions",
+                &["true"],
+            ),
+            one(
+                "Failed",
+                "Validations that could not run",
+                "State",
+                &["failed"],
+            ),
+        ],
+        // DEFAULT_SVS_RUN_SAVED_FILTERS: Needs attention is the screen's default view
+        FilterScreen::SvsRuns => vec![
+            one(
+                "Needs attention",
+                "Runs that ended and wait for review, failed, or changed since they were reviewed",
+                "Needs Attention",
+                &["true"],
+            ),
+            one(
+                "Started",
+                "Runs in flight: their observation window is open",
+                "State",
+                &["started"],
+            ),
+        ],
+        // DEFAULT_REMEDIATION_SAVED_FILTERS: those still being worked on, and those that failed
+        FilterScreen::Remediations => vec![
+            one(
+                "Not completed",
+                "Remediations queued or waiting to be tried again",
+                "Status",
+                &["NEW", "IN_PROGRESS"],
+            ),
+            one(
+                "Failed",
+                "Remediations whose latest attempt failed",
+                "Result",
+                &["ERROR", "FAILED"],
+            ),
+        ],
+        // DEFAULT_FILE_COLLECTION_SAVED_FILTERS: the same two lists
+        FilterScreen::FileCollections => vec![
+            one(
+                "Not completed",
+                "Requests queued or waiting to be tried again",
+                "Status",
+                &["NEW", "IN_PROGRESS"],
+            ),
+            one(
+                "Failed",
+                "Requests whose latest attempt failed",
+                "Result",
+                &["ERROR", "FAILED"],
+            ),
+        ],
+        // DEFAULT_SVS_TEST_SAVED_FILTERS: the tests still in their repository, which the Tests tab opens on
+        FilterScreen::SvsTests => vec![one(
+            "In the catalog",
+            "Tests still in their repository",
+            "Removed",
+            &["false"],
+        )],
+        // DEFAULT_SVS_COVERAGE_SAVED_FILTERS: the endpoint platforms, which the Coverage tab opens on; none
+        // of them shows a retired row
+        FilterScreen::SvsCoverage => {
+            let endpoints = || FilterEntry::text("Platform", false, &["windows", "linux", "macos"]);
+            let live = || FilterEntry::text("Retired", false, &["false"]);
+            vec![
+                (
+                    "Endpoint platforms",
+                    "Techniques on windows, linux and macos",
+                    vec![endpoints(), live()],
+                ),
+                (
+                    "Gaps and failures",
+                    "Techniques on the endpoint platforms that are failing, stale, untested or not covered at all",
+                    vec![
+                        endpoints(),
+                        FilterEntry::text(
+                            "State",
+                            false,
+                            &["failing", "stale", "untested", "none"],
+                        ),
+                        live(),
+                    ],
+                ),
+                ("All", "Techniques on every platform", vec![live()]),
+            ]
+        }
+        // DEFAULT_SVS_WORKLIST_SAVED_FILTERS: the tags that need a decision, which the Worklist tab opens
+        // on, the removals waiting for their pull request, and the techniques no tag names
+        FilterScreen::SvsWorklist => vec![
+            one(
+                "Needs decision",
+                "Tags no test confirms that nobody has resolved",
+                "Status",
+                &["open"],
+            ),
+            one(
+                "Remove pending",
+                "Tags resolved remove that the signature still has",
+                "Status",
+                &["remove_pending"],
+            ),
+            one(
+                "Undeclared",
+                "Techniques signatures are measured on that none of their tags names",
+                "Status",
+                &["undeclared"],
+            ),
+        ],
+        // ace3 seeds nothing on these two
+        FilterScreen::DetectionPoints | FilterScreen::SvsCoverageHistory => Vec::new(),
     }
 }
 
@@ -342,6 +492,33 @@ fn name_taken(error: sqlx::Error, name: &str) -> ServiceError {
 }
 
 impl Service {
+    /// The permission a call that names a row by its id needs: the row's screen's, as ace3 checks it, so
+    /// someone who holds `svs:run_read` and not `alert:read` reaches their saved filters of the runs
+    /// screen, and someone who lost a screen's permission no longer reaches theirs on it. Only the
+    /// caller's own row says which screen it's on: for anyone else's, or none, it's `alert:read`, the alert
+    /// list's, so the answer says nothing about a row that isn't theirs. A row's screen never changes, so
+    /// the permission read here is the row's when the gate checks it.
+    async fn row_permission(
+        &self,
+        actor: &Actor,
+        id: Uuid,
+    ) -> Result<crate::permission::PermissionName, ServiceError> {
+        let Ok(owner) = owner_of(actor) else {
+            return Ok(ALERT_READ);
+        };
+        let screen = sqlx::query_scalar!(
+            "SELECT screen FROM service.saved_filters WHERE id = $1 AND user_id = $2",
+            id,
+            owner.0,
+        )
+        .fetch_optional(self.gate.db().pool())
+        .await?;
+        Ok(screen
+            .as_deref()
+            .and_then(FilterScreen::named)
+            .map_or(ALERT_READ, FilterScreen::permission))
+    }
+
     /// The caller's saved filters on a screen: the quick filters first, in their order, then the rest by
     /// name. It needs the screen's permission.
     pub async fn saved_filters(
@@ -360,7 +537,8 @@ impl Service {
     }
 
     /// Gives the caller the screen's default quick filters the first time, ace3's
-    /// `ensure_default_saved_filters` (the module's docs): the alert list's `Last 24h` and `Last 7d`. It
+    /// `ensure_default_saved_filters` (the module's docs): the alert list's `Last 24h` and `Last 7d`, and
+    /// ace3's defaults on eight more screens. It
     /// answers the filters it added, none on every later call, for a caller who had saved filters already,
     /// and on a screen with no defaults. It needs the screen's permission, and the caller is a person.
     pub async fn seed_saved_filters(
@@ -437,9 +615,9 @@ impl Service {
     /// One of the caller's saved filters. Someone else's is `NotFound`, as in ace3: sharing is a link, not
     /// a row.
     pub async fn saved_filter(&self, actor: &Actor, id: Uuid) -> Result<SavedFilter, ServiceError> {
-        // every screen reads with alert:read; a screen that doesn't needs its row's screen checked first
+        let permission = &self.row_permission(actor, id).await?;
         self.gate
-            .read(actor, "saved_filter", &ALERT_READ, &|tx| {
+            .read(actor, "saved_filter", permission, &|tx| {
                 Box::pin(async move {
                     let owner = owner_of(actor)?;
                     match row(tx.conn(), id, false).await? {
@@ -539,8 +717,9 @@ impl Service {
         if let Some(description) = &change.description {
             checked_description(description)?;
         }
+        let permission = &self.row_permission(actor, id).await?;
         self.gate
-            .write(actor, "update_saved_filter", &ALERT_READ, &|tx| {
+            .write(actor, "update_saved_filter", permission, &|tx| {
                 Box::pin(async move {
                     let before = own_row(tx.conn(), actor, id).await?;
                     let filters = change
@@ -596,8 +775,9 @@ impl Service {
 
     /// Deletes one of the caller's saved filters. Its audit row keeps it.
     pub async fn delete_saved_filter(&self, actor: &Actor, id: Uuid) -> Result<(), ServiceError> {
+        let permission = &self.row_permission(actor, id).await?;
         self.gate
-            .write(actor, "delete_saved_filter", &ALERT_READ, &|tx| {
+            .write(actor, "delete_saved_filter", permission, &|tx| {
                 Box::pin(async move {
                     let found = own_row(tx.conn(), actor, id).await?;
                     sqlx::query!("DELETE FROM service.saved_filters WHERE id = $1", id)

@@ -267,7 +267,9 @@ Click a run's *Registered* time to open its page. From top to bottom:
 
 The page doesn't refresh itself: reload it to see alerts that arrived since. The result, the alerts
 and the event log each have an export link; the page shows the first 500 result rows, 200 alerts and
-200 events, and the exports have them all.
+200 events, and the exports have them all. With `signature:read`, *files captured from this run's
+alerts* opens [Samples](/signatures/samples) narrowed to what those alerts captured (the first 64
+alerts' when the run has more).
 
 ## Reviewing a run
 
@@ -329,8 +331,9 @@ In the *Decide* column, each candidate has its choices as buttons:
 | **Ignore for this test** | It is noise during this test's runs, such as the launcher's own remoting | It never counts for this test, on any platform |
 | **Ignore for every test** | It is noise during every test (shown only to `svs:admin`) | It never counts for any test |
 
-The buttons take no reason. Say why in a comment on the run: the next person to wonder why a
-signature is expected of a test will read it. If someone else decided the same signature while you
+The *why* field beside the buttons is optional and is kept with the decision: the test's page
+shows it under *Expectations* or *Ignores*, where the next person to wonder why a signature is
+expected of a test will read it. If someone else decided the same signature while you
 were looking, your decision is refused rather than replacing theirs; reload the page.
 
 In the example, `CA_PowerShell_Invoke_Kerberoast` is the test's own technique, so it is *Expect*.
@@ -448,8 +451,8 @@ list shows the status after the alert's description, as a link to the run.
 | **partial** | Some detections are from a run and some aren't. It stays with analysts | Triage the other detections |
 | **mismatch** | A marker in the alert doesn't agree with its run: another host, outside the window, or a marker no run has. The section lists each such marker, what is wrong with it and the run it belongs to. It stays with analysts, and the mismatch is never withdrawn | Investigate it as a real alert |
 
-*Disassociate from its test runs* and *Not a test* need `alert:write`. *Disassociate* takes an
-optional reason. Both remove the alert from every run that holds it, send it back to the queue SVS
+*Disassociate from its test runs* and *Not a test* need `alert:write`. Both take an optional
+reason, which each run's event log keeps. Both remove the alert from every run that holds it, send it back to the queue SVS
 took it from, and give a `SIMULATED` alert back to analysts as `OPEN`. ACE doesn't attribute it to
 those runs again.
 
@@ -592,9 +595,10 @@ rule to encoded PowerShell now matches a file that is a false positive for
 `EX_PowerShell_Encoded_Command`: that row is in `new_fp_other_rule`.
 
 Each row's sample links to the sample's page, where the actions are. With `signature:download`,
-*Download these rows' files* downloads the files of the rows shown. The API exports a report's rows
-as CSV or NDJSON (`/api/svs/v1/yara/validations/{uuid}/results/export/csv` or `.../ndjson`). A
-validation warns and never blocks: you decide what to merge.
+*Download these rows' files* downloads the files of the rows shown. The *CSV* and *NDJSON* links
+above the table export the report's rows, every one of them or those of the categories chosen
+(`/api/svs/v1/yara/validations/{uuid}/results/export/csv` or `.../ndjson`). A validation warns and
+never blocks: you decide what to merge.
 
 ## Samples and labels
 

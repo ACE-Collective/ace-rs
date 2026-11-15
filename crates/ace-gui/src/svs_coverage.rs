@@ -39,8 +39,9 @@
 //! is percent-encoded. A resolution's reference is a link only because the service takes nothing but an
 //! http or https URL with no white space in it.
 //!
-//! Left out: ace3's saved filters for these screens (the alert list's saved filters cover no SVS screen
-//! yet), and its modal's confirm before a reopen, which needs a script: the reopen is a button.
+//! The Tests, Coverage and Worklist pages have the viewer's quick filters, ace3's defaults the first time
+//! (`crate::saved_filters::quick_filters`). Left out: ace3's modal's confirm before a reopen, which needs a
+//! script: the reopen is a button.
 
 use ace_service::filters::FilterScreen;
 use ace_service::{
@@ -243,6 +244,8 @@ pub fn tests_view(
 #[template(path = "svs/tests.html")]
 pub struct TestsPage {
     pub layout: Layout,
+    /// The viewer's quick filters on this screen (`crate::saved_filters::quick_filters`).
+    pub quick: Vec<crate::saved_filters::QuickLink>,
     pub view: TestsView,
 }
 
@@ -564,6 +567,8 @@ pub fn coverage_view(
 #[template(path = "svs/coverage.html")]
 pub struct CoveragePage {
     pub layout: Layout,
+    /// The viewer's quick filters on this screen (`crate::saved_filters::quick_filters`).
+    pub quick: Vec<crate::saved_filters::QuickLink>,
     pub view: CoverageView,
 }
 
@@ -910,6 +915,8 @@ pub fn worklist_view(
 #[template(path = "svs/worklist.html")]
 pub struct WorklistPage {
     pub layout: Layout,
+    /// The viewer's quick filters on this screen (`crate::saved_filters::quick_filters`).
+    pub quick: Vec<crate::saved_filters::QuickLink>,
     pub view: WorklistView,
 }
 
@@ -1083,6 +1090,13 @@ pub(crate) async fn tests(
         .await
     {
         Ok(page) => render(&TestsPage {
+            quick: crate::saved_filters::quick_filters(
+                &gui,
+                &viewer,
+                FilterScreen::SvsTests,
+                "/svs/tests",
+            )
+            .await,
             layout: viewer.layout,
             view: tests_view(
                 tabs("tests", admin),
@@ -1313,6 +1327,13 @@ pub(crate) async fn coverage(
     };
     match read.await {
         Ok(view) => render(&CoveragePage {
+            quick: crate::saved_filters::quick_filters(
+                &gui,
+                &viewer,
+                FilterScreen::SvsCoverage,
+                "/svs/coverage",
+            )
+            .await,
             layout: viewer.layout,
             view,
         }),
@@ -1419,6 +1440,13 @@ pub(crate) async fn worklist(
     };
     match read.await {
         Ok(view) => render(&WorklistPage {
+            quick: crate::saved_filters::quick_filters(
+                &gui,
+                &viewer,
+                FilterScreen::SvsWorklist,
+                "/svs/worklist",
+            )
+            .await,
             layout: viewer.layout,
             view,
         }),

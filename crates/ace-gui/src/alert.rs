@@ -52,6 +52,13 @@
 //! `crate::svs_alert`). Below the details, the alert's detections with their verdicts and, for an analyst who may, the forms that
 //! change them (PLAN.md 7.14, `crate::verdicts`).
 //!
+//! Ownership (PLAN.md 7.17): the details say who owns the alert and since when, and a viewer with
+//! `alert:write` has ace3's Take Ownership and Assign Ownership as forms that post to `/alerts/owner`
+//! (`crate::list::bulk_owner`) and come back here; taking an alert another analyst owns asks first, on
+//! the page that says who has it. ace3's page also polls the alert's owner and shows "Alert Ownership
+//! Changed!" when someone takes it while it's open (`saq_analysis.js`), which needs a script and isn't
+//! here: the owner is as of when the page was drawn, and a write checks it again under the alert's lock.
+//!
 //! From ace3, and what differs: the section ids, the tree's shape and the jump links are ace3's. Not here
 //! yet: observable actions (#1032), the pruned
 //! "Critical Analysis Overview", tag levels and colours, pivot links, summary details, and the other
@@ -549,6 +556,18 @@ pub struct AlertPage {
     pub verdicts: Option<VerdictsView>,
     /// What SVS makes of the alert, with its root's tags (PLAN.md 7.10, `crate::svs_alert`).
     pub svs: Option<crate::svs_alert::SvsBanner>,
+    /// Take Ownership and Assign Ownership, for a viewer with `alert:write` (PLAN.md 7.17).
+    pub ownership: Option<OwnershipForms>,
+}
+
+/// ace3's Take Ownership and Assign Ownership buttons of the alert page (`analysis/index.html`): forms
+/// that post to `/alerts/owner` (`crate::list::bulk_owner`) and come back here.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct OwnershipForms {
+    /// The alert is the viewer's already, so there's nothing to take.
+    pub mine: bool,
+    /// Who Assign offers: the enabled users.
+    pub users: Vec<crate::list::OwnerOption>,
 }
 
 impl AlertPage {
@@ -606,6 +625,15 @@ impl AlertPage {
                     .clone()
                     .unwrap_or_else(|| "OPEN".to_owned()),
             },
+            // ace3's alert.html says who owns the alert (PLAN.md 7.17)
+            Detail {
+                name: "Owner",
+                value: match (&summary.owner, summary.owned_at) {
+                    (Some(owner), Some(at)) => format!("{}, since {}", owner.name, time(at)),
+                    (Some(owner), None) => owner.name.clone(),
+                    (None, _) => "nobody".to_owned(),
+                },
+            },
             // ace3's alert.html has the queue among its details (PLAN.md 7.13)
             Detail {
                 name: "Queue",
@@ -651,7 +679,14 @@ impl AlertPage {
             version,
             verdicts: None,
             svs: None,
+            ownership: None,
         })
+    }
+
+    /// The page with its ownership forms.
+    pub fn with_ownership(mut self, ownership: Option<OwnershipForms>) -> Self {
+        self.ownership = ownership;
+        self
     }
 
     /// The page with its SVS banner.
@@ -707,8 +742,28 @@ pub(crate) async fn page(
         Ok(svs) => svs,
         Err(error) => return Failure::from_service(error, &parts).into_response(),
     };
+    let viewer_id = match &viewer.actor {
+        ace_service::Actor::User { id, .. } => Some(*id),
+        _ => None,
+    };
+    let ownership = crate::list::owner_options(&gui, &viewer)
+        .await
+        .map(|choices| OwnershipForms {
+            mine: tree
+                .alert
+                .summary
+                .owner
+                .as_ref()
+                .is_some_and(|owner| Some(owner.id) == viewer_id),
+            users: choices.iter().map(crate::list::owner_option).collect(),
+        });
     match AlertPage::new(viewer.layout, &tree, &comments, &gui.actions, &sections) {
-        Ok(page) => render(&page.with_verdicts(verdicts).with_svs(svs)),
+        Ok(page) => render(
+            &page
+                .with_verdicts(verdicts)
+                .with_svs(svs)
+                .with_ownership(ownership),
+        ),
         Err(error) => {
             tracing::error!("an alert page couldn't be drawn: {error}");
             (StatusCode::INTERNAL_SERVER_ERROR, "internal error").into_response()

@@ -7,6 +7,24 @@
 <section class="alert" data-init="@get('/alerts/{{ id }}/live?v={{ version }}')">
   <h1>{{ title }}</h1>
   <p class="alert-links"><a href="/alerts/{{ id }}/graph">Graph</a></p>
+  {%- if let Some(own) = ownership %}
+  {#- ace3's Take Ownership and Assign Ownership (PLAN.md 7.17, src/list.rs's bulk_owner) -#}
+  <form method="post" action="/alerts/owner" class="inline ownership">
+    <input type="hidden" name="alert" value="{{ id }}">
+    <input type="hidden" name="next" value="/alerts/{{ id }}">
+    {%- if !own.mine %}
+    <button type="submit" name="owner" value="me" title="Make this alert yours. If another analyst owns it, you're asked before it's taken.">Take Ownership</button>
+    {%- endif %}
+    <label for="assignee">Assign to</label>
+    <select id="assignee" name="assignee">
+      <option value="">nobody (unassign)</option>
+      {%- for user in own.users %}
+      <option value="{{ user.id }}">{{ user.name }}</option>
+      {%- endfor %}
+    </select>
+    <button type="submit" name="owner" value="assign">Assign</button>
+  </form>
+  {%- endif %}
   {%- if let Some(svs) = svs %}
   {%- include "alert_svs.html" %}
   {%- endif %}

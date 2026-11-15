@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT screen FROM service.saved_filters WHERE id = $1 AND user_id = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "screen",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "service.saved_filters",
+            "name": "screen"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "e88ca5cdfe30140aabaa10f4dee5b1b0d25bf7d22e0994d85c077f8dad241401"
+}

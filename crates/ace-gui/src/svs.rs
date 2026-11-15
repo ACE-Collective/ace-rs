@@ -13,8 +13,10 @@
 //!   reviewed runs were possibly suppressed.
 //! - `svs.run_detail` (`run.html`): `GET /svs/runs/{run_id}`, the run with what its launcher sent and its
 //!   test printed, its result a row per signature, how each did in the test's earlier runs, its comments
-//!   and its event log. For `svs:run_manage`, each signature of the result has its decisions as forms
-//!   (expect, reject, undecide, ignore for the test), and the page has the comment form; a global ignore's
+//!   and its event log. With `signature:read` it links to the samples page narrowed to the files captured
+//!   from the run's alerts, as ace3's does. For `svs:run_manage`, each signature of the result has its
+//!   decisions as a form (expect, reject, undecide, ignore for the test), with a Why field where a
+//!   decision keeps its reason, and the page has the comment form; a global ignore's
 //!   form is `svs:admin`'s. A decision made from the page says what the page showed, so one someone else
 //!   made first is refused (412) rather than replaced.
 //!   Batch 7b's: the run's alerts, each with how the run holds it and, for `svs:run_manage`, the forms
@@ -44,10 +46,11 @@
 //! whoever holds `svs:run_read`, says how many runs need attention (`session`'s `svs_attention`),
 //! which ace3's `svs_nav.js` fills in from the API's count.
 //!
-//! Left out: ace3's saved filters for this screen (the alert list's saved filters cover no SVS screen
-//! yet). ace3's bulk bar ticks every row with a script; here each row has its own box.
+//! The runs page has the viewer's quick filters, ace3's `Needs attention` and `Started` the first time
+//! (`crate::saved_filters::quick_filters`). ace3's bulk bar ticks every row with a script; here each row
+//! has its own box.
 
-use ace_service::filters::FilterScreen;
+use ace_service::filters::{self, FilterScreen};
 use ace_service::{
     Association, BulkResult, HostFields, Ignore, IgnoreQuery, Precondition, ReviewBlockers,
     ReviewOutcome, Run, RunAlert, RunBatch, RunComment, RunEvent, RunHistory, RunQuery, RunResult,
@@ -320,6 +323,8 @@ pub fn runs_view(
 #[template(path = "svs/runs.html")]
 pub struct RunsPage {
     pub layout: Layout,
+    /// The viewer's quick filters on this screen (`crate::saved_filters::quick_filters`).
+    pub quick: Vec<crate::saved_filters::QuickLink>,
     pub view: RunsView,
 }
 
@@ -431,8 +436,20 @@ pub struct ResultLine {
     pub reviewed: String,
     /// Its status in each earlier run, in the history's order; empty where it wasn't in that run's result.
     pub history: Vec<String>,
-    /// The decisions its viewer may make: each a form's `decision` and its button's text.
+    /// The decisions its viewer may make: each a button's `decision` and its text.
     pub decisions: Vec<(&'static str, &'static str)>,
+    /// Whether one of them takes a reason, so the row's form has the Why field: a decision made or an
+    /// ignore, which `Service::set_svs_expectation` and `set_svs_ignore` keep with it. Undoing one takes
+    /// none.
+    pub reasoned: bool,
+}
+
+/// Whether a decision keeps the reason typed with it.
+fn takes_reason(decision: &str) -> bool {
+    matches!(
+        decision,
+        "expected" | "rejected" | "ignore" | "ignore_globally"
+    )
 }
 
 fn decisions_of(
@@ -540,7 +557,37 @@ pub struct RunPageData<'a> {
     pub viewer: Option<&'a str>,
     pub manage: bool,
     pub admin: bool,
+    /// The viewer holds `signature:read`, so the samples page is theirs to open.
+    pub samples: bool,
     pub notice: Option<String>,
+}
+
+/// The most alerts the link to a run's captured files names: a filter's bound.
+pub const MAX_CAPTURE_LINK_ALERTS: usize = filters::MAX_FILTER_VALUES;
+
+/// The samples page narrowed to the files captured from these alerts, ace3's "files captured from this
+/// run's alerts" (`svs_run.js`'s `captured_files_link`): the samples screen's Alert filter over the run's
+/// alerts, the first `MAX_CAPTURE_LINK_ALERTS` of them. None for a run with no alerts.
+pub fn captured_files_href(alerts: &[Uuid]) -> Option<String> {
+    let values: Vec<String> = alerts
+        .iter()
+        .take(MAX_CAPTURE_LINK_ALERTS)
+        .map(Uuid::to_string)
+        .collect();
+    if values.is_empty() {
+        return None;
+    }
+    let values: Vec<&str> = values.iter().map(String::as_str).collect();
+    let f = filters::encode(
+        FilterScreen::SvsSamples,
+        &[ace_service::FilterEntry::text("Alert", false, &values)],
+    )
+    .ok()?;
+    let pairs: Vec<(&str, String)> = f.into_iter().map(|f| ("f", f)).collect();
+    Some(format!(
+        "/signatures/samples?{}",
+        serde_urlencoded::to_string(&pairs).ok()?
+    ))
 }
 
 /// `/svs/runs/{run_id}`'s content.
@@ -575,6 +622,9 @@ pub struct RunView {
     /// More alerts than the page shows: the rest are the API's.
     pub more_alerts: bool,
     pub alerts_ndjson: String,
+    /// The samples page with the files captured from the run's alerts, for a viewer with
+    /// `signature:read` (`captured_files_href`).
+    pub captured: Option<String>,
     /// The run's review, for a run that can be reviewed.
     pub review: Option<ReviewView>,
     /// What its viewer may do to the run: each a form's `action` and its button's text.
@@ -853,6 +903,13 @@ pub fn run_view(tabs: Tabs, data: &RunPageData<'_>) -> RunView {
             .filter(|(set, _)| *set && status.is_some())
             .map(|(_, note)| note)
             .collect();
+            let decisions = decisions_of(
+                result,
+                data.manage,
+                data.admin,
+                ignored(&result.signature_uuid, false),
+                ignored(&result.signature_uuid, true),
+            );
             ResultLine {
                 signature: result.signature_uuid.clone(),
                 name: result.signature_name.clone().unwrap_or_default(),
@@ -874,13 +931,8 @@ pub fn run_view(tabs: Tabs, data: &RunPageData<'_>) -> RunView {
                             .collect()
                     })
                     .unwrap_or_default(),
-                decisions: decisions_of(
-                    result,
-                    data.manage,
-                    data.admin,
-                    ignored(&result.signature_uuid, false),
-                    ignored(&result.signature_uuid, true),
-                ),
+                reasoned: decisions.iter().any(|(decision, _)| takes_reason(decision)),
+                decisions,
             }
         })
         .collect();
@@ -956,6 +1008,18 @@ pub fn run_view(tabs: Tabs, data: &RunPageData<'_>) -> RunView {
             .collect(),
         more_alerts: data.more_alerts,
         alerts_ndjson: format!("/api/svs/v1/runs/{}/alerts/export/ndjson", run.uuid),
+        captured: data
+            .samples
+            .then(|| {
+                captured_files_href(
+                    &data
+                        .alerts
+                        .iter()
+                        .map(|alert| alert.alert.id)
+                        .collect::<Vec<_>>(),
+                )
+            })
+            .flatten(),
         review,
         actions,
         reasoned,
@@ -1305,6 +1369,13 @@ pub(crate) async fn runs(
     };
     match read.await {
         Ok(view) => render(&RunsPage {
+            quick: crate::saved_filters::quick_filters(
+                &gui,
+                &viewer,
+                FilterScreen::SvsRuns,
+                "/svs/runs",
+            )
+            .await,
             layout: viewer.layout,
             view,
         }),
@@ -1415,6 +1486,7 @@ pub(crate) async fn run(
             viewer: viewer.layout.username.as_deref(),
             manage,
             admin,
+            samples: service.allowed(actor, &ace_service::SIGNATURE_READ).await?,
             notice,
         };
         Ok::<_, ServiceError>(run_view(
@@ -1629,9 +1701,11 @@ pub(crate) async fn associate(
             },
             "disassociate",
         ),
+        // the reason typed with Not a test is kept in the run's event and the audit row; the
+        // attribution's own removal reason stays ace3's fixed `not a test`
         Some("not_a_test") => (
             Association::Disassociate {
-                reason: None,
+                reason,
                 not_a_test: true,
             },
             "not_a_test",

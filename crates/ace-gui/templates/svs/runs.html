@@ -11,6 +11,7 @@
   {%- if let Some(share) = view.share %}
   <p class="muted" title="the revisit trigger of preventing hunt suppression for test targets">{{ share }}</p>
   {%- endif %}
+  {%- include "quick_filters.html" %}
   <form method="get" action="/svs/runs" class="detection-filters">
     {%- for field in view.fields %}
     <label for="filter-{{ field.slug }}">{{ field.name }}</label>

@@ -1,0 +1,7 @@
+{#- A screen's quick filters (src/saved_filters.rs's quick_filters): the viewer's pinned saved filters,
+    ace3's defaults for the screen the first time, each a link to the screen with its filters. A name and
+    a description are the viewer's own text. -#}
+  {%- if !quick.is_empty() %}
+  <p class="quick-filters"><span class="label">Quick filters</span>
+    {%- for filter in quick %} <a class="badge" href="{{ filter.href }}" title="{{ filter.description }}">{{ filter.label }}</a>{% endfor %}</p>
+  {%- endif %}

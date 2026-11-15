@@ -1,0 +1,36 @@
+{#- What a change of owner left alone (PLAN.md 7.17, src/list.rs): ace3's Take Ownership and Assign
+    Ownership tell the analyst which alerts another analyst owns, and its selection guard asks before
+    taking them. Here the alerts were left alone, and the form takes them: its take_owned names who owned
+    each when this page was drawn, so one that changed hands since is left alone again. -#}
+{% extends "base.html" %}
+{% block title %}{{ heading }} · ACE{% endblock %}
+{% block content %}
+<section class="bulk-result">
+  <h1>{{ heading }}</h1>
+  <p>{{ message }}.</p>
+  {%- if !applied.is_empty() %}
+  <ul class="done">
+    {%- for id in applied %}
+    <li><a href="/alerts/{{ id }}">{{ id }}</a></li>
+    {%- endfor %}
+  </ul>
+  {%- endif %}
+  <h2>Left with their owners</h2>
+  <ul class="left-alone">
+    {%- for alert in left_alone.alerts %}
+    <li><a href="/alerts/{{ alert.0 }}">{{ alert.0 }}</a>: owned by {{ alert.1 }}</li>
+    {%- endfor %}
+  </ul>
+  <form method="post" action="/alerts/owner" class="take-owned">
+    {%- for alert in left_alone.alerts %}
+    <input type="hidden" name="alert" value="{{ alert.0 }}">
+    {%- endfor %}
+    <input type="hidden" name="owner" value="{{ owner }}">
+    <input type="hidden" name="assignee" value="{{ assignee }}">
+    <input type="hidden" name="take_owned" value="{{ left_alone.take_owned }}">
+    <input type="hidden" name="next" value="{{ next }}">
+    <button type="submit" title="One that changed hands since this page was drawn is left alone again.">Take them from their owners</button>
+  </form>
+  <p><a href="{{ next }}">Back</a></p>
+</section>
+{% endblock %}

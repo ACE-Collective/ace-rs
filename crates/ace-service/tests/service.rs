@@ -499,7 +499,7 @@ async fn every_kind_of_actor_writes_through_the_same_function() {
         assert_eq!(row(db, root).await.by, None);
 
         let dispositioned = service
-            .disposition(&actor, root, "FALSE_POSITIVE")
+            .disposition(&actor, root, "FALSE_POSITIVE", None)
             .await
             .expect("dispositions");
 
@@ -545,12 +545,12 @@ async fn a_later_disposition_replaces_the_earlier_one_and_its_actor() {
     .await;
 
     service
-        .disposition(&component("svs:maintenance"), root, "IGNORE")
+        .disposition(&component("svs:maintenance"), root, "IGNORE", None)
         .await
         .expect("dispositions");
     let alice = user(UserId(Uuid::from_u128(1)));
     service
-        .disposition(&alice, root, "FALSE_POSITIVE")
+        .disposition(&alice, root, "FALSE_POSITIVE", None)
         .await
         .expect("dispositions again");
 
@@ -585,7 +585,7 @@ async fn an_actor_that_can_t_be_stored_leaves_the_alert_as_it_was() {
         name: "al\0ice".to_owned(),
     };
     service
-        .disposition(&actor, root, "FALSE_POSITIVE")
+        .disposition(&actor, root, "FALSE_POSITIVE", None)
         .await
         .expect_err("refused");
 
@@ -611,7 +611,7 @@ async fn a_missing_root_is_an_error() {
     )
     .await;
     let error = service(db)
-        .disposition(&component("scheduler"), missing, "IGNORE")
+        .disposition(&component("scheduler"), missing, "IGNORE", None)
         .await
         .expect_err("refused");
     assert!(
@@ -1000,7 +1000,7 @@ async fn an_actor_with_no_grants_is_refused_every_write() {
         );
         for missing_or_not in [root, Uuid::from_u128(9)] {
             let error = service
-                .disposition(&actor, missing_or_not, "IGNORE")
+                .disposition(&actor, missing_or_not, "IGNORE", None)
                 .await
                 .expect_err("refused");
             assert!(
@@ -1008,6 +1008,23 @@ async fn an_actor_with_no_grants_is_refused_every_write() {
                     &error,
                     ServiceError::PermissionDenied { actor: who, permission }
                         if *who == actor.to_string() && *permission == ALERT_WRITE
+                ),
+                "{error}"
+            );
+            // and a change of owner (PLAN.md 7.17), before it looks at the alert or at who is asking
+            let error = service
+                .change_alert_owner(
+                    &actor,
+                    &[missing_or_not],
+                    None,
+                    &std::collections::BTreeMap::new(),
+                )
+                .await
+                .expect_err("refused");
+            assert!(
+                matches!(
+                    &error,
+                    ServiceError::PermissionDenied { permission, .. } if *permission == ALERT_WRITE
                 ),
                 "{error}"
             );
@@ -1060,14 +1077,14 @@ async fn a_disposition_follows_its_actor_s_grants() {
     // a permission for something else doesn't do
     grant(db, &Holder::User(alice), "alert", "read", Effect::Allow).await;
     service
-        .disposition(&actor, root, "IGNORE")
+        .disposition(&actor, root, "IGNORE", None)
         .await
         .expect_err("refused");
 
     // a mixed-case wildcard does
     grant(db, &Holder::User(alice), "ALERT", "*", Effect::Allow).await;
     service
-        .disposition(&actor, root, "IGNORE")
+        .disposition(&actor, root, "IGNORE", None)
         .await
         .expect("dispositions");
     assert_eq!(row(db, root).await.disposition.as_deref(), Some("IGNORE"));
@@ -1075,7 +1092,7 @@ async fn a_disposition_follows_its_actor_s_grants() {
     // and a deny takes it back at the next write
     grant(db, &Holder::User(alice), "Alert", "Write", Effect::Deny).await;
     let error = service
-        .disposition(&actor, root, "FALSE_POSITIVE")
+        .disposition(&actor, root, "FALSE_POSITIVE", None)
         .await
         .expect_err("refused");
     assert!(
@@ -1308,7 +1325,7 @@ async fn a_row_the_type_can_t_read_fails_the_check() {
     .expect("breaks the rule");
 
     let error = service(db)
-        .disposition(&user(alice), alert(db).await, "IGNORE")
+        .disposition(&user(alice), alert(db).await, "IGNORE", None)
         .await
         .expect_err("refused");
     assert!(
@@ -1649,6 +1666,7 @@ async fn every_write_function_has_an_audit_test() {
         svs_attribution_tests::association::change_svs_association_records_its_row(db).await,
         svs_attribution_tests::association::release_alert_from_svs_records_its_row(db).await,
         svs_attribution_tests::association::set_alert_owner_records_its_row(db).await,
+        ownership_tests::change_alert_owner_records_its_row(db).await,
         svs_attribution_tests::association::review::take_svs_runs_records_its_row(db).await,
         svs_attribution_tests::association::review::cancel_svs_runs_records_its_row(db).await,
         svs_attribution_tests::association::review::end_svs_runs_records_its_row(db).await,
@@ -3136,7 +3154,7 @@ async fn disposition_records_its_row(db: &Db) -> String {
     .await;
 
     service
-        .disposition(&alice, root, "FALSE_POSITIVE")
+        .disposition(&alice, root, "FALSE_POSITIVE", None)
         .await
         .expect("dispositions");
     let first = last_audit(db).await;
@@ -3151,12 +3169,14 @@ async fn disposition_records_its_row(db: &Db) -> String {
             "analysis_mode": "correlation",
         }))
     );
+    // an analyst's disposition takes an alert nobody owned (PLAN.md 7.17)
     assert_eq!(
         first.after,
         Some(json!({
             "disposition": "FALSE_POSITIVE",
             "dispositioned_by": alice_json(),
             "analysis_mode": row(db, root).await.mode,
+            "owner": Uuid::from_u128(1),
         }))
     );
     let mut keys: Vec<&str> = first
@@ -3182,7 +3202,7 @@ async fn disposition_records_its_row(db: &Db) -> String {
 
     // a later disposition says what it replaced, even when the disposition is the same
     service
-        .disposition(&scheduler, root, "FALSE_POSITIVE")
+        .disposition(&scheduler, root, "FALSE_POSITIVE", None)
         .await
         .expect("dispositions again");
     let second = last_audit(db).await;
@@ -3476,7 +3496,7 @@ async fn every_write_fails_when_its_audit_fails() {
         (
             "disposition",
             service
-                .disposition(&actor, root, "IGNORE")
+                .disposition(&actor, root, "IGNORE", None)
                 .await
                 .map(|_| ())
                 .expect_err("refused"),
@@ -4445,7 +4465,7 @@ async fn only_a_change_that_committed_has_a_row() {
     let every = pattern("*", "*");
 
     service
-        .disposition(&outsider, root, "IGNORE")
+        .disposition(&outsider, root, "IGNORE", None)
         .await
         .expect_err("refused");
     service
@@ -4457,7 +4477,7 @@ async fn only_a_change_that_committed_has_a_row() {
         .await
         .expect_err("refused");
     service
-        .disposition(&actor, Uuid::from_u128(9), "IGNORE")
+        .disposition(&actor, Uuid::from_u128(9), "IGNORE", None)
         .await
         .expect_err("no such root");
     assert!(
@@ -4503,7 +4523,7 @@ async fn concurrent_dispositions_each_record_what_they_replaced() {
         let (service, actor) = (service.clone(), actor.clone());
         tokio::spawn(async move {
             service
-                .disposition(&actor, root, disposition)
+                .disposition(&actor, root, disposition, None)
                 .await
                 .expect("dispositions");
         })
@@ -4589,7 +4609,7 @@ async fn a_row_outlives_what_it_describes() {
         .expect("creates");
     tx.commit().await.expect("commits");
     service
-        .disposition(&actor, new_root.id, "IGNORE")
+        .disposition(&actor, new_root.id, "IGNORE", None)
         .await
         .expect("dispositions");
     let group = group_of(db, Uuid::from_u128(7), UserId(Uuid::from_u128(8))).await;
@@ -4636,7 +4656,7 @@ async fn untrusted_text_is_data_and_no_credential_reaches_a_row() {
     tx.commit().await.expect("commits");
 
     service(db)
-        .disposition(&actor, new_root.id, "IGNORE")
+        .disposition(&actor, new_root.id, "IGNORE", None)
         .await
         .expect("dispositions");
 
@@ -4680,7 +4700,7 @@ async fn one_query_finds_what_an_identity_did() {
     ] {
         let root = alert(db).await;
         service
-            .disposition(&actor, root, "IGNORE")
+            .disposition(&actor, root, "IGNORE", None)
             .await
             .expect("dispositions");
     }
@@ -4812,7 +4832,7 @@ async fn a_session_and_an_api_key_reach_the_service_layer_as_their_actors() {
     for actor in [&from_session, &from_owned, &from_unowned] {
         assert!(
             matches!(
-                service.disposition(actor, root, "IGNORE").await,
+                service.disposition(actor, root, "IGNORE", None).await,
                 Err(ServiceError::PermissionDenied { .. })
             ),
             "{actor}"
@@ -4822,7 +4842,7 @@ async fn a_session_and_an_api_key_reach_the_service_layer_as_their_actors() {
     // Alice's grant reaches her session and not yet her key, which needs its own as well.
     grant(db, &Holder::User(alice), "alert", "write", Effect::Allow).await;
     service
-        .disposition(&from_session, root, "FALSE_POSITIVE")
+        .disposition(&from_session, root, "FALSE_POSITIVE", None)
         .await
         .expect("a session dispositions");
     let by_session = last_audit(db).await;
@@ -4832,13 +4852,13 @@ async fn a_session_and_an_api_key_reach_the_service_layer_as_their_actors() {
         json!({"kind": "user", "id": alice.0, "name": "alice"})
     );
     assert!(matches!(
-        service.disposition(&from_owned, root, "IGNORE").await,
+        service.disposition(&from_owned, root, "IGNORE", None).await,
         Err(ServiceError::PermissionDenied { .. })
     ));
 
     grant(db, &Holder::ApiKey(owned.id), "alert", "*", Effect::Allow).await;
     service
-        .disposition(&from_owned, root, "IGNORE")
+        .disposition(&from_owned, root, "IGNORE", None)
         .await
         .expect("a key dispositions");
     let by_key = last_audit(db).await;
@@ -4866,7 +4886,7 @@ async fn a_session_and_an_api_key_reach_the_service_layer_as_their_actors() {
         .await
         .expect("still authenticates");
     assert!(matches!(
-        service.disposition(&still, root, "IGNORE").await,
+        service.disposition(&still, root, "IGNORE", None).await,
         Err(ServiceError::PermissionDenied { .. })
     ));
 }
@@ -5828,7 +5848,7 @@ async fn deleting_a_user_removes_what_they_could_do_and_not_what_they_did() {
     }
     let root = alert(db).await;
     service
-        .disposition(&session.actor, root, "IGNORE")
+        .disposition(&session.actor, root, "IGNORE", None)
         .await
         .expect("dispositions");
     // Alice grants something to Bob, so a row of someone else's names her as its maker.
@@ -8800,6 +8820,9 @@ async fn the_alert_list_filters_and_pages_through_fixture_alerts() {
                     };
                     expected.sort_by(|x, y| (queue(x), x).cmp(&(queue(y), y)));
                 }
+                // nobody owns these (PLAN.md 7.17), so the owner order is the tie-break's: the id.
+                // `ownership_tests::the_alert_list_sorts_by_owner` has owners
+                AlertSort::Owner => expected.sort(),
             }
             if descending {
                 expected.reverse();
@@ -9065,7 +9088,12 @@ async fn hostile_filter_values_are_refused_or_are_data() {
             vec![text("Queue", false, &[&"q".repeat(65)])],
             "longer than 64 characters",
         ),
-        (vec![text("Owner", false, &["alice"])], "no step in PLAN.md"),
+        // ace3's Reviewed filter isn't here yet; Owner came with 7.17, and takes no empty name
+        (
+            vec![text("Reviewed", false, &["CORRECT"])],
+            "no step in PLAN.md",
+        ),
+        (vec![text("Owner", false, &["  "])], "can't be empty"),
         (
             vec![text("Alert Date", false, &["yesterday"])],
             "isn't a date",
@@ -9173,11 +9201,14 @@ fn share_links_encode_and_decode_as_ace3_s_do() {
     );
 
     // a filter this list doesn't have is left out, saying why, unless the caller is strict
-    let old = ["owner:alice".to_owned(), "disposition:OPEN".to_owned()];
+    let old = ["reviewed:CORRECT".to_owned(), "disposition:OPEN".to_owned()];
     let (decoded, warnings) = filter_model::decode(screen, &old, false).expect("decodes");
     assert_eq!(decoded, [text("Disposition", false, &["OPEN"])]);
     assert_eq!(warnings.len(), 1);
-    assert!(warnings[0].contains("no filter for it yet"), "{warnings:?}");
+    assert!(
+        warnings[0].contains("the Reviewed filter isn't here yet: a disposition has no review yet"),
+        "{warnings:?}"
+    );
     // the Queue filter came with 7.13, `$USER_QUEUE` and all
     let (decoded, warnings) =
         filter_model::decode(screen, &["queue:$USER_QUEUE,triage".to_owned()], true)
@@ -9764,8 +9795,15 @@ async fn manage_columns_is_normalized() {
     let normal = ManageColumnsPreference::default();
     assert_eq!(
         normal.order,
-        ["date", "description", "queue", "disposition", "status"],
-        "ace3's order, without the columns that come later"
+        [
+            "date",
+            "description",
+            "queue",
+            "owner",
+            "disposition",
+            "status"
+        ],
+        "ace3's order, without the column that comes later"
     );
     assert!(normal.hidden.is_empty());
     let parsed = PreferenceKey::ManageColumns
@@ -9779,9 +9817,20 @@ async fn manage_columns_is_normalized() {
     };
     assert_eq!(
         columns.order,
-        ["status", "description", "date", "queue", "disposition"]
+        [
+            "status",
+            "description",
+            "date",
+            "queue",
+            "owner",
+            "disposition"
+        ]
     );
-    assert_eq!(columns.hidden, ["date"], "description is always shown");
+    assert_eq!(
+        columns.hidden,
+        ["date", "owner"],
+        "description is always shown"
+    );
     assert_eq!(
         columns
             .visible()
@@ -10598,7 +10647,7 @@ async fn events_are_read_as_ace3_serves_them() {
         .await
         .expect("alerts");
     service
-        .disposition(&boss, first, "DELIVERY")
+        .disposition(&boss, first, "DELIVERY", None)
         .await
         .expect("dispositions");
     sqlx::query("UPDATE analysis.observables SET tags = '{zeta, Alpha}' WHERE root_id = $1")
@@ -11418,11 +11467,11 @@ async fn the_event_list_filters_sorts_and_pages_as_ace3_does() {
         .await
         .expect("runs");
     service
-        .disposition(&boss, damage, "DAMAGE")
+        .disposition(&boss, damage, "DAMAGE", None)
         .await
         .expect("dispositions");
     service
-        .disposition(&boss, false_positive, "FALSE_POSITIVE")
+        .disposition(&boss, false_positive, "FALSE_POSITIVE", None)
         .await
         .expect("dispositions");
     // a disposition can start a pass, so the two dispositioned ones are made idle after
@@ -13309,6 +13358,8 @@ fn graph_tree(
                 queue: "default".to_owned(),
                 tags: Vec::new(),
                 svs: None,
+                owner: None,
+                owned_at: None,
             },
             observables: i64::try_from(observables.len()).expect("a count"),
             files: 0,
@@ -16636,7 +16687,7 @@ async fn the_disposition_write_takes_the_sites_set() {
     .await;
     let root = alert(db).await;
     service
-        .disposition(&analyst, root, "SITE_OWN")
+        .disposition(&analyst, root, "SITE_OWN", None)
         .await
         .expect("the site's own");
     assert_eq!(row(db, root).await.disposition.as_deref(), Some("SITE_OWN"));
@@ -16648,23 +16699,26 @@ async fn the_disposition_write_takes_the_sites_set() {
         ("SIMULATED", "only ACE sets the disposition SIMULATED"),
         ("SITE_SWEEP", "only ACE sets the disposition SITE_SWEEP"),
     ] {
-        match service.disposition(&analyst, root, disposition).await {
+        match service.disposition(&analyst, root, disposition, None).await {
             Err(ServiceError::InvalidRequest(why)) => assert!(why.starts_with(said), "{why}"),
             other => panic!("{disposition}: {other:?}"),
         }
     }
     // ace3's default isn't taken from ACE either when the site doesn't have it
     assert!(matches!(
-        service.disposition(&ace, root, "MALICIOUS").await,
+        service.disposition(&ace, root, "MALICIOUS", None).await,
         Err(ServiceError::InvalidRequest(_))
     ));
     assert_eq!(row(db, root).await.disposition.as_deref(), Some("SITE_OWN"));
     // ACE sets one only it sets, and then an analyst can't change the alert, but ACE can
     service
-        .disposition(&ace, root, "SITE_SWEEP")
+        .disposition(&ace, root, "SITE_SWEEP", None)
         .await
         .expect("ACE sets it");
-    match service.disposition(&analyst, root, "FALSE_POSITIVE").await {
+    match service
+        .disposition(&analyst, root, "FALSE_POSITIVE", None)
+        .await
+    {
         Err(ServiceError::Conflict(why)) => assert!(why.contains("SITE_SWEEP"), "{why}"),
         other => panic!("{other:?}"),
     }
@@ -16673,11 +16727,11 @@ async fn the_disposition_write_takes_the_sites_set() {
         Some("SITE_SWEEP")
     );
     service
-        .disposition(&ace, root, "IGNORE")
+        .disposition(&ace, root, "IGNORE", None)
         .await
         .expect("ACE changes it");
     service
-        .disposition(&analyst, root, "FALSE_POSITIVE")
+        .disposition(&analyst, root, "FALSE_POSITIVE", None)
         .await
         .expect("an analyst can again");
     // a disposition the site has stopped configuring stays on its alert, and an analyst can replace it
@@ -16687,7 +16741,7 @@ async fn the_disposition_write_takes_the_sites_set() {
         .await
         .expect("an old value");
     service
-        .disposition(&analyst, root, "DELIVERY")
+        .disposition(&analyst, root, "DELIVERY", None)
         .await
         .expect("replaces it");
 }
@@ -16707,7 +16761,7 @@ async fn an_override_survives_an_fp_round_trip() {
         ("DELIVERY", VerdictSource::Explicit),
     ] {
         service
-            .disposition(&actor, root, disposition)
+            .disposition(&actor, root, disposition, None)
             .await
             .expect("dispositions");
         let first = verdict_rows(&service, &actor, root).await.remove(0);
@@ -17323,7 +17377,7 @@ async fn verdict_filters_match_what_they_say() {
     );
     let since = Utc::now();
     service
-        .disposition(&actor, open, "DELIVERY")
+        .disposition(&actor, open, "DELIVERY", None)
         .await
         .expect("dispositions");
     assert_eq!(listed(Vec::new(), Some(since)).await, set(&open_ids));
@@ -24719,7 +24773,7 @@ mod routing_tests {
         .await;
         for disposition in ["FALSE_POSITIVE", "OPEN"] {
             service
-                .disposition(&component("svs"), root, disposition)
+                .disposition(&component("svs"), root, disposition, None)
                 .await
                 .expect("dispositions");
         }
@@ -24790,7 +24844,7 @@ mod routing_tests {
         // SIMULATED is ACE's own, and only a component can give the alert back
         for disposition in ["SIMULATED", "OPEN"] {
             service
-                .disposition(&component("svs"), root, disposition)
+                .disposition(&component("svs"), root, disposition, None)
                 .await
                 .expect("dispositions");
         }
@@ -24863,7 +24917,7 @@ mod routing_tests {
         complete_pass(db, root).await;
         route_all(&service).await;
         service
-            .disposition(&admin(db).await, root, "FALSE_POSITIVE")
+            .disposition(&admin(db).await, root, "FALSE_POSITIVE", None)
             .await
             .expect("dispositions");
         if due(db).await.is_empty() {
@@ -42319,7 +42373,7 @@ mod svs_attribution_tests {
 
             let root = alert(&a, db, "srv-01", None).await;
             a.service
-                .disposition(&a.f.admin, root, "FALSE_POSITIVE")
+                .disposition(&a.f.admin, root, "FALSE_POSITIVE", None)
                 .await
                 .expect("dispositions");
             let result = associate(&a, &a.f.admin, run.uuid, root).await;
@@ -42520,7 +42574,7 @@ mod svs_attribution_tests {
             assert_eq!(disposition_of(db, root).await.as_deref(), Some("SIMULATED"));
             // an analyst can't reopen it themselves
             assert!(matches!(
-                a.service.disposition(&a.f.admin, root, "OPEN").await,
+                a.service.disposition(&a.f.admin, root, "OPEN", None).await,
                 Err(ServiceError::Conflict(_))
             ));
 
@@ -42979,7 +43033,7 @@ mod svs_attribution_tests {
             // an analyst can't change a frozen alert
             assert!(matches!(
                 a.service
-                    .disposition(&a.f.admin, by_marker, "FALSE_POSITIVE")
+                    .disposition(&a.f.admin, by_marker, "FALSE_POSITIVE", None)
                     .await,
                 Err(ServiceError::Conflict(_))
             ));
@@ -43002,7 +43056,7 @@ mod svs_attribution_tests {
                 .expect("bob takes it");
             let dispositioned = alert(&a, db, "win10-01", Some(&run.marker)).await;
             a.service
-                .disposition(&a.f.admin, dispositioned, "FALSE_POSITIVE")
+                .disposition(&a.f.admin, dispositioned, "FALSE_POSITIVE", None)
                 .await
                 .expect("dispositions");
             let plain = alert(&a, db, "win10-01", Some(&run.marker)).await;
@@ -43682,6 +43736,18 @@ mod svs_attribution_tests {
                         .await
                         .map(|_| ())
                         .expect_err("refused"),
+                ),
+                (
+                    "change_alert_owner",
+                    s.change_alert_owner(
+                        actor,
+                        &[before.free],
+                        Some(UserId(Uuid::from_u128(0xAD))),
+                        &std::collections::BTreeMap::new(),
+                    )
+                    .await
+                    .map(|_| ())
+                    .expect_err("refused"),
                 ),
             ]
         }
@@ -45915,5 +45981,1599 @@ mod svs_attribution_tests {
                 }
             }
         }
+    }
+}
+
+/// Alert ownership (PLAN.md 7.17): ace3's ownership cases, as Rust tests.
+///
+/// `tests/saq/database/util/test_alert.py`: `test_check_alert_ownership` (six cases) is
+/// `check_alert_ownership_decides_each_case`, `test_check_alert_ownership_drops_unknown_and_duplicate_alerts`
+/// has its own name, `test_describe_skipped` (four) is `describe_skipped_counts_by_owner`,
+/// `test_describe_frozen` (four) `describe_frozen_counts_by_disposition`, and
+/// `test_describe_skipped_names_owned_and_frozen_alerts` its own name. `tests/app/test_alert_ownership.py`
+/// (three) is `confirmed_takes_reads_the_form_field`. `test_ALERT_with_owner` and
+/// `tests/aceapi_v2/alerts/test_meta.py`'s two owner cases are `an_alert_says_who_owns_it`;
+/// `test_set_dispositions_leaves_alert_owned_by_another_alone`,
+/// `test_set_dispositions_takes_confirmed_alert`,
+/// `test_set_dispositions_takes_alert_owned_by_disabled_account`,
+/// `test_set_dispositions_protects_another_analysts_disposition` and
+/// `test_set_dispositions_does_not_take_a_frozen_alert` are the `a_disposition_*` tests;
+/// `test_change_alert_owner_takes`, `_assigns`, `_unassigns` and `_audits_who_made_the_change` are the
+/// `changing_owners_*` tests. `test_set_dispositions_leaves_ineligible_alerts_alone` is SVS's `eligible`
+/// check, which 7.10 batch 7a's closing tests cover (`svs_attribution_tests::association`): ace4's
+/// closings read their own condition under the alert's lock instead of passing a callback.
+///
+/// `tests/aceapi_v2/alerts/test_owner.py`'s service halves are `changing_owners_*` and
+/// `a_change_of_owner_checks_its_request`; its routes are `ace-api`'s tests. The Owner filter's cases
+/// (`test_count.py`'s Reset filter, `test_filter_url.py`, `test_filter_screens.py`) are
+/// `the_owner_filter_*`.
+mod ownership_tests {
+    use std::collections::BTreeMap;
+
+    use std::collections::HashMap;
+
+    use ace_service::filters::{self as filter_model, FilterScreen};
+    use ace_service::{
+        AlertOwner, AlertQuery, AlertSort, OwnerChange, OwnershipCheck, SkippedAlert,
+        check_alert_ownership, confirmed_takes, describe_frozen, describe_skipped,
+    };
+
+    use super::*;
+
+    /// An analyst who may read and write alerts, called `display` when given one.
+    async fn analyst(
+        service: &Service,
+        db: &Db,
+        username: &str,
+        display: Option<&str>,
+    ) -> (Actor, UserId) {
+        let actor = holding(
+            service,
+            db,
+            username,
+            &[("alert", "read"), ("alert", "write")],
+        )
+        .await;
+        let id = actor_id(&actor);
+        sqlx::query("UPDATE service.users SET display_name = $2 WHERE id = $1")
+            .bind(id.0)
+            .bind(display)
+            .execute(db.pool())
+            .await
+            .expect("names them");
+        (actor, id)
+    }
+
+    async fn new_alert(db: &Db, title: &str) -> Uuid {
+        let root = Uuid::new_v4();
+        sqlx::query(
+            "INSERT INTO analysis.roots (id, analysis_mode, description, event_time_source, alerted_at)
+             VALUES ($1, 'correlation', $2, 'unset', now())",
+        )
+        .bind(root)
+        .bind(title)
+        .execute(db.pool())
+        .await
+        .expect("adds an alert");
+        root
+    }
+
+    /// ace3's `_set_owner`: the row as an earlier take left it.
+    async fn owned_by(db: &Db, root: Uuid, user: UserId) {
+        sqlx::query("UPDATE analysis.roots SET owner_id = $2, owned_at = now() WHERE id = $1")
+            .bind(root)
+            .bind(user.0)
+            .execute(db.pool())
+            .await
+            .expect("sets the owner");
+    }
+
+    async fn owner_of(db: &Db, root: Uuid) -> (Option<Uuid>, bool) {
+        sqlx::query_as("SELECT owner_id, owned_at IS NOT NULL FROM analysis.roots WHERE id = $1")
+            .bind(root)
+            .fetch_one(db.pool())
+            .await
+            .expect("reads")
+    }
+
+    async fn disable(db: &Db, user: UserId) {
+        sqlx::query("UPDATE service.users SET enabled = false WHERE id = $1")
+            .bind(user.0)
+            .execute(db.pool())
+            .await
+            .expect("disables");
+    }
+
+    fn skipped(alert: Uuid, owner: UserId, name: &str) -> SkippedAlert {
+        SkippedAlert {
+            alert,
+            owner,
+            name: name.to_owned(),
+        }
+    }
+
+    fn none() -> BTreeMap<Uuid, UserId> {
+        BTreeMap::new()
+    }
+
+    fn is_owned(error: &ServiceError, alert: Uuid, owner: UserId, name: &str) -> bool {
+        matches!(
+            error,
+            ServiceError::AlertOwned { alert: a, owner: o, name: n }
+                if *a == alert && *o == owner.0 && n == name
+        )
+    }
+
+    struct Two {
+        service: Service,
+        owner: (Actor, UserId),
+        other: (Actor, UserId),
+    }
+
+    /// ace3's `two_analysts`: an owner and another analyst who wants to change the owner's alerts.
+    async fn two_analysts(db: &Db) -> Two {
+        let service = service(db);
+        let owner = analyst(&service, db, "original_owner", Some("Original Owner")).await;
+        let other = analyst(&service, db, "new_disposer", Some("New Disposer")).await;
+        Two {
+            service,
+            owner,
+            other,
+        }
+    }
+
+    /// An alert someone else owns is not changed unless it was taken from them, and nothing else of the
+    /// disposition lands on it either. The analyst becomes the owner of the one nobody owned.
+    #[tokio::test]
+    async fn a_disposition_leaves_an_alert_owned_by_another_alone() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let Two {
+            service,
+            owner,
+            other,
+        } = two_analysts(db).await;
+        let owned = new_alert(db, "owned").await;
+        owned_by(db, owned, owner.1).await;
+        let unowned = new_alert(db, "unowned").await;
+        let before = (row(db, owned).await, tasks(db, owned).await);
+        let audits = audit_rows(db).await.len();
+
+        let refused = service
+            .disposition(&other.0, owned, "FALSE_POSITIVE", None)
+            .await
+            .expect_err("left alone");
+        assert!(
+            is_owned(&refused, owned, owner.1, "Original Owner"),
+            "{refused}"
+        );
+        assert_eq!(
+            refused.to_string(),
+            format!(
+                "alert {owned} is owned by Original Owner, so it was left alone: confirm taking it from \
+                 them to change it"
+            )
+        );
+        assert_eq!((row(db, owned).await, tasks(db, owned).await), before);
+        assert_eq!(owner_of(db, owned).await.0, Some(owner.1.0));
+        assert_eq!(audit_rows(db).await.len(), audits, "nothing was recorded");
+
+        service
+            .disposition(&other.0, unowned, "FALSE_POSITIVE", None)
+            .await
+            .expect("dispositions");
+        assert_eq!(
+            row(db, unowned).await.disposition.as_deref(),
+            Some("FALSE_POSITIVE")
+        );
+        assert_eq!(owner_of(db, unowned).await, (Some(other.1.0), true));
+        let recorded = last_audit(db).await;
+        assert_eq!(recorded.before.expect("a before").get("owner"), None);
+        assert_eq!(recorded.after.expect("an after")["owner"], json!(other.1.0));
+        // their own alert stays theirs, and its time isn't moved
+        let since: chrono::DateTime<Utc> =
+            sqlx::query_scalar("SELECT owned_at FROM analysis.roots WHERE id = $1")
+                .bind(unowned)
+                .fetch_one(db.pool())
+                .await
+                .expect("reads");
+        service
+            .disposition(&other.0, unowned, "IGNORE", None)
+            .await
+            .expect("dispositions again");
+        let still: chrono::DateTime<Utc> =
+            sqlx::query_scalar("SELECT owned_at FROM analysis.roots WHERE id = $1")
+                .bind(unowned)
+                .fetch_one(db.pool())
+                .await
+                .expect("reads");
+        assert_eq!(still, since);
+    }
+
+    /// A confirmed take changes the disposition and makes the taker the owner. A confirmation that names
+    /// someone who doesn't own the alert counts for nothing.
+    #[tokio::test]
+    async fn a_disposition_takes_a_confirmed_alert() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let Two {
+            service,
+            owner,
+            other,
+        } = two_analysts(db).await;
+        let alert = new_alert(db, "confirmed").await;
+        owned_by(db, alert, owner.1).await;
+
+        // agreed to take it from someone who no longer has it: left alone
+        let stale = service
+            .disposition(&other.0, alert, "FALSE_POSITIVE", Some(other.1))
+            .await
+            .expect_err("left alone");
+        assert!(
+            is_owned(&stale, alert, owner.1, "Original Owner"),
+            "{stale}"
+        );
+
+        service
+            .disposition(&other.0, alert, "FALSE_POSITIVE", Some(owner.1))
+            .await
+            .expect("takes it");
+        let stored = row(db, alert).await;
+        assert_eq!(stored.disposition.as_deref(), Some("FALSE_POSITIVE"));
+        assert_eq!(stored.by, Some(actor_json(&other.0)));
+        assert_eq!(owner_of(db, alert).await, (Some(other.1.0), true));
+
+        // ace3's "alert ownership taken" record: who had it, and who has it now
+        let recorded = last_audit(db).await;
+        assert_eq!(recorded.action, "disposition");
+        assert_eq!(recorded.actor, actor_json(&other.0));
+        assert_eq!(
+            recorded.before.expect("a before")["owner"],
+            json!(owner.1.0)
+        );
+        assert_eq!(recorded.after.expect("an after")["owner"], json!(other.1.0));
+        assert_eq!(recorded.details["taken_from"], json!(owner.1.0));
+    }
+
+    /// A disabled owner has nobody left to protect.
+    #[tokio::test]
+    async fn a_disposition_takes_an_alert_owned_by_a_disabled_account() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let Two {
+            service,
+            owner,
+            other,
+        } = two_analysts(db).await;
+        let alert = new_alert(db, "abandoned").await;
+        owned_by(db, alert, owner.1).await;
+        disable(db, owner.1).await;
+
+        service
+            .disposition(&other.0, alert, "FALSE_POSITIVE", None)
+            .await
+            .expect("takes it");
+        assert_eq!(
+            row(db, alert).await.disposition.as_deref(),
+            Some("FALSE_POSITIVE")
+        );
+        assert_eq!(owner_of(db, alert).await.0, Some(other.1.0));
+        assert_eq!(last_audit(db).await.details["taken_from"], json!(owner.1.0));
+    }
+
+    /// Dispositioning makes the analyst the owner, so a later sweep by someone else can't silently
+    /// overwrite the disposition.
+    #[tokio::test]
+    async fn a_disposition_protects_another_analysts_disposition() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let Two {
+            service,
+            owner,
+            other,
+        } = two_analysts(db).await;
+        let alert = new_alert(db, "worked").await;
+        service
+            .disposition(&owner.0, alert, "FALSE_POSITIVE", None)
+            .await
+            .expect("dispositions");
+
+        let refused = service
+            .disposition(&other.0, alert, "IGNORE", None)
+            .await
+            .expect_err("left alone");
+        assert!(
+            is_owned(&refused, alert, owner.1, "Original Owner"),
+            "{refused}"
+        );
+        assert_eq!(
+            row(db, alert).await.disposition.as_deref(),
+            Some("FALSE_POSITIVE")
+        );
+    }
+
+    /// A confirmed take of a frozen alert from another analyst takes nothing: the frozen check comes
+    /// before the owner is looked at.
+    #[tokio::test]
+    async fn a_disposition_does_not_take_a_frozen_alert() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let Two {
+            service,
+            owner,
+            other,
+        } = two_analysts(db).await;
+        let alert = new_alert(db, "simulated").await;
+        sqlx::query(
+            "UPDATE analysis.roots
+             SET disposition = 'SIMULATED', dispositioned_at = now(),
+                 dispositioned_by = '{\"kind\": \"internal\", \"id\": \"svs\"}'
+             WHERE id = $1",
+        )
+        .bind(alert)
+        .execute(db.pool())
+        .await
+        .expect("freezes it");
+        owned_by(db, alert, owner.1).await;
+
+        let refused = service
+            .disposition(&other.0, alert, "FALSE_POSITIVE", Some(owner.1))
+            .await
+            .expect_err("frozen");
+        assert!(matches!(refused, ServiceError::Conflict(_)), "{refused}");
+        assert_eq!(
+            row(db, alert).await.disposition.as_deref(),
+            Some("SIMULATED")
+        );
+        assert_eq!(owner_of(db, alert).await.0, Some(owner.1.0));
+    }
+
+    /// Who the person is: a key acts as its user, a key with no user owns nothing, and ACE's components
+    /// neither check nor take ownership (the module's docs).
+    #[tokio::test]
+    async fn a_disposition_knows_who_the_person_is() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let Two {
+            service,
+            owner,
+            other,
+        } = two_analysts(db).await;
+
+        // a key of a user: the user becomes the owner, and their own alert is theirs
+        let their_key = key(ApiKeyId(Uuid::from_u128(0x71)), Some(other.1));
+        let lone_key = key(ApiKeyId(Uuid::from_u128(0x72)), None);
+        let closer = Component::new("closer").expect("valid");
+        for holder in [
+            Holder::ApiKey(ApiKeyId(Uuid::from_u128(0x71))),
+            Holder::ApiKey(ApiKeyId(Uuid::from_u128(0x72))),
+            Holder::Component(closer.clone()),
+        ] {
+            grant(db, &holder, "alert", "write", Effect::Allow).await;
+        }
+        let alert = new_alert(db, "by a key").await;
+        service
+            .disposition(&their_key, alert, "FALSE_POSITIVE", None)
+            .await
+            .expect("dispositions");
+        assert_eq!(owner_of(db, alert).await.0, Some(other.1.0));
+        service
+            .disposition(&other.0, alert, "IGNORE", None)
+            .await
+            .expect("their own");
+
+        // a key with no user: an alert nobody owns stays nobody's, an owned one is left alone, and a
+        // take it confirmed leaves the alert with nobody
+        let free = new_alert(db, "nobody's").await;
+        service
+            .disposition(&lone_key, free, "FALSE_POSITIVE", None)
+            .await
+            .expect("dispositions");
+        assert_eq!(owner_of(db, free).await, (None, false));
+        let owned = new_alert(db, "owned").await;
+        owned_by(db, owned, owner.1).await;
+        let refused = service
+            .disposition(&lone_key, owned, "FALSE_POSITIVE", None)
+            .await
+            .expect_err("left alone");
+        assert!(
+            is_owned(&refused, owned, owner.1, "Original Owner"),
+            "{refused}"
+        );
+        service
+            .disposition(&lone_key, owned, "FALSE_POSITIVE", Some(owner.1))
+            .await
+            .expect("confirmed");
+        assert_eq!(owner_of(db, owned).await, (None, false));
+
+        // a component: no check, and it owns nothing
+        let theirs = new_alert(db, "an analyst's").await;
+        owned_by(db, theirs, owner.1).await;
+        let unowned = new_alert(db, "unowned").await;
+        let component = Actor::Internal { id: closer };
+        for alert in [theirs, unowned] {
+            service
+                .disposition(&component, alert, "IGNORE", None)
+                .await
+                .expect("ACE's own");
+        }
+        assert_eq!(owner_of(db, theirs).await.0, Some(owner.1.0));
+        assert_eq!(owner_of(db, unowned).await, (None, false));
+    }
+
+    /// Taking: the alert someone else owns is left alone, the confirmed one changes hands, and the one
+    /// nobody owned is taken.
+    #[tokio::test]
+    async fn changing_owners_takes() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let Two {
+            service,
+            owner,
+            other,
+        } = two_analysts(db).await;
+        let owned = new_alert(db, "owned").await;
+        owned_by(db, owned, owner.1).await;
+        let confirmed = new_alert(db, "confirmed").await;
+        owned_by(db, confirmed, owner.1).await;
+        let unowned = new_alert(db, "unowned").await;
+
+        let result = service
+            .change_alert_owner(
+                &other.0,
+                &[owned, confirmed, unowned],
+                Some(other.1),
+                &BTreeMap::from([(confirmed, owner.1)]),
+            )
+            .await
+            .expect("takes");
+        assert_eq!(
+            result,
+            OwnerChange {
+                applied: vec![confirmed, unowned],
+                reassigned: vec![confirmed],
+                skipped: vec![skipped(owned, owner.1, "Original Owner")],
+                message: Some(
+                    "took ownership of 2 alerts; left 1 alert owned by Original Owner alone"
+                        .to_owned()
+                ),
+            }
+        );
+        assert_eq!(owner_of(db, owned).await.0, Some(owner.1.0));
+        assert_eq!(owner_of(db, confirmed).await, (Some(other.1.0), true));
+        assert_eq!(owner_of(db, unowned).await, (Some(other.1.0), true));
+
+        // nothing skipped: no message, as ace3's API answers null
+        let mine = new_alert(db, "another").await;
+        let result = service
+            .change_alert_owner(&other.0, &[mine], Some(other.1), &none())
+            .await
+            .expect("takes");
+        assert_eq!((result.applied, result.message), (vec![mine], None));
+    }
+
+    /// Assigning gives the alerts to someone else. An alert the new owner already has needs no
+    /// confirmation; one a third analyst owns is left alone like any other.
+    #[tokio::test]
+    async fn changing_owners_assigns() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let Two {
+            service,
+            owner: assigner,
+            other: assignee,
+        } = two_analysts(db).await;
+        let third = analyst(&service, db, "third_analyst", Some("Third Analyst")).await;
+        let unowned = new_alert(db, "unowned").await;
+        let mine = new_alert(db, "mine").await;
+        owned_by(db, mine, assigner.1).await;
+        let already_theirs = new_alert(db, "already theirs").await;
+        owned_by(db, already_theirs, assignee.1).await;
+        let someone_elses = new_alert(db, "someone else's").await;
+        owned_by(db, someone_elses, third.1).await;
+
+        let result = service
+            .change_alert_owner(
+                &assigner.0,
+                &[unowned, mine, already_theirs, someone_elses],
+                Some(assignee.1),
+                &none(),
+            )
+            .await
+            .expect("assigns");
+        assert_eq!(
+            result,
+            OwnerChange {
+                applied: vec![unowned, mine, already_theirs],
+                reassigned: vec![],
+                skipped: vec![skipped(someone_elses, third.1, "Third Analyst")],
+                message: Some(
+                    "assigned 3 alerts to New Disposer; left 1 alert owned by Third Analyst alone"
+                        .to_owned()
+                ),
+            }
+        );
+        for alert in [unowned, mine, already_theirs] {
+            assert_eq!(owner_of(db, alert).await.0, Some(assignee.1.0));
+        }
+        assert_eq!(owner_of(db, someone_elses).await.0, Some(third.1.0));
+    }
+
+    #[tokio::test]
+    async fn changing_owners_unassigns() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let Two {
+            service,
+            owner,
+            other,
+        } = two_analysts(db).await;
+        let mine = new_alert(db, "mine").await;
+        owned_by(db, mine, other.1).await;
+        let theirs = new_alert(db, "theirs").await;
+        owned_by(db, theirs, owner.1).await;
+        let confirmed = new_alert(db, "confirmed").await;
+        owned_by(db, confirmed, owner.1).await;
+
+        let result = service
+            .change_alert_owner(
+                &other.0,
+                &[mine, theirs, confirmed],
+                None,
+                &BTreeMap::from([(confirmed, owner.1)]),
+            )
+            .await
+            .expect("unassigns");
+        assert_eq!(result.applied, [mine, confirmed]);
+        assert_eq!(result.skipped, [skipped(theirs, owner.1, "Original Owner")]);
+        assert_eq!(
+            result.message.as_deref(),
+            Some("unassigned 2 alerts; left 1 alert owned by Original Owner alone")
+        );
+        for alert in [mine, confirmed] {
+            assert_eq!(owner_of(db, alert).await, (None, false));
+        }
+        assert_eq!(owner_of(db, theirs).await.0, Some(owner.1.0));
+    }
+
+    /// When an alert is taken from someone on another's behalf, the record names who had it, who has it
+    /// now and who made the change. An alert that already had the owner asked for writes no row.
+    #[tokio::test]
+    async fn changing_owners_audits_who_made_the_change() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let Two {
+            service,
+            owner,
+            other: assigner,
+        } = two_analysts(db).await;
+        let third = analyst(&service, db, "third_analyst", Some("Third Analyst")).await;
+        let alert = new_alert(db, "handed on").await;
+        owned_by(db, alert, owner.1).await;
+
+        service
+            .change_alert_owner(
+                &assigner.0,
+                &[alert],
+                Some(third.1),
+                &BTreeMap::from([(alert, owner.1)]),
+            )
+            .await
+            .expect("assigns");
+        assert_eq!(
+            last_audit(db).await,
+            AuditRow {
+                actor: actor_json(&assigner.0),
+                action: "change_alert_owner".to_owned(),
+                target: ("root".to_owned(), alert.to_string()),
+                before: Some(json!({"owner": owner.1.0})),
+                after: Some(json!({"owner": third.1.0})),
+                details: json!({"taken": true}),
+            }
+        );
+
+        let audits = audit_rows(db).await.len();
+        let again = service
+            .change_alert_owner(&third.0, &[alert], Some(third.1), &none())
+            .await
+            .expect("theirs already");
+        assert_eq!(again.applied, [alert]);
+        assert_eq!(audit_rows(db).await.len(), audits);
+    }
+
+    /// What a change of owner refuses and drops: ace3's `test_owner.py` cases that aren't about who
+    /// owns what.
+    #[tokio::test]
+    async fn a_change_of_owner_checks_its_request() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let Two {
+            service,
+            owner,
+            other,
+        } = two_analysts(db).await;
+        let alert = new_alert(db, "an alert").await;
+        let invalid = |result: Result<OwnerChange, ServiceError>, what: &str| {
+            let error = result.expect_err("refused");
+            assert!(
+                matches!(&error, ServiceError::InvalidRequest(why) if why.contains(what)),
+                "{error}"
+            );
+        };
+
+        // no alerts, or too many
+        invalid(
+            service
+                .change_alert_owner(&other.0, &[], None, &none())
+                .await,
+            "1 to 500 alerts",
+        );
+        let many: Vec<Uuid> = (0..=ace_service::MAX_OWNER_ALERTS)
+            .map(|_| Uuid::new_v4())
+            .collect();
+        invalid(
+            service
+                .change_alert_owner(&other.0, &many, None, &none())
+                .await,
+            "1 to 500 alerts",
+        );
+
+        // the new owner must be an enabled user
+        let unknown = UserId(Uuid::new_v4());
+        invalid(
+            service
+                .change_alert_owner(&other.0, &[alert], Some(unknown), &none())
+                .await,
+            "does not exist or is disabled",
+        );
+        let gone = analyst(&service, db, "raj_assignee", Some("Raj")).await;
+        disable(db, gone.1).await;
+        invalid(
+            service
+                .change_alert_owner(&other.0, &[alert], Some(gone.1), &none())
+                .await,
+            "does not exist or is disabled",
+        );
+        assert_eq!(owner_of(db, alert).await, (None, false));
+
+        // a key that isn't a user can't change owners; a key of a user acts as them
+        let lone = ApiKeyId(Uuid::from_u128(0x81));
+        let theirs = ApiKeyId(Uuid::from_u128(0x82));
+        for id in [lone, theirs] {
+            grant(db, &Holder::ApiKey(id), "alert", "write", Effect::Allow).await;
+        }
+        invalid(
+            service
+                .change_alert_owner(&key(lone, None), &[alert], None, &none())
+                .await,
+            "a caller that is a user",
+        );
+        let taken = service
+            .change_alert_owner(
+                &key(theirs, Some(other.1)),
+                &[alert],
+                Some(other.1),
+                &none(),
+            )
+            .await
+            .expect("their key takes it");
+        assert_eq!(taken.applied, [alert]);
+        assert_eq!(owner_of(db, alert).await.0, Some(other.1.0));
+
+        // it needs alert:write
+        let reader = holding(&service, db, "reader", &[("alert", "read")]).await;
+        assert!(matches!(
+            service
+                .change_alert_owner(&reader, &[alert], Some(actor_id(&reader)), &none())
+                .await,
+            Err(ServiceError::PermissionDenied { permission, .. }) if permission == ALERT_WRITE
+        ));
+        assert_eq!(owner_of(db, alert).await.0, Some(other.1.0));
+
+        // an id that names no alert, a root that isn't one, and a repeat are dropped
+        let not_alerted = super::alert(db).await;
+        let free = new_alert(db, "free").await;
+        let result = service
+            .change_alert_owner(
+                &owner.0,
+                &[free, Uuid::new_v4(), not_alerted, free],
+                Some(owner.1),
+                &none(),
+            )
+            .await
+            .expect("takes the one");
+        assert_eq!((result.applied, result.skipped), (vec![free], vec![]));
+        assert_eq!(owner_of(db, not_alerted).await, (None, false));
+
+        // a confirmation for another owner changes nothing
+        let result = service
+            .change_alert_owner(
+                &other.0,
+                &[free],
+                Some(other.1),
+                &BTreeMap::from([(free, unknown)]),
+            )
+            .await
+            .expect("answers");
+        assert_eq!(
+            (result.applied, result.skipped),
+            (vec![], vec![skipped(free, owner.1, "Original Owner")])
+        );
+        assert_eq!(owner_of(db, free).await.0, Some(owner.1.0));
+    }
+
+    /// An alert says who owns it and since when, on its own and in the list: ace3's `owner_id`,
+    /// `owner_name` and `owner_time`. A user with no display name is called by their username, and a
+    /// deleted user's alerts are nobody's again.
+    #[tokio::test]
+    async fn an_alert_says_who_owns_it() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let service = service(db);
+        let (jane, jane_id) = analyst(&service, db, "jane", Some("Jane")).await;
+        let (plain, plain_id) = analyst(&service, db, "plain", None).await;
+        // unowned alerts on either side, so the lookup has to find this one by its id
+        new_alert(db, "before").await;
+        let alert = new_alert(db, "the one").await;
+        new_alert(db, "after").await;
+
+        let read = service.alert(&jane, alert).await.expect("reads").summary;
+        assert_eq!((read.owner, read.owned_at), (None, None));
+
+        service
+            .change_alert_owner(&jane, &[alert], Some(jane_id), &none())
+            .await
+            .expect("takes");
+        let read = service.alert(&jane, alert).await.expect("reads").summary;
+        let owner = read.owner.expect("an owner");
+        assert_eq!(
+            (
+                owner.id,
+                owner.name.as_str(),
+                owner.username.as_str(),
+                owner.enabled
+            ),
+            (jane_id, "Jane", "jane", true)
+        );
+        assert!(read.owned_at.is_some());
+        let listed = service
+            .alerts(&jane, &AlertQuery::default(), None, None)
+            .await
+            .expect("lists");
+        let owners: Vec<Option<String>> = listed
+            .alerts
+            .iter()
+            .map(|alert| alert.owner.as_ref().map(|owner| owner.name.clone()))
+            .collect();
+        assert_eq!(owners.iter().flatten().collect::<Vec<_>>(), ["Jane"]);
+        assert_eq!(owners.len(), 3);
+
+        service
+            .change_alert_owner(&jane, &[alert], Some(plain_id), &none())
+            .await
+            .expect("assigns");
+        let read = service.alert(&plain, alert).await.expect("reads").summary;
+        assert_eq!(read.owner.expect("an owner").name, "plain");
+
+        for clear in [
+            "DELETE FROM service.permissions WHERE user_id = $1",
+            "DELETE FROM service.sessions WHERE user_id = $1",
+        ] {
+            sqlx::query(clear)
+                .bind(plain_id.0)
+                .execute(db.pool())
+                .await
+                .expect("clears");
+        }
+        sqlx::query("DELETE FROM service.users WHERE id = $1")
+            .bind(plain_id.0)
+            .execute(db.pool())
+            .await
+            .expect("deletes the user");
+        let read = service.alert(&jane, alert).await.expect("reads").summary;
+        assert_eq!(read.owner, None);
+    }
+
+    /// Who Assign offers: the enabled users, by what each is called, for whoever holds `alert:write`.
+    #[tokio::test]
+    async fn the_owner_choices_are_the_enabled_users() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let service = service(db);
+        let (zed, _) = analyst(&service, db, "zed", Some("Aaron Zed")).await;
+        analyst(&service, db, "mona", None).await;
+        let (gone, gone_id) = analyst(&service, db, "gone", Some("Gone")).await;
+        disable(db, gone_id).await;
+
+        let choices = service.alert_owner_choices(&zed).await.expect("lists");
+        let named: Vec<(&str, &str)> = choices
+            .iter()
+            .filter(|choice| ["zed", "mona", "gone"].contains(&choice.username.as_str()))
+            .map(|choice| (choice.name.as_str(), choice.username.as_str()))
+            .collect();
+        assert_eq!(named, [("Aaron Zed", "zed"), ("mona", "mona")]);
+        // the admin who made them is a user too, and is offered
+        assert!(
+            choices
+                .iter()
+                .any(|choice| choice.id.0 == Uuid::from_u128(0xAD))
+        );
+
+        let reader = holding(&service, db, "reader", &[("alert", "read")]).await;
+        assert!(matches!(
+            service.alert_owner_choices(&reader).await,
+            Err(ServiceError::PermissionDenied { permission, .. }) if permission == ALERT_WRITE
+        ));
+        // a disabled analyst's session is gone, so they are never the caller; the list is still theirs
+        // to read by permission
+        drop(gone);
+    }
+
+    /// The Owner filter matches what an owner is called, their username, `None` for nobody and `$USER`
+    /// for the viewer, and inverted matches exactly the rest. ace3's Reset filter (`test_count.py`:
+    /// open, and nobody's or mine) counts the same alerts.
+    #[tokio::test]
+    async fn the_owner_filter_matches_names_nobody_and_the_viewer() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let service = service(db);
+        let (ann, ann_id) = analyst(&service, db, "ann", Some("Ann Alyst")).await;
+        let (jane, jane_id) = analyst(&service, db, "jane", None).await;
+        let (a, b, c, d) = list_fixtures(db).await;
+        // B is Ann's and C is Jane's; A and D are nobody's. A and D are open.
+        owned_by(db, b, ann_id).await;
+        owned_by(db, c, jane_id).await;
+
+        let cases: Vec<(Vec<FilterEntry>, Vec<Uuid>)> = vec![
+            (vec![text("Owner", false, &["None"])], vec![a, d]),
+            (vec![text("Owner", false, &["Ann Alyst"])], vec![b]),
+            // a username finds its user too, since a display name is optional here
+            (vec![text("Owner", false, &["ann"])], vec![b]),
+            (vec![text("Owner", false, &["jane"])], vec![c]),
+            (
+                vec![text("Owner", false, &["Ann Alyst", "jane"])],
+                vec![b, c],
+            ),
+            (vec![text("Owner", false, &["$USER"])], vec![b]),
+            (
+                vec![text("Owner", false, &["None", "$USER"])],
+                vec![a, b, d],
+            ),
+            (vec![text("Owner", true, &["None"])], vec![b, c]),
+            (vec![text("Owner", true, &["None", "jane"])], vec![b]),
+            (vec![text("Owner", true, &["$USER"])], vec![a, c, d]),
+            (vec![text("Owner", false, &["nobody called this"])], vec![]),
+            // a name is matched whole and by its case, as ace3's select filter does
+            (vec![text("Owner", false, &["Ann"])], vec![]),
+            (vec![text("Owner", false, &["ann alyst"])], vec![]),
+            // ace3's Reset: open alerts that are nobody's or the viewer's
+            (
+                vec![
+                    text("Disposition", false, &["OPEN"]),
+                    text("Owner", false, &["None", "$USER"]),
+                ],
+                vec![a, d],
+            ),
+        ];
+        for (filters, expected) in cases {
+            assert_eq!(
+                matching(&service, &ann, filters.clone()).await,
+                sorted(expected),
+                "{filters:?}"
+            );
+        }
+
+        // $USER is whoever looks: Jane, a key of Ann's, and nobody for a key with no user or a component
+        let mine = || vec![text("Owner", false, &["$USER"])];
+        assert_eq!(matching(&service, &jane, mine()).await, [c]);
+        let anns_key = ApiKeyId(Uuid::from_u128(0x91));
+        let lone_key = ApiKeyId(Uuid::from_u128(0x92));
+        let reader = Component::new("alert_reader").expect("valid");
+        for holder in [
+            Holder::ApiKey(anns_key),
+            Holder::ApiKey(lone_key),
+            Holder::Component(reader.clone()),
+        ] {
+            grant(db, &holder, "alert", "read", Effect::Allow).await;
+        }
+        assert_eq!(
+            matching(&service, &key(anns_key, Some(ann_id)), mine()).await,
+            [b]
+        );
+        let nothing: Vec<Uuid> = Vec::new();
+        assert_eq!(
+            matching(&service, &key(lone_key, None), mine()).await,
+            nothing
+        );
+        assert_eq!(
+            matching(&service, &Actor::Internal { id: reader }, mine()).await,
+            nothing
+        );
+
+        // two users with one display name aren't each other's $USER
+        let (twin, twin_id) = analyst(&service, db, "twin", Some("Ann Alyst")).await;
+        owned_by(db, d, twin_id).await;
+        assert_eq!(matching(&service, &twin, mine()).await, [d]);
+        assert_eq!(matching(&service, &ann, mine()).await, [b]);
+        assert_eq!(
+            matching(&service, &ann, vec![text("Owner", false, &["Ann Alyst"])]).await,
+            sorted(vec![b, d])
+        );
+    }
+
+    /// The list sorts by its owner, an alert nobody owns first, and pages without a skip or a repeat
+    /// either way; a cursor of the owner order carries the owner's name.
+    #[tokio::test]
+    async fn the_alert_list_sorts_by_owner() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let service = service(db);
+        let (ann, ann_id) = analyst(&service, db, "ann", Some("Ann Alyst")).await;
+        let (_, jane_id) = analyst(&service, db, "jane", None).await;
+        let (_, dotty_id) = analyst(&service, db, "dotty", Some("d.o.t. Ty")).await;
+        let (a, b, c, d) = list_fixtures(db).await;
+        owned_by(db, b, ann_id).await;
+        owned_by(db, c, jane_id).await;
+        owned_by(db, d, dotty_id).await;
+        let extra = new_alert(db, "another of Ann's").await;
+        owned_by(db, extra, ann_id).await;
+
+        let query = |descending: bool| AlertQuery {
+            sort: AlertSort::Owner,
+            descending,
+            ..AlertQuery::default()
+        };
+        // by its bytes: "" < "Ann Alyst" < "d.o.t. Ty" < "jane", ties by the alert's id
+        let (ann_low, ann_high) = if b < extra { (b, extra) } else { (extra, b) };
+        let ascending = vec![a, ann_low, ann_high, d, c];
+        for limit in [1, 2, 10] {
+            let (seen, total) = every_alert(&service, &ann, &query(false), limit).await;
+            assert_eq!((seen, total), (ascending.clone(), 5), "{limit} a page");
+            let (seen, _) = every_alert(&service, &ann, &query(true), limit).await;
+            let mut descending = ascending.clone();
+            descending.reverse();
+            assert_eq!(seen, descending, "{limit} a page, descending");
+        }
+        let page = service
+            .alerts(&ann, &query(false), Some(4), None)
+            .await
+            .expect("lists");
+        assert_eq!(
+            page.next.as_deref(),
+            Some(format!("owner.asc.{d}.d.o.t. Ty").as_str())
+        );
+        let first = service
+            .alerts(&ann, &query(false), Some(1), None)
+            .await
+            .expect("lists");
+        assert_eq!(
+            first.next.as_deref(),
+            Some(format!("owner.asc.{a}.").as_str())
+        );
+        assert_eq!(AlertSort::named("owner"), Some(AlertSort::Owner));
+    }
+
+    /// The filter model: the alert screen has Owner under ace3's slug, a value is trimmed, `None` and
+    /// `$USER` are values, and a share link round-trips it, inverted too.
+    #[test]
+    fn the_owner_filter_is_the_alert_screens() {
+        let screen = FilterScreen::Alerts;
+        let spec = screen.spec("Owner").expect("the Owner filter");
+        assert_eq!(
+            (spec.slug, spec.kind),
+            ("owner", filter_model::FilterKind::Text)
+        );
+        assert!(
+            screen.left_out().iter().all(|gone| gone.name != "Owner"),
+            "it isn't left out any more"
+        );
+        assert_eq!(filter_model::USER, "$USER");
+
+        let checked = filter_model::check(screen, &[text("Owner", false, &[" Alice ", "Alice"])])
+            .expect("checks");
+        assert_eq!(checked, [text("Owner", false, &["Alice"])]);
+        for empty in ["", "   "] {
+            assert!(matches!(
+                filter_model::check(screen, &[text("Owner", false, &[empty])]),
+                Err(ServiceError::InvalidRequest(_))
+            ));
+        }
+
+        let (decoded, warnings) =
+            filter_model::decode(screen, &["owner:None,$USER".to_owned()], true).expect("decodes");
+        assert_eq!(decoded, [text("Owner", false, &["None", "$USER"])]);
+        assert!(warnings.is_empty());
+        // ace3's test_multiple_filters_round_trip_in_order
+        let filters = vec![
+            text("Queue", false, &["default"]),
+            text("Owner", true, &["None", "jane"]),
+            text("Alert Date", false, &["-24h@h - now"]),
+        ];
+        let encoded = filter_model::encode(screen, &filters).expect("encodes");
+        assert_eq!(
+            encoded,
+            [
+                "queue:default",
+                "!owner:None,jane",
+                "alert_date:-24h%40h%20-%20now"
+            ]
+        );
+        assert_eq!(
+            filter_model::decode(screen, &encoded, true)
+                .expect("decodes")
+                .0,
+            filters
+        );
+        // a name with a comma or a colon survives the link
+        let odd = vec![text("Owner", false, &["Smith, Jo: SOC"])];
+        let encoded = filter_model::encode(screen, &odd).expect("encodes");
+        assert_eq!(
+            filter_model::decode(screen, &encoded, true)
+                .expect("decodes")
+                .0,
+            odd
+        );
+    }
+
+    //
+    // the check itself, and what it says: ace3's unit cases
+    //
+
+    const ME: UserId = UserId(Uuid::from_u128(7));
+    const JANE: UserId = UserId(Uuid::from_u128(3));
+    const A: Uuid = Uuid::from_u128(0xA);
+    const B: Uuid = Uuid::from_u128(0xB);
+    const C: Uuid = Uuid::from_u128(0xC);
+
+    fn an_owner(id: UserId, name: &str, enabled: bool) -> AlertOwner {
+        AlertOwner {
+            id,
+            name: name.to_owned(),
+            username: name.to_lowercase(),
+            enabled,
+        }
+    }
+
+    /// ace3's `test_check_alert_ownership`, its six cases.
+    #[test]
+    fn check_alert_ownership_decides_each_case() {
+        let other = UserId(Uuid::from_u128(4));
+        let cases: [(Option<AlertOwner>, Option<UserId>, &str); 6] = [
+            // unowned: anyone may change it
+            (None, None, "permitted"),
+            // already mine
+            (Some(an_owner(ME, "me", true)), None, "permitted"),
+            // someone else's, not confirmed
+            (Some(an_owner(JANE, "Jane", true)), None, "skipped"),
+            // someone else's, confirmed against the owner who has it
+            (Some(an_owner(JANE, "Jane", true)), Some(JANE), "reassigned"),
+            // confirmed against an owner who no longer has it
+            (Some(an_owner(JANE, "Jane", true)), Some(other), "skipped"),
+            // a disabled owner has nobody left to protect
+            (Some(an_owner(JANE, "Jane", false)), None, "reassigned"),
+        ];
+        for (owned_by, confirmed, expected) in cases {
+            let owners = HashMap::from([(A, owned_by.clone())]);
+            let confirmed: BTreeMap<Uuid, UserId> =
+                confirmed.into_iter().map(|from| (A, from)).collect();
+            let result = check_alert_ownership(&[A], &owners, Some(ME), &confirmed, None);
+            let case = format!("{owned_by:?} {confirmed:?}");
+            assert_eq!(
+                result.permitted,
+                if expected == "skipped" {
+                    vec![]
+                } else {
+                    vec![A]
+                },
+                "{case}"
+            );
+            assert_eq!(
+                result.reassigned,
+                if expected == "reassigned" {
+                    vec![A]
+                } else {
+                    vec![]
+                },
+                "{case}"
+            );
+            assert_eq!(
+                result.skipped,
+                if expected == "skipped" {
+                    vec![skipped(A, JANE, "Jane")]
+                } else {
+                    vec![]
+                },
+                "{case}"
+            );
+        }
+    }
+
+    /// ace3's `test_check_alert_ownership_drops_unknown_and_duplicate_alerts`.
+    #[test]
+    fn check_alert_ownership_drops_unknown_and_duplicate_alerts() {
+        let owners = HashMap::from([(A, None), (B, None)]);
+        let missing = Uuid::from_u128(0xDEAD);
+        let result = check_alert_ownership(
+            &[B, missing, A, B],
+            &owners,
+            Some(ME),
+            &BTreeMap::new(),
+            None,
+        );
+        assert_eq!(result.permitted, vec![B, A]);
+    }
+
+    /// The new owner's own alerts need no confirmation (ace3's `new_owner_id`), and a key with no user
+    /// owns nothing, so every owned alert is someone else's to it.
+    #[test]
+    fn check_alert_ownership_knows_the_new_owner_and_a_caller_who_is_nobody() {
+        let owners = HashMap::from([(A, Some(an_owner(JANE, "Jane", true)))]);
+        let none = BTreeMap::new();
+        let assigned = check_alert_ownership(&[A], &owners, Some(ME), &none, Some(JANE));
+        assert_eq!((assigned.permitted, assigned.reassigned), (vec![A], vec![]));
+        let nobody = check_alert_ownership(&[A], &owners, None, &none, None);
+        assert_eq!(nobody.skipped, vec![skipped(A, JANE, "Jane")]);
+    }
+
+    /// ace3's `test_describe_skipped`, its four cases.
+    #[test]
+    fn describe_skipped_counts_by_owner() {
+        let raj = UserId(Uuid::from_u128(5));
+        let cases: [(Vec<SkippedAlert>, Option<&str>); 4] = [
+            (vec![], None),
+            (
+                vec![skipped(A, JANE, "Jane")],
+                Some("left 1 alert owned by Jane alone"),
+            ),
+            (
+                vec![skipped(A, JANE, "Jane"), skipped(B, JANE, "Jane")],
+                Some("left 2 alerts owned by Jane alone"),
+            ),
+            (
+                vec![
+                    skipped(A, JANE, "Jane"),
+                    skipped(B, JANE, "Jane"),
+                    skipped(C, raj, "Raj"),
+                ],
+                Some("left 3 alerts owned by other analysts alone (Jane 2, Raj 1)"),
+            ),
+        ];
+        for (skipped, expected) in cases {
+            let check = OwnershipCheck {
+                skipped,
+                ..OwnershipCheck::default()
+            };
+            assert_eq!(describe_skipped(&check).as_deref(), expected);
+        }
+    }
+
+    /// ace3's `test_describe_frozen`, its four cases.
+    #[test]
+    fn describe_frozen_counts_by_disposition() {
+        let frozen = |dispositions: &[&str]| -> Vec<(Uuid, String)> {
+            dispositions
+                .iter()
+                .enumerate()
+                .map(|(at, disposition)| (Uuid::from_u128(at as u128), (*disposition).to_owned()))
+                .collect()
+        };
+        assert_eq!(describe_frozen(&[]), None);
+        assert_eq!(
+            describe_frozen(&frozen(&["SIMULATED"])).as_deref(),
+            Some("left 1 SIMULATED alert alone (only ACE sets that disposition)")
+        );
+        assert_eq!(
+            describe_frozen(&frozen(&["SIMULATED", "SIMULATED"])).as_deref(),
+            Some("left 2 SIMULATED alerts alone (only ACE sets that disposition)")
+        );
+        assert_eq!(
+            describe_frozen(&frozen(&["SIMULATED", "SIMULATED", "OTHER"])).as_deref(),
+            Some("left 3 alerts alone whose disposition only ACE sets (SIMULATED 2, OTHER 1)")
+        );
+    }
+
+    /// ace3's `test_describe_skipped_names_owned_and_frozen_alerts`.
+    #[test]
+    fn describe_skipped_names_owned_and_frozen_alerts() {
+        let check = OwnershipCheck {
+            skipped: vec![skipped(A, JANE, "Jane")],
+            frozen: vec![(B, "SIMULATED".to_owned())],
+            ..OwnershipCheck::default()
+        };
+        assert_eq!(
+            describe_skipped(&check).as_deref(),
+            Some(
+                "left 1 alert owned by Jane alone; left 1 SIMULATED alert alone (only ACE sets that disposition)"
+            )
+        );
+    }
+
+    /// ace3's `test_confirmed_takes_from_form` and `test_confirmed_takes_from_form_without_field`: pairs
+    /// are trimmed, and a malformed one is dropped, which leaves its alert unconfirmed.
+    #[test]
+    fn confirmed_takes_reads_the_form_field() {
+        let (three, four, five) = (
+            Uuid::from_u128(3).to_string(),
+            Uuid::from_u128(4).to_string(),
+            Uuid::from_u128(5).to_string(),
+        );
+        assert_eq!(
+            confirmed_takes(&format!(" {A}:{three} , {B}:{four} ")),
+            BTreeMap::from([
+                (A, UserId(Uuid::from_u128(3))),
+                (B, UserId(Uuid::from_u128(4)))
+            ])
+        );
+        assert_eq!(
+            confirmed_takes(&format!("{A},{B}:x,{C}:{five}")),
+            BTreeMap::from([(C, UserId(Uuid::from_u128(5)))])
+        );
+        assert_eq!(confirmed_takes(""), BTreeMap::new());
+    }
+
+    pub(super) async fn change_alert_owner_records_its_row(db: &Db) -> String {
+        let service = service(db);
+        let actor = admin(db).await;
+        let me = actor_id(&actor);
+        let alert = new_alert(db, "to take").await;
+        service
+            .change_alert_owner(&actor, &[alert], Some(me), &none())
+            .await
+            .expect("takes it");
+        let row = last_audit(db).await;
+        assert_eq!(
+            row,
+            AuditRow {
+                actor: boss_json(),
+                action: "change_alert_owner".to_owned(),
+                target: ("root".to_owned(), alert.to_string()),
+                before: Some(json!({"owner": null})),
+                after: Some(json!({"owner": me.0})),
+                details: json!({"taken": false}),
+            }
+        );
+        row.action
+    }
+
+    /// ace3's defaults on each screen it seeds (`DEFAULT_SAVED_FILTERS`), once per user and screen: a
+    /// user seeded for the alert list before these came still gets each of the others once.
+    #[tokio::test]
+    async fn every_seeded_screen_gets_ace3_s_default_filters_once() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let service = service(db);
+        let me = holding(&service, db, "seeded", &[("*", "*")]).await;
+        // seeded for the alert list first, as someone who used ace4 before the other screens seeded
+        assert_eq!(
+            service
+                .seed_saved_filters(&me, FilterScreen::Alerts)
+                .await
+                .expect("seeds")
+                .len(),
+            2
+        );
+
+        type Seeded = (&'static str, &'static str, Vec<FilterEntry>);
+        /// A saved filter's name, description, filters, place among the quick filters and indicator.
+        type Shown<'a> = (
+            &'a str,
+            Option<&'a str>,
+            &'a [FilterEntry],
+            Option<i32>,
+            bool,
+        );
+        let endpoints = || text("Platform", false, &["windows", "linux", "macos"]);
+        let live = || text("Retired", false, &["false"]);
+        let expected: Vec<(FilterScreen, Vec<Seeded>)> = vec![
+            (
+                FilterScreen::SvsSamples,
+                vec![
+                    (
+                        "Conflicted",
+                        "Samples whose votes disagree; excluded from validation until relabeled",
+                        vec![text("Label", false, &["conflicted"])],
+                    ),
+                    (
+                        "Missing data",
+                        "Samples with a capture that lacks its file or its match record",
+                        vec![text("Missing Data", false, &["true"])],
+                    ),
+                ],
+            ),
+            (
+                FilterScreen::SvsValidations,
+                vec![
+                    (
+                        "Has regressions",
+                        "Validations whose head no longer matches samples labeled TP",
+                        vec![text("Has Regressions", false, &["true"])],
+                    ),
+                    (
+                        "Failed",
+                        "Validations that could not run",
+                        vec![text("State", false, &["failed"])],
+                    ),
+                ],
+            ),
+            (
+                FilterScreen::SvsRuns,
+                vec![
+                    (
+                        "Needs attention",
+                        "Runs that ended and wait for review, failed, or changed since they were reviewed",
+                        vec![text("Needs Attention", false, &["true"])],
+                    ),
+                    (
+                        "Started",
+                        "Runs in flight: their observation window is open",
+                        vec![text("State", false, &["started"])],
+                    ),
+                ],
+            ),
+            (
+                FilterScreen::Remediations,
+                vec![
+                    (
+                        "Not completed",
+                        "Remediations queued or waiting to be tried again",
+                        vec![text("Status", false, &["NEW", "IN_PROGRESS"])],
+                    ),
+                    (
+                        "Failed",
+                        "Remediations whose latest attempt failed",
+                        vec![text("Result", false, &["ERROR", "FAILED"])],
+                    ),
+                ],
+            ),
+            (
+                FilterScreen::FileCollections,
+                vec![
+                    (
+                        "Not completed",
+                        "Requests queued or waiting to be tried again",
+                        vec![text("Status", false, &["NEW", "IN_PROGRESS"])],
+                    ),
+                    (
+                        "Failed",
+                        "Requests whose latest attempt failed",
+                        vec![text("Result", false, &["ERROR", "FAILED"])],
+                    ),
+                ],
+            ),
+            (
+                FilterScreen::SvsTests,
+                vec![(
+                    "In the catalog",
+                    "Tests still in their repository",
+                    vec![text("Removed", false, &["false"])],
+                )],
+            ),
+            (
+                FilterScreen::SvsCoverage,
+                vec![
+                    (
+                        "Endpoint platforms",
+                        "Techniques on windows, linux and macos",
+                        vec![endpoints(), live()],
+                    ),
+                    (
+                        "Gaps and failures",
+                        "Techniques on the endpoint platforms that are failing, stale, untested or not covered at all",
+                        vec![
+                            endpoints(),
+                            text("State", false, &["failing", "stale", "untested", "none"]),
+                            live(),
+                        ],
+                    ),
+                    ("All", "Techniques on every platform", vec![live()]),
+                ],
+            ),
+            (
+                FilterScreen::SvsWorklist,
+                vec![
+                    (
+                        "Needs decision",
+                        "Tags no test confirms that nobody has resolved",
+                        vec![text("Status", false, &["open"])],
+                    ),
+                    (
+                        "Remove pending",
+                        "Tags resolved remove that the signature still has",
+                        vec![text("Status", false, &["remove_pending"])],
+                    ),
+                    (
+                        "Undeclared",
+                        "Techniques signatures are measured on that none of their tags names",
+                        vec![text("Status", false, &["undeclared"])],
+                    ),
+                ],
+            ),
+        ];
+        let seeded_screens: Vec<FilterScreen> =
+            expected.iter().map(|(screen, _)| *screen).collect();
+        for (screen, filters) in &expected {
+            let seeded = service
+                .seed_saved_filters(&me, *screen)
+                .await
+                .unwrap_or_else(|error| panic!("{screen}: {error}"));
+            let got: Vec<Shown<'_>> = seeded
+                .iter()
+                .map(|filter| {
+                    (
+                        filter.name.as_str(),
+                        filter.description.as_deref(),
+                        filter.filters.as_slice(),
+                        filter.quick_filter_order,
+                        filter.quick_filter_indicator,
+                    )
+                })
+                .collect();
+            let want: Vec<Shown<'_>> = filters
+                .iter()
+                .enumerate()
+                .map(|(at, (name, description, entries))| {
+                    (
+                        *name,
+                        Some(*description),
+                        entries.as_slice(),
+                        Some(i32::try_from(at).expect("small")),
+                        false,
+                    )
+                })
+                .collect();
+            assert_eq!(got, want, "{screen}");
+            // one audit row records the screen's filters
+            let recorded = last_audit(db).await;
+            assert_eq!(recorded.action, "seed_saved_filters");
+            assert_eq!(
+                recorded.after.expect("an after")["filters"]
+                    .as_array()
+                    .expect("filters")
+                    .len(),
+                filters.len(),
+                "{screen}"
+            );
+            // each is what the screen's own list takes: it encodes as a share link
+            for filter in &seeded {
+                filter_model::encode(*screen, &filter.filters)
+                    .unwrap_or_else(|error| panic!("{screen} {}: {error}", filter.name));
+            }
+        }
+
+        // once: again adds nothing, on any screen, and a deleted default stays deleted
+        let audits = audit_rows(db).await.len();
+        for screen in FilterScreen::ALL {
+            assert!(
+                service
+                    .seed_saved_filters(&me, *screen)
+                    .await
+                    .expect("nothing to do")
+                    .is_empty(),
+                "{screen}"
+            );
+        }
+        assert_eq!(audit_rows(db).await.len(), audits);
+        let runs = service
+            .saved_filters(&me, FilterScreen::SvsRuns)
+            .await
+            .expect("lists");
+        assert_eq!(runs.len(), 2);
+        for filter in &runs {
+            service
+                .delete_saved_filter(&me, filter.id)
+                .await
+                .expect("deletes");
+        }
+        assert!(
+            service
+                .seed_saved_filters(&me, FilterScreen::SvsRuns)
+                .await
+                .expect("nothing to do")
+                .is_empty()
+        );
+        assert!(
+            service
+                .saved_filters(&me, FilterScreen::SvsRuns)
+                .await
+                .expect("lists")
+                .is_empty()
+        );
+
+        // ace3 seeds nine screens; the other two have no defaults
+        let unseeded: Vec<FilterScreen> = FilterScreen::ALL
+            .iter()
+            .copied()
+            .filter(|screen| *screen != FilterScreen::Alerts && !seeded_screens.contains(screen))
+            .collect();
+        assert_eq!(
+            unseeded,
+            [
+                FilterScreen::DetectionPoints,
+                FilterScreen::SvsCoverageHistory
+            ]
+        );
+        let seeds: Vec<String> = sqlx::query_scalar(
+            "SELECT screen FROM service.saved_filter_seeds WHERE user_id = $1 ORDER BY screen",
+        )
+        .bind(actor_id(&me).0)
+        .fetch_all(db.pool())
+        .await
+        .expect("reads");
+        let mut marked: Vec<&str> = std::iter::once(FilterScreen::Alerts)
+            .chain(seeded_screens.iter().copied())
+            .map(FilterScreen::name)
+            .collect();
+        marked.sort_unstable();
+        assert_eq!(seeds, marked);
+
+        // each screen's seeding needs that screen's permission
+        let analyst_only = holding(&service, db, "alerts-only", &[("alert", "read")]).await;
+        for screen in [FilterScreen::SvsRuns, FilterScreen::Remediations] {
+            assert!(matches!(
+                service.seed_saved_filters(&analyst_only, screen).await,
+                Err(ServiceError::PermissionDenied { .. })
+            ));
+        }
+
+        // and a seeded filter is its owner's to read, change and delete under its own screen's
+        // permission, as in ace3: someone who opens SVS and not the alert list manages theirs
+        let runner = holding(&service, db, "runs-only", &[("svs", "run_read")]).await;
+        let theirs = service
+            .seed_saved_filters(&runner, FilterScreen::SvsRuns)
+            .await
+            .expect("seeds");
+        assert_eq!(theirs.len(), 2);
+        assert_eq!(
+            service
+                .saved_filter(&runner, theirs[0].id)
+                .await
+                .expect("reads their own")
+                .name,
+            "Needs attention"
+        );
+        service
+            .update_saved_filter(
+                &runner,
+                theirs[0].id,
+                &ace_service::SavedFilterChange {
+                    name: Some("Mine to look at".to_owned()),
+                    ..ace_service::SavedFilterChange::default()
+                },
+            )
+            .await
+            .expect("renames their own");
+        service
+            .delete_saved_filter(&runner, theirs[1].id)
+            .await
+            .expect("deletes their own");
+        // someone else's row, or none, is the alert list's to them: refused before it's looked at
+        for id in [runs_only_other(&service, db).await, Uuid::new_v4()] {
+            assert!(matches!(
+                service.delete_saved_filter(&runner, id).await,
+                Err(ServiceError::PermissionDenied { permission, .. })
+                    if permission.to_string() == "alert:read"
+            ));
+        }
+        // who loses a screen's permission no longer reaches their rows on it
+        sqlx::query("DELETE FROM service.permissions WHERE user_id = $1")
+            .bind(actor_id(&runner).0)
+            .execute(db.pool())
+            .await
+            .expect("revokes");
+        assert!(matches!(
+            service.saved_filter(&runner, theirs[0].id).await,
+            Err(ServiceError::PermissionDenied { permission, .. })
+                if permission.to_string() == "svs:run_read"
+        ));
+    }
+
+    /// A saved filter of the runs screen that belongs to someone else.
+    async fn runs_only_other(service: &Service, db: &Db) -> Uuid {
+        let other = holding(service, db, "other-runner", &[("svs", "run_read")]).await;
+        service
+            .seed_saved_filters(&other, FilterScreen::SvsRuns)
+            .await
+            .expect("seeds")[0]
+            .id
     }
 }

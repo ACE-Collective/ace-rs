@@ -104,6 +104,10 @@ pub struct AlertSummary {
     /// What SVS makes of it, and the test runs it's attributed to: ace3's `svs_status` and `svs_runs`.
     /// None when SVS never touched it.
     pub svs: Option<crate::svs::AlertSvsStatus>,
+    /// The analyst who took it (PLAN.md 7.17), ace3's `alerts.owner_id`; None when nobody owns it.
+    pub owner: Option<crate::AlertOwner>,
+    /// When they took it, ace3's `owner_time`.
+    pub owned_at: Option<DateTime<Utc>>,
 }
 
 /// One page of the alert list, the cursor for the next, None on the last, and how many alerts the filters
@@ -118,8 +122,7 @@ pub struct AlertPage {
 /// How long the alert list's query may run. A filter that takes longer is refused, to be narrowed.
 pub const LIST_TIMEOUT: &str = "10s";
 
-/// The alert list's orders, ace3's sort filters that ace4's alerts have fields for. ace3's owner order comes
-/// with its field (`FilterScreen::left_out`).
+/// The alert list's orders, ace3's sort filters that ace4's alerts have fields for.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub enum AlertSort {
     /// When each became an alert, ace3's `Alert Date`, its default.
@@ -131,6 +134,9 @@ pub enum AlertSort {
     Disposition,
     /// Its queue (PLAN.md 7.13), ace3's `Queue`, by its bytes.
     Queue,
+    /// Its owner (PLAN.md 7.17), ace3's `Owner`: what the owner is called, by its bytes, an alert nobody
+    /// owns first.
+    Owner,
 }
 
 impl AlertSort {
@@ -139,6 +145,7 @@ impl AlertSort {
         AlertSort::Description,
         AlertSort::Disposition,
         AlertSort::Queue,
+        AlertSort::Owner,
     ];
 
     /// Its name in a request.
@@ -148,6 +155,7 @@ impl AlertSort {
             AlertSort::Description => "description",
             AlertSort::Disposition => "disposition",
             AlertSort::Queue => "queue",
+            AlertSort::Owner => "owner",
         }
     }
 
@@ -157,7 +165,10 @@ impl AlertSort {
 
     /// Whether a cursor of this order carries its last alert's key: a value that can change between pages.
     fn keyed(self) -> bool {
-        matches!(self, AlertSort::Disposition | AlertSort::Queue)
+        matches!(
+            self,
+            AlertSort::Disposition | AlertSort::Queue | AlertSort::Owner
+        )
     }
 }
 
@@ -183,10 +194,11 @@ impl Default for AlertQuery {
     }
 }
 
-/// Where a page of the alert list ends: the order it's in, its last alert, and for the disposition and
-/// queue orders the disposition or queue that alert had, which may have changed since. As text it's
-/// `<sort>.<asc|desc>.<uuid>[.<disposition or queue>]`, and a bare uuid is the default order's, 5.5's
-/// cursor. The key is the text's last part, so a queue's name may hold a `.`.
+/// Where a page of the alert list ends: the order it's in, its last alert, and for the disposition, queue
+/// and owner orders the disposition, queue or owner's name that alert had, which may have changed since.
+/// As text it's `<sort>.<asc|desc>.<uuid>[.<disposition, queue or owner>]`, and a bare uuid is the
+/// default order's, 5.5's cursor. The key is the text's last part, so a queue's name may hold a `.`, and
+/// an owner's name anything; an alert nobody owns has the empty key.
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct AlertCursor {
     sort: AlertSort,
@@ -229,6 +241,8 @@ impl AlertCursor {
             let keyed = sort.keyed();
             let shaped = key.as_deref().is_some_and(|key| match sort {
                 AlertSort::Queue => ace_core::tree::check_queue_name(key).is_ok(),
+                // what a user is called: `service.users.display_name`'s bound
+                AlertSort::Owner => key.chars().count() <= 1024,
                 _ => {
                     key.len() <= 64
                         && !key.is_empty()
@@ -406,11 +420,14 @@ impl AlertRow {
             tags: self.tags,
             // read for the whole page at once, by `with_svs`
             svs: None,
+            owner: None,
+            owned_at: None,
         })
     }
 }
 
-/// Gives each alert its SVS status, in a fixed number of queries whatever their number.
+/// Gives each alert its SVS status and its owner (PLAN.md 7.17), in a fixed number of queries whatever
+/// their number.
 pub(crate) async fn with_svs(
     conn: &mut sqlx::PgConnection,
     alerts: &mut [AlertSummary],
@@ -419,6 +436,32 @@ pub(crate) async fn with_svs(
         return Ok(());
     }
     let ids: Vec<Uuid> = alerts.iter().map(|alert| alert.id).collect();
+    let mut owners: std::collections::HashMap<Uuid, _> = sqlx::query!(
+        r#"SELECT r.id, r.owned_at, u.id AS user_id, u.username::text AS "username!", u.display_name,
+                  u.enabled
+           FROM analysis.roots r JOIN service.users u ON u.id = r.owner_id
+           WHERE r.id = ANY ($1)"#,
+        &ids,
+    )
+    .fetch_all(&mut *conn)
+    .await?
+    .into_iter()
+    .map(|row| {
+        let owner = crate::AlertOwner {
+            id: crate::UserId(row.user_id),
+            name: crate::ownership::shown(row.display_name, &row.username),
+            username: row.username,
+            enabled: row.enabled,
+        };
+        (row.id, (owner, row.owned_at))
+    })
+    .collect();
+    for alert in alerts.iter_mut() {
+        if let Some((owner, owned_at)) = owners.remove(&alert.id) {
+            alert.owner = Some(owner);
+            alert.owned_at = owned_at;
+        }
+    }
     let mut statuses = crate::svs::statuses(conn, &ids).await?;
     for alert in alerts {
         alert.svs = statuses.remove(&alert.id);
@@ -550,6 +593,9 @@ impl Service {
         );
         let (analysis, not_analysis) = (f.names("analysis", false), f.names("analysis", true));
         let (queued, not_queued) = (f.names("queue", false), f.names("queue", true));
+        let (owned, owned_none) = f.names_or_none("owner", false);
+        let (not_owned, not_owned_none) = f.names_or_none("owner", true);
+        let owners = (&owned, owned_none, &not_owned, not_owned_none);
         let queues = (&queued, &not_queued, crate::filters::queue_holder(actor));
         let (unconfirmed, not_unconfirmed) = (
             f.names("unconfirmed_detections", false),
@@ -595,6 +641,7 @@ impl Service {
                     let (described, not_described, disposition, not_disposition, by, not_by, tagged, not_tagged, analysis, not_analysis) = texts;
                     let (unconfirmed, not_unconfirmed, tp, fp) = verdicts;
                     let (queued, not_queued, viewer) = queues;
+                    let (owned, owned_none, not_owned, not_owned_none) = owners;
                     sqlx::raw_sql(SET_LIST_TIMEOUT).execute(tx.conn()).await?;
                     if let Some(after) = after_id {
                         let known = sqlx::query_scalar!(
@@ -616,6 +663,9 @@ impl Service {
                                     (CASE $1::text WHEN 'description' THEN r.description
                                                    WHEN 'disposition' THEN COALESCE(r.disposition, 'OPEN')
                                                    WHEN 'queue' THEN r.queue::text
+                                                   WHEN 'owner' THEN COALESCE((
+                                                     SELECT COALESCE(u.display_name, u.username::text)
+                                                     FROM service.users u WHERE u.id = r.owner_id), '')
                                      END) COLLATE "C" AS k,
                                     count(*) OVER () AS total
                              FROM analysis.roots r
@@ -705,6 +755,22 @@ impl Service {
                                AND ($43::text[] IS NULL OR NOT (r.queue = ANY ($43::text[])
                                     OR ('$USER_QUEUE' = ANY ($43::text[]) AND COALESCE(r.queue = (
                                           SELECT u.queue FROM service.users u WHERE u.id = $44), false))))
+                               -- Owner: what the owner is called or their username, None for nobody, and
+                               -- $USER standing for the viewer (7.17)
+                               AND ($45::text[] IS NULL
+                                    OR ($46::boolean AND r.owner_id IS NULL)
+                                    OR EXISTS (SELECT FROM service.users u
+                                               WHERE u.id = r.owner_id
+                                                 AND (COALESCE(u.display_name, u.username::text) = ANY ($45::text[])
+                                                      OR u.username::text = ANY ($45::text[])
+                                                      OR ('$USER' = ANY ($45::text[]) AND u.id = $44))))
+                               AND ($47::text[] IS NULL OR NOT (
+                                    ($48::boolean AND r.owner_id IS NULL)
+                                    OR EXISTS (SELECT FROM service.users u
+                                               WHERE u.id = r.owner_id
+                                                 AND (COALESCE(u.display_name, u.username::text) = ANY ($47::text[])
+                                                      OR u.username::text = ANY ($47::text[])
+                                                      OR ('$USER' = ANY ($47::text[]) AND u.id = $44)))))
                                -- Unconfirmed Detections: an inherited TP of several signatures' (7.14)
                                AND ($38::text[] IS NULL
                                     OR ('True' = ANY ($38::text[]) AND EXISTS (
@@ -822,6 +888,10 @@ impl Service {
                         queued.as_deref(),
                         not_queued.as_deref(),
                         viewer,
+                        owned.as_deref(),
+                        owned_none,
+                        not_owned.as_deref(),
+                        not_owned_none,
                     )
                     .fetch_all(tx.conn())
                     .await

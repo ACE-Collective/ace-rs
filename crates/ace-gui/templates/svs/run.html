@@ -62,9 +62,10 @@
         {%- endfor %}
         {%- if view.manage %}
         <td>
-          {%- for decision in row.decisions %}
-          <form method="post" action="{{ view.href }}/decide" class="inline"><input type="hidden" name="signature" value="{{ row.signature }}"><input type="hidden" name="decision" value="{{ decision.0 }}"><button type="submit">{{ decision.1 }}</button></form>
-          {%- endfor %}
+          {%- if !row.decisions.is_empty() %}
+          {#- one form a row: its Why goes with whichever decision is pressed, and is kept with it -#}
+          <form method="post" action="{{ view.href }}/decide" class="inline"><input type="hidden" name="signature" value="{{ row.signature }}">{% if row.reasoned %}<input type="text" name="reason" maxlength="4096" placeholder="why" aria-label="Why">{% endif %}{% for decision in row.decisions %}<button type="submit" name="decision" value="{{ decision.0 }}">{{ decision.1 }}</button>{% endfor %}</form>
+          {%- endif %}
         </td>
         {%- endif %}
       </tr>
@@ -97,7 +98,7 @@
   {%- endif %}
 
   <h3 id="alerts">Alerts</h3>
-  <p class="muted">The alerts attributed to this run, now or before, in the order they were first attributed. <a href="{{ view.alerts_ndjson }}">NDJSON</a>{% if view.more_alerts %} · the page shows the first of them; the export has them all{% endif %}</p>
+  <p class="muted">The alerts attributed to this run, now or before, in the order they were first attributed. <a href="{{ view.alerts_ndjson }}">NDJSON</a>{% if view.more_alerts %} · the page shows the first of them; the export has them all{% endif %}{% if let Some(captured) = view.captured %} · <a href="{{ captured }}" title="What the run's alerts captured for other rules: did this rule's target reach ACE?">files captured from this run's alerts</a>{% endif %}</p>
   <table class="keys">
     <thead><tr><th>Alert</th><th>Disposition</th><th>SVS</th><th>Held by</th><th>Detections</th>{% if view.manage %}<th>Change</th>{% endif %}</tr></thead>
     <tbody>

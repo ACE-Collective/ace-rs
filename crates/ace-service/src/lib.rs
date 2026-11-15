@@ -125,6 +125,7 @@ mod lists;
 mod maintenance;
 mod observable_comments;
 mod observables;
+mod ownership;
 mod permission;
 mod preferences;
 mod remediation;
@@ -252,6 +253,10 @@ pub use observable_comments::{CommentAuthor, MAX_COMMENT_CHARS, ObservableCommen
 pub use observables::{
     Lookup, MAX_EXCLUDED_ALERTS, MAX_LOOKUP_PAIRS, MAX_RECENT_ALERTS, OPEN, Prevalence, RecentAlert,
 };
+pub use ownership::{
+    AlertOwner, MAX_OWNER_ALERTS, MAX_OWNER_CHOICES, OwnerChange, OwnerChoice, OwnershipCheck,
+    SkippedAlert, check_alert_ownership, confirmed_takes, describe_frozen, describe_skipped,
+};
 pub use permission::{
     ADMIN_READ, ALERT_CREATE, ALERT_QUEUE, ALERT_READ, ALERT_WRITE, BUCKET_GC, BUCKET_VERIFY,
     CATALOG, CLI_EXECUTE, CRASH_READ, CatalogEntry, DETECTION_READ, DETECTION_WRITE,
@@ -373,6 +378,16 @@ pub enum ServiceError {
     FilterNameTaken(String),
     #[error("no user {0}")]
     NoUser(Uuid),
+    /// A disposition of an alert another analyst owns, which the caller didn't confirm taking from them
+    /// (PLAN.md 7.17, `ownership`): the alert was left alone. `owner` is who a confirmation names.
+    #[error(
+        "alert {alert} is owned by {name}, so it was left alone: confirm taking it from them to change it"
+    )]
+    AlertOwned {
+        alert: Uuid,
+        owner: Uuid,
+        name: String,
+    },
     #[error("a user exists already, so a first user needs forcing")]
     UsersExist,
     #[error("a user can't disable themselves: another user with user:write has to")]
@@ -457,6 +472,7 @@ impl Retryable for ServiceError {
             | ServiceError::GroupNameTaken
             | ServiceError::FilterNameTaken(_)
             | ServiceError::NoUser(_)
+            | ServiceError::AlertOwned { .. }
             | ServiceError::UsersExist
             | ServiceError::CantDisableYourself
             | ServiceError::CantDropYourOwnUserWrite
@@ -473,6 +489,10 @@ struct DispositionState {
     disposition: Option<String>,
     dispositioned_by: Option<Value>,
     analysis_mode: String,
+    /// The alert's owner, when it has one (PLAN.md 7.17): an analyst's disposition takes an alert nobody
+    /// owns.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    owner: Option<Uuid>,
 }
 
 impl Recorded for DispositionState {}
@@ -487,6 +507,9 @@ struct RootSnapshot {
     /// Why, when ACE made the disposition for SVS: ace3 adds it to the alert as a comment.
     #[serde(skip_serializing_if = "Option::is_none")]
     comment: Option<String>,
+    /// The analyst the alert was taken from, when the disposition took it (PLAN.md 7.17).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    taken_from: Option<Uuid>,
 }
 
 impl Recorded for RootSnapshot {}
@@ -638,11 +661,18 @@ impl Service {
     /// else is `InvalidRequest`. From an analyst, anyone but ACE's own components, it must be
     /// `analyst_selectable` (`InvalidRequest` otherwise), and an alert whose disposition isn't can't be
     /// changed (`Conflict`), as ace3's `set_disposition` and `is_frozen_disposition` have it.
+    ///
+    /// Ownership (PLAN.md 7.17, `ownership`'s docs): an analyst's disposition makes them the owner of an
+    /// alert nobody owns. An alert another analyst owns is left alone (`AlertOwned`, which names them),
+    /// unless `take_from` is that analyst, the caller's confirmation that they take it, or the owner's
+    /// account is disabled; the caller then becomes its owner. The frozen check comes first, so a frozen
+    /// alert is never taken.
     pub async fn disposition(
         &self,
         actor: &Actor,
         root: Uuid,
         disposition: &str,
+        take_from: Option<UserId>,
     ) -> Result<Dispositioned, ServiceError> {
         if !is_disposition_name(disposition) {
             return Err(ServiceError::InvalidRequest(
@@ -669,7 +699,7 @@ impl Service {
             .write(actor, "disposition", &ALERT_WRITE, &|tx| {
                 Box::pin(async move {
                     let (dispositioned, change) = self
-                        .disposition_in(tx, root, disposition, actor, None)
+                        .disposition_in(tx, root, disposition, actor, None, take_from)
                         .await?;
                     Ok(Audited::changed(dispositioned, change))
                 })
@@ -681,8 +711,10 @@ impl Service {
     /// which `disposition` and SVS (closing a run's and a maintenance window's alerts, and giving a
     /// disassociated alert back, `svs_association`) share. `by` is who the alert's row names: the actor, or
     /// the component that acts for them. From an analyst it refuses a frozen alert (`Conflict`). `comment`
-    /// says why, in the audit row, where ace3 adds a comment to the alert. Returns what the analysis did
-    /// and the audit row's change, which the caller's write records.
+    /// says why, in the audit row, where ace3 adds a comment to the alert. An analyst's disposition
+    /// checks and takes ownership (`disposition`'s docs), `take_from` being who they confirmed taking the
+    /// alert from; a component's does neither, and its callers pick alerts nobody owns. Returns what the
+    /// analysis did and the audit row's change, which the caller's write records.
     pub(crate) async fn disposition_in(
         &self,
         tx: &mut ace_core::db::Tx<'_>,
@@ -690,12 +722,13 @@ impl Service {
         disposition: &str,
         by: &Actor,
         comment: Option<&str>,
+        take_from: Option<UserId>,
     ) -> Result<(Dispositioned, Change), ServiceError> {
         // Locks first, so `before` is what this write replaces. The title is capped here,
         // not by the column: it's whatever the alert's sender wrote.
         let found = sqlx::query!(
             r#"SELECT disposition, dispositioned_by AS "dispositioned_by: Value",
-                      analysis_mode, event_time, created_at,
+                      analysis_mode, event_time, created_at, owner_id,
                       left(description, $2) AS "title!"
                FROM analysis.roots WHERE id = $1 FOR UPDATE"#,
             root,
@@ -711,7 +744,53 @@ impl Service {
                 found.disposition.as_deref().unwrap_or_default()
             )));
         }
+        // the frozen check came first, as in ace3: a frozen alert is left alone whoever owns it
+        let analyst = dispositions::is_analyst(by);
+        let user = routing::acting_user(by);
+        let claim = if analyst {
+            let owner = ownership::locked_owner(tx.conn(), root, false)
+                .await?
+                .flatten();
+            ownership::claim(owner, user, take_from)
+        } else {
+            ownership::Claim::Keep
+        };
+        let taken_from = match &claim {
+            ownership::Claim::Refused(owner) => {
+                return Err(ServiceError::AlertOwned {
+                    alert: root,
+                    owner: owner.id.0,
+                    name: owner.name.clone(),
+                });
+            }
+            ownership::Claim::TakeFrom(owner) => Some(owner.clone()),
+            ownership::Claim::Keep | ownership::Claim::Take => None,
+        };
         let dispositioned = self.orchestrator.stop_for_disposition(tx, root).await?;
+        let owner_after = match claim {
+            ownership::Claim::Take | ownership::Claim::TakeFrom(_) => {
+                // a user who is gone can't own it: the alert is then nobody's
+                sqlx::query_scalar!(
+                    "UPDATE analysis.roots r
+                     SET owner_id = u.id, owned_at = CASE WHEN u.id IS NULL THEN NULL ELSE now() END
+                     FROM (SELECT (SELECT id FROM service.users WHERE id = $2) AS id) u
+                     WHERE r.id = $1
+                     RETURNING r.owner_id",
+                    root,
+                    user.map(|user| user.0),
+                )
+                .fetch_one(tx.conn())
+                .await?
+            }
+            _ => found.owner_id,
+        };
+        if let Some(from) = &taken_from {
+            tracing::info!(
+                alert_uuid = %root, alert_owner = from.username,
+                new_owner = owner_after.map(|owner| owner.to_string()), changed_by = %by,
+                "alert ownership taken"
+            );
+        }
         let mode = sqlx::query_scalar!(
             "UPDATE analysis.roots
              SET disposition = $2, dispositioned_at = now(), dispositioned_by = $3::jsonb
@@ -729,11 +808,13 @@ impl Service {
                 disposition: found.disposition,
                 dispositioned_by: found.dispositioned_by,
                 analysis_mode: found.analysis_mode,
+                owner: found.owner_id,
             },
             &DispositionState {
                 disposition: Some(disposition.to_owned()),
                 dispositioned_by: Some(serde_json::to_value(by)?),
                 analysis_mode: mode,
+                owner: owner_after,
             },
         )?
         .details(&RootSnapshot {
@@ -741,6 +822,7 @@ impl Service {
             event_time: found.event_time,
             root_created_at: found.created_at,
             comment: comment.map(str::to_owned),
+            taken_from: taken_from.map(|owner| owner.id.0),
         })?;
         Ok((dispositioned, change))
     }

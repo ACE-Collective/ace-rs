@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE analysis.roots r\n                     SET owner_id = u.id, owned_at = CASE WHEN u.id IS NULL THEN NULL ELSE now() END\n                     FROM (SELECT (SELECT id FROM service.users WHERE id = $2) AS id) u\n                     WHERE r.id = $1\n                     RETURNING r.owner_id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "owner_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "analysis.roots",
+            "name": "owner_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "2382bb126ed538274318e3df4a9a871779e78733f0cd12525e445e2a6f00ba8c"
+}

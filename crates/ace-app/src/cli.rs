@@ -25,7 +25,8 @@ enum Command {
     /// Checks of a signatures checkout, such as the one an author runs before a push.
     #[command(subcommand)]
     Signatures(crate::signatures::SignaturesCommand),
-    /// The Signature Validation System: YARA validation, by hand.
+    /// The Signature Validation System, by hand: YARA rule validation, the Atomic Red Team test
+    /// catalog, ATT&CK coverage and the ATT&CK release it's computed against.
     #[command(subcommand)]
     Svs(crate::svs::SvsCommand),
     /// Serve the lease API to workers and the JSON API to people, and take back tasks whose lease
@@ -182,6 +183,26 @@ mod tests {
 
     fn words(line: &str) -> Vec<String> {
         line.split_whitespace().map(str::to_owned).collect()
+    }
+
+    /// `ace --help` says what `ace svs` does now: it named YARA validation alone after the catalog,
+    /// coverage and the ATT&CK extract joined it. Each of its subcommands has a word in the line.
+    #[test]
+    fn the_svs_command_s_help_names_what_it_holds() {
+        use clap::CommandFactory;
+        let cli = Cli::command();
+        let svs = cli
+            .get_subcommands()
+            .find(|command| command.get_name() == "svs")
+            .expect("ace svs");
+        let about = svs.get_about().expect("its help").to_string();
+        let mut subcommands: Vec<&str> = svs.get_subcommands().map(|c| c.get_name()).collect();
+        subcommands.sort_unstable();
+        assert_eq!(subcommands, ["attack", "catalog", "coverage", "yara"]);
+        for word in ["YARA", "catalog", "coverage", "ATT&CK release"] {
+            assert!(about.contains(word), "{about:?} doesn't say {word}");
+        }
+        assert!(!about.contains("YARA validation, by hand"), "{about:?}");
     }
 
     /// A GUI command gets `ace`'s own help and usage errors, and every command is refused with why

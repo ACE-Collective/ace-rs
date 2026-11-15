@@ -381,7 +381,7 @@ pub(crate) async fn create(
         (status = 200, description = "The saved filter", body = SavedFilterBody),
         (status = 400, description = "An id that isn't a uuid", body = ErrorBody),
         (status = 401, description = "No credential, or one that isn't valid", body = ErrorBody),
-        (status = 403, description = "The actor doesn't hold alert:read, or isn't a person", body = ErrorBody),
+        (status = 403, description = "The actor doesn't hold the permission of the filter's screen (alert:read for a filter that isn't theirs), or isn't a person", body = ErrorBody),
         (status = 404, description = "No such saved filter of the caller's", body = ErrorBody),
     )
 )]
@@ -406,7 +406,7 @@ pub(crate) async fn one(
         (status = 200, description = "The saved filter as it is now", body = SavedFilterBody),
         (status = 400, description = "A name, description or filter that isn't one, an id that isn't a uuid, or a body that isn't one", body = ErrorBody),
         (status = 401, description = "No credential, or one that isn't valid", body = ErrorBody),
-        (status = 403, description = "The actor doesn't hold alert:read, isn't the filter's owner, or a session's request came from another site", body = ErrorBody),
+        (status = 403, description = "The actor doesn't hold the permission of the filter's screen (alert:read for a filter that isn't theirs), isn't the filter's owner, or a session's request came from another site", body = ErrorBody),
         (status = 404, description = "No such saved filter", body = ErrorBody),
         (status = 409, description = "The caller has another saved filter with that name on the screen", body = ErrorBody),
         (status = 413, description = "The body is too large", body = ErrorBody),
@@ -444,7 +444,7 @@ pub(crate) async fn update(
         (status = 204, description = "The saved filter is gone"),
         (status = 400, description = "An id that isn't a uuid", body = ErrorBody),
         (status = 401, description = "No credential, or one that isn't valid", body = ErrorBody),
-        (status = 403, description = "The actor doesn't hold alert:read, isn't the filter's owner, or a session's request came from another site", body = ErrorBody),
+        (status = 403, description = "The actor doesn't hold the permission of the filter's screen (alert:read for a filter that isn't theirs), isn't the filter's owner, or a session's request came from another site", body = ErrorBody),
         (status = 404, description = "No such saved filter", body = ErrorBody),
     )
 )]

@@ -7,7 +7,7 @@
 //! to, each a link to the run's page for a viewer who holds `svs:run_read`, the markers that don't agree
 //! with their run, and the root's tags. For a viewer holding `alert:write`, an alert a run holds has the
 //! form that gives it back to analysts: disassociate it from every run that holds it, or, for one held by
-//! context alone, mark it not a test. Both post to `/alerts/{id}/svs`, through
+//! context alone, mark it not a test, either with why. Both post to `/alerts/{id}/svs`, through
 //! `Service::release_alert_from_svs`, which checks `alert:write` again and audits it, and come back to
 //! the alert. Keeping an alert, or associating one with a run, is the run page's (`crate::svs`).
 //!
@@ -183,9 +183,11 @@ pub(crate) async fn release(
             .into_response();
         }
     };
+    // Not a test keeps its reason too: in each run's event and the audit row, while the attribution's
+    // own removal reason stays ace3's fixed `not a test`
     let reason = one(&form, "reason")
         .map(str::trim)
-        .filter(|reason| !reason.is_empty() && !not_a_test);
+        .filter(|reason| !reason.is_empty());
     match gui
         .service
         .release_alert_from_svs(&viewer.actor, alert, reason, not_a_test, Utc::now())
