@@ -1,0 +1,7 @@
+# The end-to-end test's overlay for `ace serve-ai`, the stack's `ai` service (PLAN.md 7.15): the AI
+# investigation API turned on with ace3's testing backend, which answers canned rows and reaches
+# nothing. It holds the API's own sections and no other, which the process checks when it starts.
+ai_api:
+  enabled: true
+  backends:
+    fake: {type: fake, enabled: true}

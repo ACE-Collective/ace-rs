@@ -6,8 +6,8 @@
 //! observable actions its GUI offers. Each binary is a short `main` over one:
 //!
 //! ```text
-//! // the core: `ace serve`, `ace task replay`, `ace schema export`, `ace yara ...`, `ace user ...`,
-//! // `ace signatures check`
+//! // the core: `ace serve`, `ace serve-ai`, `ace task replay`, `ace schema export`, `ace yara ...`,
+//! // `ace user ...`, `ace signatures check`
 //! fn main() -> std::process::ExitCode {
 //!     site::app().ace_main()
 //! }
@@ -45,6 +45,7 @@ mod root;
 pub mod scheduler;
 mod schema;
 mod serve;
+pub mod serve_ai;
 mod signatures;
 mod svs;
 mod task;
@@ -342,7 +343,7 @@ impl App {
     /// Adds a backend type to the AI investigation API (PLAN.md 7.15), which the overlay's
     /// `ai_api.backends` entries name with their own name, limits, secrets and settings, as an ace3
     /// integration's `ai_query_backend_<name>` section names its class. `build` makes a backend from
-    /// an entry's settings and the secrets it lists, or says why it can't, which stops `ace serve`. One
+    /// an entry's settings and the secrets it lists, or says why it can't, which stops `ace serve-ai`. One
     /// with a type's name already there, a built-in's included, takes its place.
     pub fn ai_backend_type(
         mut self,

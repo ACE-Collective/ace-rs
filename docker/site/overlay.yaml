@@ -19,26 +19,6 @@
 # disposition_classification:
 #   INSIDER_THREAT: tp
 #
-# The AI investigation API (ace_service::ai) is off unless a site turns it on. It is read-only routes
-# under /api/ai/v1 for an AI agent's own API key; ACE itself calls no model. A backend is a data source
-# the agent may query, of a type the binary has (splunk, or the testing backends fake and
-# fake_unwindowed), with its own limits and the one secret it is given. For example:
-#
-# ai_api:
-#   enabled: true
-#   backends:
-#     splunk:
-#       type: splunk
-#       enabled: true
-#       secrets: [splunk_ai_readonly_token]
-#       limits: {max_concurrency: 4, requests_per_minute: 30, hourly_budget: 400}
-#       settings:
-#         splunk: {host: splunk.example.com, timezone: GMT}
-# secrets:
-#   splunk_ai_readonly_token: env:ACE4_SPLUNK_AI_TOKEN
-#
-# The Splunk account behind that token has to be one whose role leaves out the commands that write
-# (| delete, | outputlookup, | collect): that role, not ACE, is what makes the backend read-only. A key
-# for an agent holds only ai: permissions, such as
-# `ace user create-key agent --grant ai:splunk --grant ai:alert --grant ai:backends`.
+# The AI investigation API isn't configured here: `ace serve-ai`, the stack's `ai` service, reads an
+# overlay of its own, ai.yaml beside this file, and `ace serve` refuses an ai_api section.
 modules: {}

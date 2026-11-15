@@ -995,6 +995,24 @@ impl Overlay {
         Ok(overlay)
     }
 
+    /// The sections `text` writes, by name, each as it is written. For a process that has to know
+    /// what its overlay holds beyond what it reads of it: `ace serve-ai` takes an overlay with its own
+    /// sections and no other (PLAN.md 7.15). An empty file has none.
+    pub fn sections(text: &str) -> Result<BTreeMap<String, Value>, OverlayError> {
+        let value: Value = serde_norway::from_str(text).map_err(|e| OverlayError::Parse {
+            path: String::new(),
+            message: e.to_string(),
+        })?;
+        match value {
+            Value::Null => Ok(BTreeMap::new()),
+            Value::Object(sections) => Ok(sections.into_iter().collect()),
+            _ => Err(OverlayError::Parse {
+                path: String::new(),
+                message: "the overlay isn't a mapping of sections".to_owned(),
+            }),
+        }
+    }
+
     /// Reads and parses the overlay at `path`.
     pub fn read(path: &std::path::Path) -> Result<Overlay, OverlayError> {
         let text = std::fs::read_to_string(path).map_err(|e| OverlayError::Read {

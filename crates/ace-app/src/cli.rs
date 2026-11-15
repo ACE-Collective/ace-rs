@@ -32,6 +32,9 @@ enum Command {
     /// Serve the lease API to workers and the JSON API to people, and take back tasks whose lease
     /// expired.
     Serve,
+    /// Serve the AI investigation API on a listener of its own, as a process that holds no key, token
+    /// or database privilege the API doesn't need, and refuses to start if it is handed one.
+    ServeAi,
     /// Run the hunts in the signatures checkout on their schedules and submit what they find
     /// (`ACE4_HUNTER` names its configuration).
     Hunter,
@@ -103,6 +106,7 @@ fn refusal(command: &Command) -> (&'static str, &'static str) {
              for the first two and can open none of the last",
         ),
         Command::Serve => ("serve", "it's the service itself, not a command"),
+        Command::ServeAi => ("serve-ai", "it's a service of its own, not a command"),
         Command::Hunter => ("hunter", "it's a service of its own, not a command"),
         Command::Task(_) => (
             "task",
@@ -142,6 +146,7 @@ pub fn main(app: &App) -> ExitCode {
         Command::Signatures(command) => crate::signatures::run(app, command),
         Command::Svs(command) => crate::svs::run(app, command),
         Command::Serve => crate::serve::run(app, &mut telemetry),
+        Command::ServeAi => crate::serve_ai::run(app, &mut telemetry),
         Command::Hunter => crate::hunter::run(app, &mut telemetry),
         Command::Task(command) => crate::task::run(app, command),
         Command::Root(command) => crate::root::run(command),
@@ -215,6 +220,7 @@ mod tests {
         assert_eq!(run_contained(&words("no-such-command")), 2);
         for line in [
             "serve",
+            "serve-ai",
             "schema export /tmp/x",
             "yara scan --rules /x f",
             "signatures check /x",

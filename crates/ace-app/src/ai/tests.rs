@@ -26,11 +26,10 @@
 //! | `test_validate_startup_rejects_missing_credential` | `a_backend_without_its_credential_stops_the_server` |
 //! | `test_validate_startup_returns_owned_paths` | `a_backend_gets_only_the_secrets_it_lists` |
 //!
-//! `tests/aceapi_ai/test_startup_checks.py`'s 16 cases are about ace3's separate container (`ai`'s docs).
-//! Its two `TestBackendCredentials` cases are `a_backend_without_its_credential_stops_the_server`, which
-//! also builds the backend once its credential is there. The other 14 (the encryption password, the
-//! local overlay, the GUI's and the node's keys, the allow-list of plaintext secrets, the whole check
-//! and the advisory sweep) have nothing to assert in one process.
+//! `tests/aceapi_ai/test_startup_checks.py`'s 16 cases are about ace3's separate container, which is
+//! `ace serve-ai` here (`serve_ai`'s docs). Its two `TestBackendCredentials` cases are
+//! `a_backend_without_its_credential_stops_the_server`, which also builds the backend once its
+//! credential is there. The other 14 are `custody`'s tests, which map each.
 
 use std::time::Duration;
 

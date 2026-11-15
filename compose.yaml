@@ -192,6 +192,7 @@ services:
   # stack's network on 8080, so its tokens' dev defaults aren't reachable from the host. A script
   # submits with an API key: `docker compose exec ace ace user create-key NAME --grant alert:create`
   # prints one; there's no default key. It reads the site overlay from ACE4_SITE's overlay.yaml.
+  # The AI investigation API isn't here: the `ai` service serves it.
   ace:
     build:
       context: .
@@ -239,6 +240,78 @@ services:
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://127.0.0.1:8080/healthz"]
+      interval: 5s
+      timeout: 5s
+      start_period: 30s
+      retries: 5
+
+  # The AI investigation API's database login (PLAN.md 7.15), made once the core has migrated: a role
+  # that can log in and is a member of ace4_ai, which migration 0064 grants what the API reads and
+  # nothing else. It runs each time the stack starts and sets the password again, so changing
+  # ACE4_AI_POSTGRES_PASSWORD takes effect. A deployment whose Postgres isn't the stack's makes the
+  # role itself: CREATE ROLE ... LOGIN PASSWORD ... IN ROLE ace4_ai.
+  ai-role:
+    image: ace4-postgres:18.6-pgvector0.8.7
+    depends_on:
+      ace:
+        condition: service_healthy
+    environment:
+      PGHOST: postgres
+      PGUSER: ${ACE4_POSTGRES_USER:-ace4}
+      PGPASSWORD: ${ACE4_POSTGRES_PASSWORD:-ace4-dev-password}
+      PGDATABASE: ${ACE4_POSTGRES_DB:-ace4}
+      AI_USER: ${ACE4_AI_POSTGRES_USER:-ace4_ai_login}
+      AI_PASSWORD: ${ACE4_AI_POSTGRES_PASSWORD:-ace4-dev-ai-password}
+    entrypoint: ["sh", "-c"]
+    command:
+      - |
+        psql -v ON_ERROR_STOP=1 -v login="$$AI_USER" -v password="$$AI_PASSWORD" <<'SQL'
+        SELECT format('CREATE ROLE %I LOGIN IN ROLE ace4_ai', :'login')
+        WHERE NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = :'login') \gexec
+        ALTER ROLE :"login" LOGIN PASSWORD :'password';
+        SQL
+    mem_limit: ${ACE4_AI_ROLE_MEM_LIMIT:-128m}
+    restart: "no"
+
+  # The AI investigation API (PLAN.md 7.15): `ace serve-ai`, the core's image in another mode, as
+  # ace3 serves its aceapi_ai from the http-api-ai container. Read-only routes under /api/ai/v1 for an
+  # AI agent's own API key, on a port of its own, 8001, which publishes on an ephemeral host port
+  # (`docker compose port ai 8001`); a deployment's proxy sends /api/ai/v1 here. `ace` doesn't serve
+  # them.
+  #
+  # It holds only what it needs, and refuses to start if it is handed more: the database as the
+  # ai-role service's login, an overlay of its own (ACE4_AI_OVERLAY on the host, ai.yaml of the dev
+  # site by default) with ai_api, secrets and the dispositions and no other section, and the secrets
+  # its enabled backends list. No ACE4_ENCRYPTION_KEY, no pool or admin token, no bucket credential:
+  # naming one here stops it. With ai_api.enabled false, as the dev site has it, it serves and every
+  # route says the API is off.
+  ai:
+    image: ace4-ace:latest
+    command: ["ace", "serve-ai"]
+    depends_on:
+      ace:
+        condition: service_healthy
+      ai-role:
+        condition: service_completed_successfully
+    environment:
+      ACE4_DATABASE_URL: postgres://${ACE4_AI_POSTGRES_USER:-ace4_ai_login}:${ACE4_AI_POSTGRES_PASSWORD:-ace4-dev-ai-password}@postgres:5432/${ACE4_POSTGRES_DB:-ace4}
+      ACE4_AI_LISTEN: 0.0.0.0:8001
+      ACE4_OVERLAY: /etc/ace4/ai.yaml
+      # a Splunk backend's token, when the overlay's secrets: names this variable for it; unset, it
+      # is empty here and counts as not held
+      ACE4_SPLUNK_AI_TOKEN: ${ACE4_SPLUNK_AI_TOKEN:-}
+      ACE4_LOG: ${ACE4_LOG:-info}
+      NO_PROXY: localhost,127.0.0.1,postgres,collector
+      no_proxy: localhost,127.0.0.1,postgres,collector
+    volumes:
+      # its overlay alone, not the site's directory
+      - ${ACE4_AI_OVERLAY:-./docker/site/ai.yaml}:/etc/ace4/ai.yaml:ro
+    ports:
+      - "${ACE4_BIND_ADDRESS:-127.0.0.1}::8001"
+    mem_limit: ${ACE4_AI_MEM_LIMIT:-1g}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://127.0.0.1:8001/api/health/v1/ping"]
       interval: 5s
       timeout: 5s
       start_period: 30s

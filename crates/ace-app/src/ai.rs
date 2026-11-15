@@ -1,6 +1,7 @@
-//! The AI investigation API as `ace serve` sets it up (PLAN.md 7.15): the overlay's `ai_api` section
-//! made into `ace_service::ai`'s surface, the backend types a binary has, and ace3's Splunk backend
-//! (`saq/ai_query/backends/splunk.py`).
+//! The AI investigation API as `ace serve-ai` sets it up (PLAN.md 7.15, `crate::serve_ai`): the
+//! overlay's `ai_api` section made into `ace_service::ai`'s surface, the backend types a binary has,
+//! ace3's Splunk backend (`saq/ai_query/backends/splunk.py`), and ace3's startup custody checks
+//! ([`custody`]).
 //!
 //! **Off by default.** With no `ai_api.enabled: true` there is no surface, no backend is built and no
 //! secret is read: the routes say the API is off. A backend's own `enabled` is false by default too, as
@@ -15,15 +16,8 @@
 //! `secrets:` as a pool reads a module's (PLAN.md 2.24): an environment variable or a file, never a
 //! value in the overlay. A secret is held as `ace_sdk::Secret`, which doesn't print, and a backend's
 //! errors name no credential. A backend whose credential isn't there fails to build, which stops `ace
-//! serve`: ace3's `validate_startup`, so a missing token is a failure at boot and not a 502 at the
-//! first query.
-//!
-//! What isn't here of ace3's startup checks (`aceapi_ai/startup_checks.py`): ace3 serves this API
-//! from a container of its own and refuses to start it if the process holds the encryption password,
-//! the GUI's signing key, the node-to-node key, the local overlay or a plaintext credential no
-//! enabled backend declares. `ace serve` is one process that also serves the GUI and the lease API, so
-//! there is nothing such a check could assert. What is kept is the part that is about a backend:
-//! its credential has to resolve when the server starts, and it is handed only what it declared.
+//! serve-ai`: ace3's `validate_startup`, so a missing token is a failure at boot and not a 502 at the
+//! first query. The process may hold no secret but those: [`custody`] refuses to start it otherwise.
 //!
 //! **The Splunk backend.** One search for a query: the window as `earliest=` and `latest=` in the
 //! instance's timezone and again as the job's range, `max_count` the row limit, and ace3's
@@ -56,6 +50,8 @@ use serde_json::{Map, Value, json};
 
 use crate::hunter::SplunkInstance;
 
+pub mod custody;
+
 /// What a backend's builder is given: its entry's name and settings, and the secrets it lists.
 #[derive(Debug, Clone, Default)]
 pub struct AiBackendSetup {
@@ -64,7 +60,7 @@ pub struct AiBackendSetup {
     pub secrets: Secrets,
 }
 
-/// What builds a backend of one type, or says why it can't, which stops `ace serve`. The reason must
+/// What builds a backend of one type, or says why it can't, which stops `ace serve-ai`. The reason must
 /// name no credential.
 pub type AiBackendFactory =
     Arc<dyn Fn(&AiBackendSetup) -> Result<Arc<dyn AiQueryBackend>, String> + Send + Sync>;

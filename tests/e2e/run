@@ -159,6 +159,8 @@ ENV = {
             "STACK": PROJECT,
             "PORT_HTTPS": PORT,
             "SITE": str(SITE),
+            # `ace serve-ai` reads an overlay of its own (PLAN.md 7.15)
+            "AI_OVERLAY": str(SITE / "ai.yaml"),
             "SIGNATURES": str(WORK / "signatures"),
             "LEASE_SECONDS": str(LEASE_SECONDS),
             "RULESET_POLL_SECONDS": "2",
@@ -173,7 +175,7 @@ ENV = {
 }
 ENV.pop("COMPOSE_PROJECT_NAME", None)
 COMPOSE = ["docker", "compose", "-f", str(COMPOSE_FILE), "--profile", "e2e"]
-SERVICES = ["postgres", "bucket", "ace", "parsers", "sandbox", "lookups", "scanners", "responder"]
+SERVICES = ["postgres", "bucket", "ace", "ai", "parsers", "sandbox", "lookups", "scanners", "responder"]
 # PLAN.md 7.7: the page the scanner checks render, and its inline script the deobfuscator runs
 SCANNER_PAGE = ROOT / "samples" / "ace4" / "web" / "phishkit_page.html"
 SCANNER_IMAGES = ["ace4-js-deobfuscator:latest", "ace4-phishkit:latest"]
@@ -1262,8 +1264,10 @@ def check_search(first, second, failures):
 
 
 def check_ai(first, failures):
-    """PLAN.md 7.15: the AI investigation API, on in this stack with ace3's testing backend. A key
-    scoped to it reaches its own routes and nothing else, and each call is recorded."""
+    """PLAN.md 7.15: the AI investigation API, on in this stack with ace3's testing backend, served by
+    `ace serve-ai` in the `ai` service on a port of its own. A key scoped to it reaches its routes
+    there and nothing else anywhere, each call is recorded, and the process holds none of the core's
+    secrets and refuses to start when handed one."""
 
     def expect(ok, message):
         log(("ok    " if ok else "FAIL  ") + message)
@@ -1284,10 +1288,12 @@ def check_ai(first, failures):
     if not token:
         raise SystemExit(f"e2e: `ace user create-key` printed no token:\n{out}")
 
-    def call(method, path, body=None):
-        """The status and the JSON body."""
+    ai_port = compose("port", "ai", "8001", capture=True).strip().rsplit(":", 1)[1]
+
+    def call(method, path, body=None, port=None):
+        """The status and the JSON body, from the AI listener, or the main API's when `port` is its."""
         request = urllib.request.Request(
-            f"http://127.0.0.1:{PORT}{path}",
+            f"http://127.0.0.1:{port or ai_port}{path}",
             data=None if body is None else json.dumps(body).encode(),
             method=method,
             headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
@@ -1296,7 +1302,56 @@ def check_ai(first, failures):
             with urllib.request.urlopen(request, timeout=60) as response:
                 return response.status, json.load(response)
         except urllib.error.HTTPError as error:
-            return error.code, json.load(error)
+            text = error.read()
+            return error.code, (json.loads(text) if text else {})
+
+    # the process: what it holds, and that it checked
+    held = compose("exec", "-T", "ai", "env", capture=True).splitlines()
+    names = sorted(line.split("=", 1)[0] for line in held if line.startswith("ACE4_"))
+    forbidden = [name for name in names
+                 if name in ("ACE4_ENCRYPTION_KEY", "ACE4_ADMIN_TOKEN", "ACE4_POOL_TOKEN", "ACE4_API_KEY",
+                             "ACE4_BUCKET_ACCESS_KEY", "ACE4_BUCKET_SECRET_KEY")
+                 or name.startswith("ACE4_POOL_TOKEN_")]
+    expect(not forbidden and "ACE4_DATABASE_URL" in names and "ACE4_OVERLAY" in names,
+           f"the ai service's environment holds the database and its overlay, and no key, token or "
+           f"bucket credential: {names}")
+    logs = compose("logs", "ai", capture=True)
+    expect("AI API custody checks passed" in logs and "the AI investigation API is on" in logs,
+           "the ai service checked what it holds when it started, and turned the API on")
+    login = sql("SELECT rolsuper OR rolcreaterole OR rolcreatedb OR rolbypassrls, "
+                "pg_has_role(rolname, 'ace4_ai', 'MEMBER') FROM pg_roles WHERE rolname = 'ace4_ai_login'")
+    expect(login == [["f", "t"]],
+           f"its database login is a plain member of ace4_ai: {login}")
+    # handed the email archive's key, or the core's database login, it doesn't start
+    for what, args, named in [
+        ("the email archive's key", ["-e", "ACE4_ENCRYPTION_KEY=" + "00" * 32], "ACE4_ENCRYPTION_KEY"),
+        ("a pool's token", ["-e", "ACE4_POOL_TOKEN_PARSERS=ace4-dev-parsers-token"], "ACE4_POOL_TOKEN_PARSERS"),
+        ("the core's database login",
+         ["-e", "ACE4_DATABASE_URL=postgres://ace4:ace4-dev-password@postgres:5432/ace4"], "superuser"),
+    ]:
+        refused = subprocess.run(
+            [*COMPOSE, "run", "--rm", "--no-deps", "-T", *args, "ai"],
+            env=ENV, cwd=COMPOSE_FILE.parent, text=True, capture_output=True, timeout=120,
+        )
+        output = refused.stdout + refused.stderr
+        expect(refused.returncode != 0 and "AI API custody checks failed, refusing to start" in output
+               and named in output and "00" * 32 not in output and "ace4-dev-parsers-token" not in output,
+               f"handed {what}, `ace serve-ai` refuses to start and names it, not its value: "
+               f"exit {refused.returncode}")
+
+    # the routes are the ai service's alone
+    status, _ = call("GET", "/api/ai/v1/backends", port=PORT)
+    expect(status == 404, f"the main API has no AI route, even for the AI key: {status}")
+    status, _ = call("GET", f"/api/alerts/v1/alerts/{first}")
+    expect(status == 404, f"and the AI listener has none of the main API's: {status}")
+    with urllib.request.urlopen(f"http://127.0.0.1:{ai_port}/api/openapi.json", timeout=30) as response:
+        paths = sorted(json.load(response)["paths"])
+    expect(len(paths) == 9 and all(p.startswith("/api/ai/v1/") or p == "/api/health/v1/ping" for p in paths),
+           f"the AI listener's document lists its eight routes and the ping: {len(paths)} paths")
+    with urllib.request.urlopen(f"http://127.0.0.1:{PORT}/api/openapi.json", timeout=30) as response:
+        main_paths = list(json.load(response)["paths"])
+    expect(not any(p.startswith("/api/ai/") for p in main_paths),
+           "and the main API's document lists none of them")
 
     status, listed = call("GET", "/api/ai/v1/backends")
     backends = {b["name"]: b for b in listed.get("backends", [])}
@@ -1321,14 +1376,20 @@ def check_ai(first, failures):
     status, refused = call("GET", "/api/ai/v1/export/alerts")
     expect(status == 403 and refused.get("error") == "this needs ai:export",
            f"the export needs a permission the key doesn't hold: {status} {refused.get('error')}")
-    status, refused = call("GET", f"/api/alerts/v1/alerts/{first}")
+    # a search by meaning reads the index with the embedding model, in the ai service, under its role
+    status, found = call("POST", "/api/ai/v1/search/alerts", {"query": "an email with an attachment"})
+    expect(status == 200 and "semantic" in found.get("lanes_used", []) and not found.get("errors")
+           and not found.get("warnings"),
+           f"a search by meaning runs in the ai service: {status}, lanes {found.get('lanes_used')}, "
+           f"{found.get('errors')} {found.get('warnings')}")
+    status, refused = call("GET", f"/api/alerts/v1/alerts/{first}", port=PORT)
     expect(status == 403 and refused.get("error") == "this needs alert:read",
            f"the main API refuses the key: {status} {refused.get('error')}")
 
     events = [row[0] for row in sql(
         "SELECT details->>'event' FROM service.audit WHERE action = 'ai_record' "
         "AND actor->>'name' = 'e2e-agent' ORDER BY id")]
-    expect(events == ["query", "query_rejected", "alert_read", "search"],
+    expect(events == ["query", "query_rejected", "alert_read", "search", "search"],
            f"each call that reached the service has its audit row, and the refusals none: {events}")
     recorded = sql(
         "SELECT details->>'query', details->>'row_count', details ? 'rows' FROM service.audit "

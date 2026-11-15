@@ -49600,6 +49600,131 @@ mod ai_tests {
         vec![("ai_record", failed)]
     }
 
+    /// The database role `ace serve-ai` connects as (PLAN.md 7.15, migration 0064) holds exactly
+    /// what `ai::role::GRANTED` lists, so what `ace serve-ai` checks its login against is what the
+    /// migration grants; and Postgres refuses the rest, whatever this crate asks for. `ace-api`'s
+    /// tests serve every AI route under the role, which is how the list is known to be enough.
+    #[tokio::test]
+    async fn the_ai_role_holds_what_its_migration_grants_and_no_more() {
+        use ace_service::ai::role::{ROLE, role_privileges, role_privileges_of};
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let role = role_privileges_of(db, ROLE)
+            .await
+            .expect("reads the catalog");
+        assert_eq!(role.user, ROLE);
+        assert_eq!(role.beyond(), Vec::<String>::new(), "nothing past the list");
+        assert_eq!(
+            role.missing(),
+            Vec::<String>::new(),
+            "everything on the list"
+        );
+        assert!(role.powers.is_empty() && role.member_of.is_empty());
+
+        // what it can't read: a session, a password hash, the email archive, the bucket's index,
+        // the lists, the queue, the rulesets, a hunt, its own audit rows
+        for relation in [
+            "service.sessions",
+            "service.audit",
+            "service.groups",
+            "service.saved_filters",
+            "email_archive.archive",
+            "email_archive.email_history",
+            "store.objects",
+            "lists.entries",
+            "queue.tasks",
+            "queue.commands",
+            "yara.rulesets",
+            "yara.qa_matches",
+            "hunts.hunts",
+            "analysis.observable_comments",
+            "svs.yara_captures",
+        ] {
+            assert!(!role.holds(relation, "SELECT"), "{relation}");
+        }
+        assert!(role.reads_in("email_archive").is_empty());
+        assert!(!role.columns.contains(&(
+            "service.users".to_owned(),
+            "password_hash".to_owned(),
+            "SELECT".to_owned()
+        )));
+        // what it can change: the limiter's two tables, and a new audit row
+        let writes: BTreeSet<&str> = role
+            .tables
+            .iter()
+            .filter(|(_, privilege)| privilege != "SELECT")
+            .map(|(relation, _)| relation.as_str())
+            .collect();
+        assert_eq!(
+            writes,
+            BTreeSet::from(["ai.inflight", "ai.windows", "service.audit"])
+        );
+        assert!(role.holds("service.audit", "INSERT"));
+        for privilege in ["UPDATE", "DELETE", "TRUNCATE"] {
+            assert!(!role.holds("service.audit", privilege));
+        }
+
+        // the role these tests connect as, the schema's owner, is what the check exists to refuse
+        let owner = role_privileges(db).await.expect("reads the catalog");
+        let beyond = owner.beyond();
+        assert!(
+            beyond.iter().any(|power| power == "superuser"),
+            "{beyond:?}"
+        );
+        assert!(owner.holds("service.sessions", "SELECT"));
+        assert!(!owner.reads_in("email_archive").is_empty());
+
+        // and Postgres enforces it: a pool that is the role
+        let config = test_db.config().clone().role(ROLE);
+        let as_role = Db::connect(&config).await.expect("connects as the role");
+        let run = async |sql: &'static str| -> Result<(), String> {
+            sqlx::query(sql)
+                .execute(as_role.pool())
+                .await
+                .map(|_| ())
+                .map_err(|error| error.to_string())
+        };
+        for allowed in [
+            "SELECT id, description FROM analysis.roots LIMIT 1",
+            "SELECT id, username, enabled, queue FROM service.users LIMIT 1",
+            "SELECT id FROM service.api_keys LIMIT 1",
+            "SELECT count(*) FROM ai.windows",
+            "INSERT INTO ai.inflight (token, bucket, started_at) \
+             VALUES ('00000000-0000-0000-0000-0000000000a1', 'role-test', now())",
+            "DELETE FROM ai.inflight WHERE bucket = 'role-test'",
+            "SELECT max(version) FROM public._sqlx_migrations",
+        ] {
+            assert_eq!(run(allowed).await, Ok(()), "{allowed}");
+        }
+        for refused in [
+            "SELECT count(*) FROM service.sessions",
+            "SELECT password_hash FROM service.users LIMIT 1",
+            "SELECT * FROM service.users LIMIT 1",
+            "SELECT count(*) FROM service.audit",
+            "SELECT count(*) FROM email_archive.archive",
+            "SELECT count(*) FROM store.objects",
+            "SELECT count(*) FROM queue.tasks",
+            "SELECT count(*) FROM yara.rulesets",
+            "UPDATE analysis.roots SET description = 'changed'",
+            "DELETE FROM analysis.roots",
+            "INSERT INTO service.permissions (component, major, minor, effect, created_by) \
+             VALUES ('ai_api', 'alert', 'write', 'allow', '{}')",
+            "UPDATE service.api_keys SET name = 'changed'",
+            "DELETE FROM service.audit",
+            "UPDATE service.audit SET action = 'changed'",
+            "TRUNCATE ai.windows",
+            "CREATE TABLE ai.made_by_the_role ()",
+            "CREATE SCHEMA made_by_the_role",
+            "DROP TABLE ai.windows",
+        ] {
+            let error = run(refused).await.expect_err(refused);
+            assert!(
+                error.contains("permission denied") || error.contains("must be owner"),
+                "{refused}: {error}"
+            );
+        }
+    }
+
     #[tokio::test]
     async fn slots_enforce_the_cap_and_are_given_back() {
         let test_db = TestDb::new().await;

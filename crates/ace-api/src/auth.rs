@@ -32,27 +32,44 @@ impl FromRequestParts<Web> for Authenticated {
     type Rejection = ApiError;
 
     async fn from_request_parts(parts: &mut Parts, web: &Web) -> Result<Self, ApiError> {
-        // A header that isn't text is still there: an Authorization header that can't be read refuses
-        // the request rather than letting a cookie decide it.
-        let header = |name: header::HeaderName| {
-            parts
-                .headers
-                .get(name)
-                .map(|value| value.to_str().unwrap_or(""))
-        };
-        let request = RequestParts {
-            transport: web.config.transport,
-            method: parts.method.as_str(),
-            authorization: header(header::AUTHORIZATION),
-            cookie: header(header::COOKIE),
-            sec_fetch_site: header(header::HeaderName::from_static("sec-fetch-site")),
-            origin: header(header::ORIGIN),
-            host: header(header::HOST),
-        };
-        Ok(Authenticated(
-            web.service.authenticate_request(&request).await?,
-        ))
+        authenticate(parts, &web.service, web.config.transport, true).await
     }
+}
+
+/// On the AI investigation API's listener only an API key is a credential (PLAN.md 7.15): the cookie
+/// isn't passed on, so a session is never looked up, which the process's database role couldn't do.
+impl FromRequestParts<crate::AiWeb> for Authenticated {
+    type Rejection = ApiError;
+
+    async fn from_request_parts(parts: &mut Parts, web: &crate::AiWeb) -> Result<Self, ApiError> {
+        authenticate(parts, &web.service, ace_service::Transport::Plain, false).await
+    }
+}
+
+async fn authenticate(
+    parts: &Parts,
+    service: &ace_service::Service,
+    transport: ace_service::Transport,
+    sessions: bool,
+) -> Result<Authenticated, ApiError> {
+    // A header that isn't text is still there: an Authorization header that can't be read refuses
+    // the request rather than letting a cookie decide it.
+    let header = |name: header::HeaderName| {
+        parts
+            .headers
+            .get(name)
+            .map(|value| value.to_str().unwrap_or(""))
+    };
+    let request = RequestParts {
+        transport,
+        method: parts.method.as_str(),
+        authorization: header(header::AUTHORIZATION),
+        cookie: header(header::COOKIE).filter(|_| sessions),
+        sec_fetch_site: header(header::HeaderName::from_static("sec-fetch-site")),
+        origin: header(header::ORIGIN),
+        host: header(header::HOST),
+    };
+    Ok(Authenticated(service.authenticate_request(&request).await?))
 }
 
 /// Runs the request with its peer's address as its audit rows' `src_ip`.
@@ -62,6 +79,26 @@ pub(crate) async fn with_source(request: Request, next: Next) -> Response {
         .get::<ConnectInfo<SocketAddr>>()
         .map(|ConnectInfo(address)| address.ip());
     ace_service::with_source_ip(ip, next.run(request)).await
+}
+
+/// The one way to authenticate on the AI investigation API's listener, in its document.
+pub(crate) struct KeyScheme;
+
+impl Modify for KeyScheme {
+    fn modify(&self, openapi: &mut utoipa::openapi::OpenApi) {
+        let components = openapi.components.get_or_insert_with(Default::default);
+        components.add_security_scheme(
+            "api_key",
+            SecurityScheme::Http(
+                HttpBuilder::new()
+                    .scheme(HttpAuthScheme::Bearer)
+                    .description(Some(
+                        "An API key, `ace4k_...`, shown once when it was made.",
+                    ))
+                    .build(),
+            ),
+        );
+    }
 }
 
 /// The two ways to authenticate, in the document.

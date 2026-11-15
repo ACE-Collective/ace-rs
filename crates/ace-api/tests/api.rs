@@ -112,14 +112,31 @@ struct Stack {
     archive: ace_core::email_archive::EmailArchive,
     orchestrator: Orchestrator,
     url: String,
+    /// The AI investigation API's own listener (PLAN.md 7.15), as `ace serve-ai` serves it: its
+    /// service is connected as the database role `ace4_ai`, so every AI route in these tests runs
+    /// with what migration 0064 grants and nothing more.
+    ai_url: String,
     http: reqwest::Client,
     task: tokio::task::JoinHandle<()>,
+    ai_task: tokio::task::JoinHandle<()>,
     _cache: tempfile::TempDir,
+}
+
+impl Stack {
+    /// Where a route is served: the AI routes on their own listener, the rest on the main one.
+    fn base(&self, route: &str) -> &str {
+        if route.starts_with("/api/ai/") {
+            &self.ai_url
+        } else {
+            &self.url
+        }
+    }
 }
 
 impl Drop for Stack {
     fn drop(&mut self) {
         self.task.abort();
+        self.ai_task.abort();
     }
 }
 
@@ -371,12 +388,25 @@ async fn stack_built(
             )
             .expect("valid settings"),
         );
-    let service = match ai {
-        Ai::Off => service,
-        Ai::On => service.with_ai(ai_surface(std::sync::Arc::new(
-            ace_service::ai::PgLimiter::new(test_db.db().clone()),
+    // the AI investigation API's process (PLAN.md 7.15): its own pool, as the role `ace4_ai`, and a
+    // service with what `ace serve-ai` gives it and no more. The main service has no AI surface.
+    let mut ai_config = test_db.config().clone().role(ace_service::ai::role::ROLE);
+    ai_config.component = "ace-ai-test".to_owned();
+    let ai_db = ace_core::db::Db::connect(&ai_config)
+        .await
+        .expect("connects as the AI role");
+    let ai_service = Service::new(ai_db.clone(), orchestrator.clone())
+        .with_dispositions(ace_service::Dispositions::configured(&overlay).expect("good sections"))
+        .with_search(
+            std::sync::Arc::new(TitleIndex(ai_db.clone())),
+            ace_service::search::SearchConfig::default(),
+        );
+    let ai_service = match ai {
+        Ai::Off => ai_service,
+        Ai::On => ai_service.with_ai(ai_surface(std::sync::Arc::new(
+            ace_service::ai::PgLimiter::new(ai_db.clone()),
         ))),
-        Ai::Limited(limiter) => service.with_ai(ai_surface(limiter)),
+        Ai::Limited(limiter) => ai_service.with_ai(ai_surface(limiter)),
     };
     let config = ace_api::WebConfig {
         max_json_bytes: MAX_JSON,
@@ -400,6 +430,20 @@ async fn stack_built(
             eprintln!("the API stopped: {e}");
         }
     });
+    let ai_config = ace_api::WebConfig {
+        max_json_bytes: MAX_JSON,
+        ..ace_api::WebConfig::default()
+    };
+    let ai_router = ace_api::AiWeb::new(ai_service, &ai_config).router();
+    let ai_listener = tokio::net::TcpListener::bind("127.0.0.1:0")
+        .await
+        .expect("binds");
+    let ai_url = format!("http://{}", ai_listener.local_addr().expect("an address"));
+    let ai_task = tokio::spawn(async move {
+        if let Err(e) = ace_api::serve(ai_listener, ai_router, std::future::pending()).await {
+            eprintln!("the AI API stopped: {e}");
+        }
+    });
     Stack {
         test_db,
         service,
@@ -407,8 +451,10 @@ async fn stack_built(
         archive,
         orchestrator,
         url,
+        ai_url,
         http: reqwest::Client::new(),
         task,
+        ai_task,
         _cache: cache,
     }
 }
@@ -540,16 +586,17 @@ impl<'s> Client<'s> {
         token: Option<&str>,
         send: Send,
     ) -> reqwest::Response {
+        let base = self.stack.base(route);
         let mut request = self
             .stack
             .http
-            .request(method.clone(), format!("{}{path}", self.stack.url));
+            .request(method.clone(), format!("{base}{path}"));
         // a session's token goes as its cookie, from this server's own origin
         match token {
             Some(token) if token.starts_with("ace4s_") => {
                 request = request
                     .header("cookie", format!("ace4_session={token}"))
-                    .header("origin", &self.stack.url);
+                    .header("origin", base);
             }
             Some(token) => request = request.bearer_auth(token),
             None => {}
@@ -593,9 +640,25 @@ impl<'s> Client<'s> {
     }
 }
 
-/// The document's (method, route, status) for every operation.
+/// The two documents: the main API's and the AI investigation API's, each its own listener's.
+fn documents() -> [Value; 2] {
+    [
+        serde_json::from_str(&ace_api::openapi_json()).expect("JSON"),
+        serde_json::from_str(&ace_api::ai_openapi_json()).expect("JSON"),
+    ]
+}
+
+/// The documents' (method, route, status) for every operation, of both listeners. The ping is in
+/// both, and answers the same on each.
 fn documented() -> BTreeSet<(String, String, u16)> {
-    let document: Value = serde_json::from_str(&ace_api::openapi_json()).expect("JSON");
+    let mut found = BTreeSet::new();
+    for document in documents() {
+        found.extend(documented_in(&document));
+    }
+    found
+}
+
+fn documented_in(document: &Value) -> BTreeSet<(String, String, u16)> {
     let mut found = BTreeSet::new();
     for (route, item) in document["paths"].as_object().expect("paths") {
         for (method, operation) in item.as_object().expect("an item") {
@@ -615,14 +678,15 @@ fn documented() -> BTreeSet<(String, String, u16)> {
     found
 }
 
-/// The (method, route) of each operation the document says takes no credential: `security: [{}]`.
+/// The (method, route) of each operation a document says takes no credential: `security: [{}]`.
 fn public() -> BTreeSet<(String, String)> {
-    let document: Value = serde_json::from_str(&ace_api::openapi_json()).expect("JSON");
     let mut found = BTreeSet::new();
-    for (route, item) in document["paths"].as_object().expect("paths") {
-        for (method, operation) in item.as_object().expect("an item") {
-            if operation["security"] == json!([{}]) {
-                found.insert((method.clone(), route.clone()));
+    for document in documents() {
+        for (route, item) in document["paths"].as_object().expect("paths") {
+            for (method, operation) in item.as_object().expect("an item") {
+                if operation["security"] == json!([{}]) {
+                    found.insert((method.clone(), route.clone()));
+                }
             }
         }
     }
@@ -1040,7 +1104,10 @@ async fn refuses_without_a_credential_or_a_permission(
         let response = client
             .stack
             .http
-            .request(method.clone(), format!("{}{path}", client.stack.url))
+            .request(
+                method.clone(),
+                format!("{}{path}", client.stack.base(&route)),
+            )
             .basic_auth("admin", Some("admin"))
             .send()
             .await
@@ -5209,16 +5276,146 @@ async fn the_committed_document_is_current() {
         path.display()
     );
 
-    // and the server serves it, with no credential
+    // the AI investigation API's listener has a document of its own (PLAN.md 7.15)
+    let ai_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("openapi-ai.json");
+    let ai_derived = ace_api::ai_openapi_json();
+    if std::env::var_os("ACE4_WRITE_OPENAPI").is_some() {
+        std::fs::write(&ai_path, &ai_derived).expect("writes the document");
+    }
+    let committed = std::fs::read_to_string(&ai_path).unwrap_or_default();
+    assert!(
+        committed == ai_derived,
+        "{} isn't what the code derives: run `ACE4_WRITE_OPENAPI=1 cargo test -p ace-api` and commit it",
+        ai_path.display()
+    );
+
+    // and each server serves its own, with no credential
     let stack = stack().await;
-    let served = stack
-        .http
-        .get(format!("{}/api/openapi.json", stack.url))
-        .send()
-        .await
-        .expect("answered");
-    assert_eq!(served.status(), 200);
-    assert_eq!(served.text().await.expect("a body"), derived);
+    for (base, document) in [(&stack.url, &derived), (&stack.ai_url, &ai_derived)] {
+        let served = stack
+            .http
+            .get(format!("{base}/api/openapi.json"))
+            .send()
+            .await
+            .expect("answered");
+        assert_eq!(served.status(), 200);
+        assert_eq!(&served.text().await.expect("a body"), document);
+    }
+}
+
+/// The AI investigation API is a listener of its own (PLAN.md 7.15), as ace3's `http-api-ai` is: the
+/// main API has none of its routes, and it has none of the main API's. Neither document lists a route
+/// of the other, but the ping.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn the_ai_routes_are_on_their_own_listener() {
+    let stack = stack().await;
+    let [main, ai] = documents();
+    let routes = |document: &Value| -> BTreeSet<String> {
+        document["paths"]
+            .as_object()
+            .expect("paths")
+            .keys()
+            .cloned()
+            .collect()
+    };
+    let (main_routes, ai_routes) = (routes(&main), routes(&ai));
+    assert!(
+        main_routes
+            .iter()
+            .all(|route| !route.starts_with("/api/ai/"))
+    );
+    assert_eq!(
+        ai_routes,
+        [
+            AI_BACKENDS,
+            AI_QUERY,
+            AI_ALERT,
+            AI_OBSERVABLES,
+            AI_EVENT,
+            AI_SEARCH,
+            AI_SIMILAR,
+            AI_EXPORT,
+            PING
+        ]
+        .into_iter()
+        .map(str::to_owned)
+        .collect::<BTreeSet<_>>()
+    );
+    // only an API key authenticates there
+    assert_eq!(
+        ai["components"]["securitySchemes"]
+            .as_object()
+            .expect("schemes")
+            .keys()
+            .collect::<Vec<_>>(),
+        ["api_key"]
+    );
+
+    let admin = key(&stack, &["*:*"]).await;
+    let scoped = key(&stack, &["ai:fake", "ai:alert", "ai:backends", "ai:search"]).await;
+    let alerted = alert(&stack, "apart", &[(ObservableKind::Fqdn, "apart.example")]).await;
+    let before = audit_count(&stack).await;
+    let call = async |base: &str, method: Method, path: &str, token: Option<&str>| {
+        let mut request = stack.http.request(method.clone(), format!("{base}{path}"));
+        if let Some(token) = token {
+            request = request.bearer_auth(token);
+        }
+        if method != Method::GET {
+            request = request.json(&json!({}));
+        }
+        request.send().await.expect("answered")
+    };
+
+    // the main API answers no AI route, to any caller: there is no such route to be refused on
+    for (method, route, _) in documented_in(&ai) {
+        if route == PING {
+            continue;
+        }
+        let method: Method = method.to_uppercase().parse().expect("a method");
+        let path = fill(&route, alerted, 1);
+        for token in [None, Some(scoped.as_str()), Some(admin.as_str())] {
+            let response = call(&stack.url, method.clone(), &path, token).await;
+            assert_eq!(response.status(), 404, "{method} {route} on the main API");
+            assert!(
+                response.bytes().await.expect("a body").is_empty(),
+                "{route}: the router's own 404, not a route's"
+            );
+        }
+    }
+    // and the AI key that the AI listener answers
+    let listed = call(&stack.ai_url, Method::GET, AI_BACKENDS, Some(&scoped)).await;
+    assert_eq!(listed.status(), 200);
+
+    // the AI listener answers nothing of the main API, even to an admin's key: one route of each area
+    let mut swept = 0;
+    let mut areas = BTreeSet::new();
+    for (method, route, _) in documented_in(&main) {
+        let area = route.split('/').nth(2).unwrap_or_default().to_owned();
+        if route == PING || !areas.insert(area) {
+            continue;
+        }
+        let method: Method = method.to_uppercase().parse().expect("a method");
+        let response = call(
+            &stack.ai_url,
+            method.clone(),
+            &fill(&route, alerted, 1),
+            Some(&admin),
+        )
+        .await;
+        // a path the listener has under another method is a 405; every other is a 404
+        assert_eq!(
+            response.status(),
+            404,
+            "{method} {route} on the AI listener"
+        );
+        swept += 1;
+    }
+    assert!(swept >= 15, "{swept} areas of the main API were tried");
+    assert_eq!(
+        audit_count(&stack).await,
+        before,
+        "no route that isn't there wrote anything"
+    );
 }
 
 /// The document's submission is the core's: the same fields, so a client the document guides sends
@@ -18137,7 +18334,9 @@ async fn ai_queries(client: &mut Client<'_>) {
         .await;
     assert_eq!(refused["error"], "this needs ai:backends");
 
-    // a browser's session is refused whatever its user holds: this is a key's API. No row
+    // a browser's session isn't a credential on this listener, whatever its user holds: this is a
+    // key's API, and its process can't read a session. ace3's AI app holds no cookie-signing key. No
+    // row. (The service refuses a session with 403, which `ace-service`'s tests cover.)
     let (_, session) = session_of(stack, "aiadmin", &["*:*"]).await;
     let before = ai_audit(stack).await.len();
     for (method, route, path, send) in [
@@ -18150,12 +18349,9 @@ async fn ai_queries(client: &mut Client<'_>) {
         ),
     ] {
         let refused = client
-            .json(method, route, &path, Some(&session), send, S::FORBIDDEN)
+            .json(method, route, &path, Some(&session), send, S::UNAUTHORIZED)
             .await;
-        assert_eq!(
-            refused["error"],
-            "the AI investigation API takes an API key, not a session"
-        );
+        assert!(refused["error"].is_string(), "{refused}");
     }
     assert_eq!(ai_audit(stack).await.len(), before);
 }

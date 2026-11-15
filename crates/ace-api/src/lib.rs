@@ -534,6 +534,12 @@
 //! `/api/ai/v1`: read-only routes an AI agent's own key calls, each under its own `ai:` permission,
 //! off until the overlay's `ai_api` section turns them on. ACE calls no language model. `ai`'s docs
 //! map the routes and say what differs.
+//!
+//! Those routes aren't in [`Web::router`]. As in ace3, a process of its own serves them, `ace
+//! serve-ai`, on a listener of its own, with [`AiWeb::router`]: the routes, the ping, and a document of
+//! its own, `openapi-ai.json` in this crate, at the same `GET /api/openapi.json`. So there are two
+//! documents, one for each listener, and neither lists a route its listener doesn't answer. On the
+//! main API a path under `/api/ai/v1` is a 404 like any path with no route.
 use std::net::SocketAddr;
 
 use ace_core::bucket::Bucket;
@@ -580,7 +586,7 @@ mod user_preferences;
 mod users;
 mod yara_qa;
 
-use auth::Schemes;
+use auth::{KeyScheme, Schemes};
 
 pub use error::ErrorBody;
 
@@ -802,26 +808,6 @@ impl Web {
                 "/api/search/v1/similar",
                 post(search::similar).layer(json_limit),
             )
-            .route("/api/ai/v1/backends", get(ai::backends))
-            .route(
-                "/api/ai/v1/query/{backend}",
-                post(ai::query).layer(json_limit),
-            )
-            .route("/api/ai/v1/alerts/{id}", get(ai::alert))
-            .route(
-                "/api/ai/v1/alerts/{id}/observables",
-                get(ai::alert_observables),
-            )
-            .route("/api/ai/v1/events/{event}", get(ai::event))
-            .route(
-                "/api/ai/v1/search/alerts",
-                post(ai::search_alerts).layer(json_limit),
-            )
-            .route(
-                "/api/ai/v1/search/similar",
-                post(ai::search_similar).layer(json_limit),
-            )
-            .route("/api/ai/v1/export/alerts", get(ai::export_alerts))
             .route("/api/hunts/v1/hunts", get(hunts::list))
             .route("/api/hunts/v1/hunts/{uuid}", get(hunts::one))
             .route(
@@ -1424,14 +1410,6 @@ impl Web {
         monitoring::state,
         search::alerts,
         search::similar,
-        ai::backends,
-        ai::query,
-        ai::alert,
-        ai::alert_observables,
-        ai::event,
-        ai::search_alerts,
-        ai::search_similar,
-        ai::export_alerts,
         hunts::list,
         hunts::one,
         hunts::suppressions,
@@ -1650,10 +1628,104 @@ impl Web {
         (name = "lists", description = "The analyst-edited lists, such as the email whitelists, which apply to the next task that reads them"),
         (name = "monitoring", description = "What the monitoring checks last found, and the scheduled tasks' runs"),
         (name = "search", description = "Search over alerts: exact lookups, the meaning of their text, and alerts like one"),
-        (name = "ai", description = "The AI investigation API: read-only routes for an AI agent's own API key, off unless the site turns them on"),
     )
 )]
 pub struct ApiDoc;
+
+/// The OpenAPI document of the AI investigation API's listener (`AiWeb::router`): its routes and the
+/// ping. Only an API key authenticates there, so it lists that scheme alone.
+#[derive(OpenApi)]
+#[openapi(
+    info(
+        title = "ACE AI investigation API",
+        description = "Read-only routes for an AI agent's own API key, served by `ace serve-ai` on a listener of its own. A request authenticates with an API key as `Authorization: Bearer <token>`. A GUI session's cookie is not a credential here. ACE calls no language model.",
+        version = "1"
+    ),
+    paths(
+        health::ping,
+        ai::backends,
+        ai::query,
+        ai::alert,
+        ai::alert_observables,
+        ai::event,
+        ai::search_alerts,
+        ai::search_similar,
+        ai::export_alerts,
+    ),
+    modifiers(&KeyScheme),
+    security(("api_key" = [])),
+    tags(
+        (name = "health", description = "Whether the API answers"),
+        (name = "ai", description = "The AI investigation API: read-only routes for an AI agent's own API key, off unless the site turns them on"),
+    )
+)]
+pub struct AiApiDoc;
+
+/// The AI listener's document as its `GET /api/openapi.json` serves it and `openapi-ai.json` holds it.
+pub fn ai_openapi_json() -> String {
+    let mut text = AiApiDoc::openapi()
+        .to_pretty_json()
+        .expect("the document is JSON");
+    text.push('\n');
+    text
+}
+
+async fn ai_openapi() -> axum::response::Response {
+    use axum::response::IntoResponse;
+    (
+        [(axum::http::header::CONTENT_TYPE, "application/json")],
+        ai_openapi_json(),
+    )
+        .into_response()
+}
+
+/// What the AI investigation API's handlers get (PLAN.md 7.15): the service and the largest JSON body.
+/// No bucket, no email archive and no hunts: `ace serve-ai` holds none of them.
+#[derive(Clone)]
+pub struct AiWeb {
+    service: Service,
+    max_json_bytes: usize,
+}
+
+impl AiWeb {
+    pub fn new(service: Service, config: &WebConfig) -> Self {
+        AiWeb {
+            service,
+            max_json_bytes: config.max_json_bytes,
+        }
+    }
+
+    /// The AI listener's routes: `/api/ai/v1`, the ping and the listener's own document. Nothing
+    /// else of the JSON API is here, and no page of the GUI.
+    pub fn router(&self) -> Router {
+        let json_limit = DefaultBodyLimit::max(self.max_json_bytes);
+        Router::new()
+            .route("/api/openapi.json", get(ai_openapi))
+            .route("/api/health/v1/ping", get(health::ping))
+            .route("/api/ai/v1/backends", get(ai::backends))
+            .route(
+                "/api/ai/v1/query/{backend}",
+                post(ai::query).layer(json_limit),
+            )
+            .route("/api/ai/v1/alerts/{id}", get(ai::alert))
+            .route(
+                "/api/ai/v1/alerts/{id}/observables",
+                get(ai::alert_observables),
+            )
+            .route("/api/ai/v1/events/{event}", get(ai::event))
+            .route(
+                "/api/ai/v1/search/alerts",
+                post(ai::search_alerts).layer(json_limit),
+            )
+            .route(
+                "/api/ai/v1/search/similar",
+                post(ai::search_similar).layer(json_limit),
+            )
+            .route("/api/ai/v1/export/alerts", get(ai::export_alerts))
+            .layer(axum::middleware::from_fn(auth::with_source))
+            .with_state(self.clone())
+    }
+}
 
 /// The document as `GET /api/openapi.json` serves it and `openapi.json` holds it.
 pub fn openapi_json() -> String {

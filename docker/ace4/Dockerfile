@@ -160,8 +160,9 @@ COPY --from=build /out/ace /usr/local/bin/ace
 COPY --from=search-model /model /usr/local/share/ace4/search-model/all-MiniLM-L6-v2
 ENV ACE4_SEARCH_MODEL=/usr/local/share/ace4/search-model/all-MiniLM-L6-v2
 USER ace4
-# the lease API for the pools, and the JSON API for people (crates/ace-app/src/serve.rs)
-EXPOSE 8080 8000
+# the lease API for the pools, and the JSON API for people (crates/ace-app/src/serve.rs); and the AI
+# investigation API, when the image runs as `ace serve-ai` (crates/ace-app/src/serve_ai.rs)
+EXPOSE 8080 8000 8001
 CMD ["ace", "serve"]
 
 # The parser pool. Its supervisor runs as root so it can start each task process as ace4-task,

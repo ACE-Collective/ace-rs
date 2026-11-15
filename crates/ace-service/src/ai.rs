@@ -7,8 +7,8 @@
 //! analysis. Nothing here sends anything to a model or to any service but a configured backend.
 //!
 //! **Off by default.** A `Service` has no AI surface unless the binary gives it one
-//! ([`Service::with_ai`]), which `ace serve` does only when the overlay's `ai_api:` section says
-//! `enabled: true`. Without one every route answers `NotFound` saying so, after the permission check,
+//! ([`Service::with_ai`]), which `ace serve-ai` does only when its overlay's `ai_api:` section says
+//! `enabled: true`. `ace serve` never does: the routes are served by that process alone. Without one every route answers `NotFound` saying so, after the permission check,
 //! so a key that holds nothing learns nothing.
 //!
 //! **Who may call.** Each route needs its own permission, ace3's: `ai:<backend>` for a backend's
@@ -48,8 +48,10 @@
 //!
 //! What differs from ace3, and what isn't here:
 //! - ace3 runs this as a separate app in a container that holds no encryption key and no credential
-//!   but its backends'. Here the routes are `ace serve`'s, in the one process. ace3's startup custody
-//!   checks have nothing to check; `ace-app`'s `ai` docs say what is kept of them.
+//!   but its backends'. So does ace4: `ace serve-ai` (`ace-app`'s `serve_ai`), under a database role
+//!   that can do only what these functions do ([`role`]), with ace3's startup custody checks
+//!   (`ace-app`'s `ai::custody`). Where ace3's limiter keeps its state in Redis, whose password the
+//!   container holds, this one's is in Postgres, under the same role.
 //! - An alert has no version token, no `saq.log` and no whole-directory download (`ace-api`'s docs), so
 //!   those three reads aren't here. An alert's observables come in pages.
 //! - The export pages the alert list oldest first with the list's cursor: roots record no time they
@@ -82,6 +84,7 @@ use crate::search::{SearchRequest, SearchResponse, SimilarRequest};
 use crate::{Actor, Component, FilterEntry, Service, ServiceError};
 
 pub mod limiter;
+pub mod role;
 pub mod testing;
 
 pub use limiter::{AiLimiter, LimitError, LimitKind, PgLimiter, Slot};

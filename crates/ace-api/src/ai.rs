@@ -10,10 +10,15 @@
 //! | `GET /events/{id}` | `GET /api/ai/v1/events/{event}` | `ai:event` |
 //! | `POST /search/alerts`, `/search/similar` | `POST /api/ai/v1/search/alerts`, `/search/similar` | `ai:search` |
 //! | `GET /export/alerts` | `GET /api/ai/v1/export/alerts` | `ai:export` |
-//! | `GET /health/ping` | `GET /api/health/v1/ping`, the API's own | none |
+//! | `GET /health/ping` | `GET /api/health/v1/ping`, on the AI listener too | none |
 //!
-//! Every route takes an API key and refuses a session with 403. Until the overlay's `ai_api` section
-//! turns the API on, each answers 404 saying so, once the key is found to hold the permission.
+//! `ace serve-ai` serves these on a listener of its own (`crate::AiWeb`), as ace3's `http-api-ai`
+//! container does, and `ace serve` doesn't serve them. Every route takes an API key. A session's
+//! cookie isn't read there, so a request with only a cookie is a 401: the process's database role
+//! can't read a session (ace3's AI app holds no cookie-signing key). The service still refuses a
+//! session with 403, for any caller that reaches it another way. Until the overlay's `ai_api`
+//! section turns the API on, each route answers 404 saying so, once the key is found to hold the
+//! permission.
 //!
 //! What differs, or is left out, and why:
 //! - `GET /backends` needs `ai:backends`, where ace3 asks only for a valid key: every route here but
@@ -46,7 +51,7 @@ use serde_json::{Map, Value};
 use utoipa::{IntoParams, ToSchema};
 use uuid::Uuid;
 
-use crate::Web;
+use crate::AiWeb;
 use crate::alerts::{AlertBody, AlertDetailBody, ObservablePageBody, ObservablesQuery};
 use crate::auth::Authenticated;
 use crate::error::{ApiError, ErrorBody};
@@ -235,13 +240,13 @@ pub(crate) struct ExportQuery {
     responses(
         (status = 200, description = "The backends, by name", body = BackendsBody),
         (status = 401, description = "No credential, or one that isn't valid", body = ErrorBody),
-        (status = 403, description = "The key doesn't hold ai:backends, or the caller is a session", body = ErrorBody),
+        (status = 403, description = "The key doesn't hold ai:backends", body = ErrorBody),
         (status = 404, description = "The AI investigation API isn't enabled on this server", body = ErrorBody),
     )
 )]
 pub(crate) async fn backends(
     Authenticated(actor): Authenticated,
-    State(web): State<Web>,
+    State(web): State<AiWeb>,
 ) -> Result<Json<BackendsBody>, ApiError> {
     let backends = web.service.ai_backends(&actor).await?;
     Ok(Json(BackendsBody {
@@ -264,7 +269,7 @@ pub(crate) async fn backends(
         (status = 200, description = "The rows", body = QueryBody),
         (status = 400, description = "A request the service or the backend refuses: a window missing or not wanted, a timeout over the backend's, extras it doesn't take, or a body that isn't one", body = ErrorBody),
         (status = 401, description = "No credential, or one that isn't valid", body = ErrorBody),
-        (status = 403, description = "The key doesn't hold ai:<backend>, or the caller is a session", body = ErrorBody),
+        (status = 403, description = "The key doesn't hold ai:<backend>", body = ErrorBody),
         (status = 404, description = "No such backend, or the AI investigation API isn't enabled on this server", body = ErrorBody),
         (status = 413, description = "The body is too large", body = ErrorBody),
         (status = 429, description = "A limit of the backend refused the request; `Retry-After` says when to try again", body = ErrorBody),
@@ -275,7 +280,7 @@ pub(crate) async fn backends(
 )]
 pub(crate) async fn query(
     Authenticated(actor): Authenticated,
-    State(web): State<Web>,
+    State(web): State<AiWeb>,
     backend: Result<Path<String>, PathRejection>,
     body: Result<Json<QueryRequest>, JsonRejection>,
 ) -> Result<Json<QueryBody>, ApiError> {
@@ -302,13 +307,13 @@ pub(crate) async fn query(
         (status = 200, description = "The alert", body = AlertDetailBody),
         (status = 400, description = "An id that isn't a uuid", body = ErrorBody),
         (status = 401, description = "No credential, or one that isn't valid", body = ErrorBody),
-        (status = 403, description = "The key doesn't hold ai:alert, or the caller is a session", body = ErrorBody),
+        (status = 403, description = "The key doesn't hold ai:alert", body = ErrorBody),
         (status = 404, description = "No such alert, or the AI investigation API isn't enabled on this server", body = ErrorBody),
     )
 )]
 pub(crate) async fn alert(
     Authenticated(actor): Authenticated,
-    State(web): State<Web>,
+    State(web): State<AiWeb>,
     id: Result<Path<Uuid>, PathRejection>,
 ) -> Result<Json<AlertDetailBody>, ApiError> {
     let Path(id) = id?;
@@ -327,13 +332,13 @@ pub(crate) async fn alert(
         (status = 200, description = "A page of observables", body = ObservablePageBody),
         (status = 400, description = "A limit out of range, or an id that isn't a uuid", body = ErrorBody),
         (status = 401, description = "No credential, or one that isn't valid", body = ErrorBody),
-        (status = 403, description = "The key doesn't hold ai:alert, or the caller is a session", body = ErrorBody),
+        (status = 403, description = "The key doesn't hold ai:alert", body = ErrorBody),
         (status = 404, description = "No such alert, or the AI investigation API isn't enabled on this server", body = ErrorBody),
     )
 )]
 pub(crate) async fn alert_observables(
     Authenticated(actor): Authenticated,
-    State(web): State<Web>,
+    State(web): State<AiWeb>,
     id: Result<Path<Uuid>, PathRejection>,
     query: Result<Query<ObservablesQuery>, QueryRejection>,
 ) -> Result<Json<ObservablePageBody>, ApiError> {
@@ -355,13 +360,13 @@ pub(crate) async fn alert_observables(
         (status = 200, description = "The event", body = EventBody),
         (status = 400, description = "Neither an id nor a uuid", body = ErrorBody),
         (status = 401, description = "No credential, or one that isn't valid", body = ErrorBody),
-        (status = 403, description = "The key doesn't hold ai:event, or the caller is a session", body = ErrorBody),
+        (status = 403, description = "The key doesn't hold ai:event", body = ErrorBody),
         (status = 404, description = "No such event, or the AI investigation API isn't enabled on this server", body = ErrorBody),
     )
 )]
 pub(crate) async fn event(
     Authenticated(actor): Authenticated,
-    State(web): State<Web>,
+    State(web): State<AiWeb>,
     event: Result<Path<String>, PathRejection>,
 ) -> Result<Json<EventBody>, ApiError> {
     let Path(text) = event?;
@@ -383,7 +388,7 @@ pub(crate) async fn event(
         (status = 200, description = "A page of the alerts found, or the query's errors with nothing searched", body = AlertSearchBody),
         (status = 400, description = "Neither a query nor a filter, a filter, lane, timezone, limit or offset that isn't one, or a body that isn't one", body = ErrorBody),
         (status = 401, description = "No credential, or one that isn't valid", body = ErrorBody),
-        (status = 403, description = "The key doesn't hold ai:search, or the caller is a session", body = ErrorBody),
+        (status = 403, description = "The key doesn't hold ai:search", body = ErrorBody),
         (status = 404, description = "The AI investigation API isn't enabled on this server", body = ErrorBody),
         (status = 413, description = "The body is too large", body = ErrorBody),
         (status = 429, description = "A search limit refused the request; `Retry-After` says when to try again", body = ErrorBody),
@@ -393,7 +398,7 @@ pub(crate) async fn event(
 )]
 pub(crate) async fn search_alerts(
     Authenticated(actor): Authenticated,
-    State(web): State<Web>,
+    State(web): State<AiWeb>,
     body: Result<Json<AlertSearchRequest>, JsonRejection>,
 ) -> Result<Json<AlertSearchBody>, ApiError> {
     let Json(body) = body?;
@@ -412,7 +417,7 @@ pub(crate) async fn search_alerts(
         (status = 200, description = "A page of the alerts most like it, itself left out", body = AlertSearchBody),
         (status = 400, description = "A filter, timezone or limit that isn't one, or a body that isn't one", body = ErrorBody),
         (status = 401, description = "No credential, or one that isn't valid", body = ErrorBody),
-        (status = 403, description = "The key doesn't hold ai:search, or the caller is a session", body = ErrorBody),
+        (status = 403, description = "The key doesn't hold ai:search", body = ErrorBody),
         (status = 404, description = "No alert with that id, or the AI investigation API isn't enabled on this server", body = ErrorBody),
         (status = 413, description = "The body is too large", body = ErrorBody),
         (status = 429, description = "A search limit refused the request; `Retry-After` says when to try again", body = ErrorBody),
@@ -422,7 +427,7 @@ pub(crate) async fn search_alerts(
 )]
 pub(crate) async fn search_similar(
     Authenticated(actor): Authenticated,
-    State(web): State<Web>,
+    State(web): State<AiWeb>,
     body: Result<Json<SimilarAlertsRequest>, JsonRejection>,
 ) -> Result<Json<AlertSearchBody>, ApiError> {
     let Json(body) = body?;
@@ -445,7 +450,7 @@ pub(crate) async fn search_similar(
         (status = 200, description = "A page of alerts", body = ExportPageBody),
         (status = 400, description = "A limit out of range, or a cursor that isn't this listing's", body = ErrorBody),
         (status = 401, description = "No credential, or one that isn't valid", body = ErrorBody),
-        (status = 403, description = "The key doesn't hold ai:export, or the caller is a session", body = ErrorBody),
+        (status = 403, description = "The key doesn't hold ai:export", body = ErrorBody),
         (status = 404, description = "The AI investigation API isn't enabled on this server", body = ErrorBody),
         (status = 429, description = "An export limit refused the request; `Retry-After` says when to try again", body = ErrorBody),
         (status = 503, description = "The rate limiter can't be reached, so the export was refused", body = ErrorBody),
@@ -454,7 +459,7 @@ pub(crate) async fn search_similar(
 )]
 pub(crate) async fn export_alerts(
     Authenticated(actor): Authenticated,
-    State(web): State<Web>,
+    State(web): State<AiWeb>,
     query: Result<Query<ExportQuery>, QueryRejection>,
 ) -> Result<Json<ExportPageBody>, ApiError> {
     let Query(query) = query?;

@@ -26,6 +26,15 @@ use sqlx::{PgConnection, PgPool, Postgres};
 /// The migrations in `crates/ace-core/migrations`, built into the binary.
 pub static MIGRATOR: Migrator = sqlx::migrate!("./migrations");
 
+/// The version of the newest migration built into the binary: what a migrated database is at.
+pub fn latest_migration() -> i64 {
+    MIGRATOR
+        .iter()
+        .map(|migration| migration.version)
+        .max()
+        .unwrap_or_default()
+}
+
 /// The core's areas, one Postgres schema each.
 pub const AREAS: &[&str] = &[
     "analysis",
@@ -123,6 +132,8 @@ pub struct DbConfig {
     pub acquire_timeout: Duration,
     /// How long one statement may run before Postgres cancels it.
     pub statement_timeout: Duration,
+    /// Settings each connection opens with, beside the statement timeout: a test's `role`.
+    session: Vec<(String, String)>,
 }
 
 impl DbConfig {
@@ -135,6 +146,7 @@ impl DbConfig {
             max_connections: 10,
             acquire_timeout: Duration::from_secs(10),
             statement_timeout: Duration::from_secs(60),
+            session: Vec::new(),
         })
     }
 
@@ -155,6 +167,15 @@ impl DbConfig {
         self
     }
 
+    /// Every connection opens as `role` (`SET ROLE`), so what it may do is what that role may: for a
+    /// test of a role's grants, which needs no login made for it. A process that must not hold more
+    /// than a role connects as a login that is a member of it, since a session can set its role back.
+    #[cfg(feature = "testing")]
+    pub fn role(mut self, role: &str) -> Self {
+        self.session.push(("role".to_owned(), role.to_owned()));
+        self
+    }
+
     /// The database the config connects to.
     pub fn database_name(&self) -> Option<&str> {
         self.options.get_database()
@@ -163,10 +184,16 @@ impl DbConfig {
     /// The options each connection opens with.
     pub fn connect_options(&self) -> PgConnectOptions {
         let statement_timeout = self.statement_timeout.as_millis().to_string();
+        let mut settings = vec![("statement_timeout", statement_timeout.as_str())];
+        settings.extend(
+            self.session
+                .iter()
+                .map(|(name, value)| (name.as_str(), value.as_str())),
+        );
         self.options
             .clone()
             .application_name(&self.component)
-            .options([("statement_timeout", statement_timeout.as_str())])
+            .options(settings)
     }
 }
 
