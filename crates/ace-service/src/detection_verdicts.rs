@@ -297,6 +297,12 @@ pub(crate) struct VerdictState {
 
 impl Recorded for VerdictState {}
 
+impl VerdictState {
+    pub(crate) fn detection(&self) -> i64 {
+        self.detection
+    }
+}
+
 /// Several detections' stored verdicts.
 #[derive(Debug, Serialize)]
 pub(crate) struct VerdictStates {
@@ -530,6 +536,22 @@ impl Service {
         verdict: Option<Verdict>,
         rules: &BatchRules,
     ) -> Result<Written, ServiceError> {
+        self.write_verdicts_as(tx, actor, is_analyst(actor), targets, verdict, rules)
+            .await
+    }
+
+    /// [`Service::write_verdicts`], with whether the verdicts are an analyst's said apart from who the
+    /// rows name: a review's FP verdicts (`svs_review`) are the reviewer's, and are ACE's to set, on
+    /// alerts whose disposition only ACE sets. ace3's `set_verdicts(..., analyst=False)`.
+    pub(crate) async fn write_verdicts_as(
+        &self,
+        tx: &mut Tx<'_>,
+        actor: &Actor,
+        analyst: bool,
+        targets: &[(Uuid, i64)],
+        verdict: Option<Verdict>,
+        rules: &BatchRules,
+    ) -> Result<Written, ServiceError> {
         let mut written = Written::default();
         let wanted: BTreeSet<(Uuid, i64)> = targets.iter().copied().collect();
         if wanted.is_empty() {
@@ -537,7 +559,6 @@ impl Service {
         }
         let ids: Vec<i64> = wanted.iter().map(|(_, id)| *id).collect();
         let (tp, fp) = self.disposition_classes().lists();
-        let analyst = is_analyst(actor);
         // locking the detection's row serializes the writers of its verdict, the first insert too, which
         // has no verdict row to lock yet
         let rows = sqlx::query!(

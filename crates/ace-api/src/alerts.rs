@@ -85,7 +85,7 @@ pub(crate) enum AnalysisBody {
 pub(crate) struct AlertBody {
     id: Uuid,
     /// The submission's description, as its sender wrote it. Show it as text.
-    title: String,
+    pub(crate) title: String,
     analysis_mode: String,
     event_time: Option<DateTime<Utc>>,
     /// `event`, `query_time`, `now` or `unset`: where `event_time` came from.
@@ -93,18 +93,33 @@ pub(crate) struct AlertBody {
     created_at: DateTime<Utc>,
     /// When a detection made the root an alert.
     alerted_at: DateTime<Utc>,
-    disposition: Option<String>,
+    pub(crate) disposition: Option<String>,
     dispositioned_at: Option<DateTime<Utc>>,
     dispositioned_by: Option<ActorBody>,
     submitted_by: Option<ActorBody>,
     analysis: AnalysisBody,
     /// The queue it's in. Show it as text.
-    queue: String,
+    pub(crate) queue: String,
+    /// The tags the core gave it: SVS's `svs_test`, `svs:marker_mismatch` and `svs:maintenance`.
+    tags: Vec<String>,
+    /// What SVS makes of it: `test` (every detection attributed to a test run, one by a marker), `test?`
+    /// (every detection, by context alone), `partial` (some) or `mismatch` (a marker that doesn't agree
+    /// with its run); null when SVS never touched it.
+    pub(crate) svs_status: Option<String>,
+    /// The test runs it's attributed to, oldest first: `GET /api/svs/v1/runs/{run_id}`.
+    svs_runs: Vec<Uuid>,
 }
 
 impl From<AlertSummary> for AlertBody {
     fn from(alert: AlertSummary) -> Self {
+        let (svs_status, svs_runs) = match alert.svs {
+            Some(svs) => (Some(svs.status.as_str().to_owned()), svs.runs),
+            None => (None, Vec::new()),
+        };
         AlertBody {
+            tags: alert.tags,
+            svs_status,
+            svs_runs,
             id: alert.id,
             title: alert.title,
             analysis_mode: alert.analysis_mode,
@@ -141,6 +156,9 @@ impl ExportRow for AlertBody {
         "submitted_by",
         "analysis",
         "queue",
+        "tags",
+        "svs_status",
+        "svs_runs",
     ];
 
     fn cells(&self) -> Vec<String> {
@@ -169,6 +187,13 @@ impl ExportRow for AlertBody {
             }
             .to_owned(),
             self.queue.clone(),
+            self.tags.join(" "),
+            self.svs_status.clone().unwrap_or_default(),
+            self.svs_runs
+                .iter()
+                .map(Uuid::to_string)
+                .collect::<Vec<_>>()
+                .join(" "),
         ]
     }
 }

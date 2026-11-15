@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT r.id, r.description, r.analysis_mode, r.event_time,\n                  r.event_time_source::text AS \"event_time_source!\",\n                  r.created_at, r.alerted_at AS \"alerted_at!\", r.disposition,\n                  r.dispositioned_at,\n                  r.dispositioned_by AS \"dispositioned_by: Value\",\n                  r.submitted_by AS \"submitted_by: Value\",\n                  r.pass, r.completed_pass,\n                  r.cancelled_at IS NOT NULL AS \"cancelled!\",\n                  r.queue::text AS \"queue!\"\n           FROM analysis.roots r\n           WHERE r.id = $1 AND r.alerted_at IS NOT NULL",
+  "query": "SELECT r.id, r.description, r.analysis_mode, r.event_time,\n                  r.event_time_source::text AS \"event_time_source!\",\n                  r.created_at, r.alerted_at AS \"alerted_at!\", r.disposition,\n                  r.dispositioned_at,\n                  r.dispositioned_by AS \"dispositioned_by: Value\",\n                  r.submitted_by AS \"submitted_by: Value\",\n                  r.pass, r.completed_pass,\n                  r.cancelled_at IS NOT NULL AS \"cancelled!\",\n                  r.queue::text AS \"queue!\", r.tags\n           FROM analysis.roots r\n           WHERE r.id = ANY ($1) AND r.alerted_at IS NOT NULL",
   "describe": {
     "columns": [
       {
@@ -152,11 +152,22 @@
         "name": "queue!",
         "type_info": "Text",
         "origin": "Expression"
+      },
+      {
+        "ordinal": 15,
+        "name": "tags",
+        "type_info": "TextArray",
+        "origin": {
+          "Table": {
+            "table": "analysis.roots",
+            "name": "tags"
+          }
+        }
       }
     ],
     "parameters": {
       "Left": [
-        "Uuid"
+        "UuidArray"
       ]
     },
     "nullable": [
@@ -174,8 +185,9 @@
       false,
       false,
       null,
-      null
+      null,
+      false
     ]
   },
-  "hash": "517efead94d9119a42c02fb3eabe623847ee812f637b343483bd8f41435625fa"
+  "hash": "563e393945ea93b58b057d7f0d73be74ea30926a619ea2b8f88146ecaab4a98f"
 }

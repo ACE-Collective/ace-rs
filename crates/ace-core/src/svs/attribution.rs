@@ -37,6 +37,17 @@
 //! registered a moment ago is seen. While it's closed a root keeps the attributions and tags it has, as in
 //! ace3.
 //!
+//! The hook reads the gate twice, each time through [`gate_open`]: `queue::check_completion` before it
+//! queues the hooks task on SVS's account alone (a mode whose only hook is this one), so a pass with the
+//! gate closed queues no task for it, and [`judge`] in the task. A pass that ends beside a registration
+//! can't slip between them. [`gate_open`] takes [`GATE_LOCK`] shared, for its transaction, before it
+//! reads; the two writes that can open the gate, registering a run and opening a maintenance window, take
+//! it exclusive before they insert ([`lock_gate_to_open`]). So for a pass's end and a registration, one
+//! of two things is true: the registration committed first, and the read, made after its lock was
+//! granted, sees the run, so the hook judges the alert; or the pass's end committed first, with the gate
+//! closed, before the run existed. Nothing else opens the gate: a run's start and end only move a run
+//! that already holds it open, and time only closes it.
+//!
 //! # Bounds
 //!
 //! A root's tree is hostile, and the hook runs in the core. What one judgment reads:
@@ -631,6 +642,34 @@ pub async fn attribution_open(
     )
     .fetch_one(conn)
     .await?)
+}
+
+/// The advisory lock that orders a read of the gate and a write that opens it (the module docs): `SVSGATE`
+/// as a number.
+pub const GATE_LOCK: i64 = 0x0053_5653_4741_5445;
+
+/// [`attribution_open`], read under [`GATE_LOCK`] held shared until the caller's transaction ends, so a
+/// registration or a maintenance window either committed before this read, and is seen, or begins after
+/// the caller's transaction commits. Call it in a transaction.
+pub async fn gate_open(
+    conn: &mut PgConnection,
+    now: DateTime<Utc>,
+    extra: TimeDelta,
+) -> Result<bool, DbError> {
+    sqlx::query!("SELECT pg_advisory_xact_lock_shared($1)", GATE_LOCK)
+        .execute(&mut *conn)
+        .await?;
+    attribution_open(conn, now, extra).await
+}
+
+/// Takes [`GATE_LOCK`] exclusive until the caller's transaction ends: what a write that can open the gate
+/// does before its insert, so no pass ends on a closed gate while that write is in flight. It waits for
+/// the passes ending now, each a short transaction, and they wait for the caller's commit.
+pub async fn lock_gate_to_open(conn: &mut PgConnection) -> Result<(), DbError> {
+    sqlx::query!("SELECT pg_advisory_xact_lock($1)", GATE_LOCK)
+        .execute(conn)
+        .await?;
+    Ok(())
 }
 
 /// The runs with these ids, as attribution reads them, in id order.
@@ -1892,7 +1931,7 @@ pub async fn judge(
     config: &HookConfig,
     now: DateTime<Utc>,
 ) -> Result<Option<Judged>, DbError> {
-    if !attribution_open(conn, now, config.attribution_extra).await? {
+    if !gate_open(conn, now, config.attribution_extra).await? {
         return Ok(None);
     }
     let Some(event) = root_event(conn, root).await? else {

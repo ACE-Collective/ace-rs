@@ -176,20 +176,36 @@ pub async fn check_completion(tx: &mut Tx<'_>, root: Uuid) -> Result<Option<i32>
         return Ok(None);
     }
     // the hooks run before the pass ends, once nothing else is left (`crate::hooks`)
-    let due = sqlx::query_scalar!(
-        r#"SELECT hooks_due AND cancelled_at IS NULL AS "due!" FROM analysis.roots WHERE id = $1"#,
+    let hooks = sqlx::query!(
+        r#"SELECT hooks_due AND cancelled_at IS NULL AS "due!",
+                  CASE WHEN cancelled_at IS NULL THEN svs_gate_extra_seconds END AS svs_gate
+           FROM analysis.roots WHERE id = $1"#,
         root,
     )
     .fetch_optional(tx.conn())
-    .await?
-    .unwrap_or(false);
-    if due {
-        if queue_hooks(tx, root).await?.is_some() {
-            return Ok(None);
+    .await?;
+    let (mut due, svs_gate) = hooks.map_or((false, None), |row| (row.due, row.svs_gate));
+    if !due && let Some(extra) = svs_gate {
+        // only SVS's hook is due: its task is queued while its gate is open, read under the lock that
+        // orders this pass's end against a registration (`crate::svs::attribution`'s *The gate*)
+        due = crate::svs::attribution::gate_open(
+            tx.conn(),
+            chrono::Utc::now(),
+            chrono::TimeDelta::seconds(extra),
+        )
+        .await
+        .map_err(QueueError::from)?;
+        if !due {
+            tracing::debug!(%root, "svs's gate is closed: no hooks task for this pass");
         }
-        // a hooks task that failed doesn't run again; the pass ends without it
+    }
+    // a hooks task that failed doesn't run again; the pass ends without it
+    if due && queue_hooks(tx, root).await?.is_some() {
+        return Ok(None);
+    }
+    if due || svs_gate.is_some() {
         sqlx::query!(
-            "UPDATE analysis.roots SET hooks_due = false WHERE id = $1",
+            "UPDATE analysis.roots SET hooks_due = false, svs_gate_extra_seconds = NULL WHERE id = $1",
             root
         )
         .execute(tx.conn())

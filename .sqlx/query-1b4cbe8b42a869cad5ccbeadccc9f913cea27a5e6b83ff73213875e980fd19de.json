@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE analysis.roots SET svs_gate_extra_seconds = $2 WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "1b4cbe8b42a869cad5ccbeadccc9f913cea27a5e6b83ff73213875e980fd19de"
+}

@@ -133,6 +133,7 @@ pub mod svs_association;
 mod svs_catalog;
 mod svs_decisions;
 mod svs_results;
+mod svs_review;
 mod svs_run_reads;
 mod svs_runs;
 mod svs_samples;
@@ -165,6 +166,7 @@ pub use ace_core::svs::samples::{
     Votes as SampleVotes,
 };
 pub use ace_core::svs::validations::ValidationState;
+pub use ace_core::svs::{AttributionConfidence, RunState, SvsStatus};
 pub use ace_core::tree::DEFAULT_QUEUE;
 pub use ace_sdk::actions::{ActionKind, RemediationAction};
 pub use ace_sdk::lists::MatchKind;
@@ -276,11 +278,15 @@ pub use svs_decisions::{
     IgnoreQuery, MAX_DECISION_REASON, MAX_DECISIONS_PAGE, TestSettings,
 };
 pub use svs_results::ComputedResult;
+pub use svs_review::{
+    BulkResult, CLOSE_REASON_BY_PERSON, MAX_BULK_RUNS, MAX_RUN_REASON_CHARS, ReviewBlockers,
+    ReviewOutcome, Reviewed,
+};
 pub use svs_run_reads::{
-    HistoryRun, MAX_RUN_COMMENT_CHARS, MAX_RUN_HISTORY, MAX_RUNS_PAGE, RunAttribution,
-    RunAttributionPage, RunBatch, RunBatchPage, RunComment, RunEventFeedPage, RunEventRow,
-    RunHistory, RunPage, RunQuery, RunResult, RunResultPage, RunResults, RunRow, RunSummary,
-    SignatureHistory, SuppressionShare, SvsFeed,
+    HistoryRun, MAX_RUN_COMMENT_CHARS, MAX_RUN_HISTORY, MAX_RUNS_PAGE, RunAlert, RunAlertDetection,
+    RunAlertPage, RunAttribution, RunAttributionPage, RunBatch, RunBatchPage, RunComment,
+    RunEventFeedPage, RunEventRow, RunHistory, RunPage, RunQuery, RunResult, RunResultPage,
+    RunResults, RunRow, RunSummary, SignatureHistory, SuppressionShare, SvsFeed,
 };
 pub use svs_runs::{
     MAX_MAINTENANCE_PAGE, MAX_RUN_EVENTS_PAGE, MaintenanceWindow, REFUSAL_ALERT_TYPE, REFUSAL_TOOL,

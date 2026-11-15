@@ -56,7 +56,11 @@
 //!   runs and their batches, with the runs screen's filters), the run page (its result with the decisions
 //!   as forms, its history, comments and event log) and, for `svs:admin`, the Test hosts tab, over the
 //!   `svs_run_reads`, `svs_decisions` and `svs` services. The base layout links to it for whoever holds
-//!   `svs:run_read`.
+//!   `svs:run_read`. Batch 7b brought the run page's alerts, association forms and review, and a person's
+//!   take, cancel, end and close of runs, over `svs_review` and `svs_association`.
+//! - `svs_alert`: what SVS makes of an alert, on its page (PLAN.md 7.10 batch 7b): ace3's SVS banner, with
+//!   the root's tags, and the forms that give the alert back to analysts. The alert list shows the same
+//!   status and tags beside each alert's description (`list`).
 //! - `events`: the events area under `event:read` (5.11's events area): ace3's event list with its
 //!   filters, sorts and CSV export, an event's page with Close Event behind a confirm, and its
 //!   add-to-event modal as a page, opened from the alert list's bulk form, and Create Event, the same
@@ -100,6 +104,7 @@ pub mod saved_filters;
 mod session;
 pub mod signatures;
 pub mod svs;
+pub mod svs_alert;
 pub mod svs_samples;
 pub mod svs_validations;
 pub mod templates;
@@ -300,6 +305,9 @@ impl Gui {
             .route("/svs/runs", get(svs::runs))
             .route("/svs/runs/batches", get(svs::batches))
             .route("/svs/runs/{run_id}", get(svs::run))
+            .route("/svs/runs/bulk", post(svs::bulk))
+            .route("/svs/runs/{run_id}/alerts", post(svs::associate))
+            .route("/svs/runs/{run_id}/review", post(svs::review))
             .route("/svs/runs/{run_id}/decide", post(svs::decide))
             .route("/svs/runs/{run_id}/comments", post(svs::comment))
             .route(
@@ -378,6 +386,7 @@ impl Gui {
                 post(verdicts::set),
             )
             .route("/alerts/{id}/detections/confirm", post(verdicts::confirm))
+            .route("/alerts/{id}/svs", post(svs_alert::release))
             .route(
                 "/alerts/{id}/observables/{observable}/comment",
                 get(actions::comment_page)

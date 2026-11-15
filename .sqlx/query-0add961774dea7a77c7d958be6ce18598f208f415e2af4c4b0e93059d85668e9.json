@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT signature_uuid FROM svs.run_results\n         WHERE run_id = $1 AND status = 'candidate' ORDER BY signature_uuid",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "signature_uuid",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.run_results",
+            "name": "signature_uuid"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "0add961774dea7a77c7d958be6ce18598f208f415e2af4c4b0e93059d85668e9"
+}

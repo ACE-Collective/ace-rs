@@ -1,0 +1,193 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT r.id, r.description, r.analysis_mode, r.event_time,\n                  r.event_time_source::text AS \"event_time_source!\",\n                  r.created_at, r.alerted_at AS \"alerted_at!\", r.disposition,\n                  r.dispositioned_at,\n                  r.dispositioned_by AS \"dispositioned_by: Value\",\n                  r.submitted_by AS \"submitted_by: Value\",\n                  r.pass, r.completed_pass,\n                  r.cancelled_at IS NOT NULL AS \"cancelled!\",\n                  r.queue::text AS \"queue!\", r.tags\n           FROM analysis.roots r\n           WHERE r.id = $1 AND r.alerted_at IS NOT NULL",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "analysis.roots",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "description",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "analysis.roots",
+            "name": "description"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "analysis_mode",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "analysis.roots",
+            "name": "analysis_mode"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "event_time",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "analysis.roots",
+            "name": "event_time"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "event_time_source!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 5,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "analysis.roots",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "alerted_at!",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "analysis.roots",
+            "name": "alerted_at"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "disposition",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "analysis.roots",
+            "name": "disposition"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "dispositioned_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "analysis.roots",
+            "name": "dispositioned_at"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "dispositioned_by: Value",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "analysis.roots",
+            "name": "dispositioned_by"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "submitted_by: Value",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "analysis.roots",
+            "name": "submitted_by"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "pass",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "analysis.roots",
+            "name": "pass"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "completed_pass",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "analysis.roots",
+            "name": "completed_pass"
+          }
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "cancelled!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 14,
+        "name": "queue!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 15,
+        "name": "tags",
+        "type_info": "TextArray",
+        "origin": {
+          "Table": {
+            "table": "analysis.roots",
+            "name": "tags"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      null,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      null,
+      null,
+      false
+    ]
+  },
+  "hash": "9718ab78ddcfdc63ae7676d719f89a7a8f1f51f62b72727c6c558248a8df65bd"
+}

@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM svs.run_results WHERE run_id = $1 AND status IS NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "70dd979e2e860ce286b34f63791478297ab8edda66d8b44d6fc941e43e72fedb"
+}

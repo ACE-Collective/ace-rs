@@ -8422,6 +8422,290 @@
         }
       }
     },
+    "/api/svs/v1/runs/bulk/cancel": {
+      "post": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "Cancels the runs, as their launcher would: created or started to canceled, and one canceled before it\nstarted is closed at once. A run in any other state is in `conflicts`.",
+        "operationId": "cancel_runs",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BulkRunRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "What it did to each run",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BulkRunBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A body that isn't one, no runs or too many, an id that isn't a uuid, or a key that belongs to nobody",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold svs:run_manage",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The body is too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/svs/v1/runs/bulk/close": {
+      "post": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "Closes the ended, canceled or failed runs: nothing is learned from them, and their alerts become\nSIMULATED. An ended run needs `reason`, since it waited for a review.",
+        "operationId": "close_runs",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BulkRunRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "What it did to each run",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BulkRunBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A body that isn't one, no runs or too many, an id that isn't a uuid, a reason that is too long, or a key that belongs to nobody",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold svs:run_manage",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The body is too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/svs/v1/runs/bulk/end": {
+      "post": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "Ends the started runs now, before their observation windows pass, so they can be reviewed. It needs\n`reason`: without it each run is in `conflicts`.",
+        "operationId": "end_runs",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BulkRunRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "What it did to each run",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BulkRunBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A body that isn't one, no runs or too many, an id that isn't a uuid, a reason that is too long, or a key that belongs to nobody",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold svs:run_manage",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The body is too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/svs/v1/runs/bulk/take-ownership": {
+      "post": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "Makes the caller the owner of the runs. A run someone else owns is left alone, and named in\n`left_alone`, unless `confirmed_takes` names its owner.",
+        "operationId": "take_ownership",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BulkRunRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "What it did to each run",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BulkRunBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A body that isn't one, no runs or too many, an id that isn't a uuid, or a key that belongs to nobody",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold svs:run_manage",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The body is too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/svs/v1/runs/count": {
       "get": {
         "tags": [
@@ -9202,6 +9486,189 @@
           },
           "404": {
             "description": "No run with that id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/svs/v1/runs/{run_id}/alerts": {
+      "get": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "The alerts the run holds or held, in the order they were first attributed to it, each with every\ndetection it has and that detection's attribution to the run, removed ones included.",
+        "operationId": "run_alerts",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "description": "The run's uuid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "description": "The `next` of the page before.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "At most this many, 1 to 1000; 100 when left out.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of the run's alerts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunAlertPageBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "An id that isn't a uuid, or a parameter that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold svs:run_read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No run with that id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/svs/v1/runs/{run_id}/alerts/export/{format}": {
+      "get": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "A run's alerts, as CSV (each alert's detections as one JSON cell) or NDJSON.",
+        "operationId": "export_run_alerts",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "description": "The run's uuid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "format",
+            "in": "path",
+            "description": "`csv` or `ndjson`",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The alerts, as text/csv or application/x-ndjson",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "An id that isn't a uuid, or a format that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold svs:run_read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No run with that id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "More alerts than an export holds",
             "content": {
               "application/json": {
                 "schema": {
@@ -10844,6 +11311,108 @@
           },
           "413": {
             "description": "More result rows than an export holds",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/svs/v1/runs/{run_id}/review": {
+      "post": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "Signs the run's result off: an ended run becomes reviewed, and a reviewed run is reviewed again. Its\nfully attributed open alerts nobody has taken become SIMULATED, and the detections of signatures\nignored for its test get an FP verdict. It needs the result to be current, every candidate decided and\nevery context-only alert kept or marked not a test: `GET /api/svs/v1/runs/{run_id}`'s\n`review_blockers` says what's missing.",
+        "operationId": "review",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "description": "The run's uuid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The run as reviewed, and what the review did",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "An id that isn't a uuid, a body that isn't one, or a key that belongs to nobody",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold svs:run_manage",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No run with that id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Someone else owns the run, it is neither ended nor reviewed, or something blocks the review",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewRefusedBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The body is too large",
             "content": {
               "application/json": {
                 "schema": {
@@ -17749,7 +18318,9 @@
           "created_at",
           "alerted_at",
           "analysis",
-          "queue"
+          "queue",
+          "tags",
+          "svs_runs"
         ],
         "properties": {
           "alerted_at": {
@@ -17818,6 +18389,28 @@
                 "type": "null"
               }
             ]
+          },
+          "svs_runs": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "The test runs it's attributed to, oldest first: `GET /api/svs/v1/runs/{run_id}`."
+          },
+          "svs_status": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "What SVS makes of it: `test` (every detection attributed to a test run, one by a marker), `test?`\n(every detection, by context alone), `partial` (some) or `mismatch` (a marker that doesn't agree\nwith its run); null when SVS never touched it."
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The tags the core gave it: SVS's `svs_test`, `svs:marker_mismatch` and `svs:maintenance`."
           },
           "title": {
             "type": "string",
@@ -18188,6 +18781,88 @@
             "type": "string"
           }
         }
+      },
+      "BulkRunBody": {
+        "type": "object",
+        "description": "What a bulk action did to each run.",
+        "required": [
+          "done",
+          "left_alone",
+          "conflicts",
+          "unknown"
+        ],
+        "properties": {
+          "conflicts": {
+            "type": "object",
+            "description": "Run uuid to why the action doesn't apply to it: its state, or a missing reason.",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "propertyNames": {
+              "type": "string"
+            }
+          },
+          "done": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "The runs the action was applied to."
+          },
+          "left_alone": {
+            "type": "object",
+            "description": "Run uuid to the username of whoever owns it, for the runs someone else owns. Sent back as\n`confirmed_takes`, it takes them.",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "propertyNames": {
+              "type": "string"
+            }
+          },
+          "unknown": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Run uuids that don't exist."
+          }
+        }
+      },
+      "BulkRunRequest": {
+        "type": "object",
+        "description": "A bulk action on runs, as the runs screen sends it.",
+        "required": [
+          "run_ids"
+        ],
+        "properties": {
+          "confirmed_takes": {
+            "type": "object",
+            "description": "Run uuid to the username of the person the caller agreed to take the run from; a run someone\nelse owns is left alone without it.",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "propertyNames": {
+              "type": "string"
+            }
+          },
+          "reason": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "End and close only: why, at most 4096 characters. Required to end a run, and to close an ended\nrun, which waits for a review."
+          },
+          "run_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The runs' uuids, from 1 to 500."
+          }
+        },
+        "additionalProperties": false
       },
       "CatalogEntryBody": {
         "type": "object",
@@ -22716,6 +23391,146 @@
           }
         }
       },
+      "ReviewBlockersBody": {
+        "type": "object",
+        "description": "What a review would be refused for right now.",
+        "required": [
+          "stale",
+          "candidates",
+          "context_alerts"
+        ],
+        "properties": {
+          "candidates": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The undecided signatures' uuids."
+          },
+          "context_alerts": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "The alerts with context attributions neither kept nor marked not a test."
+          },
+          "stale": {
+            "type": "boolean",
+            "description": "The result is being recomputed, or was never computed."
+          }
+        }
+      },
+      "ReviewBody": {
+        "type": "object",
+        "description": "A review that went through.",
+        "required": [
+          "run",
+          "re_review",
+          "counts",
+          "alerts_closed",
+          "fp_verdicts"
+        ],
+        "properties": {
+          "alerts_closed": {
+            "type": "integer",
+            "description": "Alerts that became SIMULATED.",
+            "minimum": 0
+          },
+          "counts": {
+            "type": "object",
+            "description": "Signatures per result status, as signed off.",
+            "additionalProperties": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "propertyNames": {
+              "type": "string"
+            }
+          },
+          "fp_verdicts": {
+            "type": "integer",
+            "description": "Detections of ignored signatures given an FP verdict.",
+            "minimum": 0
+          },
+          "re_review": {
+            "type": "boolean",
+            "description": "The run had been reviewed before; this sign-off replaces that one."
+          },
+          "run": {
+            "$ref": "#/components/schemas/RunDetailBody"
+          }
+        }
+      },
+      "ReviewRefusedBody": {
+        "type": "object",
+        "description": "Why a review didn't go through: `error`, and what stands in the way.",
+        "required": [
+          "error"
+        ],
+        "properties": {
+          "candidates": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "description": "The undecided signatures' uuids."
+          },
+          "context_alerts": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "The alerts with context attributions neither kept nor marked not a test."
+          },
+          "error": {
+            "type": "string",
+            "description": "What went wrong, for a person to read."
+          },
+          "owner": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Someone else owns the run: their username. Send it as `confirmed_take_from` to take it."
+          },
+          "stale": {
+            "type": [
+              "boolean",
+              "null"
+            ],
+            "description": "The result is being recomputed, or was never computed."
+          },
+          "state": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The run's state, when it is neither ended nor reviewed."
+          }
+        }
+      },
+      "ReviewRequest": {
+        "type": "object",
+        "description": "A review's body.",
+        "properties": {
+          "confirmed_take_from": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The username of the run's owner the caller agreed to take it from, when someone else owns it."
+          }
+        },
+        "additionalProperties": false
+      },
       "Rfc822Body": {
         "type": "string",
         "format": "binary",
@@ -22740,6 +23555,139 @@
           },
           "rule_uuid": {
             "type": "string"
+          }
+        }
+      },
+      "RunAlertBody": {
+        "type": "object",
+        "description": "An alert attributed to the run, now or before.",
+        "required": [
+          "alert_uuid",
+          "alert",
+          "holds",
+          "late",
+          "cleanup",
+          "fallback_time",
+          "manual",
+          "kept",
+          "undecided_context",
+          "detections"
+        ],
+        "properties": {
+          "alert": {
+            "$ref": "#/components/schemas/AlertBody",
+            "description": "The alert as `GET /api/alerts/v1/alerts` lists it, with its SVS status over every run."
+          },
+          "alert_uuid": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "cleanup": {
+            "type": "boolean",
+            "description": "Every attribution that holds is the test's cleanup's."
+          },
+          "confidence": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Of those that hold: `marker` when any is (a person's association is `marker`), else `context`."
+          },
+          "detections": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RunAlertDetectionBody"
+            },
+            "description": "Every detection of the alert."
+          },
+          "fallback_time": {
+            "type": "boolean",
+            "description": "An attribution that holds was judged by a fallback event time."
+          },
+          "holds": {
+            "type": "boolean",
+            "description": "Some attribution of it to the run holds."
+          },
+          "kept": {
+            "type": "boolean",
+            "description": "A person kept its context attributions."
+          },
+          "late": {
+            "type": "boolean",
+            "description": "An attribution that holds is late."
+          },
+          "manual": {
+            "type": "boolean",
+            "description": "An attribution that holds was made by a person."
+          },
+          "undecided_context": {
+            "type": "boolean",
+            "description": "It has a context attribution that holds and nobody kept: a review waits for keep or not-a-test."
+          }
+        }
+      },
+      "RunAlertDetectionBody": {
+        "type": "object",
+        "description": "One detection of an alert the run holds or held, and its attribution to the run.",
+        "required": [
+          "detection",
+          "description"
+        ],
+        "properties": {
+          "attribution": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/RunAttributionBody",
+                "description": "Its attribution to this run, removed or not; null when it never had one."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "description": {
+            "type": "string",
+            "description": "As its module wrote it. Show it as text."
+          },
+          "detection": {
+            "type": "integer",
+            "format": "int64",
+            "description": "The detection's id, as the alert's detections list it."
+          },
+          "signature_family": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "signature_uuid": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "RunAlertPageBody": {
+        "type": "object",
+        "description": "A page of a run's alerts.",
+        "required": [
+          "alerts"
+        ],
+        "properties": {
+          "alerts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RunAlertBody"
+            }
+          },
+          "next": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "Pass it as `after` for the next page; null on the last."
           }
         }
       },
@@ -23188,6 +24136,17 @@
                 "oneOf": [
                   {
                     "$ref": "#/components/schemas/ActorBody"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "review_blockers": {
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/ReviewBlockersBody",
+                    "description": "An ended or reviewed run: what a review would be refused for right now; all empty when nothing\nstands in its way. Null for a run in any other state, which can't be reviewed."
                   },
                   {
                     "type": "null"

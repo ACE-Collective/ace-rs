@@ -1,7 +1,8 @@
 {#- The alert list's table and pager (PLAN.md 5.10), ace3's _manage_alert_table.html and _manage_columns.html:
     what the page includes and what a refresh sends, which Datastar morphs in by the id. A row's box belongs
     to the bulk form, outside this fragment; $_sel keeps the ticked ids across a morph, and each id is a
-    uuid. -#}
+    uuid. A description has its marks beside it: what SVS makes of the alert, and its root's tags (PLAN.md
+    7.10 batch 7b). -#}
 <div id="alert-list">
   <p class="count">{{ list.total }} alert{% if list.total != 1 %}s{% endif %}</p>
   {%- if list.rows.is_empty() %}
@@ -24,7 +25,7 @@
                    data-on:change="$_sel = $_sel.filter(id => id !== el.value).concat(el.checked ? [el.value] : [])"
                    data-effect="el.checked = $_sel.includes(el.value)"></td>
         {%- for cell in row.cells %}
-        <td data-col-id="{{ cell.id }}"{% if let Some(title) = cell.title %} title="{{ title }}"{% endif %}>{% if let Some(href) = cell.href %}<a href="{{ href }}"{% if let Some(badge) = cell.badge %} class="badge disposition-{{ badge }}"{% endif %}>{{ cell.text }}</a>{% else %}{{ cell.text }}{% endif %}</td>
+        <td data-col-id="{{ cell.id }}"{% if let Some(title) = cell.title %} title="{{ title }}"{% endif %}>{% if let Some(href) = cell.href %}<a href="{{ href }}"{% if let Some(badge) = cell.badge %} class="badge disposition-{{ badge }}"{% endif %}>{{ cell.text }}</a>{% else %}{{ cell.text }}{% endif %}{% for mark in cell.marks %} {% if let Some(href) = mark.href %}<a href="{{ href }}" class="badge {{ mark.class }}"{% if let Some(title) = mark.title %} title="{{ title }}"{% endif %}>{{ mark.text }}</a>{% else %}<span class="badge {{ mark.class }}"{% if let Some(title) = mark.title %} title="{{ title }}"{% endif %}>{{ mark.text }}</span>{% endif %}{% endfor %}</td>
         {%- endfor %}
       </tr>
       {%- endfor %}

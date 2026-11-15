@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE svs.run_results\n         SET reviewed_status = status, reviewed_alert_count = alert_count,\n             reviewed_late_only = late_only, reviewed_content_hash = content_hash\n         WHERE run_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "ad91efda8cd3dd56a93222563afcae7cd4a2e04902f4342eb959d888c308abc4"
+}

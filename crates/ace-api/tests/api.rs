@@ -590,6 +590,13 @@ const RUN_ASSOCIATE: &str = "/api/svs/v1/runs/{run_id}/alerts/{uuid}/associate";
 const RUN_DISASSOCIATE: &str = "/api/svs/v1/runs/{run_id}/alerts/{uuid}/disassociate";
 const RUN_NOT_A_TEST: &str = "/api/svs/v1/runs/{run_id}/alerts/{uuid}/not-a-test";
 const RUN_KEEP: &str = "/api/svs/v1/runs/{run_id}/alerts/{uuid}/keep";
+const RUN_ALERTS: &str = "/api/svs/v1/runs/{run_id}/alerts";
+const RUN_ALERTS_EXPORT: &str = "/api/svs/v1/runs/{run_id}/alerts/export/{format}";
+const RUN_REVIEW: &str = "/api/svs/v1/runs/{run_id}/review";
+const RUN_BULK_TAKE: &str = "/api/svs/v1/runs/bulk/take-ownership";
+const RUN_BULK_CANCEL: &str = "/api/svs/v1/runs/bulk/cancel";
+const RUN_BULK_END: &str = "/api/svs/v1/runs/bulk/end";
+const RUN_BULK_CLOSE: &str = "/api/svs/v1/runs/bulk/close";
 const RUN_RESULTS: &str = "/api/svs/v1/runs/{run_id}/results";
 const RUN_RESULTS_EXPORT: &str = "/api/svs/v1/runs/{run_id}/results/export/{format}";
 const RUN_HISTORY: &str = "/api/svs/v1/runs/{run_id}/history";
@@ -739,7 +746,10 @@ fn good_body(route: &str) -> Send {
         })),
         RUN_EXECUTED => Send::Json(json!({"exit_code": 0})),
         RUN_COMMENTS | RUN_COMMENT => Send::Json(json!({"comment": "refused"})),
-        ALERT_RELEASE | RUN_ASSOCIATE | RUN_DISASSOCIATE => Send::Json(json!({})),
+        ALERT_RELEASE | RUN_ASSOCIATE | RUN_DISASSOCIATE | RUN_REVIEW => Send::Json(json!({})),
+        RUN_BULK_TAKE | RUN_BULK_CANCEL | RUN_BULK_END | RUN_BULK_CLOSE => {
+            Send::Json(json!({"run_ids": [Uuid::nil()], "reason": "refused"}))
+        }
         EXPECTATION => Send::Json(json!({"state": "expected"})),
         TEST_IGNORE | GLOBAL_IGNORE | TEST_SETTINGS => Send::Json(json!({})),
         TEST_HOSTS | TEST_HOST => Send::Json(json!({"hostname": "refused"})),
@@ -779,7 +789,7 @@ async fn refuses_without_a_credential_or_a_permission(
         .map(|(method, route, _)| (method, route))
         .filter(|route| !public.contains(route))
         .collect();
-    assert_eq!(routes.len(), 211, "{routes:?}");
+    assert_eq!(routes.len(), 218, "{routes:?}");
     for (method, route) in routes {
         let method: Method = method.to_uppercase().parse().expect("a method");
         let path = fill(&route, id, file);
@@ -4550,6 +4560,7 @@ async fn every_documented_status_is_tested() {
     svs_runs(&mut client).await;
     svs_run_reads(&mut client).await;
     svs_association(&mut client).await;
+    svs_review(&mut client).await;
     pings(&mut client, &token).await;
 
     assert_eq!(
@@ -4920,14 +4931,18 @@ async fn filters_and_exports(client: &mut Client<'_>, token: &str) {
     let lines: Vec<&str> = csv.split("\r\n").collect();
     assert_eq!(lines.len(), 4, "a header, two rows and the end: {csv:?}");
     assert!(lines[0].starts_with("id,title,analysis_mode,"), "{csv}");
-    assert!(lines[0].ends_with(",analysis,queue"), "{csv}");
-    // a queue that starts a formula is guarded as a title is
+    // the queue, then what SVS and the core say of the alert (PLAN.md 7.10 batch 7b): nothing, here
     assert!(
-        lines[2].ends_with(",'=cmd|' /C calc'!A0")
-            || lines[2].ends_with(r#","'=cmd|' /C calc'!A0""#),
+        lines[0].ends_with(",analysis,queue,tags,svs_status,svs_runs"),
         "{csv}"
     );
-    assert!(lines[1].ends_with(",night.shift 2"), "{csv}");
+    // a queue that starts a formula is guarded as a title is
+    assert!(
+        lines[2].ends_with(",'=cmd|' /C calc'!A0,,,")
+            || lines[2].ends_with(r#","'=cmd|' /C calc'!A0",,,"#),
+        "{csv}"
+    );
+    assert!(lines[1].ends_with(",night.shift 2,,,"), "{csv}");
     assert!(
         lines[1].contains(r#","'+plain, ""quoted""","#)
             || lines[1].contains(r#""'+plain, ""quoted""""#),
@@ -13333,6 +13348,979 @@ async fn svs_run_reads(client: &mut Client<'_>) {
 }
 
 // ---- SVS's association routes (PLAN.md 7.10 batch 7a) ----
+
+/// A person's actions on runs, and a run's alerts (PLAN.md 7.10 batch 7b): ace3's
+/// `tests/aceapi_v2/svs/test_review.py` and the `TestAlerts` and `test_review_blockers` cases of
+/// `test_run_page_reads.py`.
+///
+/// test_review.py: `test_review`, `test_review_takes_from_a_confirmed_owner`, `test_bulk_actions`,
+/// `test_left_alone_is_a_confirmation`, `test_permissions` (with the sweep's 403s) and
+/// `test_a_config_key_is_refused` are below, each named where it starts; `test_comments` came with batch
+/// 5b (`svs_run_reads`). TestAlerts: `test_the_alerts`, `test_paging_and_export` and `test_unknown_runs`;
+/// `test_an_alert_that_is_gone` has no case, since an attribution goes with its alert here
+/// (`svs.attributions.root_id` cascades), so a run never lists an alert that is gone.
+async fn svs_review(client: &mut Client<'_>) {
+    use Method as M;
+    use StatusCode as S;
+    let stack = client.stack;
+    let db = stack.test_db.db();
+    let launcher = key(stack, &["svs:run_register"]).await;
+    let reader = key(stack, &["svs:run_read"]).await;
+    let admin = key(stack, &["svs:admin", "svs:run_read"]).await;
+    // a key that belongs to nobody, though it manages runs
+    let nobody = key(stack, &["svs:run_manage", "svs:run_read"]).await;
+    let (_, reviewer) = session_of(
+        stack,
+        "svs-reviewer",
+        &["svs:run_manage", "svs:run_read", "alert:read"],
+    )
+    .await;
+    let (_, bob) = session_of(stack, "svs-bob", &["svs:run_manage", "svs:run_read"]).await;
+    let (l, r, a, k, v, b) = (
+        Some(launcher.as_str()),
+        Some(reader.as_str()),
+        Some(admin.as_str()),
+        Some(nobody.as_str()),
+        Some(reviewer.as_str()),
+        Some(bob.as_str()),
+    );
+    let timers = Actor::Internal {
+        id: Component::new("scheduler:svs_run_timers").expect("a valid name"),
+    };
+    catalog_test(
+        stack,
+        51,
+        "T1059.005",
+        "A reviewed run's test",
+        &["windows"],
+        "command_prompt",
+        false,
+    )
+    .await;
+    let guid = catalog_guid(51);
+    const RULE: &str = "22222222-bbbb-4bbb-8bbb-222222222222";
+    let run_path = |route: &str, run: &str| route.replace("{run_id}", run);
+
+    // a started run on a host of its own
+    let mut hosts = 0;
+    let mut started = async |client: &mut Client<'_>| -> String {
+        hosts += 1;
+        let host = format!("review-{hosts}");
+        client
+            .json(
+                M::POST,
+                TEST_HOSTS,
+                TEST_HOSTS,
+                a,
+                Send::Json(json!({"hostname": host, "platform": "windows"})),
+                S::CREATED,
+            )
+            .await;
+        let run = client
+            .json(
+                M::POST,
+                RUNS,
+                RUNS,
+                l,
+                Send::Json(json!({
+                    "test_guid": guid, "targets": [{"hostname": host}], "launcher": "reviewart",
+                })),
+                S::CREATED,
+            )
+            .await;
+        let run = run["run_id"].as_str().expect("a run").to_owned();
+        client
+            .json(
+                M::POST,
+                RUN_START,
+                &RUN_START.replace("{run_id}", &run),
+                l,
+                Send::Nothing,
+                S::OK,
+            )
+            .await;
+        run
+    };
+    // an alert as the core leaves it: one detection, attributed to the run by `confidence` when given
+    let new_alert = async |run: &str,
+                           title: &str,
+                           signature: Option<&str>,
+                           confidence: Option<&str>|
+           -> Uuid {
+        let alert = Uuid::new_v4();
+        sqlx::query(
+            "INSERT INTO analysis.roots (id, analysis_mode, description, event_time_source, alerted_at, tags)
+             VALUES ($1, 'correlation', $2, 'unset', now(),
+                     CASE WHEN $3 THEN '{svs_test}'::text[] ELSE '{}' END)",
+        )
+        .bind(alert)
+        .bind(title)
+        .bind(confidence == Some("marker"))
+        .execute(db.pool())
+        .await
+        .expect("an alert");
+        sqlx::query(
+            "INSERT INTO analysis.detections (root_id, description, signature_uuid, signature_family)
+             VALUES ($1, 'hunt hit', $2, 'hunt')",
+        )
+        .bind(alert)
+        .bind(signature)
+        .execute(db.pool())
+        .await
+        .expect("a detection");
+        if let Some(confidence) = confidence {
+            sqlx::query(
+                "INSERT INTO svs.attributions
+                     (run_id, root_id, detection_id, confidence, source, actor, event_time,
+                      event_time_source)
+                 SELECT (SELECT id FROM svs.runs WHERE uuid = $1::uuid), d.root_id, d.id,
+                        $3::svs.attribution_confidence, 'router',
+                        '{\"kind\": \"internal\", \"id\": \"svs\"}', now(), 'insert_time'
+                 FROM analysis.detections d WHERE d.root_id = $2",
+            )
+            .bind(run)
+            .bind(alert)
+            .bind(confidence)
+            .execute(db.pool())
+            .await
+            .expect("an attribution");
+        }
+        alert
+    };
+    let bulk = |action: &str| format!("/api/svs/v1/runs/bulk/{action}");
+    let nowhere = Uuid::new_v4();
+
+    //
+    // TestAlerts: a run's alerts
+    //
+    let run = started(client).await;
+    let other = started(client).await;
+    new_alert(&other, "another run's", None, Some("marker")).await;
+    let marked = new_alert(&run, "<b>marked</b> hit", None, Some("marker")).await;
+    let context = new_alert(&run, "context hit", None, Some("context")).await;
+    let manual = new_alert(&run, "manual hit", None, None).await;
+    let removed = new_alert(&run, "removed hit", None, None).await;
+    let on = |route: &str, alert: &Uuid| {
+        route
+            .replace("{run_id}", &run)
+            .replace("{uuid}", &alert.to_string())
+    };
+    for alert in [&manual, &removed] {
+        client
+            .json(
+                M::POST,
+                RUN_ASSOCIATE,
+                &on(RUN_ASSOCIATE, alert),
+                v,
+                Send::Json(json!({})),
+                S::OK,
+            )
+            .await;
+    }
+    client
+        .json(
+            M::POST,
+            RUN_DISASSOCIATE,
+            &on(RUN_DISASSOCIATE, &removed),
+            v,
+            Send::Json(json!({"reason": "wrong"})),
+            S::OK,
+        )
+        .await;
+
+    // test_the_alerts
+    let alerts = run_path(RUN_ALERTS, &run);
+    let body = client
+        .json(M::GET, RUN_ALERTS, &alerts, r, Send::Nothing, S::OK)
+        .await;
+    assert_eq!(body["next"], Value::Null);
+    let rows = body["alerts"].as_array().expect("alerts");
+    // in the order they were first attributed
+    assert_eq!(
+        rows.iter()
+            .map(|row| &row["alert_uuid"])
+            .collect::<Vec<_>>(),
+        [
+            &json!(marked),
+            &json!(context),
+            &json!(manual),
+            &json!(removed)
+        ]
+    );
+    let row = |alert: &Uuid| {
+        rows.iter()
+            .find(|row| row["alert_uuid"] == json!(alert))
+            .expect("its row")
+    };
+    let m = row(&marked);
+    assert_eq!(
+        (
+            &m["holds"],
+            &m["confidence"],
+            &m["late"],
+            &m["manual"],
+            &m["kept"],
+            &m["undecided_context"]
+        ),
+        (
+            &json!(true),
+            &json!("marker"),
+            &json!(false),
+            &json!(false),
+            &json!(false),
+            &json!(false)
+        )
+    );
+    assert_eq!(
+        (
+            &m["alert"]["id"],
+            &m["alert"]["title"],
+            &m["alert"]["svs_status"],
+            &m["alert"]["svs_runs"],
+            &m["alert"]["tags"]
+        ),
+        (
+            &json!(marked),
+            &json!("<b>marked</b> hit"),
+            &json!("test"),
+            &json!([run]),
+            &json!(["svs_test"])
+        )
+    );
+    let detections = m["detections"].as_array().expect("detections");
+    assert_eq!(detections.len(), 1);
+    assert_eq!(
+        (
+            &detections[0]["description"],
+            &detections[0]["attribution"]["confidence"],
+            &detections[0]["attribution"]["source"]
+        ),
+        (&json!("hunt hit"), &json!("marker"), &json!("router"))
+    );
+    let c = row(&context);
+    assert_eq!(
+        (
+            &c["confidence"],
+            &c["undecided_context"],
+            &c["alert"]["svs_status"]
+        ),
+        (&json!("context"), &json!(true), &json!("test?"))
+    );
+    let h = row(&manual);
+    assert_eq!(
+        (&h["confidence"], &h["manual"]),
+        (&json!("marker"), &json!(true))
+    );
+    let x = row(&removed);
+    assert_eq!(
+        (&x["holds"], &x["confidence"], &x["alert"]["svs_status"]),
+        (&json!(false), &Value::Null, &Value::Null)
+    );
+    assert_eq!(x["detections"][0]["attribution"]["removal_reason"], "wrong");
+    // the alert list says the same of an alert
+    let listed = client
+        .json(
+            M::GET,
+            ONE,
+            &ONE.replace("{id}", &marked.to_string()),
+            v,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(
+        (
+            &listed["alert"]["svs_status"],
+            &listed["alert"]["svs_runs"],
+            &listed["alert"]["tags"]
+        ),
+        (&json!("test"), &json!([run]), &json!(["svs_test"]))
+    );
+
+    client
+        .json(
+            M::POST,
+            RUN_KEEP,
+            &on(RUN_KEEP, &context),
+            v,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    let body = client
+        .json(M::GET, RUN_ALERTS, &alerts, r, Send::Nothing, S::OK)
+        .await;
+    let kept = body["alerts"]
+        .as_array()
+        .expect("alerts")
+        .iter()
+        .find(|row| row["alert_uuid"] == json!(context))
+        .expect("the context alert")
+        .clone();
+    assert_eq!(
+        (&kept["kept"], &kept["undecided_context"]),
+        (&json!(true), &json!(false))
+    );
+
+    // test_paging_and_export
+    let first = client
+        .json(
+            M::GET,
+            RUN_ALERTS,
+            &format!("{alerts}?limit=1"),
+            r,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    let second = client
+        .json(
+            M::GET,
+            RUN_ALERTS,
+            &format!("{alerts}?limit=5&after={}", first["next"]),
+            r,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    let paged: Vec<&Value> = first["alerts"]
+        .as_array()
+        .expect("alerts")
+        .iter()
+        .chain(second["alerts"].as_array().expect("alerts"))
+        .map(|row| &row["alert_uuid"])
+        .collect();
+    assert_eq!(
+        paged,
+        [
+            &json!(marked),
+            &json!(context),
+            &json!(manual),
+            &json!(removed)
+        ]
+    );
+    assert_eq!(second["next"], Value::Null);
+    for bad in ["after=junk", "limit=0", "limit=1001"] {
+        client
+            .json(
+                M::GET,
+                RUN_ALERTS,
+                &format!("{alerts}?{bad}"),
+                r,
+                Send::Nothing,
+                S::BAD_REQUEST,
+            )
+            .await;
+    }
+    let export = |format: &str, run: &str| {
+        RUN_ALERTS_EXPORT
+            .replace("{run_id}", run)
+            .replace("{format}", format)
+    };
+    // the other run's one alert, as NDJSON and as CSV
+    let response = client
+        .call(
+            M::GET,
+            RUN_ALERTS_EXPORT,
+            &export("ndjson", &other),
+            r,
+            Send::Nothing,
+        )
+        .await;
+    assert_eq!(response.status(), S::OK);
+    assert_eq!(response.headers()["content-type"], "application/x-ndjson");
+    let text = response.text().await.expect("a body");
+    let lines: Vec<Value> = text
+        .lines()
+        .map(|line| serde_json::from_str(line).expect("a line of JSON"))
+        .collect();
+    assert_eq!(lines.len(), 1, "{text}");
+    assert_eq!(
+        (&lines[0]["alert"]["title"], &lines[0]["confidence"]),
+        (&json!("another run's"), &json!("marker"))
+    );
+    let response = client
+        .call(
+            M::GET,
+            RUN_ALERTS_EXPORT,
+            &export("csv", &other),
+            r,
+            Send::Nothing,
+        )
+        .await;
+    assert_eq!(response.status(), S::OK);
+    let csv = response.text().await.expect("a body");
+    assert_eq!(csv.lines().count(), 2, "a header and the row: {csv}");
+    assert!(
+        csv.starts_with("alert_uuid,title,disposition,queue,svs_status,holds,"),
+        "{csv}"
+    );
+    // more alerts than this stack's exports hold
+    client
+        .json(
+            M::GET,
+            RUN_ALERTS_EXPORT,
+            &export("ndjson", &run),
+            r,
+            Send::Nothing,
+            S::PAYLOAD_TOO_LARGE,
+        )
+        .await;
+    client
+        .json(
+            M::GET,
+            RUN_ALERTS_EXPORT,
+            &export("xlsx", &other),
+            r,
+            Send::Nothing,
+            S::BAD_REQUEST,
+        )
+        .await;
+
+    // test_unknown_runs
+    for (route, path, status) in [
+        (
+            RUN_ALERTS,
+            run_path(RUN_ALERTS, &nowhere.to_string()),
+            S::NOT_FOUND,
+        ),
+        (
+            RUN_ALERTS,
+            run_path(RUN_ALERTS, "not-a-uuid"),
+            S::BAD_REQUEST,
+        ),
+        (
+            RUN_ALERTS_EXPORT,
+            export("csv", &nowhere.to_string()),
+            S::NOT_FOUND,
+        ),
+        (
+            RUN_ALERTS_EXPORT,
+            export("csv", "not-a-uuid"),
+            S::BAD_REQUEST,
+        ),
+    ] {
+        client
+            .json(M::GET, route, &path, r, Send::Nothing, status)
+            .await;
+    }
+
+    //
+    // test_review_blockers and test_review
+    //
+    let reviewed_run = started(client).await;
+    let hit = new_alert(&reviewed_run, "a hit", Some(RULE), Some("marker")).await;
+    let by_context = new_alert(&reviewed_run, "a context hit", None, Some("context")).await;
+    let detail = run_path(RUN, &reviewed_run);
+    let review = run_path(RUN_REVIEW, &reviewed_run);
+    // a started run can't be reviewed: no blockers to show, and a review is refused for its state
+    let seen = client
+        .json(M::GET, RUN, &detail, r, Send::Nothing, S::OK)
+        .await;
+    assert_eq!(seen["review_blockers"], Value::Null);
+    let refused = client
+        .json(
+            M::POST,
+            RUN_REVIEW,
+            &review,
+            v,
+            Send::Json(json!({})),
+            S::CONFLICT,
+        )
+        .await;
+    assert_eq!(refused["state"], "started");
+    assert!(
+        refused["error"]
+            .as_str()
+            .is_some_and(|e| e.ends_with("is started; review does not apply")),
+        "{refused}"
+    );
+
+    // test_bulk_actions' end: it needs a reason
+    let ended = client
+        .json(
+            M::POST,
+            RUN_BULK_END,
+            &bulk("end"),
+            v,
+            Send::Json(json!({"run_ids": [reviewed_run]})),
+            S::OK,
+        )
+        .await;
+    assert!(
+        ended["conflicts"][&reviewed_run]
+            .as_str()
+            .is_some_and(|why| why.contains("needs a reason")),
+        "{ended}"
+    );
+    let ended = client
+        .json(
+            M::POST,
+            RUN_BULK_END,
+            &bulk("end"),
+            v,
+            Send::Json(json!({"run_ids": [reviewed_run], "reason": "nothing more will fire"})),
+            S::OK,
+        )
+        .await;
+    assert_eq!(
+        ended,
+        json!({"done": [reviewed_run], "left_alone": {}, "conflicts": {}, "unknown": []})
+    );
+    let seen = client
+        .json(M::GET, RUN, &detail, r, Send::Nothing, S::OK)
+        .await;
+    assert_eq!(
+        (&seen["state"], &seen["end_reason"]),
+        (&json!("ended"), &json!("nothing more will fire"))
+    );
+    assert_eq!(seen["observation_ends_at"], seen["ended_at"]);
+    // what the run page shows is what a review answers
+    assert_eq!(
+        seen["review_blockers"],
+        json!({"stale": false, "candidates": [RULE], "context_alerts": [by_context]})
+    );
+    let refused = client
+        .json(
+            M::POST,
+            RUN_REVIEW,
+            &review,
+            v,
+            Send::Json(json!({})),
+            S::CONFLICT,
+        )
+        .await;
+    assert_eq!(
+        (
+            &refused["stale"],
+            &refused["candidates"],
+            &refused["context_alerts"]
+        ),
+        (&json!(false), &json!([RULE]), &json!([by_context]))
+    );
+    assert!(
+        refused["error"]
+            .as_str()
+            .is_some_and(|e| e.contains("1 candidate signature(s) are undecided")
+                && e.contains("1 context-only alert(s)")),
+        "{refused}"
+    );
+
+    client
+        .json(
+            M::PUT,
+            EXPECTATION,
+            &EXPECTATION
+                .replace("{guid}", &guid.to_string())
+                .replace("{platform}", "windows")
+                .replace("{signature_uuid}", RULE),
+            v,
+            Send::Json(json!({"state": "expected"})),
+            S::OK,
+        )
+        .await;
+    client
+        .json(
+            M::POST,
+            RUN_KEEP,
+            &RUN_KEEP
+                .replace("{run_id}", &reviewed_run)
+                .replace("{uuid}", &by_context.to_string()),
+            v,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    // the result still names the candidate until the timers recompute it
+    let seen = client
+        .json(M::GET, RUN, &detail, r, Send::Nothing, S::OK)
+        .await;
+    assert_eq!(
+        seen["review_blockers"],
+        json!({"stale": true, "candidates": [RULE], "context_alerts": []})
+    );
+    let refused = client
+        .json(
+            M::POST,
+            RUN_REVIEW,
+            &review,
+            v,
+            Send::Json(json!({})),
+            S::CONFLICT,
+        )
+        .await;
+    assert_eq!(refused["stale"], true);
+    stack
+        .service
+        .recompute_stale_svs_results(&timers, chrono::Utc::now(), None)
+        .await
+        .expect("recomputes");
+    let seen = client
+        .json(M::GET, RUN, &detail, r, Send::Nothing, S::OK)
+        .await;
+    assert_eq!(
+        seen["review_blockers"],
+        json!({"stale": false, "candidates": [], "context_alerts": []})
+    );
+
+    // a key that belongs to nobody, a body that isn't one, and ids that aren't
+    for (path, token, send, status) in [
+        (review.clone(), k, Send::Json(json!({})), S::BAD_REQUEST),
+        (
+            review.clone(),
+            v,
+            Send::Json(json!({"surprise": 1})),
+            S::BAD_REQUEST,
+        ),
+        (
+            run_path(RUN_REVIEW, "not-a-uuid"),
+            v,
+            Send::Json(json!({})),
+            S::BAD_REQUEST,
+        ),
+        (
+            run_path(RUN_REVIEW, &nowhere.to_string()),
+            v,
+            Send::Json(json!({})),
+            S::NOT_FOUND,
+        ),
+        (review.clone(), v, too_large(), S::PAYLOAD_TOO_LARGE),
+        // test_permissions: reading runs isn't managing them
+        (review.clone(), r, Send::Json(json!({})), S::FORBIDDEN),
+    ] {
+        client
+            .json(M::POST, RUN_REVIEW, &path, token, send, status)
+            .await;
+    }
+
+    let done = client
+        .json(
+            M::POST,
+            RUN_REVIEW,
+            &review,
+            v,
+            Send::Json(json!({})),
+            S::OK,
+        )
+        .await;
+    assert_eq!(
+        (
+            &done["re_review"],
+            &done["counts"],
+            &done["alerts_closed"],
+            &done["fp_verdicts"]
+        ),
+        (&json!(false), &json!({"hit": 1}), &json!(2), &json!(0))
+    );
+    assert_eq!(
+        (
+            &done["run"]["state"],
+            &done["run"]["reviewer"],
+            &done["run"]["owner"],
+            &done["run"]["review_blockers"]
+        ),
+        (
+            &json!("reviewed"),
+            &json!("svs-reviewer"),
+            &json!("svs-reviewer"),
+            &json!({"stale": false, "candidates": [], "context_alerts": []})
+        )
+    );
+    // the component writes the SIMULATED disposition, and the audit row names the person who reviewed
+    let (disposition, by): (Option<String>, Value) = sqlx::query_as(
+        "SELECT disposition, dispositioned_by::jsonb FROM analysis.roots WHERE id = $1",
+    )
+    .bind(hit)
+    .fetch_one(db.pool())
+    .await
+    .expect("the alert");
+    assert_eq!(disposition.as_deref(), Some("SIMULATED"));
+    assert_eq!(by, json!({"kind": "internal", "id": "svs"}));
+    let audited: (String, String, String, Value) = sqlx::query_as(
+        "SELECT action, target_kind, target_id, actor::jsonb FROM service.audit ORDER BY id DESC LIMIT 1",
+    )
+    .fetch_one(db.pool())
+    .await
+    .expect("an audit row");
+    assert_eq!(
+        (audited.0.as_str(), audited.1.as_str(), audited.2),
+        ("review_svs_run", "svs_run", reviewed_run.clone())
+    );
+    assert_eq!(
+        (&audited.3["kind"], &audited.3["name"]),
+        (&json!("user"), &json!("svs-reviewer"))
+    );
+    // a reviewed run is reviewed again
+    let again = client
+        .json(
+            M::POST,
+            RUN_REVIEW,
+            &review,
+            v,
+            Send::Json(json!({})),
+            S::OK,
+        )
+        .await;
+    assert_eq!(
+        (&again["re_review"], &again["alerts_closed"]),
+        (&json!(true), &json!(0))
+    );
+
+    //
+    // test_review_takes_from_a_confirmed_owner
+    //
+    let bobs = started(client).await;
+    let taken = client
+        .json(
+            M::POST,
+            RUN_BULK_TAKE,
+            &bulk("take-ownership"),
+            b,
+            Send::Json(json!({"run_ids": [bobs]})),
+            S::OK,
+        )
+        .await;
+    assert_eq!(taken["done"], json!([bobs]));
+    client
+        .json(
+            M::POST,
+            RUN_BULK_END,
+            &bulk("end"),
+            b,
+            Send::Json(json!({"run_ids": [bobs], "reason": "done"})),
+            S::OK,
+        )
+        .await;
+    let bobs_review = run_path(RUN_REVIEW, &bobs);
+    let refused = client
+        .json(
+            M::POST,
+            RUN_REVIEW,
+            &bobs_review,
+            v,
+            Send::Json(json!({})),
+            S::CONFLICT,
+        )
+        .await;
+    assert_eq!(refused["owner"], "svs-bob");
+    let done = client
+        .json(
+            M::POST,
+            RUN_REVIEW,
+            &bobs_review,
+            v,
+            Send::Json(json!({"confirmed_take_from": "svs-bob"})),
+            S::OK,
+        )
+        .await;
+    // the test's expected signature didn't fire in this run
+    assert_eq!(
+        (&done["run"]["owner"], &done["counts"]),
+        (&json!("svs-reviewer"), &json!({"missing": 1}))
+    );
+    let taking: Vec<Value> = sqlx::query_scalar(
+        "SELECT e.details FROM svs.run_events e JOIN svs.runs r ON r.id = e.run_id
+         WHERE r.uuid = $1::uuid AND e.kind = 'ownership_taken' ORDER BY e.id",
+    )
+    .bind(&bobs)
+    .fetch_all(db.pool())
+    .await
+    .expect("reads");
+    assert_eq!(taking, [json!({"from": null}), json!({"from": "svs-bob"})]);
+
+    //
+    // test_bulk_actions and test_left_alone_is_a_confirmation
+    //
+    let ended_run = started(client).await;
+    let closing_alert = new_alert(&ended_run, "a closed run's", None, Some("marker")).await;
+    let running = started(client).await;
+    client
+        .json(
+            M::POST,
+            RUN_BULK_END,
+            &bulk("end"),
+            v,
+            Send::Json(json!({"run_ids": [ended_run], "reason": "enough"})),
+            S::OK,
+        )
+        .await;
+    client
+        .json(
+            M::POST,
+            RUN_BULK_TAKE,
+            &bulk("take-ownership"),
+            b,
+            Send::Json(json!({"run_ids": [running]})),
+            S::OK,
+        )
+        .await;
+    let taken = client
+        .json(
+            M::POST,
+            RUN_BULK_TAKE,
+            &bulk("take-ownership"),
+            v,
+            Send::Json(json!({"run_ids": [ended_run, running, nowhere]})),
+            S::OK,
+        )
+        .await;
+    let mut left_alone = serde_json::Map::new();
+    left_alone.insert(running.clone(), json!("svs-bob"));
+    assert_eq!(
+        taken,
+        json!({
+            "done": [ended_run], "left_alone": left_alone, "conflicts": {}, "unknown": [nowhere],
+        })
+    );
+    let audited: (String, Value, Value) = sqlx::query_as(
+        "SELECT action, after, actor::jsonb FROM service.audit ORDER BY id DESC LIMIT 1",
+    )
+    .fetch_one(db.pool())
+    .await
+    .expect("an audit row");
+    assert_eq!(
+        (audited.0.as_str(), &audited.1, &audited.2["name"]),
+        (
+            "take_svs_runs",
+            &json!({"owner": "svs-reviewer"}),
+            &json!("svs-reviewer")
+        )
+    );
+    // what a bulk action leaves alone, sent back as it is, confirms taking those runs
+    let canceled = client
+        .json(
+            M::POST,
+            RUN_BULK_CANCEL,
+            &bulk("cancel"),
+            v,
+            Send::Json(json!({
+                "run_ids": [running, ended_run], "confirmed_takes": taken["left_alone"],
+            })),
+            S::OK,
+        )
+        .await;
+    assert_eq!(canceled["done"], json!([running]));
+    assert!(
+        canceled["conflicts"][&ended_run]
+            .as_str()
+            .is_some_and(|why| why.contains("is ended; cancel does not apply")),
+        "{canceled}"
+    );
+    let closed = client
+        .json(
+            M::POST,
+            RUN_BULK_CLOSE,
+            &bulk("close"),
+            v,
+            Send::Json(json!({"run_ids": [ended_run, running]})),
+            S::OK,
+        )
+        .await;
+    assert_eq!(closed["done"], json!([running]));
+    assert!(
+        closed["conflicts"][&ended_run]
+            .as_str()
+            .is_some_and(|why| why.contains("needs a reason")),
+        "{closed}"
+    );
+    let closed = client
+        .json(
+            M::POST,
+            RUN_BULK_CLOSE,
+            &bulk("close"),
+            v,
+            Send::Json(json!({"run_ids": [ended_run], "reason": "a bad run"})),
+            S::OK,
+        )
+        .await;
+    assert_eq!(closed["done"], json!([ended_run]));
+    let seen = client
+        .json(
+            M::GET,
+            RUN,
+            &run_path(RUN, &ended_run),
+            r,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(
+        (&seen["state"], &seen["close_reason"], &seen["owner"]),
+        (
+            &json!("closed"),
+            &json!("a bad run"),
+            &json!("svs-reviewer")
+        )
+    );
+    let disposition: Option<String> =
+        sqlx::query_scalar("SELECT disposition FROM analysis.roots WHERE id = $1")
+            .bind(closing_alert)
+            .fetch_one(db.pool())
+            .await
+            .expect("the alert");
+    assert_eq!(disposition.as_deref(), Some("SIMULATED"));
+
+    // each bulk action's refusals: test_permissions and test_a_config_key_is_refused among them
+    for (route, action) in [
+        (RUN_BULK_TAKE, "take-ownership"),
+        (RUN_BULK_CANCEL, "cancel"),
+        (RUN_BULK_END, "end"),
+        (RUN_BULK_CLOSE, "close"),
+    ] {
+        let one = json!({"run_ids": [ended_run]});
+        let many: Vec<String> = (0..501).map(|_| Uuid::new_v4().to_string()).collect();
+        for (token, send, status) in [
+            (
+                v,
+                Send::Json(json!({"run_ids": ["not-a-uuid"]})),
+                S::BAD_REQUEST,
+            ),
+            (v, Send::Json(json!({"run_ids": []})), S::BAD_REQUEST),
+            (v, Send::Json(json!({"run_ids": many})), S::BAD_REQUEST),
+            (v, Send::Json(json!({})), S::BAD_REQUEST),
+            (
+                v,
+                Send::Json(json!({"run_ids": [ended_run], "surprise": 1})),
+                S::BAD_REQUEST,
+            ),
+            (
+                v,
+                Send::Json(json!({
+                    "run_ids": [ended_run], "confirmed_takes": {"not-a-uuid": "svs-bob"},
+                })),
+                S::BAD_REQUEST,
+            ),
+            // a key that belongs to nobody: the action records who took it
+            (k, Send::Json(one.clone()), S::BAD_REQUEST),
+            (r, Send::Json(one.clone()), S::FORBIDDEN),
+            (v, too_large(), S::PAYLOAD_TOO_LARGE),
+        ] {
+            let body = client
+                .json(M::POST, route, &bulk(action), token, send, status)
+                .await;
+            if token == k {
+                assert!(
+                    body["error"]
+                        .as_str()
+                        .is_some_and(|e| e.contains("records who took it")),
+                    "{route}: {body}"
+                );
+            }
+        }
+    }
+    for (route, action) in [(RUN_BULK_END, "end"), (RUN_BULK_CLOSE, "close")] {
+        client
+            .json(
+                M::POST,
+                route,
+                &bulk(action),
+                v,
+                Send::Json(json!({"run_ids": [ended_run], "reason": "x".repeat(4097)})),
+                S::BAD_REQUEST,
+            )
+            .await;
+    }
+}
 
 /// ace3's `tests/aceapi_v2/svs/test_alert_svs.py` (`test_what_svs_makes_of_an_alert`, `test_disassociate`,
 /// `test_not_a_test`, `test_errors`) and `test_association.py` (`test_associate_and_disassociate`,

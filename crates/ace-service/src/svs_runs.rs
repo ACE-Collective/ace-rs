@@ -9,7 +9,7 @@
 //! error and is closed, a started run ends when its observation window passes, and a canceled or failed run
 //! is closed when its attribution window passes. A person ends a started run early with
 //! [`Service::end_svs_run`], under `svs:run_manage`; taking, reviewing, canceling and closing a run by hand
-//! come with batch 7b. The timers also close alerts: SIMULATED for those of a run they close and those
+//! are `svs_review`'s (batch 7b). The timers also close alerts: SIMULATED for those of a run they close and those
 //! attributed to a closed run afterwards, IGNORE for a maintenance window's (`svs_association`, batch 7a).
 //!
 //! Every change of state is one transaction that locks the run's row, checks the state it found and
@@ -43,9 +43,11 @@
 //!   says `svs`.
 //! - `extra` is measured as compact JSON, where ace3 measures Python's spaced form, so the same limit
 //!   admits slightly more.
-//! - Closing a run doesn't yet close its alerts as SIMULATED, nor does the timers' pass close late alerts:
-//!   that needs the attributions and an alert's owner, which batches 6 and 7 bring. A maintenance window's
-//!   alerts aren't recorded or closed as IGNORE until batch 6's judgment says which they are.
+//! - The alerts of a run the timers close, and of a maintenance window, are closed by the timers' own
+//!   steps after the close commits (`svs_association`, batch 7a), and a person's close and a review close
+//!   theirs in the same transaction (`svs_review`, batch 7b).
+//! - Registering a run and opening a maintenance window take the lock that orders them against a pass
+//!   that is ending on a closed attribution gate (`ace_core::svs::attribution`'s *The gate*).
 //! - A run's result is computed as it ends (`svs_results`): by the timers in a transaction of its own
 //!   after the end's, and by a person's end in a savepoint of the end's transaction, so in both a
 //!   computation that fails leaves the end, and the run stale for the timers' next pass. Each pass of the
@@ -257,11 +259,11 @@ pub(crate) fn unknown_run(uuid: Uuid) -> ServiceError {
     ServiceError::NotFound(format!("run {uuid} not found"))
 }
 
-fn state_conflict(uuid: Uuid, state: RunState, call: &str) -> ServiceError {
+pub(crate) fn state_conflict(uuid: Uuid, state: RunState, call: &str) -> ServiceError {
     ServiceError::Conflict(format!("run {uuid} is {state}; {call} does not apply"))
 }
 
-fn decode<T>(what: &str, value: Option<T>) -> Result<T, ServiceError> {
+pub(crate) fn decode<T>(what: &str, value: Option<T>) -> Result<T, ServiceError> {
     value.ok_or_else(|| ServiceError::from(ace_core::DbError::Decode(format!("a stored {what}"))))
 }
 
@@ -318,7 +320,7 @@ pub(crate) struct Loaded {
 }
 
 /// The run, with its row locked when `lock`, or None when there's none.
-async fn find_run(
+pub(crate) async fn find_run(
     conn: &mut PgConnection,
     uuid: Uuid,
     lock: bool,
@@ -453,27 +455,27 @@ async fn launcher_call(
 
 /// What a transition sets besides the state; None leaves a column as it is.
 #[derive(Default)]
-struct Values<'a> {
-    started_at: Option<DateTime<Utc>>,
-    observation_ends_at: Option<DateTime<Utc>>,
-    attribution_ends_at: Option<DateTime<Utc>>,
-    executed_at: Option<DateTime<Utc>>,
-    exit_code: Option<i32>,
-    launcher_error: Option<&'a str>,
-    launcher_output: Option<&'a str>,
-    error_reason: Option<&'a str>,
-    canceled_at: Option<DateTime<Utc>>,
-    closed_at: Option<DateTime<Utc>>,
-    close_reason: Option<&'a str>,
-    ended_at: Option<DateTime<Utc>>,
-    end_reason: Option<&'a str>,
+pub(crate) struct Values<'a> {
+    pub(crate) started_at: Option<DateTime<Utc>>,
+    pub(crate) observation_ends_at: Option<DateTime<Utc>>,
+    pub(crate) attribution_ends_at: Option<DateTime<Utc>>,
+    pub(crate) executed_at: Option<DateTime<Utc>>,
+    pub(crate) exit_code: Option<i32>,
+    pub(crate) launcher_error: Option<&'a str>,
+    pub(crate) launcher_output: Option<&'a str>,
+    pub(crate) error_reason: Option<&'a str>,
+    pub(crate) canceled_at: Option<DateTime<Utc>>,
+    pub(crate) closed_at: Option<DateTime<Utc>>,
+    pub(crate) close_reason: Option<&'a str>,
+    pub(crate) ended_at: Option<DateTime<Utc>>,
+    pub(crate) end_reason: Option<&'a str>,
 }
 
 /// Moves the run from `from` to `to`, with `values`, and appends the transition to its event log: ace3's
 /// `_transition`. False, changing nothing, when the run isn't in `from`. `from` and `to` may be the same,
 /// for a call that only records values, which writes no transition event.
 #[allow(clippy::too_many_arguments)]
-async fn transition(
+pub(crate) async fn transition(
     conn: &mut PgConnection,
     run: i64,
     from: RunState,
@@ -539,7 +541,7 @@ async fn transition(
 }
 
 /// Closes the run: ace3's `_close`.
-async fn close(
+pub(crate) async fn close(
     conn: &mut PgConnection,
     run: i64,
     from: RunState,
@@ -563,6 +565,61 @@ async fn close(
         now,
     )
     .await
+}
+
+/// A person's end of a started run, in the caller's transaction, with the run's row locked and found
+/// started, and a reason given: its observation window ends now, and its result is computed in a
+/// savepoint, so a computation that fails leaves the end and the run stale, for the timers to compute.
+/// `Service::end_svs_run`'s and the bulk end's (`svs_review`) write.
+pub(crate) async fn end_in(
+    tx: &mut ace_core::db::Tx<'_>,
+    actor: &Actor,
+    loaded: &Loaded,
+    reason: &str,
+    now: DateTime<Utc>,
+) -> Result<Option<crate::svs_results::ComputedResult>, ServiceError> {
+    let uuid = loaded.run.uuid;
+    // the timers may not have ended a run whose window already passed: that end stands
+    let window = decode("window", loaded.run.observation_ends_at)?;
+    let values = Values {
+        ended_at: Some(now),
+        observation_ends_at: Some(now.min(window)),
+        end_reason: Some(reason),
+        ..Values::default()
+    };
+    transition(
+        tx.conn(),
+        loaded.id,
+        RunState::Started,
+        RunState::Ended,
+        actor,
+        values,
+        Some(reason),
+        now,
+    )
+    .await?;
+    mark_stale(tx.conn(), &[loaded.id]).await?;
+    let computed = async {
+        let mut inner = tx.savepoint().await?;
+        let computed = crate::svs_results::compute(inner.conn(), loaded.id, actor, now).await?;
+        inner.commit().await?;
+        Ok::<_, ServiceError>(computed)
+    }
+    .await;
+    match computed {
+        Ok(computed) => Ok(computed),
+        Err(error) => {
+            use ace_core::db::Retryable;
+            if error.is_retryable() {
+                return Err(error);
+            }
+            tracing::error!(
+                svs_run = %uuid,
+                "unable to compute the result of an svs run as it ended: {error}"
+            );
+            Ok(None)
+        }
+    }
 }
 
 /// Marks the runs' live results stale, in run id order: ace3's `mark_runs_stale` for given runs, which
@@ -1147,8 +1204,8 @@ impl<'a> RunRecord<'a> {
 
 /// A run's state, as a transition's audit row keeps its two sides.
 #[derive(Serialize)]
-struct StateRecord {
-    state: RunState,
+pub(crate) struct StateRecord {
+    pub(crate) state: RunState,
 }
 
 impl Recorded for StateRecord {}
@@ -1241,14 +1298,14 @@ async fn conflict(
     ))
 }
 
-async fn reloaded(conn: &mut PgConnection, uuid: Uuid) -> Result<Run, ServiceError> {
+pub(crate) async fn reloaded(conn: &mut PgConnection, uuid: Uuid) -> Result<Run, ServiceError> {
     Ok(find_run(conn, uuid, false)
         .await?
         .ok_or_else(|| unknown_run(uuid))?
         .run)
 }
 
-fn log_transition(
+pub(crate) fn log_transition(
     run: &Run,
     from: Option<RunState>,
     to: RunState,
@@ -1616,6 +1673,9 @@ impl Service {
                         })
                     };
                     let uuid = Uuid::new_v4();
+                    // a registered run opens SVS's gate: no pass ends on a closed gate while this
+                    // commits (`ace_core::svs::attribution`'s *The gate*)
+                    ace_core::svs::attribution::lock_gate_to_open(tx.conn()).await?;
                     let id = sqlx::query_scalar!(
                         "INSERT INTO svs.runs
                              (uuid, test_guid, platform, test_content_hash, catalog_commit, state,
@@ -2094,51 +2154,7 @@ impl Service {
                             "run {uuid} is still observing: ending it early needs a reason"
                         )));
                     }
-                    // the timers may not have ended a run whose window already passed: that end stands
-                    let window = decode("window", loaded.run.observation_ends_at)?;
-                    let values = Values {
-                        ended_at: Some(now),
-                        observation_ends_at: Some(now.min(window)),
-                        end_reason: Some(reason),
-                        ..Values::default()
-                    };
-                    transition(
-                        tx.conn(),
-                        loaded.id,
-                        RunState::Started,
-                        RunState::Ended,
-                        actor,
-                        values,
-                        Some(reason),
-                        now,
-                    )
-                    .await?;
-                    mark_stale(tx.conn(), &[loaded.id]).await?;
-                    // the result, as the run ends: in a savepoint, so a computation that fails leaves
-                    // the end and the run stale, for the timers to compute
-                    let computed = async {
-                        let mut inner = tx.savepoint().await?;
-                        let computed =
-                            crate::svs_results::compute(inner.conn(), loaded.id, actor, now)
-                                .await?;
-                        inner.commit().await?;
-                        Ok::<_, ServiceError>(computed)
-                    }
-                    .await;
-                    let computed = match computed {
-                        Ok(computed) => computed,
-                        Err(error) => {
-                            use ace_core::db::Retryable;
-                            if error.is_retryable() {
-                                return Err(error);
-                            }
-                            tracing::error!(
-                                svs_run = %uuid,
-                                "unable to compute the result of an svs run as it ended: {error}"
-                            );
-                            None
-                        }
-                    };
+                    let computed = end_in(tx, actor, &loaded, reason, now).await?;
                     let run = reloaded(tx.conn(), uuid).await?;
                     let change = moved_change(
                         uuid,
@@ -2401,7 +2417,9 @@ impl Service {
                                 Ok(Audited::changed(1, change))
                             }
                             Step::CloseAlerts { run, late } => {
-                                match self.close_run_alerts_in(tx, actor, run, late, now).await? {
+                                match self
+                                    .close_run_alerts_in(tx, actor, actor, run, late, None, now)
+                                    .await? {
                                     None => Ok(Audited::unchanged(0)),
                                     Some(closed) => {
                                         let count = closed.alerts_closed.len() as u64;
@@ -2659,6 +2677,8 @@ impl Service {
                         return Err(ServiceError::Conflict(host_busy_message(&busy)));
                     }
                     let uuid = Uuid::new_v4();
+                    // an open window opens SVS's gate, as a registered run does
+                    ace_core::svs::attribution::lock_gate_to_open(tx.conn()).await?;
                     let id = sqlx::query_scalar!(
                         "INSERT INTO svs.maintenance_windows
                              (uuid, test_host_id, host, fqdn, reason, opened_by, opened_at, ends_at)

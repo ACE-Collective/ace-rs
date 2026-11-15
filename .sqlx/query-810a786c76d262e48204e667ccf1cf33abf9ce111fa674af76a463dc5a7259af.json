@@ -1,0 +1,37 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT root_id, min(id) AS \"first!\" FROM svs.attributions\n                           WHERE run_id = $1 GROUP BY root_id\n                           HAVING min(id) > $2 ORDER BY min(id) LIMIT $3",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "root_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "svs.attributions",
+            "name": "root_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "first!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      null
+    ]
+  },
+  "hash": "810a786c76d262e48204e667ccf1cf33abf9ce111fa674af76a463dc5a7259af"
+}

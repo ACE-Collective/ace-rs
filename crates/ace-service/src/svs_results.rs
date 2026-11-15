@@ -204,6 +204,57 @@ async fn test_decisions(
     Ok(decisions)
 }
 
+/// Commits the run as reviewed by `reviewer`, who also becomes its owner when `take` (nobody owned it),
+/// and copies its live result to the reviewed columns: ace3's `_sign_off`, once its caller found the
+/// run ended or reviewed, under its row's lock, with nothing in the way. A row that left the live result
+/// held only the earlier sign-off, which this one replaces. Returns the signatures per status, as signed
+/// off.
+pub(crate) async fn sign_off(
+    conn: &mut PgConnection,
+    run: i64,
+    reviewer: Uuid,
+    take: bool,
+    now: DateTime<Utc>,
+) -> Result<BTreeMap<String, i64>, ServiceError> {
+    sqlx::query!(
+        "UPDATE svs.runs
+         SET state = 'reviewed', reviewer_id = $2, reviewed_at = $3, changed_since_review = false,
+             owner_id = CASE WHEN $4 THEN $2 ELSE owner_id END
+         WHERE id = $1",
+        run,
+        reviewer,
+        now,
+        take,
+    )
+    .execute(&mut *conn)
+    .await?;
+    sqlx::query!(
+        "DELETE FROM svs.run_results WHERE run_id = $1 AND status IS NULL",
+        run
+    )
+    .execute(&mut *conn)
+    .await?;
+    sqlx::query!(
+        "UPDATE svs.run_results
+         SET reviewed_status = status, reviewed_alert_count = alert_count,
+             reviewed_late_only = late_only, reviewed_content_hash = content_hash
+         WHERE run_id = $1",
+        run,
+    )
+    .execute(&mut *conn)
+    .await?;
+    Ok(sqlx::query!(
+        r#"SELECT status AS "status!", count(*) AS "count!" FROM svs.run_results
+           WHERE run_id = $1 AND status IS NOT NULL GROUP BY status"#,
+        run,
+    )
+    .fetch_all(conn)
+    .await?
+    .into_iter()
+    .map(|row| (row.status, row.count))
+    .collect())
+}
+
 /// The YARA rules of the ruleset the pools scan with, as SVS knows them; none when no ruleset was built,
 /// or the latest was built before its signatures were recorded.
 pub(crate) async fn yara_signatures(

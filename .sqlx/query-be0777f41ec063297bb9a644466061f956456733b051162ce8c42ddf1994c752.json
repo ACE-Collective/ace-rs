@@ -1,14 +1,15 @@
 {
   "db_name": "PostgreSQL",
-  "query": "UPDATE analysis.roots SET hooks_due = false WHERE id = $1",
+  "query": "UPDATE svs.runs SET owner_id = $2 WHERE id = $1",
   "describe": {
     "columns": [],
     "parameters": {
       "Left": [
+        "Int8",
         "Uuid"
       ]
     },
     "nullable": []
   },
-  "hash": "cb62a14d326bcdad5149c11b2069731a4a79d26665050dbc9d1b3356989584c3"
+  "hash": "be0777f41ec063297bb9a644466061f956456733b051162ce8c42ddf1994c752"
 }

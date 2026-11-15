@@ -272,7 +272,7 @@
 //! | `POST /runs/`, 201 | `POST /api/svs/v1/runs`, 201, audited; a refusal is 403 and alerts |
 //! | `POST /runs/validate` | `POST /api/svs/v1/runs/validate` |
 //! | `POST /runs/{run_id}/start`, `executed`, `cleanup`, `cancel` | `POST /api/svs/v1/runs/{run_id}/start`, `executed`, `cleanup`, `cancel`, audited |
-//! | `GET /runs/{run_id}` | `GET /api/svs/v1/runs/{run_id}`, with what the runs' list shows of it and its log search; its review blockers come with batch 7b |
+//! | `GET /runs/{run_id}` | `GET /api/svs/v1/runs/{run_id}`, with what the runs' list shows of it, its log search and its review blockers |
 //! | `GET /runs/{run_id}/events?cursor=&limit=` | `GET /api/svs/v1/runs/{run_id}/events?after=&limit=` |
 //! | `GET /test-hosts/?changed_since=&cursor=&limit=` | `GET /api/svs/v1/test-hosts`, the same, a page `{hosts, next}` |
 //! | `GET /test-hosts/export/ndjson`, `.../csv` | `GET /api/svs/v1/test-hosts/export/{format}` |
@@ -313,8 +313,8 @@
 //! something is an actor, so a key that belongs to nobody decides, where ace3 refuses it, but can't
 //! comment, as in ace3. Batch 7a's association routes (what SVS makes of an alert, and a person's
 //! associate, disassociate, not a test and keep, from the run's side and the alert's) are `svs_association`'s,
-//! whose docs map them. Still to come, with batch 7b: a run's alerts, a person's bulk actions
-//! (`/runs/bulk/*`), review and a run's review blockers.
+//! whose docs map them. Batch 7b's (a run's alerts, a person's bulk actions under `/runs/bulk/*`, review
+//! and a run's review blockers) are `svs_review`'s, whose docs map them too.
 //!
 //! ace3's `observable_comments` router (PLAN.md 5.6), under ace3's `observable:read` and `observable:write`
 //! (`ace_service`'s `observable_comments` docs). A comment is on a type and value, across alerts:
@@ -531,6 +531,7 @@ mod remediation;
 mod svs_association;
 mod svs_catalog;
 mod svs_decisions;
+mod svs_review;
 mod svs_run_reads;
 mod svs_runs;
 mod svs_samples;
@@ -1081,6 +1082,34 @@ impl Web {
                 post(svs_association::keep),
             )
             .route(
+                "/api/svs/v1/runs/bulk/take-ownership",
+                post(svs_review::take_ownership).layer(json_limit),
+            )
+            .route(
+                "/api/svs/v1/runs/bulk/cancel",
+                post(svs_review::cancel_runs).layer(json_limit),
+            )
+            .route(
+                "/api/svs/v1/runs/bulk/end",
+                post(svs_review::end_runs).layer(json_limit),
+            )
+            .route(
+                "/api/svs/v1/runs/bulk/close",
+                post(svs_review::close_runs).layer(json_limit),
+            )
+            .route(
+                "/api/svs/v1/runs/{run_id}/review",
+                post(svs_review::review).layer(json_limit),
+            )
+            .route(
+                "/api/svs/v1/runs/{run_id}/alerts",
+                get(svs_review::run_alerts),
+            )
+            .route(
+                "/api/svs/v1/runs/{run_id}/alerts/export/{format}",
+                get(svs_review::export_run_alerts),
+            )
+            .route(
                 "/api/svs/v1/test-hosts",
                 get(svs_runs::test_hosts)
                     .post(svs_runs::create_test_host)
@@ -1390,6 +1419,13 @@ impl Web {
         svs_association::disassociate,
         svs_association::not_a_test,
         svs_association::keep,
+        svs_review::take_ownership,
+        svs_review::cancel_runs,
+        svs_review::end_runs,
+        svs_review::close_runs,
+        svs_review::review,
+        svs_review::run_alerts,
+        svs_review::export_run_alerts,
         svs_run_reads::list,
         svs_run_reads::export,
         svs_run_reads::count,

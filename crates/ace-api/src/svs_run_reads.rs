@@ -5,13 +5,13 @@
 //! From ace3: a page is its rows under their own name and `next`, where ace3's is `{data, next_cursor}`; a
 //! refused parameter is 400 where ace3 answers 422; an export is one operation, `.../export/{format}`
 //! with `csv` or `ndjson`, at ace3's two URLs; who did something is an actor (`kind`, `id`, `name`), where
-//! ace3 gives a name; and a run's detail has no review blockers until batch 7b brings the review.
+//! ace3 gives a name.
 //!
 //! Batch 6 brought the attributions, which the core's SVS hook writes (`ace_core::svs::attribution`):
 //! ace3's `GET /attributions` and `/{run_id}/attributions`, each with its export, are
 //! `GET /api/svs/v1/runs/attributions` and `/runs/{run_id}/attributions`. A row names its alert (`alert`,
 //! ace3's `alert_uuid`) and its detection by the detection's id (`detection`, ace3's content hash). A
-//! run's alerts (`/{run_id}/alerts`) come with batch 7b, with the run page's review.
+//! run's alerts (`/{run_id}/alerts`) are `svs_review`'s, with the run's review (batch 7b).
 
 use ace_service::filters::{FilterScreen, decode};
 use ace_service::{
@@ -49,11 +49,11 @@ pub(crate) fn format_of(text: &str) -> Result<Format, ApiError> {
     }
 }
 
-fn cell(value: &Option<String>) -> String {
+pub(crate) fn cell(value: &Option<String>) -> String {
     value.clone().unwrap_or_default()
 }
 
-fn uuid_of(text: &str) -> Result<Uuid, ApiError> {
+pub(crate) fn uuid_of(text: &str) -> Result<Uuid, ApiError> {
     text.parse()
         .map_err(|_| ApiError::bad_request(format!("{text:?} isn't a run's uuid")))
 }
@@ -1025,7 +1025,7 @@ fn limit_of(params: &Params) -> Result<Option<u32>, ApiError> {
     params.parsed("limit", "a number from 1 to 1000")
 }
 
-fn after_limit(params: &Params) -> Result<(Option<i64>, i64), ApiError> {
+pub(crate) fn after_limit(params: &Params) -> Result<(Option<i64>, i64), ApiError> {
     let after = params.parsed::<i64>("after", "a number")?;
     let most = i64::from(MAX_RUNS_PAGE);
     let limit = params.parsed::<i64>("limit", "a number")?.unwrap_or(100);

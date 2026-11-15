@@ -98,6 +98,12 @@ pub struct AlertSummary {
     pub analysis: AnalysisState,
     /// The queue it's in (PLAN.md 7.13), ace3's `alerts.queue`.
     pub queue: String,
+    /// The tags the core gave the root (`analysis.roots.tags`): SVS's `svs_test`, `svs:marker_mismatch`
+    /// and `svs:maintenance` (PLAN.md 7.10).
+    pub tags: Vec<String>,
+    /// What SVS makes of it, and the test runs it's attributed to: ace3's `svs_status` and `svs_runs`.
+    /// None when SVS never touched it.
+    pub svs: Option<crate::svs::AlertSvsStatus>,
 }
 
 /// One page of the alert list, the cursor for the next, None on the last, and how many alerts the filters
@@ -377,6 +383,7 @@ struct AlertRow {
     completed_pass: i32,
     cancelled: bool,
     queue: String,
+    tags: Vec<String>,
 }
 
 impl AlertRow {
@@ -396,8 +403,57 @@ impl AlertRow {
             submitted_by: RecordedActor::from_row(self.submitted_by)?,
             analysis,
             queue: self.queue,
+            tags: self.tags,
+            // read for the whole page at once, by `with_svs`
+            svs: None,
         })
     }
+}
+
+/// Gives each alert its SVS status, in a fixed number of queries whatever their number.
+pub(crate) async fn with_svs(
+    conn: &mut sqlx::PgConnection,
+    alerts: &mut [AlertSummary],
+) -> Result<(), ServiceError> {
+    if alerts.is_empty() {
+        return Ok(());
+    }
+    let ids: Vec<Uuid> = alerts.iter().map(|alert| alert.id).collect();
+    let mut statuses = crate::svs::statuses(conn, &ids).await?;
+    for alert in alerts {
+        alert.svs = statuses.remove(&alert.id);
+    }
+    Ok(())
+}
+
+/// The alerts with these ids, each as the list shows it, by id: those that are alerts.
+pub(crate) async fn summaries_in(
+    conn: &mut sqlx::PgConnection,
+    ids: &[Uuid],
+) -> Result<std::collections::BTreeMap<Uuid, AlertSummary>, ServiceError> {
+    let rows = sqlx::query_as!(
+        AlertRow,
+        r#"SELECT r.id, r.description, r.analysis_mode, r.event_time,
+                  r.event_time_source::text AS "event_time_source!",
+                  r.created_at, r.alerted_at AS "alerted_at!", r.disposition,
+                  r.dispositioned_at,
+                  r.dispositioned_by AS "dispositioned_by: Value",
+                  r.submitted_by AS "submitted_by: Value",
+                  r.pass, r.completed_pass,
+                  r.cancelled_at IS NOT NULL AS "cancelled!",
+                  r.queue::text AS "queue!", r.tags
+           FROM analysis.roots r
+           WHERE r.id = ANY ($1) AND r.alerted_at IS NOT NULL"#,
+        ids,
+    )
+    .fetch_all(&mut *conn)
+    .await?;
+    let mut alerts = rows
+        .into_iter()
+        .map(AlertRow::summary)
+        .collect::<Result<Vec<_>, _>>()?;
+    with_svs(conn, &mut alerts).await?;
+    Ok(alerts.into_iter().map(|alert| (alert.id, alert)).collect())
 }
 
 pub(crate) fn page_limit(limit: Option<u32>, max: u32) -> Result<i64, ServiceError> {
@@ -701,7 +757,7 @@ impl Service {
                                   r.submitted_by AS "submitted_by: Value",
                                   r.pass, r.completed_pass,
                                   r.cancelled_at IS NOT NULL AS "cancelled!",
-                                  r.queue::text AS "queue!",
+                                  r.queue::text AS "queue!", r.tags,
                                   m.k AS "key?", m.total AS "total!"
                            FROM matched m JOIN analysis.roots r ON r.id = m.id
                            WHERE $3::uuid IS NULL OR CASE
@@ -793,10 +849,12 @@ impl Service {
                                 completed_pass: row.completed_pass,
                                 cancelled: row.cancelled,
                                 queue: row.queue,
+                                tags: row.tags,
                             }
                             .summary()?,
                         );
                     }
+                    with_svs(tx.conn(), &mut alerts).await?;
                     let next = match alerts.last() {
                         Some(last) if more => Some(
                             AlertCursor {
@@ -935,7 +993,7 @@ pub(crate) async fn alert_in(
                   r.submitted_by AS "submitted_by: Value",
                   r.pass, r.completed_pass,
                   r.cancelled_at IS NOT NULL AS "cancelled!",
-                  r.queue::text AS "queue!"
+                  r.queue::text AS "queue!", r.tags
            FROM analysis.roots r
            WHERE r.id = $1 AND r.alerted_at IS NOT NULL"#,
         id,
@@ -943,6 +1001,9 @@ pub(crate) async fn alert_in(
     .fetch_optional(tx.conn())
     .await?
     .ok_or_else(|| no_alert(id))?;
+    let mut summary = [row.summary()?];
+    with_svs(tx.conn(), &mut summary).await?;
+    let [summary] = summary;
     let counts = sqlx::query!(
         r#"SELECT
              (SELECT count(*) FROM analysis.observables WHERE root_id = $1) AS "observables!",
@@ -953,7 +1014,7 @@ pub(crate) async fn alert_in(
     .fetch_one(tx.conn())
     .await?;
     Ok(Alert {
-        summary: row.summary()?,
+        summary,
         observables: counts.observables,
         files: counts.files,
         detections: counts.detections,

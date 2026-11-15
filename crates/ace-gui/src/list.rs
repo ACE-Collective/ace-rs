@@ -338,6 +338,40 @@ pub struct Cell {
     pub badge: Option<String>,
     pub title: Option<String>,
     pub href: Option<String>,
+    /// What stands beside the text: the Description cell's SVS status and the root's tags.
+    pub marks: Vec<Mark>,
+}
+
+/// A word beside a cell's text.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Mark {
+    pub text: String,
+    /// `svs-status` or `tag`: its look.
+    pub class: &'static str,
+    pub title: Option<&'static str>,
+    /// Where it leads: the test run an SVS status names.
+    pub href: Option<String>,
+}
+
+/// What stands beside an alert's description: what SVS makes of it (PLAN.md 7.10 batch 7b, ace3's SVS
+/// status on the alert list), leading to the oldest run it's attributed to, and the root's tags.
+fn marks(alert: &AlertSummary) -> Vec<Mark> {
+    let mut marks = Vec::new();
+    if let Some(svs) = &alert.svs {
+        marks.push(Mark {
+            text: svs.status.as_str().to_owned(),
+            class: "svs-status",
+            title: Some(crate::svs_alert::status_meaning(svs.status)),
+            href: svs.runs.first().map(|run| crate::svs::run_href(*run)),
+        });
+    }
+    marks.extend(alert.tags.iter().map(|tag| Mark {
+        text: tag.clone(),
+        class: "tag",
+        title: None,
+        href: None,
+    }));
+    marks
 }
 
 /// One alert's row.
@@ -506,6 +540,7 @@ fn row(
                 badge: None,
                 title: Some(alert.alerted_at.to_rfc3339()),
                 href: None,
+                marks: Vec::new(),
             },
             "description" => Cell {
                 id: "description",
@@ -513,6 +548,7 @@ fn row(
                 badge: None,
                 title: None,
                 href: Some(format!("/alerts/{}", alert.id)),
+                marks: marks(alert),
             },
             "queue" => Cell {
                 id: "queue",
@@ -520,6 +556,7 @@ fn row(
                 text: alert.queue.clone(),
                 badge: None,
                 title: None,
+                marks: Vec::new(),
             },
             "disposition" => Cell {
                 id: "disposition",
@@ -531,6 +568,7 @@ fn row(
                 text: disposition.clone(),
                 badge: Some(dispositions.css(Some(&disposition)).to_owned()),
                 title: None,
+                marks: Vec::new(),
             },
             _ => Cell {
                 id: "status",
@@ -538,6 +576,7 @@ fn row(
                 badge: None,
                 title: None,
                 href: None,
+                marks: Vec::new(),
             },
         })
         .collect();

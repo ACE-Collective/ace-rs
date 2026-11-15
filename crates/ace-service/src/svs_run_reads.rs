@@ -371,6 +371,53 @@ impl TryFrom<AttributionRowDb> for RunAttribution {
     }
 }
 
+/// One detection of an alert a run holds or held, and its attribution to the run: ace3's
+/// `RunAlertDetection`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RunAlertDetection {
+    /// `analysis.detections.id`.
+    pub detection: i64,
+    pub description: String,
+    pub signature_uuid: Option<String>,
+    pub signature_family: Option<String>,
+    /// Its attribution to this run, removed or not; None when it never had one.
+    pub attribution: Option<RunAttribution>,
+}
+
+/// An alert attributed to a run, now or before: ace3's `RunAlert`.
+#[derive(Debug, Clone, PartialEq)]
+pub struct RunAlert {
+    /// The alert as the alert list shows it, with its SVS status over every run.
+    pub alert: crate::alerts::AlertSummary,
+    /// The first attribution of it to the run, which orders the run's alerts and pages them.
+    pub first_attribution: i64,
+    /// Some attribution of it to the run holds.
+    pub holds: bool,
+    /// Of those that hold: marker when any is (a person's association is marker), else context.
+    pub confidence: Option<AttributionConfidence>,
+    /// An attribution that holds is late.
+    pub late: bool,
+    /// Every attribution that holds is the test's cleanup's.
+    pub cleanup: bool,
+    /// An attribution that holds was judged by a fallback event time.
+    pub fallback_time: bool,
+    /// An attribution that holds was made by a person.
+    pub manual: bool,
+    /// A person kept its context attributions.
+    pub kept: bool,
+    /// It has a context attribution that holds and nobody kept: a review waits for keep or not a test.
+    pub undecided_context: bool,
+    /// Every detection of the alert, in the order they were made.
+    pub detections: Vec<RunAlertDetection>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct RunAlertPage {
+    pub alerts: Vec<RunAlert>,
+    /// The `after` of the next page; None on the last.
+    pub next: Option<i64>,
+}
+
 /// An earlier run of a run's history.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct HistoryRun {
@@ -450,6 +497,8 @@ pub enum SvsFeed<'a> {
     RunEvents(Uuid),
     RunResults(Uuid),
     RunAttributions(Uuid),
+    /// The alerts one run holds or held.
+    RunAlerts(Uuid),
     Expectations(&'a crate::svs_decisions::ExpectationQuery),
     Ignores(&'a crate::svs_decisions::IgnoreQuery),
     TestHosts(Option<DateTime<Utc>>),
@@ -1480,6 +1529,141 @@ impl Service {
             .await
     }
 
+    /// The alerts a run holds or held, in the order they were first attributed to it, each with every
+    /// detection it has and that detection's attribution to the run: those first attributed after the
+    /// attribution `after` (a page's `next`), at most `limit` (`MAX_RUNS_PAGE` when None or more). ace3's
+    /// `fetch_run_alerts_page`. It needs `svs:run_read`; a run that isn't there is `NotFound`. An
+    /// attribution goes with its alert (`svs.attributions.root_id`), so ace3's alert that is gone has no
+    /// row here.
+    pub async fn svs_run_alerts(
+        &self,
+        actor: &Actor,
+        uuid: Uuid,
+        after: Option<i64>,
+        limit: Option<i64>,
+    ) -> Result<RunAlertPage, ServiceError> {
+        let max = i64::from(MAX_RUNS_PAGE);
+        let limit = limit.unwrap_or(max).clamp(1, max);
+        self.gate
+            .read(actor, "svs_run_alerts", &SVS_RUN_READ, &|tx| {
+                Box::pin(async move {
+                    let run = run_id(tx.conn(), uuid).await?;
+                    let mut keys = sqlx::query!(
+                        r#"SELECT root_id, min(id) AS "first!" FROM svs.attributions
+                           WHERE run_id = $1 GROUP BY root_id
+                           HAVING min(id) > $2 ORDER BY min(id) LIMIT $3"#,
+                        run,
+                        after.unwrap_or(0),
+                        limit + 1,
+                    )
+                    .fetch_all(tx.conn())
+                    .await?;
+                    let more = keys.len() as i64 > limit;
+                    keys.truncate(usize::try_from(limit).unwrap_or(usize::MAX));
+                    let next = keys.last().filter(|_| more).map(|key| key.first);
+                    let roots: Vec<Uuid> = keys.iter().map(|key| key.root_id).collect();
+                    if roots.is_empty() {
+                        return Ok(RunAlertPage {
+                            alerts: Vec::new(),
+                            next,
+                        });
+                    }
+                    let mut attributions: BTreeMap<Uuid, BTreeMap<i64, RunAttribution>> =
+                        BTreeMap::new();
+                    for row in sqlx::query_as!(
+                        AttributionRowDb,
+                        r#"SELECT a.id, $2::uuid AS "run!", a.root_id, a.detection_id,
+                                  d.signature_uuid, d.signature_family,
+                                  a.confidence::text AS "confidence!", a.late, a.event_time,
+                                  (r.cleanup_at IS NOT NULL AND a.event_time IS NOT NULL
+                                   AND a.event_time >= r.cleanup_at) AS "cleanup!",
+                                  a.event_time_source, a.source, a.scan_point,
+                                  a.actor AS "actor!: Value", a.created_at, a.removed_at,
+                                  a.removed_by AS "removed_by: Value", a.removal_reason, a.kept_at,
+                                  a.kept_by AS "kept_by: Value", a.updated_at
+                           FROM svs.attributions a
+                           JOIN svs.runs r ON r.id = a.run_id
+                           JOIN analysis.detections d ON d.id = a.detection_id
+                           WHERE a.run_id = $1 AND a.root_id = ANY ($3)
+                           ORDER BY a.id"#,
+                        run,
+                        uuid,
+                        &roots,
+                    )
+                    .fetch_all(tx.conn())
+                    .await?
+                    {
+                        let attribution = RunAttribution::try_from(row)?;
+                        attributions
+                            .entry(attribution.alert)
+                            .or_default()
+                            .insert(attribution.detection, attribution);
+                    }
+                    let mut detections: BTreeMap<Uuid, Vec<RunAlertDetection>> = BTreeMap::new();
+                    for row in sqlx::query!(
+                        "SELECT id, root_id, description, signature_uuid, signature_family
+                         FROM analysis.detections WHERE root_id = ANY ($1) ORDER BY id",
+                        &roots,
+                    )
+                    .fetch_all(tx.conn())
+                    .await?
+                    {
+                        let attribution = attributions
+                            .get_mut(&row.root_id)
+                            .and_then(|by| by.remove(&row.id));
+                        detections
+                            .entry(row.root_id)
+                            .or_default()
+                            .push(RunAlertDetection {
+                                detection: row.id,
+                                description: row.description,
+                                signature_uuid: row.signature_uuid,
+                                signature_family: row.signature_family,
+                                attribution,
+                            });
+                    }
+                    let mut summaries = crate::alerts::summaries_in(tx.conn(), &roots).await?;
+                    let mut alerts = Vec::with_capacity(keys.len());
+                    for key in keys {
+                        let Some(alert) = summaries.remove(&key.root_id) else {
+                            continue;
+                        };
+                        let detections = detections.remove(&key.root_id).unwrap_or_default();
+                        let holding: Vec<&RunAttribution> = detections
+                            .iter()
+                            .filter_map(|d| d.attribution.as_ref())
+                            .filter(|a| a.removed_at.is_none())
+                            .collect();
+                        let context: Vec<&&RunAttribution> = holding
+                            .iter()
+                            .filter(|a| a.confidence == AttributionConfidence::Context)
+                            .collect();
+                        let all_context = context.len() == holding.len();
+                        let confidence = (!holding.is_empty()).then_some(if all_context {
+                            AttributionConfidence::Context
+                        } else {
+                            AttributionConfidence::Marker
+                        });
+                        alerts.push(RunAlert {
+                            alert,
+                            first_attribution: key.first,
+                            holds: !holding.is_empty(),
+                            confidence,
+                            late: holding.iter().any(|a| a.late),
+                            cleanup: !holding.is_empty() && holding.iter().all(|a| a.cleanup),
+                            fallback_time: holding.iter().any(|a| a.fallback_time),
+                            manual: holding.iter().any(|a| a.source == "manual"),
+                            kept: context.iter().any(|a| a.kept_at.is_some()),
+                            undecided_context: context.iter().any(|a| a.kept_at.is_none()),
+                            detections,
+                        });
+                    }
+                    Ok(RunAlertPage { alerts, next })
+                })
+            })
+            .await
+    }
+
     /// A run's result, one row per signature in id order: those after the row `after`, at most `limit`
     /// (`MAX_RUNS_PAGE` when None or more), with whether the result is about to be recomputed. ace3's
     /// `fetch_run_results_page`. It needs `svs:run_read`; a run that isn't there is `NotFound`.
@@ -1797,6 +1981,18 @@ impl Service {
                             sqlx::query_scalar!(
                                 r#"SELECT count(*) AS "n!" FROM (
                                        SELECT FROM svs.attributions WHERE run_id = $1 LIMIT $2) x"#,
+                                run,
+                                cap,
+                            )
+                            .fetch_one(conn)
+                            .await?
+                        }
+                        SvsFeed::RunAlerts(uuid) => {
+                            let run = run_id(conn, *uuid).await?;
+                            sqlx::query_scalar!(
+                                r#"SELECT count(*) AS "n!" FROM (
+                                       SELECT DISTINCT root_id FROM svs.attributions
+                                       WHERE run_id = $1 LIMIT $2) x"#,
                                 run,
                                 cap,
                             )

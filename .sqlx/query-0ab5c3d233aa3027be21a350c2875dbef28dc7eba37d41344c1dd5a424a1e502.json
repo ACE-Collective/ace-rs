@@ -1,0 +1,30 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT hooks_due AND cancelled_at IS NULL AS \"due!\",\n                  CASE WHEN cancelled_at IS NULL THEN svs_gate_extra_seconds END AS svs_gate\n           FROM analysis.roots WHERE id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "due!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "svs_gate",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null,
+      null
+    ]
+  },
+  "hash": "0ab5c3d233aa3027be21a350c2875dbef28dc7eba37d41344c1dd5a424a1e502"
+}

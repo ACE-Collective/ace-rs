@@ -20,7 +20,8 @@
 //! - The rest run in the core's hooks task (`HOOKS_MODULE`). Each landing and each mode change in a mode
 //!   that runs a hook sets the root's `hooks_due`, and when the root's last task ends with it set,
 //!   `queue::check_completion` queues the hooks task, on the root's first observable, instead of ending
-//!   the pass. The core's hooks worker (`run_worker`, in `ace serve`) runs it in one transaction: the
+//!   the pass. In a mode whose only hook is SVS's, the task is queued only while SVS's gate is open (*The
+//!   SVS hook*, below). The core's hooks worker (`run_worker`, in `ace serve`) runs it in one transaction: the
 //!   `post` rules over every observable; if any matched, what they did is written, eligibility runs over
 //!   what they touched, `hooks_due` is set again, and the task comes back once that work is done, as
 //!   ace3 returns to final analysis; once a run matches nothing, `configuration_defined_tagging` adds its
@@ -41,7 +42,13 @@
 //! judges alerts only. What it did is the run's `Ran::svs`, and each write is logged.
 //!
 //! It is bounded as its module says: while no run is registered or inside its attribution window and no
-//! maintenance window was open lately, it is one query; otherwise it reads only the rows that hold
+//! maintenance window was open lately, it is one query. That query is asked before the hooks task is
+//! queued, too (the owner's decision of 2026-11-14): in a mode where no other hook runs, a landing sets
+//! the root's `svs_gate_extra_seconds` in place of `hooks_due`, and `queue::check_completion` queues the
+//! task only when the gate is open, so a pass with nothing registered ends without a hooks task. The
+//! modifier and the tagging queue it as before, and the hook then asks the gate itself. Both reads are
+//! ordered against a registration by a lock (`crate::svs::attribution`'s *The gate*), so a run registered
+//! while a pass ends is never missed. Otherwise it reads only the rows that hold
 //! marker-shaped text, a capped number of each, judges a capped number of markers, an event has a capped
 //! number of hosts, and it considers only the runs and windows on those hosts whose windows overlap the
 //! event, a capped number of each.
@@ -229,10 +236,15 @@ impl Hooks {
 
     /// Whether a hook runs at the end of a pass in `mode`.
     pub fn run_in(&self, modes: &Modes, mode: &str) -> bool {
+        self.runs_whatever_svs_says(modes, mode) || self.svs_in(modes, mode).is_some()
+    }
+
+    /// Whether a hook other than SVS's runs at the end of a pass in `mode`: the modifier's `post` rules
+    /// or the tagging, which run every pass. SVS's runs only while its gate is open (`mark_due`).
+    fn runs_whatever_svs_says(&self, modes: &Modes, mode: &str) -> bool {
         self.modifier_in(modes, mode)
             .is_some_and(|r| r.has_phase(Phase::Post))
             || self.tagging_in(modes, mode).is_some()
-            || self.svs_in(modes, mode).is_some()
     }
 }
 
@@ -258,7 +270,9 @@ impl Effects {
     }
 }
 
-/// Marks the root's hooks due, when a hook runs at the end of a pass in `mode`.
+/// Marks the root's hooks due, when a hook runs at the end of a pass in `mode`. In a mode whose only
+/// hook is SVS's, it marks SVS's gate instead (`analysis.roots.svs_gate_extra_seconds`), and
+/// `queue::check_completion` queues the hooks task only while that gate is open.
 pub(crate) async fn mark_due(
     tx: &mut Tx<'_>,
     hooks: &Hooks,
@@ -266,10 +280,18 @@ pub(crate) async fn mark_due(
     root: Uuid,
     mode: &str,
 ) -> Result<(), DbError> {
-    if hooks.run_in(modes, mode) {
+    if hooks.runs_whatever_svs_says(modes, mode) {
         sqlx::query!(
             "UPDATE analysis.roots SET hooks_due = true WHERE id = $1",
             root
+        )
+        .execute(tx.conn())
+        .await?;
+    } else if let Some(svs) = hooks.svs_in(modes, mode) {
+        sqlx::query!(
+            "UPDATE analysis.roots SET svs_gate_extra_seconds = $2 WHERE id = $1",
+            root,
+            svs.attribution_extra.num_seconds(),
         )
         .execute(tx.conn())
         .await?;
@@ -719,7 +741,7 @@ impl Orchestrator {
     ) -> Result<Ran, HookError> {
         let root = worker.finish_in(tx, task.id, TaskState::Done, None).await?;
         let state = sqlx::query!(
-            "UPDATE analysis.roots SET hooks_due = false WHERE id = $1
+            "UPDATE analysis.roots SET hooks_due = false, svs_gate_extra_seconds = NULL WHERE id = $1
              RETURNING analysis_mode, cancelled_at IS NOT NULL AS \"cancelled!\"",
             root,
         )

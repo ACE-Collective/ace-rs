@@ -1,0 +1,34 @@
+{#- What SVS makes of the alert (PLAN.md 7.10 batch 7b, src/svs_alert.rs): ace3's SVS banner, with the
+    root's tags, the runs its attributions hold to, the markers that disagree with their run, and for an
+    analyst who may, the forms that give it back. -#}
+<section class="svs-banner" id="svs" role="note">
+  <h2>SVS{% if !svs.status.is_empty() %} <span class="badge svs-status">{{ svs.status }}</span>{% endif %}{% for tag in svs.tags %} <span class="badge tag">{{ tag }}</span>{% endfor %}</h2>
+  {%- if !svs.meaning.is_empty() %}
+  <p>{{ svs.meaning }}</p>
+  {%- endif %}
+  {%- if !svs.runs.is_empty() %}
+  <ul>
+    {%- for run in svs.runs %}
+    <li>Test run {% if let Some(href) = run.href %}<a href="{{ href }}"><code>{{ run.uuid }}</code></a>{% else %}<code>{{ run.uuid }}</code>{% endif %} of <span class="qa-text">{{ run.test }}</span>, {{ run.state }}</li>
+    {%- endfor %}
+  </ul>
+  {%- endif %}
+  {%- if !svs.mismatches.is_empty() %}
+  <ul>
+    {%- for mismatch in svs.mismatches %}
+    <li>Marker <code>{{ mismatch.marker }}</code>: <span class="qa-text">{{ mismatch.result }}</span>
+      {%- if let Some(run) = mismatch.run %}; it belongs to test run {% if let Some(href) = run.href %}<a href="{{ href }}"><code>{{ run.uuid }}</code></a>{% else %}<code>{{ run.uuid }}</code>{% endif %} of <span class="qa-text">{{ run.test }}</span>, {{ run.state }}{% else %}; no run has it{% endif %}</li>
+    {%- endfor %}
+  </ul>
+  {%- endif %}
+  {%- if svs.release %}
+  <form method="post" action="/alerts/{{ svs.alert }}/svs" class="inline">
+    <label for="svs-reason">Why</label>
+    <input type="text" id="svs-reason" name="reason" maxlength="512">
+    <button type="submit" name="action" value="disassociate" title="Disassociates it from every test run that holds it, so it is an analyst's again. The runs never take it back.">Disassociate from its test runs</button>
+    {%- if svs.not_a_test %}
+    <button type="submit" name="action" value="not_a_test" title="It only looked like a test by its host and time.">Not a test</button>
+    {%- endif %}
+  </form>
+  {%- endif %}
+</section>

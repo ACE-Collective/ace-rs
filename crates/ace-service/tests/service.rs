@@ -1643,6 +1643,11 @@ async fn every_write_function_has_an_audit_test() {
         svs_attribution_tests::association::change_svs_association_records_its_row(db).await,
         svs_attribution_tests::association::release_alert_from_svs_records_its_row(db).await,
         svs_attribution_tests::association::set_alert_owner_records_its_row(db).await,
+        svs_attribution_tests::association::review::take_svs_runs_records_its_row(db).await,
+        svs_attribution_tests::association::review::cancel_svs_runs_records_its_row(db).await,
+        svs_attribution_tests::association::review::end_svs_runs_records_its_row(db).await,
+        svs_attribution_tests::association::review::close_svs_runs_records_its_row(db).await,
+        svs_attribution_tests::association::review::review_svs_run_records_its_row(db).await,
     ]);
     assert_eq!(covered, write_functions(), "{WRITES_NEED_A_TEST}");
 }
@@ -3376,6 +3381,8 @@ async fn every_write_fails_when_its_audit_fails() {
         .expect("adds a test host");
     let associations = svs_attribution_tests::association::before_the_audit_breaks(db).await;
     let associations_before = svs_attribution_tests::association::rows(db, &associations).await;
+    let reviews = svs_attribution_tests::association::review::before_the_audit_breaks(db).await;
+    let reviews_before = svs_attribution_tests::association::review::rows(db, &reviews).await;
     let decisions = svs_results_tests::before_the_audit_breaks(db).await;
     let decisions_before = svs_results_tests::decision_rows(db).await;
     let runs = svs_runs_tests::before_the_audit_breaks(db).await;
@@ -4315,6 +4322,12 @@ async fn every_write_fails_when_its_audit_fails() {
         svs_attribution_tests::association::attempts_with_the_audit_broken(&associations, &actor)
             .await,
     );
+    attempts.extend(
+        svs_attribution_tests::association::review::attempts_with_the_audit_broken(
+            &reviews, &actor,
+        )
+        .await,
+    );
     let mut covered = BTreeSet::new();
     for (function, error) in &attempts {
         assert!(error.to_string().contains("broken"), "{function}: {error}");
@@ -4365,6 +4378,11 @@ async fn every_write_fails_when_its_audit_fails() {
         svs_attribution_tests::association::rows(db, &associations).await,
         associations_before,
         "no alert's queue, disposition, owner or attributions changed"
+    );
+    assert_eq!(
+        svs_attribution_tests::association::review::rows(db, &reviews).await,
+        reviews_before,
+        "no run's state, owner or reviewer changed, and no event was written"
     );
     assert_eq!(command_rows(db).await, commands_before);
     assert_eq!(sample_rows(db).await, samples_before, "no sample changed");
@@ -13173,6 +13191,8 @@ fn graph_tree(
                 submitted_by: None,
                 analysis: AnalysisState::Complete,
                 queue: "default".to_owned(),
+                tags: Vec::new(),
+                svs: None,
             },
             observables: i64::try_from(observables.len()).expect("a count"),
             files: 0,
@@ -29865,9 +29885,9 @@ mod svs_runs_tests {
 /// attribution writes them. A hunt is what the hunter recorded of its file (`hunts.hunts.svs`), and a
 /// YARA rule is a signature of the current ruleset's row.
 ///
-/// What has no counterpart: `test_what_fired_only_in_the_cleanup`'s last assertion reads a review's
-/// blockers, which is batch 7's `review.py`; the log records ace3's cases read with `caplog` are checked
-/// on the `ComputedResult` the log lines are written from.
+/// `test_what_fired_only_in_the_cleanup`'s last assertion reads a review's blockers, which batch 7b
+/// brought. What has no counterpart: the log records ace3's cases read with `caplog` are checked on the
+/// `ComputedResult` the log lines are written from.
 mod svs_results_tests {
     use super::*;
     use ace_service::{
@@ -30351,7 +30371,7 @@ mod svs_results_tests {
         assert_eq!(computed.counts.values().sum::<i64>(), 5);
     }
 
-    /// `test_what_fired_only_in_the_cleanup`, but its review blockers (batch 7).
+    /// `test_what_fired_only_in_the_cleanup`.
     #[tokio::test]
     async fn what_fired_only_in_the_cleanup() {
         let test_db = TestDb::new().await;
@@ -30394,6 +30414,21 @@ mod svs_results_tests {
         );
         assert_eq!(row(db, &run, HUNT).await.alert_count, 1);
         assert_eq!(row(db, &run, OTHER).await.alert_count, 1);
+        // nothing the cleanup fired stands in the way of a review, which only an ended run can have
+        sqlx::query("UPDATE svs.runs SET state = 'ended' WHERE uuid = $1")
+            .bind(run.uuid)
+            .execute(db.pool())
+            .await
+            .expect("ends the run");
+        let blockers = f
+            .service
+            .svs_review_blockers(&f.admin, run.uuid)
+            .await
+            .expect("reads")
+            .expect("an ended run's blockers");
+        let mut candidates = vec![HUNT.to_owned(), NOISE.to_owned()];
+        candidates.sort();
+        assert_eq!(blockers.candidates, candidates);
     }
 
     /// `test_a_signature_judged_by_a_fallback_time_says_so`.
@@ -33926,8 +33961,13 @@ mod svs_attribution_tests {
 
     /// The catalog test, and a service whose core runs the SVS hook, as `ace serve`'s does.
     async fn fixture(db: &Db) -> Fx {
+        fixture_with(db, Hooks::none().with_svs(HookConfig::default())).await
+    }
+
+    /// The fixture, with these hooks.
+    async fn fixture_with(db: &Db, hooks: Hooks) -> Fx {
         let (bucket, cache) = bucket(db);
-        let orchestrator = orchestrator().with_hooks(Hooks::none().with_svs(HookConfig::default()));
+        let orchestrator = orchestrator().with_hooks(hooks);
         let service = Service::new(db.clone(), orchestrator.clone())
             .with_actions(test_actions())
             .with_bucket(bucket.clone())
@@ -36821,8 +36861,11 @@ mod svs_attribution_tests {
         let f = suppressed_fixture(db).await;
         let base = now();
         let root = hunt_alert(&f, "win10-01", base - minutes(10), json!({"cmd": MARKER})).await;
-        let ran = run_hooks(db, &f).await;
-        assert_eq!(ran.svs, None);
+        // since 7.10 batch 7b the core asks the gate before it queues the hooks task on SVS's account,
+        // so the pass ends with no hooks task at all; and the hook, asked itself, still judges nothing
+        finish_stubs(db).await;
+        assert_eq!(hooks_tasks(db, root).await, Vec::<String>::new());
+        assert_eq!(judge(db, root).await, None);
         assert!(root_tags(db, root).await.is_empty());
         assert!(rows(db, root).await.is_empty());
         let detections: i64 = sqlx::query_scalar(
@@ -37295,6 +37338,246 @@ mod svs_attribution_tests {
                 .await,
             Err(ServiceError::PermissionDenied { .. })
         ));
+    }
+
+    //
+    // the gate before the hooks task (the owner's decision of 2026-11-14)
+    //
+
+    /// Finishes what the stub modules were queued for, as their pools would: the last of them ends the
+    /// pass, or queues the hooks task.
+    async fn finish_stubs(db: &Db) {
+        let stubs = queue::Worker::new(
+            db.clone(),
+            "stubs",
+            vec![
+                "rdap_analyzer".to_owned(),
+                "alert_added_to_event".to_owned(),
+            ],
+            Duration::from_secs(60),
+        );
+        while let Some(task) = stubs.claim().await.expect("claims") {
+            stubs.complete(task.id).await.expect("completes");
+        }
+    }
+
+    /// The states of the root's hooks tasks.
+    async fn hooks_tasks(db: &Db, root: Uuid) -> Vec<String> {
+        sqlx::query_scalar(
+            "SELECT state::text FROM queue.tasks WHERE root_id = $1 AND module = $2 ORDER BY id",
+        )
+        .bind(root)
+        .bind(ace_core::hooks::HOOKS_MODULE)
+        .fetch_all(db.pool())
+        .await
+        .expect("reads")
+    }
+
+    /// The root's `hooks_due` and SVS's gate marker.
+    async fn due(db: &Db, root: Uuid) -> (bool, Option<i64>) {
+        sqlx::query_as("SELECT hooks_due, svs_gate_extra_seconds FROM analysis.roots WHERE id = $1")
+            .bind(root)
+            .fetch_one(db.pool())
+            .await
+            .expect("reads")
+    }
+
+    /// A correlation pass with no run registered and no maintenance window open lately queues no hooks
+    /// task on SVS's account: the pass ends as it would with no hook at all. Once a run is registered,
+    /// the next pass queues it, and the hook judges.
+    #[tokio::test]
+    async fn a_pass_with_the_gate_closed_queues_no_hooks_task() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = suppressed_fixture(db).await;
+        let base = now();
+        let first = hunt_alert(&f, "win10-01", base - minutes(10), json!({})).await;
+        // SVS's hook is the only one in this mode: the root says so, not `hooks_due`
+        assert_eq!(due(db, first).await, (false, Some(24 * 3600)));
+        finish_stubs(db).await;
+        assert_eq!(hooks_tasks(db, first).await, Vec::<String>::new());
+        assert!(queue::root_is_idle(db, first).await.expect("reads"));
+        assert_eq!(due(db, first).await, (false, None));
+        // the pass ended as any does: the alert is due its routing
+        let routing: i64 =
+            sqlx::query_scalar("SELECT count(*) FROM queue.routing_due WHERE root_id = $1")
+                .bind(first)
+                .fetch_one(db.pool())
+                .await
+                .expect("reads");
+        assert_eq!(routing, 1);
+
+        let run = f.started_run("win10-01", base - minutes(30)).await;
+        let second = hunt_alert(
+            &f,
+            "win10-01",
+            base - minutes(5),
+            json!({"events": [{"cmd": format!("whoami & REM {}", run.marker)}]}),
+        )
+        .await;
+        let ran = run_hooks(db, &f).await;
+        assert_eq!(
+            ran.svs.expect("the hook judged it").status,
+            Some(SvsStatus::Test)
+        );
+        assert_eq!(hooks_tasks(db, second).await, ["done"]);
+        assert_eq!(due(db, second).await, (false, None));
+        // the first alert's pass ended before the run was registered, as it would have with the hook
+        // run and its gate closed: nothing was attributed
+        assert!(rows(db, first).await.is_empty());
+    }
+
+    /// A maintenance window opens the gate too, and keeps it open for `attribution_extra` after it ends.
+    #[tokio::test]
+    async fn a_maintenance_window_opens_the_gate_before_the_hooks_task() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = suppressed_fixture(db).await;
+        let base = now();
+        let window = f.window("win10-01", base - minutes(20)).await;
+        f.service
+            .end_svs_maintenance(&f.admin, "win10-01", base - minutes(1))
+            .await
+            .expect("ends");
+        let root = hunt_alert(&f, "win10-01", base - minutes(10), json!({})).await;
+        let ran = run_hooks(db, &f).await;
+        assert_eq!(
+            ran.svs.expect("the hook judged it").maintenance,
+            Some(window.uuid)
+        );
+        assert_eq!(hooks_tasks(db, root).await, ["done"]);
+    }
+
+    /// The other hooks queue their task every pass, as they did: with the tagging on, a pass with SVS's
+    /// gate closed still runs the hooks, and SVS's hook, asked there, judges nothing.
+    #[tokio::test]
+    async fn the_other_hooks_queue_their_task_whatever_the_gate_says() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let overlay = ace_sdk::Overlay::from_yaml(
+            "hooks:\n  configuration_defined_tagging:\n    tags: {x: alert}\n",
+        )
+        .expect("an overlay");
+        let hooks = Hooks::from_section(&overlay.hooks)
+            .expect("compiles")
+            .with_svs(HookConfig::default());
+        let f = fixture_with(db, hooks).await;
+        f.host("win10-01", None, &[]).await;
+        let root = hunt_alert(&f, "win10-01", now() - minutes(10), json!({})).await;
+        assert_eq!(due(db, root).await, (true, None));
+        let ran = run_hooks(db, &f).await;
+        assert_eq!(ran.svs, None, "the gate is closed");
+        assert_eq!(hooks_tasks(db, root).await, ["done"]);
+        assert!(queue::root_is_idle(db, root).await.expect("reads"));
+    }
+
+    /// The race the gate has to survive: a maintenance window opened while an alert's pass is ending.
+    /// The window's transaction holds the gate's lock, so the pass's end waits for it, reads the gate
+    /// once the window is committed, and queues the hooks task: the alert is judged. Without the lock the
+    /// pass would read a closed gate beside the uncommitted window and end with the alert unjudged.
+    #[tokio::test]
+    async fn a_window_opened_while_a_pass_ends_is_not_missed() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = suppressed_fixture(db).await;
+        let base = now();
+        let root = hunt_alert(&f, "win10-01", base - minutes(5), json!({})).await;
+
+        // the open, in flight: it holds the lock a write that opens the gate takes, and its window isn't
+        // committed
+        let uuid = Uuid::new_v4();
+        let mut opening = db.begin().await.expect("begins");
+        att::lock_gate_to_open(opening.conn())
+            .await
+            .expect("takes the gate's lock");
+        sqlx::query(
+            "INSERT INTO svs.maintenance_windows
+                 (uuid, test_host_id, host, fqdn, reason, opened_by, opened_at, ends_at)
+             SELECT $1, id, hostname, fqdn, 'staging', $2::jsonb, $3, $4
+             FROM svs.test_hosts WHERE hostname = 'win10-01'",
+        )
+        .bind(uuid)
+        .bind(user_json(0xAD, "alice"))
+        .bind(base - minutes(10))
+        .bind(base + minutes(20))
+        .execute(opening.conn())
+        .await
+        .expect("opens a window");
+
+        // the pass's end waits for it
+        let ending = tokio::spawn({
+            let db = db.clone();
+            async move { finish_stubs(&db).await }
+        });
+        tokio::time::sleep(Duration::from_millis(700)).await;
+        assert!(!ending.is_finished(), "the pass's end waits for the open");
+        assert!(!queue::root_is_idle(db, root).await.expect("reads"));
+        assert_eq!(hooks_tasks(db, root).await, Vec::<String>::new());
+
+        opening.commit().await.expect("commits");
+        ending.await.expect("the pass's end");
+        // it read the gate after the window committed: the hooks task is queued, and the hook judges
+        assert_eq!(hooks_tasks(db, root).await, ["queued"]);
+        let ran = run_hooks(db, &f).await;
+        assert_eq!(ran.svs.expect("the hook judged it").maintenance, Some(uuid));
+        assert_eq!(root_tags(db, root).await, ["svs:maintenance"]);
+    }
+
+    /// The other order: a pass that is ending on a closed gate holds the lock shared, and a registration
+    /// and a maintenance window, through the service, wait until that pass's end has committed. So a run
+    /// is either seen by a pass's end, or registered after it.
+    #[tokio::test]
+    async fn a_registration_waits_for_a_pass_that_is_ending() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = suppressed_fixture(db).await;
+
+        // a pass's end in flight: it read the gate closed, and hasn't committed
+        let mut ending = db.begin().await.expect("begins");
+        assert!(
+            !att::gate_open(ending.conn(), Utc::now(), hours(24))
+                .await
+                .expect("reads the gate")
+        );
+
+        let registering = tokio::spawn({
+            let (service, admin) = (f.service.clone(), f.admin.clone());
+            async move {
+                service
+                    .register_svs_run(
+                        &admin,
+                        &Registration {
+                            test_guid: GUID.to_owned(),
+                            targets: vec![TargetSpec::new("win10-01", None)],
+                            launcher: "art".to_owned(),
+                            batch_id: None,
+                            extra: json!({}),
+                        },
+                        now(),
+                    )
+                    .await
+            }
+        });
+        let opening = tokio::spawn({
+            let (service, admin) = (f.service.clone(), f.admin.clone());
+            async move {
+                service
+                    .open_svs_maintenance(&admin, "win10-02", 30, "staging", now())
+                    .await
+            }
+        });
+        tokio::time::sleep(Duration::from_millis(700)).await;
+        assert!(!registering.is_finished(), "the registration waits");
+        assert!(!opening.is_finished(), "the open waits");
+        assert!(!open(db, Utc::now()).await, "nothing opened the gate yet");
+
+        ending.commit().await.expect("commits");
+        registering
+            .await
+            .expect("the registration")
+            .expect("registers");
+        opening.await.expect("the open").expect("opens");
+        assert!(open(db, Utc::now()).await);
     }
 
     /// SVS's marker router, the closing of test alerts and a person's associations (PLAN.md 7.10 batch
@@ -39535,6 +39818,1616 @@ mod svs_attribution_tests {
                         .expect_err("refused"),
                 ),
             ]
+        }
+
+        /// A person's actions on runs (PLAN.md 7.10 batch 7b): ace3's `tests/saq/svs/test_review.py`
+        /// (17 cases; its `TestComments` came with batch 5b).
+        ///
+        /// TestOwnership: `taking_runs`. TestCancelAndClose: `a_persons_cancel`,
+        /// `closing_an_ended_run_needs_a_reason`, `ending_runs_early`,
+        /// `a_run_someone_else_owns_needs_confirmation`. TestTakingWhileActing (two cases):
+        /// `the_take_waits_for_the_action`. TestReview: `review_signs_the_result_off`,
+        /// `blocked_by_candidates_and_a_stale_result`, `a_blocked_review_takes_nothing`,
+        /// `blocked_by_a_context_alert_neither_kept_nor_rejected`,
+        /// `a_result_never_computed_is_marked_stale`, `ignored_detections_get_an_fp_verdict`,
+        /// `a_verdict_someone_set_is_left_alone`, `review_again`, `review_refused`,
+        /// `a_failure_after_the_sign_off_keeps_it`.
+        ///
+        /// What differs in how they're set up: each run has a test host of its own, since one run per
+        /// host is the rule, where ace3's `overlapping_runs` fixture lets them share one; and a failure
+        /// after the sign-off is a trigger that refuses the SIMULATED disposition, where ace3 patches the
+        /// function that closes the alerts.
+        pub(crate) mod review {
+            use super::*;
+            use ace_service::{
+                BulkResult, MAX_BULK_RUNS, Precondition, ReviewBlockers, ReviewOutcome, Reviewed,
+                Verdict,
+            };
+            use std::collections::BTreeMap;
+
+            const RULE: &str = "22222222-bbbb-4bbb-8bbb-222222222222";
+            const NOISE: &str = "33333333-cccc-4ccc-8ccc-333333333333";
+
+            /// A person who may do everything, known by `name`.
+            async fn named(db: &Db, n: u128, name: &str) -> (Actor, UserId) {
+                let id = UserId(Uuid::from_u128(n));
+                grant(db, &Holder::User(id), "*", "*", Effect::Allow).await;
+                sqlx::query("UPDATE service.users SET username = $2 WHERE id = $1")
+                    .bind(id.0)
+                    .bind(name)
+                    .execute(db.pool())
+                    .await
+                    .expect("names the user");
+                (
+                    Actor::User {
+                        id,
+                        name: name.to_owned(),
+                    },
+                    id,
+                )
+            }
+
+            fn admin_id() -> Uuid {
+                Uuid::from_u128(0xAD)
+            }
+
+            /// The fixture's admin's username, which a run's owner is named by.
+            async fn admin_name(db: &Db) -> String {
+                sqlx::query_scalar("SELECT username::text FROM service.users WHERE id = $1")
+                    .bind(admin_id())
+                    .fetch_one(db.pool())
+                    .await
+                    .expect("the admin")
+            }
+
+            /// `_run`: a run on `host`, started three hours ago, so its observation window has passed
+            /// and its alerts happened during it. Each run gets a host of its own.
+            async fn run_on(a: &Ax, host: &str) -> Run {
+                if host != "win10-01" {
+                    a.f.host(host, None, &[]).await;
+                }
+                a.f.started_run(host, now() - hours(3)).await
+            }
+
+            /// `_alert`: an alert on `host` two and a half hours ago, with a detection for each of
+            /// `signatures` (one with no signature when there are none), and the run's marker in its
+            /// details when `marker`, judged and routed.
+            async fn test_alert(
+                a: &Ax,
+                db: &Db,
+                run: &Run,
+                host: &str,
+                signatures: &[&str],
+                marker: bool,
+            ) -> Uuid {
+                let root = alert_root(db, marker.then(|| command_line(&run.marker)), now()).await;
+                set_time(db, root, now() - minutes(150), "event").await;
+                observable(db, root, "hostname", host).await;
+                if signatures.is_empty() {
+                    detect_as(db, root, None, "detection", None).await;
+                }
+                for signature in signatures {
+                    detect_as(
+                        db,
+                        root,
+                        None,
+                        &format!("detection {signature}"),
+                        Some(signature),
+                    )
+                    .await;
+                }
+                pass(db, &a.service, root).await;
+                root
+            }
+
+            /// `_ended`: ends the run as its timer would, which computes its result.
+            async fn ended(a: &Ax, run: &Run) {
+                let result = a
+                    .service
+                    .run_svs_timers(
+                        &timers(),
+                        run.observation_ends_at.expect("a window") + TimeDelta::seconds(1),
+                    )
+                    .await
+                    .expect("runs the timers");
+                assert!(result.ended >= 1, "{result:?}");
+            }
+
+            async fn decide(a: &Ax, signature: &str, state: &str) {
+                a.service
+                    .set_svs_expectation(
+                        &a.f.admin,
+                        GUID,
+                        Some("windows"),
+                        signature,
+                        state,
+                        None,
+                        None,
+                        Precondition::None,
+                        now(),
+                    )
+                    .await
+                    .expect("decides");
+            }
+
+            async fn ignore(a: &Ax, signature: &str) {
+                a.service
+                    .set_svs_ignore(
+                        &a.f.admin,
+                        signature,
+                        Some(GUID),
+                        None,
+                        Precondition::None,
+                        now(),
+                    )
+                    .await
+                    .expect("ignores");
+            }
+
+            /// `results.recompute_stale_results()`.
+            async fn recompute(a: &Ax) {
+                a.service
+                    .recompute_stale_svs_results(&timers(), now(), None)
+                    .await
+                    .expect("recomputes");
+            }
+
+            struct RunNow {
+                state: String,
+                owner: Option<Uuid>,
+                reviewer: Option<Uuid>,
+                reviewed_at: Option<DateTime<Utc>>,
+                changed_since_review: bool,
+                close_reason: Option<String>,
+                end_reason: Option<String>,
+            }
+
+            /// A run's row, as these tests read it.
+            type RunNowRow = (
+                String,
+                Option<Uuid>,
+                Option<Uuid>,
+                Option<DateTime<Utc>>,
+                bool,
+                Option<String>,
+                Option<String>,
+            );
+
+            async fn run_now(db: &Db, run: Uuid) -> RunNow {
+                let row: RunNowRow = sqlx::query_as(
+                    "SELECT state::text, owner_id, reviewer_id, reviewed_at, changed_since_review,
+                            close_reason, end_reason
+                     FROM svs.runs WHERE uuid = $1",
+                )
+                .bind(run)
+                .fetch_one(db.pool())
+                .await
+                .expect("the run");
+                RunNow {
+                    state: row.0,
+                    owner: row.1,
+                    reviewer: row.2,
+                    reviewed_at: row.3,
+                    changed_since_review: row.4,
+                    close_reason: row.5,
+                    end_reason: row.6,
+                }
+            }
+
+            /// `_set_owner`.
+            async fn set_owner(db: &Db, run: Uuid, owner: Option<UserId>) {
+                sqlx::query("UPDATE svs.runs SET owner_id = $2 WHERE uuid = $1")
+                    .bind(run)
+                    .bind(owner.map(|owner| owner.0))
+                    .execute(db.pool())
+                    .await
+                    .expect("sets the owner");
+            }
+
+            fn none() -> BTreeMap<Uuid, String> {
+                BTreeMap::new()
+            }
+
+            fn from(run: Uuid, owner: &str) -> BTreeMap<Uuid, String> {
+                BTreeMap::from([(run, owner.to_owned())])
+            }
+
+            fn sorted(mut runs: Vec<Uuid>) -> Vec<Uuid> {
+                runs.sort();
+                runs
+            }
+
+            async fn review(a: &Ax, who: &Actor, run: Uuid, from: Option<&str>) -> ReviewOutcome {
+                a.service
+                    .review_svs_run(who, run, from, now())
+                    .await
+                    .expect("answers")
+            }
+
+            fn reviewed(outcome: ReviewOutcome) -> Reviewed {
+                match outcome {
+                    ReviewOutcome::Reviewed(reviewed) => reviewed,
+                    other => panic!("the review went through: {other:?}"),
+                }
+            }
+
+            fn blocked(outcome: ReviewOutcome) -> ReviewBlockers {
+                match outcome {
+                    ReviewOutcome::Blocked(blockers) => blockers,
+                    other => panic!("the review was blocked: {other:?}"),
+                }
+            }
+
+            fn counts(pairs: &[(&str, i64)]) -> BTreeMap<String, i64> {
+                pairs
+                    .iter()
+                    .map(|(status, count)| ((*status).to_owned(), *count))
+                    .collect()
+            }
+
+            /// A run's events of a kind, each as (from state, to state, actor's id, details).
+            async fn events_by(
+                db: &Db,
+                run: Uuid,
+                kind: &str,
+            ) -> Vec<(Option<String>, Option<String>, String, Option<Value>)> {
+                sqlx::query_as(
+                    "SELECT e.from_state::text, e.to_state::text, e.actor ->> 'id', e.details
+                     FROM svs.run_events e JOIN svs.runs r ON r.id = e.run_id
+                     WHERE r.uuid = $1 AND e.kind = $2 ORDER BY e.id",
+                )
+                .bind(run)
+                .bind(kind)
+                .fetch_all(db.pool())
+                .await
+                .expect("reads")
+            }
+
+            /// `TestOwnership.test_taking_runs`.
+            #[tokio::test]
+            async fn taking_runs() {
+                let test_db = TestDb::new().await;
+                let db = test_db.db();
+                let a = ax(db).await;
+                let admin = &a.f.admin;
+                let (_, bob) = named(db, 0xB0B, "bob").await;
+                let (_, ghost) = named(db, 0x6057, "ghost").await;
+                let free = run_on(&a, "win10-01").await.uuid;
+                let bobs = run_on(&a, "win10-02").await.uuid;
+                let disabled = run_on(&a, "win10-03").await.uuid;
+                set_owner(db, bobs, Some(bob)).await;
+                set_owner(db, disabled, Some(ghost)).await;
+                sqlx::query("UPDATE service.users SET enabled = false WHERE id = $1")
+                    .bind(ghost.0)
+                    .execute(db.pool())
+                    .await
+                    .expect("disables ghost");
+                let unknown = Uuid::new_v4();
+
+                let result = a
+                    .service
+                    .take_svs_runs(admin, &[free, bobs, disabled, unknown], &none(), now())
+                    .await
+                    .expect("takes");
+                assert_eq!(sorted(result.done.clone()), sorted(vec![free, disabled]));
+                assert_eq!(result.left_alone, from(bobs, "bob"));
+                assert_eq!(result.unknown, [unknown]);
+                assert!(result.conflicts.is_empty());
+                assert_eq!(run_now(db, free).await.owner, Some(admin_id()));
+                assert_eq!(run_now(db, bobs).await.owner, Some(bob.0));
+                assert_eq!(
+                    events(db, disabled, "ownership_taken").await,
+                    [json!({"from": "ghost"})]
+                );
+                assert_eq!(
+                    events(db, free, "ownership_taken").await,
+                    [json!({"from": null})]
+                );
+
+                // a confirmation that names someone else doesn't count
+                let result = a
+                    .service
+                    .take_svs_runs(admin, &[bobs], &from(bobs, "ghost"), now())
+                    .await
+                    .expect("answers");
+                assert_eq!(result.left_alone, from(bobs, "bob"));
+                // confirmed: taken from bob
+                let result = a
+                    .service
+                    .take_svs_runs(admin, &[bobs], &from(bobs, "bob"), now())
+                    .await
+                    .expect("takes");
+                assert_eq!(result.done, [bobs]);
+                assert_eq!(run_now(db, bobs).await.owner, Some(admin_id()));
+                assert_eq!(
+                    events(db, bobs, "ownership_taken").await,
+                    [json!({"from": "bob"})]
+                );
+
+                // a run already theirs is done, and nothing is written
+                let before = audit_rows(db).await.len();
+                let result = a
+                    .service
+                    .take_svs_runs(admin, &[free, free], &none(), now())
+                    .await
+                    .expect("answers");
+                assert_eq!(result.done, [free]);
+                assert_eq!(audit_rows(db).await.len(), before);
+                assert_eq!(events(db, free, "ownership_taken").await.len(), 1);
+
+                // no runs, too many, a key that belongs to nobody, and an actor without svs:run_manage
+                for runs in [Vec::new(), vec![free; MAX_BULK_RUNS + 1]] {
+                    assert!(matches!(
+                        a.service.take_svs_runs(admin, &runs, &none(), now()).await,
+                        Err(ServiceError::InvalidRequest(_))
+                    ));
+                }
+                let nobody = key(ApiKeyId(Uuid::from_u128(0x5E)), None);
+                grant(
+                    db,
+                    &Holder::ApiKey(ApiKeyId(Uuid::from_u128(0x5E))),
+                    "*",
+                    "*",
+                    Effect::Allow,
+                )
+                .await;
+                for refused in [
+                    a.service
+                        .take_svs_runs(&nobody, &[free], &none(), now())
+                        .await
+                        .map(|_| ()),
+                    a.service
+                        .review_svs_run(&nobody, free, None, now())
+                        .await
+                        .map(|_| ()),
+                ] {
+                    assert!(
+                        matches!(&refused, Err(ServiceError::InvalidRequest(why)) if why.contains("records who took it")),
+                        "{refused:?}"
+                    );
+                }
+                let outsider = user(UserId(Uuid::from_u128(0x0BAD)));
+                exists(db, &Holder::User(UserId(Uuid::from_u128(0x0BAD)))).await;
+                grant(
+                    db,
+                    &Holder::User(UserId(Uuid::from_u128(0x0BAD))),
+                    "svs",
+                    "run_read",
+                    Effect::Allow,
+                )
+                .await;
+                assert!(matches!(
+                    a.service
+                        .take_svs_runs(&outsider, &[free], &none(), now())
+                        .await,
+                    Err(ServiceError::PermissionDenied { .. })
+                ));
+                assert!(matches!(
+                    a.service.review_svs_run(&outsider, free, None, now()).await,
+                    Err(ServiceError::PermissionDenied { .. })
+                ));
+                // reading the blockers needs only svs:run_read
+                assert_eq!(
+                    a.service
+                        .svs_review_blockers(&outsider, free)
+                        .await
+                        .expect("reads"),
+                    None,
+                    "a started run can't be reviewed"
+                );
+            }
+
+            /// `TestCancelAndClose.test_cancel`.
+            #[tokio::test]
+            async fn a_persons_cancel() {
+                let test_db = TestDb::new().await;
+                let db = test_db.db();
+                let a = ax(db).await;
+                // ended first: the timers that end it would end every run started as long ago
+                let ended_run = run_on(&a, "win10-01").await;
+                ended(&a, &ended_run).await;
+                let started = run_on(&a, "win10-02").await.uuid;
+                a.f.host("win10-03", None, &[]).await;
+                let created = a
+                    .service
+                    .register_svs_run(
+                        &a.f.admin,
+                        &Registration {
+                            test_guid: GUID.to_owned(),
+                            targets: vec![TargetSpec::new("win10-03", None)],
+                            launcher: "art".to_owned(),
+                            batch_id: None,
+                            extra: json!({}),
+                        },
+                        now(),
+                    )
+                    .await
+                    .expect("registers")
+                    .uuid;
+
+                let result = a
+                    .service
+                    .cancel_svs_runs(
+                        &a.f.admin,
+                        &[started, created, ended_run.uuid],
+                        &none(),
+                        now(),
+                    )
+                    .await
+                    .expect("cancels");
+                assert_eq!(sorted(result.done.clone()), sorted(vec![started, created]));
+                assert!(
+                    result.conflicts[&ended_run.uuid].contains("is ended; cancel does not apply"),
+                    "{result:?}"
+                );
+                assert_eq!(run_now(db, started).await.state, "canceled");
+                let closed = run_now(db, created).await;
+                assert_eq!(
+                    (closed.state.as_str(), closed.close_reason.as_deref()),
+                    ("closed", Some("canceled before start"))
+                );
+                // nobody owned them, and canceling takes nothing
+                assert_eq!(closed.owner, None);
+                // a person's cancel is a transition, not a launcher call
+                for run in [started, created] {
+                    assert!(
+                        events(db, run, "launcher_call")
+                            .await
+                            .iter()
+                            .all(|details| details["call"] != "cancel")
+                    );
+                }
+                assert_eq!(
+                    events_by(db, created, "transition")
+                        .await
+                        .iter()
+                        .map(|(from, to, by, _)| (from.clone(), to.clone(), by.clone()))
+                        .collect::<Vec<_>>(),
+                    [
+                        (
+                            Some("created".to_owned()),
+                            Some("canceled".to_owned()),
+                            admin_id().to_string()
+                        ),
+                        (
+                            Some("canceled".to_owned()),
+                            Some("closed".to_owned()),
+                            admin_id().to_string()
+                        ),
+                    ]
+                );
+            }
+
+            /// `TestCancelAndClose.test_closing_an_ended_run_needs_a_reason`.
+            #[tokio::test]
+            async fn closing_an_ended_run_needs_a_reason() {
+                let test_db = TestDb::new().await;
+                let db = test_db.db();
+                let a = ax(db).await;
+                let run = run_on(&a, "win10-01").await;
+                let root = test_alert(&a, db, &run, "win10-01", &[], true).await;
+                ended(&a, &run).await;
+                let result = a
+                    .service
+                    .close_svs_runs(&a.f.admin, &[run.uuid], None, &none(), now())
+                    .await
+                    .expect("answers");
+                assert!(
+                    result.conflicts[&run.uuid].contains("needs a reason"),
+                    "{result:?}"
+                );
+                assert_eq!(run_now(db, run.uuid).await.state, "ended");
+
+                let result = a
+                    .service
+                    .close_svs_runs(
+                        &a.f.admin,
+                        &[run.uuid],
+                        Some("  the test VM was rebuilt mid-run "),
+                        &none(),
+                        now(),
+                    )
+                    .await
+                    .expect("closes");
+                assert_eq!(result.done, [run.uuid]);
+                let closed = run_now(db, run.uuid).await;
+                assert_eq!(
+                    (closed.state.as_str(), closed.close_reason.as_deref()),
+                    ("closed", Some("the test VM was rebuilt mid-run"))
+                );
+                // SIMULATED is the component's to set; the event and the audit row name the person
+                let (disposition, by): (Option<String>, Value) = sqlx::query_as(
+                    "SELECT disposition, dispositioned_by::jsonb FROM analysis.roots WHERE id = $1",
+                )
+                .bind(root)
+                .fetch_one(db.pool())
+                .await
+                .expect("reads");
+                assert_eq!(disposition.as_deref(), Some("SIMULATED"));
+                assert_eq!(by, json!({"kind": "internal", "id": "svs"}));
+                let closed_alerts = events_by(db, run.uuid, "alerts_closed").await;
+                assert_eq!(closed_alerts.len(), 1);
+                assert_eq!(closed_alerts[0].2, admin_id().to_string());
+                assert_eq!(
+                    closed_alerts[0].3,
+                    Some(json!({
+                        "alerts": [root], "disposition": "SIMULATED", "late": false, "reviewed": false,
+                    }))
+                );
+                let row = last_audit(db).await;
+                assert_eq!(row.action, "close_svs_runs");
+                assert_eq!(row.actor, serde_json::to_value(&a.f.admin).expect("JSON"));
+                assert_eq!(row.details["alerts"]["alerts_closed"], json!([root]));
+                assert_eq!(
+                    row.details["alerts"]["comment"],
+                    format!("closed with SVS test run {}", run.uuid)
+                );
+            }
+
+            /// `TestCancelAndClose.test_ending_runs_early`.
+            #[tokio::test]
+            async fn ending_runs_early() {
+                let test_db = TestDb::new().await;
+                let db = test_db.db();
+                let a = ax(db).await;
+                let (_, bob) = named(db, 0xB0B, "bob").await;
+                let ended_run = run_on(&a, "win10-01").await;
+                ended(&a, &ended_run).await;
+                let started = run_on(&a, "win10-02").await.uuid;
+                let bobs = run_on(&a, "win10-03").await.uuid;
+                set_owner(db, bobs, Some(bob)).await;
+                let result = a
+                    .service
+                    .end_svs_runs(&a.f.admin, &[started], None, &none(), now())
+                    .await
+                    .expect("answers");
+                assert!(
+                    result.conflicts[&started].contains("needs a reason"),
+                    "{result:?}"
+                );
+
+                let result = a
+                    .service
+                    .end_svs_runs(
+                        &a.f.admin,
+                        &[started, ended_run.uuid, bobs],
+                        Some("the test failed"),
+                        &none(),
+                        now(),
+                    )
+                    .await
+                    .expect("ends");
+                assert_eq!(result.done, [started]);
+                assert_eq!(
+                    result.conflicts.keys().copied().collect::<Vec<_>>(),
+                    [ended_run.uuid]
+                );
+                assert_eq!(result.left_alone, from(bobs, "bob"));
+                let run = run_now(db, started).await;
+                assert_eq!(
+                    (run.state.as_str(), run.end_reason.as_deref()),
+                    ("ended", Some("the test failed"))
+                );
+                // its result was computed: it can be reviewed now
+                reviewed(review(&a, &a.f.admin, started, None).await);
+                assert_eq!(run_now(db, started).await.state, "reviewed");
+            }
+
+            /// `TestCancelAndClose.test_a_run_someone_else_owns_needs_confirmation`.
+            #[tokio::test]
+            async fn a_run_someone_else_owns_needs_confirmation() {
+                let test_db = TestDb::new().await;
+                let db = test_db.db();
+                let a = ax(db).await;
+                let (_, bob) = named(db, 0xB0B, "bob").await;
+                let run = run_on(&a, "win10-01").await.uuid;
+                a.service
+                    .cancel_svs_run(&a.f.admin, run, now())
+                    .await
+                    .expect("the launcher cancels");
+                set_owner(db, run, Some(bob)).await;
+                let result = a
+                    .service
+                    .close_svs_runs(&a.f.admin, &[run], None, &none(), now())
+                    .await
+                    .expect("answers");
+                assert_eq!(result.left_alone, from(run, "bob"));
+                assert_eq!(run_now(db, run).await.state, "canceled");
+
+                // what it left alone, sent back, is the confirmation
+                let result = a
+                    .service
+                    .close_svs_runs(&a.f.admin, &[run], None, &result.left_alone, now())
+                    .await
+                    .expect("closes");
+                assert_eq!(result.done, [run]);
+                let closed = run_now(db, run).await;
+                assert_eq!(
+                    (
+                        closed.state.as_str(),
+                        closed.owner,
+                        closed.close_reason.as_deref()
+                    ),
+                    ("closed", Some(admin_id()), Some("closed by hand"))
+                );
+                let row = last_audit(db).await;
+                assert_eq!(row.details["taken_from"], "bob");
+
+                // a take that was confirmed stands when the action then doesn't apply
+                let other = run_on(&a, "win10-02").await.uuid;
+                set_owner(db, other, Some(bob)).await;
+                let result = a
+                    .service
+                    .close_svs_runs(&a.f.admin, &[other], None, &from(other, "bob"), now())
+                    .await
+                    .expect("answers");
+                assert!(
+                    result.conflicts[&other].contains("close does not apply"),
+                    "{result:?}"
+                );
+                let left = run_now(db, other).await;
+                assert_eq!(
+                    (left.state.as_str(), left.owner),
+                    ("started", Some(admin_id()))
+                );
+                let row = last_audit(db).await;
+                assert_eq!(
+                    (row.action.as_str(), row.before, row.after),
+                    (
+                        "close_svs_runs",
+                        Some(json!({"owner": "bob"})),
+                        Some(json!({"owner": admin_name(db).await})),
+                    )
+                );
+            }
+
+            /// `TestTakingWhileActing.test_the_take_waits_for_the_action`, both cases. ace3 holds the
+            /// run's row from its claim to its action's commit; here the claim and the action are one
+            /// transaction, so the row is held throughout. A take made while someone acts waits for the
+            /// row, and then sees what the action left.
+            #[tokio::test]
+            async fn the_take_waits_for_the_action() {
+                let test_db = TestDb::new().await;
+                let db = test_db.db();
+                let a = ax(db).await;
+                let (bob, bob_id) = named(db, 0xB0B, "bob").await;
+                let closing = run_on(&a, "win10-01").await;
+                let reviewing = run_on(&a, "win10-02").await;
+                ended(&a, &closing).await;
+
+                // someone is acting on the run: they hold its row
+                let mut acting = db.begin().await.expect("begins");
+                sqlx::query("SELECT id FROM svs.runs WHERE uuid = $1 FOR UPDATE")
+                    .bind(closing.uuid)
+                    .execute(acting.conn())
+                    .await
+                    .expect("locks the run");
+                let take = tokio::spawn({
+                    let (service, bob, run) = (a.service.clone(), bob.clone(), closing.uuid);
+                    async move { service.take_svs_runs(&bob, &[run], &none(), now()).await }
+                });
+                tokio::time::sleep(Duration::from_secs(1)).await;
+                assert!(!take.is_finished(), "the take waits for the action");
+                acting.commit().await.expect("commits");
+                assert_eq!(
+                    take.await.expect("the take").expect("takes").done,
+                    [closing.uuid]
+                );
+                set_owner(db, closing.uuid, None).await;
+
+                // close: the close comes first, and bob takes the closed run
+                let closed = a
+                    .service
+                    .close_svs_runs(
+                        &a.f.admin,
+                        &[closing.uuid],
+                        Some("not needed"),
+                        &none(),
+                        now(),
+                    )
+                    .await
+                    .expect("closes");
+                assert_eq!(closed.done, [closing.uuid]);
+                let taken = a
+                    .service
+                    .take_svs_runs(&bob, &[closing.uuid], &none(), now())
+                    .await
+                    .expect("takes");
+                assert_eq!(taken.done, [closing.uuid]);
+                let after = run_now(db, closing.uuid).await;
+                assert_eq!(
+                    (after.state.as_str(), after.owner),
+                    ("closed", Some(bob_id.0))
+                );
+
+                // review: the review takes the run, so bob, who never confirmed taking it from them, is
+                // refused
+                reviewed(review(&a, &a.f.admin, reviewing.uuid, None).await);
+                let taken = a
+                    .service
+                    .take_svs_runs(&bob, &[reviewing.uuid], &none(), now())
+                    .await
+                    .expect("answers");
+                assert_eq!(
+                    taken.left_alone,
+                    from(reviewing.uuid, &admin_name(db).await)
+                );
+                assert_eq!(run_now(db, reviewing.uuid).await.owner, Some(admin_id()));
+                assert!(
+                    events_by(db, reviewing.uuid, "ownership_taken")
+                        .await
+                        .iter()
+                        .all(|(_, _, by, _)| *by == admin_id().to_string())
+                );
+            }
+
+            /// `TestReview.test_review`.
+            #[tokio::test]
+            async fn review_signs_the_result_off() {
+                let test_db = TestDb::new().await;
+                let db = test_db.db();
+                let a = ax(db).await;
+                let run = run_on(&a, "win10-01").await;
+                let root = test_alert(&a, db, &run, "win10-01", &[RULE], true).await;
+                ended(&a, &run).await;
+                decide(&a, RULE, "expected").await;
+                recompute(&a).await;
+
+                let result = reviewed(review(&a, &a.f.admin, run.uuid, None).await);
+                assert_eq!(
+                    result,
+                    Reviewed {
+                        run: run.uuid,
+                        re_review: false,
+                        counts: counts(&[("hit", 1)]),
+                        alerts_closed: 1,
+                        fp_verdicts: 0,
+                    }
+                );
+                let after = run_now(db, run.uuid).await;
+                assert_eq!(
+                    (after.state.as_str(), after.reviewer, after.owner),
+                    ("reviewed", Some(admin_id()), Some(admin_id()))
+                );
+                assert!(after.reviewed_at.is_some() && !after.changed_since_review);
+
+                let rows: Vec<(Option<String>, Option<i32>)> = sqlx::query_as(
+                    "SELECT x.reviewed_status, x.reviewed_alert_count
+                     FROM svs.run_results x JOIN svs.runs r ON r.id = x.run_id WHERE r.uuid = $1",
+                )
+                .bind(run.uuid)
+                .fetch_all(db.pool())
+                .await
+                .expect("reads");
+                assert_eq!(rows, [(Some("hit".to_owned()), Some(1))]);
+                assert_eq!(disposition_of(db, root).await.as_deref(), Some("SIMULATED"));
+                // ace3's comment on the alert is the audit row's
+                let row = last_audit(db).await;
+                assert_eq!(
+                    (
+                        row.action.as_str(),
+                        row.target.clone(),
+                        row.before.clone(),
+                        row.after.clone()
+                    ),
+                    (
+                        "review_svs_run",
+                        ("svs_run".to_owned(), run.uuid.to_string()),
+                        Some(json!({"state": "ended"})),
+                        Some(json!({"state": "reviewed"})),
+                    )
+                );
+                assert_eq!(
+                    row.details["alerts"]["comment"],
+                    format!("reviewed with SVS test run {} by alice", run.uuid)
+                );
+                assert_eq!(row.details["alerts"]["alerts_closed"], json!([root]));
+                assert_eq!(row.details["taken_from"], Value::Null);
+                assert_eq!(
+                    events_by(db, run.uuid, "reviewed").await,
+                    [(
+                        Some("ended".to_owned()),
+                        Some("reviewed".to_owned()),
+                        admin_id().to_string(),
+                        Some(json!({"counts": {"hit": 1}, "re_review": false})),
+                    )]
+                );
+                assert_eq!(
+                    events(db, run.uuid, "alerts_closed").await,
+                    [json!({
+                        "alerts": [root], "disposition": "SIMULATED", "late": false, "reviewed": true,
+                    })]
+                );
+                // reviewing a run takes it when nobody owns it
+                assert_eq!(
+                    events(db, run.uuid, "ownership_taken").await,
+                    [json!({"from": null})]
+                );
+                assert!(!needs_attention(db, run.uuid).await);
+            }
+
+            /// `TestReview.test_blocked_by_candidates_and_a_stale_result`.
+            #[tokio::test]
+            async fn blocked_by_candidates_and_a_stale_result() {
+                let test_db = TestDb::new().await;
+                let db = test_db.db();
+                let a = ax(db).await;
+                let run = run_on(&a, "win10-01").await;
+                test_alert(&a, db, &run, "win10-01", &[RULE], true).await;
+                ended(&a, &run).await;
+                let blockers = blocked(review(&a, &a.f.admin, run.uuid, None).await);
+                assert_eq!(
+                    blockers,
+                    ReviewBlockers {
+                        stale: false,
+                        candidates: vec![RULE.to_owned()],
+                        context_alerts: Vec::new(),
+                    }
+                );
+                assert!(
+                    blockers
+                        .message(run.uuid)
+                        .ends_with("can't be reviewed: 1 candidate signature(s) are undecided")
+                );
+                // what the run page shows is what a review answers
+                assert_eq!(
+                    a.service
+                        .svs_review_blockers(&a.f.admin, run.uuid)
+                        .await
+                        .expect("reads"),
+                    Some(blockers)
+                );
+
+                decide(&a, RULE, "rejected").await;
+                // the stale result still shows the candidate; the recompute settles it
+                let blockers = blocked(review(&a, &a.f.admin, run.uuid, None).await);
+                assert!(blockers.stale);
+                assert_eq!(blockers.candidates, [RULE]);
+                assert_eq!(run_now(db, run.uuid).await.state, "ended");
+
+                recompute(&a).await;
+                assert_eq!(
+                    reviewed(review(&a, &a.f.admin, run.uuid, None).await).counts,
+                    counts(&[("rejected", 1)])
+                );
+            }
+
+            /// `TestReview.test_a_blocked_review_takes_nothing`.
+            #[tokio::test]
+            async fn a_blocked_review_takes_nothing() {
+                let test_db = TestDb::new().await;
+                let db = test_db.db();
+                let a = ax(db).await;
+                let run = run_on(&a, "win10-01").await;
+                test_alert(&a, db, &run, "win10-01", &[RULE], true).await;
+                ended(&a, &run).await;
+                let before = audit_rows(db).await.len();
+                blocked(review(&a, &a.f.admin, run.uuid, None).await);
+                assert_eq!(run_now(db, run.uuid).await.owner, None);
+                assert!(events(db, run.uuid, "ownership_taken").await.is_empty());
+                assert_eq!(audit_rows(db).await.len(), before, "nothing was written");
+            }
+
+            /// `TestReview.test_blocked_by_a_context_alert_neither_kept_nor_rejected`.
+            #[tokio::test]
+            async fn blocked_by_a_context_alert_neither_kept_nor_rejected() {
+                let test_db = TestDb::new().await;
+                let db = test_db.db();
+                let a = ax(db).await;
+                let run = run_on(&a, "win10-01").await;
+                let context = test_alert(&a, db, &run, "win10-01", &[], false).await;
+                ended(&a, &run).await;
+                assert_eq!(
+                    blocked(review(&a, &a.f.admin, run.uuid, None).await),
+                    ReviewBlockers {
+                        stale: false,
+                        candidates: Vec::new(),
+                        context_alerts: vec![context],
+                    }
+                );
+
+                a.service
+                    .change_svs_association(
+                        &a.f.admin,
+                        run.uuid,
+                        context,
+                        &Association::Keep,
+                        now(),
+                    )
+                    .await
+                    .expect("keeps");
+                assert_eq!(
+                    reviewed(review(&a, &a.f.admin, run.uuid, None).await).alerts_closed,
+                    1
+                );
+            }
+
+            /// `TestReview.test_a_result_never_computed_is_marked_stale`.
+            #[tokio::test]
+            async fn a_result_never_computed_is_marked_stale() {
+                let test_db = TestDb::new().await;
+                let db = test_db.db();
+                let a = ax(db).await;
+                let run = run_on(&a, "win10-01").await;
+                ended(&a, &run).await;
+                sqlx::query(
+                    "DELETE FROM svs.run_result_state
+                     WHERE run_id = (SELECT id FROM svs.runs WHERE uuid = $1)",
+                )
+                .bind(run.uuid)
+                .execute(db.pool())
+                .await
+                .expect("forgets the result");
+                assert!(blocked(review(&a, &a.f.admin, run.uuid, None).await).stale);
+                assert!(stale(db, run.uuid).await);
+                assert_eq!(run_now(db, run.uuid).await.state, "ended");
+                // so the timers compute it, and a review after that goes through
+                recompute(&a).await;
+                reviewed(review(&a, &a.f.admin, run.uuid, None).await);
+            }
+
+            async fn verdicts(db: &Db, root: Uuid) -> Vec<(Option<String>, String, String)> {
+                sqlx::query_as(
+                    "SELECT signature_uuid, verdict, set_by ->> 'id'
+                     FROM analysis.detection_verdicts WHERE root_id = $1 ORDER BY detection_id",
+                )
+                .bind(root)
+                .fetch_all(db.pool())
+                .await
+                .expect("reads")
+            }
+
+            /// `TestReview.test_ignored_detections_get_an_fp_verdict`.
+            #[tokio::test]
+            async fn ignored_detections_get_an_fp_verdict() {
+                let test_db = TestDb::new().await;
+                let db = test_db.db();
+                let a = ax(db).await;
+                let run = run_on(&a, "win10-01").await;
+                let root = test_alert(&a, db, &run, "win10-01", &[RULE, NOISE], true).await;
+                decide(&a, RULE, "expected").await;
+                ignore(&a, NOISE).await;
+                ended(&a, &run).await;
+
+                assert_eq!(
+                    reviewed(review(&a, &a.f.admin, run.uuid, None).await).fp_verdicts,
+                    1
+                );
+                // the reviewer's, though the alert's disposition is one only ACE sets
+                assert_eq!(
+                    verdicts(db, root).await,
+                    [(
+                        Some(NOISE.to_owned()),
+                        "fp".to_owned(),
+                        admin_id().to_string()
+                    )]
+                );
+                let row = last_audit(db).await;
+                assert_eq!(row.details["fp_verdicts"].as_array().map(Vec::len), Some(1));
+            }
+
+            /// `TestReview.test_a_verdict_someone_set_is_left_alone`.
+            #[tokio::test]
+            async fn a_verdict_someone_set_is_left_alone() {
+                let test_db = TestDb::new().await;
+                let db = test_db.db();
+                let a = ax(db).await;
+                let run = run_on(&a, "win10-01").await;
+                let root = test_alert(&a, db, &run, "win10-01", &[NOISE], true).await;
+                ignore(&a, NOISE).await;
+                ended(&a, &run).await;
+                let detection: i64 =
+                    sqlx::query_scalar("SELECT id FROM analysis.detections WHERE root_id = $1")
+                        .bind(root)
+                        .fetch_one(db.pool())
+                        .await
+                        .expect("the detection");
+                // an analyst graded the detection TP (a verdict needs a tp alert; it is reopened after)
+                let set = |disposition: Option<&'static str>| async move {
+                    sqlx::query(
+                        "UPDATE analysis.roots
+                         SET disposition = $2,
+                             dispositioned_at = CASE WHEN $2::text IS NOT NULL THEN now() END,
+                             dispositioned_by = CASE WHEN $2::text IS NOT NULL THEN
+                                 '{\"kind\": \"internal\", \"id\": \"test\"}'::jsonb END
+                         WHERE id = $1",
+                    )
+                    .bind(root)
+                    .bind(disposition)
+                    .execute(db.pool())
+                    .await
+                    .expect("sets the disposition");
+                };
+                set(Some("DELIVERY")).await;
+                assert!(
+                    a.service
+                        .set_detection_verdict(&a.f.admin, root, detection, Verdict::Tp)
+                        .await
+                        .expect("grades")
+                );
+                set(None).await;
+
+                let result = reviewed(review(&a, &a.f.admin, run.uuid, None).await);
+                assert_eq!((result.fp_verdicts, result.alerts_closed), (0, 1));
+                assert_eq!(
+                    verdicts(db, root).await,
+                    [(
+                        Some(NOISE.to_owned()),
+                        "tp".to_owned(),
+                        admin_id().to_string()
+                    )]
+                );
+            }
+
+            /// `TestReview.test_review_again`.
+            #[tokio::test]
+            async fn review_again() {
+                let test_db = TestDb::new().await;
+                let db = test_db.db();
+                let a = ax(db).await;
+                let run = run_on(&a, "win10-01").await;
+                test_alert(&a, db, &run, "win10-01", &[RULE], true).await;
+                ended(&a, &run).await;
+                decide(&a, RULE, "expected").await;
+                recompute(&a).await;
+                reviewed(review(&a, &a.f.admin, run.uuid, None).await);
+
+                // a late alert after the review, of a signature since rejected
+                let late = test_alert(&a, db, &run, "win10-01", &[NOISE], true).await;
+                assert!(run_now(db, run.uuid).await.changed_since_review);
+                assert!(needs_attention(db, run.uuid).await);
+                decide(&a, NOISE, "rejected").await;
+                recompute(&a).await;
+                // an older reviewed row that left the live result is dropped with the old sign-off
+                sqlx::query(
+                    "INSERT INTO svs.run_results (run_id, signature_uuid, status, reviewed_status)
+                     SELECT id, $2, NULL, 'missing' FROM svs.runs WHERE uuid = $1",
+                )
+                .bind(run.uuid)
+                .bind(Uuid::new_v4().to_string())
+                .execute(db.pool())
+                .await
+                .expect("adds an old reviewed row");
+
+                let result = reviewed(review(&a, &a.f.admin, run.uuid, None).await);
+                assert_eq!(
+                    (result.re_review, result.counts, result.alerts_closed),
+                    (true, counts(&[("hit", 1), ("rejected", 1)]), 1)
+                );
+                assert_eq!(disposition_of(db, late).await.as_deref(), Some("SIMULATED"));
+                assert!(!run_now(db, run.uuid).await.changed_since_review);
+                let statuses: Vec<Option<String>> = sqlx::query_scalar(
+                    "SELECT x.reviewed_status FROM svs.run_results x
+                     JOIN svs.runs r ON r.id = x.run_id WHERE r.uuid = $1 ORDER BY 1",
+                )
+                .bind(run.uuid)
+                .fetch_all(db.pool())
+                .await
+                .expect("reads");
+                assert_eq!(
+                    statuses,
+                    [Some("hit".to_owned()), Some("rejected".to_owned())]
+                );
+                assert_eq!(
+                    events(db, run.uuid, "reviewed")
+                        .await
+                        .iter()
+                        .map(|details| details["re_review"].clone())
+                        .collect::<Vec<_>>(),
+                    [json!(false), json!(true)]
+                );
+                // it was theirs already: the second review takes nothing
+                assert_eq!(events(db, run.uuid, "ownership_taken").await.len(), 1);
+            }
+
+            /// `TestReview.test_refused`.
+            #[tokio::test]
+            async fn review_refused() {
+                let test_db = TestDb::new().await;
+                let db = test_db.db();
+                let a = ax(db).await;
+                let (_, bob) = named(db, 0xB0B, "bob").await;
+                let run = run_on(&a, "win10-01").await;
+                ended(&a, &run).await;
+                let started = run_on(&a, "win10-02").await.uuid;
+                assert_eq!(
+                    review(&a, &a.f.admin, started, None).await,
+                    ReviewOutcome::State(ace_service::RunState::Started)
+                );
+                assert!(matches!(
+                    a.service
+                        .review_svs_run(&a.f.admin, Uuid::new_v4(), None, now())
+                        .await,
+                    Err(ServiceError::NotFound(_))
+                ));
+
+                set_owner(db, run.uuid, Some(bob)).await;
+                assert_eq!(
+                    review(&a, &a.f.admin, run.uuid, None).await,
+                    ReviewOutcome::Owned {
+                        owner: "bob".to_owned()
+                    }
+                );
+                assert_eq!(run_now(db, run.uuid).await.owner, Some(bob.0));
+                let result = reviewed(review(&a, &a.f.admin, run.uuid, Some("bob")).await);
+                assert_eq!(run_now(db, run.uuid).await.owner, Some(admin_id()));
+                assert_eq!(result.counts, counts(&[]));
+                assert_eq!(
+                    events(db, run.uuid, "ownership_taken").await,
+                    [json!({"from": "bob"})]
+                );
+                assert_eq!(last_audit(db).await.details["taken_from"], "bob");
+            }
+
+            /// `TestReview.test_a_failure_after_the_sign_off_keeps_it`.
+            #[tokio::test]
+            async fn a_failure_after_the_sign_off_keeps_it() {
+                let test_db = TestDb::new().await;
+                let db = test_db.db();
+                let a = ax(db).await;
+                let run = run_on(&a, "win10-01").await;
+                let root = test_alert(&a, db, &run, "win10-01", &[], true).await;
+                ended(&a, &run).await;
+                // closing the alerts fails: no alert can be given SIMULATED
+                sqlx::raw_sql(
+                    "CREATE FUNCTION analysis.database_down() RETURNS trigger LANGUAGE plpgsql AS $$
+                     BEGIN RAISE EXCEPTION 'database down'; END $$;
+                     CREATE TRIGGER database_down BEFORE UPDATE ON analysis.roots
+                         FOR EACH ROW WHEN (NEW.disposition = 'SIMULATED')
+                         EXECUTE FUNCTION analysis.database_down();",
+                )
+                .execute(db.pool())
+                .await
+                .expect("breaks the closing");
+                let result = reviewed(review(&a, &a.f.admin, run.uuid, None).await);
+                assert_eq!(result.alerts_closed, 0);
+                assert_eq!(run_now(db, run.uuid).await.state, "reviewed");
+                assert_eq!(disposition_of(db, root).await, None);
+                let row = last_audit(db).await;
+                assert!(
+                    row.details["closing_failed"]
+                        .as_str()
+                        .is_some_and(|why| why.contains("database down")),
+                    "{row:?}"
+                );
+                // the alert stays open, which keeps the run in Needs attention
+                assert!(needs_attention(db, run.uuid).await);
+
+                // reviewing again finishes the job
+                sqlx::raw_sql("DROP TRIGGER database_down ON analysis.roots")
+                    .execute(db.pool())
+                    .await
+                    .expect("mends it");
+                let result = reviewed(review(&a, &a.f.admin, run.uuid, None).await);
+                assert_eq!((result.re_review, result.alerts_closed), (true, 1));
+                assert_eq!(disposition_of(db, root).await.as_deref(), Some("SIMULATED"));
+            }
+
+            /// ace3's API `TestAlerts`, over the service: a run's alerts, in the order they were first
+            /// attributed, with how the run holds each, a page at a time. The API's test reads the same
+            /// through its routes.
+            #[tokio::test]
+            async fn a_runs_alerts() {
+                let test_db = TestDb::new().await;
+                let db = test_db.db();
+                let a = ax(db).await;
+                let run = a.f.started_run("win10-01", now() - minutes(5)).await;
+                let marked = alert(&a, db, "win10-01", Some(&run.marker)).await;
+                let context = alert(&a, db, "win10-01", None).await;
+                let manual = alert(&a, db, "srv-01", None).await;
+                let removed = alert(&a, db, "srv-02", None).await;
+                for root in [manual, removed] {
+                    associate(&a, &a.f.admin, run.uuid, root).await;
+                }
+                a.service
+                    .change_svs_association(
+                        &a.f.admin,
+                        run.uuid,
+                        removed,
+                        &Association::Disassociate {
+                            reason: Some("wrong".to_owned()),
+                            not_a_test: false,
+                        },
+                        now(),
+                    )
+                    .await
+                    .expect("disassociates");
+
+                let page = a
+                    .service
+                    .svs_run_alerts(&a.f.admin, run.uuid, None, None)
+                    .await
+                    .expect("lists");
+                assert_eq!(page.next, None);
+                assert_eq!(
+                    page.alerts.iter().map(|x| x.alert.id).collect::<Vec<_>>(),
+                    [marked, context, manual, removed]
+                );
+                let by: BTreeMap<Uuid, &ace_service::RunAlert> =
+                    page.alerts.iter().map(|x| (x.alert.id, x)).collect();
+                let m = by[&marked];
+                assert_eq!(
+                    (
+                        m.holds,
+                        m.confidence,
+                        m.late,
+                        m.manual,
+                        m.kept,
+                        m.undecided_context
+                    ),
+                    (
+                        true,
+                        Some(AttributionConfidence::Marker),
+                        false,
+                        false,
+                        false,
+                        false
+                    )
+                );
+                let svs = m.alert.svs.as_ref().expect("a status");
+                assert_eq!(
+                    (svs.status, svs.runs.as_slice()),
+                    (SvsStatus::Test, &[run.uuid][..])
+                );
+                assert_eq!(m.alert.tags, ["svs_test"]);
+                let [detection] = m.detections.as_slice() else {
+                    panic!("one detection: {:?}", m.detections)
+                };
+                let attribution = detection.attribution.as_ref().expect("its attribution");
+                assert_eq!(
+                    (
+                        detection.description.as_str(),
+                        attribution.confidence,
+                        attribution.source.as_str()
+                    ),
+                    (
+                        "staging tool downloaded",
+                        AttributionConfidence::Marker,
+                        "router"
+                    )
+                );
+                let c = by[&context];
+                assert_eq!(
+                    (
+                        c.confidence,
+                        c.undecided_context,
+                        c.alert.svs.as_ref().map(|svs| svs.status)
+                    ),
+                    (
+                        Some(AttributionConfidence::Context),
+                        true,
+                        Some(SvsStatus::TestContext)
+                    )
+                );
+                assert_eq!(
+                    (by[&manual].confidence, by[&manual].manual),
+                    (Some(AttributionConfidence::Marker), true)
+                );
+                let r = by[&removed];
+                assert_eq!((r.holds, r.confidence, &r.alert.svs), (false, None, &None));
+                assert_eq!(
+                    r.detections[0]
+                        .attribution
+                        .as_ref()
+                        .and_then(|a| a.removal_reason.as_deref()),
+                    Some("wrong")
+                );
+
+                a.service
+                    .change_svs_association(
+                        &a.f.admin,
+                        run.uuid,
+                        context,
+                        &Association::Keep,
+                        now(),
+                    )
+                    .await
+                    .expect("keeps");
+                let page = a
+                    .service
+                    .svs_run_alerts(&a.f.admin, run.uuid, None, None)
+                    .await
+                    .expect("lists");
+                let kept = page
+                    .alerts
+                    .iter()
+                    .find(|x| x.alert.id == context)
+                    .expect("the context alert");
+                assert_eq!((kept.kept, kept.undecided_context), (true, false));
+
+                // a page at a time
+                let first = a
+                    .service
+                    .svs_run_alerts(&a.f.admin, run.uuid, None, Some(1))
+                    .await
+                    .expect("lists");
+                assert_eq!(
+                    first.alerts.iter().map(|x| x.alert.id).collect::<Vec<_>>(),
+                    [marked]
+                );
+                let rest = a
+                    .service
+                    .svs_run_alerts(&a.f.admin, run.uuid, first.next, Some(5))
+                    .await
+                    .expect("lists");
+                assert_eq!(
+                    rest.alerts.iter().map(|x| x.alert.id).collect::<Vec<_>>(),
+                    [context, manual, removed]
+                );
+                assert_eq!(rest.next, None);
+                assert_eq!(
+                    a.service
+                        .svs_feed_count(&a.f.admin, &SvsFeed::RunAlerts(run.uuid), 10)
+                        .await
+                        .expect("counts"),
+                    4
+                );
+                // the alert list says the same of each alert
+                let listed = a
+                    .service
+                    .alerts(&a.f.admin, &ace_service::AlertQuery::default(), None, None)
+                    .await
+                    .expect("lists");
+                let listed: BTreeMap<Uuid, _> = listed.alerts.iter().map(|x| (x.id, x)).collect();
+                assert_eq!(
+                    listed[&marked].svs.as_ref().map(|svs| svs.status),
+                    Some(SvsStatus::Test)
+                );
+                assert_eq!(listed[&marked].tags, ["svs_test"]);
+                assert_eq!(listed[&removed].svs, None);
+                // a run that isn't there
+                assert!(matches!(
+                    a.service
+                        .svs_run_alerts(&a.f.admin, Uuid::new_v4(), None, None)
+                        .await,
+                    Err(ServiceError::NotFound(_))
+                ));
+            }
+
+            //
+            // the audit tests
+            //
+
+            /// A started run on a host of its own, in the database the audit tests share.
+            async fn audit_run(db: &Db, host: &str) -> (Ax, Run) {
+                audit_ax(db, host).await
+            }
+
+            /// An ended run with a result, ended by a person so no other run of the shared database is
+            /// touched, as the timers' pass would.
+            async fn audit_ended(db: &Db, host: &str) -> (Ax, Run) {
+                let (a, run) = audit_run(db, host).await;
+                a.service
+                    .end_svs_run(&a.f.admin, run.uuid, "nothing fired", now())
+                    .await
+                    .expect("ends");
+                (a, run)
+            }
+
+            fn run_target(run: &Run) -> (String, String) {
+                ("svs_run".to_owned(), run.uuid.to_string())
+            }
+
+            pub(crate) async fn take_svs_runs_records_its_row(db: &Db) -> String {
+                let (a, run) = audit_run(db, "review-audit-01").await;
+                a.service
+                    .take_svs_runs(&a.f.admin, &[run.uuid], &none(), now())
+                    .await
+                    .expect("takes");
+                let row = last_audit(db).await;
+                assert_eq!(
+                    row,
+                    AuditRow {
+                        actor: serde_json::to_value(&a.f.admin).expect("JSON"),
+                        action: "take_svs_runs".to_owned(),
+                        target: run_target(&run),
+                        before: Some(json!({"owner": null})),
+                        after: Some(json!({"owner": admin_name(db).await})),
+                        details: json!({}),
+                    }
+                );
+                row.action
+            }
+
+            pub(crate) async fn cancel_svs_runs_records_its_row(db: &Db) -> String {
+                let (a, run) = audit_run(db, "review-audit-02").await;
+                a.service
+                    .cancel_svs_runs(&a.f.admin, &[run.uuid], &none(), now())
+                    .await
+                    .expect("cancels");
+                let row = last_audit(db).await;
+                assert_eq!(
+                    row,
+                    AuditRow {
+                        actor: serde_json::to_value(&a.f.admin).expect("JSON"),
+                        action: "cancel_svs_runs".to_owned(),
+                        target: run_target(&run),
+                        before: Some(json!({"state": "started"})),
+                        after: Some(json!({"state": "canceled"})),
+                        details: json!({"call": "cancel", "outcome": "canceled"}),
+                    }
+                );
+                row.action
+            }
+
+            pub(crate) async fn end_svs_runs_records_its_row(db: &Db) -> String {
+                let (a, run) = audit_run(db, "review-audit-03").await;
+                a.service
+                    .end_svs_runs(
+                        &a.f.admin,
+                        &[run.uuid],
+                        Some("nothing fired"),
+                        &none(),
+                        now(),
+                    )
+                    .await
+                    .expect("ends");
+                let row = last_audit(db).await;
+                assert_eq!(
+                    row,
+                    AuditRow {
+                        actor: serde_json::to_value(&a.f.admin).expect("JSON"),
+                        action: "end_svs_runs".to_owned(),
+                        target: run_target(&run),
+                        before: Some(json!({"state": "started"})),
+                        after: Some(json!({"state": "ended"})),
+                        details: json!({
+                            "call": "end", "outcome": "ended", "reason": "nothing fired",
+                        }),
+                    }
+                );
+                row.action
+            }
+
+            pub(crate) async fn close_svs_runs_records_its_row(db: &Db) -> String {
+                let (a, run) = audit_run(db, "review-audit-04").await;
+                let root = alert(&a, db, "review-audit-04", Some(&run.marker)).await;
+                a.service
+                    .cancel_svs_run(&a.f.admin, run.uuid, now())
+                    .await
+                    .expect("the launcher cancels");
+                a.service
+                    .close_svs_runs(&a.f.admin, &[run.uuid], None, &none(), now())
+                    .await
+                    .expect("closes");
+                let row = last_audit(db).await;
+                assert_eq!(
+                    row,
+                    AuditRow {
+                        actor: serde_json::to_value(&a.f.admin).expect("JSON"),
+                        action: "close_svs_runs".to_owned(),
+                        target: run_target(&run),
+                        before: Some(json!({"state": "canceled"})),
+                        after: Some(json!({"state": "closed"})),
+                        details: json!({
+                            "call": "close", "outcome": "closed", "reason": "closed by hand",
+                            "alerts": {
+                                "alerts_closed": [root], "left_alone": [],
+                                "disposition": "SIMULATED", "late": false,
+                                "comment": format!("closed with SVS test run {}", run.uuid),
+                            },
+                        }),
+                    }
+                );
+                row.action
+            }
+
+            pub(crate) async fn review_svs_run_records_its_row(db: &Db) -> String {
+                let (a, run) = audit_ended(db, "review-audit-05").await;
+                reviewed(review(&a, &a.f.admin, run.uuid, None).await);
+                let row = last_audit(db).await;
+                assert_eq!(
+                    row,
+                    AuditRow {
+                        actor: serde_json::to_value(&a.f.admin).expect("JSON"),
+                        action: "review_svs_run".to_owned(),
+                        target: run_target(&run),
+                        before: Some(json!({"state": "ended"})),
+                        after: Some(json!({"state": "reviewed"})),
+                        details: json!({
+                            "call": "review", "re_review": false, "counts": {},
+                            "taken_from": null, "fp_verdicts": [],
+                        }),
+                    }
+                );
+                row.action
+            }
+
+            /// What `every_write_fails_when_its_audit_fails` sets up before the audit breaks: a run for
+            /// each action to change.
+            pub(crate) struct BeforeTheAuditBreaks {
+                a: Ax,
+                take: Run,
+                cancel: Run,
+                end: Run,
+                close: Run,
+                review: Run,
+            }
+
+            pub(crate) async fn before_the_audit_breaks(db: &Db) -> BeforeTheAuditBreaks {
+                let (a, take) = audit_run(db, "review-broken-01").await;
+                let (_, cancel) = audit_run(db, "review-broken-02").await;
+                let (_, end) = audit_run(db, "review-broken-03").await;
+                let (_, close) = audit_run(db, "review-broken-04").await;
+                a.service
+                    .cancel_svs_run(&a.f.admin, close.uuid, now())
+                    .await
+                    .expect("the launcher cancels");
+                let (_, review) = audit_ended(db, "review-broken-05").await;
+                BeforeTheAuditBreaks {
+                    a,
+                    take,
+                    cancel,
+                    end,
+                    close,
+                    review,
+                }
+            }
+
+            /// The rows these writes would change: each run's state, owner and reviewer, and how many
+            /// events it has.
+            pub(crate) async fn rows(db: &Db, before: &BeforeTheAuditBreaks) -> Vec<String> {
+                sqlx::query_scalar(
+                    "SELECT format('%s %s %s %s %s', r.uuid, r.state, r.owner_id, r.reviewer_id,
+                                   (SELECT count(*) FROM svs.run_events e WHERE e.run_id = r.id))
+                     FROM svs.runs r WHERE r.uuid = ANY ($1) ORDER BY r.id",
+                )
+                .bind(vec![
+                    before.take.uuid,
+                    before.cancel.uuid,
+                    before.end.uuid,
+                    before.close.uuid,
+                    before.review.uuid,
+                ])
+                .fetch_all(db.pool())
+                .await
+                .expect("reads")
+            }
+
+            /// Each write here, with the audit broken: its name and the error it gave.
+            pub(crate) async fn attempts_with_the_audit_broken(
+                before: &BeforeTheAuditBreaks,
+                actor: &Actor,
+            ) -> Vec<(&'static str, ServiceError)> {
+                let s = &before.a.service;
+                vec![
+                    (
+                        "take_svs_runs",
+                        s.take_svs_runs(actor, &[before.take.uuid], &none(), now())
+                            .await
+                            .map(|_: BulkResult| ())
+                            .expect_err("refused"),
+                    ),
+                    (
+                        "cancel_svs_runs",
+                        s.cancel_svs_runs(actor, &[before.cancel.uuid], &none(), now())
+                            .await
+                            .map(|_| ())
+                            .expect_err("refused"),
+                    ),
+                    (
+                        "end_svs_runs",
+                        s.end_svs_runs(actor, &[before.end.uuid], Some("why"), &none(), now())
+                            .await
+                            .map(|_| ())
+                            .expect_err("refused"),
+                    ),
+                    (
+                        "close_svs_runs",
+                        s.close_svs_runs(actor, &[before.close.uuid], None, &none(), now())
+                            .await
+                            .map(|_| ())
+                            .expect_err("refused"),
+                    ),
+                    (
+                        "review_svs_run",
+                        s.review_svs_run(actor, before.review.uuid, None, now())
+                            .await
+                            .map(|_| ())
+                            .expect_err("refused"),
+                    ),
+                ]
+            }
         }
     }
 }

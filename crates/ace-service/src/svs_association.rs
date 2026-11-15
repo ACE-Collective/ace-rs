@@ -27,7 +27,9 @@
 //! alert's lock, which disassociating takes too, so an alert disassociated while its run closes is never
 //! frozen without a run. SIMULATED is a disposition only ACE sets: the write is `Service::disposition`'s
 //! (`disposition_in`), made by the timers' component, in the timers' transaction with the run's
-//! `alerts_closed` event. A reviewed run's alerts are its review's to close (batch 7b), never the sweep's.
+//! `alerts_closed` event. A person's close and a review (`svs_review`, batch 7b) close a run's alerts the
+//! same way, as the component `svs`, with the person in the run's event and the audit row. A reviewed
+//! run's alerts are its review's to close, never the sweep's.
 //!
 //! # Association
 //!
@@ -87,8 +89,8 @@ pub const MAX_ASSOCIATION_REASON_CHARS: usize = 512;
 /// Why an attribution marked not a test was removed: ace3's `REASON_NOT_A_TEST`.
 pub const REASON_NOT_A_TEST: &str = "not a test";
 
-/// The component that reopens an alert for a person, and that the hook's rows name.
-fn svs_component() -> Actor {
+/// The component that reopens or closes an alert for a person, and that the hook's rows name.
+pub(crate) fn svs_component() -> Actor {
     Actor::Internal {
         id: Component::new(attribution::ROUTER_ACTOR).expect("a valid component name"),
     }
@@ -948,16 +950,21 @@ pub(crate) async fn windows_with_standing_alerts(
 
 impl Service {
     /// Gives SIMULATED to the run's alerts: those fully attributed, open and not taken by an analyst,
-    /// judged again under each alert's lock. In the caller's transaction, as `by`, with the run's
-    /// `alerts_closed` event. ace3's `close_run_alerts` and, with `late`, the sweep's part for one run.
-    /// Nothing is learned from them: an alert attributed to a run that isn't reviewed has no verdicts and
-    /// no capture. None when there was nothing to close.
+    /// judged again under each alert's lock. In the caller's transaction, with the run's `alerts_closed`
+    /// event. ace3's `close_run_alerts`, with `late` the sweep's part for one run, and with `reviewed`
+    /// its `close_reviewed_run_alerts`. `by` is the component the alerts' rows name, since SIMULATED is a
+    /// disposition only ACE sets, and `who` is who the event names: the timers for both, or `svs` and the
+    /// person who closed or reviewed the run. Nothing is learned from the alerts of a run that isn't
+    /// reviewed: they have no verdicts and no capture. None when there was nothing to close.
+    #[allow(clippy::too_many_arguments)]
     pub(crate) async fn close_run_alerts_in(
         &self,
         tx: &mut Tx<'_>,
         by: &Actor,
+        who: &Actor,
         run: Uuid,
         late: bool,
+        reviewed: Option<&str>,
         now: DateTime<Utc>,
     ) -> Result<Option<AlertsClosed>, ServiceError> {
         let loaded = locked_run(tx.conn(), run).await?;
@@ -993,7 +1000,10 @@ impl Service {
         .await?
         .into_iter()
         .collect();
-        let comment = format!("closed with SVS test run {run}");
+        let comment = match reviewed {
+            Some(reviewer) => format!("reviewed with SVS test run {run} by {reviewer}"),
+            None => format!("closed with SVS test run {run}"),
+        };
         let mut closed = Vec::new();
         let mut left_alone = Vec::new();
         for alert in chosen {
@@ -1010,18 +1020,19 @@ impl Service {
                 tx.conn(),
                 loaded.id,
                 "alerts_closed",
-                by,
+                who,
                 None,
                 None,
                 Some(json!({
-                    "alerts": closed, "disposition": SIMULATED, "late": late, "reviewed": false,
+                    "alerts": closed, "disposition": SIMULATED, "late": late,
+                    "reviewed": reviewed.is_some(),
                 })),
                 now,
             )
             .await?;
         }
         tracing::info!(
-            svs_run = %run, alert_uuids = ?closed, left_alone = ?left_alone, late, actor = %by,
+            svs_run = %run, alert_uuids = ?closed, left_alone = ?left_alone, late, actor = %who,
             "svs run: {} {}alerts closed as {SIMULATED}, {} left alone",
             closed.len(),
             if late { "late " } else { "" },

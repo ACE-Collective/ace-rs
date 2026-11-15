@@ -5,11 +5,10 @@
 //!
 //! From ace3: a refused parameter or registration that can't be accepted as sent is 400 where ace3 answers
 //! 422; a failure's body is `{"error": ...}`, so a busy host's holders and a conflict's state are in its
-//! text, where ace3's detail is an object; and a run's detail doesn't yet carry its review's blockers,
-//! which batch 7b brings. Part 5b's reads are `svs_run_reads`: the runs' list, feeds, exports, results,
+//! text, where ace3's detail is an object. A run's detail carries its review's blockers (batch 7b). Part 5b's reads are `svs_run_reads`: the runs' list, feeds, exports, results,
 //! history and comments. The test hosts page by name with `changed_since`, export, and take `If-Match` on
-//! a change. Batch 6 brought a run's attributions and batch 7a association (`svs_association`); batch 7b
-//! brings a run's alerts, a person's bulk actions and review.
+//! a change. Batch 6 brought a run's attributions, batch 7a association (`svs_association`), and
+//! batch 7b a run's alerts, a person's bulk actions and review (`svs_review`).
 
 use ace_core::svs::hosts::HostFields;
 use ace_service::{
@@ -225,13 +224,21 @@ pub(crate) struct RunDetailBody {
     /// What the runs screen shows of it, and its log search.
     #[serde(flatten)]
     seen: crate::svs_run_reads::RunDetailSeenBody,
+    /// An ended or reviewed run: what a review would be refused for right now; all empty when nothing
+    /// stands in its way. Null for a run in any other state, which can't be reviewed.
+    review_blockers: Option<crate::svs_review::ReviewBlockersBody>,
 }
 
 impl RunDetailBody {
-    fn of(detail: RunDetail, seen: crate::svs_run_reads::RunDetailSeenBody) -> Self {
+    fn of(
+        detail: RunDetail,
+        seen: crate::svs_run_reads::RunDetailSeenBody,
+        review_blockers: Option<crate::svs_review::ReviewBlockersBody>,
+    ) -> Self {
         let run = detail.run;
         RunDetailBody {
             seen,
+            review_blockers,
             launcher: run.launcher.clone(),
             batch_id: run.batch_id.clone(),
             extra: run.extra.clone(),
@@ -651,11 +658,21 @@ pub(crate) async fn detail(
     path: Result<Path<String>, PathRejection>,
 ) -> Result<Json<RunDetailBody>, ApiError> {
     let uuid = run_id(path)?;
-    let detail = web.service.svs_run(&actor, uuid).await?;
-    let row = web.service.svs_run_row(&actor, uuid).await?;
+    Ok(Json(run_detail(&web, &actor, uuid).await?))
+}
+
+/// One run, whole, as `GET /api/svs/v1/runs/{run_id}` and a review answer it.
+pub(crate) async fn run_detail(
+    web: &Web,
+    actor: &ace_service::Actor,
+    uuid: Uuid,
+) -> Result<RunDetailBody, ApiError> {
+    let detail = web.service.svs_run(actor, uuid).await?;
+    let row = web.service.svs_run_row(actor, uuid).await?;
+    let blockers = web.service.svs_review_blockers(actor, uuid).await?;
     let log_search_url = web.service.svs_run_log_search_url(&detail.run, Utc::now());
     let seen = crate::svs_run_reads::RunDetailSeenBody::of(&row, log_search_url);
-    Ok(Json(RunDetailBody::of(detail, seen)))
+    Ok(RunDetailBody::of(detail, seen, blockers.map(Into::into)))
 }
 
 /// A run's event log, oldest first: its registration, each change of state with its reason, and each of

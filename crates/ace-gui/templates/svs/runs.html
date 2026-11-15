@@ -1,5 +1,6 @@
 {#- ace3's svs/runs.html, its runs view (PLAN.md 7.10 batch 5): the test runs, newest first, with the runs
-    screen's filters folded into `f`, its pages and the exports (src/svs.rs). -#}
+    screen's filters folded into `f`, its pages and the exports, and for svs:run_manage the bulk actions
+    on the ticked runs (src/svs.rs). -#}
 {% extends "base.html" %}
 {% block title %}Runs · SVS · ACE{% endblock %}
 {% block content %}
@@ -18,12 +19,18 @@
     <button type="submit">Apply</button>
     <a href="/svs/runs">Reset</a>
   </form>
+  {%- if let Some(notice) = view.notice %}
+  <p class="notice" role="status">{{ notice }}</p>
+  {%- endif %}
   <p class="muted">{{ view.total }} matching · export as <a href="{{ view.csv }}">CSV</a> or <a href="{{ view.ndjson }}">NDJSON</a></p>
   <table class="keys">
-    <thead><tr><th>Registered</th><th>Test</th><th>State</th><th>Platform</th><th>Targets</th><th>Launcher</th><th>Batch</th><th title="expected signatures that fired, of those the result judged">Hits</th><th>Missing</th><th>Candidates</th><th>Alerts</th><th>Owner</th></tr></thead>
+    <thead><tr>{% if view.manage %}<th></th>{% endif %}<th>Registered</th><th>Test</th><th>State</th><th>Platform</th><th>Targets</th><th>Launcher</th><th>Batch</th><th title="expected signatures that fired, of those the result judged">Hits</th><th>Missing</th><th>Candidates</th><th>Alerts</th><th>Owner</th></tr></thead>
     <tbody>
       {%- for row in view.rows %}
       <tr>
+        {%- if view.manage %}
+        <td><input type="checkbox" form="bulk" name="run" value="{{ row.uuid }}" aria-label="Tick this run"></td>
+        {%- endif %}
         <td class="nowrap"><a href="{{ row.href }}">{{ row.created }}</a></td>
         <td class="qa-text">{{ row.test_name }}{% if !row.technique.is_empty() %} <code class="muted">{{ row.technique }}</code>{% endif %}</td>
         <td><span class="badge disposition-{{ row.state_class }}">{{ row.state }}</span>{% if row.needs_attention %} <span class="muted">needs attention</span>{% endif %}</td>
@@ -38,10 +45,22 @@
         <td class="qa-text">{{ row.owner }}</td>
       </tr>
       {%- else %}
-      <tr><td colspan="12" class="muted">No runs.</td></tr>
+      <tr><td colspan="13" class="muted">No runs.</td></tr>
       {%- endfor %}
     </tbody>
   </table>
+  {%- if view.manage && !view.rows.is_empty() %}
+  {#- ace3's bulk bar: what a person does to the ticked runs (src/svs.rs, `bulk`) -#}
+  <form method="post" action="/svs/runs/bulk" id="bulk" class="bulk">
+    <input type="hidden" name="back" value="{{ view.here }}">
+    <label for="bulk-reason">Why (to end a run, or to close one that ended)</label>
+    <input type="text" id="bulk-reason" name="reason" maxlength="4096">
+    <button type="submit" name="action" value="take">Take</button>
+    <button type="submit" name="action" value="cancel">Cancel</button>
+    <button type="submit" name="action" value="end">End now</button>
+    <button type="submit" name="action" value="close">Close</button>
+  </form>
+  {%- endif %}
   {%- if view.first.is_some() || view.next.is_some() %}
   <nav class="pager" aria-label="Pages">
     {%- if let Some(first) = view.first %} <a href="{{ first }}">First</a>{% endif %}

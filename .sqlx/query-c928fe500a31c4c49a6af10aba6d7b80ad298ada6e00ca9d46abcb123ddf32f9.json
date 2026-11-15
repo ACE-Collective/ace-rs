@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "UPDATE analysis.roots SET hooks_due = false WHERE id = $1\n             RETURNING analysis_mode, cancelled_at IS NOT NULL AS \"cancelled!\"",
+  "query": "UPDATE analysis.roots SET hooks_due = false, svs_gate_extra_seconds = NULL WHERE id = $1\n             RETURNING analysis_mode, cancelled_at IS NOT NULL AS \"cancelled!\"",
   "describe": {
     "columns": [
       {
@@ -31,5 +31,5 @@
       null
     ]
   },
-  "hash": "a0023dab4b98a7c931e19101899f096689c1e8dc69d34bbb4ba5577f23584d0d"
+  "hash": "c928fe500a31c4c49a6af10aba6d7b80ad298ada6e00ca9d46abcb123ddf32f9"
 }

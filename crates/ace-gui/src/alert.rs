@@ -48,7 +48,8 @@
 //! it and does nothing more, where ace3's swapped its label for its details and opened an analysis's page
 //! in a new window; and relationships are edges, which ace3's graph didn't draw.
 //!
-//! Below the details, the alert's detections with their verdicts and, for an analyst who may, the forms that
+//! Above the details, what SVS makes of the alert, when it has anything to say (PLAN.md 7.10 batch 7b,
+//! `crate::svs_alert`). Below the details, the alert's detections with their verdicts and, for an analyst who may, the forms that
 //! change them (PLAN.md 7.14, `crate::verdicts`).
 //!
 //! From ace3, and what differs: the section ids, the tree's shape and the jump links are ace3's. Not here
@@ -546,6 +547,8 @@ pub struct AlertPage {
     pub version: String,
     /// The alert's detections with their verdicts (PLAN.md 7.14, `crate::verdicts`).
     pub verdicts: Option<VerdictsView>,
+    /// What SVS makes of the alert, with its root's tags (PLAN.md 7.10, `crate::svs_alert`).
+    pub svs: Option<crate::svs_alert::SvsBanner>,
 }
 
 impl AlertPage {
@@ -647,7 +650,14 @@ impl AlertPage {
             tree: view,
             version,
             verdicts: None,
+            svs: None,
         })
+    }
+
+    /// The page with its SVS banner.
+    pub fn with_svs(mut self, svs: Option<crate::svs_alert::SvsBanner>) -> Self {
+        self.svs = svs;
+        self
     }
 
     /// The page with its detections' verdicts.
@@ -693,8 +703,12 @@ pub(crate) async fn page(
             Ok(verdicts) => verdicts,
             Err(error) => return Failure::from_service(error, &parts).into_response(),
         };
+    let svs = match crate::svs_alert::read(&gui, &viewer, id, &tree.alert.summary.tags).await {
+        Ok(svs) => svs,
+        Err(error) => return Failure::from_service(error, &parts).into_response(),
+    };
     match AlertPage::new(viewer.layout, &tree, &comments, &gui.actions, &sections) {
-        Ok(page) => render(&page.with_verdicts(verdicts)),
+        Ok(page) => render(&page.with_verdicts(verdicts).with_svs(svs)),
         Err(error) => {
             tracing::error!("an alert page couldn't be drawn: {error}");
             (StatusCode::INTERNAL_SERVER_ERROR, "internal error").into_response()

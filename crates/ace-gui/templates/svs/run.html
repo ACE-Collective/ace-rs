@@ -1,6 +1,7 @@
 {#- ace3's svs/run.html (PLAN.md 7.10 batch 5): one run, what its launcher sent and its test printed, its
     result with the decisions its viewer may make, how its signatures did before, its comments and its
-    event log (src/svs.rs). Its alerts and its review come with batches 6 and 7. -#}
+    event log, its alerts with the association forms, its review and what a person may do to it
+    (src/svs.rs). -#}
 {% extends "base.html" %}
 {% block title %}Run · SVS · ACE{% endblock %}
 {% block content %}
@@ -19,6 +20,19 @@
       {%- endfor %}
     </tbody>
   </table>
+  {%- if !view.actions.is_empty() %}
+  <form method="post" action="/svs/runs/bulk" class="run-actions">
+    <input type="hidden" name="run" value="{{ view.uuid }}">
+    <input type="hidden" name="back" value="{{ view.href }}">
+    {%- if view.reasoned %}
+    <label for="act-reason">Why</label>
+    <input type="text" id="act-reason" name="reason" maxlength="4096">
+    {%- endif %}
+    {%- for action in view.actions %}
+    <button type="submit" name="action" value="{{ action.0 }}">{{ action.1 }}</button>
+    {%- endfor %}
+  </form>
+  {%- endif %}
   {%- if let Some(log_search) = view.log_search %}
   <p><a href="{{ log_search }}" rel="noopener noreferrer">Search the logs for this run</a></p>
   {%- endif %}
@@ -59,6 +73,68 @@
       {%- endfor %}
     </tbody>
   </table>
+
+  {%- if let Some(review) = view.review %}
+  <h3 id="review">Review</h3>
+  {%- if review.blockers.is_empty() %}
+  <p class="muted">Nothing stands in the way of a review.</p>
+  {%- else %}
+  <p class="muted">A review waits for:</p>
+  <ul>
+    {%- for blocker in review.blockers %}
+    <li>{{ blocker }}</li>
+    {%- endfor %}
+  </ul>
+  {%- endif %}
+  {%- if review.manage %}
+  <form method="post" action="{{ view.href }}/review" class="review">
+    {%- if let Some(owner) = review.take_from %}
+    <label><input type="checkbox" name="take_from" value="{{ owner }}"> Take the run from <b>{{ owner }}</b>, who owns it</label>
+    {%- endif %}
+    <button type="submit" title="Signs the result off, closes the run's test alerts as SIMULATED, and gives the detections of ignored signatures an FP verdict.">{{ review.label }}</button>
+  </form>
+  {%- endif %}
+  {%- endif %}
+
+  <h3 id="alerts">Alerts</h3>
+  <p class="muted">The alerts attributed to this run, now or before, in the order they were first attributed. <a href="{{ view.alerts_ndjson }}">NDJSON</a>{% if view.more_alerts %} · the page shows the first of them; the export has them all{% endif %}</p>
+  <table class="keys">
+    <thead><tr><th>Alert</th><th>Disposition</th><th>SVS</th><th>Held by</th><th>Detections</th>{% if view.manage %}<th>Change</th>{% endif %}</tr></thead>
+    <tbody>
+      {%- for alert in view.alerts %}
+      <tr>
+        <td class="qa-text"><a href="{{ alert.href }}">{{ alert.title }}</a> <code class="muted">{{ alert.uuid }}</code></td>
+        <td>{{ alert.disposition }}</td>
+        <td>{% if !alert.status.is_empty() %}<span class="badge svs-status">{{ alert.status }}</span>{% endif %}</td>
+        <td>{{ alert.held }}{% if !alert.notes.is_empty() %} <span class="muted">{{ alert.notes }}</span>{% endif %}{% if !alert.removal.is_empty() %} <span class="muted qa-text">{{ alert.removal }}</span>{% endif %}</td>
+        <td>{{ alert.detections }}</td>
+        {%- if view.manage %}
+        <td>
+          <form method="post" action="{{ view.href }}/alerts" class="inline">
+            <input type="hidden" name="alert" value="{{ alert.uuid }}">
+            <input type="text" name="reason" maxlength="512" placeholder="why" aria-label="Why">
+            {%- for action in alert.actions %}
+            <button type="submit" name="action" value="{{ action.0 }}">{{ action.1 }}</button>
+            {%- endfor %}
+          </form>
+        </td>
+        {%- endif %}
+      </tr>
+      {%- else %}
+      <tr><td colspan="6" class="muted">No alerts.</td></tr>
+      {%- endfor %}
+    </tbody>
+  </table>
+  {%- if view.manage %}
+  <form method="post" action="{{ view.href }}/alerts" class="associate">
+    <input type="hidden" name="action" value="associate">
+    <label for="associate-alert">Associate an alert with this run, by its id</label>
+    <input type="text" id="associate-alert" name="alert" required pattern="[0-9a-fA-F-]{36}">
+    <label for="associate-reason">Why</label>
+    <input type="text" id="associate-reason" name="reason" maxlength="512">
+    <button type="submit">Associate</button>
+  </form>
+  {%- endif %}
 
   <h3>Comments</h3>
   {%- for comment in view.comments %}

@@ -1,0 +1,52 @@
+{#- What a bulk action on runs did, when not every run was done (PLAN.md 7.10 batch 7b, src/svs.rs): the
+    runs done, those left alone for their owner with the form that takes them and does it again (ace3's
+    take-from-owner dialog), those the action doesn't apply to, and those that don't exist. -#}
+{% extends "base.html" %}
+{% block title %}{{ view.label }} · Runs · SVS · ACE{% endblock %}
+{% block content %}
+<section class="signatures detection svs-acted">
+  {%- include "svs/tabs.html" %}
+  <p><a href="{{ view.back }}">Back</a></p>
+  <h2>{{ view.label }}</h2>
+  {%- if !view.done.is_empty() %}
+  <h3>Done ({{ view.done.len() }})</h3>
+  <ul>
+    {%- for run in view.done %}
+    <li><a href="{{ run.href }}"><code>{{ run.uuid }}</code></a></li>
+    {%- endfor %}
+  </ul>
+  {%- endif %}
+  {%- if !view.left_alone.is_empty() %}
+  <h3>Left alone: someone else owns them ({{ view.left_alone.len() }})</h3>
+  <form method="post" action="/svs/runs/bulk" class="bulk">
+    <input type="hidden" name="action" value="{{ view.action }}">
+    <input type="hidden" name="reason" value="{{ view.reason }}">
+    <input type="hidden" name="back" value="{{ view.back }}">
+    <ul>
+      {%- for run in view.left_alone %}
+      <li><a href="{{ run.href }}"><code>{{ run.uuid }}</code></a> is owned by <b class="qa-text">{{ run.note }}</b>
+        <input type="hidden" name="run" value="{{ run.uuid }}">
+        <input type="hidden" name="take" value="{{ run.uuid }}={{ run.note }}"></li>
+      {%- endfor %}
+    </ul>
+    <button type="submit">Take them from their owners: {{ view.label }}</button>
+  </form>
+  {%- endif %}
+  {%- if !view.conflicts.is_empty() %}
+  <h3>Not done ({{ view.conflicts.len() }})</h3>
+  <ul>
+    {%- for run in view.conflicts %}
+    <li><a href="{{ run.href }}"><code>{{ run.uuid }}</code></a>: <span class="qa-text">{{ run.note }}</span></li>
+    {%- endfor %}
+  </ul>
+  {%- endif %}
+  {%- if !view.unknown.is_empty() %}
+  <h3>No such run ({{ view.unknown.len() }})</h3>
+  <ul>
+    {%- for run in view.unknown %}
+    <li><code>{{ run }}</code></li>
+    {%- endfor %}
+  </ul>
+  {%- endif %}
+</section>
+{% endblock %}

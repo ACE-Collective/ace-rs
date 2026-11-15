@@ -17,6 +17,15 @@
 //!   (expect, reject, undecide, ignore for the test), and the page has the comment form; a global ignore's
 //!   form is `svs:admin`'s. A decision made from the page says what the page showed, so one someone else
 //!   made first is refused (412) rather than replaced.
+//!   Batch 7b's: the run's alerts, each with how the run holds it and, for `svs:run_manage`, the forms
+//!   that keep it, mark it not a test, disassociate it or associate it again, and the form that associates
+//!   an alert by its id (`POST /svs/runs/{run_id}/alerts`); what a review would be refused for, and the
+//!   review itself (`POST /svs/runs/{run_id}/review`); and a person's take, cancel, end and close.
+//! - `svs.bulk` (`acted.html`): `POST /svs/runs/bulk`, a person's take, cancel, end or close of the runs
+//!   ticked on the runs list, or of the one run on its page. When every run was done it goes back where
+//!   it came from; otherwise it says what happened to each, and for the runs someone else owns it has the
+//!   form that takes them from their owners and does it again, which is the confirmation ace3's dialog
+//!   asks for.
 //! - `svs.test_hosts` (`test_hosts.html`): `GET /svs/test-hosts`, the hosts runs may target, for
 //!   `svs:admin`, with the form that adds one; `GET /svs/test-hosts/{id}` is a host's form, whose post
 //!   carries the `updated_at` the form was drawn from, so a change from a stale form is refused.
@@ -30,16 +39,16 @@
 //! overlay's check already requires.
 //!
 //! Left out, each with the batch that brings it: ace3's saved filters for this screen (the alert list's
-//! saved filters cover no SVS screen yet); the run's alerts, its association form and its review, and the
-//! runs' bulk actions (take, cancel, end, close), which are batches 6 and 7's; the Tests, Coverage and
-//! Worklist tabs (batch 8); and the Guides link and the navigation entry's count (batch 9). The layout has
+//! saved filters cover no SVS screen yet); the Tests, Coverage and Worklist tabs (batch 8); and the
+//! Guides link and the navigation entry's count (batch 9). ace3's bulk bar ticks every row with a script;
+//! here each row has its own box. The layout has
 //! a plain SVS link for whoever holds `svs:run_read`, so the area can be reached until then.
 
 use ace_service::filters::FilterScreen;
 use ace_service::{
-    HostFields, Ignore, IgnoreQuery, Precondition, Run, RunBatch, RunComment, RunEvent, RunHistory,
-    RunQuery, RunResult, RunRow, SVS_ADMIN, SVS_RUN_MANAGE, SVS_RUN_READ, ServiceError,
-    SuppressionShare, TestHost,
+    Association, BulkResult, HostFields, Ignore, IgnoreQuery, Precondition, ReviewBlockers,
+    ReviewOutcome, Run, RunAlert, RunBatch, RunComment, RunEvent, RunHistory, RunQuery, RunResult,
+    RunRow, SVS_ADMIN, SVS_RUN_MANAGE, SVS_RUN_READ, ServiceError, SuppressionShare, TestHost,
 };
 use askama::Template;
 use axum::body::Bytes;
@@ -52,7 +61,7 @@ use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
 use crate::Gui;
-use crate::list::{one, pairs};
+use crate::list::{all, one, pairs};
 use crate::remediation::{FilterField, filter_fields, list_request};
 use crate::session::{Failure, SignedIn, render, see_other};
 use crate::templates::Layout;
@@ -62,6 +71,7 @@ pub const SVS_PER_PAGE: u32 = 50;
 /// A run page's result rows, earlier runs and events: what one page shows of each.
 const RUN_PAGE_RESULTS: i64 = 500;
 const RUN_PAGE_EVENTS: i64 = 200;
+const RUN_PAGE_ALERTS: i64 = 200;
 
 /// The runs that need attention: the view the Runs tab opens with.
 pub const NEEDS_ATTENTION: &str = "/svs/runs?f=needs_attention%3Atrue";
@@ -121,6 +131,8 @@ pub struct Tabs {
 /// A run as the list's row.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RunLine {
+    /// The run's uuid, which its bulk box posts.
+    pub uuid: String,
     pub href: String,
     pub created: String,
     pub test_name: String,
@@ -160,6 +172,7 @@ pub fn run_line(row: &RunRow) -> RunLine {
     let s = &row.summary;
     let state = run.state.as_str();
     RunLine {
+        uuid: run.uuid.to_string(),
         href: run_href(run.uuid),
         created: when(run.created_at),
         test_name: row
@@ -232,6 +245,12 @@ pub struct RunsView {
     pub ndjson: String,
     /// The batches of the same filters.
     pub batches: String,
+    /// What a bulk action did.
+    pub notice: Option<String>,
+    /// The viewer holds `svs:run_manage`: the bulk actions.
+    pub manage: bool,
+    /// This page, where a bulk action comes back.
+    pub here: String,
 }
 
 fn filter_pairs(filters: &[String]) -> Vec<(&'static str, String)> {
@@ -268,10 +287,19 @@ pub fn runs_view(
     runs: &[RunRow],
     cursor: Option<&str>,
     next: Option<&str>,
+    manage: bool,
+    notice: Option<String>,
 ) -> RunsView {
     let base = filter_pairs(filters);
+    let mut here = base.clone();
+    if let Some(cursor) = cursor {
+        here.push(("cursor", cursor.to_owned()));
+    }
     let (first, next) = pages("/svs/runs", filters, cursor, next);
     RunsView {
+        notice,
+        manage,
+        here: with_query("/svs/runs", &here),
         tabs,
         fields: filter_fields(FilterScreen::SvsRuns, &query.filters),
         total,
@@ -500,6 +528,11 @@ pub struct RunPageData<'a> {
     pub ignores: &'a [Ignore],
     pub comments: &'a [RunComment],
     pub events: &'a [RunEvent],
+    /// The first of the run's alerts, and whether it has more.
+    pub alerts: &'a [RunAlert],
+    pub more_alerts: bool,
+    /// What a review would be refused for; None for a run that can't be reviewed.
+    pub blockers: Option<&'a ReviewBlockers>,
     /// The viewer's name, and what they hold.
     pub viewer: Option<&'a str>,
     pub manage: bool,
@@ -535,6 +568,139 @@ pub struct RunView {
     pub more_events: bool,
     pub events_csv: String,
     pub results_csv: String,
+    pub alerts: Vec<AlertLine>,
+    /// More alerts than the page shows: the rest are the API's.
+    pub more_alerts: bool,
+    pub alerts_ndjson: String,
+    /// The run's review, for a run that can be reviewed.
+    pub review: Option<ReviewView>,
+    /// What its viewer may do to the run: each a form's `action` and its button's text.
+    pub actions: Vec<(&'static str, &'static str)>,
+    /// One of the actions takes a reason.
+    pub reasoned: bool,
+}
+
+/// An alert of the run, as its page lists it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AlertLine {
+    pub uuid: String,
+    pub href: String,
+    pub title: String,
+    pub disposition: String,
+    /// The alert's SVS status over every run, empty when it has none.
+    pub status: &'static str,
+    /// How the run holds it: `marker`, `context`, or that it no longer does.
+    pub held: String,
+    /// What else is true of its attributions: late, the cleanup's, a fallback time, by hand, kept.
+    pub notes: String,
+    /// How many of its detections the run holds, of how many it has.
+    pub detections: String,
+    /// Why its attributions were removed, when they were and a reason was given.
+    pub removal: String,
+    /// What its viewer may do: each a form's `action` and its button's text.
+    pub actions: Vec<(&'static str, &'static str)>,
+}
+
+pub fn alert_line(alert: &RunAlert, manage: bool) -> AlertLine {
+    let notes: Vec<&str> = [
+        (alert.late, "late"),
+        (alert.cleanup, "the cleanup's"),
+        (alert.fallback_time, "fallback time"),
+        (alert.manual, "by hand"),
+        (alert.kept, "kept"),
+        (alert.undecided_context, "undecided"),
+    ]
+    .into_iter()
+    .filter(|(set, _)| *set)
+    .map(|(_, note)| note)
+    .collect();
+    let attributions = || {
+        alert
+            .detections
+            .iter()
+            .filter_map(|d| d.attribution.as_ref())
+    };
+    let held = attributions().filter(|a| a.removed_at.is_none()).count();
+    let mut removal: Vec<&str> = attributions()
+        .filter(|a| a.removed_at.is_some())
+        .filter_map(|a| a.removal_reason.as_deref())
+        .collect();
+    removal.dedup();
+    let mut actions = Vec::new();
+    if manage {
+        if alert.undecided_context {
+            actions.push(("keep", "Keep"));
+        }
+        if alert.holds && alert.confidence.is_some_and(|c| c.as_str() == "context") {
+            actions.push(("not_a_test", "Not a test"));
+        }
+        if alert.holds {
+            actions.push(("disassociate", "Disassociate"));
+        } else {
+            actions.push(("associate", "Associate again"));
+        }
+    }
+    AlertLine {
+        uuid: alert.alert.id.to_string(),
+        href: format!("/alerts/{}", alert.alert.id),
+        title: alert.alert.title.clone(),
+        disposition: alert
+            .alert
+            .disposition
+            .clone()
+            .unwrap_or_else(|| "OPEN".to_owned()),
+        status: alert
+            .alert
+            .svs
+            .as_ref()
+            .map_or("", |svs| svs.status.as_str()),
+        held: match alert.confidence {
+            Some(confidence) => confidence.as_str().to_owned(),
+            None => "no longer held".to_owned(),
+        },
+        notes: notes.join(", "),
+        detections: format!("{held} of {}", alert.detections.len()),
+        removal: if alert.holds {
+            String::new()
+        } else {
+            removal.join("; ")
+        },
+        actions,
+    }
+}
+
+/// A run's review, as its page draws it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ReviewView {
+    /// What stands in the way, each as a sentence; empty when nothing does.
+    pub blockers: Vec<String>,
+    /// `Review` or `Review again`.
+    pub label: &'static str,
+    /// The run's owner, when it's someone other than the viewer: the review takes it from them only
+    /// when the viewer says so.
+    pub take_from: Option<String>,
+    /// The viewer may review: the form is drawn.
+    pub manage: bool,
+}
+
+fn blocker_lines(blockers: &ReviewBlockers) -> Vec<String> {
+    let mut lines = Vec::new();
+    if blockers.stale {
+        lines.push("Its result is being recomputed, which takes at most a minute.".to_owned());
+    }
+    if !blockers.candidates.is_empty() {
+        lines.push(format!(
+            "{} candidate signature(s) are undecided: expect, reject or ignore each in the result.",
+            blockers.candidates.len()
+        ));
+    }
+    if !blockers.context_alerts.is_empty() {
+        lines.push(format!(
+            "{} context-only alert(s) are neither kept nor marked not a test.",
+            blockers.context_alerts.len()
+        ));
+    }
+    lines
 }
 
 fn seconds(seconds: i32) -> String {
@@ -746,7 +912,50 @@ pub fn run_view(tabs: Tabs, data: &RunPageData<'_>) -> RunView {
             None => "No result yet: a run's result is computed when it ends.".to_owned(),
         }
     };
+    // the owner, when it's someone other than the viewer
+    let other_owner = row
+        .owner
+        .clone()
+        .filter(|owner| Some(owner.as_str()) != data.viewer);
+    let review = data.blockers.map(|blockers| ReviewView {
+        blockers: blocker_lines(blockers),
+        label: if state == "reviewed" {
+            "Review again"
+        } else {
+            "Review"
+        },
+        take_from: other_owner.clone(),
+        manage: data.manage,
+    });
+    let mut actions = Vec::new();
+    if data.manage {
+        if row.owner.as_deref() != data.viewer || data.viewer.is_none() {
+            actions.push(("take", "Take"));
+        }
+        match state {
+            "created" => actions.push(("cancel", "Cancel")),
+            "started" => {
+                actions.push(("cancel", "Cancel"));
+                actions.push(("end", "End now"));
+            }
+            "ended" | "canceled" | "error" => actions.push(("close", "Close")),
+            _ => {}
+        }
+    }
+    let reasoned = actions
+        .iter()
+        .any(|(action, _)| matches!(*action, "end" | "close"));
     RunView {
+        alerts: data
+            .alerts
+            .iter()
+            .map(|alert| alert_line(alert, data.manage))
+            .collect(),
+        more_alerts: data.more_alerts,
+        alerts_ndjson: format!("/api/svs/v1/runs/{}/alerts/export/ndjson", run.uuid),
+        review,
+        actions,
+        reasoned,
         tabs,
         uuid: run.uuid.to_string(),
         title: row
@@ -995,6 +1204,14 @@ fn notice_of(done: Option<&str>) -> Option<String> {
             "ignore_globally" => "The signature is ignored during every test's runs.",
             "unignore" => "The signature is no longer ignored during this test's runs.",
             "unignore_globally" => "The signature is no longer ignored during every test's runs.",
+            "reviewed" => {
+                "The run is reviewed: its result is signed off, and its test alerts are closed as SIMULATED."
+            }
+            "acted" => "Done.",
+            "associate" => "The alert is associated with the run.",
+            "disassociate" => "The alert is disassociated from the run.",
+            "not_a_test" => "The alert is marked not a test, and given back to analysts.",
+            "keep" => "The alert is kept: it is the run's.",
             "commented" => "The comment is added.",
             "edited" => "The comment is changed.",
             "deleted" => "The comment is deleted.",
@@ -1079,6 +1296,8 @@ pub(crate) async fn runs(
             &page.runs,
             cursor,
             page.next_cursor.as_deref(),
+            gui.service.allowed(actor, &SVS_RUN_MANAGE).await?,
+            notice_of(one(&form, "done")),
         ))
     };
     match read.await {
@@ -1172,7 +1391,14 @@ pub(crate) async fn run(
             .svs_run_events(actor, uuid, None, Some(RUN_PAGE_EVENTS))
             .await?;
         let manage = service.allowed(actor, &SVS_RUN_MANAGE).await?;
+        let alerts = service
+            .svs_run_alerts(actor, uuid, None, Some(RUN_PAGE_ALERTS))
+            .await?;
+        let blockers = service.svs_review_blockers(actor, uuid).await?;
         let data = RunPageData {
+            alerts: &alerts.alerts,
+            more_alerts: alerts.next.is_some(),
+            blockers: blockers.as_ref(),
             row: &row,
             launcher_output: detail.launcher_output.as_deref(),
             log_search: service.svs_run_log_search_url(&row.run, Utc::now()),
@@ -1365,6 +1591,271 @@ pub(crate) async fn change_comment(
         Ok(done) => back_to_run(uuid, done),
         Err(error) => failed(error, &parts),
     }
+}
+
+/// `POST /svs/runs/{run_id}/alerts`: a person's change to the run's hold on an alert. `alert` is the
+/// alert's id; `action` is `associate`, `disassociate`, `not_a_test` or `keep`; `reason` is why.
+pub(crate) async fn associate(
+    State(gui): State<Gui>,
+    viewer: SignedIn,
+    parts: Parts,
+    path: Result<Path<String>, PathRejection>,
+    body: Bytes,
+) -> Response {
+    if let Err(failure) = enter(&gui, &viewer, &parts).await {
+        return failure.into_response();
+    }
+    let Some(uuid) = run_of(path) else {
+        return bad_request("A run is named by its uuid.", &parts);
+    };
+    let form = pairs(&body);
+    let Some(alert) = one(&form, "alert").and_then(|alert| alert.trim().parse::<Uuid>().ok())
+    else {
+        return bad_request("An alert is named by its id, a uuid.", &parts);
+    };
+    let reason = one(&form, "reason")
+        .map(str::trim)
+        .filter(|reason| !reason.is_empty())
+        .map(str::to_owned);
+    let (change, done) = match one(&form, "action") {
+        Some("associate") => (Association::Associate { reason }, "associate"),
+        Some("disassociate") => (
+            Association::Disassociate {
+                reason,
+                not_a_test: false,
+            },
+            "disassociate",
+        ),
+        Some("not_a_test") => (
+            Association::Disassociate {
+                reason: None,
+                not_a_test: true,
+            },
+            "not_a_test",
+        ),
+        Some("keep") => (Association::Keep, "keep"),
+        _ => {
+            return bad_request(
+                "An association is associate, disassociate, not_a_test or keep.",
+                &parts,
+            );
+        }
+    };
+    match gui
+        .service
+        .change_svs_association(&viewer.actor, uuid, alert, &change, Utc::now())
+        .await
+    {
+        Ok(_) => back_to_run(uuid, done),
+        Err(error) => failed(error, &parts),
+    }
+}
+
+/// `POST /svs/runs/{run_id}/review`: signs the run's result off. `take_from` names the run's owner when
+/// the viewer agreed to take it from them.
+pub(crate) async fn review(
+    State(gui): State<Gui>,
+    viewer: SignedIn,
+    parts: Parts,
+    path: Result<Path<String>, PathRejection>,
+    body: Bytes,
+) -> Response {
+    if let Err(failure) = enter(&gui, &viewer, &parts).await {
+        return failure.into_response();
+    }
+    let Some(uuid) = run_of(path) else {
+        return bad_request("A run is named by its uuid.", &parts);
+    };
+    let form = pairs(&body);
+    let take_from = one(&form, "take_from").filter(|owner| !owner.is_empty());
+    let conflict =
+        |message: String| Failure::new(StatusCode::CONFLICT, message, &parts).into_response();
+    match gui
+        .service
+        .review_svs_run(&viewer.actor, uuid, take_from, Utc::now())
+        .await
+    {
+        Ok(ReviewOutcome::Reviewed(_)) => back_to_run(uuid, "reviewed"),
+        Ok(ReviewOutcome::Owned { owner }) => conflict(format!(
+            "The run is owned by {owner}. Tick the box that takes it from them to review it."
+        )),
+        Ok(ReviewOutcome::State(state)) => conflict(format!(
+            "The run is {state}: only an ended or a reviewed run can be reviewed."
+        )),
+        Ok(ReviewOutcome::Blocked(blockers)) => conflict(blockers.message(uuid)),
+        Err(error) => failed(error, &parts),
+    }
+}
+
+/// What a bulk action did to one run.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ActedLine {
+    pub uuid: String,
+    pub href: String,
+    /// Its owner, for a run left alone, or why the action doesn't apply.
+    pub note: String,
+}
+
+/// `POST /svs/runs/bulk`'s answer when not every run was done.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ActedView {
+    pub tabs: Tabs,
+    /// The action's name, as its button said it.
+    pub action: &'static str,
+    pub label: &'static str,
+    pub reason: String,
+    pub back: String,
+    pub done: Vec<ActedLine>,
+    pub left_alone: Vec<ActedLine>,
+    pub conflicts: Vec<ActedLine>,
+    pub unknown: Vec<String>,
+}
+
+pub fn acted_view(
+    tabs: Tabs,
+    action: &'static str,
+    reason: Option<&str>,
+    back: &str,
+    result: &BulkResult,
+) -> ActedView {
+    let line = |run: &Uuid, note: &str| ActedLine {
+        uuid: run.to_string(),
+        href: run_href(*run),
+        note: note.to_owned(),
+    };
+    ActedView {
+        tabs,
+        action,
+        label: action_label(action),
+        reason: reason.unwrap_or_default().to_owned(),
+        back: back.to_owned(),
+        done: result.done.iter().map(|run| line(run, "")).collect(),
+        left_alone: result
+            .left_alone
+            .iter()
+            .map(|(run, owner)| line(run, owner))
+            .collect(),
+        conflicts: result
+            .conflicts
+            .iter()
+            .map(|(run, why)| line(run, why))
+            .collect(),
+        unknown: result.unknown.iter().map(Uuid::to_string).collect(),
+    }
+}
+
+#[derive(Debug, Template)]
+#[template(path = "svs/acted.html")]
+pub struct ActedPage {
+    pub layout: Layout,
+    pub view: ActedView,
+}
+
+fn action_label(action: &str) -> &'static str {
+    match action {
+        "take" => "Take",
+        "cancel" => "Cancel",
+        "end" => "End now",
+        _ => "Close",
+    }
+}
+
+/// Where a bulk action goes back to: a page of the runs, never another site.
+fn back_of(form: &[(String, String)]) -> String {
+    one(form, "back")
+        .filter(|back| {
+            (*back == "/svs/runs"
+                || back.starts_with("/svs/runs/")
+                || back.starts_with("/svs/runs?"))
+                && !back.contains("//")
+                && !back.contains('\\')
+                && !back.chars().any(char::is_control)
+        })
+        .unwrap_or("/svs/runs")
+        .to_owned()
+}
+
+/// `POST /svs/runs/bulk`: a person's `take`, `cancel`, `end` or `close` (`action`) of each `run`, with
+/// `reason` for an end or a close. Each `take` is `<run uuid>=<owner>`: the owner the viewer agreed to
+/// take that run from. `back` is the page to return to.
+pub(crate) async fn bulk(
+    State(gui): State<Gui>,
+    viewer: SignedIn,
+    parts: Parts,
+    body: Bytes,
+) -> Response {
+    let admin = match enter(&gui, &viewer, &parts).await {
+        Ok(admin) => admin,
+        Err(failure) => return failure.into_response(),
+    };
+    let form = pairs(&body);
+    let action = match one(&form, "action") {
+        Some("take") => "take",
+        Some("cancel") => "cancel",
+        Some("end") => "end",
+        Some("close") => "close",
+        _ => return bad_request("An action is take, cancel, end or close.", &parts),
+    };
+    let mut runs = Vec::new();
+    for run in all(&form, "run") {
+        match run.parse::<Uuid>() {
+            Ok(run) => runs.push(run),
+            Err(_) => return bad_request("A run is named by its uuid.", &parts),
+        }
+    }
+    if runs.is_empty() {
+        return bad_request("Tick the runs to act on.", &parts);
+    }
+    let mut confirmed = std::collections::BTreeMap::new();
+    for take in all(&form, "take") {
+        let Some((run, owner)) = take
+            .split_once('=')
+            .and_then(|(run, owner)| Some((run.parse::<Uuid>().ok()?, owner)))
+        else {
+            return bad_request("A take names a run and its owner.", &parts);
+        };
+        confirmed.insert(run, owner.to_owned());
+    }
+    let reason = one(&form, "reason")
+        .map(str::trim)
+        .filter(|reason| !reason.is_empty());
+    let back = back_of(&form);
+    let (actor, service, now) = (&viewer.actor, &gui.service, Utc::now());
+    let result = match action {
+        "take" => service.take_svs_runs(actor, &runs, &confirmed, now).await,
+        "cancel" => service.cancel_svs_runs(actor, &runs, &confirmed, now).await,
+        "end" => {
+            service
+                .end_svs_runs(actor, &runs, reason, &confirmed, now)
+                .await
+        }
+        _ => {
+            service
+                .close_svs_runs(actor, &runs, reason, &confirmed, now)
+                .await
+        }
+    };
+    let result = match result {
+        Ok(result) => result,
+        Err(error) => return failed(error, &parts),
+    };
+    if result.left_alone.is_empty() && result.conflicts.is_empty() && result.unknown.is_empty() {
+        let separator = if back.contains('?') { '&' } else { '?' };
+        return see_other(&format!("{back}{separator}done=acted"), None);
+    }
+    render(&ActedPage {
+        layout: viewer.layout,
+        view: acted_view(
+            Tabs {
+                open: "runs",
+                admin,
+            },
+            action,
+            reason,
+            &back,
+            &result,
+        ),
+    })
 }
 
 /// `GET /svs/test-hosts`: the hosts runs may target, for `svs:admin`.

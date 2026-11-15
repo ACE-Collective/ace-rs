@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT count(*) AS \"n!\" FROM (\n                                       SELECT DISTINCT root_id FROM svs.attributions\n                                       WHERE run_id = $1 LIMIT $2) x",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "n!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "96462df36f4407c35078dcca21f874ef4d3cc25fc543979d634418009fbacce8"
+}

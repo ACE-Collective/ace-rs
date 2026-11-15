@@ -1425,6 +1425,8 @@ fn summary(id: uuid::Uuid, title: &str) -> AlertSummary {
         }),
         analysis: AnalysisState::Running,
         queue: "<q>ueue & \"co\"".to_owned(),
+        tags: Vec::new(),
+        svs: None,
     }
 }
 
@@ -12855,6 +12857,8 @@ fn the_svs_views_draw_runs_a_run_and_test_hosts() {
             std::slice::from_ref(&row),
             Some("c1"),
             Some("c2"),
+            false,
+            None,
         ),
     });
     assert!(
@@ -12910,6 +12914,8 @@ fn the_svs_views_draw_runs_a_run_and_test_hosts() {
             },
             &[],
             None,
+            None,
+            false,
             None,
         ),
     });
@@ -13014,6 +13020,9 @@ fn the_svs_views_draw_runs_a_run_and_test_hosts() {
         ignores: &ignores,
         comments: &comments,
         events: &events,
+        alerts: &[],
+        more_alerts: false,
+        blockers: None,
         viewer: Some("analyst"),
         manage,
         admin,
@@ -13176,6 +13185,1136 @@ fn the_svs_views_draw_runs_a_run_and_test_hosts() {
             && edit.contains(r#"<form method="post" action="/svs/test-hosts/7/delete">"#),
         "{edit}"
     );
+}
+
+// ---- PLAN.md 7.10 batch 7b: a run's alerts and review, the alert's SVS banner and the list's status ----
+
+fn fixture_run_alert(n: u128, title: &str, confidence: Option<&str>) -> ace_service::RunAlert {
+    let id = uuid::Uuid::from_u128(n);
+    let run = uuid::Uuid::from_u128(0x5b);
+    let attribution = |removed: bool| ace_service::RunAttribution {
+        id: 1,
+        run,
+        alert: id,
+        detection: 7,
+        signature_uuid: Some("sig".to_owned()),
+        signature_family: Some("hunt".to_owned()),
+        confidence: match confidence {
+            Some("context") => ace_service::AttributionConfidence::Context,
+            _ => ace_service::AttributionConfidence::Marker,
+        },
+        late: true,
+        event_time: Some(svs_at()),
+        cleanup: false,
+        event_time_source: Some("event".to_owned()),
+        fallback_time: false,
+        source: "router".to_owned(),
+        scan_point: None,
+        actor: Some(svs_actor()),
+        created_at: svs_at(),
+        removed_at: removed.then(svs_at),
+        removed_by: removed.then(svs_actor),
+        removal_reason: removed.then(|| HOSTILE.to_owned()),
+        kept_at: None,
+        kept_by: None,
+        updated_at: svs_at(),
+    };
+    let held = confidence.is_some();
+    ace_service::RunAlert {
+        alert: AlertSummary {
+            tags: vec!["svs_test".to_owned()],
+            svs: held.then(|| ace_service::AlertSvsStatus {
+                status: if confidence == Some("context") {
+                    ace_service::SvsStatus::TestContext
+                } else {
+                    ace_service::SvsStatus::Test
+                },
+                runs: vec![run],
+            }),
+            ..summary(id, title)
+        },
+        first_attribution: 1,
+        holds: held,
+        confidence: held.then_some(match confidence {
+            Some("context") => ace_service::AttributionConfidence::Context,
+            _ => ace_service::AttributionConfidence::Marker,
+        }),
+        late: held,
+        cleanup: false,
+        fallback_time: false,
+        manual: false,
+        kept: false,
+        undecided_context: confidence == Some("context"),
+        detections: vec![ace_service::RunAlertDetection {
+            detection: 7,
+            description: HOSTILE.to_owned(),
+            signature_uuid: Some("sig".to_owned()),
+            signature_family: Some("hunt".to_owned()),
+            attribution: Some(attribution(!held)),
+        }],
+    }
+}
+
+/// Batch 7b's views, called directly: a run's alerts with how the run holds each and the association
+/// forms, its review with what stands in the way, what a person may do to it, the page a bulk action
+/// answers with, the alert page's SVS banner and the alert list's marks, each with hostile text escaped
+/// and nothing inline, and no form for a viewer who may not use it.
+#[test]
+fn the_svs_review_views_draw_alerts_a_review_and_the_banner() {
+    use ace_gui::svs::{ActedPage, acted_view};
+    use ace_gui::svs_alert::SvsBanner;
+    let layout = || Layout::new("n", Theme::default(), Some("analyst".to_owned()), "/svs");
+    let tabs = || Tabs {
+        open: "runs",
+        admin: false,
+    };
+    let row = fixture_run_row();
+    let alerts = [
+        fixture_run_alert(0xa1, HOSTILE, Some("marker")),
+        fixture_run_alert(0xa2, "by context", Some("context")),
+        fixture_run_alert(0xa3, "let go", None),
+    ];
+    let blockers = ace_service::ReviewBlockers {
+        stale: true,
+        candidates: vec!["sig-a".to_owned(), "sig-b".to_owned()],
+        context_alerts: vec![uuid::Uuid::from_u128(0xa2)],
+    };
+    let history = RunHistory {
+        runs: Vec::new(),
+        signatures: Vec::new(),
+    };
+    let data = |manage: bool, blockers: Option<&'static ace_service::ReviewBlockers>| RunPageData {
+        row: &row,
+        launcher_output: None,
+        log_search: None,
+        results: &[],
+        result_stale: false,
+        computed_at: None,
+        history: &history,
+        ignores: &[],
+        comments: &[],
+        events: &[],
+        alerts: &alerts,
+        more_alerts: true,
+        blockers,
+        viewer: Some("analyst"),
+        manage,
+        admin: false,
+        notice: None,
+    };
+    let blockers: &'static ace_service::ReviewBlockers = Box::leak(Box::new(blockers));
+    let href = "/svs/runs/00000000-0000-0000-0000-00000000005b";
+
+    // a reader: the alerts and what a review waits for, with no forms
+    let read = drawn_safely(&RunPage {
+        layout: layout(),
+        view: run_view(tabs(), &data(false, Some(blockers))),
+    });
+    assert!(
+        read.contains(&format!(
+            r#"<a href="/alerts/00000000-0000-0000-0000-0000000000a1">{HOSTILE_ESCAPED}</a>"#
+        )),
+        "{read}"
+    );
+    assert!(
+        read.contains(r#"<span class="badge svs-status">test</span>"#)
+            && read.contains(r#"<span class="badge svs-status">test?</span>"#)
+            && read.contains(r#"<td>marker <span class="muted">late</span></td>"#)
+            && read.contains(r#"<td>context <span class="muted">late, undecided</span></td>"#)
+            && read.contains("<td>1 of 1</td>")
+            && read.contains("<td>0 of 1</td>"),
+        "{read}"
+    );
+    // why it was let go, as text
+    assert!(
+        read.contains(&format!(
+            r#"<td>no longer held <span class="muted qa-text">{HOSTILE_ESCAPED}</span></td>"#
+        )),
+        "{read}"
+    );
+    assert!(
+        read.contains(&format!(
+            r#"<a href="/api/svs/v1/runs/{}/alerts/export/ndjson">NDJSON</a> · the page shows the first of them"#,
+            row.run.uuid
+        )),
+        "{read}"
+    );
+    assert!(
+        read.contains("<li>Its result is being recomputed, which takes at most a minute.</li>")
+            && read.contains("<li>2 candidate signature(s) are undecided: expect, reject or ignore each in the result.</li>")
+            && read.contains("<li>1 context-only alert(s) are neither kept nor marked not a test.</li>"),
+        "{read}"
+    );
+    assert!(
+        !read.contains("<form method=\"post\" action=\"/svs"),
+        "{read}"
+    );
+
+    // a manager: the review, the alerts' forms, the association form, and what they may do to the run
+    let managed = drawn_safely(&RunPage {
+        layout: layout(),
+        view: run_view(tabs(), &data(true, Some(blockers))),
+    });
+    // someone else owns it (the fixture's owner is hostile text): the review takes it only when told to
+    assert!(
+        managed.contains(&format!(
+            r#"<form method="post" action="{href}/review" class="review">"#
+        )) && managed.contains(&format!(
+            r#"<label><input type="checkbox" name="take_from" value="{HOSTILE_ESCAPED}"> Take the run from <b>{HOSTILE_ESCAPED}</b>, who owns it</label>"#
+        )) && managed.contains(">Review</button>"),
+        "{managed}"
+    );
+    let buttons = |alert: &str, actions: &[(&str, &str)]| {
+        let buttons: String = actions
+            .iter()
+            .map(|(value, label)| {
+                format!(r#"<button type="submit" name="action" value="{value}">{label}</button>"#)
+            })
+            .collect();
+        format!(
+            r#"<form method="post" action="{href}/alerts" class="inline"><input type="hidden" name="alert" value="{alert}"><input type="text" name="reason" maxlength="512" placeholder="why" aria-label="Why">{buttons}</form>"#
+        )
+    };
+    let compact: String = managed.lines().map(str::trim).collect::<Vec<_>>().join("");
+    for (alert, actions) in [
+        (
+            "00000000-0000-0000-0000-0000000000a1",
+            &[("disassociate", "Disassociate")][..],
+        ),
+        (
+            "00000000-0000-0000-0000-0000000000a2",
+            &[
+                ("keep", "Keep"),
+                ("not_a_test", "Not a test"),
+                ("disassociate", "Disassociate"),
+            ][..],
+        ),
+        (
+            "00000000-0000-0000-0000-0000000000a3",
+            &[("associate", "Associate again")][..],
+        ),
+    ] {
+        assert!(
+            compact.contains(&buttons(alert, actions)),
+            "{alert}: {compact}"
+        );
+    }
+    assert!(
+        compact.contains(&format!(
+            r#"<form method="post" action="{href}/alerts" class="associate"><input type="hidden" name="action" value="associate">"#
+        )),
+        "{compact}"
+    );
+    // an ended run someone else owns: take it, or close it, with why
+    assert!(
+        compact.contains(&format!(
+            r#"<form method="post" action="/svs/runs/bulk" class="run-actions"><input type="hidden" name="run" value="{}"><input type="hidden" name="back" value="{href}"><label for="act-reason">Why</label><input type="text" id="act-reason" name="reason" maxlength="4096"><button type="submit" name="action" value="take">Take</button><button type="submit" name="action" value="close">Close</button></form>"#,
+            row.run.uuid
+        )),
+        "{compact}"
+    );
+    // a run that can't be reviewed has no review at all
+    let started = drawn_safely(&RunPage {
+        layout: layout(),
+        view: run_view(tabs(), &data(true, None)),
+    });
+    assert!(!started.contains(r#"id="review""#), "{started}");
+    // nothing in the way
+    let clear: &'static ace_service::ReviewBlockers =
+        Box::leak(Box::new(ace_service::ReviewBlockers::default()));
+    let ready = drawn_safely(&RunPage {
+        layout: layout(),
+        view: run_view(tabs(), &data(true, Some(clear))),
+    });
+    assert!(
+        ready.contains("Nothing stands in the way of a review."),
+        "{ready}"
+    );
+
+    // the runs list's bulk form, for a manager only
+    let share = SuppressionShare {
+        missing: 0,
+        possibly_suppressed: 0,
+        reviewed_runs: 0,
+        first_reviewed_at: None,
+        trigger_reached: false,
+    };
+    let filters = vec!["state:ended".to_owned()];
+    let list = |manage: bool| {
+        drawn_safely(&RunsPage {
+            layout: layout(),
+            view: runs_view(
+                tabs(),
+                &RunQuery::default(),
+                &filters,
+                1,
+                &share,
+                std::slice::from_ref(&row),
+                Some("c1"),
+                None,
+                manage,
+                Some("Done.".to_owned()),
+            ),
+        })
+    };
+    let bulk = list(true);
+    assert!(
+        bulk.contains(&format!(
+            r#"<input type="checkbox" form="bulk" name="run" value="{}" aria-label="Tick this run">"#,
+            row.run.uuid
+        )) && bulk.contains(r#"<form method="post" action="/svs/runs/bulk" id="bulk" class="bulk">"#)
+            && bulk.contains(
+                r#"<input type="hidden" name="back" value="/svs/runs?f=state%3Aended&#38;cursor=c1">"#
+            )
+            && bulk.contains(r#"<button type="submit" name="action" value="end">End now</button>"#)
+            && bulk.contains(r#"<p class="notice" role="status">Done.</p>"#),
+        "{bulk}"
+    );
+    let plain = list(false);
+    assert!(
+        !plain.contains("action=\"/svs/runs/bulk\"") && !plain.contains("type=\"checkbox\""),
+        "{plain}"
+    );
+
+    // what a bulk action answers with when not every run was done
+    let (done, owned, wrong, gone) = (
+        uuid::Uuid::from_u128(1),
+        uuid::Uuid::from_u128(2),
+        uuid::Uuid::from_u128(3),
+        uuid::Uuid::from_u128(4),
+    );
+    let result = ace_service::BulkResult {
+        done: vec![done],
+        left_alone: [(owned, "bob".to_owned())].into_iter().collect(),
+        conflicts: [(wrong, HOSTILE.to_owned())].into_iter().collect(),
+        unknown: vec![gone],
+    };
+    let acted = drawn_safely(&ActedPage {
+        layout: layout(),
+        view: acted_view(
+            tabs(),
+            "close",
+            Some(HOSTILE),
+            "/svs/runs?f=state%3Aended",
+            &result,
+        ),
+    });
+    let acted: String = acted.lines().map(str::trim).collect::<Vec<_>>().join("");
+    assert!(
+        acted.contains("<h3>Done (1)</h3>")
+            && acted.contains(&format!(r#"<a href="{}"><code>{done}</code></a>"#, run_href(done)))
+            && acted.contains("<h3>Left alone: someone else owns them (1)</h3>")
+            && acted.contains(&format!(
+                r#"<input type="hidden" name="run" value="{owned}"><input type="hidden" name="take" value="{owned}=bob">"#
+            ))
+            && acted.contains(r#"<input type="hidden" name="action" value="close">"#)
+            && acted.contains(&format!(
+                r#"<input type="hidden" name="reason" value="{HOSTILE_ESCAPED}">"#
+            ))
+            && acted.contains("<button type=\"submit\">Take them from their owners: Close</button>")
+            && acted.contains(&format!(
+                r#"<code>{wrong}</code></a>: <span class="qa-text">{HOSTILE_ESCAPED}</span>"#
+            ))
+            && acted.contains(&format!("<li><code>{gone}</code></li>")),
+        "{acted}"
+    );
+
+    // the alert page's banner
+    let (tree, comments) = fixture_tree();
+    let run_ref = |state| ace_service::RunRef {
+        uuid: uuid::Uuid::from_u128(0x5b),
+        state,
+        test_guid: uuid::Uuid::from_u128(0x7e57),
+        test_name: Some(HOSTILE.to_owned()),
+    };
+    let view = ace_service::AlertSvsView {
+        status: ace_service::SvsStatus::TestContext,
+        runs: vec![run_ref(ace_service::RunState::Started)],
+        detections: std::collections::BTreeMap::new(),
+        mismatches: vec![
+            ace_service::MarkerMismatch {
+                marker: HOSTILE.to_owned(),
+                result: HOSTILE.to_owned(),
+                run: Some(run_ref(ace_service::RunState::Closed)),
+            },
+            ace_service::MarkerMismatch {
+                marker: "svs-bbbbbbbbbbbbbbbbbbbbbbbbbb".to_owned(),
+                result: "unknown".to_owned(),
+                run: None,
+            },
+        ],
+    };
+    let tags = vec!["svs_test".to_owned(), HOSTILE.to_owned()];
+    let alert = tree.alert.summary.id;
+    let page_with = |banner: Option<SvsBanner>| {
+        let page = AlertPage::new(
+            Layout::new("n0nce", Theme::Light, Some("alice".to_owned()), "/alerts/x"),
+            &tree,
+            &comments,
+            &ObservableActions::empty(),
+            &std::collections::BTreeMap::new(),
+        )
+        .expect("a page")
+        .with_svs(banner)
+        .render()
+        .expect("renders");
+        assert!(
+            !page.contains("<script>alert") && !page.contains("<img"),
+            "{page}"
+        );
+        page.lines().map(str::trim).collect::<Vec<_>>().join("")
+    };
+    // an analyst who may open runs and change alerts
+    let full = page_with(SvsBanner::new(alert, Some(&view), &tags, true, true));
+    assert!(
+        full.contains(&format!(
+            r#"<section class="svs-banner" id="svs" role="note"><h2>SVS <span class="badge svs-status">test?</span> <span class="badge tag">svs_test</span> <span class="badge tag">{HOSTILE_ESCAPED}</span></h2>"#
+        )),
+        "{full}"
+    );
+    assert!(
+        full.contains("<p>Probably a test alert: every detection is attributed to an SVS test run by its host and time alone. Keep it or mark it not a test.</p>")
+            && full.contains(&format!(
+                r#"<li>Test run <a href="{href}"><code>00000000-0000-0000-0000-00000000005b</code></a> of <span class="qa-text">{HOSTILE_ESCAPED}</span>, started</li>"#
+            ))
+            && full.contains(&format!(
+                r#"<li>Marker <code>{HOSTILE_ESCAPED}</code>: <span class="qa-text">{HOSTILE_ESCAPED}</span>; it belongs to test run <a href="{href}">"#
+            ))
+            && full.contains("<span class=\"qa-text\">unknown</span>; no run has it</li>"),
+        "{full}"
+    );
+    assert!(
+        full.contains(&format!(
+            r#"<form method="post" action="/alerts/{alert}/svs" class="inline">"#
+        )) && full.contains(r#"<button type="submit" name="action" value="disassociate""#)
+            && full.contains(r#"<button type="submit" name="action" value="not_a_test""#),
+        "{full}"
+    );
+    // a viewer who may do neither: no links to runs, and no form
+    let bare = page_with(SvsBanner::new(alert, Some(&view), &tags, false, false));
+    assert!(
+        bare.contains("<li>Test run <code>00000000-0000-0000-0000-00000000005b</code> of")
+            && !bare.contains("/svs/runs/")
+            && !bare.contains("/svs\" class=\"inline\""),
+        "{bare}"
+    );
+    // a marker's alert isn't offered not a test, and a mismatch has no runs to let go of
+    let marked = AlertSvsViewOf(ace_service::SvsStatus::Test, view.runs.clone());
+    let marked = page_with(SvsBanner::new(alert, Some(&marked.view()), &[], true, true));
+    assert!(
+        marked.contains(r#"value="disassociate""#) && !marked.contains(r#"value="not_a_test""#),
+        "{marked}"
+    );
+    let mismatch = AlertSvsViewOf(ace_service::SvsStatus::Mismatch, Vec::new());
+    let mismatch = page_with(SvsBanner::new(
+        alert,
+        Some(&mismatch.view()),
+        &[],
+        true,
+        true,
+    ));
+    assert!(
+        mismatch.contains(r#"<span class="badge svs-status">mismatch</span>"#)
+            && !mismatch.contains("/svs\" class=\"inline\""),
+        "{mismatch}"
+    );
+    // only a tag: the banner says so; nothing at all: no banner
+    let tagged = page_with(SvsBanner::new(
+        alert,
+        None,
+        &["svs:maintenance".to_owned()],
+        true,
+        true,
+    ));
+    assert!(
+        tagged.contains(r#"<h2>SVS <span class="badge tag">svs:maintenance</span></h2>"#)
+            && !tagged.contains("svs-status"),
+        "{tagged}"
+    );
+    assert_eq!(SvsBanner::new(alert, None, &[], true, true), None);
+    assert!(!page_with(None).contains("svs-banner"));
+
+    // the alert list: the status beside the description, leading to the run, and the root's tags
+    let (one, two) = (uuid::Uuid::from_u128(1), uuid::Uuid::from_u128(2));
+    let page = ListedPage {
+        alerts: vec![
+            AlertSummary {
+                tags: vec![HOSTILE.to_owned()],
+                svs: Some(ace_service::AlertSvsStatus {
+                    status: ace_service::SvsStatus::Test,
+                    runs: vec![uuid::Uuid::from_u128(0x5b), uuid::Uuid::from_u128(0x5c)],
+                }),
+                ..fixture_summary(one, "a test alert", None)
+            },
+            AlertSummary {
+                svs: Some(ace_service::AlertSvsStatus {
+                    status: ace_service::SvsStatus::Mismatch,
+                    runs: Vec::new(),
+                }),
+                ..fixture_summary(two, "a mismatch", None)
+            },
+        ],
+        next: None,
+        total: 2,
+    };
+    let columns = ace_service::PreferenceKey::ManageColumns
+        .parse(serde_json::json!({"order": ["description"], "hidden": []}))
+        .expect("a value");
+    let ace_service::PreferenceValue::ManageColumns(columns) = columns else {
+        panic!("manage_columns");
+    };
+    let view = list_view(
+        &page,
+        &ListQuery::default(),
+        &columns,
+        &[],
+        &std::collections::HashMap::new(),
+        chrono_tz::Tz::UTC,
+        Vec::new(),
+        None,
+        &ace_service::Dispositions::ace3(),
+    );
+    let html = AlertListFragment {
+        list: view.list.clone(),
+    }
+    .render()
+    .expect("renders");
+    assert!(
+        html.contains(&format!(
+            r#"<a href="/alerts/{one}">a test alert</a> <a href="{href}" class="badge svs-status" title="A test alert: every detection is attributed to an SVS test run, at least one by its marker.">test</a> <span class="badge tag">{HOSTILE_ESCAPED}</span></td>"#
+        )),
+        "{html}"
+    );
+    assert!(
+        html.contains(&format!(
+            r#"<a href="/alerts/{two}">a mismatch</a> <span class="badge svs-status" title="It holds an SVS test marker that doesn&#39;t agree with its run: it stays with analysts.">mismatch</span></td>"#
+        )),
+        "{html}"
+    );
+    assert!(
+        !html.contains("<script>alert") && !html.contains("<img"),
+        "{html}"
+    );
+}
+
+/// An `AlertSvsView` of a status and its runs, with nothing else.
+struct AlertSvsViewOf(ace_service::SvsStatus, Vec<ace_service::RunRef>);
+
+impl AlertSvsViewOf {
+    fn view(&self) -> ace_service::AlertSvsView {
+        ace_service::AlertSvsView {
+            status: self.0,
+            runs: self.1.clone(),
+            detections: std::collections::BTreeMap::new(),
+            mismatches: Vec::new(),
+        }
+    }
+}
+
+/// An alert in the GUI's database with one detection, attributed to the run by `confidence` when given.
+async fn gui_run_alert(
+    stack: &Stack,
+    run: uuid::Uuid,
+    title: &str,
+    signature: Option<&str>,
+    confidence: Option<&str>,
+) -> uuid::Uuid {
+    let db = stack.test_db.db();
+    let alert = uuid::Uuid::new_v4();
+    sqlx::query(
+        "INSERT INTO analysis.roots (id, analysis_mode, description, event_time_source, alerted_at, tags)
+         VALUES ($1, 'correlation', $2, 'unset', now(),
+                 CASE WHEN $3 THEN '{svs_test}'::text[] ELSE '{}' END)",
+    )
+    .bind(alert)
+    .bind(title)
+    .bind(confidence.is_some())
+    .execute(db.pool())
+    .await
+    .expect("an alert");
+    sqlx::query(
+        "INSERT INTO analysis.detections (root_id, description, signature_uuid, signature_family)
+         VALUES ($1, 'a detection', $2, 'hunt')",
+    )
+    .bind(alert)
+    .bind(signature)
+    .execute(db.pool())
+    .await
+    .expect("a detection");
+    if let Some(confidence) = confidence {
+        sqlx::query(
+            "INSERT INTO svs.attributions
+                 (run_id, root_id, detection_id, confidence, source, actor, event_time,
+                  event_time_source)
+             SELECT (SELECT id FROM svs.runs WHERE uuid = $1), d.root_id, d.id,
+                    $3::svs.attribution_confidence, 'router',
+                    '{\"kind\": \"internal\", \"id\": \"svs\"}', now(), 'insert_time'
+             FROM analysis.detections d WHERE d.root_id = $2",
+        )
+        .bind(run)
+        .bind(alert)
+        .bind(confidence)
+        .execute(db.pool())
+        .await
+        .expect("an attribution");
+    }
+    alert
+}
+
+/// Batch 7b's pages through the server: a reader sees a run's alerts and what its review waits for, with
+/// no forms, and the alert page's banner and the list's status; `svs:run_manage` adds the association
+/// forms, the review and a person's actions, whose posts keep, associate, review and take a run from its
+/// owner only when told to; `alert:write` adds the banner's form, which gives the alert back; each post
+/// is refused without its permission and from another site, and each write has its audit row.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn the_svs_review_pages_need_run_manage_and_the_banner_alert_write() {
+    let stack = stack_of_db(Catalog::new(vec![]), |service, _| {
+        Gui::new(service, Transport::Plain)
+    })
+    .await;
+    let db = stack.test_db.db();
+    let alice = user(&stack, "alice").await;
+    let bob = user(&stack, "bob").await;
+    let boss = user(&stack, "boss").await;
+    for minor in ["admin", "run_register"] {
+        grant_to(&stack, &boss, "svs", minor).await;
+    }
+    // an ended run: its test's name and its launcher are hostile text
+    let run = gui_run(&stack, &boss).await;
+    let page_of = run_href(run);
+    let rule = "33333333-cccc-4ccc-8ccc-333333333333";
+    let marked = gui_run_alert(&stack, run, HOSTILE, Some(rule), Some("marker")).await;
+    let context = gui_run_alert(&stack, run, "by context", None, Some("context")).await;
+    let free = gui_run_alert(&stack, run, "nobody's", None, None).await;
+    // a started run that bob owns
+    stack
+        .service
+        .create_test_host(&boss, &ace_service::HostFields::new("gui-host-02"))
+        .await
+        .expect("a test host");
+    let bobs = stack
+        .service
+        .register_svs_run(
+            &boss,
+            &ace_service::Registration {
+                test_guid: uuid::Uuid::from_u128(0x7e57).to_string(),
+                targets: vec![ace_service::TargetSpec::new("gui-host-02", None)],
+                launcher: "art".to_owned(),
+                batch_id: None,
+                extra: serde_json::json!({}),
+            },
+            chrono::Utc::now(),
+        )
+        .await
+        .expect("registers")
+        .uuid;
+    stack
+        .service
+        .start_svs_run(&boss, bobs, chrono::Utc::now())
+        .await
+        .expect("starts");
+    sqlx::query(
+        "UPDATE svs.runs SET owner_id = (SELECT id FROM service.users WHERE username = 'bob')
+         WHERE uuid = $1",
+    )
+    .bind(bobs)
+    .execute(db.pool())
+    .await
+    .expect("gives it to bob");
+    let state_of = async |run: uuid::Uuid| -> (String, Option<String>) {
+        sqlx::query_as(
+            "SELECT r.state::text, u.username::text FROM svs.runs r
+             LEFT JOIN service.users u ON u.id = r.owner_id WHERE r.uuid = $1",
+        )
+        .bind(run)
+        .fetch_one(db.pool())
+        .await
+        .expect("the run")
+    };
+    let disposition_of = async |alert: uuid::Uuid| -> Option<String> {
+        sqlx::query_scalar("SELECT disposition FROM analysis.roots WHERE id = $1")
+            .bind(alert)
+            .fetch_one(db.pool())
+            .await
+            .expect("the alert")
+    };
+
+    let session = session_of(&stack, "alice").await;
+    let get = |path: String| stack.get(&path).header("cookie", cookie(&session)).send();
+    let post = |path: String, form: Vec<(&'static str, String)>| {
+        let form: Vec<(&str, &str)> = form.iter().map(|(k, v)| (*k, v.as_str())).collect();
+        stack
+            .post(&path, &form)
+            .header("cookie", cookie(&session))
+            .send()
+    };
+    let text = async |path: String| -> String {
+        let page = get(path.clone()).await.expect("answered");
+        assert_eq!(page.status(), StatusCode::OK, "{path}");
+        page.text().await.expect("a page")
+    };
+    let bulk = |action: &'static str, run: uuid::Uuid, more: Vec<(&'static str, String)>| {
+        let mut form = vec![("action", action.to_owned()), ("run", run.to_string())];
+        form.extend(more);
+        post("/svs/runs/bulk".to_owned(), form)
+    };
+    let associate = |action: &'static str, alert: String| {
+        post(
+            format!("{page_of}/alerts"),
+            vec![("action", action.to_owned()), ("alert", alert)],
+        )
+    };
+    let release = |alert: uuid::Uuid, action: &'static str| {
+        post(
+            format!("/alerts/{alert}/svs"),
+            vec![("action", action.to_owned()), ("reason", "mine".to_owned())],
+        )
+    };
+    let writes = || {
+        sqlx_count(
+            &stack.test_db,
+            "SELECT count(*) FROM service.audit
+             WHERE action LIKE '%svs%' OR action IN ('change_svs_association', 'release_alert_from_svs')",
+        )
+    };
+
+    // signed out: the posts go to the login
+    for path in [
+        "/svs/runs/bulk".to_owned(),
+        format!("{page_of}/review"),
+        format!("{page_of}/alerts"),
+        format!("/alerts/{marked}/svs"),
+    ] {
+        let refused = stack.post(&path, &[]).send().await.expect("answered");
+        assert_eq!(refused.status(), StatusCode::SEE_OTHER, "{path}");
+        assert!(location(&refused).starts_with("/login"), "{path}");
+    }
+    // signed in, holding nothing: each post is refused
+    for refused in [
+        bulk("take", run, vec![]).await,
+        post(format!("{page_of}/review"), vec![]).await,
+        associate("keep", context.to_string()).await,
+        release(marked, "disassociate").await,
+    ] {
+        assert_eq!(refused.expect("answered").status(), StatusCode::FORBIDDEN);
+    }
+
+    // svs:run_read and alert:read: the run's alerts and its review's blockers, with no forms
+    grant_to(&stack, &alice, "svs", "run_read").await;
+    grant_to(&stack, &alice, "alert", "read").await;
+    let before = writes().await;
+    let page = text(page_of.clone()).await;
+    assert!(
+        page.contains(&format!(
+            r#"<a href="/alerts/{marked}">{HOSTILE_ESCAPED}</a>"#
+        )) && page.contains(r#"<span class="badge svs-status">test</span>"#)
+            && page.contains(r#"<span class="badge svs-status">test?</span>"#)
+            && page.contains(r#"<h3 id="review">Review</h3>"#)
+            && page.contains("1 context-only alert(s) are neither kept nor marked not a test.")
+            && !page.contains("<script>alert")
+            && !page.contains("<form method=\"post\" action=\"/svs"),
+        "{page}"
+    );
+    // the alert's banner, with its run a link and its tag, and no form without alert:write
+    let banner = text(format!("/alerts/{marked}")).await;
+    assert!(
+        banner.contains(r#"<section class="svs-banner" id="svs" role="note">"#)
+            && banner.contains(r#"<span class="badge svs-status">test</span>"#)
+            && banner.contains(r#"<span class="badge tag">svs_test</span>"#)
+            && banner.contains(&format!(r#"<a href="{page_of}"><code>{run}</code></a>"#))
+            && banner.contains(HOSTILE_ESCAPED)
+            && !banner.contains("<script>alert")
+            && !banner.contains(&format!("/alerts/{marked}/svs")),
+        "{banner}"
+    );
+    assert!(
+        !text(format!("/alerts/{free}")).await.contains("svs-banner"),
+        "an alert SVS never touched has no banner"
+    );
+    // the alert list: the status, leading to the run, and the tag
+    let list = text("/".to_owned()).await;
+    assert!(
+        list.contains(&format!(
+            r#"<a href="{page_of}" class="badge svs-status" title="A test alert: every detection is attributed to an SVS test run, at least one by its marker.">test</a> <span class="badge tag">svs_test</span>"#
+        )) && list.contains(r#"class="badge svs-status" title="Probably a test alert"#),
+        "{list}"
+    );
+    // a reader's posts are the service's refusals, and write nothing
+    for refused in [
+        bulk("take", run, vec![]).await,
+        post(format!("{page_of}/review"), vec![]).await,
+        associate("keep", context.to_string()).await,
+        release(marked, "disassociate").await,
+    ] {
+        assert_eq!(refused.expect("answered").status(), StatusCode::FORBIDDEN);
+    }
+    assert_eq!(writes().await, before);
+
+    // svs:run_manage: the forms
+    grant_to(&stack, &alice, "svs", "run_manage").await;
+    let page = text(page_of.clone()).await;
+    assert!(
+        page.contains(&format!(
+            r#"<form method="post" action="{page_of}/review" class="review">"#
+        )) && page.contains(&format!(
+            r#"<form method="post" action="{page_of}/alerts" class="associate">"#
+        )) && page.contains(r#"<button type="submit" name="action" value="keep">Keep</button>"#)
+            && page.contains(r#"<button type="submit" name="action" value="close">Close</button>"#)
+            && !page.contains("<script>alert"),
+        "{page}"
+    );
+    // a review that something blocks is refused, and says what
+    let blocked = post(format!("{page_of}/review"), vec![])
+        .await
+        .expect("answered");
+    assert_eq!(blocked.status(), StatusCode::CONFLICT);
+    assert!(
+        blocked
+            .text()
+            .await
+            .expect("a page")
+            .contains("can&#39;t be reviewed"),
+    );
+    assert_eq!(state_of(run).await.0, "ended");
+
+    // the associations: keep the context alert, associate one by its id, and let it go again
+    let kept = associate("keep", context.to_string())
+        .await
+        .expect("answered");
+    assert_eq!(kept.status(), StatusCode::SEE_OTHER);
+    assert_eq!(location(&kept), format!("{page_of}?done=keep"));
+    assert!(
+        text(location(&kept).to_owned())
+            .await
+            .contains("The alert is kept: it is the run&#39;s."),
+    );
+    let associated = associate("associate", format!(" {free} "))
+        .await
+        .expect("answered");
+    assert_eq!(location(&associated), format!("{page_of}?done=associate"));
+    let let_go = associate("disassociate", free.to_string())
+        .await
+        .expect("answered");
+    assert_eq!(location(&let_go), format!("{page_of}?done=disassociate"));
+    assert!(text(page_of.clone()).await.contains(
+        r#"<button type="submit" name="action" value="associate">Associate again</button>"#
+    ),);
+    for (action, alert, status) in [
+        ("promote", free.to_string(), StatusCode::BAD_REQUEST),
+        ("associate", "nope".to_owned(), StatusCode::BAD_REQUEST),
+        (
+            "associate",
+            uuid::Uuid::new_v4().to_string(),
+            StatusCode::NOT_FOUND,
+        ),
+        // nothing to keep
+        ("keep", free.to_string(), StatusCode::CONFLICT),
+    ] {
+        assert_eq!(
+            associate(action, alert.clone())
+                .await
+                .expect("answered")
+                .status(),
+            status,
+            "{action} {alert}"
+        );
+    }
+    for (path, status) in [
+        ("/svs/runs/nope/alerts".to_owned(), StatusCode::BAD_REQUEST),
+        (
+            format!("{}/alerts", run_href(uuid::Uuid::new_v4())),
+            StatusCode::NOT_FOUND,
+        ),
+        ("/svs/runs/nope/review".to_owned(), StatusCode::BAD_REQUEST),
+        (
+            format!("{}/review", run_href(uuid::Uuid::new_v4())),
+            StatusCode::NOT_FOUND,
+        ),
+    ] {
+        assert_eq!(
+            post(
+                path.clone(),
+                vec![("action", "keep".to_owned()), ("alert", free.to_string())]
+            )
+            .await
+            .expect("answered")
+            .status(),
+            status,
+            "{path}"
+        );
+    }
+
+    // the review, once its result is computed and its candidate decided
+    let timers = Actor::Internal {
+        id: ace_service::Component::new("scheduler:svs_run_timers").expect("a name"),
+    };
+    let recompute = async || {
+        stack
+            .service
+            .recompute_stale_svs_results(&timers, chrono::Utc::now(), None)
+            .await
+            .expect("recomputes");
+    };
+    recompute().await;
+    let decided = post(
+        format!("{page_of}/decide"),
+        vec![
+            ("signature", rule.to_owned()),
+            ("decision", "expected".to_owned()),
+        ],
+    )
+    .await
+    .expect("answered");
+    assert_eq!(decided.status(), StatusCode::SEE_OTHER);
+    recompute().await;
+    assert!(
+        text(page_of.clone())
+            .await
+            .contains("Nothing stands in the way of a review."),
+    );
+    let reviewed = post(format!("{page_of}/review"), vec![])
+        .await
+        .expect("answered");
+    assert_eq!(reviewed.status(), StatusCode::SEE_OTHER);
+    assert_eq!(location(&reviewed), format!("{page_of}?done=reviewed"));
+    let after = text(location(&reviewed).to_owned()).await;
+    assert!(
+        after.contains("The run is reviewed: its result is signed off")
+            && after.contains(r#"<span class="badge disposition-success">reviewed</span>"#)
+            && after.contains(">Review again</button>")
+            && after.contains("<tr><th>Reviewed by</th><td class=\"qa-text\">alice</td></tr>"),
+        "{after}"
+    );
+    assert_eq!(
+        state_of(run).await,
+        ("reviewed".to_owned(), Some("alice".to_owned()))
+    );
+    for alert in [marked, context] {
+        assert_eq!(disposition_of(alert).await.as_deref(), Some("SIMULATED"));
+    }
+
+    // a run someone else owns: left alone, on a page that says so and offers to take it
+    let left = bulk("cancel", bobs, vec![("back", page_of.clone())])
+        .await
+        .expect("answered");
+    assert_eq!(left.status(), StatusCode::OK);
+    let left = left.text().await.expect("a page");
+    assert!(
+        left.contains("<h3>Left alone: someone else owns them (1)</h3>")
+            && left.contains(&format!(
+                r#"<input type="hidden" name="take" value="{bobs}=bob">"#
+            ))
+            && left.contains(&format!(
+                r#"<input type="hidden" name="back" value="{page_of}">"#
+            )),
+        "{left}"
+    );
+    assert_eq!(
+        state_of(bobs).await,
+        ("started".to_owned(), Some("bob".to_owned()))
+    );
+    // a review of it is refused the same way, until the box is ticked
+    let owned = post(format!("{}/review", run_href(bobs)), vec![])
+        .await
+        .expect("answered");
+    assert_eq!(owned.status(), StatusCode::CONFLICT);
+    // an end with no reason isn't done, and the page says why
+    let refused = bulk(
+        "end",
+        bobs,
+        vec![("take", format!("{bobs}=bob")), ("back", page_of.clone())],
+    )
+    .await
+    .expect("answered");
+    assert_eq!(refused.status(), StatusCode::OK);
+    assert!(
+        refused
+            .text()
+            .await
+            .expect("a page")
+            .contains("ending it early needs a reason"),
+    );
+    // the take was confirmed, and stands
+    assert_eq!(
+        state_of(bobs).await,
+        ("started".to_owned(), Some("alice".to_owned()))
+    );
+    let ended = bulk(
+        "end",
+        bobs,
+        vec![
+            ("reason", "nothing fired".to_owned()),
+            ("back", format!("{}?f=state%3Astarted", "/svs/runs")),
+        ],
+    )
+    .await
+    .expect("answered");
+    assert_eq!(ended.status(), StatusCode::SEE_OTHER);
+    assert_eq!(location(&ended), "/svs/runs?f=state%3Astarted&done=acted");
+    assert!(
+        text(location(&ended).to_owned())
+            .await
+            .contains(r#"<p class="notice" role="status">Done.</p>"#),
+    );
+    assert_eq!(state_of(bobs).await.0, "ended");
+    // the runs list has the bulk form and each run's box
+    let list = text("/svs/runs".to_owned()).await;
+    assert!(
+        list.contains(r#"<form method="post" action="/svs/runs/bulk" id="bulk" class="bulk">"#)
+            && list.contains(&format!(
+                r#"<input type="checkbox" form="bulk" name="run" value="{bobs}" aria-label="Tick this run">"#
+            )),
+        "{list}"
+    );
+    // a back that isn't one of the runs' pages is the runs list
+    let elsewhere = bulk(
+        "take",
+        bobs,
+        vec![("back", "//evil.example/svs/runs".to_owned())],
+    )
+    .await
+    .expect("answered");
+    assert_eq!(location(&elsewhere), "/svs/runs?done=acted");
+    // a run that isn't there, and requests that aren't ones
+    let gone = bulk("take", uuid::Uuid::new_v4(), vec![])
+        .await
+        .expect("answered");
+    assert_eq!(gone.status(), StatusCode::OK);
+    assert!(
+        gone.text()
+            .await
+            .expect("a page")
+            .contains("<h3>No such run (1)</h3>"),
+    );
+    for form in [
+        vec![("action", "promote".to_owned()), ("run", bobs.to_string())],
+        vec![("action", "take".to_owned())],
+        vec![("action", "take".to_owned()), ("run", "nope".to_owned())],
+        vec![
+            ("action", "take".to_owned()),
+            ("run", bobs.to_string()),
+            ("take", "nope".to_owned()),
+        ],
+    ] {
+        assert_eq!(
+            post("/svs/runs/bulk".to_owned(), form.clone())
+                .await
+                .expect("answered")
+                .status(),
+            StatusCode::BAD_REQUEST,
+            "{form:?}"
+        );
+    }
+
+    // the banner's form needs alert:write
+    let held = gui_run_alert(&stack, bobs, "held by context", None, Some("context")).await;
+    assert_eq!(
+        release(held, "not_a_test")
+            .await
+            .expect("answered")
+            .status(),
+        StatusCode::FORBIDDEN
+    );
+    grant_to(&stack, &alice, "alert", "write").await;
+    let banner = text(format!("/alerts/{held}")).await;
+    assert!(
+        banner.contains(&format!(
+            r#"<form method="post" action="/alerts/{held}/svs" class="inline">"#
+        )) && banner.contains(r#"<button type="submit" name="action" value="not_a_test""#),
+        "{banner}"
+    );
+    let released = release(held, "not_a_test").await.expect("answered");
+    assert_eq!(released.status(), StatusCode::SEE_OTHER);
+    assert_eq!(location(&released), format!("/alerts/{held}#svs"));
+    let attributed: i64 = sqlx::query_scalar(
+        "SELECT count(*) FROM svs.attributions WHERE root_id = $1 AND removed_at IS NULL",
+    )
+    .bind(held)
+    .fetch_one(db.pool())
+    .await
+    .expect("counts");
+    assert_eq!(attributed, 0);
+    // a SIMULATED alert given back is open again
+    let reopened = release(marked, "disassociate").await.expect("answered");
+    assert_eq!(reopened.status(), StatusCode::SEE_OTHER);
+    assert_eq!(disposition_of(marked).await.as_deref(), Some("OPEN"));
+    for (path, action, status) in [
+        (
+            format!("/alerts/{held}/svs"),
+            "promote",
+            StatusCode::BAD_REQUEST,
+        ),
+        // nothing holds it any more
+        (
+            format!("/alerts/{held}/svs"),
+            "disassociate",
+            StatusCode::CONFLICT,
+        ),
+        (
+            "/alerts/nope/svs".to_owned(),
+            "disassociate",
+            StatusCode::NOT_FOUND,
+        ),
+        (
+            format!("/alerts/{}/svs", uuid::Uuid::new_v4()),
+            "disassociate",
+            StatusCode::NOT_FOUND,
+        ),
+    ] {
+        assert_eq!(
+            post(path.clone(), vec![("action", action.to_owned())])
+                .await
+                .expect("answered")
+                .status(),
+            status,
+            "{path} {action}"
+        );
+    }
+
+    // a post from another site's page is refused, and changes nothing
+    let before = writes().await;
+    for path in [
+        "/svs/runs/bulk".to_owned(),
+        format!("{}/review", run_href(bobs)),
+        format!("{page_of}/alerts"),
+        format!("/alerts/{context}/svs"),
+    ] {
+        let cross = stack
+            .http
+            .post(format!("{}{path}", stack.url))
+            .header("origin", "https://evil.example")
+            .header("cookie", cookie(&session))
+            .form(&[
+                ("action", "disassociate"),
+                ("run", &bobs.to_string()),
+                ("alert", &context.to_string()),
+            ])
+            .send()
+            .await
+            .expect("answered");
+        assert_eq!(cross.status(), StatusCode::FORBIDDEN, "{path}");
+    }
+    assert_eq!(writes().await, before);
+    assert_eq!(state_of(bobs).await.0, "ended");
+
+    // each write left its audit row, by alice
+    let audited: Vec<String> = sqlx::query_scalar(
+        "SELECT DISTINCT action FROM service.audit
+         WHERE actor ->> 'name' = 'alice' AND action <> 'login' ORDER BY 1",
+    )
+    .fetch_all(db.pool())
+    .await
+    .expect("reads");
+    for action in [
+        "change_svs_association",
+        "end_svs_runs",
+        "release_alert_from_svs",
+        "review_svs_run",
+        "set_svs_expectation",
+    ] {
+        assert!(audited.iter().any(|a| a == action), "{action}: {audited:?}");
+    }
+    let _ = bob;
 }
 
 /// A catalog test and a run of it in the GUI's database, with hostile text where a launcher and a

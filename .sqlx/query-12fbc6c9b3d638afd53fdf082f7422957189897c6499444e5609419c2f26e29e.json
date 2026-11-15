@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE svs.runs\n         SET state = 'reviewed', reviewer_id = $2, reviewed_at = $3, changed_since_review = false,\n             owner_id = CASE WHEN $4 THEN $2 ELSE owner_id END\n         WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Uuid",
+        "Timestamptz",
+        "Bool"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "12fbc6c9b3d638afd53fdf082f7422957189897c6499444e5609419c2f26e29e"
+}
