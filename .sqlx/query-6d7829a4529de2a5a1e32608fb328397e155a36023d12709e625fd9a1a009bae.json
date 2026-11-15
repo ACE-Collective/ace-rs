@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO svs.coverage_snapshots AS s\n                                 (snapshot_date, attack_release, technique, platform, parent,\n                                  is_subtechnique, state, own_state, tests_total, tests_validated,\n                                  tests_failing, tests_stale, manual_signatures, measured_signatures)\n                             SELECT $1, $2, technique, platform, parent, is_subtechnique, state,\n                                    own_state, tests_total, tests_validated, tests_failing, tests_stale,\n                                    manual_signatures, measured_signatures\n                             FROM svs.coverage WHERE retired_at IS NULL\n                             ORDER BY technique, platform\n                             ON CONFLICT (snapshot_date, technique, platform) DO UPDATE SET\n                                 attack_release = EXCLUDED.attack_release, parent = EXCLUDED.parent,\n                                 is_subtechnique = EXCLUDED.is_subtechnique, state = EXCLUDED.state,\n                                 own_state = EXCLUDED.own_state, tests_total = EXCLUDED.tests_total,\n                                 tests_validated = EXCLUDED.tests_validated,\n                                 tests_failing = EXCLUDED.tests_failing,\n                                 tests_stale = EXCLUDED.tests_stale,\n                                 manual_signatures = EXCLUDED.manual_signatures,\n                                 measured_signatures = EXCLUDED.measured_signatures\n                             WHERE (s.attack_release, s.parent, s.is_subtechnique, s.state, s.own_state,\n                                    s.tests_total, s.tests_validated, s.tests_failing, s.tests_stale,\n                                    s.manual_signatures, s.measured_signatures)\n                                   IS DISTINCT FROM\n                                   (EXCLUDED.attack_release, EXCLUDED.parent, EXCLUDED.is_subtechnique,\n                                    EXCLUDED.state, EXCLUDED.own_state, EXCLUDED.tests_total,\n                                    EXCLUDED.tests_validated, EXCLUDED.tests_failing,\n                                    EXCLUDED.tests_stale, EXCLUDED.manual_signatures,\n                                    EXCLUDED.measured_signatures)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Date",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "6d7829a4529de2a5a1e32608fb328397e155a36023d12709e625fd9a1a009bae"
+}

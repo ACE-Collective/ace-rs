@@ -3,10 +3,11 @@
 //! may be registered for, as the scheduler's `svs_catalog_refresh` reads them from the catalog's
 //! repositories. Everything here reads, with `svs:run_read`.
 //!
-//! From ace3: a page is `{tests, next}`, as the API's other pages, where ace3's is `{data, next_cursor}`; a
-//! refused parameter is 400 where ace3 answers 422; and a test doesn't yet carry its state and run history
-//! (`test_state`, `run_count` and the rest), which batches 5 and 8 bring with the runs and decisions they
-//! come from. The same router's expectations, ignores and settings are `svs_decisions`'.
+//! From ace3: a page is `{tests, next}`, as the API's other pages, where ace3's is `{data, next_cursor}`;
+//! and a refused parameter is 400 where ace3 answers 422. Each test carries its state and run history
+//! (`test_state`, `run_count` and the rest, batch 8), read for the whole page at once, and one test adds
+//! its state on each platform (`platform_states`). The same router's expectations, ignores and settings
+//! are `svs_decisions`'.
 
 use ace_service::filters::{FilterScreen, decode};
 use ace_service::{CatalogRepository, CatalogTest, CatalogTestDetail, CatalogTestQuery};
@@ -50,13 +51,64 @@ pub(crate) struct CatalogTestBody {
     first_seen_at: DateTime<Utc>,
     /// When the test disappeared from its repository; it keeps its runs.
     removed_at: Option<DateTime<Utc>>,
-    /// When the catalog row last changed: the `changed_since` key.
+    /// When the catalog row last changed: the `changed_since` key. A change to the test's runs or state
+    /// doesn't change it.
     updated_at: DateTime<Utc>,
+    /// `never_run`, `awaiting_review`, `no_expectations`, `failing`, `stale` or `validated`: `never_run`
+    /// without runs, else the worst of its platforms' states.
+    test_state: String,
+    run_count: i64,
+    last_run_id: Option<Uuid>,
+    last_run_at: Option<DateTime<Utc>>,
+    last_reviewed_run_id: Option<Uuid>,
+    last_reviewed_at: Option<DateTime<Utc>>,
+    /// Signatures expected of it on any platform, that no ignore applies to.
+    expected_signatures: usize,
+    /// Its latest ended or reviewed runs looked at (at most 5).
+    recent_runs: i64,
+    /// Of those, the runs that missed an expected signature.
+    recent_runs_missing: i64,
+    #[serde(skip)]
+    platform_states: Vec<PlatformStateBody>,
+}
+
+/// A test on one platform.
+#[derive(Debug, Clone, Serialize, ToSchema)]
+pub(crate) struct PlatformStateBody {
+    platform: String,
+    /// `never_run` (no run or decision on it), `awaiting_review`, `no_expectations`, `failing`, `stale` or
+    /// `validated`.
+    test_state: String,
+    last_reviewed_run_id: Option<Uuid>,
+    last_reviewed_at: Option<DateTime<Utc>>,
+    /// Signatures expected of it there.
+    expected_signatures: usize,
 }
 
 impl From<CatalogTest> for CatalogTestBody {
     fn from(t: CatalogTest) -> Self {
+        let h = t.history;
         CatalogTestBody {
+            test_state: h.state.as_str().to_owned(),
+            run_count: h.run_count,
+            last_run_id: h.last_run,
+            last_run_at: h.last_run_at,
+            last_reviewed_run_id: h.last_reviewed_run,
+            last_reviewed_at: h.last_reviewed_at,
+            expected_signatures: h.expected,
+            recent_runs: h.recent_runs,
+            recent_runs_missing: h.recent_runs_missing,
+            platform_states: h
+                .platform_states
+                .into_iter()
+                .map(|(platform, state)| PlatformStateBody {
+                    platform,
+                    test_state: state.state.as_str().to_owned(),
+                    last_reviewed_run_id: state.last_reviewed_run,
+                    last_reviewed_at: state.last_reviewed_at,
+                    expected_signatures: state.expected,
+                })
+                .collect(),
             guid: t.guid,
             repository: t.repository,
             technique: t.technique,
@@ -93,6 +145,15 @@ impl ExportRow for CatalogTestBody {
         "first_seen_at",
         "removed_at",
         "updated_at",
+        "test_state",
+        "run_count",
+        "last_run_id",
+        "last_run_at",
+        "last_reviewed_run_id",
+        "last_reviewed_at",
+        "expected_signatures",
+        "recent_runs",
+        "recent_runs_missing",
     ];
 
     fn cells(&self) -> Vec<String> {
@@ -111,6 +172,19 @@ impl ExportRow for CatalogTestBody {
             time_cell(Some(self.first_seen_at)),
             time_cell(self.removed_at),
             time_cell(Some(self.updated_at)),
+            self.test_state.clone(),
+            self.run_count.to_string(),
+            self.last_run_id
+                .map(|id| id.to_string())
+                .unwrap_or_default(),
+            time_cell(self.last_run_at),
+            self.last_reviewed_run_id
+                .map(|id| id.to_string())
+                .unwrap_or_default(),
+            time_cell(self.last_reviewed_at),
+            self.expected_signatures.to_string(),
+            self.recent_runs.to_string(),
+            self.recent_runs_missing.to_string(),
         ]
     }
 }
@@ -128,6 +202,8 @@ pub(crate) struct CatalogTestPageBody {
 pub(crate) struct CatalogTestDetailBody {
     #[serde(flatten)]
     test: CatalogTestBody,
+    /// Its state on each platform: each one it has a run or a decision on, and each one it supports.
+    platform_states: Vec<PlatformStateBody>,
     description: Option<String>,
     /// The platforms a run of it can be on: its `supported_platforms` as ATT&CK's platform slugs, sorted.
     platform_slugs: Vec<String>,
@@ -138,8 +214,10 @@ pub(crate) struct CatalogTestDetailBody {
 
 impl From<CatalogTestDetail> for CatalogTestDetailBody {
     fn from(d: CatalogTestDetail) -> Self {
+        let test: CatalogTestBody = d.test.into();
         CatalogTestDetailBody {
-            test: d.test.into(),
+            platform_states: test.platform_states.clone(),
+            test,
             description: d.description,
             platform_slugs: d.platform_slugs,
             entry: d.entry,

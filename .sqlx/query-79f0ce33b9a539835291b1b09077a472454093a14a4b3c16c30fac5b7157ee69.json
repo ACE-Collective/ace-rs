@@ -1,0 +1,52 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT DISTINCT ON (signature_uuid) signature_uuid, signature_family, signature_name\n             FROM svs.expectations WHERE signature_uuid = ANY ($1)\n             ORDER BY signature_uuid, decided_at DESC, id DESC",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "signature_uuid",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.expectations",
+            "name": "signature_uuid"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "signature_family",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.expectations",
+            "name": "signature_family"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "signature_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.expectations",
+            "name": "signature_name"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "TextArray"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "79f0ce33b9a539835291b1b09077a472454093a14a4b3c16c30fac5b7157ee69"
+}

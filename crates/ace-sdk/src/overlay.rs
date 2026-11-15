@@ -153,6 +153,9 @@ pub struct SvsSection {
     pub catalog: SvsCatalogSection,
     /// Test runs: the keys of ace3's `svs.runs` that a run's windows read (batch 4). Batch 5 adds the rest.
     pub runs: SvsRunsSection,
+    // ace3's `svs.coverage` has one key, `refresh_interval_seconds` (120): how often `service_svs`
+    // recomputes coverage. Here that is the schedule of the scheduler's `svs_coverage_refresh`, every two
+    // minutes by default (`scheduler:` in this file, batch 8), so there is no `coverage` section.
 }
 
 impl Default for SvsSection {
@@ -1453,6 +1456,20 @@ mod tests {
                 "svs: {runs: {timer_interval_seconds: 30}}",
                 "svs.runs",
                 "unknown field",
+            ),
+            // test_config.py's `test_coverage_defaults`: ace3's `svs.coverage` holds only
+            // `refresh_interval_seconds` (120), which is the schedule of the scheduler's
+            // `svs_coverage_refresh`, every two minutes (`scheduler:` in this file), so the section
+            // has no key and is refused, as ace3 refuses an unknown key of it
+            (
+                "svs: {coverage: {refresh_interval_seconds: 120}}",
+                "svs",
+                "unknown field `coverage`",
+            ),
+            (
+                "svs: {coverage: {nope: 1}}",
+                "svs",
+                "unknown field `coverage`",
             ),
         ] {
             let err = Overlay::from_yaml(yaml).expect_err(yaml);

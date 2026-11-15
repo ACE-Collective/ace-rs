@@ -1,6 +1,7 @@
 //! test_svs_cli.py's cases for `ace svs yara validate`, `layout` and `prune`, and the parts of the report
 //! the replay's tests don't reach; then its catalog refresh and test_catalog.py's cases of `ace svs catalog`
-//! (PLAN.md 7.10 batch 4), and `ace svs attack extract`.
+//! (PLAN.md 7.10 batch 4), `ace svs attack extract`, and test_coverage.py's and test_worklist.py's cases of
+//! `ace svs coverage` (batch 8).
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::future::Future;
@@ -756,4 +757,173 @@ fn attack_extract_writes_the_extract() {
     );
     assert!(!out_dir.join("v98.0.json").exists());
     assert!(attack_extract(&args("latest")).is_err());
+}
+
+fn coverage_service(db: &Db) -> ace_service::Service {
+    ace_service::Service::new(
+        db.clone(),
+        ace_core::orchestrator::Orchestrator::new(
+            ace_core::eligibility::Catalog::new(vec![]),
+            ace_core::modes::Modes::ace3(),
+        ),
+    )
+    .with_attack_catalog(std::sync::Arc::new(ace_core::testing::attack_catalog()))
+}
+
+/// A database that fails the refresh: coverage's rows are refused. ace3 patches the tags' reader to raise.
+async fn break_coverage(db: &Db) {
+    sqlx::raw_sql(
+        "CREATE FUNCTION svs.boom() RETURNS trigger LANGUAGE plpgsql AS $$
+         BEGIN RAISE EXCEPTION 'boom'; END $$;
+         CREATE TRIGGER boom BEFORE INSERT OR UPDATE ON svs.coverage
+             FOR EACH ROW EXECUTE FUNCTION svs.boom();",
+    )
+    .execute(db.pool())
+    .await
+    .expect("breaks coverage");
+}
+
+/// test_coverage.py's `TestRefresh.test_cli`: the status before any refresh, a refresh's line, and the
+/// status after it. ace3's "not the primary node" skip has no counterpart: there's no primary node.
+#[tokio::test]
+async fn coverage_cli_refresh_and_status() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let service = coverage_service(db);
+    assert_eq!(
+        coverage_status(db).await.expect("reads"),
+        "coverage has never been refreshed\nworklist: empty\n"
+    );
+
+    let (out, code) = coverage_refresh(&service).await.expect("runs");
+    assert_eq!(code, 0, "{out}");
+    assert!(
+        out.starts_with("5 rows: 5 changed (5 new, 0 retired) in ") && out.ends_with("ms\n"),
+        "{out}"
+    );
+
+    let status = coverage_status(db).await.expect("reads");
+    let mut lines = status.lines();
+    let first = lines.next().expect("the refresh's line");
+    assert!(
+        first.starts_with("refreshed 20")
+            && first.contains(" against ATT&CK v99.0 in ")
+            && first
+                .ends_with("ms: 5 rows, 5 changed, 0 retired; 0 unknown and 0 ignored mitre: tags"),
+        "{status}"
+    );
+    assert_eq!(
+        lines.collect::<Vec<_>>(),
+        ["  macos: 2 none", "  windows: 3 none", "worklist: empty"]
+    );
+}
+
+/// test_coverage.py's `TestRefresh.test_cli_reports_a_failure`: a failed refresh exits 1 saying why, and
+/// the status says the latest refresh failed.
+#[tokio::test]
+async fn coverage_cli_reports_a_failure() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let service = coverage_service(db);
+    break_coverage(db).await;
+    let (out, code) = coverage_refresh(&service).await.expect("runs");
+    assert_eq!(code, 1);
+    assert!(
+        out.starts_with("coverage refresh failed: ") && out.contains("boom"),
+        "{out}"
+    );
+    let status = coverage_status(db).await.expect("reads");
+    assert!(
+        status.starts_with("coverage has never been refreshed\nthe latest refresh failed: ")
+            && status.contains("boom"),
+        "{status}"
+    );
+}
+
+/// test_coverage.py's `TestSnapshot.test_cli`: a snapshot's line names today, UTC, and the release, and a
+/// failed one exits 1 saying why.
+#[tokio::test]
+async fn coverage_cli_snapshot() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let service = coverage_service(db);
+    let before = chrono::Utc::now().date_naive();
+    let (out, code) = coverage_snapshot(&service).await.expect("runs");
+    assert_eq!(code, 0, "{out}");
+    let today = chrono::Utc::now().date_naive();
+    assert!(
+        [before, today]
+            .iter()
+            .any(|day| out == format!("snapshot of {day} against ATT&CK v99.0: 5 rows\n")),
+        "{out}"
+    );
+    let filed: i64 = sqlx::query_scalar("SELECT count(*) FROM svs.coverage_snapshots")
+        .fetch_one(db.pool())
+        .await
+        .expect("counts");
+    assert_eq!(filed, 5);
+
+    // a catalog test the next refresh has rows for, and can't write
+    sqlx::query(
+        "INSERT INTO svs.catalog_tests
+             (guid, repository, technique, name, platforms, test, content_hash, commit, path)
+         VALUES ('aaaaaaaa-1111-4111-8111-111111111111', 'art', 'T1234.001', 'a test', '{windows}',
+                 '{}', repeat('0', 64), repeat('a', 40), 'atomics/T1234.001/T1234.001.yaml')",
+    )
+    .execute(db.pool())
+    .await
+    .expect("adds a test");
+    break_coverage(db).await;
+    let (out, code) = coverage_snapshot(&service).await.expect("runs");
+    assert_eq!(code, 1);
+    assert!(
+        out.starts_with("coverage snapshot failed: ") && out.contains("boom"),
+        "{out}"
+    );
+    let filed: i64 = sqlx::query_scalar("SELECT count(*) FROM svs.coverage_snapshots")
+        .fetch_one(db.pool())
+        .await
+        .expect("counts");
+    assert_eq!(filed, 5, "the failed snapshot filed nothing");
+}
+
+/// test_worklist.py's `test_cli_status_counts_the_worklist`, and the status's lines from a state: every
+/// platform's rows per state, worst first, and the worklist's per status, in ace3's order.
+#[test]
+fn coverage_status_counts_the_worklist() {
+    let counts = |pairs: &[(&str, i64)]| -> BTreeMap<String, i64> {
+        pairs
+            .iter()
+            .map(|(name, count)| ((*name).to_owned(), *count))
+            .collect()
+    };
+    let status = ace_service::SvsCoverageStatus {
+        state: Some(ace_service::SvsCoverageRefreshState {
+            attack_release: Some("v99.0".to_owned()),
+            refreshed_at: Some("2026-10-17T12:00:00Z".parse().expect("a time")),
+            duration_ms: Some(42),
+            rows: 5,
+            changed: 2,
+            retired: 1,
+            unknown_tags: 3,
+            ignored_tags: 4,
+            error: Some("boom".to_owned()),
+        }),
+        counts: [
+            (
+                "windows".to_owned(),
+                counts(&[("none", 1), ("manual", 1), ("failing", 2)]),
+            ),
+            ("macos".to_owned(), counts(&[("none", 2)])),
+        ]
+        .into(),
+        worklist: counts(&[("undeclared", 1), ("open", 1), ("retired", 7)]),
+    };
+    assert_eq!(
+        coverage_status_report(&status),
+        "refreshed 2026-10-17 12:00:00 UTC against ATT&CK v99.0 in 42ms: 5 rows, 2 changed, 1 retired; \
+         3 unknown and 4 ignored mitre: tags\n\
+         the latest refresh failed: boom\n  macos: 2 none\n  windows: 2 failing, 1 manual, 1 none\n\
+         worklist: 1 open, 1 undeclared, 7 retired\n"
+    );
 }

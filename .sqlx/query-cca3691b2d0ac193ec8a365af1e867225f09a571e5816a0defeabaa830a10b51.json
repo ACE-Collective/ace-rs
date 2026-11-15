@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM svs.coverage_snapshots s\n                             WHERE s.snapshot_date = $1\n                               AND NOT EXISTS (\n                                   SELECT FROM svs.coverage c\n                                   WHERE c.technique = s.technique AND c.platform = s.platform\n                                     AND c.retired_at IS NULL)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Date"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "cca3691b2d0ac193ec8a365af1e867225f09a571e5816a0defeabaa830a10b51"
+}

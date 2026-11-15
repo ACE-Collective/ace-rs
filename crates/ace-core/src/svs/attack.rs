@@ -26,6 +26,9 @@ pub mod extract;
 /// The layout of the extract this module reads (`extract::FORMAT` writes it).
 pub const FORMAT: u64 = 1;
 
+/// The release `svs.attack_release` names by default: ace3's.
+pub const DEFAULT_RELEASE: &str = "v20.0";
+
 /// The releases built into this binary, each with its extract's text.
 pub const VENDORED: &[(&str, &str)] = &[("v20.0", include_str!("../../data/attack/v20.0.json"))];
 
@@ -366,36 +369,7 @@ pub(crate) mod tests {
 
     /// ace3's `tests/saq/svs/conftest.py` `ATTACK_EXTRACT`: a small release its tests read.
     pub(crate) fn extract_fixture() -> serde_json::Value {
-        let technique = |name: &str,
-                         parent: Option<&str>,
-                         tactics: &[&str],
-                         platforms: &[&str],
-                         deprecated: bool| {
-            json!({"name": name, "parent": parent, "tactics": tactics, "platforms": platforms,
-                   "deprecated": deprecated})
-        };
-        json!({
-            "format": 1,
-            "release": "v99.0",
-            "domain": "enterprise-attack",
-            "source": {"url": "test", "sha256": "0".repeat(64)},
-            "platforms": [{"slug": "windows", "name": "Windows"}, {"slug": "macos", "name": "macOS"}],
-            "tactics": [
-                {"id": "TA0003", "shortname": "persistence", "name": "Persistence"},
-                {"id": "TA0002", "shortname": "execution", "name": "Execution"},
-            ],
-            "techniques": {
-                "T1059": technique("Command and Scripting Interpreter", None, &["TA0002"],
-                                   &["windows", "macos"], false),
-                "T1059.001": technique("PowerShell", Some("T1059"), &["TA0002"], &["windows"], false),
-                "T1059.002": technique("AppleScript", Some("T1059"), &["TA0002"], &["macos"], false),
-                "T1547": technique("Boot or Logon Autostart Execution", None, &["TA0003", "TA0002"],
-                                   &["windows"], false),
-                "T1099": technique("Old Technique", None, &[], &["windows"], true),
-            },
-            "revoked": {"T1086": "T1059.001", "T1150": "T1099"},
-            "renamed": {"T1059": {"from": "Scripting", "previous_release": "v98.0"}},
-        })
+        crate::testing::attack_extract()
     }
 
     fn catalog() -> AttackCatalog {

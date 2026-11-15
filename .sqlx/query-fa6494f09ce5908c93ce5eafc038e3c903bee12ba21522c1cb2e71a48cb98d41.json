@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO svs.coverage_state (id) VALUES (1) ON CONFLICT (id) DO NOTHING",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "fa6494f09ce5908c93ce5eafc038e3c903bee12ba21522c1cb2e71a48cb98d41"
+}

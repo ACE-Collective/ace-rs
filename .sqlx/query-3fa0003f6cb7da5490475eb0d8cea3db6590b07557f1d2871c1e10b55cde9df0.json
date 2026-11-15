@@ -1,0 +1,74 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT guid, technique, technique_name, platforms, content_hash\n         FROM svs.catalog_tests WHERE removed_at IS NULL",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "guid",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "svs.catalog_tests",
+            "name": "guid"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "technique",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.catalog_tests",
+            "name": "technique"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "technique_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.catalog_tests",
+            "name": "technique_name"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "platforms",
+        "type_info": "TextArray",
+        "origin": {
+          "Table": {
+            "table": "svs.catalog_tests",
+            "name": "platforms"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "content_hash",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.catalog_tests",
+            "name": "content_hash"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "3fa0003f6cb7da5490475eb0d8cea3db6590b07557f1d2871c1e10b55cde9df0"
+}

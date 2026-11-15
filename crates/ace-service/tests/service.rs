@@ -1640,6 +1640,12 @@ async fn every_write_function_has_an_audit_test() {
         svs_results_tests::add_svs_run_comment_records_its_row(db).await,
         svs_results_tests::update_svs_run_comment_records_its_row(db).await,
         svs_results_tests::delete_svs_run_comment_records_its_row(db).await,
+        svs_results_tests::coverage::refresh_svs_coverage_records_its_row(db).await,
+        svs_results_tests::coverage::record_svs_coverage_error_records_its_row(db).await,
+        svs_results_tests::coverage::write_svs_coverage_snapshot_records_its_row(db).await,
+        svs_results_tests::coverage::resolve_svs_worklist_row_records_its_row(db).await,
+        svs_results_tests::coverage::reopen_svs_worklist_row_records_its_row(db).await,
+        svs_results_tests::coverage::resolve_svs_worklist_rows_records_its_row(db).await,
         svs_attribution_tests::association::change_svs_association_records_its_row(db).await,
         svs_attribution_tests::association::release_alert_from_svs_records_its_row(db).await,
         svs_attribution_tests::association::set_alert_owner_records_its_row(db).await,
@@ -3384,7 +3390,9 @@ async fn every_write_fails_when_its_audit_fails() {
     let reviews = svs_attribution_tests::association::review::before_the_audit_breaks(db).await;
     let reviews_before = svs_attribution_tests::association::review::rows(db, &reviews).await;
     let decisions = svs_results_tests::before_the_audit_breaks(db).await;
+    let coverage = svs_results_tests::coverage::coverage_before_the_audit_breaks(db).await;
     let decisions_before = svs_results_tests::decision_rows(db).await;
+    let coverage_before = svs_results_tests::coverage::coverage_rows(db).await;
     let runs = svs_runs_tests::before_the_audit_breaks(db).await;
     let runs_before = svs_runs_tests::runs_rows(db, &runs).await;
     let hosts_before = test_host_rows(db).await;
@@ -4319,6 +4327,10 @@ async fn every_write_fails_when_its_audit_fails() {
     attempts.extend(svs_runs_tests::attempts_with_the_audit_broken(&runs, &actor).await);
     attempts.extend(svs_results_tests::attempts_with_the_audit_broken(&decisions, &actor).await);
     attempts.extend(
+        svs_results_tests::coverage::coverage_attempts_with_the_audit_broken(&coverage, &actor)
+            .await,
+    );
+    attempts.extend(
         svs_attribution_tests::association::attempts_with_the_audit_broken(&associations, &actor)
             .await,
     );
@@ -4373,6 +4385,11 @@ async fn every_write_fails_when_its_audit_fails() {
         svs_results_tests::decision_rows(db).await,
         decisions_before,
         "no decision, ignore, setting, result or comment changed"
+    );
+    assert_eq!(
+        svs_results_tests::coverage::coverage_rows(db).await,
+        coverage_before,
+        "no coverage row, snapshot or worklist row changed, and no error was recorded"
     );
     assert_eq!(
         svs_attribution_tests::association::rows(db, &associations).await,
@@ -33900,6 +33917,3512 @@ mod svs_results_tests {
         }
         rows
     }
+    /// PLAN.md 7.10 batch 8: coverage, the worklist and a test's state. ace3's
+    /// `tests/saq/svs/test_test_state.py` (16), and the cases of `test_coverage.py` (31) and
+    /// `test_worklist.py` (24) that need the database, each test named for the ace3 case it ports. The cases
+    /// that need none are `ace-core`'s (`svs::coverage`, `svs::worklist`, `svs::test_state`), the scheduler's
+    /// and the commands' are `ace-app`'s, and `test_config.py`'s coverage defaults are the overlay's and
+    /// the scheduler's.
+    ///
+    /// What differs in how they're set up, beside what `svs_results_tests` says of its own: a hunt's tags
+    /// are what the hunter recorded of its file and a YARA rule's are the current ruleset's row's, so
+    /// "writing a hunt" is `sync_hunts`. ace3 makes a refresh fail by patching `signature_techniques` to
+    /// raise `SignatureTagsUnavailable`, which has no counterpart, since the tags are read from the database
+    /// in the refresh's own transaction; here a trigger refuses coverage's rows, a failing database. The
+    /// log records ace3's cases read with `caplog` are checked on the refresh's result, which the lines
+    /// are written from, and its AUDIT records are the audit rows.
+    ///
+    /// Without a counterpart: `test_an_inventory_error_raises` (there's no rule directory to be missing),
+    /// and `test_today_in_utc_by_default`'s change of the process's timezone (the day is UTC's whatever the
+    /// node's timezone is; the test checks the day).
+    pub(super) mod coverage {
+        use super::*;
+        use ace_service::{
+            CoverageHistoryQuery, CoverageQuery, CoverageRefresh, HistoryGroup,
+            SvsCoverageState as State, TestHistory, TestState, WorklistQuery, WorklistRow,
+            WorklistStatus,
+        };
+        use chrono::NaiveDate;
+
+        /// test_test_state.py's and test_coverage.py's `SIGNATURE` and `OTHER`.
+        const SIGNATURE: &str = YARA;
+        const OTHER_SIGNATURE: &str = OTHER;
+
+        fn rule_hash() -> String {
+            "d".repeat(64)
+        }
+
+        fn refresher() -> Actor {
+            component("scheduler:svs_coverage_refresh")
+        }
+
+        fn snapshotter() -> Actor {
+            component("scheduler:svs_coverage_snapshot")
+        }
+
+        /// The current ruleset holds the rule test_test_state.py's `setup` writes.
+        async fn the_rule(db: &Db) {
+            ruleset(
+                db,
+                json!([{"uuid": SIGNATURE, "name": "Suspicious_Macro", "content_hash": rule_hash(),
+                        "tags": [], "counts": true}]),
+            )
+            .await;
+        }
+
+        /// `_run`: a run of the test on a platform, in a state, registered `ago` ago; a reviewed one was
+        /// reviewed half an hour later.
+        async fn run_in(
+            f: &Fx,
+            db: &Db,
+            guid: &str,
+            platform: &str,
+            state: &str,
+            ago: TimeDelta,
+        ) -> Run {
+            let created = t0() - ago;
+            let run = f.started_on(guid, platform, created).await;
+            sqlx::query(
+                "UPDATE svs.runs
+                 SET state = $2::svs.run_state, created_at = $3,
+                     reviewed_at = CASE WHEN $2 = 'reviewed' THEN $3 + interval '30 minutes' END
+                 WHERE uuid = $1",
+            )
+            .bind(run.uuid)
+            .bind(state)
+            .bind(created)
+            .execute(db.pool())
+            .await
+            .expect("sets the state");
+            f.reload(run.uuid).await
+        }
+
+        /// `_reviewed`: a reviewed run of GUID on windows.
+        async fn reviewed(f: &Fx, db: &Db, ago: TimeDelta) -> Run {
+            run_in(f, db, GUID, "windows", "reviewed", ago).await
+        }
+
+        /// `_result`: a row of the run's result, live and as signed off.
+        async fn result(
+            db: &Db,
+            run: &Run,
+            signature: &str,
+            status: Option<&str>,
+            reviewed_status: Option<&str>,
+            reviewed_hash: &str,
+        ) {
+            sqlx::query(
+                "INSERT INTO svs.run_results
+                     (run_id, signature_uuid, status, reviewed_status, reviewed_content_hash)
+                 VALUES ((SELECT id FROM svs.runs WHERE uuid = $1), $2, $3, $4, $5)",
+            )
+            .bind(run.uuid)
+            .bind(signature)
+            .bind(status)
+            .bind(reviewed_status)
+            .bind(reviewed_hash)
+            .execute(db.pool())
+            .await
+            .expect("adds a result row");
+        }
+
+        /// A result row signed off as a hit of the rule as it is now.
+        async fn hit(db: &Db, run: &Run, signature: &str) {
+            result(db, run, signature, Some("hit"), Some("hit"), &rule_hash()).await;
+        }
+
+        /// `_history`.
+        async fn history_of(f: &Fx, guid: &str) -> TestHistory {
+            f.service
+                .svs_catalog_test(&f.admin, guid)
+                .await
+                .expect("reads the test")
+                .test
+                .history
+        }
+
+        async fn history(f: &Fx) -> TestHistory {
+            history_of(f, GUID).await
+        }
+
+        async fn state_fixture(db: &Db) -> Fx {
+            let f = fixture(db).await;
+            the_rule(db).await;
+            f
+        }
+
+        // TestStates
+
+        /// `test_never_run`.
+        #[tokio::test]
+        async fn never_run() {
+            let test_db = TestDb::new().await;
+            let f = state_fixture(test_db.db()).await;
+            let h = history(&f).await;
+            assert_eq!(h.state, TestState::NeverRun);
+            assert_eq!((h.run_count, h.last_run, h.expected), (0, None, 0));
+            // the list carries the same
+            let page = f
+                .service
+                .svs_catalog_tests(&f.admin, &Default::default(), None, None)
+                .await
+                .expect("lists");
+            assert!(
+                page.tests
+                    .iter()
+                    .all(|t| t.history.state == TestState::NeverRun)
+            );
+        }
+
+        /// `test_awaiting_review_until_a_run_is_reviewed`.
+        #[tokio::test]
+        async fn awaiting_review_until_a_run_is_reviewed() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let f = state_fixture(db).await;
+            f.expect(GUID, SIGNATURE, "expected", "windows").await;
+            run_in(&f, db, GUID, "windows", "ended", hours(1)).await;
+            assert_eq!(history(&f).await.state, TestState::AwaitingReview);
+        }
+
+        /// `test_no_expectations`.
+        #[tokio::test]
+        async fn no_expectations() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let f = state_fixture(db).await;
+            reviewed(&f, db, hours(1)).await;
+            assert_eq!(history(&f).await.state, TestState::NoExpectations);
+        }
+
+        /// `test_failing`, both of its parameters.
+        #[tokio::test]
+        async fn failing() {
+            for reviewed_status in ["missing", "possibly_suppressed"] {
+                let test_db = TestDb::new().await;
+                let db = test_db.db();
+                let f = state_fixture(db).await;
+                f.expect(GUID, SIGNATURE, "expected", "windows").await;
+                let run = reviewed(&f, db, hours(1)).await;
+                result(
+                    db,
+                    &run,
+                    SIGNATURE,
+                    Some("hit"),
+                    Some(reviewed_status),
+                    &rule_hash(),
+                )
+                .await;
+                // judged as signed off: a live hit since doesn't change it
+                assert_eq!(
+                    history(&f).await.state,
+                    TestState::Failing,
+                    "{reviewed_status}"
+                );
+            }
+        }
+
+        /// `test_only_the_latest_reviewed_run_counts`.
+        #[tokio::test]
+        async fn only_the_latest_reviewed_run_counts() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let f = state_fixture(db).await;
+            f.expect(GUID, SIGNATURE, "expected", "windows").await;
+            let earlier = reviewed(&f, db, TimeDelta::days(2)).await;
+            result(
+                db,
+                &earlier,
+                SIGNATURE,
+                Some("missing"),
+                Some("missing"),
+                &rule_hash(),
+            )
+            .await;
+            let latest = reviewed(&f, db, hours(1)).await;
+            hit(db, &latest, SIGNATURE).await;
+            let h = history(&f).await;
+            assert_eq!(
+                (h.state, h.expected, h.last_reviewed_run),
+                (TestState::Validated, 1, Some(latest.uuid))
+            );
+        }
+
+        /// `test_an_expectation_added_after_the_review_waits_for_one`.
+        #[tokio::test]
+        async fn an_expectation_added_after_the_review_waits_for_one() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let f = state_fixture(db).await;
+            f.expect(GUID, SIGNATURE, "expected", "windows").await;
+            let run = reviewed(&f, db, hours(1)).await;
+            hit(db, &run, SIGNATURE).await;
+            f.expect(GUID, OTHER_SIGNATURE, "expected", "windows").await;
+            assert_eq!(history(&f).await.state, TestState::AwaitingReview);
+            // an ignored one doesn't count
+            f.ignore(OTHER_SIGNATURE, Some(GUID)).await;
+            assert_eq!(history(&f).await.state, TestState::Validated);
+        }
+
+        /// `test_stale_when_the_rule_changed`.
+        #[tokio::test]
+        async fn stale_when_the_rule_changed() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let f = state_fixture(db).await;
+            f.expect(GUID, SIGNATURE, "expected", "windows").await;
+            let run = reviewed(&f, db, hours(1)).await;
+            result(
+                db,
+                &run,
+                SIGNATURE,
+                Some("hit"),
+                Some("hit"),
+                &"b".repeat(64),
+            )
+            .await;
+            assert_eq!(history(&f).await.state, TestState::Stale);
+        }
+
+        /// `test_stale_when_the_test_changed`.
+        #[tokio::test]
+        async fn stale_when_the_test_changed() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let f = state_fixture(db).await;
+            f.expect(GUID, SIGNATURE, "expected", "windows").await;
+            let run = reviewed(&f, db, hours(1)).await;
+            sqlx::query("UPDATE svs.runs SET test_content_hash = repeat('c', 64) WHERE uuid = $1")
+                .bind(run.uuid)
+                .execute(db.pool())
+                .await
+                .expect("changes the hash");
+            hit(db, &run, SIGNATURE).await;
+            assert_eq!(history(&f).await.state, TestState::Stale);
+        }
+
+        /// `test_a_rule_ace_cannot_read_is_not_counted_as_changed`: the rule isn't in the ruleset.
+        #[tokio::test]
+        async fn a_rule_ace_cannot_read_is_not_counted_as_changed() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let f = fixture(db).await;
+            f.expect(GUID, SIGNATURE, "expected", "windows").await;
+            let run = reviewed(&f, db, hours(1)).await;
+            result(
+                db,
+                &run,
+                SIGNATURE,
+                Some("hit"),
+                Some("hit"),
+                &"b".repeat(64),
+            )
+            .await;
+            assert_eq!(history(&f).await.state, TestState::Validated);
+        }
+
+        // TestPlatforms: a test is judged on each platform by its runs there against what is expected
+        // of it there
+
+        /// `multi`: MULTI, a test of windows, linux and macos.
+        async fn multi_fixture(db: &Db) -> Fx {
+            let f = state_fixture(db).await;
+            catalog_test(db, MULTI, "T1003", &["windows", "linux", "macos"]).await;
+            f
+        }
+
+        /// `_platform_run`: a run of MULTI on the platform's test host.
+        async fn platform_run(f: &Fx, db: &Db, platform: &str, state: &str) -> Run {
+            run_in(f, db, MULTI, platform, state, hours(1)).await
+        }
+
+        fn platform_states(h: &TestHistory) -> Vec<(&str, TestState)> {
+            h.platform_states
+                .iter()
+                .map(|(platform, state)| (platform.as_str(), state.state))
+                .collect()
+        }
+
+        /// `test_each_platform_on_its_own`.
+        #[tokio::test]
+        async fn each_platform_on_its_own() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let f = multi_fixture(db).await;
+            for platform in ["windows", "linux"] {
+                f.expect(MULTI, SIGNATURE, "expected", platform).await;
+            }
+            let windows = platform_run(&f, db, "windows", "reviewed").await;
+            hit(db, &windows, SIGNATURE).await;
+            let linux = platform_run(&f, db, "linux", "reviewed").await;
+            result(
+                db,
+                &linux,
+                SIGNATURE,
+                Some("missing"),
+                Some("missing"),
+                &rule_hash(),
+            )
+            .await;
+
+            let h = history_of(&f, MULTI).await;
+            assert_eq!(h.state, TestState::Failing);
+            // a platform without a run or a decision isn't evaluated: it is never run
+            assert_eq!(
+                platform_states(&h),
+                [
+                    ("linux", TestState::Failing),
+                    ("macos", TestState::NeverRun),
+                    ("windows", TestState::Validated),
+                ]
+            );
+            assert_eq!(
+                (
+                    h.platform_states["windows"].expected,
+                    h.platform_states["macos"].expected
+                ),
+                (1, 0)
+            );
+            // a signature expected on two platforms is one expected signature
+            assert_eq!(h.expected, 1);
+        }
+
+        /// `test_worst_first`.
+        #[tokio::test]
+        async fn worst_first() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let f = multi_fixture(db).await;
+            f.expect(MULTI, SIGNATURE, "expected", "windows").await;
+            let windows = platform_run(&f, db, "windows", "reviewed").await;
+            hit(db, &windows, SIGNATURE).await;
+            let linux = platform_run(&f, db, "linux", "ended").await;
+            // a platform whose runs aren't reviewed yet holds the test in review
+            assert_eq!(history_of(&f, MULTI).await.state, TestState::AwaitingReview);
+
+            // nothing expected on linux: validated wins over no expectations
+            sqlx::query("UPDATE svs.runs SET state = 'reviewed', reviewed_at = $2 WHERE uuid = $1")
+                .bind(linux.uuid)
+                .bind(t0())
+                .execute(db.pool())
+                .await
+                .expect("reviews it");
+            let h = history_of(&f, MULTI).await;
+            assert_eq!(h.state, TestState::Validated);
+            assert_eq!(h.platform_states["linux"].state, TestState::NoExpectations);
+            assert_eq!(h.last_reviewed_run, Some(linux.uuid));
+        }
+
+        /// `test_an_expectation_on_a_platform_without_runs`.
+        #[tokio::test]
+        async fn an_expectation_on_a_platform_without_runs() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let f = multi_fixture(db).await;
+            f.expect(MULTI, SIGNATURE, "expected", "windows").await;
+            let windows = platform_run(&f, db, "windows", "reviewed").await;
+            hit(db, &windows, SIGNATURE).await;
+            f.expect(MULTI, OTHER_SIGNATURE, "expected", "macos").await;
+
+            let h = history_of(&f, MULTI).await;
+            assert_eq!(h.state, TestState::AwaitingReview);
+            let macos = &h.platform_states["macos"];
+            assert_eq!(
+                (macos.state, macos.last_reviewed_run, macos.expected),
+                (TestState::AwaitingReview, None, 1)
+            );
+        }
+
+        /// `test_an_expectation_after_the_review_is_unjudged`: what's unjudged shows as the platform
+        /// waiting for a review with its reviewed run, and as stale toward coverage.
+        #[tokio::test]
+        async fn an_expectation_after_the_review_is_unjudged() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let f = multi_fixture(db).await;
+            f.expect(MULTI, SIGNATURE, "expected", "linux").await;
+            let run = platform_run(&f, db, "linux", "reviewed").await;
+            hit(db, &run, SIGNATURE).await;
+            let contribution = async || {
+                f.service
+                    .svs_coverage_technique(&f.admin, "T1003")
+                    .await
+                    .expect("the technique")
+                    .tests
+                    .into_iter()
+                    .find(|test| test.platform == "linux")
+                    .expect("its row on linux")
+            };
+            let before = contribution().await;
+            assert_eq!(
+                (before.test_state, before.contribution),
+                (TestState::Validated, State::Validated)
+            );
+
+            f.expect(MULTI, OTHER_SIGNATURE, "expected", "linux").await;
+            let h = history_of(&f, MULTI).await;
+            let linux = &h.platform_states["linux"];
+            assert_eq!(
+                (linux.state, linux.last_reviewed_run, linux.expected),
+                (TestState::AwaitingReview, Some(run.uuid), 2)
+            );
+            let after = contribution().await;
+            assert_eq!(
+                (after.test_state, after.contribution),
+                (TestState::AwaitingReview, State::Stale)
+            );
+            assert_eq!(
+                after.expected_signatures,
+                [SIGNATURE.to_owned(), OTHER_SIGNATURE.to_owned()]
+            );
+        }
+
+        // TestRunHistory
+
+        /// `test_runs_and_recent_misses`.
+        #[tokio::test]
+        async fn runs_and_recent_misses() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let f = state_fixture(db).await;
+            let recent = ace_core::svs::test_state::RECENT_RUNS;
+            let mut runs = Vec::new();
+            for ago in (1..=recent + 2).rev() {
+                runs.push(run_in(&f, db, GUID, "windows", "ended", hours(ago)).await);
+            }
+            run_in(&f, db, GUID, "windows", "closed", minutes(5)).await;
+            // the oldest run misses, but it is not among the latest RECENT_RUNS ended ones
+            let last = runs.len() - 1;
+            result(db, &runs[0], SIGNATURE, Some("missing"), None, "x").await;
+            result(
+                db,
+                &runs[last],
+                SIGNATURE,
+                Some("possibly_suppressed"),
+                None,
+                "x",
+            )
+            .await;
+            result(db, &runs[last - 1], SIGNATURE, Some("missing"), None, "x").await;
+            result(
+                db,
+                &runs[last - 2],
+                OTHER_SIGNATURE,
+                Some("candidate"),
+                None,
+                "x",
+            )
+            .await;
+
+            let h = history(&f).await;
+            assert_eq!(h.run_count, recent + 3);
+            assert_eq!((h.recent_runs, h.recent_runs_missing), (recent, 2));
+            assert!(h.last_run_at.expect("a last run") > t0() - hours(1));
+            assert_eq!(h.last_reviewed_run, None);
+        }
+
+        // TestRunSummary
+
+        /// `test_counts`: the runs screen's result and alert summary.
+        #[tokio::test]
+        async fn counts() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let f = state_fixture(db).await;
+            let run = run_in(&f, db, GUID, "windows", "ended", hours(1)).await;
+            for status in ["hit", "missing", "possibly_suppressed", "candidate"] {
+                result(
+                    db,
+                    &run,
+                    &Uuid::new_v4().to_string(),
+                    Some(status),
+                    None,
+                    "x",
+                )
+                .await;
+            }
+            result(
+                db,
+                &run,
+                &Uuid::new_v4().to_string(),
+                None,
+                Some("hit"),
+                "x",
+            )
+            .await;
+            let marked = attribute(db, &run, SIGNATURE, Attr::default()).await;
+            attribute(
+                db,
+                &run,
+                SIGNATURE,
+                Attr {
+                    alert: Some(marked),
+                    context: true,
+                    ..Attr::default()
+                },
+            )
+            .await;
+            attribute(
+                db,
+                &run,
+                SIGNATURE,
+                Attr {
+                    context: true,
+                    late: true,
+                    ..Attr::default()
+                },
+            )
+            .await;
+            attribute(
+                db,
+                &run,
+                SIGNATURE,
+                Attr {
+                    removed: true,
+                    ..Attr::default()
+                },
+            )
+            .await;
+            let empty = run_in(&f, db, GUID, "windows", "ended", hours(1)).await;
+
+            let summary = f
+                .service
+                .svs_run_row(&f.admin, run.uuid)
+                .await
+                .expect("the run")
+                .summary;
+            assert_eq!(
+                (
+                    summary.hit,
+                    summary.missing,
+                    summary.possibly_suppressed,
+                    summary.candidate
+                ),
+                (1, 1, 1, 1)
+            );
+            assert_eq!(summary.expected(), 3);
+            assert_eq!(
+                (
+                    summary.alerts,
+                    summary.marker_alerts,
+                    summary.context_alerts,
+                    summary.late_alerts
+                ),
+                (2, 1, 1, 1)
+            );
+            let none = f
+                .service
+                .svs_run_row(&f.admin, empty.uuid)
+                .await
+                .expect("the run")
+                .summary;
+            assert_eq!((none.alerts, none.expected()), (0, 0));
+        }
+
+        /// `test_the_result_and_alert_filters`.
+        #[tokio::test]
+        async fn the_result_and_alert_filters() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let f = state_fixture(db).await;
+            let mut made = Vec::new();
+            for _ in 0..6 {
+                made.push(run_in(&f, db, GUID, "windows", "ended", hours(1)).await);
+            }
+            let [missing, suppressed, candidate, late, context, plain] = &made[..] else {
+                panic!("six runs");
+            };
+            result(db, missing, SIGNATURE, Some("missing"), None, "x").await;
+            result(
+                db,
+                suppressed,
+                SIGNATURE,
+                Some("possibly_suppressed"),
+                None,
+                "x",
+            )
+            .await;
+            result(db, candidate, SIGNATURE, Some("candidate"), None, "x").await;
+            let attr = |late: bool, context: bool, removed: bool| Attr {
+                late,
+                context,
+                removed,
+                ..Attr::default()
+            };
+            attribute(db, late, SIGNATURE, attr(true, false, false)).await;
+            attribute(db, context, SIGNATURE, attr(false, true, false)).await;
+            attribute(db, plain, SIGNATURE, attr(false, false, false)).await;
+            // a removed attribution doesn't count
+            attribute(db, plain, SIGNATURE, attr(true, true, true)).await;
+
+            let has =
+                async |name: &str, value: &str| matching(&f, &[(name, false, &[value])]).await;
+            let set = |runs: &[&Run]| -> BTreeSet<Uuid> { runs.iter().map(|r| r.uuid).collect() };
+            assert_eq!(
+                has("Has Missing", "true").await,
+                set(&[missing, suppressed])
+            );
+            assert_eq!(
+                has("Has Possibly Suppressed", "true").await,
+                set(&[suppressed])
+            );
+            assert_eq!(has("Has Candidates", "true").await, set(&[candidate]));
+            assert_eq!(has("Has Late", "true").await, set(&[late]));
+            assert_eq!(has("Has Context Only", "true").await, set(&[context]));
+            assert!(has("Has Late", "false").await.contains(&plain.uuid));
+        }
+
+        // test_coverage.py and test_worklist.py: the refresh, against the `ATTACK_EXTRACT` release
+
+        const T1059_001: &str = "T1059.001";
+
+        /// A day test_coverage.py files snapshots under.
+        fn day() -> NaiveDate {
+            NaiveDate::from_ymd_opt(2026, 10, 16).expect("a day")
+        }
+
+        struct Cx {
+            f: Fx,
+            /// The service, pinned to the test release v99.0.
+            service: Service,
+        }
+
+        /// `refreshable`: the test release, and no catalog tests or signatures until a test adds one.
+        async fn refreshable(db: &Db) -> Cx {
+            refreshable_named(db, "cov").await
+        }
+
+        async fn refreshable_named(db: &Db, prefix: &'static str) -> Cx {
+            let f = fixture_named(db, prefix).await;
+            let service = f
+                .service
+                .clone()
+                .with_attack_catalog(Arc::new(ace_core::testing::attack_catalog()));
+            Cx { f, service }
+        }
+
+        impl Cx {
+            async fn refresh_at(&self, now: DateTime<Utc>) -> CoverageRefresh {
+                self.service
+                    .refresh_svs_coverage(&refresher(), now)
+                    .await
+                    .expect("refreshes")
+            }
+
+            async fn refresh(&self) -> CoverageRefresh {
+                self.refresh_at(Utc::now()).await
+            }
+
+            async fn worklist(&self) -> BTreeMap<(String, String), WorklistRow> {
+                self.service
+                    .svs_worklist(&self.f.admin, &WorklistQuery::default(), None, Some(1000))
+                    .await
+                    .expect("lists the worklist")
+                    .rows
+                    .into_iter()
+                    .map(|row| ((row.signature_uuid.clone(), row.technique.clone()), row))
+                    .collect()
+            }
+
+            /// `_statuses`.
+            async fn statuses(&self) -> Vec<(String, WorklistStatus)> {
+                self.worklist()
+                    .await
+                    .into_iter()
+                    .map(|((_, technique), row)| (technique, row.status))
+                    .collect()
+            }
+
+            async fn row(&self, technique: &str) -> WorklistRow {
+                self.worklist()
+                    .await
+                    .remove(&(SIGNATURE.to_owned(), technique.to_owned()))
+                    .unwrap_or_else(|| panic!("no worklist row on {technique}"))
+            }
+
+            async fn resolve(
+                &self,
+                technique: &str,
+                resolution: &str,
+                reason: &str,
+            ) -> WorklistRow {
+                self.service
+                    .resolve_svs_worklist_row(
+                        &self.f.admin,
+                        SIGNATURE,
+                        technique,
+                        resolution,
+                        Some(reason),
+                        None,
+                        Precondition::None,
+                        Utc::now(),
+                    )
+                    .await
+                    .expect("resolves")
+            }
+        }
+
+        #[derive(Debug, Clone, PartialEq, sqlx::FromRow)]
+        struct Stored {
+            state: String,
+            own_state: String,
+            manual_signatures: i32,
+            state_changed_at: DateTime<Utc>,
+            retired_at: Option<DateTime<Utc>>,
+            updated_at: DateTime<Utc>,
+        }
+
+        /// `_rows`: the stored coverage rows by (technique, platform).
+        async fn rows(db: &Db) -> BTreeMap<(String, String), Stored> {
+            sqlx::query_as::<
+                _,
+                (
+                    String,
+                    String,
+                    String,
+                    String,
+                    i32,
+                    DateTime<Utc>,
+                    Option<DateTime<Utc>>,
+                    DateTime<Utc>,
+                ),
+            >(
+                "SELECT technique, platform, state, own_state, manual_signatures, state_changed_at,
+                        retired_at, updated_at
+                 FROM svs.coverage",
+            )
+            .fetch_all(db.pool())
+            .await
+            .expect("reads coverage")
+            .into_iter()
+            .map(
+                |(
+                    technique,
+                    platform,
+                    state,
+                    own_state,
+                    manual_signatures,
+                    state_changed_at,
+                    retired_at,
+                    updated_at,
+                )| {
+                    (
+                        (technique, platform),
+                        Stored {
+                            state,
+                            own_state,
+                            manual_signatures,
+                            state_changed_at,
+                            retired_at,
+                            updated_at,
+                        },
+                    )
+                },
+            )
+            .collect()
+        }
+
+        /// `_coverage`.
+        async fn coverage_of(db: &Db, technique: &str, platform: &str) -> Stored {
+            rows(db)
+                .await
+                .remove(&(technique.to_owned(), platform.to_owned()))
+                .unwrap_or_else(|| panic!("no coverage of {technique} on {platform}"))
+        }
+
+        /// `_state`: the refresh's state row: (attack_release, refreshed, rows, changed, retired,
+        /// unknown_tags, ignored_tags, error).
+        #[derive(Debug, sqlx::FromRow)]
+        struct RefreshRow {
+            attack_release: Option<String>,
+            refreshed_at: Option<DateTime<Utc>>,
+            rows: i32,
+            changed: i32,
+            retired: i32,
+            unknown_tags: i32,
+            ignored_tags: i32,
+            error: Option<String>,
+        }
+
+        async fn refresh_row(db: &Db) -> RefreshRow {
+            sqlx::query_as(
+                "SELECT attack_release, refreshed_at, rows, changed, retired, unknown_tags,
+                        ignored_tags, error
+                 FROM svs.coverage_state WHERE id = 1",
+            )
+            .fetch_one(db.pool())
+            .await
+            .expect("the refresh's state")
+        }
+
+        /// `write_hunt`: what the hunter recorded of its hunt files, each (uuid, enabled, tags). The
+        /// hunter's files are all of them: a hunt left out is gone.
+        async fn write_hunts(cx: &Cx, files: &[(&str, bool, &[&str])]) {
+            let files: Vec<(String, Value)> = files
+                .iter()
+                .map(|(uuid, enabled, tags)| {
+                    (
+                        format!("{uuid}.yaml"),
+                        json!({
+                            "uuid": uuid, "name": format!("hunt {uuid}"), "enabled": enabled,
+                            "latency_seconds": 3600, "suppression_seconds": null,
+                            "per_group": false, "content_hash": hunt_hash(), "tags": tags,
+                        }),
+                    )
+                })
+                .collect();
+            // a hunt type of their own, so the hunts other tests record stay as they are
+            let rows: Vec<LoadedHuntRow> = files
+                .iter()
+                .map(|(path, svs)| LoadedHuntRow {
+                    kind: "coverage".to_owned(),
+                    svs: Some(serde_json::from_value(svs.clone()).expect("a recorded hunt")),
+                    ..loaded_hunt(path)
+                })
+                .collect();
+            cx.service
+                .sync_hunts(&hunter(), "coverage", &rows)
+                .await
+                .expect("records the hunts");
+        }
+
+        /// `tag`: tags SIGNATURE, a hunt, with `mitre:` techniques (or none) for the next refresh.
+        async fn tag(cx: &Cx, techniques: &[&str]) {
+            let tags: Vec<String> = techniques.iter().map(|t| format!("mitre:{t}")).collect();
+            let tags: Vec<&str> = tags.iter().map(String::as_str).collect();
+            write_hunts(cx, &[(SIGNATURE, true, &tags)]).await;
+        }
+
+        /// `_validated_run`: a reviewed run of the test on windows that hit SIGNATURE, which is expected
+        /// of it.
+        async fn validated_run(cx: &Cx, db: &Db, guid: &str) {
+            cx.f.expect(guid, SIGNATURE, "expected", "windows").await;
+            let run = run_in(&cx.f, db, guid, "windows", "reviewed", hours(1)).await;
+            hit(db, &run, SIGNATURE).await;
+        }
+
+        async fn set_removed(db: &Db, guid: &str, removed: bool) {
+            sqlx::query(
+                "UPDATE svs.catalog_tests SET removed_at = CASE WHEN $2 THEN now() END
+                 WHERE guid = $1::uuid",
+            )
+            .bind(guid)
+            .bind(removed)
+            .execute(db.pool())
+            .await
+            .expect("changes the test");
+        }
+
+        /// A database that fails the refresh: coverage's rows are refused. ace3 patches
+        /// `signature_techniques` to raise.
+        async fn break_coverage(db: &Db) {
+            sqlx::raw_sql(
+                "CREATE FUNCTION svs.boom() RETURNS trigger LANGUAGE plpgsql AS $$
+                 BEGIN RAISE EXCEPTION 'boom'; END $$;
+                 CREATE TRIGGER boom BEFORE INSERT OR UPDATE ON svs.coverage
+                     FOR EACH ROW EXECUTE FUNCTION svs.boom();",
+            )
+            .execute(db.pool())
+            .await
+            .expect("adds the trigger");
+        }
+
+        async fn mend_coverage(db: &Db) {
+            sqlx::raw_sql("DROP TRIGGER boom ON svs.coverage; DROP FUNCTION svs.boom();")
+                .execute(db.pool())
+                .await
+                .expect("drops the trigger");
+        }
+
+        // TestSignatureTechniques: the tags as the drill-down shows them
+
+        type Mapping = (String, String, Option<String>, String, bool, Option<String>);
+
+        /// The manual mappings of a technique: (signature, family, name, declared, counts, reason).
+        async fn manual(cx: &Cx, technique: &str) -> Vec<Mapping> {
+            cx.service
+                .svs_coverage_technique(&cx.f.admin, technique)
+                .await
+                .expect("the technique")
+                .manual_signatures
+                .into_iter()
+                .map(|m| {
+                    (
+                        m.signature_uuid,
+                        m.family,
+                        m.name,
+                        m.declared,
+                        m.counts,
+                        m.reason,
+                    )
+                })
+                .collect()
+        }
+
+        fn mapping(
+            uuid: &str,
+            family: &str,
+            name: &str,
+            declared: &str,
+            reason: Option<&str>,
+        ) -> Mapping {
+            (
+                uuid.to_owned(),
+                family.to_owned(),
+                Some(name.to_owned()),
+                declared.to_owned(),
+                reason.is_none(),
+                reason.map(str::to_owned),
+            )
+        }
+
+        /// `test_hunt_tags`: a hunt's `mitre:` tags in any case are its techniques, a tactic and a
+        /// template are ignored and counted, a hunt without any isn't there, and a disabled hunt's don't
+        /// count.
+        #[tokio::test]
+        async fn hunt_tags() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let cx = refreshable(db).await;
+            write_hunts(
+                &cx,
+                &[
+                    (
+                        "h1",
+                        false,
+                        &[
+                            "mitre:t1059.001",
+                            "MITRE:T1547",
+                            "mitre:TA0002",
+                            "mitre:{{ technique }}",
+                            "phishing",
+                        ],
+                    ),
+                    ("h2", true, &["phishing"]),
+                ],
+            )
+            .await;
+            assert_eq!(
+                manual(&cx, T1059_001).await,
+                [mapping(
+                    "h1",
+                    "hunt",
+                    "hunt h1",
+                    "T1059.001",
+                    Some("not_counting")
+                )]
+            );
+            assert_eq!(
+                manual(&cx, "T1547").await,
+                [mapping(
+                    "h1",
+                    "hunt",
+                    "hunt h1",
+                    "T1547",
+                    Some("not_counting")
+                )]
+            );
+            cx.refresh().await;
+            let state = refresh_row(db).await;
+            assert_eq!((state.unknown_tags, state.ignored_tags), (0, 2));
+            assert_eq!(coverage_of(db, "T1547", "windows").await.state, "none");
+        }
+
+        /// `test_yara_tags`: a rule's tags are its ruleset row's, a disabled rule's and one in QA mode
+        /// don't count, an untagged rule isn't there, and a uuid a hunt and a rule both use is the
+        /// hunt's.
+        #[tokio::test]
+        async fn yara_tags() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let cx = refreshable(db).await;
+            write_hunts(&cx, &[("shared", true, &["mitre:T1059"])]).await;
+            let rule = |uuid: &str, name: &str, tags: &[&str], counts: bool| {
+                json!({"uuid": uuid, "name": name, "content_hash": rule_hash(), "tags": tags,
+                       "counts": counts})
+            };
+            ruleset(
+                db,
+                json!([
+                    rule("on", "on_rule", &["mitre:T1059.001"], true),
+                    rule("off", "off_rule", &["mitre:T1059.001"], false),
+                    rule("qa", "qa_rule", &["mitre:T1059.001"], false),
+                    rule("untagged", "untagged_rule", &[], true),
+                    rule("shared", "shared_rule", &["mitre:T1547"], true),
+                ]),
+            )
+            .await;
+            assert_eq!(
+                manual(&cx, "T1059").await,
+                [
+                    mapping("off", "yara", "off_rule", "T1059.001", Some("not_counting")),
+                    mapping("on", "yara", "on_rule", "T1059.001", None),
+                    mapping("qa", "yara", "qa_rule", "T1059.001", Some("not_counting")),
+                    // a uuid both use is the hunt's
+                    mapping("shared", "hunt", "hunt shared", "T1059", None),
+                ]
+            );
+            assert_eq!(manual(&cx, "T1547").await, []);
+        }
+
+        /// `test_no_yara_location_is_not_an_error`: no ruleset was ever built, and the hunts' tags still
+        /// count.
+        #[tokio::test]
+        async fn no_ruleset_is_not_an_error() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let cx = refreshable(db).await;
+            write_hunts(&cx, &[("h1", true, &["mitre:T1059"])]).await;
+            assert_eq!(
+                manual(&cx, "T1059").await,
+                [mapping("h1", "hunt", "hunt h1", "T1059", None)]
+            );
+            cx.refresh().await;
+            assert_eq!(coverage_of(db, "T1059", "macos").await.state, "manual");
+        }
+
+        // TestRefresh (test_coverage.py)
+
+        /// `test_refresh_writes_only_what_changed`.
+        #[tokio::test]
+        async fn refresh_writes_only_what_changed() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let cx = refreshable(db).await;
+            catalog_test(db, GUID, T1059_001, &["windows"]).await;
+            let first = cx.refresh().await;
+            assert_eq!(
+                (first.rows, first.changed, first.inserted, first.retired),
+                (5, 5, 5, 0)
+            );
+            let state = refresh_row(db).await;
+            assert_eq!(
+                (
+                    state.attack_release.as_deref(),
+                    state.rows,
+                    state.changed,
+                    state.error
+                ),
+                (Some("v99.0"), 5, 5, None)
+            );
+            assert_eq!(
+                coverage_of(db, T1059_001, "windows").await.state,
+                "untested"
+            );
+
+            let before = rows(db).await;
+            let again = cx.refresh().await;
+            assert_eq!((again.rows, again.changed), (5, 0));
+            assert_eq!(rows(db).await, before);
+
+            validated_run(&cx, db, GUID).await;
+            let at = t0() + hours(1);
+            let result = cx.refresh_at(at).await;
+            assert_eq!(result.changed, 2);
+            assert_eq!(
+                result.transitions,
+                [
+                    (
+                        "T1059".to_owned(),
+                        "windows".to_owned(),
+                        "untested".to_owned(),
+                        "validated".to_owned()
+                    ),
+                    (
+                        T1059_001.to_owned(),
+                        "windows".to_owned(),
+                        "untested".to_owned(),
+                        "validated".to_owned()
+                    ),
+                ]
+            );
+            let after = rows(db).await;
+            let sub = &after[&(T1059_001.to_owned(), "windows".to_owned())];
+            assert_eq!(
+                (sub.state.as_str(), sub.state_changed_at),
+                ("validated", at)
+            );
+            let parent = &after[&("T1059".to_owned(), "windows".to_owned())];
+            assert_eq!(
+                (parent.state.as_str(), parent.own_state.as_str()),
+                ("validated", "none")
+            );
+            let macos = ("T1059".to_owned(), "macos".to_owned());
+            assert_eq!(after[&macos].updated_at, before[&macos].updated_at);
+        }
+
+        /// `test_rows_retire_and_come_back`.
+        #[tokio::test]
+        async fn rows_retire_and_come_back() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let cx = refreshable(db).await;
+            catalog_test(db, GUID, "T1234.001", &["windows"]).await;
+            cx.refresh().await;
+            assert_eq!(
+                coverage_of(db, "T1234.001", "windows").await.retired_at,
+                None
+            );
+
+            set_removed(db, GUID, true).await;
+            let result = cx.refresh().await;
+            assert_eq!(result.retired, 2);
+            assert!(
+                coverage_of(db, "T1234.001", "windows")
+                    .await
+                    .retired_at
+                    .is_some()
+            );
+            assert!(
+                coverage_of(db, "T1234", "windows")
+                    .await
+                    .retired_at
+                    .is_some()
+            );
+            assert_eq!(refresh_row(db).await.retired, 2);
+
+            set_removed(db, GUID, false).await;
+            let result = cx.refresh().await;
+            assert_eq!((result.changed, result.retired), (2, 0));
+            assert_eq!(
+                coverage_of(db, "T1234.001", "windows").await.retired_at,
+                None
+            );
+        }
+
+        /// `test_tags_count`.
+        #[tokio::test]
+        async fn tags_count() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let cx = refreshable(db).await;
+            write_hunts(
+                &cx,
+                &[(
+                    SIGNATURE,
+                    true,
+                    &["mitre:T1547", "mitre:T9999", "mitre:TA0002"],
+                )],
+            )
+            .await;
+            cx.refresh().await;
+            assert_eq!(coverage_of(db, "T1547", "windows").await.state, "manual");
+            let state = refresh_row(db).await;
+            assert_eq!((state.unknown_tags, state.ignored_tags), (1, 1));
+        }
+
+        /// `test_a_failure_changes_nothing_and_is_recorded`.
+        #[tokio::test]
+        async fn a_failure_changes_nothing_and_is_recorded() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let cx = refreshable(db).await;
+            break_coverage(db).await;
+            let error = cx
+                .service
+                .refresh_svs_coverage(&refresher(), Utc::now())
+                .await
+                .expect_err("the refresh fails");
+            assert!(error.to_string().contains("boom"), "{error}");
+            assert_eq!(rows(db).await, BTreeMap::new());
+            let state = refresh_row(db).await;
+            assert_eq!(state.refreshed_at, None);
+            assert!(
+                state.error.as_deref().is_some_and(|e| e.contains("boom")),
+                "{state:?}"
+            );
+            // a failure that repeats is recorded once
+            let audited = audit_rows(db).await.len();
+            cx.service
+                .refresh_svs_coverage(&refresher(), Utc::now())
+                .await
+                .expect_err("it fails again");
+            assert_eq!(audit_rows(db).await.len(), audited);
+
+            mend_coverage(db).await;
+            cx.refresh().await;
+            let state = refresh_row(db).await;
+            assert_eq!(state.error, None);
+            assert!(state.refreshed_at.is_some());
+        }
+
+        // TestSnapshot
+
+        #[derive(Debug, sqlx::FromRow)]
+        struct Snap {
+            attack_release: String,
+            state: String,
+            own_state: String,
+            tests_total: i32,
+            tests_validated: i32,
+            measured_signatures: i32,
+            is_subtechnique: bool,
+            updated_at: DateTime<Utc>,
+        }
+
+        /// `_snapshots`: the snapshot rows by (day, technique, platform).
+        async fn snapshots(db: &Db) -> BTreeMap<(NaiveDate, String, String), Snap> {
+            use sqlx::Row;
+            let mut all = BTreeMap::new();
+            for row in sqlx::query(
+                "SELECT snapshot_date, technique, platform, attack_release, state, own_state,
+                        tests_total, tests_validated, measured_signatures, is_subtechnique, updated_at
+                 FROM svs.coverage_snapshots",
+            )
+            .fetch_all(db.pool())
+            .await
+            .expect("reads the snapshots")
+            {
+                let key = (
+                    row.get::<NaiveDate, _>("snapshot_date"),
+                    row.get::<String, _>("technique"),
+                    row.get::<String, _>("platform"),
+                );
+                all.insert(
+                    key,
+                    <Snap as sqlx::FromRow<_>>::from_row(&row).expect("a snapshot row"),
+                );
+            }
+            all
+        }
+
+        fn snap_key(
+            day: NaiveDate,
+            technique: &str,
+            platform: &str,
+        ) -> (NaiveDate, String, String) {
+            (day, technique.to_owned(), platform.to_owned())
+        }
+
+        impl Cx {
+            async fn snapshot(&self, day: Option<NaiveDate>) -> ace_service::CoverageSnapshot {
+                self.service
+                    .write_svs_coverage_snapshot(&snapshotter(), day, Utc::now())
+                    .await
+                    .expect("files the snapshot")
+            }
+        }
+
+        /// `test_a_snapshot_copies_the_live_rows`.
+        #[tokio::test]
+        async fn a_snapshot_copies_the_live_rows() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let cx = refreshable(db).await;
+            catalog_test(db, GUID, T1059_001, &["windows"]).await;
+            validated_run(&cx, db, GUID).await;
+            let result = cx.snapshot(Some(day())).await;
+            assert_eq!(
+                (
+                    result.snapshot_date,
+                    result.attack_release.as_str(),
+                    result.rows,
+                    result.deleted
+                ),
+                (day(), "v99.0", 5, 0)
+            );
+
+            let all = snapshots(db).await;
+            assert_eq!(all.len(), 5);
+            let row = &all[&snap_key(day(), "T1059", "windows")];
+            assert_eq!(
+                (
+                    row.attack_release.as_str(),
+                    row.state.as_str(),
+                    row.own_state.as_str(),
+                    row.tests_total,
+                    row.tests_validated,
+                    row.measured_signatures,
+                    row.is_subtechnique
+                ),
+                ("v99.0", "validated", "none", 1, 1, 1, false)
+            );
+        }
+
+        /// `test_a_second_snapshot_the_same_day_replaces_it`.
+        #[tokio::test]
+        async fn a_second_snapshot_the_same_day_replaces_it() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let cx = refreshable(db).await;
+            catalog_test(db, GUID, "T1234.001", &["windows"]).await;
+            cx.snapshot(Some(day())).await;
+            let all = snapshots(db).await;
+            assert!(all.contains_key(&snap_key(day(), "T1234.001", "windows")));
+            let before = all[&snap_key(day(), "T1059", "windows")].updated_at;
+
+            // the test goes away: its rows retire, so they leave the day's snapshot
+            set_removed(db, GUID, true).await;
+            let result = cx.snapshot(Some(day())).await;
+            assert_eq!((result.rows, result.deleted), (5, 2));
+            let all = snapshots(db).await;
+            assert!(!all.contains_key(&snap_key(day(), "T1234.001", "windows")));
+            assert_eq!(all.len(), 5);
+            // a row that didn't change isn't rewritten
+            assert_eq!(all[&snap_key(day(), "T1059", "windows")].updated_at, before);
+
+            // another day is another snapshot
+            cx.snapshot(day().succ_opt()).await;
+            assert_eq!(snapshots(db).await.len(), 10);
+        }
+
+        /// `test_today_in_utc_by_default`.
+        #[tokio::test]
+        async fn today_in_utc_by_default() {
+            let test_db = TestDb::new().await;
+            let cx = refreshable(test_db.db()).await;
+            let before = Utc::now().date_naive();
+            let filed = cx.snapshot(None).await.snapshot_date;
+            assert!(filed == before || filed == Utc::now().date_naive());
+        }
+
+        /// `test_a_failed_refresh_writes_no_snapshot`.
+        #[tokio::test]
+        async fn a_failed_refresh_writes_no_snapshot() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let cx = refreshable(db).await;
+            // coverage has rows, which a snapshot taken before the refresh would copy
+            cx.refresh().await;
+            // the next refresh has a row to change, and can't
+            catalog_test(db, GUID, "T1234.001", &["windows"]).await;
+            break_coverage(db).await;
+            cx.service
+                .write_svs_coverage_snapshot(&snapshotter(), Some(day()), Utc::now())
+                .await
+                .expect_err("the refresh fails");
+            assert!(snapshots(db).await.is_empty());
+        }
+
+        /// A snapshot whose audit row can't be written files nothing: the refresh before it stands, as
+        /// it's a write of its own.
+        #[tokio::test]
+        async fn a_snapshot_whose_audit_fails_files_nothing() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let cx = refreshable(db).await;
+            sqlx::raw_sql(
+                "CREATE FUNCTION service.no_snapshot() RETURNS trigger LANGUAGE plpgsql AS $$
+                 BEGIN
+                     IF NEW.action = 'write_svs_coverage_snapshot' THEN
+                         RAISE EXCEPTION 'broken';
+                     END IF;
+                     RETURN NEW;
+                 END $$;
+                 CREATE TRIGGER no_snapshot BEFORE INSERT ON service.audit
+                     FOR EACH ROW EXECUTE FUNCTION service.no_snapshot();",
+            )
+            .execute(db.pool())
+            .await
+            .expect("adds the trigger");
+            let error = cx
+                .service
+                .write_svs_coverage_snapshot(&snapshotter(), Some(day()), Utc::now())
+                .await
+                .expect_err("the audit fails");
+            assert!(error.to_string().contains("broken"), "{error}");
+            assert!(snapshots(db).await.is_empty());
+            assert_eq!(rows(db).await.len(), 5);
+        }
+
+        // TestRefresh (test_worklist.py)
+
+        /// `measured`: SIGNATURE is expected of a T1059.001 test, and tagged T1547, which no test
+        /// measures.
+        async fn measured(db: &Db) -> Cx {
+            let cx = refreshable(db).await;
+            catalog_test(db, GUID, T1059_001, &["windows"]).await;
+            cx.f.expect(GUID, SIGNATURE, "expected", "windows").await;
+            tag(&cx, &["T1547"]).await;
+            cx
+        }
+
+        fn status_of(pairs: &[(&str, WorklistStatus)]) -> Vec<(String, WorklistStatus)> {
+            pairs
+                .iter()
+                .map(|(technique, status)| ((*technique).to_owned(), *status))
+                .collect()
+        }
+
+        /// `test_rows_are_written_once`.
+        #[tokio::test]
+        async fn rows_are_written_once() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let cx = measured(db).await;
+            let at = "2026-10-17T12:00:00Z".parse().expect("a time");
+            let result = cx.refresh_at(at).await;
+            assert_eq!((result.worklist.rows, result.worklist.changed), (2, 2));
+            assert_eq!(
+                cx.statuses().await,
+                status_of(&[
+                    (T1059_001, WorklistStatus::Undeclared),
+                    ("T1547", WorklistStatus::Open)
+                ])
+            );
+            let open = cx.row("T1547").await;
+            assert_eq!(
+                (
+                    open.kind,
+                    open.counts,
+                    open.measured,
+                    open.measured_techniques.as_slice(),
+                    open.first_seen_at,
+                    open.status_changed_at
+                ),
+                (
+                    ace_service::WorklistKind::Declared,
+                    true,
+                    true,
+                    [T1059_001.to_owned()].as_slice(),
+                    at,
+                    at
+                )
+            );
+
+            let before = cx.worklist().await;
+            let again = cx.refresh().await;
+            assert_eq!(again.worklist.changed, 0);
+            assert_eq!(cx.worklist().await, before);
+        }
+
+        /// `test_remove_stops_counting_from_the_next_refresh`.
+        #[tokio::test]
+        async fn remove_stops_counting_from_the_next_refresh() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let cx = measured(db).await;
+            cx.refresh().await;
+            assert_eq!(coverage_of(db, "T1547", "windows").await.state, "manual");
+
+            let at: DateTime<Utc> = "2026-10-17T12:00:00Z".parse().expect("a time");
+            let row = cx
+                .service
+                .resolve_svs_worklist_row(
+                    &cx.f.admin,
+                    SIGNATURE,
+                    "t1547",
+                    "remove",
+                    Some("it never fires on T1547"),
+                    Some("https://git.example/rules/pull/7"),
+                    Precondition::None,
+                    at,
+                )
+                .await
+                .expect("resolves");
+            assert_eq!(
+                (
+                    row.status,
+                    row.counts,
+                    row.resolution,
+                    row.reason.as_deref(),
+                    row.reference.as_deref(),
+                    row.resolved_by.as_ref().and_then(|by| by.name.as_deref()),
+                    row.resolved_at,
+                    row.status_changed_at
+                ),
+                (
+                    WorklistStatus::RemovePending,
+                    false,
+                    Some(ace_service::WorklistResolution::Remove),
+                    Some("it never fires on T1547"),
+                    Some("https://git.example/rules/pull/7"),
+                    Some("alice"),
+                    Some(at),
+                    at
+                )
+            );
+            // coverage follows at the next refresh
+            assert_eq!(coverage_of(db, "T1547", "windows").await.state, "manual");
+            cx.refresh().await;
+            let covered = coverage_of(db, "T1547", "windows").await;
+            assert_eq!(
+                (covered.state.as_str(), covered.manual_signatures),
+                ("none", 0)
+            );
+            assert_eq!(cx.row("T1547").await.status, WorklistStatus::RemovePending);
+
+            let row = cx
+                .service
+                .reopen_svs_worklist_row(
+                    &cx.f.admin,
+                    SIGNATURE,
+                    "T1547",
+                    Precondition::None,
+                    Utc::now(),
+                )
+                .await
+                .expect("reopens");
+            assert_eq!(
+                (row.status, row.counts, row.resolution, row.resolved_by),
+                (WorklistStatus::Open, true, None, None)
+            );
+            cx.refresh().await;
+            assert_eq!(coverage_of(db, "T1547", "windows").await.state, "manual");
+        }
+
+        /// `test_a_confirmed_tag_counts_whatever_its_resolution`.
+        #[tokio::test]
+        async fn a_confirmed_tag_counts_whatever_its_resolution() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let cx = refreshable(db).await;
+            catalog_test(db, GUID, T1059_001, &["windows"]).await;
+            cx.f.expect(GUID, SIGNATURE, "expected", "windows").await;
+            tag(&cx, &["T1059"]).await;
+            cx.refresh().await;
+            // resolved before measurement confirmed it
+            sqlx::query(
+                "UPDATE svs.technique_worklist SET resolution = 'remove', reason = 'r', resolved_at = now()",
+            )
+            .execute(db.pool())
+            .await
+            .expect("resolves");
+            cx.refresh().await;
+            let row = cx.row("T1059").await;
+            assert_eq!(
+                (row.status, row.counts, row.resolution),
+                (
+                    WorklistStatus::Confirmed,
+                    true,
+                    Some(ace_service::WorklistResolution::Remove)
+                )
+            );
+            // the tag still makes T1059 manual where no test runs
+            assert_eq!(coverage_of(db, "T1059", "macos").await.state, "manual");
+        }
+
+        /// `test_the_tag_goes_and_comes_back`.
+        #[tokio::test]
+        async fn the_tag_goes_and_comes_back() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let cx = measured(db).await;
+            cx.refresh().await;
+            cx.resolve("T1547", "remove", "dropping it").await;
+
+            tag(&cx, &[]).await;
+            cx.refresh().await;
+            let row = cx.row("T1547").await;
+            assert_eq!(
+                (row.status, row.tag_present, row.counts, row.resolution),
+                (
+                    WorklistStatus::Removed,
+                    false,
+                    false,
+                    Some(ace_service::WorklistResolution::Remove)
+                )
+            );
+
+            tag(&cx, &["T1547"]).await;
+            let result = cx.refresh().await;
+            let row = cx.row("T1547").await;
+            assert_eq!(
+                (
+                    row.status,
+                    row.tag_present,
+                    row.counts,
+                    row.resolution,
+                    row.reason,
+                    row.resolved_by
+                ),
+                (WorklistStatus::Open, true, true, None, None, None)
+            );
+            // what the "cleared: the tag is back" line is written from
+            assert_eq!(
+                result.worklist.cleared,
+                [(
+                    SIGNATURE.to_owned(),
+                    "T1547".to_owned(),
+                    "remove".to_owned()
+                )]
+            );
+            assert_eq!(coverage_of(db, "T1547", "windows").await.state, "manual");
+        }
+
+        /// `test_a_tag_dropped_without_a_resolution_retires`.
+        #[tokio::test]
+        async fn a_tag_dropped_without_a_resolution_retires() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let cx = measured(db).await;
+            cx.refresh().await;
+            tag(&cx, &[]).await;
+            cx.refresh().await;
+            assert_eq!(
+                cx.statuses().await,
+                status_of(&[
+                    (T1059_001, WorklistStatus::Undeclared),
+                    ("T1547", WorklistStatus::Retired)
+                ])
+            );
+        }
+
+        /// `test_measurement_lost`.
+        #[tokio::test]
+        async fn measurement_lost() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let cx = measured(db).await;
+            cx.refresh().await;
+            cx.resolve("T1547", "remove", "dropping it").await;
+            cx.f.service
+                .remove_svs_expectation(&cx.f.admin, GUID, "windows", SIGNATURE)
+                .await
+                .expect("removes the expectation");
+            cx.refresh().await;
+            assert_eq!(
+                cx.statuses().await,
+                status_of(&[
+                    (T1059_001, WorklistStatus::Retired),
+                    ("T1547", WorklistStatus::Retired)
+                ])
+            );
+            let row = cx.row("T1547").await;
+            assert_eq!(
+                (
+                    row.measured,
+                    row.measured_techniques.is_empty(),
+                    row.resolution,
+                    row.counts
+                ),
+                (
+                    false,
+                    true,
+                    Some(ace_service::WorklistResolution::Remove),
+                    false
+                )
+            );
+            // the remove still stands
+            assert_eq!(coverage_of(db, "T1547", "windows").await.state, "none");
+
+            // measured again: the resolution is back in force as it was
+            cx.f.expect(GUID, SIGNATURE, "expected", "windows").await;
+            cx.refresh().await;
+            assert_eq!(cx.row("T1547").await.status, WorklistStatus::RemovePending);
+        }
+
+        /// `test_an_attack_upgrade_carries_the_resolution`.
+        #[tokio::test]
+        async fn an_attack_upgrade_carries_the_resolution() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let cx = refreshable(db).await;
+            // in the older release T1086 is still a technique of its own
+            let mut older = ace_core::testing::attack_extract();
+            older["release"] = json!("v98.0");
+            older["revoked"]
+                .as_object_mut()
+                .expect("the revoked ids")
+                .remove("T1086");
+            older["techniques"]["T1086"] = json!({
+                "name": "PowerShell", "parent": null, "tactics": ["TA0002"],
+                "platforms": ["windows"], "deprecated": false,
+            });
+            let older =
+                ace_core::svs::attack::AttackCatalog::load(&older.to_string(), "v98.0.json")
+                    .expect("loads");
+            let before = cx.service.clone().with_attack_catalog(Arc::new(older));
+
+            catalog_test(db, GUID, "T1547", &["windows"]).await;
+            cx.f.expect(GUID, SIGNATURE, "expected", "windows").await;
+            tag(&cx, &["T1086"]).await;
+            before
+                .refresh_svs_coverage(&refresher(), Utc::now())
+                .await
+                .expect("refreshes against the older release");
+            before
+                .resolve_svs_worklist_row(
+                    &cx.f.admin,
+                    SIGNATURE,
+                    "T1086",
+                    "remove",
+                    Some("wrong technique"),
+                    Some("https://git.example/pull/1"),
+                    Precondition::None,
+                    Utc::now(),
+                )
+                .await
+                .expect("resolves");
+
+            // the new release revoked T1086 to T1059.001
+            let result = cx.refresh().await;
+            let (old, new) = (cx.row("T1086").await, cx.row(T1059_001).await);
+            assert_eq!(
+                (old.status, old.resolution),
+                (WorklistStatus::Retired, None)
+            );
+            assert_eq!(
+                (
+                    new.status,
+                    new.kind,
+                    new.declared_as.as_slice(),
+                    new.resolution,
+                    new.reason.as_deref(),
+                    new.reference.as_deref(),
+                    new.resolved_by.as_ref().and_then(|by| by.name.as_deref()),
+                    new.counts
+                ),
+                (
+                    WorklistStatus::RemovePending,
+                    ace_service::WorklistKind::Declared,
+                    ["T1086".to_owned()].as_slice(),
+                    Some(ace_service::WorklistResolution::Remove),
+                    Some("wrong technique"),
+                    Some("https://git.example/pull/1"),
+                    Some("alice"),
+                    false
+                )
+            );
+            // what the "moved from T1086 to T1059.001" line is written from
+            assert_eq!(
+                result.worklist.moved,
+                [(
+                    SIGNATURE.to_owned(),
+                    "T1086".to_owned(),
+                    T1059_001.to_owned(),
+                    "remove".to_owned()
+                )]
+            );
+            let row = sqlx::query_scalar::<_, i32>(
+                "SELECT manual_signatures FROM svs.coverage
+                 WHERE technique = 'T1059.001' AND platform = 'windows'",
+            )
+            .fetch_one(db.pool())
+            .await
+            .expect("the row");
+            assert_eq!(row, 0);
+        }
+
+        /// `test_the_drill_down_says_removed`.
+        #[tokio::test]
+        async fn the_drill_down_says_removed() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let cx = measured(db).await;
+            cx.refresh().await;
+            cx.resolve("T1547", "remove", "dropping it").await;
+            assert_eq!(
+                manual(&cx, "T1547").await,
+                [mapping(
+                    SIGNATURE,
+                    "hunt",
+                    &format!("hunt {SIGNATURE}"),
+                    "T1547",
+                    Some("removed")
+                )]
+            );
+        }
+
+        // TestResolutions
+
+        async fn resolvable(db: &Db) -> Cx {
+            let cx = measured(db).await;
+            cx.refresh().await;
+            cx
+        }
+
+        impl Cx {
+            async fn try_resolve(
+                &self,
+                signature: &str,
+                technique: &str,
+                resolution: &str,
+                reason: &str,
+                reference: Option<&str>,
+            ) -> Result<WorklistRow, ServiceError> {
+                self.service
+                    .resolve_svs_worklist_row(
+                        &self.f.admin,
+                        signature,
+                        technique,
+                        resolution,
+                        Some(reason),
+                        reference,
+                        Precondition::None,
+                        Utc::now(),
+                    )
+                    .await
+            }
+
+            async fn reopen(&self, technique: &str) -> Result<WorklistRow, ServiceError> {
+                self.service
+                    .reopen_svs_worklist_row(
+                        &self.f.admin,
+                        SIGNATURE,
+                        technique,
+                        Precondition::None,
+                        Utc::now(),
+                    )
+                    .await
+            }
+        }
+
+        /// `test_only_unconfirmed_declarations_resolve`.
+        #[tokio::test]
+        async fn only_unconfirmed_declarations_resolve() {
+            let test_db = TestDb::new().await;
+            let cx = resolvable(test_db.db()).await;
+            let refused = cx
+                .try_resolve(SIGNATURE, T1059_001, "keep", "why", None)
+                .await
+                .expect_err("an undeclared row");
+            assert!(
+                matches!(&refused, ServiceError::Conflict(why) if why.contains("is undeclared; only open, kept, remove_pending rows can be resolved")),
+                "{refused}"
+            );
+            let unknown = cx
+                .try_resolve(SIGNATURE, "T1059.002", "keep", "why", None)
+                .await
+                .expect_err("no such row");
+            assert!(matches!(unknown, ServiceError::NotFound(_)), "{unknown}");
+            let row = cx.resolve("T1547", "keep", "a test can't reach it").await;
+            assert_eq!((row.status, row.counts), (WorklistStatus::Kept, true));
+            // deciding again replaces the decision
+            assert_eq!(
+                cx.resolve("T1547", "remove", "changed my mind")
+                    .await
+                    .status,
+                WorklistStatus::RemovePending
+            );
+        }
+
+        /// `test_invalid_resolutions`, each of its parameters, through the service.
+        #[tokio::test]
+        async fn invalid_resolutions() {
+            let test_db = TestDb::new().await;
+            let cx = resolvable(test_db.db()).await;
+            for (resolution, reason, reference, message) in [
+                (
+                    "maybe",
+                    "why",
+                    None,
+                    "resolution must be one of keep, remove",
+                ),
+                ("keep", "  ", None, "needs a reason"),
+                ("remove", "why", Some("ftp://example/x"), "not an http"),
+                ("remove", "why", Some("https://"), "not an http"),
+            ] {
+                let error = cx
+                    .try_resolve(SIGNATURE, "T1547", resolution, reason, reference)
+                    .await
+                    .expect_err("refused");
+                assert!(
+                    matches!(&error, ServiceError::InvalidRequest(why) if why.contains(message)),
+                    "{error}"
+                );
+            }
+            assert_eq!(cx.row("T1547").await.resolution, None);
+        }
+
+        /// `test_reopen`.
+        #[tokio::test]
+        async fn reopen() {
+            let test_db = TestDb::new().await;
+            let cx = resolvable(test_db.db()).await;
+            let nothing = cx.reopen("T1547").await.expect_err("nothing to clear");
+            assert!(
+                matches!(&nothing, ServiceError::NotFound(why) if why.contains("no resolution")),
+                "{nothing}"
+            );
+            cx.resolve("T1547", "keep", "why").await;
+            assert_eq!(
+                cx.reopen("T1547").await.expect("reopens").status,
+                WorklistStatus::Open
+            );
+            let unknown = cx.reopen("T1059.002").await.expect_err("no such row");
+            assert!(matches!(unknown, ServiceError::NotFound(_)), "{unknown}");
+        }
+
+        /// `test_resolve_many`.
+        #[tokio::test]
+        async fn resolve_many() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let cx = resolvable(db).await;
+            let key =
+                |signature: &str, technique: &str| (signature.to_owned(), technique.to_owned());
+            let audited = audit_rows(db).await.len();
+            let result = cx
+                .service
+                .resolve_svs_worklist_rows(
+                    &cx.f.admin,
+                    &[
+                        key(SIGNATURE, "T1547"),
+                        key(SIGNATURE, T1059_001),
+                        key(OTHER_SIGNATURE, "T1547"),
+                        key(SIGNATURE, "T1547"),
+                    ],
+                    "keep",
+                    Some("bulk"),
+                    None,
+                    Utc::now(),
+                )
+                .await
+                .expect("resolves");
+            assert_eq!(result.done, [key(SIGNATURE, "T1547")]);
+            assert_eq!(
+                result.conflicts,
+                [(
+                    SIGNATURE.to_owned(),
+                    T1059_001.to_owned(),
+                    WorklistStatus::Undeclared
+                )]
+            );
+            assert_eq!(result.unknown, [key(OTHER_SIGNATURE, "T1547")]);
+            assert_eq!(cx.row("T1547").await.status, WorklistStatus::Kept);
+            // one audit row: the row it resolved
+            assert_eq!(audit_rows(db).await.len(), audited + 1);
+            let invalid = cx
+                .service
+                .resolve_svs_worklist_rows(
+                    &cx.f.admin,
+                    &[key(SIGNATURE, "T1547")],
+                    "keep",
+                    Some(""),
+                    None,
+                    Utc::now(),
+                )
+                .await
+                .expect_err("no reason");
+            assert!(
+                matches!(invalid, ServiceError::InvalidRequest(_)),
+                "{invalid}"
+            );
+            let none = cx
+                .service
+                .resolve_svs_worklist_rows(&cx.f.admin, &[], "keep", Some("why"), None, Utc::now())
+                .await
+                .expect_err("no rows");
+            assert!(matches!(none, ServiceError::InvalidRequest(_)), "{none}");
+        }
+
+        /// `test_resolving_waits_for_a_refresh`: a resolution holds the refresh lock while it reads and
+        /// writes its row, so it can't commit in the middle of a refresh. Here another transaction holds
+        /// the lock, as a refresh does, and each write waits until it lets go; a refresh waits too.
+        #[tokio::test]
+        async fn resolving_waits_for_a_refresh() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let cx = resolvable(db).await;
+            let wait = Duration::from_millis(400);
+            let key = (SIGNATURE.to_owned(), "T1547".to_owned());
+
+            macro_rules! waits_for_the_lock {
+                ($write:expr) => {{
+                    let mut holder = db.pool().begin().await.expect("begins");
+                    sqlx::query("SELECT id FROM svs.coverage_state WHERE id = 1 FOR UPDATE")
+                        .fetch_one(&mut *holder)
+                        .await
+                        .expect("takes the refresh lock");
+                    let write = $write;
+                    tokio::pin!(write);
+                    assert!(
+                        tokio::time::timeout(wait, &mut write).await.is_err(),
+                        "the write went ahead while the refresh lock was held"
+                    );
+                    holder.commit().await.expect("lets go");
+                    write.await
+                }};
+            }
+
+            let kept = waits_for_the_lock!(cx.try_resolve(SIGNATURE, "T1547", "keep", "why", None))
+                .expect("resolves once the lock is free");
+            assert_eq!(kept.status, WorklistStatus::Kept);
+            let reopened = waits_for_the_lock!(cx.reopen("T1547")).expect("reopens");
+            assert_eq!(reopened.status, WorklistStatus::Open);
+            let many = waits_for_the_lock!(cx.service.resolve_svs_worklist_rows(
+                &cx.f.admin,
+                std::slice::from_ref(&key),
+                "keep",
+                Some("why"),
+                None,
+                Utc::now()
+            ))
+            .expect("resolves");
+            assert_eq!(many.done, std::slice::from_ref(&key));
+            let scheduler = refresher();
+            let refreshed =
+                waits_for_the_lock!(cx.service.refresh_svs_coverage(&scheduler, Utc::now()))
+                    .expect("refreshes");
+            assert_eq!(refreshed.rows, 5);
+        }
+
+        // what ace3's router tests cover of the reads (tests/aceapi_v2/svs/test_coverage.py and
+        // test_worklist.py); the HTTP halves are ace-api's
+
+        fn coverage_query(filters: &[Filter<'_>]) -> CoverageQuery {
+            CoverageQuery {
+                filters: filters
+                    .iter()
+                    .map(|(name, inverted, values)| FilterEntry::text(name, *inverted, values))
+                    .collect(),
+                ..CoverageQuery::default()
+            }
+        }
+
+        async fn coverage_keys(cx: &Cx, filters: &[Filter<'_>]) -> Vec<(String, String)> {
+            let query = coverage_query(filters);
+            let page = cx
+                .service
+                .svs_coverage(&cx.f.admin, &query, None, Some(1000))
+                .await
+                .expect("lists coverage");
+            assert_eq!(page.next_cursor, None);
+            assert_eq!(
+                cx.service
+                    .svs_coverage_count(&cx.f.admin, &query, 1000)
+                    .await
+                    .expect("counts"),
+                page.rows.len() as i64
+            );
+            page.rows
+                .into_iter()
+                .map(|row| (row.technique, row.platform))
+                .collect()
+        }
+
+        fn pairs(keys: &[(&str, &str)]) -> Vec<(String, String)> {
+            keys.iter()
+                .map(|(technique, platform)| ((*technique).to_owned(), (*platform).to_owned()))
+                .collect()
+        }
+
+        /// The coverage screen: its order and pages, each filter and its inverse, the summary, the
+        /// changed-since pull, and what isn't a filter.
+        #[tokio::test]
+        async fn coverage_is_listed_filtered_paged_and_summed() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let cx = refreshable(db).await;
+            catalog_test(db, GUID, T1059_001, &["windows", "linux"]).await;
+            validated_run(&cx, db, GUID).await;
+            write_hunts(&cx, &[("h1", true, &["mitre:T1547"])]).await;
+            let before = Utc::now();
+            cx.refresh().await;
+
+            let everything = pairs(&[
+                ("T1059", "linux"),
+                ("T1059", "macos"),
+                ("T1059", "windows"),
+                (T1059_001, "linux"),
+                (T1059_001, "windows"),
+                ("T1059.002", "macos"),
+                ("T1547", "windows"),
+            ]);
+            assert_eq!(coverage_keys(&cx, &[]).await, everything);
+
+            // pages of three, by technique then platform
+            let mut seen = Vec::new();
+            let mut cursor: Option<String> = None;
+            loop {
+                let page = cx
+                    .service
+                    .svs_coverage(
+                        &cx.f.admin,
+                        &CoverageQuery::default(),
+                        cursor.as_deref(),
+                        Some(3),
+                    )
+                    .await
+                    .expect("a page");
+                assert!(page.rows.len() <= 3);
+                seen.extend(
+                    page.rows
+                        .into_iter()
+                        .map(|row| (row.technique, row.platform)),
+                );
+                match page.next_cursor {
+                    Some(next) => cursor = Some(next),
+                    None => break,
+                }
+            }
+            assert_eq!(seen, everything);
+
+            // a technique finds its sub-techniques too; a sub-technique only itself
+            assert_eq!(
+                coverage_keys(&cx, &[("Technique", false, &["t1059"])]).await,
+                everything[..6]
+            );
+            assert_eq!(
+                coverage_keys(&cx, &[("Technique", false, &["T1059.002"])]).await,
+                pairs(&[("T1059.002", "macos")])
+            );
+            assert_eq!(
+                coverage_keys(&cx, &[("Technique", true, &["T1059"])]).await,
+                pairs(&[("T1547", "windows")])
+            );
+            assert_eq!(
+                coverage_keys(&cx, &[("Name", false, &["powershell"])]).await,
+                pairs(&[(T1059_001, "linux"), (T1059_001, "windows")])
+            );
+            // a tactic by its shortname or its id
+            for tactic in ["persistence", "ta0003"] {
+                assert_eq!(
+                    coverage_keys(&cx, &[("Tactic", false, &[tactic])]).await,
+                    pairs(&[("T1547", "windows")]),
+                    "{tactic}"
+                );
+            }
+            assert_eq!(
+                coverage_keys(&cx, &[("Tactic", true, &["TA0003"])]).await,
+                everything[..6]
+            );
+            assert_eq!(
+                coverage_keys(&cx, &[("Platform", false, &["macOS"])]).await,
+                pairs(&[("T1059", "macos"), ("T1059.002", "macos")])
+            );
+            assert_eq!(
+                coverage_keys(&cx, &[("State", false, &["Validated"])]).await,
+                pairs(&[("T1059", "windows"), (T1059_001, "windows")])
+            );
+            assert_eq!(
+                coverage_keys(&cx, &[("Own State", false, &["validated", "manual"])]).await,
+                pairs(&[(T1059_001, "windows"), ("T1547", "windows")])
+            );
+            assert_eq!(
+                coverage_keys(&cx, &[("Level", false, &["sub-technique"])]).await,
+                pairs(&[
+                    (T1059_001, "linux"),
+                    (T1059_001, "windows"),
+                    ("T1059.002", "macos")
+                ])
+            );
+            // linux is a platform only the test brought
+            assert_eq!(
+                coverage_keys(&cx, &[("ATT&CK Platform", false, &["false"])]).await,
+                pairs(&[("T1059", "linux"), (T1059_001, "linux")])
+            );
+            assert_eq!(
+                coverage_keys(&cx, &[("ATT&CK Platform", true, &["true"])]).await,
+                pairs(&[("T1059", "linux"), (T1059_001, "linux")])
+            );
+            assert_eq!(
+                coverage_keys(&cx, &[("Has Manual", false, &["true"])]).await,
+                pairs(&[("T1547", "windows")])
+            );
+            assert_eq!(
+                coverage_keys(
+                    &cx,
+                    &[("Catalog Status", false, &["deprecated", "unknown"])]
+                )
+                .await,
+                []
+            );
+            assert_eq!(
+                coverage_keys(&cx, &[("Retired", false, &["true"])]).await,
+                []
+            );
+            // a flag holding both values filters nothing, and its inverse matches nothing
+            assert_eq!(
+                coverage_keys(&cx, &[("Retired", false, &["true", "false"])]).await,
+                everything
+            );
+            assert_eq!(
+                coverage_keys(&cx, &[("Retired", true, &["true", "false"])]).await,
+                []
+            );
+            assert_eq!(
+                coverage_keys(&cx, &[("State Changed", false, &["-1d"])]).await,
+                everything
+            );
+            assert_eq!(
+                coverage_keys(&cx, &[("State Changed", true, &["-1d"])]).await,
+                []
+            );
+            // filters are ANDed
+            assert_eq!(
+                coverage_keys(
+                    &cx,
+                    &[
+                        ("Technique", false, &["T1059"]),
+                        ("Platform", false, &["windows"]),
+                        ("Level", false, &["technique"])
+                    ]
+                )
+                .await,
+                pairs(&[("T1059", "windows")])
+            );
+
+            // what isn't a filter value
+            for (name, value, message) in [
+                ("Technique", "powershell", "invalid technique"),
+                ("Tactic", "TA9999", "invalid tactic"),
+                ("State", "great", "isn't one of failing, stale"),
+                ("Level", "tactic", "isn't one of technique, sub-technique"),
+                ("Retired", "maybe", "isn't one of true, false"),
+                ("State Changed", "whenever", "State Changed"),
+                ("Nope", "x", "no filter named"),
+            ] {
+                let error = cx
+                    .service
+                    .svs_coverage(
+                        &cx.f.admin,
+                        &coverage_query(&[(name, false, &[value])]),
+                        None,
+                        None,
+                    )
+                    .await
+                    .expect_err("refused");
+                assert!(
+                    matches!(&error, ServiceError::InvalidRequest(why) if why.contains(message)),
+                    "{name}: {error}"
+                );
+            }
+
+            // the summary counts what the filters match, every state named, per platform in the
+            // release's order and then what a test brought
+            let summary = cx
+                .service
+                .svs_coverage_summary(&cx.f.admin, &CoverageQuery::default())
+                .await
+                .expect("the summary");
+            assert_eq!(summary.rows, 7);
+            assert_eq!(
+                summary
+                    .states
+                    .iter()
+                    .map(|(state, count)| (state.as_str(), *count))
+                    .collect::<Vec<_>>(),
+                [
+                    ("failing", 0),
+                    ("manual", 1),
+                    ("none", 2),
+                    ("stale", 0),
+                    ("untested", 2),
+                    ("validated", 2)
+                ]
+            );
+            assert_eq!(summary.own_states["none"], 4);
+            assert_eq!(
+                summary
+                    .platforms
+                    .iter()
+                    .map(|p| (p.platform.as_str(), p.rows))
+                    .collect::<Vec<_>>(),
+                [("windows", 3), ("macos", 2), ("linux", 2)]
+            );
+            assert_eq!(summary.platforms[0].states["validated"], 2);
+            let refresh = summary.refresh.expect("a refresh");
+            assert_eq!(
+                (
+                    refresh.attack_release.as_deref(),
+                    refresh.rows,
+                    refresh.error
+                ),
+                (Some("v99.0"), 7, None)
+            );
+            let narrowed = cx
+                .service
+                .svs_coverage_summary(
+                    &cx.f.admin,
+                    &coverage_query(&[("Platform", false, &["windows"])]),
+                )
+                .await
+                .expect("the summary");
+            assert_eq!((narrowed.rows, narrowed.platforms.len()), (3, 1));
+
+            // a changed-since pull is in (updated_at, id) order, and holds every row written since
+            let changed = CoverageQuery {
+                changed_since: Some(before),
+                ..CoverageQuery::default()
+            };
+            let pulled = cx
+                .service
+                .svs_coverage(&cx.f.admin, &changed, None, Some(4))
+                .await
+                .expect("pulls");
+            assert_eq!(pulled.rows.len(), 4);
+            let next = pulled.next_cursor.expect("more");
+            let rest = cx
+                .service
+                .svs_coverage(&cx.f.admin, &changed, Some(&next), Some(4))
+                .await
+                .expect("pulls on");
+            assert_eq!((rest.rows.len(), rest.next_cursor), (3, None));
+            let nothing_since = CoverageQuery {
+                changed_since: Some(Utc::now() + hours(1)),
+                ..CoverageQuery::default()
+            };
+            assert!(
+                cx.service
+                    .svs_coverage(&cx.f.admin, &nothing_since, None, None)
+                    .await
+                    .expect("pulls")
+                    .rows
+                    .is_empty()
+            );
+            // a cursor of one order doesn't page the other
+            let wrong = cx
+                .service
+                .svs_coverage(&cx.f.admin, &CoverageQuery::default(), Some(&next), None)
+                .await
+                .expect_err("the other order's cursor");
+            assert!(
+                matches!(&wrong, ServiceError::InvalidRequest(why) if why.contains("ordered by updated_at, not technique")),
+                "{wrong}"
+            );
+            for bad in ["zz", "00"] {
+                assert!(matches!(
+                    cx.service
+                        .svs_coverage(&cx.f.admin, &CoverageQuery::default(), Some(bad), None)
+                        .await,
+                    Err(ServiceError::InvalidRequest(_))
+                ));
+            }
+            assert!(matches!(
+                cx.service
+                    .svs_coverage(&cx.f.admin, &CoverageQuery::default(), None, Some(1001))
+                    .await,
+                Err(ServiceError::InvalidRequest(_))
+            ));
+        }
+
+        /// A technique's drill-down: its rows and its sub-techniques', the tests counted on each
+        /// platform, the measured and the manual signatures, a removed test, a revoked id, and what isn't
+        /// a technique.
+        #[tokio::test]
+        async fn a_techniques_drill_down() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let cx = refreshable(db).await;
+            catalog_test(db, GUID, T1059_001, &["windows"]).await;
+            catalog_test(db, OTHER_GUID, "T1086", &["windows"]).await;
+            set_removed(db, OTHER_GUID, true).await;
+            validated_run(&cx, db, GUID).await;
+            the_rule(db).await;
+            write_hunts(&cx, &[("h1", true, &["mitre:T1059"])]).await;
+            cx.refresh().await;
+
+            let detail = cx
+                .service
+                .svs_coverage_technique(&cx.f.admin, " t1059 ")
+                .await
+                .expect("the technique");
+            assert_eq!(
+                (
+                    detail.requested.as_str(),
+                    detail.technique.as_str(),
+                    detail.name.as_deref(),
+                    detail.parent.as_deref(),
+                    detail.is_subtechnique,
+                    detail.catalog_status.as_str(),
+                    detail.attack_release.as_str()
+                ),
+                (
+                    " t1059 ",
+                    "T1059",
+                    Some("Command and Scripting Interpreter"),
+                    None,
+                    false,
+                    "active",
+                    "v99.0"
+                )
+            );
+            assert_eq!(detail.tactics, ["TA0002"]);
+            assert!(detail.refreshed_at.is_some());
+            assert_eq!(
+                detail
+                    .rows
+                    .iter()
+                    .map(|row| (row.platform.as_str(), row.state, row.own_state))
+                    .collect::<Vec<_>>(),
+                [
+                    ("macos", State::Manual, State::Manual),
+                    ("windows", State::Validated, State::Manual)
+                ]
+            );
+            assert_eq!(
+                detail
+                    .sub_technique_rows
+                    .iter()
+                    .map(|row| (row.technique.as_str(), row.platform.as_str(), row.state))
+                    .collect::<Vec<_>>(),
+                [
+                    (T1059_001, "windows", State::Validated),
+                    ("T1059.002", "macos", State::None)
+                ]
+            );
+            let [test] = &detail.tests[..] else {
+                panic!("one test on one platform: {:?}", detail.tests);
+            };
+            assert_eq!(
+                (
+                    test.guid.to_string().as_str(),
+                    test.test_technique.as_str(),
+                    test.technique.as_str(),
+                    test.platform.as_str(),
+                    test.test_state,
+                    test.contribution
+                ),
+                (
+                    GUID,
+                    T1059_001,
+                    T1059_001,
+                    "windows",
+                    TestState::Validated,
+                    State::Validated
+                )
+            );
+            assert!(test.last_reviewed_run.is_some());
+            assert_eq!(test.expected_signatures, [SIGNATURE]);
+            let [measured] = &detail.measured_signatures[..] else {
+                panic!("one measured signature");
+            };
+            assert_eq!(
+                (
+                    measured.signature_uuid.as_str(),
+                    measured.name.as_deref(),
+                    measured.family.as_deref(),
+                    measured.tests.len()
+                ),
+                (SIGNATURE, Some("Suspicious_Macro"), Some("yara"), 1)
+            );
+            assert_eq!(
+                detail
+                    .manual_signatures
+                    .iter()
+                    .map(|m| (m.signature_uuid.as_str(), m.counts))
+                    .collect::<Vec<_>>(),
+                [("h1", true)]
+            );
+            // the removed test of a revoked id, which counts as its successor
+            assert_eq!(
+                detail
+                    .removed_tests
+                    .iter()
+                    .map(|t| (t.guid.to_string(), t.technique.clone()))
+                    .collect::<Vec<_>>(),
+                [(OTHER_GUID.to_owned(), "T1086".to_owned())]
+            );
+
+            // a revoked id answers for its successor
+            let revoked = cx
+                .service
+                .svs_coverage_technique(&cx.f.admin, "T1086")
+                .await
+                .expect("the successor");
+            assert_eq!(
+                (revoked.requested.as_str(), revoked.technique.as_str()),
+                ("T1086", T1059_001)
+            );
+            assert!(revoked.sub_technique_rows.is_empty());
+            // a deprecated technique nothing names has no rows, but the release has it
+            let deprecated = cx
+                .service
+                .svs_coverage_technique(&cx.f.admin, "T1099")
+                .await
+                .expect("the release has it");
+            assert_eq!(
+                (deprecated.catalog_status.as_str(), deprecated.rows.len()),
+                ("deprecated", 0)
+            );
+            let invalid = cx
+                .service
+                .svs_coverage_technique(&cx.f.admin, "powershell")
+                .await
+                .expect_err("not an id");
+            assert!(
+                matches!(&invalid, ServiceError::InvalidRequest(why) if why.contains("invalid technique")),
+                "{invalid}"
+            );
+            let unknown = cx
+                .service
+                .svs_coverage_technique(&cx.f.admin, "T9999")
+                .await
+                .expect_err("no rows and not in the release");
+            assert!(
+                matches!(&unknown, ServiceError::NotFound(why) if why == "no coverage of technique T9999"),
+                "{unknown}"
+            );
+        }
+
+        fn history_query(filters: &[Filter<'_>]) -> CoverageHistoryQuery {
+            CoverageHistoryQuery {
+                filters: filters
+                    .iter()
+                    .map(|(name, inverted, values)| FilterEntry::text(name, *inverted, values))
+                    .collect(),
+                ..CoverageHistoryQuery::default()
+            }
+        }
+
+        /// The history: the snapshots by day, technique and platform, its filters, its pages, and its
+        /// counts per day and per month from each month's last snapshot.
+        #[tokio::test]
+        async fn the_history_is_listed_filtered_paged_and_counted() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let cx = refreshable(db).await;
+            let days: Vec<NaiveDate> = ["2026-09-29", "2026-09-30", "2026-10-16"]
+                .iter()
+                .map(|day| day.parse().expect("a day"))
+                .collect();
+            cx.snapshot(Some(days[0])).await;
+            cx.snapshot(Some(days[1])).await;
+            // by the last day a test validates T1059.001
+            catalog_test(db, GUID, T1059_001, &["windows"]).await;
+            validated_run(&cx, db, GUID).await;
+            cx.snapshot(Some(days[2])).await;
+
+            let listed = async |filters: &[Filter<'_>]| -> Vec<(NaiveDate, String, String)> {
+                let query = history_query(filters);
+                let page = cx
+                    .service
+                    .svs_coverage_history(&cx.f.admin, &query, None, Some(1000))
+                    .await
+                    .expect("lists the history");
+                assert_eq!(
+                    cx.service
+                        .svs_coverage_history_count(&cx.f.admin, &query, 1000)
+                        .await
+                        .expect("counts"),
+                    page.rows.len() as i64
+                );
+                page.rows
+                    .into_iter()
+                    .map(|row| (row.snapshot_date, row.technique, row.platform))
+                    .collect()
+            };
+            let all = listed(&[]).await;
+            assert_eq!(all.len(), 15);
+            assert_eq!(all[0], (days[0], "T1059".to_owned(), "macos".to_owned()));
+            assert_eq!(all[14], (days[2], "T1547".to_owned(), "windows".to_owned()));
+            assert!(all.is_sorted());
+
+            // pages of four
+            let mut seen = Vec::new();
+            let mut cursor: Option<String> = None;
+            loop {
+                let page = cx
+                    .service
+                    .svs_coverage_history(
+                        &cx.f.admin,
+                        &CoverageHistoryQuery::default(),
+                        cursor.as_deref(),
+                        Some(4),
+                    )
+                    .await
+                    .expect("a page");
+                seen.extend(
+                    page.rows
+                        .into_iter()
+                        .map(|row| (row.snapshot_date, row.technique, row.platform)),
+                );
+                match page.next_cursor {
+                    Some(next) => cursor = Some(next),
+                    None => break,
+                }
+            }
+            assert_eq!(seen, all);
+
+            // a date range is the days it touches
+            let september = "09-29-2026 00:00 - 09-30-2026 23:59";
+            assert_eq!(listed(&[("Date", false, &[september])]).await.len(), 10);
+            assert_eq!(listed(&[("Date", true, &[september])]).await.len(), 5);
+            assert_eq!(
+                listed(&[
+                    ("Technique", false, &["T1059"]),
+                    ("Date", true, &[september])
+                ])
+                .await
+                .len(),
+                4
+            );
+            assert_eq!(
+                listed(&[("State", false, &["validated"])]).await,
+                [
+                    (days[2], "T1059".to_owned(), "windows".to_owned()),
+                    (days[2], T1059_001.to_owned(), "windows".to_owned())
+                ]
+            );
+            assert_eq!(
+                listed(&[("Own State", false, &["validated"])]).await.len(),
+                1
+            );
+            assert_eq!(
+                listed(&[
+                    ("Platform", false, &["macos"]),
+                    ("Level", false, &["technique"])
+                ])
+                .await
+                .len(),
+                3
+            );
+            let refused = cx
+                .service
+                .svs_coverage_history(
+                    &cx.f.admin,
+                    &history_query(&[("Name", false, &["x"])]),
+                    None,
+                    None,
+                )
+                .await
+                .expect_err("not a filter of the history");
+            assert!(
+                matches!(refused, ServiceError::InvalidRequest(_)),
+                "{refused}"
+            );
+
+            // per day: every day, every state named
+            let counts = async |filters: &[Filter<'_>], group: HistoryGroup| {
+                cx.service
+                    .svs_coverage_history_counts(
+                        &cx.f.admin,
+                        &history_query(filters).filters,
+                        group,
+                        chrono_tz::Tz::UTC,
+                    )
+                    .await
+                    .expect("counts the history")
+            };
+            let per_day = counts(&[], HistoryGroup::Day).await;
+            assert!(!per_day.truncated);
+            assert_eq!(
+                per_day
+                    .periods
+                    .iter()
+                    .map(|p| (
+                        p.period.as_str(),
+                        p.snapshot_date,
+                        p.rows,
+                        p.states["validated"]
+                    ))
+                    .collect::<Vec<_>>(),
+                [
+                    ("2026-09-29", days[0], 5, 0),
+                    ("2026-09-30", days[1], 5, 0),
+                    ("2026-10-16", days[2], 5, 2)
+                ]
+            );
+            assert_eq!(per_day.periods[2].own_states["validated"], 1);
+            assert_eq!(per_day.periods[0].states.len(), 6);
+            // per month: each month's last snapshot
+            let per_month = counts(&[], HistoryGroup::Month).await;
+            assert_eq!(
+                per_month
+                    .periods
+                    .iter()
+                    .map(|p| (p.period.as_str(), p.snapshot_date, p.rows))
+                    .collect::<Vec<_>>(),
+                [("2026-09", days[1], 5), ("2026-10", days[2], 5)]
+            );
+            // a day whose rows the other filters leave out still counts, as zeros
+            let validated = counts(&[("State", false, &["validated"])], HistoryGroup::Day).await;
+            assert_eq!(
+                validated
+                    .periods
+                    .iter()
+                    .map(|p| (p.period.as_str(), p.rows))
+                    .collect::<Vec<_>>(),
+                [("2026-09-29", 0), ("2026-09-30", 0), ("2026-10-16", 2)]
+            );
+            // the days come from the Date filter
+            let dated = counts(&[("Date", false, &[september])], HistoryGroup::Month).await;
+            assert_eq!(
+                dated
+                    .periods
+                    .iter()
+                    .map(|p| (p.period.as_str(), p.snapshot_date))
+                    .collect::<Vec<_>>(),
+                [("2026-09", days[1])]
+            );
+            assert!(
+                counts(
+                    &[("Date", true, &["01-01-2026 00:00 - 12-31-2026 23:59"])],
+                    HistoryGroup::Day
+                )
+                .await
+                .periods
+                .is_empty()
+            );
+        }
+
+        fn worklist_query(filters: &[Filter<'_>]) -> WorklistQuery {
+            WorklistQuery {
+                filters: filters
+                    .iter()
+                    .map(|(name, inverted, values)| FilterEntry::text(name, *inverted, values))
+                    .collect(),
+                ..WorklistQuery::default()
+            }
+        }
+
+        /// The worklist screen: its order and pages, each filter, a signature's rows with what it is
+        /// measured on now, and a write made from a stale page.
+        #[tokio::test]
+        async fn the_worklist_is_listed_filtered_and_guarded() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let cx = measured(db).await;
+            // a second measured signature, a YARA rule nothing tags
+            cx.f.expect(GUID, OTHER_SIGNATURE, "expected", "windows")
+                .await;
+            ruleset(
+                db,
+                json!([{"uuid": OTHER_SIGNATURE, "name": "Some_Rule", "content_hash": rule_hash(),
+                        "tags": [], "counts": true}]),
+            )
+            .await;
+            cx.refresh().await;
+            cx.resolve("T1547", "keep", "a test can't reach it").await;
+
+            let listed = async |filters: &[Filter<'_>]| -> Vec<(String, String)> {
+                let query = worklist_query(filters);
+                let page = cx
+                    .service
+                    .svs_worklist(&cx.f.admin, &query, None, Some(1000))
+                    .await
+                    .expect("lists the worklist");
+                assert_eq!(
+                    cx.service
+                        .svs_worklist_count(&cx.f.admin, &query, 1000)
+                        .await
+                        .expect("counts"),
+                    page.rows.len() as i64
+                );
+                page.rows
+                    .into_iter()
+                    .map(|row| (row.signature_uuid, row.technique))
+                    .collect()
+            };
+            let everything = pairs(&[
+                (SIGNATURE, T1059_001),
+                (SIGNATURE, "T1547"),
+                (OTHER_SIGNATURE, T1059_001),
+            ]);
+            assert_eq!(listed(&[]).await, everything);
+            let page = cx
+                .service
+                .svs_worklist(&cx.f.admin, &WorklistQuery::default(), None, Some(2))
+                .await
+                .expect("a page");
+            assert_eq!(page.rows.len(), 2);
+            let rest = cx
+                .service
+                .svs_worklist(
+                    &cx.f.admin,
+                    &WorklistQuery::default(),
+                    page.next_cursor.as_deref(),
+                    Some(2),
+                )
+                .await
+                .expect("the rest");
+            assert_eq!((rest.rows.len(), rest.next_cursor.is_none()), (1, true));
+            assert_eq!(
+                page.rows[1].technique_name.as_deref(),
+                Some("Boot or Logon Autostart Execution")
+            );
+
+            // a signature's uuid, or text its name contains
+            assert_eq!(
+                listed(&[("Signature", false, &[OTHER_SIGNATURE])]).await,
+                everything[2..]
+            );
+            assert_eq!(
+                listed(&[("Signature", false, &["some_rule"])]).await,
+                everything[2..]
+            );
+            assert_eq!(
+                listed(&[("Signature", true, &["some_rule"])]).await,
+                everything[..2]
+            );
+            assert_eq!(
+                listed(&[("Family", false, &["yara"])]).await,
+                everything[2..]
+            );
+            assert_eq!(
+                listed(&[("Family", false, &["HUNT"])]).await,
+                everything[..2]
+            );
+            assert_eq!(
+                listed(&[("Technique", false, &["T1059"])]).await,
+                pairs(&[(SIGNATURE, T1059_001), (OTHER_SIGNATURE, T1059_001)])
+            );
+            assert_eq!(
+                listed(&[("Status", false, &["kept"])]).await,
+                pairs(&[(SIGNATURE, "T1547")])
+            );
+            assert_eq!(
+                listed(&[("Kind", false, &["undeclared"])]).await,
+                pairs(&[(SIGNATURE, T1059_001), (OTHER_SIGNATURE, T1059_001)])
+            );
+            assert_eq!(
+                listed(&[("Resolution", false, &["keep"])]).await,
+                pairs(&[(SIGNATURE, "T1547")])
+            );
+            assert_eq!(
+                listed(&[("Resolution", false, &["none"])]).await,
+                pairs(&[(SIGNATURE, T1059_001), (OTHER_SIGNATURE, T1059_001)])
+            );
+            assert_eq!(
+                listed(&[("Resolution", false, &["remove", "none", "keep"])]).await,
+                everything
+            );
+            assert_eq!(
+                listed(&[("Resolution", true, &["none"])]).await,
+                pairs(&[(SIGNATURE, "T1547")])
+            );
+            assert_eq!(
+                listed(&[("Resolved By", false, &[" alice "])]).await,
+                pairs(&[(SIGNATURE, "T1547")])
+            );
+            assert_eq!(listed(&[("Resolved By", false, &["bob"])]).await, []);
+            assert_eq!(
+                listed(&[("Resolved", false, &["-1d"])]).await,
+                pairs(&[(SIGNATURE, "T1547")])
+            );
+            assert_eq!(
+                listed(&[("Resolved", true, &["-1d"])]).await,
+                pairs(&[(SIGNATURE, T1059_001), (OTHER_SIGNATURE, T1059_001)])
+            );
+            for (name, value) in [
+                ("Status", "done"),
+                ("Kind", "x"),
+                ("Resolution", "maybe"),
+                ("Family", "sigma"),
+                ("Technique", "x"),
+            ] {
+                assert!(
+                    matches!(
+                        cx.service
+                            .svs_worklist(
+                                &cx.f.admin,
+                                &worklist_query(&[(name, false, &[value])]),
+                                None,
+                                None
+                            )
+                            .await,
+                        Err(ServiceError::InvalidRequest(_))
+                    ),
+                    "{name}"
+                );
+            }
+
+            // a signature: its rows, and what it is measured on now
+            let detail = cx
+                .service
+                .svs_worklist_signature(&cx.f.admin, SIGNATURE)
+                .await
+                .expect("the signature");
+            assert_eq!(
+                (
+                    detail.signature_family.as_deref(),
+                    detail.signature_name.as_deref(),
+                    detail.rows.len()
+                ),
+                (Some("hunt"), Some(format!("hunt {SIGNATURE}").as_str()), 2)
+            );
+            let [on] = &detail.measured[..] else {
+                panic!("measured on one technique");
+            };
+            assert_eq!(
+                (on.technique.as_str(), on.technique_name.as_deref()),
+                (T1059_001, Some("PowerShell"))
+            );
+            assert_eq!(
+                on.tests
+                    .iter()
+                    .map(|t| (t.guid.to_string(), t.platform.clone(), t.name.is_some()))
+                    .collect::<Vec<_>>(),
+                [(GUID.to_owned(), "windows".to_owned(), true)]
+            );
+            let untagged = cx
+                .service
+                .svs_worklist_signature(&cx.f.admin, OTHER_SIGNATURE)
+                .await
+                .expect("the rule");
+            assert_eq!(
+                (
+                    untagged.signature_family.as_deref(),
+                    untagged.signature_name.as_deref()
+                ),
+                (Some("yara"), Some("Some_Rule"))
+            );
+            let none = cx
+                .service
+                .svs_worklist_signature(&cx.f.admin, "no-such-signature")
+                .await
+                .expect_err("no rows");
+            assert!(matches!(none, ServiceError::NotFound(_)), "{none}");
+
+            // a write made from a page someone else has changed since is refused, and changes nothing
+            let row = cx.row("T1547").await;
+            let stale = Precondition::UpdatedAt(row.updated_at - TimeDelta::seconds(1));
+            let resolve = async |precondition| {
+                cx.service
+                    .resolve_svs_worklist_row(
+                        &cx.f.admin,
+                        SIGNATURE,
+                        "T1547",
+                        "remove",
+                        Some("from a stale page"),
+                        None,
+                        precondition,
+                        Utc::now(),
+                    )
+                    .await
+            };
+            for precondition in [stale, Precondition::Absent] {
+                let refused = resolve(precondition).await.expect_err("a stale write");
+                assert!(matches!(refused, ServiceError::StaleWrite(_)), "{refused}");
+            }
+            let reopen_stale = cx
+                .service
+                .reopen_svs_worklist_row(&cx.f.admin, SIGNATURE, "T1547", stale, Utc::now())
+                .await
+                .expect_err("a stale write");
+            assert!(matches!(reopen_stale, ServiceError::StaleWrite(_)));
+            assert_eq!(cx.row("T1547").await, row);
+            let fresh = resolve(Precondition::UpdatedAt(row.updated_at))
+                .await
+                .expect("the page is current");
+            assert_eq!(fresh.status, WorklistStatus::RemovePending);
+        }
+
+        /// Each read needs `svs:run_read`, a resolution `svs:run_manage`, the refresh
+        /// `svs:coverage_refresh` and the snapshot `svs:coverage_snapshot`; a refusal writes nothing.
+        #[tokio::test]
+        async fn coverage_and_the_worklist_need_their_permissions() {
+            let test_db = TestDb::new().await;
+            let db = test_db.db();
+            let cx = resolvable(db).await;
+            let s = &cx.service;
+            let nobody = user(UserId(Uuid::from_u128(0x77)));
+            exists(db, &Holder::User(UserId(Uuid::from_u128(0x77)))).await;
+            let reader = user(UserId(Uuid::from_u128(0x78)));
+            exists(db, &Holder::User(UserId(Uuid::from_u128(0x78)))).await;
+            s.grant(
+                &cx.f.admin,
+                &Holder::User(UserId(Uuid::from_u128(0x78))),
+                &pattern("svs", "run_read"),
+                Effect::Allow,
+            )
+            .await
+            .expect("grants");
+            let denied = |result: Result<(), ServiceError>, permission: &str| {
+                let error = result.expect_err("refused");
+                assert!(
+                    matches!(&error, ServiceError::PermissionDenied { permission: p, .. } if p.to_string() == permission),
+                    "{error}"
+                );
+            };
+            let before = (
+                rows(db).await,
+                cx.worklist().await,
+                audit_rows(db).await.len(),
+            );
+
+            let q = CoverageQuery::default();
+            let h = CoverageHistoryQuery::default();
+            let w = WorklistQuery::default();
+            let read = "svs:run_read";
+            denied(
+                s.svs_coverage(&nobody, &q, None, None).await.map(|_| ()),
+                read,
+            );
+            denied(
+                s.svs_coverage_count(&nobody, &q, 10).await.map(|_| ()),
+                read,
+            );
+            denied(s.svs_coverage_summary(&nobody, &q).await.map(|_| ()), read);
+            denied(
+                s.svs_coverage_technique(&nobody, "T1059").await.map(|_| ()),
+                read,
+            );
+            denied(
+                s.svs_coverage_history(&nobody, &h, None, None)
+                    .await
+                    .map(|_| ()),
+                read,
+            );
+            denied(
+                s.svs_coverage_history_count(&nobody, &h, 10)
+                    .await
+                    .map(|_| ()),
+                read,
+            );
+            denied(
+                s.svs_coverage_history_counts(&nobody, &[], HistoryGroup::Day, chrono_tz::Tz::UTC)
+                    .await
+                    .map(|_| ()),
+                read,
+            );
+            denied(
+                s.svs_worklist(&nobody, &w, None, None).await.map(|_| ()),
+                read,
+            );
+            denied(
+                s.svs_worklist_count(&nobody, &w, 10).await.map(|_| ()),
+                read,
+            );
+            denied(
+                s.svs_worklist_signature(&nobody, SIGNATURE)
+                    .await
+                    .map(|_| ()),
+                read,
+            );
+            // a reader reads, and may not resolve
+            s.svs_coverage(&reader, &q, None, None)
+                .await
+                .expect("reads");
+            s.svs_worklist(&reader, &w, None, None)
+                .await
+                .expect("reads");
+            let manage = "svs:run_manage";
+            denied(
+                s.resolve_svs_worklist_row(
+                    &reader,
+                    SIGNATURE,
+                    "T1547",
+                    "keep",
+                    Some("why"),
+                    None,
+                    Precondition::None,
+                    Utc::now(),
+                )
+                .await
+                .map(|_| ()),
+                manage,
+            );
+            denied(
+                s.reopen_svs_worklist_row(
+                    &reader,
+                    SIGNATURE,
+                    "T1547",
+                    Precondition::None,
+                    Utc::now(),
+                )
+                .await
+                .map(|_| ()),
+                manage,
+            );
+            denied(
+                s.resolve_svs_worklist_rows(
+                    &reader,
+                    &[(SIGNATURE.to_owned(), "T1547".to_owned())],
+                    "keep",
+                    Some("why"),
+                    None,
+                    Utc::now(),
+                )
+                .await
+                .map(|_| ()),
+                manage,
+            );
+            // an administrator isn't the scheduler: `*:*` covers it, a reader's grant doesn't
+            denied(
+                s.refresh_svs_coverage(&reader, Utc::now())
+                    .await
+                    .map(|_| ()),
+                "svs:coverage_refresh",
+            );
+            denied(
+                s.record_svs_coverage_error(&reader, "boom")
+                    .await
+                    .map(|_| ()),
+                "svs:coverage_refresh",
+            );
+            denied(
+                s.write_svs_coverage_snapshot(&reader, None, Utc::now())
+                    .await
+                    .map(|_| ()),
+                "svs:coverage_snapshot",
+            );
+            // the refresher refreshes, and files no snapshot
+            denied(
+                s.write_svs_coverage_snapshot(&refresher(), None, Utc::now())
+                    .await
+                    .map(|_| ()),
+                "svs:coverage_snapshot",
+            );
+            assert_eq!(
+                (
+                    rows(db).await,
+                    cx.worklist().await,
+                    audit_rows(db).await.len()
+                ),
+                before
+            );
+            assert_eq!(refresh_row(db).await.error, None);
+        }
+
+        // The audit rows: ace3's `test_audit_records`, and the refresh's and the snapshot's
+
+        fn refresher_json() -> Value {
+            json!({"kind": "internal", "id": "scheduler:svs_coverage_refresh"})
+        }
+
+        fn worklist_target(technique: &str) -> (String, String) {
+            (
+                "svs_worklist_row".to_owned(),
+                format!("{AUDIT_SIGNATURE}/{technique}"),
+            )
+        }
+
+        /// A coverage fixture for the audit tests: AUDIT_SIGNATURE, a hunt tagged T1547, is expected of
+        /// AUDIT_GUID, a test of T1059.001, so its tag is open. One database holds them all, so each
+        /// names its own hosts.
+        async fn audit_coverage(db: &Db, prefix: &'static str) -> Cx {
+            let cx = refreshable_named(db, prefix).await;
+            catalog_test(db, AUDIT_GUID, T1059_001, &["windows"]).await;
+            cx.f.expect(AUDIT_GUID, AUDIT_SIGNATURE, "expected", "windows")
+                .await;
+            write_hunts(&cx, &[(AUDIT_SIGNATURE, true, &["mitre:T1547"])]).await;
+            cx
+        }
+
+        pub(crate) async fn refresh_svs_coverage_records_its_row(db: &Db) -> String {
+            let cx = audit_coverage(db, "audit-cov").await;
+            let refresh = cx.refresh().await;
+            let row = last_audit(db).await;
+            assert_eq!(
+                row,
+                AuditRow {
+                    actor: refresher_json(),
+                    action: "refresh_svs_coverage".to_owned(),
+                    target: ("svs_coverage".to_owned(), "coverage".to_owned()),
+                    before: None,
+                    after: None,
+                    // one database holds every audit test, so the counts are what this refresh found
+                    details: json!({
+                        "attack_release": "v99.0", "rows": refresh.rows, "changed": refresh.changed,
+                        "inserted": refresh.inserted, "retired": 0, "transitions": [],
+                        "worklist_rows": refresh.worklist.rows,
+                        "worklist_changed": refresh.worklist.changed, "worklist_transitions": [],
+                        "worklist_cleared": [], "worklist_moved": [],
+                    }),
+                }
+            );
+            assert!(refresh.rows >= 5 && refresh.changed >= 5 && refresh.worklist.changed >= 2);
+            // a refresh that changes nothing records nothing
+            let audited = audit_rows(db).await.len();
+            cx.refresh().await;
+            assert_eq!(audit_rows(db).await.len(), audited);
+            row.action
+        }
+
+        pub(crate) async fn record_svs_coverage_error_records_its_row(db: &Db) -> String {
+            let cx = refreshable_named(db, "audit-cov-err").await;
+            let record = async |error: &str| {
+                cx.service
+                    .record_svs_coverage_error(&refresher(), error)
+                    .await
+                    .expect("records")
+            };
+            // whatever an earlier test in this database left
+            record("it worked").await;
+            assert!(record("it failed").await);
+            let row = last_audit(db).await;
+            assert_eq!(
+                row,
+                AuditRow {
+                    actor: refresher_json(),
+                    action: "record_svs_coverage_error".to_owned(),
+                    target: ("svs_coverage".to_owned(), "coverage".to_owned()),
+                    before: Some(json!({"error": "it worked"})),
+                    after: Some(json!({"error": "it failed"})),
+                    details: json!({}),
+                }
+            );
+            // the same failure again writes nothing
+            let audited = audit_rows(db).await.len();
+            assert!(!record("it failed").await);
+            assert_eq!(audit_rows(db).await.len(), audited);
+            row.action
+        }
+
+        pub(crate) async fn write_svs_coverage_snapshot_records_its_row(db: &Db) -> String {
+            let cx = refreshable_named(db, "audit-cov-snap").await;
+            let snapshot = cx.snapshot(Some(day())).await;
+            let row = last_audit(db).await;
+            assert_eq!(
+                row,
+                AuditRow {
+                    actor: json!({"kind": "internal", "id": "scheduler:svs_coverage_snapshot"}),
+                    action: "write_svs_coverage_snapshot".to_owned(),
+                    target: ("svs_coverage_snapshot".to_owned(), "2026-10-16".to_owned()),
+                    before: None,
+                    after: None,
+                    details: json!({
+                        "attack_release": "v99.0", "rows": snapshot.rows, "written": snapshot.rows,
+                        "deleted": 0,
+                    }),
+                }
+            );
+            row.action
+        }
+
+        /// `test_audit_records`' first half: a resolution set.
+        pub(crate) async fn resolve_svs_worklist_row_records_its_row(db: &Db) -> String {
+            let cx = audit_coverage(db, "audit-wl").await;
+            cx.refresh().await;
+            cx.service
+                .resolve_svs_worklist_row(
+                    &cx.f.admin,
+                    AUDIT_SIGNATURE,
+                    "T1547",
+                    "remove",
+                    Some("why"),
+                    Some("https://x.example/1"),
+                    Precondition::None,
+                    Utc::now(),
+                )
+                .await
+                .expect("resolves");
+            let row = last_audit(db).await;
+            assert_eq!(
+                row,
+                AuditRow {
+                    actor: boss_json(),
+                    action: "resolve_svs_worklist_row".to_owned(),
+                    target: worklist_target("T1547"),
+                    before: Some(json!({
+                        "resolution": null, "reason": null, "reference": null, "status": "open",
+                        "counts": true,
+                    })),
+                    after: Some(json!({
+                        "resolution": "remove", "reason": "why",
+                        "reference": "https://x.example/1", "status": "remove_pending",
+                        "counts": false,
+                    })),
+                    details: json!({}),
+                }
+            );
+            row.action
+        }
+
+        /// `test_audit_records`' second half: a resolution cleared.
+        pub(crate) async fn reopen_svs_worklist_row_records_its_row(db: &Db) -> String {
+            let cx = audit_coverage(db, "audit-wl-open").await;
+            cx.refresh().await;
+            let resolve = async || {
+                cx.service
+                    .resolve_svs_worklist_row(
+                        &cx.f.admin,
+                        AUDIT_SIGNATURE,
+                        "T1547",
+                        "remove",
+                        Some("why"),
+                        None,
+                        Precondition::None,
+                        Utc::now(),
+                    )
+                    .await
+                    .expect("resolves")
+            };
+            resolve().await;
+            cx.service
+                .reopen_svs_worklist_row(
+                    &cx.f.admin,
+                    AUDIT_SIGNATURE,
+                    "T1547",
+                    Precondition::None,
+                    Utc::now(),
+                )
+                .await
+                .expect("reopens");
+            let row = last_audit(db).await;
+            assert_eq!(
+                row,
+                AuditRow {
+                    actor: boss_json(),
+                    action: "reopen_svs_worklist_row".to_owned(),
+                    target: worklist_target("T1547"),
+                    before: Some(json!({
+                        "resolution": "remove", "reason": "why", "reference": null,
+                        "status": "remove_pending", "counts": false,
+                    })),
+                    after: Some(json!({
+                        "resolution": null, "reason": null, "reference": null, "status": "open",
+                        "counts": true,
+                    })),
+                    details: json!({}),
+                }
+            );
+            row.action
+        }
+
+        pub(crate) async fn resolve_svs_worklist_rows_records_its_row(db: &Db) -> String {
+            let cx = audit_coverage(db, "audit-wl-bulk").await;
+            cx.refresh().await;
+            cx.service
+                .resolve_svs_worklist_rows(
+                    &cx.f.admin,
+                    &[(AUDIT_SIGNATURE.to_owned(), "t1547".to_owned())],
+                    "keep",
+                    Some("bulk"),
+                    None,
+                    Utc::now(),
+                )
+                .await
+                .expect("resolves");
+            let row = last_audit(db).await;
+            assert_eq!(
+                row,
+                AuditRow {
+                    actor: boss_json(),
+                    action: "resolve_svs_worklist_rows".to_owned(),
+                    target: worklist_target("T1547"),
+                    before: Some(json!({
+                        "resolution": null, "reason": null, "reference": null, "status": "open",
+                        "counts": true,
+                    })),
+                    after: Some(json!({
+                        "resolution": "keep", "reason": "bulk", "reference": null, "status": "kept",
+                        "counts": true,
+                    })),
+                    details: json!({}),
+                }
+            );
+            row.action
+        }
+
+        /// What `every_write_fails_when_its_audit_fails` sets up before the audit breaks: a worklist
+        /// row to resolve, one resolved to reopen, and a catalog test the next refresh has rows to write
+        /// for.
+        pub(crate) struct CoverageBeforeTheAuditBreaks {
+            cx: Cx,
+        }
+
+        const BROKEN_HUNT: &str = "acacacac-7777-4777-8777-777777777777";
+
+        pub(crate) async fn coverage_before_the_audit_breaks(
+            db: &Db,
+        ) -> CoverageBeforeTheAuditBreaks {
+            let cx = refreshable_named(db, "broken-cov").await;
+            catalog_test(db, AUDIT_GUID, T1059_001, &["windows"]).await;
+            cx.f.expect(AUDIT_GUID, BROKEN_HUNT, "expected", "windows")
+                .await;
+            write_hunts(
+                &cx,
+                &[(BROKEN_HUNT, true, &["mitre:T1547", "mitre:T1059.002"])],
+            )
+            .await;
+            cx.refresh().await;
+            cx.service
+                .resolve_svs_worklist_row(
+                    &cx.f.admin,
+                    BROKEN_HUNT,
+                    "T1059.002",
+                    "keep",
+                    Some("before"),
+                    None,
+                    Precondition::None,
+                    Utc::now(),
+                )
+                .await
+                .expect("resolves");
+            // the next refresh has a row to change
+            write_hunts(
+                &cx,
+                &[(
+                    BROKEN_HUNT,
+                    true,
+                    &["mitre:T1547", "mitre:T1059.002", "mitre:T1059"],
+                )],
+            )
+            .await;
+            CoverageBeforeTheAuditBreaks { cx }
+        }
+
+        /// Each write here, with the audit broken: its name and the error it gave.
+        pub(crate) async fn coverage_attempts_with_the_audit_broken(
+            before: &CoverageBeforeTheAuditBreaks,
+            actor: &Actor,
+        ) -> Vec<(&'static str, ServiceError)> {
+            let s = &before.cx.service;
+            vec![
+                (
+                    "refresh_svs_coverage",
+                    s.refresh_svs_coverage(&refresher(), Utc::now())
+                        .await
+                        .map(|_| ())
+                        .expect_err("refused"),
+                ),
+                (
+                    "record_svs_coverage_error",
+                    s.record_svs_coverage_error(&refresher(), "another failure")
+                        .await
+                        .map(|_| ())
+                        .expect_err("refused"),
+                ),
+                (
+                    "write_svs_coverage_snapshot",
+                    s.write_svs_coverage_snapshot(&snapshotter(), Some(day()), Utc::now())
+                        .await
+                        .map(|_| ())
+                        .expect_err("refused"),
+                ),
+                (
+                    "resolve_svs_worklist_row",
+                    s.resolve_svs_worklist_row(
+                        actor,
+                        BROKEN_HUNT,
+                        "T1547",
+                        "remove",
+                        Some("after"),
+                        None,
+                        Precondition::None,
+                        Utc::now(),
+                    )
+                    .await
+                    .map(|_| ())
+                    .expect_err("refused"),
+                ),
+                (
+                    "resolve_svs_worklist_rows",
+                    s.resolve_svs_worklist_rows(
+                        actor,
+                        &[(BROKEN_HUNT.to_owned(), "T1547".to_owned())],
+                        "remove",
+                        Some("after"),
+                        None,
+                        Utc::now(),
+                    )
+                    .await
+                    .map(|_| ())
+                    .expect_err("refused"),
+                ),
+                (
+                    "reopen_svs_worklist_row",
+                    s.reopen_svs_worklist_row(
+                        actor,
+                        BROKEN_HUNT,
+                        "T1059.002",
+                        Precondition::None,
+                        Utc::now(),
+                    )
+                    .await
+                    .map(|_| ())
+                    .expect_err("refused"),
+                ),
+            ]
+        }
+
+        /// What the writes here would have changed, to compare before and after.
+        pub(crate) async fn coverage_rows(db: &Db) -> Vec<String> {
+            let mut all = Vec::new();
+            for query in [
+                "SELECT 'coverage ' || technique || ' ' || platform || ' ' || state || ' '
+                        || updated_at::text FROM svs.coverage ORDER BY id",
+                "SELECT 'state ' || COALESCE(error, '-') || ' ' || rows::text FROM svs.coverage_state",
+                "SELECT 'snapshot ' || snapshot_date::text || ' ' || technique
+                 FROM svs.coverage_snapshots ORDER BY id",
+                "SELECT 'worklist ' || signature_uuid || ' ' || technique || ' ' || status || ' '
+                        || COALESCE(resolution, '-') || ' ' || updated_at::text
+                 FROM svs.technique_worklist ORDER BY id",
+            ] {
+                all.extend(
+                    sqlx::query_scalar::<_, String>(query)
+                        .fetch_all(db.pool())
+                        .await
+                        .expect("reads"),
+                );
+            }
+            all
+        }
+    }
 }
 
 /// PLAN.md 7.10 batch 6: attribution (ace3 #842). ace3's `tests/saq/svs/test_attribution.py`'s cases
@@ -37578,6 +41101,72 @@ mod svs_attribution_tests {
             .expect("registers");
         opening.await.expect("the open").expect("opens");
         assert!(open(db, Utc::now()).await);
+    }
+
+    /// The same race for the hunter (PLAN.md 7.10 batch 8): a maintenance window opened while a hunt
+    /// run is being recorded. The record reads the gate under its lock, so it waits for the open, sees
+    /// the window once it's committed, and keys the window's match by it. Read without the lock, the gate
+    /// would look closed beside the uncommitted window, and the match would be keyed as production's and
+    /// hide the group's next real match. A run with nothing to ask about takes no lock.
+    #[tokio::test]
+    async fn a_window_opened_while_a_hunt_run_records_is_not_missed() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let f = suppressed_fixture(db).await;
+        let base = now();
+
+        // the open, in flight: it holds the gate's lock, and its window isn't committed
+        let uuid = Uuid::new_v4();
+        let mut opening = db.begin().await.expect("begins");
+        att::lock_gate_to_open(opening.conn())
+            .await
+            .expect("takes the gate's lock");
+        sqlx::query(
+            "INSERT INTO svs.maintenance_windows
+                 (uuid, test_host_id, host, fqdn, reason, opened_by, opened_at, ends_at)
+             SELECT $1, id, hostname, fqdn, 'staging', $2::jsonb, $3, $4
+             FROM svs.test_hosts WHERE hostname = 'win10-01'",
+        )
+        .bind(uuid)
+        .bind(user_json(0xAD, "alice"))
+        .bind(base - minutes(10))
+        .bind(base + minutes(20))
+        .execute(opening.conn())
+        .await
+        .expect("opens a window");
+
+        // a run with no match asks SVS nothing: it records beside the open
+        let empty = tokio::time::timeout(
+            Duration::from_secs(20),
+            tick(&f, base - minutes(2), vec![], vec![]),
+        )
+        .await
+        .expect("a run with no match doesn't wait for the gate");
+        assert!(empty.roots.is_empty() && empty.svs_keys.is_empty());
+
+        // a run with the window's match waits for the open
+        let recording = tick(
+            &f,
+            base,
+            vec![hit("win10-01", Some("alice"), base - minutes(5), json!({}))],
+            vec![],
+        );
+        tokio::pin!(recording);
+        assert!(
+            tokio::time::timeout(Duration::from_millis(700), &mut recording)
+                .await
+                .is_err(),
+            "the record waits for the open"
+        );
+        assert_eq!(alert_times(&f).await, Vec::<String>::new());
+
+        opening.commit().await.expect("commits");
+        let recorded = recording.await;
+        // it read the gate after the window committed: the match is the window's
+        let key = format!("svs_maintenance:{uuid}:alice");
+        assert_eq!(recorded.roots.len(), 1);
+        assert_eq!(recorded.svs_keys, std::slice::from_ref(&key));
+        assert_eq!(alert_times(&f).await, [key]);
     }
 
     /// SVS's marker router, the closing of test alerts and a person's associations (PLAN.md 7.10 batch

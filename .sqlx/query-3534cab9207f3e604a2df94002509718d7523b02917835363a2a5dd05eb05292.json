@@ -1,0 +1,122 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT attack_release, refreshed_at, duration_ms, rows, changed, retired, unknown_tags,\n                ignored_tags, error\n         FROM svs.coverage_state WHERE id = 1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "attack_release",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.coverage_state",
+            "name": "attack_release"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "refreshed_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "svs.coverage_state",
+            "name": "refreshed_at"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "duration_ms",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "svs.coverage_state",
+            "name": "duration_ms"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "rows",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "svs.coverage_state",
+            "name": "rows"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "changed",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "svs.coverage_state",
+            "name": "changed"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "retired",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "svs.coverage_state",
+            "name": "retired"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "unknown_tags",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "svs.coverage_state",
+            "name": "unknown_tags"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "ignored_tags",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "svs.coverage_state",
+            "name": "ignored_tags"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "error",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.coverage_state",
+            "name": "error"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      true,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "3534cab9207f3e604a2df94002509718d7523b02917835363a2a5dd05eb05292"
+}

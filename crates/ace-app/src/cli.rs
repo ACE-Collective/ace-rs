@@ -55,7 +55,7 @@ enum Command {
 /// ace3's GUI runs any `ace` command but global options and secrets (`ace3/docs/GUI_CLI.md`). Of
 /// ace3's commands, ace4 has `yara scan` (here over a ruleset file, not ace3's scanner service) and
 /// `user`, whose `create-first` and `create-key` are an operator's, not ace3's `user add`. ace4's
-/// `svs yara` is ace3's (`validate`, `layout`, `prune`), as is `svs catalog` (`refresh`, `status`), and `svs
+/// `svs yara` is ace3's (`validate`, `layout`, `prune`), as are `svs catalog` (`refresh`, `status`) and `svs coverage` (`refresh`, `status`, `snapshot`), and `svs
 /// attack extract` is ace3's `bin/update-attack-catalog`; each is refused like the rest. ace4's `signatures check` is new; ace3's `signatures` lists what a node loads (`list`, `locations`) and
 /// builds the Suricata lookup (`build-db`). ace3's other commands (`alert`, `cache`, `cas`,
 /// `company`, `config`, `correlate`, `crash`, `cron`, `encryption`, `event`, `gui`, `hunt`,
@@ -200,6 +200,9 @@ mod tests {
             "svs yara layout",
             "svs catalog status",
             "svs catalog refresh --force",
+            "svs coverage status",
+            "svs coverage refresh",
+            "svs coverage snapshot",
             "svs attack extract v20.0 --input /x",
             "task replay 1",
             "root normal-form 00000000-0000-0000-0000-000000000000",

@@ -20,6 +20,10 @@
 //! - `attribution`: who owns an event, and the core's SVS hook, which attributes an alert's detections to
 //!   test runs (batch 6).
 //! - `marker_rule`: the built-in YARA rule that finds markers in file contents (batch 6).
+//! - `test_state`: how a catalog test does on each platform, from its latest reviewed run there (batch 8).
+//! - `coverage`: ATT&CK coverage per technique and platform, from the tests' states and the signatures'
+//!   `mitre:` tags (batch 8).
+//! - `worklist`: the declared-vs-measured worklist, a signature's tags against what tests measure (batch 8).
 //! - The values every part shares: a run's states, its event log's kinds, how a detection was attributed,
 //!   and the one SVS status an alert has (`derive_status`).
 //!
@@ -40,6 +44,7 @@
 pub mod attack;
 pub mod attribution;
 pub mod catalog;
+pub mod coverage;
 pub mod hosts;
 pub mod log_search;
 pub mod marker_rule;
@@ -48,8 +53,10 @@ pub mod results;
 pub mod runs;
 pub mod samples;
 pub mod signatures;
+pub mod test_state;
 pub mod validations;
 pub mod windows;
+pub mod worklist;
 pub mod yara;
 
 use std::collections::{BTreeMap, BTreeSet};
@@ -70,7 +77,7 @@ pub const RUN_SIGNATURES: [&str; 2] = [REGISTRATION_REFUSED_SIGNATURE, MARKER_MI
 /// The tag of an alert every detection of which is attributed to a run.
 pub const TAG_SVS_TEST: &str = "svs_test";
 /// The queue test-run alerts are routed to: ace3's `svs.queue`, at its default. It isn't a setting here
-/// yet: the marker router joins the binary before the overlay is read (PLAN.md 7.10 batch 7a).
+/// yet (the owner's decision of 2026-11-14): every binary's `App` adds the marker router with it.
 pub const SVS_QUEUE: &str = "svs";
 /// The router name a person's move through SVS is recorded with (associating or disassociating an
 /// alert), which the marker router never overrides: ace3's `SVS_MANUAL_ROUTER`.

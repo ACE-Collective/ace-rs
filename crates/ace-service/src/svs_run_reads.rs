@@ -518,7 +518,7 @@ fn state_of(text: &str) -> Result<RunState, ServiceError> {
 
 /// A flag filter and its inverse as one wanted value, and whether together they match nothing: ace3's
 /// `_flag`, under which a filter holding both values filters nothing, and so its inverse matches nothing.
-fn flag(f: &Resolved, slug: &'static str) -> (Option<bool>, bool) {
+pub(crate) fn flag(f: &Resolved, slug: &'static str) -> (Option<bool>, bool) {
     let side = |inverted: bool| -> Option<Option<bool>> {
         let values: BTreeSet<String> = f.names(slug, inverted)?.into_iter().collect();
         Some(match values.len() {

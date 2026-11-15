@@ -1,0 +1,213 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, snapshot_date, technique, platform, attack_release, parent, is_subtechnique,\n                      state, own_state, tests_total, tests_validated, tests_failing, tests_stale,\n                      manual_signatures, measured_signatures, updated_at\n               FROM svs.coverage_snapshots s\n               WHERE svs.coverage_snapshot_matches(s, $1)\n                 AND s.updated_at >= $2 AND s.updated_at < now() - make_interval(secs => $3)\n                 AND ($4::bigint IS NULL OR (s.updated_at, s.id) > ($5::timestamptz, $4))\n               ORDER BY s.updated_at, s.id\n               LIMIT $6",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "svs.coverage_snapshots",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "snapshot_date",
+        "type_info": "Date",
+        "origin": {
+          "Table": {
+            "table": "svs.coverage_snapshots",
+            "name": "snapshot_date"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "technique",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.coverage_snapshots",
+            "name": "technique"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "platform",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.coverage_snapshots",
+            "name": "platform"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "attack_release",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.coverage_snapshots",
+            "name": "attack_release"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "parent",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.coverage_snapshots",
+            "name": "parent"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "is_subtechnique",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "svs.coverage_snapshots",
+            "name": "is_subtechnique"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "state",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.coverage_snapshots",
+            "name": "state"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "own_state",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.coverage_snapshots",
+            "name": "own_state"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "tests_total",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "svs.coverage_snapshots",
+            "name": "tests_total"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "tests_validated",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "svs.coverage_snapshots",
+            "name": "tests_validated"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "tests_failing",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "svs.coverage_snapshots",
+            "name": "tests_failing"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "tests_stale",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "svs.coverage_snapshots",
+            "name": "tests_stale"
+          }
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "manual_signatures",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "svs.coverage_snapshots",
+            "name": "manual_signatures"
+          }
+        }
+      },
+      {
+        "ordinal": 14,
+        "name": "measured_signatures",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "svs.coverage_snapshots",
+            "name": "measured_signatures"
+          }
+        }
+      },
+      {
+        "ordinal": 15,
+        "name": "updated_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "svs.coverage_snapshots",
+            "name": "updated_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Jsonb",
+        "Timestamptz",
+        "Float8",
+        "Int8",
+        "Timestamptz",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "9e32bcbcaf565deb8572bde28eaaf1511eee5b43f118f1f9580cddd6bcb8fc89"
+}

@@ -634,11 +634,15 @@ async fn record_decisions(
         svs_keys: Vec::new(),
     };
 
-    // who owns each match, the suppressed ones first: the one question SVS is asked about this run
+    // who owns each match, the suppressed ones first: the one question SVS is asked about this run. The
+    // gate is read under its lock, as a pass's end reads it (`attribution`'s *The gate*): a registration
+    // or a maintenance window in flight is waited for and then seen, so a match it owns is keyed and
+    // recorded for it, where an unlocked read beside the uncommitted row would say the gate is closed. A
+    // run with no match asks nothing and takes no lock.
     let matches = run.suppressed.len() + run.submissions.len();
     let extra = service.runs.windows.attribution_extra;
     let owners: Option<(Vec<attribution::Event>, Vec<attribution::ContextOwner>)> =
-        if matches > 0 && attribution::attribution_open(tx.conn(), run.at, extra).await? {
+        if matches > 0 && attribution::gate_open(tx.conn(), run.at, extra).await? {
             let events: Vec<attribution::Event> = run
                 .suppressed
                 .iter()

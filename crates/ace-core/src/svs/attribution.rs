@@ -48,6 +48,19 @@
 //! closed, before the run existed. Nothing else opens the gate: a run's start and end only move a run
 //! that already holds it open, and time only closes it.
 //!
+//! The hunter's record of a run (`ace_service`'s `record_hunt_run`) reads the gate through [`gate_open`]
+//! too, when the run has a match to ask about, so a match the hunter drops or keys gets the same order
+//! against a registration or a window in flight that an alert gets. It can't deadlock with them. A
+//! transaction waits for the lock exclusive only in `register_svs_run` and `open_svs_maintenance`, and
+//! what each holds by then is its test hosts' rows. A hunt run's transaction holds its hunt's state row
+//! and the dedup keys and suppression rows it pruned when it asks for the lock shared, none of which a
+//! registration or a window touches, and after it has the lock it reads SVS's tables, makes roots, and
+//! takes at most a key-share lock on an existing run's row for a recorded match, which the insert of a
+//! new run doesn't wait for, and never a test host's row. So neither ever waits for something the other
+//! holds while the other waits for the lock. What it costs: a registration waits for the hunt runs being
+//! recorded, each one transaction, and the passes ending behind it wait as long, bounded by the
+//! statement timeout.
+//!
 //! # Bounds
 //!
 //! A root's tree is hostile, and the hook runs in the core. What one judgment reads:

@@ -1,0 +1,100 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT guid, name, technique, technique_name, platforms, content_hash,\n                                  removed_at\n                           FROM svs.catalog_tests WHERE guid = ANY ($1)\n                           ORDER BY technique COLLATE \"C\", name COLLATE \"C\", id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "guid",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "svs.catalog_tests",
+            "name": "guid"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.catalog_tests",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "technique",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.catalog_tests",
+            "name": "technique"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "technique_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.catalog_tests",
+            "name": "technique_name"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "platforms",
+        "type_info": "TextArray",
+        "origin": {
+          "Table": {
+            "table": "svs.catalog_tests",
+            "name": "platforms"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "content_hash",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.catalog_tests",
+            "name": "content_hash"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "removed_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "svs.catalog_tests",
+            "name": "removed_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "UuidArray"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "27acec47d538a85fe15cc90f99879ec3ac0404440daca14e54d6356d72c9591f"
+}

@@ -1,0 +1,46 @@
+{#- ace3's svs/tests.html (PLAN.md 7.10 batch 8): the catalog's Atomic Red Team tests by technique, each
+    with its state and run history, the tests screen's filters folded into `f`, its pages and the exports
+    (src/svs_coverage.rs). Read-only. -#}
+{% extends "base.html" %}
+{% block title %}Tests · SVS · ACE{% endblock %}
+{% block content %}
+<section class="signatures detection svs-tests">
+  {%- include "svs/tabs.html" %}
+  <p class="muted">The Atomic Red Team tests in the catalog, by technique, each with its state on its latest reviewed run. Nothing here suggests what to run next. Times are UTC.</p>
+  <form method="get" action="/svs/tests" class="detection-filters">
+    {%- for field in view.fields %}
+    <label for="filter-{{ field.slug }}">{{ field.name }}</label>
+    <input type="text" id="filter-{{ field.slug }}" name="{{ field.slug }}" value="{{ field.value }}" placeholder="{% if field.options.is_empty() %}{{ field.hint }}{% else %}{{ field.options|join(", ") }}{% endif %}">
+    {%- endfor %}
+    <button type="submit">Apply</button>
+    <a href="/svs/tests">Reset</a>
+  </form>
+  <p class="muted">Export as <a href="{{ view.csv }}">CSV</a> or <a href="{{ view.ndjson }}">NDJSON</a></p>
+  <table class="keys">
+    <thead><tr><th>Technique</th><th>Test</th><th>Platforms</th><th>State</th><th>Runs</th><th>Latest run</th><th>Latest review</th><th title="signatures expected of it on any platform">Expected</th><th title="of its latest ended or reviewed runs, those that missed an expected signature">Recent misses</th></tr></thead>
+    <tbody>
+      {%- for row in view.rows %}
+      <tr>
+        <td><a href="{{ row.technique_href }}">{{ row.technique }}</a></td>
+        <td class="qa-text"><a href="{{ row.href }}">{{ row.name }}</a>{% if row.removed %} <span class="muted">removed</span>{% endif %}</td>
+        <td>{{ row.platforms }}</td>
+        <td><span class="badge disposition-{{ row.state_class }}">{{ row.state }}</span></td>
+        <td>{% if row.runs > 0 %}{{ row.runs }}{% endif %}</td>
+        <td class="nowrap">{% if let Some(run) = row.last_run %}<a href="{{ run.href }}">{{ run.text }}</a>{% endif %}</td>
+        <td class="nowrap">{% if let Some(run) = row.last_reviewed %}<a href="{{ run.href }}">{{ run.text }}</a>{% endif %}</td>
+        <td>{% if row.expected > 0 %}{{ row.expected }}{% endif %}</td>
+        <td>{{ row.recent }}</td>
+      </tr>
+      {%- else %}
+      <tr><td colspan="9" class="muted">No tests.</td></tr>
+      {%- endfor %}
+    </tbody>
+  </table>
+  {%- if view.first.is_some() || view.next.is_some() %}
+  <nav class="pager" aria-label="Pages">
+    {%- if let Some(first) = view.first %} <a href="{{ first }}">First</a>{% endif %}
+    {%- if let Some(next) = view.next %} <a href="{{ next }}" rel="next">Next</a>{% endif %}
+  </nav>
+  {%- endif %}
+</section>
+{% endblock %}

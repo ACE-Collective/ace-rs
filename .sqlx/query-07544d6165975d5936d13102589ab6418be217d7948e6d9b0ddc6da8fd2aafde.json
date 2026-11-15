@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE svs.coverage SET retired_at = $2 WHERE id = ANY ($1)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8Array",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "07544d6165975d5936d13102589ab6418be217d7948e6d9b0ddc6da8fd2aafde"
+}

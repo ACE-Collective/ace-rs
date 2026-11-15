@@ -4,8 +4,8 @@
 //!
 //! # The marker router
 //!
-//! [`MarkerRouter`] is one of 7.13's routers (`crate::routing::Router`), which `ace::app()` adds as
-//! `svs_marker` at priority 100, ahead of the detection-queue router, so a YARA rule with a `queue` meta
+//! [`MarkerRouter`] is one of 7.13's routers (`crate::routing::Router`), which every binary's `App` runs
+//! (`ace_app::App::alert_routers` adds it, whatever the binary lists) as `svs_marker` at priority 100, ahead of the detection-queue router, so a YARA rule with a `queue` meta
 //! that matched a dropped test file doesn't take the alert first. It sends an alert whose every detection
 //! is attributed to a test run, or that belongs to a test host's maintenance window, to the test queue
 //! (`ace_core::svs::SVS_QUEUE`), and sends one it put there back where it came from once that stops

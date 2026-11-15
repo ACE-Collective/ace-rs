@@ -308,8 +308,9 @@ impl App {
     }
 
     /// Adds an alert router (PLAN.md 7.13) that `ace serve` always runs, named `name`, at `priority` (lowest
-    /// first; the built-in `detection_queue` is 500), as ace3's `saq.default.yaml` lists SVS's marker router.
-    /// A name must be unique and not a built-in's, which `ace serve` checks when it starts.
+    /// first; the built-in `detection_queue` is 500, and SVS's `svs_marker`, which every `App` runs, is
+    /// 100). A name must be unique and neither a built-in's nor `svs_marker`, which `ace serve` checks when
+    /// it starts.
     pub fn alert_router(
         mut self,
         name: &str,
@@ -336,13 +337,27 @@ impl App {
         self
     }
 
-    /// The alert routers `ace serve` runs: the built-in one, the binary's and the overlay's, or why one of
-    /// them can't be built.
+    /// The alert routers `ace serve` runs: the built-in one, SVS's marker router, the binary's and the
+    /// overlay's, or why one of them can't be built.
+    ///
+    /// The marker router (PLAN.md 7.10 batches 7a and 8) is added here, for every `App`, and not by the
+    /// binary's own list: without it a test run's alerts stay in the queue analysts triage, and a site
+    /// binary built from `App::new()` rather than `ace::app()` would lack it and say nothing. This is the
+    /// one place a binary's routers are put together, so it can't be left out. It belongs in this crate
+    /// and not in `ace_service::routing::Routers::builtin`, which is 7.13's registry with ace3's one
+    /// built-in router and is what a `Service` made for a test or a command has; ace3 names the marker
+    /// router in the `alert_routers:` of the configuration every ace3 ships, which here is what every
+    /// binary's `App` runs. It is first, so a router of the binary's or the overlay's that takes its
+    /// name is refused as a duplicate.
     pub fn alert_routers(
         &self,
         overlay: &ace_sdk::Overlay,
     ) -> Result<ace_service::routing::Routers, String> {
-        let mut routers = ace_service::routing::Routers::builtin();
+        let mut routers = ace_service::routing::Routers::builtin().with(
+            ace_service::svs_association::MARKER_ROUTER,
+            ace_service::svs_association::MARKER_ROUTER_PRIORITY,
+            Arc::new(ace_service::svs_association::MarkerRouter),
+        )?;
         for (name, priority, router) in &self.alert_routers {
             routers = routers.with(name, *priority, router.clone())?;
         }

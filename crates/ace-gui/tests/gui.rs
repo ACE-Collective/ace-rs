@@ -14852,3 +14852,1204 @@ async fn the_svs_pages_need_run_read_then_run_manage_and_svs_admin() {
         StatusCode::SEE_OTHER
     );
 }
+
+use ace_gui::svs_coverage::{
+    CoveragePage, SignaturePage, TechniquePage, TestPage, TestsPage, WorklistPage, bulk_notice,
+    coverage_view, signature_href, signature_view, technique_href, technique_view, test_href,
+    test_view, tests_view, worklist_view,
+};
+
+const COVERAGE_SIGNATURE: &str = "c0c0c0c0-2222-4222-8222-222222222222";
+
+fn fixture_catalog_test() -> ace_service::CatalogTest {
+    use ace_service::{PlatformHistory, TestHistory, TestState};
+    let run = uuid::Uuid::from_u128(0x5b);
+    ace_service::CatalogTest {
+        guid: uuid::Uuid::from_u128(0x7e57),
+        repository: HOSTILE.to_owned(),
+        technique: "T1059.001".to_owned(),
+        technique_name: Some(HOSTILE.to_owned()),
+        name: HOSTILE.to_owned(),
+        platforms: vec!["windows".to_owned(), HOSTILE.to_owned()],
+        executor: Some(HOSTILE.to_owned()),
+        path: HOSTILE.to_owned(),
+        commit: "a".repeat(40),
+        content_hash: "0".repeat(64),
+        first_seen_at: svs_at(),
+        removed_at: Some(svs_at()),
+        updated_at: svs_at(),
+        history: TestHistory {
+            state: TestState::Failing,
+            run_count: 7,
+            last_run: Some(run),
+            last_run_at: Some(svs_at()),
+            last_reviewed_run: Some(run),
+            last_reviewed_at: Some(svs_at()),
+            expected: 2,
+            recent_runs: 5,
+            recent_runs_missing: 2,
+            platform_states: [
+                (
+                    "linux".to_owned(),
+                    PlatformHistory {
+                        state: TestState::NeverRun,
+                        last_reviewed_run: None,
+                        last_reviewed_at: None,
+                        expected: 0,
+                    },
+                ),
+                (
+                    "windows".to_owned(),
+                    PlatformHistory {
+                        state: TestState::Failing,
+                        last_reviewed_run: Some(run),
+                        last_reviewed_at: Some(svs_at()),
+                        expected: 2,
+                    },
+                ),
+            ]
+            .into(),
+        },
+    }
+}
+
+fn fixture_coverage_row(technique: &str, platform: &str) -> ace_service::CoverageRow {
+    ace_service::CoverageRow {
+        technique: technique.to_owned(),
+        platform: platform.to_owned(),
+        parent: None,
+        is_subtechnique: false,
+        technique_name: Some(HOSTILE.to_owned()),
+        tactics: vec!["TA0002".to_owned()],
+        catalog_status: "unknown".to_owned(),
+        attack_platform: false,
+        state: ace_service::SvsCoverageState::Failing,
+        own_state: ace_service::SvsCoverageState::Manual,
+        tests_total: 4,
+        tests_validated: 1,
+        tests_failing: 2,
+        tests_stale: 0,
+        manual_signatures: 3,
+        measured_signatures: 5,
+        last_reviewed_at: Some(svs_at()),
+        state_changed_at: svs_at(),
+        first_seen_at: svs_at(),
+        retired_at: Some(svs_at()),
+        updated_at: svs_at(),
+    }
+}
+
+fn fixture_worklist_row(
+    technique: &str,
+    status: ace_service::WorklistStatus,
+    resolved: bool,
+) -> ace_service::WorklistRow {
+    ace_service::WorklistRow {
+        signature_uuid: COVERAGE_SIGNATURE.to_owned(),
+        technique: technique.to_owned(),
+        technique_name: Some(HOSTILE.to_owned()),
+        kind: ace_service::WorklistKind::Declared,
+        status,
+        declared_as: vec![technique.to_owned(), "T1086".to_owned()],
+        tag_present: true,
+        signature_counts: true,
+        counts: !resolved,
+        measured: true,
+        measured_techniques: vec!["T1059.001".to_owned()],
+        signature_family: Some("hunt".to_owned()),
+        signature_name: Some(HOSTILE.to_owned()),
+        resolution: resolved.then_some(ace_service::WorklistResolution::Remove),
+        reason: resolved.then(|| HOSTILE.to_owned()),
+        reference: resolved.then(|| "https://git.example/pull/7?a=1&b=2".to_owned()),
+        resolved_by: resolved.then(svs_actor),
+        resolved_at: resolved.then(svs_at),
+        first_seen_at: svs_at(),
+        status_changed_at: svs_at(),
+        updated_at: svs_at(),
+    }
+}
+
+/// The Tests, Coverage and Worklist views, called directly: the tests with their state and run history, a
+/// test's page with its settings and decisions by what its viewer holds, coverage with its counts and a
+/// failed refresh, a technique's drill-down, and the worklist with its resolution forms, each with hostile
+/// text escaped and nothing inline.
+#[test]
+fn the_svs_coverage_views_draw_tests_coverage_and_the_worklist() {
+    use ace_service::{
+        CatalogTestDetail, CatalogTestQuery, CoverageQuery, CoverageSnapshotRow, CoverageSummary,
+        Expectation, ExpectationState, ManualSignature, MeasuredSignature, MeasuredTechnique,
+        MeasuredTest, PlatformCounts, RemovedTest, SignatureWorklist, SvsCoverageRefreshState,
+        SvsCoverageState, TechniqueCoverage, TestSettings, TestState, WorklistQuery,
+        WorklistStatus,
+    };
+    let layout = || Layout::new("n", Theme::default(), Some("analyst".to_owned()), "/svs");
+    let tabs = |open| Tabs { open, admin: false };
+    let test = fixture_catalog_test();
+    let run = run_href(uuid::Uuid::from_u128(0x5b));
+
+    // the Tests tab
+    let filters = vec!["removed:false".to_owned()];
+    let query = CatalogTestQuery {
+        filters: vec![FilterEntry::text("Removed", false, &["false"])],
+        ..CatalogTestQuery::default()
+    };
+    let list = drawn_safely(&TestsPage {
+        layout: layout(),
+        view: tests_view(
+            tabs("tests"),
+            &query,
+            &filters,
+            std::slice::from_ref(&test),
+            Some("c1"),
+            Some("c2"),
+        ),
+    });
+    assert!(
+        list.contains(&format!(
+            r#"<a href="{}">{HOSTILE_ESCAPED}</a> <span class="muted">removed</span>"#,
+            test_href(test.guid)
+        )),
+        "{list}"
+    );
+    assert!(
+        list.contains(r#"<a href="/svs/coverage/T1059.001">T1059.001</a>"#)
+            && list.contains(r#"<span class="badge disposition-danger">failing</span>"#)
+            && list.contains(&format!(r#"<a href="{run}">2023-11-14 22:13:20 UTC</a>"#))
+            && list.contains("<td>2 of 5 missed</td>")
+            && list.contains("<td>7</td>"),
+        "{list}"
+    );
+    assert!(
+        list.contains(r#"<a href="/svs/tests?f=removed%3Afalse">First</a>"#)
+            && list.contains(
+                r#"<a href="/svs/tests?f=removed%3Afalse&#38;cursor=c2" rel="next">Next</a>"#
+            )
+            && list.contains(r#"href="/api/svs/v1/tests/export/csv?f=removed%3Afalse""#)
+            && list.contains(r#"id="filter-removed" name="removed" value="false""#),
+        "{list}"
+    );
+    // each tab opens on its default view, and the open one says so
+    assert!(
+        list.contains(r#"<a href="/svs/tests?f=removed%3Afalse" aria-current="page">Tests</a>"#)
+            && list.contains(
+                r#"<a href="/svs/coverage?f=platform%3Awindows%2Clinux%2Cmacos&amp;f=retired%3Afalse">Coverage</a>"#
+            )
+            && list.contains(r#"<a href="/svs/worklist?f=status%3Aopen">Worklist</a>"#)
+            && !list.contains(r#"href="/svs/test-hosts""#),
+        "{list}"
+    );
+    let none = drawn_safely(&TestsPage {
+        layout: layout(),
+        view: tests_view(
+            tabs("tests"),
+            &CatalogTestQuery::default(),
+            &[],
+            &[],
+            None,
+            None,
+        ),
+    });
+    assert!(
+        none.contains("No tests.") && !none.contains(">First<"),
+        "{none}"
+    );
+
+    // a test's page
+    let detail = CatalogTestDetail {
+        test: test.clone(),
+        description: Some(HOSTILE.to_owned()),
+        platform_slugs: vec!["windows".to_owned()],
+        entry: serde_json::json!({"executor": {"command": HOSTILE}}),
+    };
+    let settings = TestSettings {
+        test_guid: test.guid,
+        observation_minutes: Some(45),
+        holds_host: true,
+        set_by: Some(svs_actor()),
+        updated_at: svs_at(),
+    };
+    let expectation = Expectation {
+        test_guid: test.guid,
+        platform: "windows".to_owned(),
+        signature_uuid: HOSTILE.to_owned(),
+        state: ExpectationState::Expected,
+        signature_family: Some("yara".to_owned()),
+        signature_name: Some(HOSTILE.to_owned()),
+        reason: Some(HOSTILE.to_owned()),
+        decided_from_run: None,
+        decided_by: Some(svs_actor()),
+        decided_at: svs_at(),
+        updated_at: svs_at(),
+    };
+    let ignore = |global: bool| Ignore {
+        test_guid: (!global).then_some(test.guid),
+        signature_uuid: COVERAGE_SIGNATURE.to_owned(),
+        signature_family: None,
+        signature_name: Some(HOSTILE.to_owned()),
+        reason: Some(HOSTILE.to_owned()),
+        created_by: Some(svs_actor()),
+        created_at: svs_at(),
+        updated_at: svs_at(),
+    };
+    let ignores = [ignore(false), ignore(true)];
+    let page_of = test_href(test.guid);
+    let draw = |manage: bool, admin: bool, settings: Option<&TestSettings>| {
+        drawn_safely(&TestPage {
+            layout: layout(),
+            view: test_view(
+                tabs("tests"),
+                &detail,
+                settings,
+                std::slice::from_ref(&expectation),
+                &ignores,
+                manage,
+                admin,
+                Some("Done.".to_owned()),
+            ),
+        })
+    };
+    let reader = draw(false, false, Some(&settings));
+    assert!(
+        reader.contains(HOSTILE_ESCAPED) && !reader.contains("<form method=\"post\" action=\"/svs"),
+        "{reader}"
+    );
+    assert!(
+        reader.contains("Runs registered from now on are observed for 45 minutes.")
+            && reader.contains("its runs hold their hosts until their attribution window ends")
+            && reader.contains(r#"<p class="notice" role="status">Done.</p>"#)
+            && reader.contains(
+                r#"<a href="/svs/runs?f=test%3A00000000-0000-0000-0000-000000007e57">Its runs</a>"#
+            )
+            && reader.contains("<td>linux</td>")
+            && reader.contains(r#"<span class="badge disposition-secondary">never_run</span>"#)
+            && reader.contains("<td>every test</td>")
+            && reader.contains("<td>this test</td>"),
+        "{reader}"
+    );
+    // the entry is shown as text
+    assert!(reader.contains("&#34;command&#34;"), "{reader}");
+    let manager = draw(true, false, Some(&settings));
+    assert!(
+        manager.contains(&format!(
+            r#"<form method="post" action="{page_of}/settings" class="detection-add">"#
+        )) && manager.contains(r#"name="observation_minutes" min="1" step="1" value="45""#)
+            && manager.contains(r#"name="holds_host" value="1" checked"#)
+            && manager.contains(r#"<input type="hidden" name="action" value="clear">"#)
+            && manager.contains(&format!(
+                r#"<form method="post" action="{page_of}/decide" class="inline"><input type="hidden" name="decision" value="undecide"><input type="hidden" name="platform" value="windows"><input type="hidden" name="signature" value="{HOSTILE_ESCAPED}">"#
+            ))
+            && manager.contains(r#"name="decision" value="unignore">"#)
+            // a global ignore's removal is svs:admin's
+            && !manager.contains("unignore_globally"),
+        "{manager}"
+    );
+    let admin = draw(false, true, None);
+    assert!(
+        admin.contains(r#"name="decision" value="unignore_globally">"#)
+            && !admin.contains(r#"value="undecide""#)
+            && !admin.contains("/settings")
+            && admin.contains("Its runs get the computed window"),
+        "{admin}"
+    );
+    let unset = draw(true, false, None);
+    assert!(
+        !unset.contains(r#"value="clear""#) && !unset.contains(" checked"),
+        "{unset}"
+    );
+
+    // the Coverage tab
+    let rows = [
+        fixture_coverage_row("T1234", "windows"),
+        ace_service::CoverageRow {
+            technique: "T1059.001".to_owned(),
+            parent: Some("T1059".to_owned()),
+            is_subtechnique: true,
+            catalog_status: "active".to_owned(),
+            attack_platform: true,
+            state: SvsCoverageState::None,
+            own_state: SvsCoverageState::None,
+            tests_total: 0,
+            tests_validated: 0,
+            tests_failing: 0,
+            manual_signatures: 0,
+            measured_signatures: 0,
+            last_reviewed_at: None,
+            retired_at: None,
+            ..fixture_coverage_row("T1059.001", "windows")
+        },
+    ];
+    let counts = |pairs: &[(&str, i64)]| {
+        pairs
+            .iter()
+            .map(|(state, count)| ((*state).to_owned(), *count))
+            .collect::<std::collections::BTreeMap<_, _>>()
+    };
+    let summary = |refreshed: bool, error: Option<&str>| CoverageSummary {
+        rows: 12,
+        states: counts(&[("failing", 2), ("none", 9), ("validated", 1), ("stale", 0)]),
+        own_states: counts(&[("none", 12)]),
+        platforms: vec![PlatformCounts {
+            platform: "windows".to_owned(),
+            rows: 12,
+            states: counts(&[("failing", 2)]),
+            own_states: counts(&[]),
+        }],
+        refresh: Some(SvsCoverageRefreshState {
+            attack_release: Some("v99.0".to_owned()),
+            refreshed_at: refreshed.then(svs_at),
+            duration_ms: Some(12),
+            rows: 12,
+            changed: 3,
+            retired: 1,
+            unknown_tags: 4,
+            ignored_tags: 5,
+            error: error.map(str::to_owned),
+        }),
+    };
+    let coverage_filters = vec!["state:failing".to_owned()];
+    let coverage_query = CoverageQuery {
+        filters: vec![FilterEntry::text("State", false, &["failing"])],
+        ..CoverageQuery::default()
+    };
+    let coverage = drawn_safely(&CoveragePage {
+        layout: layout(),
+        view: coverage_view(
+            tabs("coverage"),
+            &coverage_query,
+            &coverage_filters,
+            &summary(true, Some(HOSTILE)),
+            &rows,
+            None,
+            Some("c2"),
+        ),
+    });
+    assert!(
+        coverage.contains(
+            r#"<a href="/svs/coverage/T1234">T1234</a> <span class="muted">unknown, a test&#39;s platform, retired</span>"#
+        ) && coverage.contains(r#"<span class="badge disposition-danger">failing</span>"#)
+            && coverage.contains("<td>manual</td>")
+            && coverage.contains("<td>1 validated, 2 failing of 4</td>")
+            && coverage.contains(r#"<td class="nowrap"><a href="/svs/coverage/T1059.001">T1059.001</a></td>"#)
+            && coverage.contains(r#"<span class="badge disposition-secondary">none</span>"#),
+        "{coverage}"
+    );
+    assert!(
+        coverage.contains("12 rows: 2 failing, 1 validated, 9 none")
+            && coverage.contains(
+                "Refreshed 2023-11-14 22:13:20 UTC against ATT&#38;CK v99.0: 12 rows, 3 changed, 4 tags \
+                 naming an unknown technique, 5 tags that aren&#39;t technique ids."
+            )
+            && coverage.contains(&format!(
+                r#"<p class="error" role="alert">The latest refresh failed: {HOSTILE_ESCAPED}</p>"#
+            ))
+            && coverage.contains(r#"href="/api/svs/v1/coverage/export/ndjson?f=state%3Afailing""#)
+            && coverage.contains(
+                r#"<a href="/svs/coverage?f=state%3Afailing&#38;cursor=c2" rel="next">Next</a>"#
+            )
+            && coverage.contains(r#"aria-current="page">Coverage</a>"#),
+        "{coverage}"
+    );
+    let never = drawn_safely(&CoveragePage {
+        layout: layout(),
+        view: coverage_view(
+            tabs("coverage"),
+            &CoverageQuery::default(),
+            &[],
+            &CoverageSummary {
+                rows: 0,
+                states: counts(&[]),
+                own_states: counts(&[]),
+                platforms: vec![],
+                refresh: None,
+            },
+            &[],
+            None,
+            None,
+        ),
+    });
+    assert!(
+        never.contains("Coverage has never been refreshed.")
+            && never.contains("No coverage rows.")
+            && never.contains("0 rows ·")
+            && !never.contains(r#"role="alert""#),
+        "{never}"
+    );
+
+    // a technique's page
+    let technique = TechniqueCoverage {
+        requested: " t1086 ".to_owned(),
+        technique: "T1059.001".to_owned(),
+        name: Some(HOSTILE.to_owned()),
+        parent: Some("T1059".to_owned()),
+        is_subtechnique: true,
+        catalog_status: "active".to_owned(),
+        tactics: vec!["TA0002".to_owned()],
+        attack_release: "v99.0".to_owned(),
+        refreshed_at: Some(svs_at()),
+        rows: vec![rows[1].clone()],
+        sub_technique_rows: vec![rows[0].clone()],
+        tests: vec![ace_service::CoverageTestRow {
+            guid: test.guid,
+            name: HOSTILE.to_owned(),
+            test_technique: "T1086".to_owned(),
+            technique: "T1059.001".to_owned(),
+            platform: "windows".to_owned(),
+            test_state: TestState::AwaitingReview,
+            contribution: SvsCoverageState::Stale,
+            last_reviewed_run: Some(uuid::Uuid::from_u128(0x5b)),
+            last_reviewed_at: Some(svs_at()),
+            expected_signatures: vec![COVERAGE_SIGNATURE.to_owned()],
+        }],
+        measured_signatures: vec![MeasuredSignature {
+            signature_uuid: HOSTILE.to_owned(),
+            name: None,
+            family: Some("yara".to_owned()),
+            tests: vec![(test.guid, "windows".to_owned())],
+        }],
+        manual_signatures: vec![
+            ManualSignature {
+                signature_uuid: COVERAGE_SIGNATURE.to_owned(),
+                name: Some(HOSTILE.to_owned()),
+                family: "hunt".to_owned(),
+                declared: "T1086".to_owned(),
+                technique: "T1059.001".to_owned(),
+                counts: false,
+                reason: Some("removed".to_owned()),
+            },
+            ManualSignature {
+                signature_uuid: "another".to_owned(),
+                name: None,
+                family: "yara".to_owned(),
+                declared: "T1059.001".to_owned(),
+                technique: "T1059.001".to_owned(),
+                counts: true,
+                reason: None,
+            },
+        ],
+        removed_tests: vec![RemovedTest {
+            guid: test.guid,
+            name: HOSTILE.to_owned(),
+            technique: "T1086".to_owned(),
+            removed_at: Some(svs_at()),
+        }],
+    };
+    let snapshot = CoverageSnapshotRow {
+        snapshot_date: "2026-10-16".parse().expect("a day"),
+        technique: "T1059.001".to_owned(),
+        platform: "windows".to_owned(),
+        attack_release: "v99.0".to_owned(),
+        parent: Some("T1059".to_owned()),
+        is_subtechnique: true,
+        state: SvsCoverageState::Validated,
+        own_state: SvsCoverageState::Validated,
+        tests_total: 1,
+        tests_validated: 1,
+        tests_failing: 0,
+        tests_stale: 0,
+        manual_signatures: 0,
+        measured_signatures: 1,
+        updated_at: svs_at(),
+    };
+    let drill = drawn_safely(&TechniquePage {
+        layout: layout(),
+        view: technique_view(tabs("coverage"), &technique, &[snapshot]),
+    });
+    assert!(
+        drill.contains(r#"<a href="/svs/coverage/T1059">T1059</a> / <code>T1059.001</code>"#)
+            && drill.contains("<th>Asked for</th><td class=\"qa-text\">t1086 (revoked, now this technique)</td>")
+            && drill.contains(r#"<a href="/svs/tests?f=technique%3AT1059.001">Its tests</a>"#)
+            && drill.contains(r#"<a href="/svs/runs?f=technique%3AT1059.001">Its runs</a>"#)
+            && drill.contains(&format!(
+                r#"<a href="{page_of}">{HOSTILE_ESCAPED}</a>"#
+            ))
+            && drill.contains(r#"<span class="badge disposition-warning">awaiting_review</span>"#)
+            && drill.contains("<td>stale</td>")
+            && drill.contains("tagged T1086, which counts as T1059.001")
+            && drill.contains("doesn&#39;t count: resolved remove on the worklist")
+            && drill.contains("<td>tagged T1059.001</td>")
+            && drill.contains("<td>counts</td>")
+            && drill.contains("<td>1 test on a platform</td>")
+            && drill.contains(r#"<td class="nowrap">2026-10-16</td>"#)
+            && drill.contains(
+                r#"href="/api/svs/v1/coverage/history/export/csv?f=technique%3AT1059.001&#38;f=level%3Asub-technique&#38;f=date%3A-365d""#
+            ),
+        "{drill}"
+    );
+    // a signature's uuid in a link is percent-encoded, and hostile text never opens a tag
+    assert!(
+        drill.contains(&format!(r#"<a href="{}">"#, signature_href(HOSTILE)))
+            && signature_href(HOSTILE).starts_with("/svs/worklist/%22%3E%3Cscript%3E"),
+        "{drill}"
+    );
+    assert_eq!(technique_href("T1059.001"), "/svs/coverage/T1059.001");
+
+    // the Worklist tab
+    let open = fixture_worklist_row("T1547", WorklistStatus::Open, false);
+    let pending = fixture_worklist_row("T1059", WorklistStatus::RemovePending, true);
+    let confirmed = ace_service::WorklistRow {
+        kind: ace_service::WorklistKind::Undeclared,
+        ..fixture_worklist_row("T1059.001", WorklistStatus::Undeclared, false)
+    };
+    let worklist_rows = [open.clone(), pending.clone(), confirmed.clone()];
+    let worklist_filters = vec!["status:open".to_owned()];
+    let worklist_query = WorklistQuery {
+        filters: vec![FilterEntry::text("Status", false, &["open"])],
+        ..WorklistQuery::default()
+    };
+    let draw_worklist = |manage: bool, notice: Option<String>| {
+        drawn_safely(&WorklistPage {
+            layout: layout(),
+            view: worklist_view(
+                tabs("worklist"),
+                &worklist_query,
+                &worklist_filters,
+                &worklist_rows,
+                Some("c1"),
+                None,
+                manage,
+                notice,
+            ),
+        })
+    };
+    let read_only = draw_worklist(false, None);
+    assert!(
+        read_only.contains(&format!(
+            r#"<a href="{}">{HOSTILE_ESCAPED}</a> <code class="muted">{COVERAGE_SIGNATURE}</code>"#,
+            signature_href(COVERAGE_SIGNATURE)
+        )) && read_only.contains(r#"<a href="/svs/coverage/T1547">T1547</a>"#)
+            && read_only.contains(
+                r#"<span class="badge disposition-warning">open</span> <span class="muted">counts</span>"#
+            )
+            && read_only.contains(
+                r#"<span class="badge disposition-warning">remove_pending</span> <span class="muted">doesn&#39;t count</span>"#
+            )
+            && read_only.contains("<td>T1547, T1086</td>")
+            && read_only.contains(&format!("remove: {HOSTILE_ESCAPED}"))
+            && read_only.contains(
+                r#"<a href="https://git.example/pull/7?a=1&#38;b=2" rel="noopener noreferrer">reference</a>"#
+            )
+            && !read_only.contains("<form method=\"post\" action=\"/svs")
+            && !read_only.contains("type=\"checkbox\""),
+        "{read_only}"
+    );
+    let managed = draw_worklist(true, Some(bulk_notice(2, 1, 0)));
+    assert!(
+        managed.contains(r#"<form method="post" action="/svs/worklist/resolve" id="worklist-resolve" class="run-actions">"#)
+            && managed.contains(r#"<input type="hidden" name="back" value="/svs/worklist?f=status%3Aopen&#38;cursor=c1">"#)
+            && managed.contains(&format!(
+                r#"<input type="checkbox" name="row" value="{COVERAGE_SIGNATURE}|T1547" form="worklist-resolve""#
+            ))
+            && managed.contains(&format!(r#"value="{COVERAGE_SIGNATURE}|T1059""#))
+            // an informational row can't be resolved, so it has no box
+            && !managed.contains(&format!(r#"value="{COVERAGE_SIGNATURE}|T1059.001""#))
+            && managed.contains(
+                "2 rows resolved. 1 row left alone: only open, kept and remove_pending rows can be resolved."
+            ),
+        "{managed}"
+    );
+    assert_eq!(bulk_notice(1, 0, 3), "1 row resolved. 3 rows not found.");
+
+    // a signature's page
+    let signature = SignatureWorklist {
+        signature_uuid: COVERAGE_SIGNATURE.to_owned(),
+        signature_family: Some("hunt".to_owned()),
+        signature_name: Some(HOSTILE.to_owned()),
+        rows: worklist_rows.to_vec(),
+        measured: vec![MeasuredTechnique {
+            technique: "T1059.001".to_owned(),
+            technique_name: Some(HOSTILE.to_owned()),
+            tests: vec![MeasuredTest {
+                guid: test.guid,
+                name: Some(HOSTILE.to_owned()),
+                platform: "windows".to_owned(),
+            }],
+        }],
+    };
+    let of_signature = signature_href(COVERAGE_SIGNATURE);
+    let draw_signature = |manage: bool| {
+        drawn_safely(&SignaturePage {
+            layout: layout(),
+            view: signature_view(tabs("worklist"), &signature, manage, None),
+        })
+    };
+    let plain = draw_signature(false);
+    assert!(
+        plain.contains(&format!(
+            r#"<a href="{page_of}">{HOSTILE_ESCAPED} on windows</a>"#
+        )) && plain.contains(r#"<a href="/svs/worklist?f=status%3Aopen">Worklist</a>"#)
+            && !plain.contains("<form method=\"post\" action=\"/svs"),
+        "{plain}"
+    );
+    let forms = draw_signature(true);
+    let seen = "2023-11-14T22:13:20.000000Z";
+    assert!(
+        forms.contains(&format!(
+            r#"<form method="post" action="{of_signature}/resolve" class="inline">
+            <input type="hidden" name="technique" value="T1547">
+            <input type="hidden" name="seen" value="{seen}">"#
+        )) && forms.contains(r#"<button type="submit" name="resolution" value="keep">Keep</button>"#)
+            && forms.contains(r#"<button type="submit" name="resolution" value="remove">Remove</button>"#)
+            // only a resolved row has a resolution to clear
+            && forms.matches(r#"name="resolution" value="reopen""#).count() == 1
+            && forms.contains(&format!(
+                r#"<input type="hidden" name="technique" value="T1059"><input type="hidden" name="seen" value="{seen}"><input type="hidden" name="resolution" value="reopen">"#
+            ))
+            // the informational row has no form
+            && forms.matches(r#"name="resolution" value="keep""#).count() == 2,
+        "{forms}"
+    );
+}
+
+/// The Tests, Coverage and Worklist pages through the server: signed out goes to the login; without
+/// `svs:run_read` each page and post is 403; with it the pages draw, with no forms, and their errors;
+/// `svs:run_manage` adds a test's settings and decisions and the worklist's resolutions, which a stale
+/// page can't make; a post from another site is refused; and each write has its audit row.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn the_svs_coverage_pages_need_run_read_then_run_manage() {
+    let pinned = |service: Service| {
+        service.with_attack_catalog(Arc::new(ace_core::testing::attack_catalog()))
+    };
+    let stack = stack_of_db(Catalog::new(vec![]), |service, _| {
+        Gui::new(pinned(service), Transport::Plain)
+    })
+    .await;
+    let db = stack.test_db.db();
+    let service = pinned(stack.service.clone());
+    let alice = user(&stack, "alice").await;
+    let boss = user(&stack, "boss").await;
+    for minor in ["admin", "run_manage", "run_read"] {
+        grant_to(&stack, &boss, "svs", minor).await;
+    }
+    let component = |name: &str| Actor::Internal {
+        id: Component::new(name).expect("a valid name"),
+    };
+
+    // a test of T1059.001 that expects a hunt tagged T1547, both named by hostile text
+    let guid = uuid::Uuid::from_u128(0x7e58);
+    sqlx::query(
+        "INSERT INTO svs.catalog_tests
+             (guid, repository, technique, technique_name, name, description, platforms, test,
+              content_hash, commit, path)
+         VALUES ($1, 'atomic-red-team', 'T1059.001', 'PowerShell', $2, $2, '{windows}',
+                 jsonb_build_object('name', $2), repeat('0', 64), repeat('a', 40),
+                 'atomics/T1059.001/T1059.001.yaml')",
+    )
+    .bind(guid)
+    .bind(HOSTILE)
+    .execute(db.pool())
+    .await
+    .expect("a catalog test");
+    service
+        .set_svs_expectation(
+            &boss,
+            &guid.to_string(),
+            Some("windows"),
+            COVERAGE_SIGNATURE,
+            "expected",
+            None,
+            None,
+            ace_service::Precondition::None,
+            chrono::Utc::now(),
+        )
+        .await
+        .expect("expects the hunt");
+    let recorded: ace_core::svs::windows::RecordedHunt =
+        serde_json::from_value(serde_json::json!({
+            "uuid": COVERAGE_SIGNATURE, "name": HOSTILE, "enabled": true, "latency_seconds": 3600,
+            "suppression_seconds": null, "per_group": false, "content_hash": "c".repeat(64),
+            "tags": ["mitre:T1547"],
+        }))
+        .expect("a recorded hunt");
+    service
+        .sync_hunts(
+            &component("hunter"),
+            "coverage",
+            &[ace_service::LoadedHuntRow {
+                kind: "coverage".to_owned(),
+                path: "coverage.yaml".to_owned(),
+                name: Some(HOSTILE.to_owned()),
+                uuid: Some(COVERAGE_SIGNATURE.to_owned()),
+                enabled: Some(true),
+                frequency: Some("00:10:00".to_owned()),
+                error: None,
+                svs: Some(recorded),
+            }],
+        )
+        .await
+        .expect("records the hunt");
+    service
+        .write_svs_coverage_snapshot(
+            &component("scheduler:svs_coverage_snapshot"),
+            None,
+            chrono::Utc::now(),
+        )
+        .await
+        .expect("refreshes and files a snapshot");
+
+    let test_page = test_href(guid);
+    let signature_page = signature_href(COVERAGE_SIGNATURE);
+    let pages = [
+        "/svs/tests".to_owned(),
+        test_page.clone(),
+        "/svs/coverage".to_owned(),
+        "/svs/coverage/T1547".to_owned(),
+        "/svs/worklist".to_owned(),
+        signature_page.clone(),
+    ];
+    for path in &pages {
+        let page = stack.get(path).send().await.expect("answered");
+        assert_eq!(page.status(), StatusCode::SEE_OTHER, "{path}");
+        assert!(location(&page).starts_with("/login?next="), "{path}");
+    }
+    let session = session_of(&stack, "alice").await;
+    let get = |path: String| stack.get(&path).header("cookie", cookie(&session)).send();
+    let post = |path: String, form: Vec<(&'static str, String)>| {
+        let form: Vec<(&str, &str)> = form.iter().map(|(k, v)| (*k, v.as_str())).collect();
+        stack
+            .post(&path, &form)
+            .header("cookie", cookie(&session))
+            .send()
+    };
+    let text = async |path: String| {
+        let page = get(path.clone()).await.expect("answered");
+        assert_eq!(page.status(), StatusCode::OK, "{path}");
+        page.text().await.expect("a page")
+    };
+    let settings = |action: &'static str, minutes: &'static str| {
+        post(
+            format!("{test_page}/settings"),
+            vec![
+                ("action", action.to_owned()),
+                ("observation_minutes", minutes.to_owned()),
+                ("holds_host", "1".to_owned()),
+            ],
+        )
+    };
+    let decide = |decision: &'static str, signature: &'static str| {
+        post(
+            format!("{test_page}/decide"),
+            vec![
+                ("decision", decision.to_owned()),
+                ("platform", "windows".to_owned()),
+                ("signature", signature.to_owned()),
+            ],
+        )
+    };
+    let resolve = |resolution: &'static str, reason: &'static str, seen: String| {
+        post(
+            format!("{signature_page}/resolve"),
+            vec![
+                ("technique", "T1547".to_owned()),
+                ("resolution", resolution.to_owned()),
+                ("reason", reason.to_owned()),
+                ("seen", seen),
+            ],
+        )
+    };
+    let bulk = |rows: Vec<String>, resolution: &'static str, back: &'static str| {
+        let mut form: Vec<(&'static str, String)> =
+            rows.into_iter().map(|row| ("row", row)).collect();
+        form.extend([
+            ("resolution", resolution.to_owned()),
+            ("reason", "bulk".to_owned()),
+            ("back", back.to_owned()),
+        ]);
+        post("/svs/worklist/resolve".to_owned(), form)
+    };
+    let row_key = format!("{COVERAGE_SIGNATURE}|T1547");
+
+    // without svs:run_read: nothing
+    for path in &pages {
+        assert_eq!(
+            get(path.clone()).await.expect("answered").status(),
+            StatusCode::FORBIDDEN,
+            "{path}"
+        );
+    }
+    for refused in [
+        settings("set", "45").await,
+        decide("undecide", COVERAGE_SIGNATURE).await,
+        resolve("keep", "why", String::new()).await,
+        bulk(vec![row_key.clone()], "keep", "/svs/worklist").await,
+    ] {
+        assert_eq!(refused.expect("answered").status(), StatusCode::FORBIDDEN);
+    }
+
+    // svs:run_read: the pages, with no forms
+    grant_to(&stack, &alice, "svs", "run_read").await;
+    let svs_writes = || {
+        sqlx_count(
+            &stack.test_db,
+            "SELECT count(*) FROM service.audit WHERE action LIKE '%svs%'",
+        )
+    };
+    let audit = svs_writes().await;
+    let tests = text("/svs/tests?f=removed%3Afalse".to_owned()).await;
+    assert!(
+        tests.contains(&format!(r#"<a href="{test_page}">"#))
+            && tests.contains(r#"<span class="badge disposition-secondary">never_run</span>"#)
+            && tests.contains(r#"aria-current="page">Tests</a>"#)
+            && !tests.contains("<script>alert"),
+        "{tests}"
+    );
+    let folded = get("/svs/tests?technique=t1059&removed=false".to_owned())
+        .await
+        .expect("answered");
+    assert_eq!(folded.status(), StatusCode::SEE_OTHER);
+    assert_eq!(
+        location(&folded),
+        "/svs/tests?f=technique%3AT1059&f=removed%3Afalse"
+    );
+    let test = text(test_page.clone()).await;
+    assert!(
+        test.contains(COVERAGE_SIGNATURE)
+            && test.contains("<td>expected</td>")
+            && test.contains("Its runs get the computed window")
+            && !test.contains("<script>alert")
+            && !test.contains("<form method=\"post\" action=\"/svs"),
+        "{test}"
+    );
+    let coverage = text("/svs/coverage".to_owned()).await;
+    assert!(
+        coverage.contains(r#"<a href="/svs/coverage/T1547">T1547</a>"#)
+            && coverage.contains(r#"<span class="badge disposition-info">manual</span>"#)
+            && coverage.contains("against ATT&#38;CK v99.0: 5 rows")
+            && coverage.contains("5 rows: 1 manual, 2 untested, 2 none"),
+        "{coverage}"
+    );
+    let narrowed = text("/svs/coverage?f=state%3Amanual".to_owned()).await;
+    assert!(
+        narrowed.contains("1 rows: 1 manual") && !narrowed.contains("/svs/coverage/T1059.001"),
+        "{narrowed}"
+    );
+    let drill = text("/svs/coverage/t1547".to_owned()).await;
+    assert!(
+        drill.contains("Boot or Logon Autostart Execution")
+            && drill.contains(&format!(
+                "<code class=\"muted\">{COVERAGE_SIGNATURE}</code>"
+            ))
+            && drill.contains("<td>tagged T1547</td>")
+            && drill.contains(&chrono::Utc::now().date_naive().to_string())
+            && !drill.contains("<script>alert"),
+        "{drill}"
+    );
+    let worklist = text("/svs/worklist?f=status%3Aopen".to_owned()).await;
+    assert!(
+        worklist.contains(&format!(r#"<a href="{signature_page}">"#))
+            && worklist.contains(r#"<span class="badge disposition-warning">open</span>"#)
+            && !worklist.contains("<script>alert")
+            && !worklist.contains("<form method=\"post\" action=\"/svs"),
+        "{worklist}"
+    );
+    let signature = text(signature_page.clone()).await;
+    assert!(
+        signature.contains(&format!(r#"<a href="{test_page}">"#))
+            && signature.contains("PowerShell")
+            && !signature.contains("<form method=\"post\" action=\"/svs"),
+        "{signature}"
+    );
+    for (path, status) in [
+        (
+            "/svs/tests?f=technique%3Apowershell",
+            StatusCode::BAD_REQUEST,
+        ),
+        ("/svs/tests?cursor=nope", StatusCode::BAD_REQUEST),
+        ("/svs/tests/nope", StatusCode::BAD_REQUEST),
+        (
+            "/svs/tests/00000000-0000-0000-0000-00000000dead",
+            StatusCode::NOT_FOUND,
+        ),
+        ("/svs/coverage?f=state%3Agreat", StatusCode::BAD_REQUEST),
+        ("/svs/coverage?f=tactic%3ATA9999", StatusCode::BAD_REQUEST),
+        ("/svs/coverage?cursor=nope", StatusCode::BAD_REQUEST),
+        ("/svs/coverage/powershell", StatusCode::BAD_REQUEST),
+        ("/svs/coverage/T9999", StatusCode::NOT_FOUND),
+        ("/svs/worklist?f=status%3Adone", StatusCode::BAD_REQUEST),
+        ("/svs/worklist?cursor=nope", StatusCode::BAD_REQUEST),
+        ("/svs/worklist/no-such-signature", StatusCode::NOT_FOUND),
+    ] {
+        assert_eq!(
+            get(path.to_owned()).await.expect("answered").status(),
+            status,
+            "{path}"
+        );
+    }
+    // reading writes nothing, and a reader's post is the service's refusal
+    for refused in [
+        settings("set", "45").await,
+        decide("undecide", COVERAGE_SIGNATURE).await,
+        resolve("keep", "why", String::new()).await,
+        bulk(vec![row_key.clone()], "keep", "/svs/worklist").await,
+    ] {
+        assert_eq!(refused.expect("answered").status(), StatusCode::FORBIDDEN);
+    }
+    assert_eq!(svs_writes().await, audit);
+
+    // svs:run_manage: a test's settings and decisions
+    grant_to(&stack, &alice, "svs", "run_manage").await;
+    let test = text(test_page.clone()).await;
+    assert!(
+        test.contains(&format!(
+            r#"<form method="post" action="{test_page}/settings" class="detection-add">"#
+        )) && test.contains(r#"<input type="hidden" name="decision" value="undecide">"#)
+            && !test.contains(r#"value="clear""#),
+        "{test}"
+    );
+    let set = settings("set", "45").await.expect("answered");
+    assert_eq!(set.status(), StatusCode::SEE_OTHER);
+    assert_eq!(location(&set), format!("{test_page}?done=settings"));
+    let after = text(location(&set).to_owned()).await;
+    assert!(
+        after.contains("The test&#39;s settings are set for runs registered from now on.")
+            && after.contains("observed for 45 minutes")
+            && after.contains(r#"value="clear""#),
+        "{after}"
+    );
+    for (action, minutes, status) in [
+        ("set", "soon", StatusCode::BAD_REQUEST),
+        ("set", "0", StatusCode::BAD_REQUEST),
+        ("burn", "45", StatusCode::BAD_REQUEST),
+    ] {
+        assert_eq!(
+            settings(action, minutes).await.expect("answered").status(),
+            status,
+            "{action} {minutes}"
+        );
+    }
+    let cleared = settings("clear", "").await.expect("answered");
+    assert_eq!(location(&cleared), format!("{test_page}?done=cleared"));
+    assert_eq!(
+        settings("clear", "").await.expect("answered").status(),
+        StatusCode::NOT_FOUND
+    );
+    for (decision, signature, status) in [
+        ("promote", COVERAGE_SIGNATURE, StatusCode::BAD_REQUEST),
+        // nothing is ignored, and a global ignore is svs:admin's
+        ("unignore", COVERAGE_SIGNATURE, StatusCode::NOT_FOUND),
+        (
+            "unignore_globally",
+            COVERAGE_SIGNATURE,
+            StatusCode::FORBIDDEN,
+        ),
+        ("undecide", "no-such-signature", StatusCode::NOT_FOUND),
+    ] {
+        assert_eq!(
+            decide(decision, signature)
+                .await
+                .expect("answered")
+                .status(),
+            status,
+            "{decision}"
+        );
+    }
+    assert_eq!(
+        post(
+            "/svs/tests/nope/settings".to_owned(),
+            vec![("action", "clear".to_owned())]
+        )
+        .await
+        .expect("answered")
+        .status(),
+        StatusCode::BAD_REQUEST
+    );
+
+    // the worklist's resolutions: one row from the signature's page, with what the page showed
+    let signature = text(signature_page.clone()).await;
+    let seen = signature
+        .split(r#"name="seen" value=""#)
+        .nth(1)
+        .and_then(|rest| rest.split('"').next())
+        .expect("the row's updated_at")
+        .to_owned();
+    assert!(
+        signature.contains(&format!(
+            r#"<form method="post" action="{signature_page}/resolve" class="inline">"#
+        )) && !signature.contains(r#"value="reopen""#),
+        "{signature}"
+    );
+    let kept = resolve("keep", "a test can't reach it", seen.clone())
+        .await
+        .expect("answered");
+    assert_eq!(kept.status(), StatusCode::SEE_OTHER);
+    assert_eq!(location(&kept), format!("{signature_page}?done=keep"));
+    let after = text(location(&kept).to_owned()).await;
+    assert!(
+        after.contains("The tag is kept: it covers something no test reaches.")
+            && after.contains(r#"<span class="badge disposition-info">kept</span>"#)
+            && after.contains("keep: a test can&#39;t reach it")
+            && after.contains(r#"value="reopen""#),
+        "{after}"
+    );
+    // the same form again, from the page as it was: refused, not resolved twice
+    assert_eq!(
+        resolve("remove", "from a stale page", seen.clone())
+            .await
+            .expect("answered")
+            .status(),
+        StatusCode::PRECONDITION_FAILED
+    );
+    assert_eq!(
+        resolve("reopen", "", seen)
+            .await
+            .expect("answered")
+            .status(),
+        StatusCode::PRECONDITION_FAILED
+    );
+    for (resolution, reason, seen, status) in [
+        ("maybe", "why", "", StatusCode::BAD_REQUEST),
+        ("keep", " ", "", StatusCode::BAD_REQUEST),
+        ("keep", "why", "yesterday", StatusCode::BAD_REQUEST),
+    ] {
+        assert_eq!(
+            resolve(resolution, reason, seen.to_owned())
+                .await
+                .expect("answered")
+                .status(),
+            status,
+            "{resolution}"
+        );
+    }
+    let reopened = resolve("reopen", "", String::new())
+        .await
+        .expect("answered");
+    assert_eq!(location(&reopened), format!("{signature_page}?done=reopen"));
+    assert_eq!(
+        resolve("reopen", "", String::new())
+            .await
+            .expect("answered")
+            .status(),
+        StatusCode::NOT_FOUND
+    );
+    // a row of another signature's page, and a row that can't be resolved
+    assert_eq!(
+        post(
+            "/svs/worklist/no-such-signature/resolve".to_owned(),
+            vec![
+                ("technique", "T1547".to_owned()),
+                ("resolution", "keep".to_owned()),
+                ("reason", "why".to_owned()),
+            ],
+        )
+        .await
+        .expect("answered")
+        .status(),
+        StatusCode::NOT_FOUND
+    );
+    assert_eq!(
+        post(
+            format!("{signature_page}/resolve"),
+            vec![
+                ("technique", "T1059.001".to_owned()),
+                ("resolution", "keep".to_owned()),
+                ("reason", "why".to_owned()),
+            ],
+        )
+        .await
+        .expect("answered")
+        .status(),
+        StatusCode::CONFLICT
+    );
+
+    // the ticked rows from the list
+    let worklist = text("/svs/worklist?f=status%3Aopen".to_owned()).await;
+    assert!(
+        worklist.contains(&format!(
+            r#"<input type="checkbox" name="row" value="{row_key}" form="worklist-resolve""#
+        )) && worklist
+            .contains(r#"<input type="hidden" name="back" value="/svs/worklist?f=status%3Aopen">"#),
+        "{worklist}"
+    );
+    let done = bulk(
+        vec![
+            row_key.clone(),
+            format!("{COVERAGE_SIGNATURE}|T1059.001"),
+            "no-such-signature|T1547".to_owned(),
+        ],
+        "remove",
+        "/svs/worklist?f=status%3Aopen",
+    )
+    .await
+    .expect("answered");
+    assert_eq!(done.status(), StatusCode::SEE_OTHER);
+    assert_eq!(
+        location(&done),
+        "/svs/worklist?f=status%3Aopen&done=bulk&ok=1&left=1&missing=1"
+    );
+    let said = text(location(&done).to_owned()).await;
+    assert!(
+        said.contains(
+            "1 row resolved. 1 row left alone: only open, kept and remove_pending rows can be \
+             resolved. 1 row not found."
+        ) && said.contains("No worklist rows."),
+        "{said}"
+    );
+    // a notice is counts, never text from the address
+    let forged = text("/svs/worklist?done=bulk&ok=%3Cb%3E&said=%3Cscript%3E".to_owned()).await;
+    assert!(
+        forged.contains("0 rows resolved.")
+            && !forged.contains("<script>")
+            && !forged.contains("<b>"),
+        "{forged}"
+    );
+    // it goes back to the worklist and nowhere else
+    let elsewhere = bulk(vec![row_key.clone()], "keep", "https://evil.example/")
+        .await
+        .expect("answered");
+    assert!(
+        location(&elsewhere).starts_with("/svs/worklist?done=bulk"),
+        "{}",
+        location(&elsewhere)
+    );
+    for (rows, resolution, status) in [
+        (vec![], "keep", StatusCode::BAD_REQUEST),
+        (vec!["no-bar".to_owned()], "keep", StatusCode::BAD_REQUEST),
+        (vec![row_key.clone()], "maybe", StatusCode::BAD_REQUEST),
+    ] {
+        assert_eq!(
+            bulk(rows, resolution, "/svs/worklist")
+                .await
+                .expect("answered")
+                .status(),
+            status,
+            "{resolution}"
+        );
+    }
+
+    // a post from another site's page is refused, and changes nothing
+    let before = svs_writes().await;
+    for path in [
+        format!("{signature_page}/resolve"),
+        "/svs/worklist/resolve".to_owned(),
+        format!("{test_page}/settings"),
+        format!("{test_page}/decide"),
+    ] {
+        let cross = stack
+            .http
+            .post(format!("{}{path}", stack.url))
+            .header("origin", "https://evil.example")
+            .header("cookie", cookie(&session))
+            .form(&[
+                ("technique", "T1547"),
+                ("resolution", "reopen"),
+                ("row", row_key.as_str()),
+                ("action", "clear"),
+                ("decision", "undecide"),
+                ("signature", COVERAGE_SIGNATURE),
+                ("platform", "windows"),
+            ])
+            .send()
+            .await
+            .expect("answered");
+        assert_eq!(cross.status(), StatusCode::FORBIDDEN, "{path}");
+    }
+    assert_eq!(svs_writes().await, before);
+
+    // the expectation's removal, last: the signature is no longer measured
+    let undecided = decide("undecide", COVERAGE_SIGNATURE)
+        .await
+        .expect("answered");
+    assert_eq!(location(&undecided), format!("{test_page}?done=undecide"));
+    // settings set and cleared; kept, reopened, removed in bulk, kept in bulk; undecided
+    assert_eq!(svs_writes().await, audit + 7);
+    assert_eq!(last_action(&stack).await, "remove_svs_expectation");
+}

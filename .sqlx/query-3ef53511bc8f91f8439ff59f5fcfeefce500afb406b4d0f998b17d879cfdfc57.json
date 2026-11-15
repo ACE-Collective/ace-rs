@@ -1,0 +1,21 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE svs.coverage_state\n                             SET attack_release = $1, refreshed_at = $2, duration_ms = $3, rows = $4,\n                                 changed = $5, retired = $6, unknown_tags = $7, ignored_tags = $8,\n                                 error = NULL\n                             WHERE id = 1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Timestamptz",
+        "Int4",
+        "Int4",
+        "Int4",
+        "Int4",
+        "Int4",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "3ef53511bc8f91f8439ff59f5fcfeefce500afb406b4d0f998b17d879cfdfc57"
+}

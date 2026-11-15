@@ -1,0 +1,107 @@
+{#- ace3's svs/test.html (PLAN.md 7.10 batch 8): one catalog test, its description and atomic entry, its
+    state on each platform, its observation window's settings, its expectations and the ignores that apply
+    to it, with the forms svs:run_manage and svs:admin get (src/svs_coverage.rs). -#}
+{% extends "base.html" %}
+{% block title %}Test · SVS · ACE{% endblock %}
+{% block content %}
+<section class="signatures detection svs-test">
+  {%- include "svs/tabs.html" %}
+  <p><a href="/svs/tests?f=removed%3Afalse">Tests</a> / <code>{{ view.guid }}</code></p>
+  <h2 class="qa-text">{{ view.name }}</h2>
+  <p><span class="badge disposition-{{ view.state_class }}">{{ view.state }}</span> · <a href="{{ view.runs }}">Its runs</a></p>
+  {%- if let Some(notice) = view.notice %}
+  <p class="notice" role="status">{{ notice }}</p>
+  {%- endif %}
+  <table class="keys">
+    <tbody>
+      {%- for fact in view.facts %}
+      <tr><th>{{ fact.name }}</th><td class="qa-text">{{ fact.value }}</td></tr>
+      {%- endfor %}
+    </tbody>
+  </table>
+
+  <h3>By platform</h3>
+  <p class="muted">The test is judged on each platform by its latest reviewed run there against what is expected of it there.</p>
+  <table class="keys">
+    <thead><tr><th>Platform</th><th>State</th><th>Latest review</th><th>Expected</th></tr></thead>
+    <tbody>
+      {%- for row in view.platforms %}
+      <tr>
+        <td>{{ row.platform }}</td>
+        <td><span class="badge disposition-{{ row.state_class }}">{{ row.state }}</span></td>
+        <td class="nowrap">{% if let Some(run) = row.last_reviewed %}<a href="{{ run.href }}">{{ run.text }}</a>{% endif %}</td>
+        <td>{% if row.expected > 0 %}{{ row.expected }}{% endif %}</td>
+      </tr>
+      {%- else %}
+      <tr><td colspan="4" class="muted">No platforms.</td></tr>
+      {%- endfor %}
+    </tbody>
+  </table>
+
+  {%- if !view.description.is_empty() %}
+  <h3>Description</h3>
+  <pre class="qa-meta">{{ view.description }}</pre>
+  {%- endif %}
+  <h3>The test's entry</h3>
+  <p class="muted">Its commands, input arguments and dependencies, as its atomic file has them.</p>
+  <pre class="qa-meta">{{ view.entry }}</pre>
+
+  <h3>Observation window</h3>
+  <p class="muted">{% if let Some(minutes) = view.minutes %}Runs registered from now on are observed for {{ minutes }} minutes.{% else %}Its runs get the computed window: the latency of the signatures expected of it.{% endif %}{% if view.holds_host %} The test leaves something behind: its runs hold their hosts until their attribution window ends.{% endif %}</p>
+  {%- if view.manage %}
+  <form method="post" action="{{ view.href }}/settings" class="detection-add">
+    <input type="hidden" name="action" value="set">
+    <label for="test-minutes">Minutes, for runs registered from now on</label>
+    <input type="number" id="test-minutes" name="observation_minutes" min="1" step="1" value="{% if let Some(minutes) = view.minutes %}{{ minutes }}{% endif %}" placeholder="empty: the computed window">
+    <label><input type="checkbox" name="holds_host" value="1"{% if view.holds_host %} checked{% endif %}> The test leaves something behind: its runs hold their hosts until their attribution window ends</label>
+    <button type="submit">Set</button>
+  </form>
+  {%- if view.has_settings %}
+  <form method="post" action="{{ view.href }}/settings" class="inline"><input type="hidden" name="action" value="clear"><button type="submit">Remove the settings</button></form>
+  {%- endif %}
+  {%- endif %}
+
+  <h3>Expectations</h3>
+  <p class="muted">What a run of the test should fire, and what fires but isn't what the test is about, on each platform. A decision is made from a run's result.</p>
+  <table class="keys">
+    <thead><tr><th>Platform</th><th>Signature</th><th>Decision</th><th>Reason</th><th>By</th><th title="UTC">When</th>{% if view.manage %}<th>Change</th>{% endif %}</tr></thead>
+    <tbody>
+      {%- for row in view.expectations %}
+      <tr>
+        <td>{{ row.platform }}</td>
+        <td class="qa-text">{{ row.name }} <code class="muted">{{ row.signature }}</code></td>
+        <td>{{ row.what }}</td>
+        <td class="qa-text">{{ row.reason }}</td>
+        <td class="qa-text">{{ row.by }}</td>
+        <td class="nowrap">{{ row.at }}</td>
+        {%- if view.manage %}
+        <td>{% if let Some(decision) = row.remove %}<form method="post" action="{{ view.href }}/decide" class="inline"><input type="hidden" name="decision" value="{{ decision }}"><input type="hidden" name="platform" value="{{ row.platform }}"><input type="hidden" name="signature" value="{{ row.signature }}"><button type="submit">Remove</button></form>{% endif %}</td>
+        {%- endif %}
+      </tr>
+      {%- else %}
+      <tr><td colspan="6" class="muted">Nothing is decided.</td></tr>
+      {%- endfor %}
+    </tbody>
+  </table>
+
+  <h3>Ignores</h3>
+  <p class="muted">Signatures that are launcher noise during this test's runs, or during every test's.</p>
+  <table class="keys">
+    <thead><tr><th>Signature</th><th>Ignored for</th><th>Reason</th><th>By</th><th title="UTC">When</th><th>Change</th></tr></thead>
+    <tbody>
+      {%- for row in view.ignores %}
+      <tr>
+        <td class="qa-text">{{ row.name }} <code class="muted">{{ row.signature }}</code></td>
+        <td>{{ row.what }}</td>
+        <td class="qa-text">{{ row.reason }}</td>
+        <td class="qa-text">{{ row.by }}</td>
+        <td class="nowrap">{{ row.at }}</td>
+        <td>{% if let Some(decision) = row.remove %}<form method="post" action="{{ view.href }}/decide" class="inline"><input type="hidden" name="decision" value="{{ decision }}"><input type="hidden" name="signature" value="{{ row.signature }}"><button type="submit">Stop ignoring</button></form>{% endif %}</td>
+      </tr>
+      {%- else %}
+      <tr><td colspan="6" class="muted">Nothing is ignored.</td></tr>
+      {%- endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

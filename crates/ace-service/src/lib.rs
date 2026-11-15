@@ -82,7 +82,11 @@
 //! is what's decided about a test's signatures: its expectations, ignores and settings, under
 //! `svs:run_manage` (a global ignore under `svs:admin`), each with a precondition for a write made from a
 //! page. `svs_run_reads` is the runs screen: the runs with ace3's filters, their batches, the event and
-//! result feeds, a run's result, history and comments.
+//! result feeds, a run's result, history and comments. `svs_test_state` reads a catalog test's state and
+//! run history (batch 8), which the catalog's list carries. `svs_coverage` is ATT&CK coverage per
+//! technique and platform: its refresh under `svs:coverage_refresh`, its daily snapshot under
+//! `svs:coverage_snapshot`, and its reads under `svs:run_read`. `svs_worklist` is the declared-vs-measured
+//! worklist, read under `svs:run_read` and resolved under `svs:run_manage`.
 //!
 //! `routing` is alert routing (7.13), ace3's `saq/alert_routing/`: the routers that decide which queue an
 //! alert belongs in, run by `ace serve`'s routing worker when an alert's pass completes, and the audited move
@@ -131,13 +135,16 @@ mod submit;
 mod svs;
 pub mod svs_association;
 mod svs_catalog;
+mod svs_coverage;
 mod svs_decisions;
 mod svs_results;
 mod svs_review;
 mod svs_run_reads;
 mod svs_runs;
 mod svs_samples;
+mod svs_test_state;
 mod svs_validations;
+mod svs_worklist;
 mod users;
 mod yara_qa;
 
@@ -156,6 +163,10 @@ pub use ace_core::svs::catalog::{
     RefreshResult as CatalogRefresh, RepositoryStatus as CatalogRepository,
     Skipped as CatalogSkipped,
 };
+pub use ace_core::svs::coverage::{
+    CoverageState as SvsCoverageState, CoverageStatus as SvsCoverageStatus,
+    RefreshState as SvsCoverageRefreshState,
+};
 pub use ace_core::svs::hosts::HostFields;
 pub use ace_core::svs::results::{Precondition, ResultRow, ResultStatus};
 pub use ace_core::svs::runs::{
@@ -165,7 +176,9 @@ pub use ace_core::svs::samples::{
     CaptureState, Label as SampleLabel, MissingReason, Strength as VoteStrength,
     Votes as SampleVotes,
 };
+pub use ace_core::svs::test_state::{PlatformHistory, TestHistory, TestState};
 pub use ace_core::svs::validations::ValidationState;
+pub use ace_core::svs::worklist::{WorklistKind, WorklistResolution, WorklistStatus};
 pub use ace_core::svs::{AttributionConfidence, RunState, SvsStatus};
 pub use ace_core::tree::DEFAULT_QUEUE;
 pub use ace_sdk::actions::{ActionKind, RemediationAction};
@@ -246,8 +259,9 @@ pub use permission::{
     FILE_COLLECTION_PRUNE, FILE_COLLECTION_READ, FILE_COLLECTION_WRITE, HUNT_READ, HUNT_WRITE,
     InvalidPermission, LIST_READ, LIST_WRITE, NRD_REFRESH, OBSERVABLE_READ, OBSERVABLE_WRITE,
     PermissionName, PermissionPattern, REMEDIATION_READ, REMEDIATION_WRITE, SIGNATURE_DOWNLOAD,
-    SIGNATURE_QA_PURGE, SIGNATURE_READ, SVS_ADMIN, SVS_RUN_MANAGE, SVS_RUN_READ, SVS_RUN_REGISTER,
-    SVS_RUN_TIMERS, SVS_VALIDATE, SVS_VALIDATION_PRUNE, USER_READ, USER_SELF, USER_WRITE,
+    SIGNATURE_QA_PURGE, SIGNATURE_READ, SVS_ADMIN, SVS_COVERAGE_REFRESH, SVS_COVERAGE_SNAPSHOT,
+    SVS_RUN_MANAGE, SVS_RUN_READ, SVS_RUN_REGISTER, SVS_RUN_TIMERS, SVS_VALIDATE,
+    SVS_VALIDATION_PRUNE, USER_READ, USER_SELF, USER_WRITE,
 };
 pub use preferences::{
     AlertSectionsPreference, MANAGE_COLUMNS, MAX_ALERT_SECTIONS, ManageColumn,
@@ -272,6 +286,12 @@ pub use svs::{
 pub use svs_association::{AlertRelease, Association, AssociationResult, MarkerRouter};
 pub use svs_catalog::{
     CatalogTest, CatalogTestDetail, CatalogTestPage, CatalogTestQuery, MAX_CATALOG_TESTS_PAGE,
+};
+pub use svs_coverage::{
+    CoverageHistoryCounts, CoverageHistoryPage, CoverageHistoryQuery, CoveragePage, CoverageQuery,
+    CoverageRefresh, CoverageRow, CoverageSnapshot, CoverageSnapshotRow, CoverageSummary,
+    CoverageTestRow, HistoryGroup, MAX_COVERAGE_PAGE, MAX_HISTORY_PERIODS, ManualSignature,
+    MeasuredSignature, PeriodCounts, PlatformCounts, RemovedTest, TechniqueCoverage,
 };
 pub use svs_decisions::{
     Expectation, ExpectationPage, ExpectationQuery, ExpectationState, Ignore, IgnorePage,
@@ -304,6 +324,10 @@ pub use svs_validations::{
     ValidationDetail, ValidationPage, ValidationQuery, ValidationResult, ValidationResultPage,
     ValidationStatus, ValidationsPruned, listed_categories, new_fp_categories,
     regression_categories, validation_report_path,
+};
+pub use svs_worklist::{
+    BulkResolution, MAX_BULK_ROWS, MAX_WORKLIST_PAGE, MeasuredTechnique, MeasuredTest,
+    SignatureWorklist, WorklistPage, WorklistQuery, WorklistRefresh, WorklistRow,
 };
 pub use users::{ApiKey, Grant, Group, MAX_KEY_SCOPE, Profile, User, UserDetail};
 pub use yara_qa::{
@@ -510,6 +534,9 @@ pub struct Service {
     /// How long a changed-since page holds a row back after it changed (PLAN.md 7.10 batch 5):
     /// `svs_decisions`' docs.
     feed_settle: chrono::TimeDelta,
+    /// The ATT&CK release coverage is computed against, the overlay's `svs.attack_release` (PLAN.md 7.10
+    /// batch 8). None is ace3's default release, which every build has.
+    attack: Option<std::sync::Arc<ace_core::svs::attack::AttackCatalog>>,
 }
 
 impl Service {
@@ -528,6 +555,7 @@ impl Service {
             routers: routing::Routers::builtin(),
             runs: std::sync::Arc::default(),
             feed_settle: chrono::TimeDelta::seconds(5),
+            attack: None,
         }
     }
 

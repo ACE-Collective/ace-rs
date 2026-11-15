@@ -1,0 +1,148 @@
+{#- ace3's svs/coverage_detail.html (PLAN.md 7.10 batch 8): one technique's coverage, its rows and its
+    sub-techniques', the tests and signatures that count toward them now, its removed tests and its latest
+    daily snapshots (src/svs_coverage.rs). Read-only. -#}
+{% extends "base.html" %}
+{% block title %}{{ view.technique }} · Coverage · SVS · ACE{% endblock %}
+{% block content %}
+<section class="signatures detection svs-coverage">
+  {%- include "svs/tabs.html" %}
+  <p><a href="/svs/coverage">Coverage</a> /{% if let Some(parent) = view.parent %} <a href="{{ parent.href }}">{{ parent.text }}</a> /{% endif %} <code>{{ view.technique }}</code></p>
+  <h2 class="qa-text">{{ view.technique }}{% if !view.name.is_empty() %} <span class="muted">{{ view.name }}</span>{% endif %}</h2>
+  <p><a href="{{ view.tests_href }}">Its tests</a> · <a href="{{ view.runs_href }}">Its runs</a></p>
+  <table class="keys">
+    <tbody>
+      {%- for fact in view.facts %}
+      <tr><th>{{ fact.name }}</th><td class="qa-text">{{ fact.value }}</td></tr>
+      {%- endfor %}
+    </tbody>
+  </table>
+
+  <h3>By platform</h3>
+  <p class="muted">The rows as of the last refresh. What follows them is read now.</p>
+  <table class="keys">
+    <thead><tr><th>Platform</th><th>State</th><th>Own</th><th>Tests</th><th>Manual</th><th>Measured</th><th>Latest review</th><th>State since</th></tr></thead>
+    <tbody>
+      {%- for row in view.rows %}
+      <tr>
+        <td>{{ row.platform }}{% if !row.notes.is_empty() %} <span class="muted">{{ row.notes }}</span>{% endif %}</td>
+        <td><span class="badge disposition-{{ row.state_class }}">{{ row.state }}</span></td>
+        <td>{{ row.own_state }}</td>
+        <td>{{ row.tests }}</td>
+        <td>{% if row.manual > 0 %}{{ row.manual }}{% endif %}</td>
+        <td>{% if row.measured > 0 %}{{ row.measured }}{% endif %}</td>
+        <td class="nowrap">{{ row.last_reviewed }}</td>
+        <td class="nowrap">{{ row.changed }}</td>
+      </tr>
+      {%- else %}
+      <tr><td colspan="8" class="muted">No rows.</td></tr>
+      {%- endfor %}
+    </tbody>
+  </table>
+
+  {%- if !view.sub_rows.is_empty() %}
+  <h3>Sub-techniques</h3>
+  <table class="keys">
+    <thead><tr><th>Technique</th><th>Name</th><th>Platform</th><th>State</th><th>Tests</th><th>Manual</th></tr></thead>
+    <tbody>
+      {%- for row in view.sub_rows %}
+      <tr>
+        <td class="nowrap"><a href="{{ row.href }}">{{ row.technique }}</a>{% if !row.notes.is_empty() %} <span class="muted">{{ row.notes }}</span>{% endif %}</td>
+        <td class="qa-text">{{ row.name }}</td>
+        <td>{{ row.platform }}</td>
+        <td><span class="badge disposition-{{ row.state_class }}">{{ row.state }}</span></td>
+        <td>{{ row.tests }}</td>
+        <td>{% if row.manual > 0 %}{{ row.manual }}{% endif %}</td>
+      </tr>
+      {%- endfor %}
+    </tbody>
+  </table>
+  {%- endif %}
+
+  <h3>Tests</h3>
+  <p class="muted">The tests of the technique and its sub-techniques, on each platform, and what each counts as.</p>
+  <table class="keys">
+    <thead><tr><th>Test</th><th>Technique</th><th>Platform</th><th>State</th><th>Counts as</th><th>Latest review</th><th>Expected</th></tr></thead>
+    <tbody>
+      {%- for test in view.tests %}
+      <tr>
+        <td class="qa-text"><a href="{{ test.href }}">{{ test.name }}</a></td>
+        <td>{{ test.technique }}</td>
+        <td>{{ test.platform }}</td>
+        <td><span class="badge disposition-{{ test.state_class }}">{{ test.state }}</span></td>
+        <td>{{ test.contribution }}</td>
+        <td class="nowrap">{% if let Some(run) = test.last_reviewed %}<a href="{{ run.href }}">{{ run.text }}</a>{% endif %}</td>
+        <td>{% if test.expected > 0 %}{{ test.expected }}{% endif %}</td>
+      </tr>
+      {%- else %}
+      <tr><td colspan="7" class="muted">No tests.</td></tr>
+      {%- endfor %}
+    </tbody>
+  </table>
+
+  <h3>Measured signatures</h3>
+  <p class="muted">Signatures expected of those tests.</p>
+  <table class="keys">
+    <thead><tr><th>Signature</th><th>Family</th><th>Measured by</th></tr></thead>
+    <tbody>
+      {%- for row in view.measured %}
+      <tr>
+        <td class="qa-text"><a href="{{ row.href }}">{% if row.name.is_empty() %}{{ row.signature }}{% else %}{{ row.name }}{% endif %}</a> <code class="muted">{{ row.signature }}</code></td>
+        <td>{{ row.family }}</td>
+        <td>{{ row.detail }}</td>
+      </tr>
+      {%- else %}
+      <tr><td colspan="3" class="muted">No measured signatures.</td></tr>
+      {%- endfor %}
+    </tbody>
+  </table>
+
+  <h3>Manual signatures</h3>
+  <p class="muted">Signatures whose technique tag names the technique or one of its sub-techniques.</p>
+  <table class="keys">
+    <thead><tr><th>Signature</th><th>Family</th><th>Tag</th><th>Counts</th></tr></thead>
+    <tbody>
+      {%- for row in view.manual %}
+      <tr>
+        <td class="qa-text">{% if row.name.is_empty() %}{{ row.signature }}{% else %}{{ row.name }}{% endif %} <code class="muted">{{ row.signature }}</code></td>
+        <td>{{ row.family }}</td>
+        <td>{{ row.detail }}</td>
+        <td>{% if row.reason.is_empty() %}counts{% else %}<span class="muted">{{ row.reason }}</span>{% endif %}</td>
+      </tr>
+      {%- else %}
+      <tr><td colspan="4" class="muted">No manual signatures.</td></tr>
+      {%- endfor %}
+    </tbody>
+  </table>
+
+  {%- if !view.removed.is_empty() %}
+  <h3>Removed tests</h3>
+  <p class="muted">Tests removed from their repository; they don't count.</p>
+  <ul>
+    {%- for test in view.removed %}
+    <li class="qa-text"><a href="{{ test.href }}">{{ test.text }}</a></li>
+    {%- endfor %}
+  </ul>
+  {%- endif %}
+
+  <h3>History</h3>
+  <p class="muted">Its daily snapshots of the last two months, newest first. The last year's are in the <a href="{{ view.history_csv }}">CSV</a>.</p>
+  <table class="keys">
+    <thead><tr><th>Day</th><th>Technique</th><th>Platform</th><th>State</th><th>Own</th><th>Tests</th><th>Release</th></tr></thead>
+    <tbody>
+      {%- for row in view.history %}
+      <tr>
+        <td class="nowrap">{{ row.day }}</td>
+        <td>{{ row.technique }}</td>
+        <td>{{ row.platform }}</td>
+        <td><span class="badge disposition-{{ row.state_class }}">{{ row.state }}</span></td>
+        <td>{{ row.own_state }}</td>
+        <td>{% if row.tests > 0 %}{{ row.tests }}{% endif %}</td>
+        <td>{{ row.release }}</td>
+      </tr>
+      {%- else %}
+      <tr><td colspan="7" class="muted">No snapshots yet.</td></tr>
+      {%- endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

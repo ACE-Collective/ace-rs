@@ -1,0 +1,275 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE svs.technique_worklist\n           SET resolution = $2, reason = $3, reference = $4, resolved_by = $5::jsonb,\n               resolved_at = $6, status = $7, counts = $8,\n               status_changed_at = CASE WHEN status <> $7 THEN $6 ELSE status_changed_at END\n           WHERE id = $1\n           RETURNING id, signature_uuid, technique, kind, status, declared_as, tag_present,\n                     signature_counts, counts, measured, measured_techniques, signature_family,\n                     signature_name, resolution, reason, reference,\n                     resolved_by AS \"resolved_by: Value\", resolved_at, first_seen_at,\n                     status_changed_at, updated_at",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "svs.technique_worklist",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "signature_uuid",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.technique_worklist",
+            "name": "signature_uuid"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "technique",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.technique_worklist",
+            "name": "technique"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "kind",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.technique_worklist",
+            "name": "kind"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "status",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.technique_worklist",
+            "name": "status"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "declared_as",
+        "type_info": "TextArray",
+        "origin": {
+          "Table": {
+            "table": "svs.technique_worklist",
+            "name": "declared_as"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "tag_present",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "svs.technique_worklist",
+            "name": "tag_present"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "signature_counts",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "svs.technique_worklist",
+            "name": "signature_counts"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "counts",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "svs.technique_worklist",
+            "name": "counts"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "measured",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "svs.technique_worklist",
+            "name": "measured"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "measured_techniques",
+        "type_info": "TextArray",
+        "origin": {
+          "Table": {
+            "table": "svs.technique_worklist",
+            "name": "measured_techniques"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "signature_family",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.technique_worklist",
+            "name": "signature_family"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "signature_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.technique_worklist",
+            "name": "signature_name"
+          }
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "resolution",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.technique_worklist",
+            "name": "resolution"
+          }
+        }
+      },
+      {
+        "ordinal": 14,
+        "name": "reason",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.technique_worklist",
+            "name": "reason"
+          }
+        }
+      },
+      {
+        "ordinal": 15,
+        "name": "reference",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.technique_worklist",
+            "name": "reference"
+          }
+        }
+      },
+      {
+        "ordinal": 16,
+        "name": "resolved_by: Value",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "svs.technique_worklist",
+            "name": "resolved_by"
+          }
+        }
+      },
+      {
+        "ordinal": 17,
+        "name": "resolved_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "svs.technique_worklist",
+            "name": "resolved_at"
+          }
+        }
+      },
+      {
+        "ordinal": 18,
+        "name": "first_seen_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "svs.technique_worklist",
+            "name": "first_seen_at"
+          }
+        }
+      },
+      {
+        "ordinal": 19,
+        "name": "status_changed_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "svs.technique_worklist",
+            "name": "status_changed_at"
+          }
+        }
+      },
+      {
+        "ordinal": 20,
+        "name": "updated_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "svs.technique_worklist",
+            "name": "updated_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text",
+        "Text",
+        "Text",
+        "Jsonb",
+        "Timestamptz",
+        "Text",
+        "Bool"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "d5a9e8c6e6693fea8f275fabc5de3ace007fd2d1ada48fd3771154ceb0061f46"
+}

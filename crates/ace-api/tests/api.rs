@@ -167,6 +167,8 @@ async fn stack_of(archive: ace_core::email_archive::ArchiveConfig, catalog: Cata
         .with_bucket(bucket.clone())
         // a changed-since page here holds nothing back: `ace-service`'s tests cover the wait
         .with_feed_settle(chrono::TimeDelta::zero())
+        // coverage is computed against ace3's small test release, v99.0 (PLAN.md 7.10 batch 8)
+        .with_attack_catalog(std::sync::Arc::new(ace_core::testing::attack_catalog()))
         .with_dispositions(ace_service::Dispositions::configured(&overlay).expect("good sections"))
         // a repository the validations' requests may name; requesting doesn't fetch it (PLAN.md 7.10)
         .with_validation(
@@ -558,6 +560,18 @@ const CATALOG_TESTS_CSV: &str = "/api/svs/v1/tests/export/csv";
 const CATALOG_TESTS_NDJSON: &str = "/api/svs/v1/tests/export/ndjson";
 const CATALOG_TEST: &str = "/api/svs/v1/tests/{guid}";
 const CATALOG_REPOSITORIES: &str = "/api/svs/v1/catalog/repositories";
+const COVERAGE: &str = "/api/svs/v1/coverage";
+const COVERAGE_EXPORT: &str = "/api/svs/v1/coverage/export/{format}";
+const COVERAGE_SUMMARY: &str = "/api/svs/v1/coverage/summary";
+const COVERAGE_HISTORY: &str = "/api/svs/v1/coverage/history";
+const COVERAGE_HISTORY_EXPORT: &str = "/api/svs/v1/coverage/history/export/{format}";
+const COVERAGE_HISTORY_COUNTS: &str = "/api/svs/v1/coverage/history/counts";
+const COVERAGE_TECHNIQUE: &str = "/api/svs/v1/coverage/{technique}";
+const WORKLIST: &str = "/api/svs/v1/worklist";
+const WORKLIST_EXPORT: &str = "/api/svs/v1/worklist/export/{format}";
+const WORKLIST_BULK: &str = "/api/svs/v1/worklist/bulk/resolve";
+const WORKLIST_SIGNATURE: &str = "/api/svs/v1/worklist/{signature_uuid}";
+const WORKLIST_RESOLUTION: &str = "/api/svs/v1/worklist/{signature_uuid}/{technique}/resolution";
 const RUNS: &str = "/api/svs/v1/runs";
 const RUNS_VALIDATE: &str = "/api/svs/v1/runs/validate";
 const RUN: &str = "/api/svs/v1/runs/{run_id}";
@@ -652,6 +666,7 @@ fn fill(route: &str, id: Uuid, observable: i64) -> String {
             .replace("{host}", "1")
             .replace("{format}", "csv")
             .replace("{platform}", "windows")
+            .replace("{technique}", "T1059")
             .replace("{signature_uuid}", "7d1c2a4e-5b6f-4c3d-9e8f-0a1b2c3d4e5f");
     }
     if route.starts_with("/api/lists/") {
@@ -751,6 +766,11 @@ fn good_body(route: &str) -> Send {
             Send::Json(json!({"run_ids": [Uuid::nil()], "reason": "refused"}))
         }
         EXPECTATION => Send::Json(json!({"state": "expected"})),
+        WORKLIST_RESOLUTION => Send::Json(json!({"resolution": "keep", "reason": "refused"})),
+        WORKLIST_BULK => Send::Json(json!({
+            "resolution": "keep", "reason": "refused",
+            "rows": [{"signature_uuid": "7d1c2a4e-5b6f-4c3d-9e8f-0a1b2c3d4e5f", "technique": "T1059"}],
+        })),
         TEST_IGNORE | GLOBAL_IGNORE | TEST_SETTINGS => Send::Json(json!({})),
         TEST_HOSTS | TEST_HOST => Send::Json(json!({"hostname": "refused"})),
         MAINTENANCE => Send::Json(json!({"minutes": 30, "reason": "refused"})),
@@ -789,7 +809,7 @@ async fn refuses_without_a_credential_or_a_permission(
         .map(|(method, route, _)| (method, route))
         .filter(|route| !public.contains(route))
         .collect();
-    assert_eq!(routes.len(), 218, "{routes:?}");
+    assert_eq!(routes.len(), 231, "{routes:?}");
     for (method, route) in routes {
         let method: Method = method.to_uppercase().parse().expect("a method");
         let path = fill(&route, id, file);
@@ -4561,6 +4581,7 @@ async fn every_documented_status_is_tested() {
     svs_run_reads(&mut client).await;
     svs_association(&mut client).await;
     svs_review(&mut client).await;
+    svs_coverage(&mut client).await;
     pings(&mut client, &token).await;
 
     assert_eq!(
@@ -5139,7 +5160,7 @@ async fn filters_and_exports(client: &mut Client<'_>, token: &str) {
         .json(
             Method::GET,
             SCREEN,
-            "/api/filters/v1/screens/svs_coverage",
+            "/api/filters/v1/screens/no_such_screen",
             Some(token),
             Send::Nothing,
             StatusCode::NOT_FOUND,
@@ -9020,6 +9041,1454 @@ async fn catalog_test(
     .expect("seeds a test");
 }
 
+/// Coverage, the worklist and a test's state (PLAN.md 7.10 batch 8): ace3's
+/// `tests/aceapi_v2/svs/test_coverage.py` and `test_worklist.py`, and `test_catalog.py`'s
+/// `test_each_tests_state_and_runs`, which batch 4 left here. The stack's service is pinned to ace3's test
+/// release, v99.0. One database holds every router's rows, so each case reads what this function made: a
+/// hunt tagged T1547, T1059 and T1059.001, expected of a test of T1059.002 on macos.
+///
+/// `test_ordered_by_*`, `test_filters`, `test_a_bad_filter_is_422` (400 here), `test_pages`,
+/// `test_changed_since`, `test_exports`, `test_a_bad_filter_fails_before_the_stream`, `test_counts`,
+/// `test_before_any_refresh`, `test_drill_down`, `test_a_sub_technique`,
+/// `test_a_revoked_id_answers_for_its_successor`, `test_errors`, the history's `test_list`, `test_filters`,
+/// `test_exports`, `test_counts_per_day`, `test_counts_per_month_take_the_last_snapshot` and
+/// `test_counts_errors`, and the worklist's `test_a_stale_resolution_is_refused`,
+/// `test_a_malformed_precondition`, `test_set_and_clear`, `test_refusals`,
+/// `test_a_conflict_names_the_status`, `test_bulk` and `test_rows_and_what_is_measured_now` are here, with
+/// each documented status; `ace-service`'s `svs_results_tests::coverage` has every filter, the settled
+/// changed-since pull and the worked example's counts in full. `test_permissions` is the sweep's.
+/// `test_unreadable_tags` has no case: the tags are read from the database, so there's no
+/// `manual_signatures_error`. `test_a_config_key_is_refused` has none either: a key that belongs to nobody
+/// is an actor here and resolves, as it decides (batch 5b).
+async fn svs_coverage(client: &mut Client<'_>) {
+    use Method as M;
+    use StatusCode as S;
+    let stack = client.stack;
+    let db = stack.test_db.db();
+    let reader = key(stack, &["svs:run_read"]).await;
+    let manager = key(stack, &["svs:run_manage", "svs:run_read"]).await;
+    let (r, m) = (Some(reader.as_str()), Some(manager.as_str()));
+    let component = |name: &str| Actor::Internal {
+        id: Component::new(name).expect("a valid name"),
+    };
+    const HUNT: &str = "c0c0c0c0-1111-4111-8111-111111111111";
+
+    // test_before_any_refresh: nothing refreshed, so nothing is counted
+    let empty = client
+        .json(
+            M::GET,
+            COVERAGE_SUMMARY,
+            COVERAGE_SUMMARY,
+            r,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(
+        (&empty["rows"], &empty["refresh"], &empty["states"]["none"]),
+        (&json!(0), &Value::Null, &json!(0))
+    );
+    assert_eq!(empty["platforms"], json!([]));
+
+    // a test of T1059.002 on macos that expects the hunt, and one nothing ran
+    catalog_test(
+        stack,
+        60,
+        "T1059.002",
+        "AppleScript run",
+        &["macos"],
+        "sh",
+        false,
+    )
+    .await;
+    catalog_test(
+        stack,
+        61,
+        "T1059.002",
+        "Never run",
+        &["linux", "macos"],
+        "sh",
+        false,
+    )
+    .await;
+    let guid = catalog_guid(60);
+    client
+        .json(
+            M::PUT,
+            EXPECTATION,
+            &EXPECTATION
+                .replace("{guid}", &guid.to_string())
+                .replace("{platform}", "macos")
+                .replace("{signature_uuid}", HUNT),
+            m,
+            Send::Json(json!({"state": "expected"})),
+            S::OK,
+        )
+        .await;
+    let recorded: ace_core::svs::windows::RecordedHunt = serde_json::from_value(json!({
+        "uuid": HUNT, "name": "coverage hunt", "enabled": true, "latency_seconds": 3600,
+        "suppression_seconds": null, "per_group": false, "content_hash": "c".repeat(64),
+        "tags": ["mitre:T1547", "mitre:T1059", "mitre:T1059.001"],
+    }))
+    .expect("a recorded hunt");
+    stack
+        .service
+        .sync_hunts(
+            &component("hunter"),
+            "coverage",
+            &[ace_service::LoadedHuntRow {
+                kind: "coverage".to_owned(),
+                path: "coverage.yaml".to_owned(),
+                name: Some("coverage hunt".to_owned()),
+                uuid: Some(HUNT.to_owned()),
+                enabled: Some(true),
+                frequency: Some("00:10:00".to_owned()),
+                error: None,
+                svs: Some(recorded),
+            }],
+        )
+        .await
+        .expect("records the hunt");
+    let snapshotter = component("scheduler:svs_coverage_snapshot");
+    for day in ["2026-09-30", "2026-10-16"] {
+        stack
+            .service
+            .write_svs_coverage_snapshot(
+                &snapshotter,
+                Some(day.parse().expect("a day")),
+                chrono::Utc::now(),
+            )
+            .await
+            .expect("files a snapshot");
+    }
+    let refreshed = stack
+        .service
+        .refresh_svs_coverage(
+            &component("scheduler:svs_coverage_refresh"),
+            chrono::Utc::now(),
+        )
+        .await
+        .expect("refreshes");
+    assert_eq!(refreshed.attack_release, "v99.0");
+
+    // test_each_tests_state_and_runs (test_catalog.py): the state and history a test carries
+    let run = Uuid::from_u128(0xc0c0_0001);
+    sqlx::query(
+        "INSERT INTO svs.runs
+             (uuid, test_guid, platform, test_content_hash, catalog_commit, state, marker, launcher,
+              observation_seconds, attribution_seconds)
+         VALUES ($1, $2, 'macos', repeat('0', 64), repeat('a', 40), 'ended',
+                 'svs-' || repeat('c', 26), 'art', 3600, 3600)",
+    )
+    .bind(run)
+    .bind(guid)
+    .execute(db.pool())
+    .await
+    .expect("adds a run");
+    let tests = client
+        .json(
+            M::GET,
+            CATALOG_TESTS,
+            &format!("{CATALOG_TESTS}?f=technique%3AT1059.002"),
+            r,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    let of = |n: u128| -> &Value {
+        tests["tests"]
+            .as_array()
+            .expect("tests")
+            .iter()
+            .find(|test| test["guid"] == json!(catalog_guid(n)))
+            .expect("the test")
+    };
+    let ran = of(60);
+    assert_eq!(
+        (
+            &ran["test_state"],
+            &ran["run_count"],
+            &ran["last_run_id"],
+            &ran["recent_runs"],
+            &ran["recent_runs_missing"],
+            &ran["expected_signatures"],
+            &ran["last_reviewed_run_id"]
+        ),
+        (
+            &json!("awaiting_review"),
+            &json!(1),
+            &json!(run),
+            &json!(1),
+            &json!(0),
+            &json!(1),
+            &Value::Null
+        )
+    );
+    assert!(ran["last_run_at"].is_string());
+    assert_eq!(
+        (&of(61)["test_state"], &of(61)["run_count"]),
+        (&json!("never_run"), &json!(0))
+    );
+    // the list carries the roll-up only
+    assert!(ran.get("platform_states").is_none());
+    let test_at = |n: u128| CATALOG_TEST.replace("{guid}", &catalog_guid(n).to_string());
+    let detail = client
+        .json(M::GET, CATALOG_TEST, &test_at(60), r, Send::Nothing, S::OK)
+        .await;
+    assert_eq!(detail["test_state"], "awaiting_review");
+    assert_eq!(
+        detail["platform_states"],
+        json!([{"platform": "macos", "test_state": "awaiting_review", "last_reviewed_run_id": null,
+                "last_reviewed_at": null, "expected_signatures": 1}])
+    );
+    // one state per supported platform, never_run where it has no run or decision
+    let detail = client
+        .json(M::GET, CATALOG_TEST, &test_at(61), r, Send::Nothing, S::OK)
+        .await;
+    let states: Vec<(&str, &str)> = detail["platform_states"]
+        .as_array()
+        .expect("states")
+        .iter()
+        .map(|state| {
+            (
+                state["platform"].as_str().expect("a platform"),
+                state["test_state"].as_str().expect("a state"),
+            )
+        })
+        .collect();
+    assert_eq!(states, [("linux", "never_run"), ("macos", "never_run")]);
+    let (status, _, csv) = client
+        .text(
+            CATALOG_TESTS_CSV,
+            &format!("{CATALOG_TESTS_CSV}?f=technique%3AT1059.002"),
+            &reader,
+        )
+        .await;
+    assert_eq!(status, S::OK);
+    // counted from the end, since a test's platforms are one quoted cell with commas in it
+    let header: Vec<&str> = csv.lines().next().expect("a header").split(',').collect();
+    let from_end = header
+        .iter()
+        .rev()
+        .position(|name| *name == "test_state")
+        .expect("the test_state column");
+    let exported: BTreeSet<&str> = csv
+        .lines()
+        .skip(1)
+        .map(|line| line.rsplit(',').nth(from_end).expect("a cell"))
+        .collect();
+    assert_eq!(exported, BTreeSet::from(["awaiting_review", "never_run"]));
+
+    // test_ordered_by_technique_then_platform, and what a row carries
+    let keys = |body: &Value| -> Vec<(String, String)> {
+        body["rows"]
+            .as_array()
+            .expect("rows")
+            .iter()
+            .map(|row| {
+                (
+                    row["technique"].as_str().expect("a technique").to_owned(),
+                    row["platform"].as_str().expect("a platform").to_owned(),
+                )
+            })
+            .collect()
+    };
+    let all = client
+        .json(
+            M::GET,
+            COVERAGE,
+            &format!("{COVERAGE}?limit=1000"),
+            r,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    let listed = keys(&all);
+    assert!(listed.is_sorted(), "{listed:?}");
+    assert!(listed.len() >= 5 && all["next"].is_null());
+    let one = client
+        .json(
+            M::GET,
+            COVERAGE,
+            &format!("{COVERAGE}?f=technique%3At1547"),
+            r,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(keys(&one), [("T1547".to_owned(), "windows".to_owned())]);
+    let row = &one["rows"][0];
+    assert_eq!(
+        (
+            &row["parent"],
+            &row["is_subtechnique"],
+            &row["technique_name"],
+            &row["tactics"],
+            &row["catalog_status"],
+            &row["attack_platform"],
+            &row["state"],
+            &row["own_state"],
+            &row["tests_total"],
+            &row["manual_signatures"],
+            &row["retired_at"]
+        ),
+        (
+            &Value::Null,
+            &json!(false),
+            &json!("Boot or Logon Autostart Execution"),
+            &json!(["TA0003", "TA0002"]),
+            &json!("active"),
+            &json!(true),
+            &json!("manual"),
+            &json!("manual"),
+            &json!(0),
+            &json!(1),
+            &Value::Null
+        )
+    );
+    for field in ["state_changed_at", "first_seen_at", "updated_at"] {
+        assert!(row[field].is_string(), "{field}");
+    }
+
+    // test_filters, as the share links spell them
+    for (query, expected) in [
+        ("?f=tactic%3Apersistence", vec![("T1547", "windows")]),
+        (
+            "?f=has_manual%3Atrue&f=level%3Atechnique&f=platform%3Awindows",
+            vec![("T1059", "windows"), ("T1547", "windows")],
+        ),
+        ("?f=technique%3AT1547&f=!state%3Amanual", vec![]),
+        (
+            "?f=technique%3AT1547&changed_since=2000-01-01T00%3A00%3A00Z",
+            vec![("T1547", "windows")],
+        ),
+        (
+            "?f=technique%3AT1547&changed_since=2999-01-01T00%3A00%3A00Z",
+            vec![],
+        ),
+        (
+            "?f=technique%3AT1547&f=state_changed%3A-1d&tz=Europe%2FLondon",
+            vec![("T1547", "windows")],
+        ),
+    ] {
+        let body = client
+            .json(
+                M::GET,
+                COVERAGE,
+                &format!("{COVERAGE}{query}"),
+                r,
+                Send::Nothing,
+                S::OK,
+            )
+            .await;
+        let expected: Vec<(String, String)> = expected
+            .into_iter()
+            .map(|(t, p)| (t.to_owned(), p.to_owned()))
+            .collect();
+        assert_eq!(keys(&body), expected, "{query}");
+    }
+
+    // test_pages
+    let mut paged = Vec::new();
+    let mut cursor = String::new();
+    loop {
+        let body = client
+            .json(
+                M::GET,
+                COVERAGE,
+                &format!("{COVERAGE}?limit=2{cursor}"),
+                r,
+                Send::Nothing,
+                S::OK,
+            )
+            .await;
+        paged.extend(keys(&body));
+        match body["next"].as_str() {
+            Some(next) => cursor = format!("&cursor={next}"),
+            None => break,
+        }
+    }
+    assert_eq!(paged, listed);
+
+    // test_a_bad_filter_is_422, and the other parameters that aren't ones
+    for query in [
+        "?f=state%3Agreat",
+        "?f=technique%3Apowershell",
+        "?f=tactic%3ATA9999",
+        "?f=nope%3Ax",
+        "?limit=0",
+        "?limit=1001",
+        "?cursor=zz",
+        "?tz=Nowhere",
+        "?changed_since=yesterday",
+    ] {
+        let refused = client
+            .json(
+                M::GET,
+                COVERAGE,
+                &format!("{COVERAGE}{query}"),
+                r,
+                Send::Nothing,
+                S::BAD_REQUEST,
+            )
+            .await;
+        assert!(refused["error"].is_string(), "{query}");
+    }
+
+    // test_exports: every row the filters match, the tactics joined; test_a_bad_filter_fails_before_the_stream
+    let export = |format: &str| COVERAGE_EXPORT.replace("{format}", format);
+    let (status, kind, csv) = client
+        .text(
+            COVERAGE_EXPORT,
+            &format!("{}?f=technique%3AT1547", export("csv")),
+            &reader,
+        )
+        .await;
+    assert_eq!((status, kind.as_str()), (S::OK, "text/csv; charset=utf-8"));
+    let mut lines = csv.lines();
+    assert_eq!(
+        lines.next(),
+        Some(
+            "technique,platform,parent,is_subtechnique,technique_name,tactics,catalog_status,\
+             attack_platform,state,own_state,tests_total,tests_validated,tests_failing,tests_stale,\
+             manual_signatures,measured_signatures,last_reviewed_at,state_changed_at,first_seen_at,\
+             retired_at,updated_at"
+        )
+    );
+    let line = lines.next().expect("a row");
+    assert!(
+        line.starts_with(
+            "T1547,windows,,false,Boot or Logon Autostart Execution,\"TA0003,TA0002\",active,true,\
+             manual,manual,0,0,0,0,1,0,,"
+        ),
+        "{line}"
+    );
+    assert_eq!(lines.next(), None);
+    let (status, kind, ndjson) = client
+        .text(
+            COVERAGE_EXPORT,
+            &format!("{}?f=technique%3AT1547", export("ndjson")),
+            &reader,
+        )
+        .await;
+    assert_eq!((status, kind.as_str()), (S::OK, "application/x-ndjson"));
+    let exported: Value = serde_json::from_str(ndjson.trim()).expect("one row");
+    assert_eq!(&exported, row);
+    for (path, status) in [
+        (export("xml"), S::BAD_REQUEST),
+        (format!("{}?f=state%3Agreat", export("csv")), S::BAD_REQUEST),
+        // every row is more than the test's export holds
+        (export("csv"), S::PAYLOAD_TOO_LARGE),
+    ] {
+        client
+            .json(M::GET, COVERAGE_EXPORT, &path, r, Send::Nothing, status)
+            .await;
+    }
+
+    // test_counts: every state named, per platform, with what the last refresh did
+    let summary = client
+        .json(
+            M::GET,
+            COVERAGE_SUMMARY,
+            &format!("{COVERAGE_SUMMARY}?f=technique%3AT1547"),
+            r,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(
+        (&summary["rows"], &summary["states"], &summary["own_states"]),
+        (
+            &json!(1),
+            &json!({"failing": 0, "stale": 0, "validated": 0, "manual": 1, "untested": 0, "none": 0}),
+            &json!({"failing": 0, "stale": 0, "validated": 0, "manual": 1, "untested": 0, "none": 0})
+        )
+    );
+    assert_eq!(
+        (
+            &summary["platforms"][0]["platform"],
+            &summary["platforms"][0]["rows"],
+            &summary["platforms"][0]["states"]["manual"]
+        ),
+        (&json!("windows"), &json!(1), &json!(1))
+    );
+    let refresh = &summary["refresh"];
+    assert_eq!(
+        (&refresh["attack_release"], &refresh["error"]),
+        (&json!("v99.0"), &Value::Null)
+    );
+    assert!(refresh["refreshed_at"].is_string() && refresh["rows"].as_i64() >= Some(5));
+    client
+        .json(
+            M::GET,
+            COVERAGE_SUMMARY,
+            &format!("{COVERAGE_SUMMARY}?f=level%3Atactic"),
+            r,
+            Send::Nothing,
+            S::BAD_REQUEST,
+        )
+        .await;
+
+    // test_drill_down and test_a_sub_technique
+    let technique = |id: &str| COVERAGE_TECHNIQUE.replace("{technique}", id);
+    let detail = client
+        .json(
+            M::GET,
+            COVERAGE_TECHNIQUE,
+            &technique("t1059"),
+            r,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(
+        (
+            &detail["requested"],
+            &detail["technique"],
+            &detail["name"],
+            &detail["is_subtechnique"],
+            &detail["catalog_status"],
+            &detail["attack_release"],
+            &detail["tactics"]
+        ),
+        (
+            &json!("t1059"),
+            &json!("T1059"),
+            &json!("Command and Scripting Interpreter"),
+            &json!(false),
+            &json!("active"),
+            &json!("v99.0"),
+            &json!(["TA0002"])
+        )
+    );
+    assert!(detail["refreshed_at"].is_string());
+    assert!(
+        detail["rows"]
+            .as_array()
+            .is_some_and(|rows| rows.iter().all(|row| row["technique"] == "T1059"))
+    );
+    assert!(
+        detail["sub_technique_rows"]
+            .as_array()
+            .is_some_and(|rows| rows.iter().any(|row| row["technique"] == "T1059.002"))
+    );
+    let counted = detail["tests"]
+        .as_array()
+        .expect("tests")
+        .iter()
+        .find(|test| test["guid"] == json!(guid))
+        .expect("the test that expects the hunt");
+    assert_eq!(
+        (
+            &counted["name"],
+            &counted["test_technique"],
+            &counted["technique"],
+            &counted["platform"],
+            &counted["test_state"],
+            &counted["contribution"],
+            &counted["expected_signatures"]
+        ),
+        (
+            &json!("AppleScript run"),
+            &json!("T1059.002"),
+            &json!("T1059.002"),
+            &json!("macos"),
+            &json!("awaiting_review"),
+            &json!("untested"),
+            &json!([HUNT])
+        )
+    );
+    let measured = detail["measured_signatures"]
+        .as_array()
+        .expect("measured")
+        .iter()
+        .find(|signature| signature["signature_uuid"] == HUNT)
+        .expect("the hunt is measured");
+    assert_eq!(
+        (&measured["name"], &measured["family"], &measured["tests"]),
+        (
+            &json!("coverage hunt"),
+            &json!("hunt"),
+            &json!([{"guid": guid, "platform": "macos"}])
+        )
+    );
+    let manual: Vec<(&str, &str, bool)> = detail["manual_signatures"]
+        .as_array()
+        .expect("manual")
+        .iter()
+        .filter(|mapping| mapping["signature_uuid"] == HUNT)
+        .map(|mapping| {
+            (
+                mapping["declared"].as_str().expect("an id"),
+                mapping["technique"].as_str().expect("a technique"),
+                mapping["counts"].as_bool().expect("counts"),
+            )
+        })
+        .collect();
+    assert_eq!(
+        manual,
+        [("T1059", "T1059", true), ("T1059.001", "T1059.001", true)]
+    );
+    assert!(detail.get("manual_signatures_error").is_none());
+    // the catalog's removed test of T1059.003 doesn't count, and is listed
+    assert!(detail["removed_tests"].as_array().is_some_and(|tests| {
+        tests
+            .iter()
+            .any(|test| test["guid"] == json!(catalog_guid(4)))
+    }));
+    let sub = client
+        .json(
+            M::GET,
+            COVERAGE_TECHNIQUE,
+            &technique("T1059.002"),
+            r,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(
+        (
+            &sub["parent"],
+            &sub["is_subtechnique"],
+            &sub["sub_technique_rows"]
+        ),
+        (&json!("T1059"), &json!(true), &json!([]))
+    );
+    // test_a_revoked_id_answers_for_its_successor
+    let revoked = client
+        .json(
+            M::GET,
+            COVERAGE_TECHNIQUE,
+            &technique("T1086"),
+            r,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(
+        (&revoked["requested"], &revoked["technique"]),
+        (&json!("T1086"), &json!("T1059.001"))
+    );
+    // test_errors
+    let invalid = client
+        .json(
+            M::GET,
+            COVERAGE_TECHNIQUE,
+            &technique("powershell"),
+            r,
+            Send::Nothing,
+            S::BAD_REQUEST,
+        )
+        .await;
+    assert_eq!(
+        invalid["error"],
+        "invalid technique \"powershell\" (expected an ATT&CK id such as T1059 or T1059.001)"
+    );
+    let unknown = client
+        .json(
+            M::GET,
+            COVERAGE_TECHNIQUE,
+            &technique("T9999"),
+            r,
+            Send::Nothing,
+            S::NOT_FOUND,
+        )
+        .await;
+    assert_eq!(unknown["error"], "no coverage of technique T9999");
+
+    // the history: test_list, test_filters and test_exports
+    let snapshot_keys = |body: &Value| -> Vec<(String, String, String)> {
+        body["rows"]
+            .as_array()
+            .expect("rows")
+            .iter()
+            .map(|row| {
+                (
+                    row["snapshot_date"].as_str().expect("a day").to_owned(),
+                    row["technique"].as_str().expect("a technique").to_owned(),
+                    row["platform"].as_str().expect("a platform").to_owned(),
+                )
+            })
+            .collect()
+    };
+    let history = client
+        .json(
+            M::GET,
+            COVERAGE_HISTORY,
+            &format!("{COVERAGE_HISTORY}?limit=1000"),
+            r,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    let snapshots = snapshot_keys(&history);
+    assert!(snapshots.is_sorted() && snapshots.len() >= 10);
+    let of_technique = client
+        .json(
+            M::GET,
+            COVERAGE_HISTORY,
+            &format!("{COVERAGE_HISTORY}?f=technique%3AT1547"),
+            r,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(
+        snapshot_keys(&of_technique),
+        [
+            (
+                "2026-09-30".to_owned(),
+                "T1547".to_owned(),
+                "windows".to_owned()
+            ),
+            (
+                "2026-10-16".to_owned(),
+                "T1547".to_owned(),
+                "windows".to_owned()
+            )
+        ]
+    );
+    let snapshot = &of_technique["rows"][0];
+    assert_eq!(
+        (
+            &snapshot["attack_release"],
+            &snapshot["state"],
+            &snapshot["own_state"],
+            &snapshot["manual_signatures"],
+            &snapshot["is_subtechnique"],
+            &snapshot["parent"]
+        ),
+        (
+            &json!("v99.0"),
+            &json!("manual"),
+            &json!("manual"),
+            &json!(1),
+            &json!(false),
+            &Value::Null
+        )
+    );
+    assert!(snapshot["updated_at"].is_string());
+    let october = "date%3A10-01-2026%2000%3A00%20-%2010-31-2026%2023%3A59";
+    let dated = client
+        .json(
+            M::GET,
+            COVERAGE_HISTORY,
+            &format!("{COVERAGE_HISTORY}?f=technique%3AT1547&f={october}&limit=1"),
+            r,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(
+        snapshot_keys(&dated),
+        [(
+            "2026-10-16".to_owned(),
+            "T1547".to_owned(),
+            "windows".to_owned()
+        )]
+    );
+    let first_page = client
+        .json(
+            M::GET,
+            COVERAGE_HISTORY,
+            &format!("{COVERAGE_HISTORY}?f=technique%3AT1547&limit=1"),
+            r,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    let next = first_page["next"].as_str().expect("more");
+    let second_page = client
+        .json(
+            M::GET,
+            COVERAGE_HISTORY,
+            &format!("{COVERAGE_HISTORY}?f=technique%3AT1547&limit=1&cursor={next}"),
+            r,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(
+        (
+            &second_page["rows"][0]["snapshot_date"],
+            &second_page["next"]
+        ),
+        (&json!("2026-10-16"), &Value::Null)
+    );
+    for query in [
+        "?f=name%3Ax",
+        "?f=date%3Awhenever",
+        "?limit=0",
+        "?cursor=zz",
+    ] {
+        client
+            .json(
+                M::GET,
+                COVERAGE_HISTORY,
+                &format!("{COVERAGE_HISTORY}{query}"),
+                r,
+                Send::Nothing,
+                S::BAD_REQUEST,
+            )
+            .await;
+    }
+    let history_export = |format: &str| COVERAGE_HISTORY_EXPORT.replace("{format}", format);
+    let (status, _, csv) = client
+        .text(
+            COVERAGE_HISTORY_EXPORT,
+            &format!("{}?f=technique%3AT1547", history_export("csv")),
+            &reader,
+        )
+        .await;
+    assert_eq!(status, S::OK);
+    let mut lines = csv.lines();
+    assert_eq!(
+        lines.next(),
+        Some(
+            "snapshot_date,technique,platform,attack_release,parent,is_subtechnique,state,own_state,\
+             tests_total,tests_validated,tests_failing,tests_stale,manual_signatures,\
+             measured_signatures,updated_at"
+        )
+    );
+    assert!(lines.next().is_some_and(|line| {
+        line.starts_with("2026-09-30,T1547,windows,v99.0,,false,manual,manual,0,0,0,0,1,0,")
+    }));
+    assert_eq!(csv.lines().count(), 3);
+    let (status, _, ndjson) = client
+        .text(
+            COVERAGE_HISTORY_EXPORT,
+            &format!("{}?f=technique%3AT1547", history_export("ndjson")),
+            &reader,
+        )
+        .await;
+    assert_eq!((status, ndjson.lines().count()), (S::OK, 2));
+    for (path, status) in [
+        (history_export("xml"), S::BAD_REQUEST),
+        (history_export("ndjson"), S::PAYLOAD_TOO_LARGE),
+    ] {
+        client
+            .json(
+                M::GET,
+                COVERAGE_HISTORY_EXPORT,
+                &path,
+                r,
+                Send::Nothing,
+                status,
+            )
+            .await;
+    }
+
+    // test_counts_per_day, test_counts_per_month_take_the_last_snapshot and test_counts_errors
+    let per_day = client
+        .json(
+            M::GET,
+            COVERAGE_HISTORY_COUNTS,
+            &format!("{COVERAGE_HISTORY_COUNTS}?f=technique%3AT1547"),
+            r,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(
+        (&per_day["group"], &per_day["truncated"]),
+        (&json!("day"), &json!(false))
+    );
+    let periods: Vec<(&str, &str, i64, i64)> = per_day["periods"]
+        .as_array()
+        .expect("periods")
+        .iter()
+        .map(|p| {
+            (
+                p["period"].as_str().expect("a period"),
+                p["snapshot_date"].as_str().expect("a day"),
+                p["rows"].as_i64().expect("rows"),
+                p["states"]["manual"].as_i64().expect("a count"),
+            )
+        })
+        .collect();
+    assert_eq!(
+        periods,
+        [
+            ("2026-09-30", "2026-09-30", 1, 1),
+            ("2026-10-16", "2026-10-16", 1, 1)
+        ]
+    );
+    assert_eq!(
+        per_day["periods"][0]["own_states"]
+            .as_object()
+            .map(|states| states.len()),
+        Some(6)
+    );
+    let per_month = client
+        .json(
+            M::GET,
+            COVERAGE_HISTORY_COUNTS,
+            &format!("{COVERAGE_HISTORY_COUNTS}?group=month&f={october}"),
+            r,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(per_month["group"], "month");
+    let months: Vec<(&str, &str)> = per_month["periods"]
+        .as_array()
+        .expect("periods")
+        .iter()
+        .map(|p| {
+            (
+                p["period"].as_str().expect("a period"),
+                p["snapshot_date"].as_str().expect("a day"),
+            )
+        })
+        .collect();
+    assert_eq!(months, [("2026-10", "2026-10-16")]);
+    for query in ["?group=year", "?f=name%3Ax", "?tz=Nowhere"] {
+        client
+            .json(
+                M::GET,
+                COVERAGE_HISTORY_COUNTS,
+                &format!("{COVERAGE_HISTORY_COUNTS}{query}"),
+                r,
+                Send::Nothing,
+                S::BAD_REQUEST,
+            )
+            .await;
+    }
+
+    // the worklist: test_ordered_by_signature_then_technique, test_filters and test_pages
+    let mine = format!("{WORKLIST}?f=signature%3A{HUNT}");
+    let rows = client
+        .json(M::GET, WORKLIST, &mine, r, Send::Nothing, S::OK)
+        .await;
+    let statuses = |body: &Value| -> Vec<(String, String)> {
+        body["rows"]
+            .as_array()
+            .expect("rows")
+            .iter()
+            .map(|row| {
+                (
+                    row["technique"].as_str().expect("a technique").to_owned(),
+                    row["status"].as_str().expect("a status").to_owned(),
+                )
+            })
+            .collect()
+    };
+    let expect = |pairs: &[(&str, &str)]| -> Vec<(String, String)> {
+        pairs
+            .iter()
+            .map(|(technique, status)| ((*technique).to_owned(), (*status).to_owned()))
+            .collect()
+    };
+    assert_eq!(
+        statuses(&rows),
+        expect(&[
+            ("T1059", "confirmed"),
+            ("T1059.001", "open"),
+            ("T1547", "open")
+        ])
+    );
+    let open = &rows["rows"][2];
+    assert_eq!(open["signature_counts"], true);
+    assert_eq!(
+        (
+            &open["signature_uuid"],
+            &open["technique_name"],
+            &open["kind"],
+            &open["declared_as"],
+            &open["tag_present"],
+            &open["counts"],
+            &open["measured"],
+            &open["measured_techniques"],
+            &open["signature_family"],
+            &open["signature_name"],
+            &open["resolution"],
+            &open["resolved_by"]
+        ),
+        (
+            &json!(HUNT),
+            &json!("Boot or Logon Autostart Execution"),
+            &json!("declared"),
+            &json!(["T1547"]),
+            &json!(true),
+            &json!(true),
+            &json!(true),
+            &json!(["T1059.002"]),
+            &json!("hunt"),
+            &json!("coverage hunt"),
+            &Value::Null,
+            &Value::Null
+        )
+    );
+    for (query, expected) in [
+        (
+            "&f=status%3Aopen",
+            vec![("T1059.001", "open"), ("T1547", "open")],
+        ),
+        (
+            "&f=technique%3AT1059",
+            vec![("T1059", "confirmed"), ("T1059.001", "open")],
+        ),
+        ("&f=!kind%3Adeclared", vec![]),
+        (
+            "&f=resolution%3Anone&f=family%3Ahunt&limit=1",
+            vec![("T1059", "confirmed")],
+        ),
+        ("&changed_since=2999-01-01T00%3A00%3A00Z", vec![]),
+    ] {
+        let body = client
+            .json(
+                M::GET,
+                WORKLIST,
+                &format!("{mine}{query}"),
+                r,
+                Send::Nothing,
+                S::OK,
+            )
+            .await;
+        assert_eq!(statuses(&body), expect(&expected), "{query}");
+    }
+    let by_name = client
+        .json(
+            M::GET,
+            WORKLIST,
+            &format!("{WORKLIST}?f=signature%3Acoverage%2520hunt&limit=2"),
+            r,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(by_name["rows"].as_array().map(Vec::len), Some(2));
+    let next = by_name["next"].as_str().expect("more");
+    let rest = client
+        .json(
+            M::GET,
+            WORKLIST,
+            &format!("{WORKLIST}?f=signature%3Acoverage%2520hunt&limit=2&cursor={next}"),
+            r,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(
+        (statuses(&rest), &rest["next"]),
+        (expect(&[("T1547", "open")]), &Value::Null)
+    );
+    for query in [
+        "?f=status%3Adone",
+        "?f=nope%3Ax",
+        "?limit=0",
+        "?cursor=zz",
+        "?tz=Nowhere",
+    ] {
+        client
+            .json(
+                M::GET,
+                WORKLIST,
+                &format!("{WORKLIST}{query}"),
+                r,
+                Send::Nothing,
+                S::BAD_REQUEST,
+            )
+            .await;
+    }
+
+    // test_exports
+    let worklist_export = |format: &str| WORKLIST_EXPORT.replace("{format}", format);
+    let (status, _, csv) = client
+        .text(
+            WORKLIST_EXPORT,
+            &format!(
+                "{}?f=signature%3A{HUNT}&f=status%3Aopen",
+                worklist_export("csv")
+            ),
+            &reader,
+        )
+        .await;
+    assert_eq!(status, S::OK);
+    let mut lines = csv.lines();
+    assert_eq!(
+        lines.next(),
+        Some(
+            "signature_uuid,technique,technique_name,kind,status,declared_as,tag_present,\
+             signature_counts,counts,measured,measured_techniques,signature_family,signature_name,\
+             resolution,reason,reference,resolved_by,resolved_at,first_seen_at,status_changed_at,\
+             updated_at"
+        )
+    );
+    assert!(
+        lines.next().is_some_and(|line| line.starts_with(&format!(
+            "{HUNT},T1059.001,PowerShell,declared,open,T1059.001,true,true,true,true,T1059.002,hunt,\
+             coverage hunt,,,,,,"
+        ))),
+        "{csv}"
+    );
+    assert_eq!(csv.lines().count(), 3);
+    let (status, _, ndjson) = client
+        .text(
+            WORKLIST_EXPORT,
+            &format!(
+                "{}?f=signature%3A{HUNT}&f=status%3Aconfirmed",
+                worklist_export("ndjson")
+            ),
+            &reader,
+        )
+        .await;
+    assert_eq!(status, S::OK);
+    let exported: Value = serde_json::from_str(ndjson.trim()).expect("one row");
+    assert_eq!(exported, rows["rows"][0]);
+    for (path, status) in [
+        (worklist_export("xml"), S::BAD_REQUEST),
+        (
+            format!("{}?f=status%3Adone", worklist_export("csv")),
+            S::BAD_REQUEST,
+        ),
+        // three rows are more than the test's export holds
+        (worklist_export("csv"), S::PAYLOAD_TOO_LARGE),
+    ] {
+        client
+            .json(M::GET, WORKLIST_EXPORT, &path, r, Send::Nothing, status)
+            .await;
+    }
+
+    // test_rows_and_what_is_measured_now
+    let signature = |uuid: &str| WORKLIST_SIGNATURE.replace("{signature_uuid}", uuid);
+    let detail = client
+        .json(
+            M::GET,
+            WORKLIST_SIGNATURE,
+            &signature(HUNT),
+            r,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(
+        (
+            &detail["signature_uuid"],
+            &detail["signature_family"],
+            &detail["signature_name"]
+        ),
+        (&json!(HUNT), &json!("hunt"), &json!("coverage hunt"))
+    );
+    assert_eq!(detail["rows"].as_array().map(Vec::len), Some(3));
+    assert_eq!(
+        detail["measured"],
+        json!([{"technique": "T1059.002", "technique_name": "AppleScript",
+                "tests": [{"guid": guid, "name": "AppleScript run", "platform": "macos"}]}])
+    );
+    client
+        .json(
+            M::GET,
+            WORKLIST_SIGNATURE,
+            &signature("no-such-signature"),
+            r,
+            Send::Nothing,
+            S::NOT_FOUND,
+        )
+        .await;
+
+    // test_set_and_clear: a resolution set, then cleared, each with its audit row
+    let resolution = |technique: &str| {
+        WORKLIST_RESOLUTION
+            .replace("{signature_uuid}", HUNT)
+            .replace("{technique}", technique)
+    };
+    let audited = audit_count(stack).await;
+    let kept = client
+        .json(
+            M::PUT,
+            WORKLIST_RESOLUTION,
+            &resolution("t1547"),
+            m,
+            Send::Json(json!({
+                "resolution": "remove", "reason": " it never fires on T1547 ",
+                "reference": "https://git.example/rules/pull/7",
+            })),
+            S::OK,
+        )
+        .await;
+    assert_eq!(
+        (
+            &kept["status"],
+            &kept["counts"],
+            &kept["resolution"],
+            &kept["reason"],
+            &kept["reference"],
+            &kept["resolved_by"]["kind"]
+        ),
+        (
+            &json!("remove_pending"),
+            &json!(false),
+            &json!("remove"),
+            &json!("it never fires on T1547"),
+            &json!("https://git.example/rules/pull/7"),
+            &json!("api_key")
+        )
+    );
+    assert!(kept["resolved_at"].is_string());
+    assert_eq!(audit_count(stack).await, audited + 1);
+
+    // test_a_stale_resolution_is_refused and test_a_malformed_precondition
+    let seen = kept["updated_at"].as_str().expect("a time").to_owned();
+    let body = json!({"resolution": "keep", "reason": "from a page"});
+    let (status, stale) = with_headers(
+        client,
+        M::PUT,
+        WORKLIST_RESOLUTION,
+        &resolution("T1547"),
+        &manager,
+        &[("If-Match", "2020-01-01T00:00:00Z")],
+        body.clone(),
+    )
+    .await;
+    assert_eq!(status, S::PRECONDITION_FAILED, "{stale}");
+    assert!(stale["error"].is_string());
+    let (status, _) = with_headers(
+        client,
+        M::PUT,
+        WORKLIST_RESOLUTION,
+        &resolution("T1547"),
+        &manager,
+        &[("If-None-Match", "*")],
+        body.clone(),
+    )
+    .await;
+    assert_eq!(status, S::PRECONDITION_FAILED);
+    for headers in [
+        vec![("If-Match", "yesterday")],
+        vec![("If-Match", seen.as_str()), ("If-None-Match", "*")],
+    ] {
+        for method in [M::PUT, M::DELETE] {
+            let (status, _) = with_headers(
+                client,
+                method,
+                WORKLIST_RESOLUTION,
+                &resolution("T1547"),
+                &manager,
+                &headers,
+                body.clone(),
+            )
+            .await;
+            assert_eq!(status, S::BAD_REQUEST, "{headers:?}");
+        }
+    }
+    let (status, _) = with_headers(
+        client,
+        M::DELETE,
+        WORKLIST_RESOLUTION,
+        &resolution("T1547"),
+        &manager,
+        &[("If-Match", "2020-01-01T00:00:00Z")],
+        json!({}),
+    )
+    .await;
+    assert_eq!(status, S::PRECONDITION_FAILED);
+    let (status, current) = with_headers(
+        client,
+        M::PUT,
+        WORKLIST_RESOLUTION,
+        &resolution("T1547"),
+        &manager,
+        &[("If-Match", seen.as_str())],
+        body,
+    )
+    .await;
+    assert_eq!((status, &current["status"]), (S::OK, &json!("kept")));
+    let seen = current["updated_at"].as_str().expect("a time");
+    let (status, cleared) = with_headers(
+        client,
+        M::DELETE,
+        WORKLIST_RESOLUTION,
+        &resolution("T1547"),
+        &manager,
+        &[("If-Match", seen)],
+        json!({}),
+    )
+    .await;
+    assert_eq!(
+        (
+            status,
+            &cleared["status"],
+            &cleared["resolution"],
+            &cleared["counts"]
+        ),
+        (S::OK, &json!("open"), &Value::Null, &json!(true))
+    );
+
+    // test_refusals and test_a_conflict_names_the_status
+    for (path, body, status) in [
+        (
+            resolution("T1547"),
+            json!({"resolution": "maybe", "reason": "why"}),
+            S::BAD_REQUEST,
+        ),
+        (
+            resolution("T1547"),
+            json!({"resolution": "keep", "reason": "  "}),
+            S::BAD_REQUEST,
+        ),
+        (
+            resolution("T1547"),
+            json!({"resolution": "remove", "reason": "why", "reference": "ftp://x.example/1"}),
+            S::BAD_REQUEST,
+        ),
+        (
+            resolution("T1547"),
+            json!({"resolution": "keep", "reason": "why", "extra": 1}),
+            S::BAD_REQUEST,
+        ),
+        (
+            resolution("T1547"),
+            json!({"resolution": "keep"}),
+            S::BAD_REQUEST,
+        ),
+        (
+            resolution("T9999"),
+            json!({"resolution": "keep", "reason": "why"}),
+            S::NOT_FOUND,
+        ),
+        (
+            WORKLIST_RESOLUTION
+                .replace("{signature_uuid}", "no-such-signature")
+                .replace("{technique}", "T1547"),
+            json!({"resolution": "keep", "reason": "why"}),
+            S::NOT_FOUND,
+        ),
+    ] {
+        client
+            .json(
+                M::PUT,
+                WORKLIST_RESOLUTION,
+                &path,
+                m,
+                Send::Json(body),
+                status,
+            )
+            .await;
+    }
+    let conflict = client
+        .json(
+            M::PUT,
+            WORKLIST_RESOLUTION,
+            &resolution("T1059"),
+            m,
+            Send::Json(json!({"resolution": "keep", "reason": "why"})),
+            S::CONFLICT,
+        )
+        .await;
+    assert!(
+        conflict["error"]
+            .as_str()
+            .is_some_and(|e| e
+                .contains("is confirmed; only open, kept, remove_pending rows can be resolved")),
+        "{conflict}"
+    );
+    client
+        .json(
+            M::PUT,
+            WORKLIST_RESOLUTION,
+            &resolution("T1547"),
+            m,
+            too_large(),
+            S::PAYLOAD_TOO_LARGE,
+        )
+        .await;
+    // nothing to clear, and no such row
+    for technique in ["T1547", "T9999"] {
+        client
+            .json(
+                M::DELETE,
+                WORKLIST_RESOLUTION,
+                &resolution(technique),
+                m,
+                Send::Nothing,
+                S::NOT_FOUND,
+            )
+            .await;
+    }
+    // a reader may not resolve
+    client
+        .json(
+            M::PUT,
+            WORKLIST_RESOLUTION,
+            &resolution("T1547"),
+            r,
+            Send::Json(json!({"resolution": "keep", "reason": "why"})),
+            S::FORBIDDEN,
+        )
+        .await;
+
+    // test_bulk: each row is done, in the way, or unknown
+    let audited = audit_count(stack).await;
+    let bulk = client
+        .json(
+            M::POST,
+            WORKLIST_BULK,
+            WORKLIST_BULK,
+            m,
+            Send::Json(json!({
+                "resolution": "keep", "reason": "bulk",
+                "rows": [
+                    {"signature_uuid": HUNT, "technique": "T1547"},
+                    {"signature_uuid": HUNT, "technique": "T1059"},
+                    {"signature_uuid": "no-such-signature", "technique": "T1547"},
+                    {"signature_uuid": HUNT, "technique": "T1547"},
+                ],
+            })),
+            S::OK,
+        )
+        .await;
+    assert_eq!(
+        bulk,
+        json!({
+            "done": [{"signature_uuid": HUNT, "technique": "T1547"}],
+            "conflicts": [{"signature_uuid": HUNT, "technique": "T1059", "status": "confirmed"}],
+            "unknown": [{"signature_uuid": "no-such-signature", "technique": "T1547"}],
+        })
+    );
+    assert_eq!(audit_count(stack).await, audited + 1);
+    let after = client
+        .json(M::GET, WORKLIST, &mine, r, Send::Nothing, S::OK)
+        .await;
+    assert_eq!(
+        statuses(&after),
+        expect(&[
+            ("T1059", "confirmed"),
+            ("T1059.001", "open"),
+            ("T1547", "kept")
+        ])
+    );
+    for body in [
+        json!({"resolution": "keep", "reason": "why", "rows": []}),
+        json!({"resolution": "maybe", "reason": "why",
+               "rows": [{"signature_uuid": HUNT, "technique": "T1547"}]}),
+        json!({"resolution": "keep", "reason": "",
+               "rows": [{"signature_uuid": HUNT, "technique": "T1547"}]}),
+        json!({"resolution": "keep", "reason": "why"}),
+    ] {
+        client
+            .json(
+                M::POST,
+                WORKLIST_BULK,
+                WORKLIST_BULK,
+                m,
+                Send::Json(body),
+                S::BAD_REQUEST,
+            )
+            .await;
+    }
+    client
+        .json(
+            M::POST,
+            WORKLIST_BULK,
+            WORKLIST_BULK,
+            m,
+            too_large(),
+            S::PAYLOAD_TOO_LARGE,
+        )
+        .await;
+}
+
 /// The runs' launcher calls and the test hosts with their maintenance windows (PLAN.md 7.10 batch 5, part
 /// 5a): ace3's `tests/aceapi_v2/svs/test_runs.py` and `test_test_hosts.py`, each case named where it's
 /// ported. `test_a_change_from_a_stale_form_is_refused`, `test_the_listing_pages_by_hostname` and
@@ -10326,7 +11795,7 @@ fn catalog_guid(n: u128) -> Uuid {
 }
 
 /// The catalog's routes (PLAN.md 7.10 batch 4): ace3's `tests/aceapi_v2/svs/test_catalog.py`, but its
-/// state and run history, which wait for batches 5 and 8. Everything reads with `svs:run_read` alone
+/// state and run history (`test_each_tests_state_and_runs`), which are `svs_coverage`'s, with batch 8. Everything reads with `svs:run_read` alone
 /// (`test_permissions`).
 async fn svs_catalog(client: &mut Client<'_>) {
     use Method as M;
@@ -10563,7 +12032,8 @@ async fn svs_catalog(client: &mut Client<'_>) {
         rows.next(),
         Some(
             "guid,repository,technique,technique_name,name,platforms,executor,path,commit,content_hash,\
-             first_seen_at,removed_at,updated_at"
+             first_seen_at,removed_at,updated_at,test_state,run_count,last_run_id,last_run_at,\
+             last_reviewed_run_id,last_reviewed_at,expected_signatures,recent_runs,recent_runs_missing"
         )
     );
     let row = rows.next().expect("a row");

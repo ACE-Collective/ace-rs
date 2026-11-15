@@ -56,8 +56,7 @@ pub const USER_QUEUE: &str = "$USER_QUEUE";
 /// The observable filter's type that matches any type.
 pub const ANY_TYPE: &str = "Any";
 
-/// A screen whose list has filters, saved filters and share links: ace3's `FilterScreen`. Eight of ace3's
-/// eleven exist here; the other SVS screens come with their batches of SVS (7.10).
+/// A screen whose list has filters, saved filters and share links: ace3's `FilterScreen`, all eleven.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum FilterScreen {
     /// The alert list.
@@ -76,6 +75,13 @@ pub enum FilterScreen {
     SvsTests,
     /// SVS's test runs (PLAN.md 7.10 batch 5), ace3's `SVS_RUNS_SCREEN`.
     SvsRuns,
+    /// SVS's ATT&CK coverage per technique and platform (PLAN.md 7.10 batch 8), ace3's
+    /// `SVS_COVERAGE_SCREEN`.
+    SvsCoverage,
+    /// SVS's daily coverage snapshots, ace3's `SVS_COVERAGE_HISTORY_SCREEN`.
+    SvsCoverageHistory,
+    /// SVS's declared-vs-measured worklist, ace3's `SVS_WORKLIST_SCREEN`.
+    SvsWorklist,
 }
 
 /// How an editor edits one filter.
@@ -753,6 +759,214 @@ const SVS_RUN_FILTERS: &[FilterSpec] = &[
     ),
 ];
 
+/// Coverage's states, worst first (`ace_core::svs::coverage::CoverageState`): ace3's `COVERAGE_STATES`.
+pub const COVERAGE_STATES: &[&str] = &[
+    "failing",
+    "stale",
+    "validated",
+    "manual",
+    "untested",
+    "none",
+];
+/// ace3's `COVERAGE_LEVELS`.
+pub const COVERAGE_LEVELS: &[&str] = &["technique", "sub-technique"];
+/// ace3's `CATALOG_STATUSES`.
+pub const CATALOG_STATUSES: &[&str] = &["active", "deprecated", "unknown"];
+/// A worklist row's statuses, in ace3's order (`WORKLIST_STATUSES`).
+pub const WORKLIST_STATUSES: &[&str] = &[
+    "confirmed",
+    "open",
+    "kept",
+    "remove_pending",
+    "removed",
+    "undeclared",
+    "unknown",
+    "retired",
+];
+/// ace3's `WORKLIST_KINDS`.
+pub const WORKLIST_KINDS: &[&str] = &["declared", "undeclared", "unknown"];
+/// ace3's `WORKLIST_RESOLUTIONS`: `none` is a row nobody resolved.
+pub const WORKLIST_RESOLUTIONS: &[&str] = &["keep", "remove", "none"];
+
+const TECHNIQUE_HINT: &str = "T1059, which also finds its sub-techniques, or T1059.001";
+const PLATFORM_HINT: &str = "an ATT&CK platform, such as windows";
+
+/// The coverage screen's filters, in ace3's order (`SVS_COVERAGE_SCREEN`).
+const SVS_COVERAGE_FILTERS: &[FilterSpec] = &[
+    spec(
+        "Technique",
+        "technique",
+        FilterKind::Text,
+        &[],
+        TECHNIQUE_HINT,
+    ),
+    spec(
+        "Name",
+        "name",
+        FilterKind::Text,
+        &[],
+        "text the technique's name contains",
+    ),
+    spec(
+        "Tactic",
+        "tactic",
+        FilterKind::Text,
+        &[],
+        "a tactic's id or shortname, such as TA0002 or execution",
+    ),
+    spec("Platform", "platform", FilterKind::Text, &[], PLATFORM_HINT),
+    spec(
+        "State",
+        "state",
+        FilterKind::Multi,
+        COVERAGE_STATES,
+        "failing",
+    ),
+    spec(
+        "Own State",
+        "own_state",
+        FilterKind::Multi,
+        COVERAGE_STATES,
+        "validated",
+    ),
+    spec(
+        "Level",
+        "level",
+        FilterKind::Multi,
+        COVERAGE_LEVELS,
+        "technique",
+    ),
+    spec(
+        "ATT&CK Platform",
+        "attack_platform",
+        FilterKind::Multi,
+        BOOLEANS,
+        "true",
+    ),
+    spec(
+        "Catalog Status",
+        "catalog_status",
+        FilterKind::Multi,
+        CATALOG_STATUSES,
+        "active",
+    ),
+    spec(
+        "Has Manual",
+        "has_manual",
+        FilterKind::Multi,
+        BOOLEANS,
+        "true",
+    ),
+    spec(
+        "State Changed",
+        "state_changed",
+        FilterKind::DateRange,
+        &[],
+        "-7d, or MM-DD-YYYY HH:MM - MM-DD-YYYY HH:MM",
+    ),
+    spec("Retired", "retired", FilterKind::Multi, BOOLEANS, "false"),
+];
+
+/// The coverage history's filters, in ace3's order (`SVS_COVERAGE_HISTORY_SCREEN`).
+const SVS_COVERAGE_HISTORY_FILTERS: &[FilterSpec] = &[
+    spec(
+        "Date",
+        "date",
+        FilterKind::DateRange,
+        &[],
+        "-30d, or MM-DD-YYYY HH:MM - MM-DD-YYYY HH:MM",
+    ),
+    spec(
+        "Technique",
+        "technique",
+        FilterKind::Text,
+        &[],
+        TECHNIQUE_HINT,
+    ),
+    spec("Platform", "platform", FilterKind::Text, &[], PLATFORM_HINT),
+    spec(
+        "State",
+        "state",
+        FilterKind::Multi,
+        COVERAGE_STATES,
+        "failing",
+    ),
+    spec(
+        "Own State",
+        "own_state",
+        FilterKind::Multi,
+        COVERAGE_STATES,
+        "validated",
+    ),
+    spec(
+        "Level",
+        "level",
+        FilterKind::Multi,
+        COVERAGE_LEVELS,
+        "technique",
+    ),
+];
+
+/// The worklist screen's filters, in ace3's order (`SVS_WORKLIST_SCREEN`).
+const SVS_WORKLIST_FILTERS: &[FilterSpec] = &[
+    spec(
+        "Status",
+        "status",
+        FilterKind::Multi,
+        WORKLIST_STATUSES,
+        "open",
+    ),
+    spec(
+        "Signature",
+        "signature",
+        FilterKind::Text,
+        &[],
+        "a signature's uuid, or text its name contains",
+    ),
+    spec(
+        "Family",
+        "family",
+        FilterKind::Multi,
+        SIGNATURE_FAMILIES,
+        "hunt",
+    ),
+    spec(
+        "Technique",
+        "technique",
+        FilterKind::Text,
+        &[],
+        TECHNIQUE_HINT,
+    ),
+    spec(
+        "Kind",
+        "kind",
+        FilterKind::Multi,
+        WORKLIST_KINDS,
+        "declared",
+    ),
+    spec(
+        "Resolution",
+        "resolution",
+        FilterKind::Multi,
+        WORKLIST_RESOLUTIONS,
+        "none",
+    ),
+    spec(
+        "Resolved By",
+        "resolved_by",
+        FilterKind::Text,
+        &[],
+        "the name of whoever resolved it",
+    ),
+    spec(
+        "Resolved",
+        "resolved",
+        FilterKind::DateRange,
+        &[],
+        "-7d, or MM-DD-YYYY HH:MM - MM-DD-YYYY HH:MM",
+    ),
+];
+
 impl FilterScreen {
     pub const ALL: &'static [FilterScreen] = &[
         FilterScreen::Alerts,
@@ -763,6 +977,9 @@ impl FilterScreen {
         FilterScreen::SvsValidations,
         FilterScreen::SvsTests,
         FilterScreen::SvsRuns,
+        FilterScreen::SvsCoverage,
+        FilterScreen::SvsCoverageHistory,
+        FilterScreen::SvsWorklist,
     ];
 
     /// Its name, ace3's `saved_filters.screen`.
@@ -776,6 +993,9 @@ impl FilterScreen {
             FilterScreen::SvsValidations => "svs_validations",
             FilterScreen::SvsTests => "svs_tests",
             FilterScreen::SvsRuns => "svs_runs",
+            FilterScreen::SvsCoverage => "svs_coverage",
+            FilterScreen::SvsCoverageHistory => "svs_coverage_history",
+            FilterScreen::SvsWorklist => "svs_worklist",
         }
     }
 
@@ -794,7 +1014,11 @@ impl FilterScreen {
             FilterScreen::Remediations => REMEDIATION_READ,
             FilterScreen::FileCollections => FILE_COLLECTION_READ,
             FilterScreen::SvsSamples | FilterScreen::SvsValidations => SIGNATURE_READ,
-            FilterScreen::SvsTests | FilterScreen::SvsRuns => SVS_RUN_READ,
+            FilterScreen::SvsTests
+            | FilterScreen::SvsRuns
+            | FilterScreen::SvsCoverage
+            | FilterScreen::SvsCoverageHistory
+            | FilterScreen::SvsWorklist => SVS_RUN_READ,
         }
     }
 
@@ -808,6 +1032,9 @@ impl FilterScreen {
             FilterScreen::SvsValidations => SVS_VALIDATION_FILTERS,
             FilterScreen::SvsTests => SVS_TEST_FILTERS,
             FilterScreen::SvsRuns => SVS_RUN_FILTERS,
+            FilterScreen::SvsCoverage => SVS_COVERAGE_FILTERS,
+            FilterScreen::SvsCoverageHistory => SVS_COVERAGE_HISTORY_FILTERS,
+            FilterScreen::SvsWorklist => SVS_WORKLIST_FILTERS,
         }
     }
 
@@ -821,7 +1048,10 @@ impl FilterScreen {
             | FilterScreen::SvsSamples
             | FilterScreen::SvsValidations
             | FilterScreen::SvsTests
-            | FilterScreen::SvsRuns => &[],
+            | FilterScreen::SvsRuns
+            | FilterScreen::SvsCoverage
+            | FilterScreen::SvsCoverageHistory
+            | FilterScreen::SvsWorklist => &[],
         }
     }
 
@@ -1054,6 +1284,52 @@ fn canonical(
                     return Err(invalid(format!("a {name} value can't be empty")));
                 }
                 return Ok(FilterValue::Text(lower));
+            }
+            _ => {}
+        }
+    }
+    if matches!(
+        screen,
+        FilterScreen::SvsCoverage | FilterScreen::SvsCoverageHistory | FilterScreen::SvsWorklist
+    ) {
+        // ace3's `_coverage_values` and `WorklistFilterEntry`: a technique is an ATT&CK id, upper case; a
+        // platform is the slug Atomic Red Team's name counts as (iaas:aws finds iaas); a choice is
+        // compared lower case; a signature and a resolver's name are trimmed. A tactic is checked against
+        // the pinned release where the list is read (`svs_coverage`), which knows the release.
+        match spec.slug {
+            "technique" => {
+                return ace_core::svs::attack::normalize_technique_id(text)
+                    .map(FilterValue::Text)
+                    .ok_or_else(|| {
+                        invalid(format!(
+                            "{name}: invalid technique {text:?} (expected an ATT&CK id such as T1059 or \
+                             T1059.001)"
+                        ))
+                    });
+            }
+            "platform" | "tactic" | "signature" | "resolved_by" => {
+                let value = match spec.slug {
+                    "platform" => ace_core::svs::attack::normalize_platform(text),
+                    _ => text.trim().to_owned(),
+                };
+                if value.is_empty() {
+                    return Err(invalid(format!("a {name} value can't be empty")));
+                }
+                return Ok(FilterValue::Text(value));
+            }
+            _ if spec.kind == FilterKind::Multi => {
+                let value = text.trim().to_lowercase();
+                return spec
+                    .options
+                    .iter()
+                    .find(|option| **option == value)
+                    .map(|option| FilterValue::Text((*option).to_owned()))
+                    .ok_or_else(|| {
+                        invalid(format!(
+                            "{name}: {text:?} isn't one of {}",
+                            spec.options.join(", ")
+                        ))
+                    });
             }
             _ => {}
         }

@@ -1,0 +1,47 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT t.guid AS \"guid!\", last.uuid, last.created_at\n           FROM unnest($1::uuid[]) AS t (guid)\n           CROSS JOIN LATERAL (\n               SELECT uuid, created_at FROM svs.runs\n               WHERE test_guid = t.guid ORDER BY created_at DESC, id DESC LIMIT 1) last",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "guid!",
+        "type_info": "Uuid",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "uuid",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "svs.runs",
+            "name": "uuid"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "svs.runs",
+            "name": "created_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "UuidArray"
+      ]
+    },
+    "nullable": [
+      null,
+      false,
+      false
+    ]
+  },
+  "hash": "923c850bf2b119fe208f6e9db46f60a6b4b0af615785ce6b0822e88842c273ce"
+}

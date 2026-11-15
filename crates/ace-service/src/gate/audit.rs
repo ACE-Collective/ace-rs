@@ -284,6 +284,30 @@ impl Target {
         }
     }
 
+    /// SVS's coverage, which a refresh recomputes (PLAN.md 7.10 batch 8).
+    pub(crate) fn svs_coverage() -> Self {
+        Target {
+            kind: "svs_coverage",
+            id: "coverage".to_owned(),
+        }
+    }
+
+    /// One day's snapshot of SVS's coverage, by its UTC date.
+    pub(crate) fn svs_coverage_snapshot(day: chrono::NaiveDate) -> Self {
+        Target {
+            kind: "svs_coverage_snapshot",
+            id: day.to_string(),
+        }
+    }
+
+    /// A row of SVS's declared-vs-measured worklist, by `<signature>/<technique>`.
+    pub(crate) fn svs_worklist_row(key: &str) -> Self {
+        Target {
+            kind: "svs_worklist_row",
+            id: key.to_owned(),
+        }
+    }
+
     /// The samples a download's filters selected.
     pub(crate) fn svs_samples() -> Self {
         Target {

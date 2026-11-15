@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO svs.coverage\n                 (technique, platform, parent, is_subtechnique, technique_name, tactics, catalog_status,\n                  attack_platform, state, own_state, tests_total, tests_validated, tests_failing,\n                  tests_stale, manual_signatures, measured_signatures, last_reviewed_at,\n                  state_changed_at, first_seen_at)\n             SELECT u.technique, u.platform, u.parent, u.is_subtechnique, u.technique_name, u.tactics,\n                    u.catalog_status, u.attack_platform, u.state, u.own_state, u.tests_total,\n                    u.tests_validated, u.tests_failing, u.tests_stale, u.manual_signatures,\n                    u.measured_signatures, u.last_reviewed_at, $2, $2\n             FROM jsonb_to_recordset($1) AS u (\n                 technique text, platform text, parent text, is_subtechnique boolean,\n                 technique_name text, tactics text[], catalog_status text, attack_platform boolean,\n                 state text, own_state text, tests_total integer, tests_validated integer,\n                 tests_failing integer, tests_stale integer, manual_signatures integer,\n                 measured_signatures integer, last_reviewed_at timestamptz)\n             ON CONFLICT (technique, platform) DO UPDATE SET\n                 parent = EXCLUDED.parent, is_subtechnique = EXCLUDED.is_subtechnique,\n                 technique_name = EXCLUDED.technique_name, tactics = EXCLUDED.tactics,\n                 catalog_status = EXCLUDED.catalog_status, attack_platform = EXCLUDED.attack_platform,\n                 state_changed_at = CASE WHEN svs.coverage.state <> EXCLUDED.state\n                                         THEN EXCLUDED.state_changed_at\n                                         ELSE svs.coverage.state_changed_at END,\n                 state = EXCLUDED.state, own_state = EXCLUDED.own_state,\n                 tests_total = EXCLUDED.tests_total, tests_validated = EXCLUDED.tests_validated,\n                 tests_failing = EXCLUDED.tests_failing, tests_stale = EXCLUDED.tests_stale,\n                 manual_signatures = EXCLUDED.manual_signatures,\n                 measured_signatures = EXCLUDED.measured_signatures,\n                 last_reviewed_at = EXCLUDED.last_reviewed_at, retired_at = NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Jsonb",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "ec0941fe10b0e749c4c1d7c0699e5ed4c17ec78f013a731ed46a21733c6e190a"
+}

@@ -1,0 +1,35 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT test_guid, count(*) AS \"count!\" FROM svs.runs\n           WHERE test_guid = ANY ($1) GROUP BY test_guid",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "test_guid",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "svs.runs",
+            "name": "test_guid"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "count!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "UuidArray"
+      ]
+    },
+    "nullable": [
+      false,
+      null
+    ]
+  },
+  "hash": "4134b6f90f02f10e44ab5330b1717d0b43191fb6a6efdc401df4fca696c3aa1f"
+}

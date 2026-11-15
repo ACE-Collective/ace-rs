@@ -663,6 +663,71 @@ fn the_shipped_routers_are_the_marker_router_and_the_built_in_one() {
     );
 }
 
+/// PLAN.md 7.10 batch 8: every binary runs SVS's marker router, not only the open-source one. A binary
+/// built from `App::new()` with nothing added has it, so a test run's alerts never stay in the queue
+/// analysts triage for want of a line in a site's list; and its name is taken, so a router the binary
+/// adds, or one its overlay configures, can't be called `svs_marker`.
+#[test]
+fn a_binary_built_from_app_new_runs_the_marker_router() {
+    let bare = ace_app::App::new()
+        .alert_routers(&ace_sdk::Overlay::default())
+        .expect("loads");
+    assert_eq!(
+        bare.names(),
+        [("svs_marker", 100), ("detection_queue", 500)]
+    );
+
+    let router = || -> std::sync::Arc<dyn ace_service::routing::Router> {
+        std::sync::Arc::new(
+            ace_site_example::ExampleTagRouter::new(&json!({"tag": "t", "queue": "q"}))
+                .expect("builds"),
+        )
+    };
+    let error = ace_app::App::new()
+        .alert_router("svs_marker", 50, router())
+        .alert_routers(&ace_sdk::Overlay::default())
+        .expect_err("the name is the marker router's");
+    assert_eq!(
+        error,
+        "an alert router named \"svs_marker\" is there already"
+    );
+    // the built-in one's name is refused too, as before
+    let error = ace_app::App::new()
+        .alert_router("detection_queue", 50, router())
+        .alert_routers(&ace_sdk::Overlay::default())
+        .expect_err("the name is a built-in's");
+    assert_eq!(
+        error,
+        "\"detection_queue\" is the name of a built-in router"
+    );
+    // and an overlay's entry can't take it either
+    let overlay = ace_sdk::Overlay::from_yaml(
+        "alert_routers:\n  svs_marker:\n    type: example_tag\n    priority: 50\n    settings:\n      \
+         tag: t\n      queue: q\n",
+    )
+    .expect("parses");
+    let error = ace_site_example::app()
+        .alert_routers(&overlay)
+        .expect_err("the name is the marker router's");
+    assert_eq!(
+        error,
+        "alert_routers.svs_marker: an alert router named \"svs_marker\" is there already"
+    );
+    // a site's own router runs beside it
+    let beside = ace_app::App::new()
+        .alert_router("site_first", 50, router())
+        .alert_routers(&ace_sdk::Overlay::default())
+        .expect("loads");
+    assert_eq!(
+        beside.names(),
+        [
+            ("site_first", 50),
+            ("svs_marker", 100),
+            ("detection_queue", 500)
+        ]
+    );
+}
+
 /// PLAN.md 7.13, ace3's `TestExampleIntegration`: the example router is loaded the way an overlay entry
 /// loads it, routes an alert with its tag, and does nothing to one without; settings it doesn't know stop
 /// startup.
@@ -679,7 +744,11 @@ async fn the_example_router_loads_and_routes_only_tagged_alerts() {
         .expect("loads");
     assert_eq!(
         routers.names(),
-        [("example_tag_router", 400), ("detection_queue", 500)]
+        [
+            ("svs_marker", 100),
+            ("example_tag_router", 400),
+            ("detection_queue", 500)
+        ]
     );
     let test_db = TestDb::new().await;
     let mut tx = test_db.db().begin().await.expect("begins");

@@ -1,0 +1,62 @@
+{#- ace3's svs/worklist.html (PLAN.md 7.10 batch 8): each measured signature's technique tags against the
+    techniques its tests measure, the worklist screen's filters folded into `f`, its pages and the exports,
+    and for svs:run_manage the form that keeps or removes the ticked rows (src/svs_coverage.rs). -#}
+{% extends "base.html" %}
+{% block title %}Worklist · SVS · ACE{% endblock %}
+{% block content %}
+<section class="signatures detection svs-worklist">
+  {%- include "svs/tabs.html" %}
+  <p class="muted">Each signature that a test measures, its technique tags against the techniques its tests measure. A tag no test confirms is kept or removed; a removed tag stops counting toward coverage. Statuses are as of the last coverage refresh. Times are UTC.</p>
+  <form method="get" action="/svs/worklist" class="detection-filters">
+    {%- for field in view.fields %}
+    <label for="filter-{{ field.slug }}">{{ field.name }}</label>
+    <input type="text" id="filter-{{ field.slug }}" name="{{ field.slug }}" value="{{ field.value }}" placeholder="{% if field.options.is_empty() %}{{ field.hint }}{% else %}{{ field.options|join(", ") }}{% endif %}">
+    {%- endfor %}
+    <button type="submit">Apply</button>
+    <a href="/svs/worklist">Reset</a>
+  </form>
+  {%- if let Some(notice) = view.notice %}
+  <p class="notice" role="status">{{ notice }}</p>
+  {%- endif %}
+  <p class="muted">Export as <a href="{{ view.csv }}">CSV</a> or <a href="{{ view.ndjson }}">NDJSON</a></p>
+  {%- if view.manage %}
+  <form method="post" action="/svs/worklist/resolve" id="worklist-resolve" class="run-actions">
+    <input type="hidden" name="back" value="{{ view.here }}">
+    <label for="resolve-reason">Why</label>
+    <input type="text" id="resolve-reason" name="reason" maxlength="4096" required>
+    <label for="resolve-reference">Reference</label>
+    <input type="url" id="resolve-reference" name="reference" maxlength="1024" placeholder="https://, such as the pull request removing the tag">
+    <button type="submit" name="resolution" value="keep" title="The tag covers something no test reaches.">Keep the ticked tags</button>
+    <button type="submit" name="resolution" value="remove" title="The signature repository will drop the tag; it stops counting toward coverage from the next refresh.">Remove the ticked tags</button>
+  </form>
+  {%- endif %}
+  <table class="keys">
+    <thead><tr>{% if view.manage %}<th></th>{% endif %}<th>Signature</th><th>Family</th><th>Technique</th><th>Kind</th><th>Status</th><th title="the tag ids that count as the technique">Tagged</th><th>Measured on</th><th>Resolution</th></tr></thead>
+    <tbody>
+      {%- for row in view.rows %}
+      <tr>
+        {%- if view.manage %}
+        <td>{% if row.resolvable %}<input type="checkbox" name="row" value="{{ row.key }}" form="worklist-resolve" aria-label="Resolve {{ row.technique }} of {{ row.signature }}">{% endif %}</td>
+        {%- endif %}
+        <td class="qa-text"><a href="{{ row.signature_href }}">{% if row.name.is_empty() %}{{ row.signature }}{% else %}{{ row.name }}{% endif %}</a> <code class="muted">{{ row.signature }}</code></td>
+        <td>{{ row.family }}</td>
+        <td class="nowrap"><a href="{{ row.technique_href }}">{{ row.technique }}</a> <span class="muted qa-text">{{ row.technique_name }}</span></td>
+        <td>{{ row.kind }}</td>
+        <td><span class="badge disposition-{{ row.status_class }}">{{ row.status }}</span>{% if !row.counts.is_empty() %} <span class="muted">{{ row.counts }}</span>{% endif %}</td>
+        <td>{{ row.declared_as }}</td>
+        <td>{{ row.measured_on }}</td>
+        <td class="qa-text">{{ row.resolution }}{% if !row.reason.is_empty() %}: {{ row.reason }}{% endif %}{% if let Some(reference) = row.reference %} <a href="{{ reference }}" rel="noopener noreferrer">reference</a>{% endif %}{% if !row.resolved.is_empty() %} <span class="muted">{{ row.resolved }}</span>{% endif %}</td>
+      </tr>
+      {%- else %}
+      <tr><td colspan="8" class="muted">No worklist rows.</td></tr>
+      {%- endfor %}
+    </tbody>
+  </table>
+  {%- if view.first.is_some() || view.next.is_some() %}
+  <nav class="pager" aria-label="Pages">
+    {%- if let Some(first) = view.first %} <a href="{{ first }}">First</a>{% endif %}
+    {%- if let Some(next) = view.next %} <a href="{{ next }}" rel="next">Next</a>{% endif %}
+  </nav>
+  {%- endif %}
+</section>
+{% endblock %}

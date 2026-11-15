@@ -1,0 +1,60 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT s.snapshot_date, s.state, s.own_state, count(*) AS \"count!\"\n                           FROM svs.coverage_snapshots s\n                           WHERE s.snapshot_date = ANY ($2) AND svs.coverage_snapshot_matches(s, $1)\n                           GROUP BY s.snapshot_date, s.state, s.own_state",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "snapshot_date",
+        "type_info": "Date",
+        "origin": {
+          "Table": {
+            "table": "svs.coverage_snapshots",
+            "name": "snapshot_date"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "state",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.coverage_snapshots",
+            "name": "state"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "own_state",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.coverage_snapshots",
+            "name": "own_state"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "count!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Jsonb",
+        "DateArray"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "f6d5e1dec5bca0a9f2f22e51d8b29cf4b2273f4040d1af854c05ea6c20c8e6a4"
+}

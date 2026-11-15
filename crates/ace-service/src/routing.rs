@@ -46,9 +46,9 @@
 //!
 //! SVS's marker router (PLAN.md 7.10 batch 7, `crate::svs_association::MarkerRouter`) is such a router: it
 //! implements `Router`, reads the attributions the core's SVS hook wrote at the end of the pass (in `tx`,
-//! under the root's lock, judging nothing again), and joins the open-source binary with
-//! `App::alert_router("svs_marker", 100, ...)` in `ace::app()`, ahead of `detection_queue`, as ace3's
-//! `saq.default.yaml` adds it. Holding an alert a person moved through SVS reads `Alert::last_change`;
+//! under the root's lock, judging nothing again), and every binary runs it: `App::alert_routers` adds
+//! `svs_marker` at 100, ahead of `detection_queue`, as ace3's `saq.default.yaml` adds it, so a site's
+//! binary can't lack it and a site's router can't take its name (7.10 batch 8). Holding an alert a person moved through SVS reads `Alert::last_change`;
 //! moving one back reads its `from_queue`. Nothing here changed for it but the owner check.
 //!
 //! The contract is ace3's: a router never changes the tree (the move is the only change made for it); it

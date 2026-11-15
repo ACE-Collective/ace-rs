@@ -1,0 +1,66 @@
+{#- ace3's svs/worklist_signature.html (PLAN.md 7.10 batch 8): one signature's worklist rows, retired ones
+    included, and what it is measured on now; for svs:run_manage each resolvable row's keep, remove and
+    reopen forms, which carry the `updated_at` the row was drawn from (src/svs_coverage.rs). -#}
+{% extends "base.html" %}
+{% block title %}Signature · Worklist · SVS · ACE{% endblock %}
+{% block content %}
+<section class="signatures detection svs-worklist">
+  {%- include "svs/tabs.html" %}
+  <p><a href="/svs/worklist?f=status%3Aopen">Worklist</a> / <code>{{ view.signature }}</code></p>
+  <h2 class="qa-text">{% if view.name.is_empty() %}{{ view.signature }}{% else %}{{ view.name }}{% endif %}{% if !view.family.is_empty() %} <span class="muted">{{ view.family }}</span>{% endif %}</h2>
+  {%- if let Some(notice) = view.notice %}
+  <p class="notice" role="status">{{ notice }}</p>
+  {%- endif %}
+
+  <h3>Rows</h3>
+  <p class="muted">Its technique tags and what it is measured on, as of the last coverage refresh; the resolutions as of now.</p>
+  <table class="keys">
+    <thead><tr><th>Technique</th><th>Kind</th><th>Status</th><th>Tagged</th><th>Measured on</th><th>Resolution</th>{% if view.manage %}<th>Resolve</th>{% endif %}</tr></thead>
+    <tbody>
+      {%- for row in view.rows %}
+      <tr>
+        <td class="nowrap"><a href="{{ row.technique_href }}">{{ row.technique }}</a> <span class="muted qa-text">{{ row.technique_name }}</span></td>
+        <td>{{ row.kind }}</td>
+        <td><span class="badge disposition-{{ row.status_class }}">{{ row.status }}</span>{% if !row.counts.is_empty() %} <span class="muted">{{ row.counts }}</span>{% endif %}</td>
+        <td>{{ row.declared_as }}</td>
+        <td>{{ row.measured_on }}</td>
+        <td class="qa-text">{{ row.resolution }}{% if !row.reason.is_empty() %}: {{ row.reason }}{% endif %}{% if let Some(reference) = row.reference %} <a href="{{ reference }}" rel="noopener noreferrer">reference</a>{% endif %}{% if !row.resolved.is_empty() %} <span class="muted">{{ row.resolved }}</span>{% endif %}</td>
+        {%- if view.manage %}
+        <td>
+          {%- if row.resolvable %}
+          <form method="post" action="{{ view.href }}/resolve" class="inline">
+            <input type="hidden" name="technique" value="{{ row.technique }}">
+            <input type="hidden" name="seen" value="{{ row.seen }}">
+            <input type="text" name="reason" maxlength="4096" required placeholder="why" aria-label="Why">
+            <input type="url" name="reference" maxlength="1024" placeholder="https://" aria-label="Reference">
+            <button type="submit" name="resolution" value="keep">Keep</button>
+            <button type="submit" name="resolution" value="remove">Remove</button>
+          </form>
+          {%- endif %}
+          {%- if row.resolved_now %}
+          <form method="post" action="{{ view.href }}/resolve" class="inline"><input type="hidden" name="technique" value="{{ row.technique }}"><input type="hidden" name="seen" value="{{ row.seen }}"><input type="hidden" name="resolution" value="reopen"><button type="submit">Reopen</button></form>
+          {%- endif %}
+        </td>
+        {%- endif %}
+      </tr>
+      {%- endfor %}
+    </tbody>
+  </table>
+
+  <h3>Measured on</h3>
+  <p class="muted">The techniques of the tests that expect it now.</p>
+  <table class="keys">
+    <thead><tr><th>Technique</th><th>Tests</th></tr></thead>
+    <tbody>
+      {%- for row in view.measured %}
+      <tr>
+        <td class="nowrap"><a href="{{ row.technique_href }}">{{ row.technique }}</a> <span class="muted qa-text">{{ row.technique_name }}</span></td>
+        <td class="qa-text">{% for test in row.tests %}{% if !loop.first %}, {% endif %}<a href="{{ test.href }}">{{ test.text }}</a>{% endfor %}</td>
+      </tr>
+      {%- else %}
+      <tr><td colspan="2" class="muted">No test expects it now.</td></tr>
+      {%- endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

@@ -1,0 +1,51 @@
+{#- ace3's svs/coverage.html (PLAN.md 7.10 batch 8): ATT&CK coverage per technique and platform as the last
+    refresh computed it, counted, with the coverage screen's filters folded into `f`, its pages and the
+    exports (src/svs_coverage.rs). Read-only. -#}
+{% extends "base.html" %}
+{% block title %}Coverage · SVS · ACE{% endblock %}
+{% block content %}
+<section class="signatures detection svs-coverage">
+  {%- include "svs/tabs.html" %}
+  <p class="muted">ATT&amp;CK coverage per technique and platform, measured by the reviewed runs of the tests and claimed by the signatures' technique tags, as the scheduler last computed it. A parent technique's state is the worst of its own and its sub-techniques'. Times are UTC.</p>
+  <p class="muted">{{ view.refresh }}</p>
+  {%- if let Some(error) = view.error %}
+  <p class="error" role="alert">{{ error }}</p>
+  {%- endif %}
+  <form method="get" action="/svs/coverage" class="detection-filters">
+    {%- for field in view.fields %}
+    <label for="filter-{{ field.slug }}">{{ field.name }}</label>
+    <input type="text" id="filter-{{ field.slug }}" name="{{ field.slug }}" value="{{ field.value }}" placeholder="{% if field.options.is_empty() %}{{ field.hint }}{% else %}{{ field.options|join(", ") }}{% endif %}">
+    {%- endfor %}
+    <button type="submit">Apply</button>
+    <a href="/svs/coverage">Reset</a>
+  </form>
+  <p class="muted">{{ view.summary }} · export as <a href="{{ view.csv }}">CSV</a> or <a href="{{ view.ndjson }}">NDJSON</a></p>
+  <table class="keys">
+    <thead><tr><th>Technique</th><th>Name</th><th>Platform</th><th title="the worst of what counts toward the technique and its sub-techniques on the platform">State</th><th title="the same, leaving the sub-techniques out">Own</th><th>Tests</th><th title="signatures whose technique tag counts">Manual</th><th title="signatures expected of the counted tests">Measured</th><th>Latest review</th><th>State since</th></tr></thead>
+    <tbody>
+      {%- for row in view.rows %}
+      <tr>
+        <td class="nowrap"><a href="{{ row.href }}">{{ row.technique }}</a>{% if !row.notes.is_empty() %} <span class="muted">{{ row.notes }}</span>{% endif %}</td>
+        <td class="qa-text">{{ row.name }}</td>
+        <td>{{ row.platform }}</td>
+        <td><span class="badge disposition-{{ row.state_class }}">{{ row.state }}</span></td>
+        <td>{{ row.own_state }}</td>
+        <td>{{ row.tests }}</td>
+        <td>{% if row.manual > 0 %}{{ row.manual }}{% endif %}</td>
+        <td>{% if row.measured > 0 %}{{ row.measured }}{% endif %}</td>
+        <td class="nowrap">{{ row.last_reviewed }}</td>
+        <td class="nowrap">{{ row.changed }}</td>
+      </tr>
+      {%- else %}
+      <tr><td colspan="10" class="muted">No coverage rows.</td></tr>
+      {%- endfor %}
+    </tbody>
+  </table>
+  {%- if view.first.is_some() || view.next.is_some() %}
+  <nav class="pager" aria-label="Pages">
+    {%- if let Some(first) = view.first %} <a href="{{ first }}">First</a>{% endif %}
+    {%- if let Some(next) = view.next %} <a href="{{ next }}" rel="next">Next</a>{% endif %}
+  </nav>
+  {%- endif %}
+</section>
+{% endblock %}

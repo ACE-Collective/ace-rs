@@ -2,7 +2,7 @@
 //! (`ace3/saq/cron_tasks.py`, `ace3/docs/CRON.md`) runs from `etc/cron/<cadence>/` on yacron's
 //! schedules in `etc/cron.yaml`, here as tasks of `ace serve`.
 //!
-//! **What runs.** Of ace3's 25 core tasks (3 hourly, 20 daily, 2 weekly), seven have a counterpart in
+//! **What runs.** Of ace3's 25 core tasks (3 hourly, 20 daily, 2 weekly), eight have a counterpart in
 //! ace4 now, and run here on ace3's cadence (`Task::builtin`), with one of the cron jobs ace3 runs
 //! outside them, `nrd-refresh` (PLAN.md 7.4, `crate::nrd`). `daily/partitions` keeps the email
 //! archive's weekly partitions and ace3's analysis result cache's daily ones; ace4 has no result
@@ -20,6 +20,8 @@
 //! | `svs_validations_prune` | `daily/svs-validations-prune`, `ace svs yara prune` (PLAN.md 7.10 batch 3) | `0 5 * * *` | 1 h | `scheduler:svs_validations_prune`, `svs:validation_prune` |
 //! | `svs_catalog_refresh` | `service_svs`'s catalog refresher, every `svs.catalog.refresh_interval_seconds` (300), `ace svs catalog refresh` (PLAN.md 7.10 batch 4) | `*/5 * * * *` | 25 min | `scheduler:svs_catalog_refresh`, `svs:catalog_refresh` |
 //! | `svs_run_timers` | `service_svs`'s run timer, every `svs.runs.timer_interval_seconds` (30), its maintenance windows' expiry, and the results of runs as they end and of those gone stale (PLAN.md 7.10 batch 5) | `* * * * *` | 10 min | `scheduler:svs_run_timers`, `svs:run_timers` |
+//! | `svs_coverage_refresh` | `service_svs`'s coverage refresher, every `svs.coverage.refresh_interval_seconds` (120), `ace svs coverage refresh` (PLAN.md 7.10 batch 8) | `*/2 * * * *` | 10 min | `scheduler:svs_coverage_refresh`, `svs:coverage_refresh` |
+//! | `svs_coverage_snapshot` | `daily/svs-coverage-snapshot`, `ace svs coverage snapshot` (PLAN.md 7.10 batch 8) | `0 5 * * *` | 1 h | `scheduler:svs_coverage_snapshot`, `svs:coverage_snapshot` and `svs:coverage_refresh` |
 //! | `nrd_refresh` | `etc/cron.yaml`'s `nrd-refresh`, `ace nrd refresh` | `*/30 * * * *` | 25 min | `scheduler:nrd_refresh`, `nrd:refresh` |
 //!
 //! The rest, and a site's one, wait for the step that brings what they maintain, or mean nothing in
@@ -342,6 +344,50 @@ impl Task {
                                 format!("{} moves failed, the first: {first}", done.failed)
                             }),
                         })
+                    })
+                },
+            ),
+            Task::new(
+                "svs_coverage_refresh",
+                "*/2 * * * *",
+                Duration::from_secs(10 * 60),
+                |ctx| {
+                    Box::pin(async move {
+                        let done = ctx
+                            .service
+                            .refresh_svs_coverage(&ctx.actor, chrono::Utc::now())
+                            .await
+                            .map_err(|e| e.to_string())?;
+                        Ok(Done::ok(json!({
+                            "attack_release": done.attack_release,
+                            "rows": done.rows,
+                            "changed": done.changed,
+                            "inserted": done.inserted,
+                            "retired": done.retired,
+                            "skipped_tests": done.skipped_tests.len(),
+                            "worklist_rows": done.worklist.rows,
+                            "worklist_changed": done.worklist.changed,
+                        })))
+                    })
+                },
+            ),
+            Task::new(
+                "svs_coverage_snapshot",
+                "0 5 * * *",
+                Duration::from_secs(60 * 60),
+                |ctx| {
+                    Box::pin(async move {
+                        let done = ctx
+                            .service
+                            .write_svs_coverage_snapshot(&ctx.actor, None, chrono::Utc::now())
+                            .await
+                            .map_err(|e| e.to_string())?;
+                        Ok(Done::ok(json!({
+                            "snapshot_date": done.snapshot_date.to_string(),
+                            "attack_release": done.attack_release,
+                            "rows": done.rows,
+                            "deleted": done.deleted,
+                        })))
                     })
                 },
             ),

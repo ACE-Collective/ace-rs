@@ -256,3 +256,45 @@ fn unix_seconds() -> u64 {
         .map(|d| d.as_secs())
         .unwrap_or_default()
 }
+
+/// ace3's `tests/saq/svs/conftest.py` `ATTACK_EXTRACT`: a small ATT&CK release, v99.0, that SVS's tests
+/// read in place of a real one (PLAN.md 7.10).
+pub fn attack_extract() -> serde_json::Value {
+    use serde_json::json;
+    let technique = |name: &str,
+                     parent: Option<&str>,
+                     tactics: &[&str],
+                     platforms: &[&str],
+                     deprecated: bool| {
+        json!({"name": name, "parent": parent, "tactics": tactics, "platforms": platforms,
+               "deprecated": deprecated})
+    };
+    json!({
+        "format": 1,
+        "release": "v99.0",
+        "domain": "enterprise-attack",
+        "source": {"url": "test", "sha256": "0".repeat(64)},
+        "platforms": [{"slug": "windows", "name": "Windows"}, {"slug": "macos", "name": "macOS"}],
+        "tactics": [
+            {"id": "TA0003", "shortname": "persistence", "name": "Persistence"},
+            {"id": "TA0002", "shortname": "execution", "name": "Execution"},
+        ],
+        "techniques": {
+            "T1059": technique("Command and Scripting Interpreter", None, &["TA0002"],
+                               &["windows", "macos"], false),
+            "T1059.001": technique("PowerShell", Some("T1059"), &["TA0002"], &["windows"], false),
+            "T1059.002": technique("AppleScript", Some("T1059"), &["TA0002"], &["macos"], false),
+            "T1547": technique("Boot or Logon Autostart Execution", None, &["TA0003", "TA0002"],
+                               &["windows"], false),
+            "T1099": technique("Old Technique", None, &[], &["windows"], true),
+        },
+        "revoked": {"T1086": "T1059.001", "T1150": "T1099"},
+        "renamed": {"T1059": {"from": "Scripting", "previous_release": "v98.0"}},
+    })
+}
+
+/// The catalog of [`attack_extract`]: ace3's `attack_catalog` fixture.
+pub fn attack_catalog() -> crate::svs::attack::AttackCatalog {
+    crate::svs::attack::AttackCatalog::load(&attack_extract().to_string(), "v99.0.json")
+        .expect("the test extract loads")
+}

@@ -4,7 +4,8 @@
 //! a live one, `bucket_orphans` deletes bytes no index row names, and `bucket_verify` records an intact
 //! object and fails on a corrupt one, which it keeps, `email_archive_partitions` drops the email archive's
 //! old weeks and makes those ahead, and `nrd_refresh` rebuilds the newly registered
-//! domains list as ace3's refresh did. Then the scheduler's own rules: one run across
+//! domains list as ace3's refresh did. SVS's tasks each run once too: the catalog's refresh, the run
+//! timers, and (7.10 batch 8) the coverage refresh and the daily coverage snapshot. Then the scheduler's own rules: one run across
 //! replicas, missed due times run once, a lease no run starts under, an abandoned run, a hung task
 //! stopped at its timeout without holding up another, a bounded shutdown, and the overlay's section.
 //!
@@ -703,6 +704,187 @@ async fn svs_run_timers_survive_a_failure() {
     assert_eq!(run_state(db, stuck).await, "closed");
 }
 
+/// A service pinned to ace3's test ATT&CK release, v99.0, whose coverage is five rows.
+fn pinned(fixture: &mut Fixture) {
+    fixture.service = fixture
+        .service
+        .clone()
+        .with_attack_catalog(Arc::new(ace_core::testing::attack_catalog()));
+}
+
+async fn coverage_rows(db: &Db) -> i64 {
+    sqlx::query_scalar("SELECT count(*) FROM svs.coverage")
+        .fetch_one(db.pool())
+        .await
+        .expect("counts")
+}
+
+/// test_coverage.py's `test_the_service_refreshes_coverage` (PLAN.md 7.10 batch 8): ace3's `service_svs`
+/// recomputes coverage every `svs.coverage.refresh_interval_seconds`; here the scheduler's
+/// `svs_coverage_refresh` does, every two minutes, with its audit row as the task's component.
+#[tokio::test]
+async fn svs_coverage_refresh_refreshes_coverage() {
+    let mut fixture = Fixture::new().await;
+    pinned(&mut fixture);
+    let db = fixture.db();
+    let task = builtin("svs_coverage_refresh");
+    make_due(db, &task).await;
+
+    let run = run_once(&fixture, vec![task], "svs_coverage_refresh").await;
+
+    assert_eq!(run.outcome.as_deref(), Some("succeeded"), "{run:?}");
+    assert_eq!(
+        run.summary,
+        Some(json!({
+            "attack_release": "v99.0", "rows": 5, "changed": 5, "inserted": 5, "retired": 0,
+            "skipped_tests": 0, "worklist_rows": 0, "worklist_changed": 0,
+        }))
+    );
+    assert_eq!(coverage_rows(db).await, 5);
+    let audit: (serde_json::Value, String, String) =
+        sqlx::query_as("SELECT actor::jsonb, action, target_kind FROM service.audit")
+            .fetch_one(db.pool())
+            .await
+            .expect("one audit row");
+    assert_eq!(
+        audit,
+        (
+            json!({"kind": "internal", "id": "scheduler:svs_coverage_refresh"}),
+            "refresh_svs_coverage".to_owned(),
+            "svs_coverage".to_owned()
+        )
+    );
+}
+
+/// test_coverage.py's `test_the_refresher_survives_a_failure`: a refresh that fails records why and fails
+/// its run; the task stays scheduled, and its next run refreshes once it can. ace3 patches the tags'
+/// reader to raise; here the database refuses coverage's rows.
+#[tokio::test]
+async fn svs_coverage_refresh_survives_a_failure() {
+    let mut fixture = Fixture::new().await;
+    pinned(&mut fixture);
+    let db = fixture.db();
+    sqlx::raw_sql(
+        "CREATE FUNCTION svs.boom() RETURNS trigger LANGUAGE plpgsql AS $$
+         BEGIN RAISE EXCEPTION 'boom'; END $$;
+         CREATE TRIGGER boom BEFORE INSERT ON svs.coverage
+             FOR EACH ROW EXECUTE FUNCTION svs.boom();",
+    )
+    .execute(db.pool())
+    .await
+    .expect("breaks coverage");
+    let task = builtin("svs_coverage_refresh");
+    make_due(db, &task).await;
+    let stop = CancellationToken::new();
+    let running = tokio::spawn(
+        fixture
+            .scheduler(vec![task.clone()], "test/1")
+            .run(stop.clone()),
+    );
+
+    let runs = ended_runs(db, "svs_coverage_refresh", 1).await;
+    assert_eq!(runs[0].outcome.as_deref(), Some("failed"), "{runs:?}");
+    assert!(
+        runs[0].error.as_deref().is_some_and(|e| e.contains("boom")),
+        "{runs:?}"
+    );
+    assert_eq!(coverage_rows(db).await, 0);
+    let recorded: Option<String> =
+        sqlx::query_scalar("SELECT error FROM svs.coverage_state WHERE id = 1")
+            .fetch_one(db.pool())
+            .await
+            .expect("the refresh's state");
+    assert!(recorded.is_some_and(|e| e.contains("boom")));
+
+    // the database is back; the task's next run refreshes
+    sqlx::raw_sql("DROP TRIGGER boom ON svs.coverage")
+        .execute(db.pool())
+        .await
+        .expect("mends coverage");
+    make_due(db, &task).await;
+    let runs = ended_runs(db, "svs_coverage_refresh", 2).await;
+    stop.cancel();
+    running.await.expect("the scheduler stops");
+    assert_eq!(runs[0].outcome.as_deref(), Some("succeeded"), "{runs:?}");
+    assert_eq!(coverage_rows(db).await, 5);
+    let recorded: Option<String> =
+        sqlx::query_scalar("SELECT error FROM svs.coverage_state WHERE id = 1")
+            .fetch_one(db.pool())
+            .await
+            .expect("the refresh's state");
+    assert_eq!(recorded, None);
+}
+
+/// ace3's `etc/cron/daily/svs-coverage-snapshot` (PLAN.md 6.7): `svs_coverage_snapshot` refreshes coverage
+/// and files the day's copy, UTC, as its own component, which holds both grants.
+#[tokio::test]
+async fn svs_coverage_snapshot_files_the_day() {
+    let mut fixture = Fixture::new().await;
+    pinned(&mut fixture);
+    let db = fixture.db();
+    let task = builtin("svs_coverage_snapshot");
+    make_due(db, &task).await;
+    let before = Utc::now().date_naive();
+
+    let run = run_once(&fixture, vec![task], "svs_coverage_snapshot").await;
+
+    assert_eq!(run.outcome.as_deref(), Some("succeeded"), "{run:?}");
+    let summary = run.summary.expect("a summary");
+    assert_eq!(
+        (
+            &summary["attack_release"],
+            &summary["rows"],
+            &summary["deleted"]
+        ),
+        (&json!("v99.0"), &json!(5), &json!(0))
+    );
+    let days: Vec<(chrono::NaiveDate, i64)> = sqlx::query_as(
+        "SELECT snapshot_date, count(*) FROM svs.coverage_snapshots GROUP BY snapshot_date",
+    )
+    .fetch_all(db.pool())
+    .await
+    .expect("reads the snapshots");
+    assert_eq!(days.len(), 1, "{days:?}");
+    assert!(days[0].0 == before || days[0].0 == Utc::now().date_naive());
+    assert_eq!(days[0].1, 5);
+    assert_eq!(summary["snapshot_date"], json!(days[0].0.to_string()));
+    let actions: Vec<(String, String)> =
+        sqlx::query_as("SELECT actor ->> 'id', action FROM service.audit ORDER BY id")
+            .fetch_all(db.pool())
+            .await
+            .expect("the audit rows");
+    let as_task = |action: &str| {
+        (
+            "scheduler:svs_coverage_snapshot".to_owned(),
+            action.to_owned(),
+        )
+    };
+    assert_eq!(
+        actions,
+        [
+            as_task("refresh_svs_coverage"),
+            as_task("write_svs_coverage_snapshot")
+        ]
+    );
+    // each coverage task holds what it does, and the refresher files no snapshot
+    for (task, refresh, snapshot) in [
+        ("svs_coverage_refresh", true, false),
+        ("svs_coverage_snapshot", true, true),
+        ("svs_run_timers", false, false),
+    ] {
+        let actor = builtin(task).actor;
+        let holds = async |name| fixture.service.allowed(&actor, name).await.expect("checks");
+        assert_eq!(
+            (
+                holds(&ace_service::SVS_COVERAGE_REFRESH).await,
+                holds(&ace_service::SVS_COVERAGE_SNAPSHOT).await
+            ),
+            (refresh, snapshot),
+            "{task}"
+        );
+    }
+}
+
 /// test_catalog.py's `test_the_refresher_runs_until_stopped_and_survives_a_failure`: a run in which a
 /// repository can't be read fails, saying which, with the other repository still read; the task stays
 /// scheduled, and its next run reads the repository once it can be.
@@ -1334,6 +1516,9 @@ fn the_overlay_s_scheduler_section_sets_each_task_over_its_defaults() {
             ("svs_validations_prune", "0 5 * * *", 3600, true),
             ("svs_catalog_refresh", "*/5 * * * *", 1500, true),
             ("svs_run_timers", "* * * * *", 600, true),
+            // ace3's `svs.coverage.refresh_interval_seconds`, 120, and its daily cron
+            ("svs_coverage_refresh", "*/2 * * * *", 600, true),
+            ("svs_coverage_snapshot", "0 5 * * *", 3600, true),
             ("nrd_refresh", "*/30 * * * *", 1500, true),
         ]
     );
@@ -1350,6 +1535,8 @@ fn the_overlay_s_scheduler_section_sets_each_task_over_its_defaults() {
             "internal:scheduler:svs_validations_prune",
             "internal:scheduler:svs_catalog_refresh",
             "internal:scheduler:svs_run_timers",
+            "internal:scheduler:svs_coverage_refresh",
+            "internal:scheduler:svs_coverage_snapshot",
             "internal:scheduler:nrd_refresh",
         ]
     );
@@ -1371,7 +1558,7 @@ fn the_overlay_s_scheduler_section_sets_each_task_over_its_defaults() {
         "scheduler:\n  bucket_gc:\n    schedule: '*/15 * * * *'\n    timeout_seconds: 600\n  \
          bucket_verify:\n    enabled: false\n  cas_node_stats:\n    enabled: true\n",
     );
-    assert_eq!(set.len(), 10, "the removed task is skipped");
+    assert_eq!(set.len(), 12, "the removed task is skipped");
     assert_eq!(
         (
             set[0].schedule.as_str(),

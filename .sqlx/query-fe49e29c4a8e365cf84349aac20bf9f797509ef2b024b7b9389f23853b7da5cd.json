@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE svs.coverage_state SET error = $1 WHERE id = 1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "fe49e29c4a8e365cf84349aac20bf9f797509ef2b024b7b9389f23853b7da5cd"
+}

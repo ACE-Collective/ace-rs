@@ -38,9 +38,11 @@
 //! value in a link is percent-encoded; the log search is a link only when it's http or https, which the
 //! overlay's check already requires.
 //!
+//! The Tests, Coverage and Worklist tabs are `svs_coverage`'s (batch 8).
+//!
 //! Left out, each with the batch that brings it: ace3's saved filters for this screen (the alert list's
-//! saved filters cover no SVS screen yet); the Tests, Coverage and Worklist tabs (batch 8); and the
-//! Guides link and the navigation entry's count (batch 9). ace3's bulk bar ticks every row with a script;
+//! saved filters cover no SVS screen yet); and the Guides link and the navigation entry's count (batch
+//! 9). ace3's bulk bar ticks every row with a script;
 //! here each row has its own box. The layout has
 //! a plain SVS link for whoever holds `svs:run_read`, so the area can be reached until then.
 
@@ -76,15 +78,15 @@ const RUN_PAGE_ALERTS: i64 = 200;
 /// The runs that need attention: the view the Runs tab opens with.
 pub const NEEDS_ATTENTION: &str = "/svs/runs?f=needs_attention%3Atrue";
 
-fn when(time: DateTime<Utc>) -> String {
+pub(crate) fn when(time: DateTime<Utc>) -> String {
     time.format("%Y-%m-%d %H:%M:%S UTC").to_string()
 }
 
-fn maybe(time: Option<DateTime<Utc>>) -> String {
+pub(crate) fn maybe(time: Option<DateTime<Utc>>) -> String {
     time.map(when).unwrap_or_default()
 }
 
-fn with_query(path: &str, pairs: &[(&str, String)]) -> String {
+pub(crate) fn with_query(path: &str, pairs: &[(&str, String)]) -> String {
     let encoded = serde_urlencoded::to_string(pairs).unwrap_or_default();
     if encoded.is_empty() {
         path.to_owned()
@@ -122,7 +124,7 @@ fn status_class(status: &str) -> &'static str {
 /// The area's tabs: only those the viewer may open are listed.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Tabs {
-    /// `runs` or `test_hosts`: the open tab.
+    /// `runs`, `tests`, `coverage`, `worklist` or `test_hosts`: the open tab.
     pub open: &'static str,
     /// The viewer holds `svs:admin`, which the Test hosts tab needs.
     pub admin: bool,
@@ -253,11 +255,11 @@ pub struct RunsView {
     pub here: String,
 }
 
-fn filter_pairs(filters: &[String]) -> Vec<(&'static str, String)> {
+pub(crate) fn filter_pairs(filters: &[String]) -> Vec<(&'static str, String)> {
     filters.iter().map(|f| ("f", f.clone())).collect()
 }
 
-fn pages(
+pub(crate) fn pages(
     path: &str,
     filters: &[String],
     cursor: Option<&str>,
@@ -1148,7 +1150,7 @@ pub struct HostPage {
 // ---- the gate ----
 
 /// The area's gate, and whether the viewer holds `svs:admin`, which the Test hosts tab needs.
-async fn enter(gui: &Gui, viewer: &SignedIn, parts: &Parts) -> Result<bool, Failure> {
+pub(crate) async fn enter(gui: &Gui, viewer: &SignedIn, parts: &Parts) -> Result<bool, Failure> {
     match gui.service.allowed(&viewer.actor, &SVS_RUN_READ).await {
         Ok(true) => {}
         Ok(false) => {
@@ -1179,11 +1181,11 @@ async fn enter_hosts(gui: &Gui, viewer: &SignedIn, parts: &Parts) -> Result<(), 
     }
 }
 
-fn failed(error: ServiceError, parts: &Parts) -> Response {
+pub(crate) fn failed(error: ServiceError, parts: &Parts) -> Response {
     Failure::from_service(error, parts).into_response()
 }
 
-fn bad_request(message: &str, parts: &Parts) -> Response {
+pub(crate) fn bad_request(message: &str, parts: &Parts) -> Response {
     Failure::new(StatusCode::BAD_REQUEST, message, parts).into_response()
 }
 

@@ -1,0 +1,59 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT c.platform, c.state, c.own_state, count(*) AS \"count!\"\n                           FROM svs.coverage c\n                           WHERE svs.coverage_matches(c, $1)\n                           GROUP BY c.platform, c.state, c.own_state",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "platform",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.coverage",
+            "name": "platform"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "state",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.coverage",
+            "name": "state"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "own_state",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.coverage",
+            "name": "own_state"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "count!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Jsonb"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "7fffc8cb5c124a97faf74d35c60b0875f1fcee3ab597d9f5860b11d38cefa776"
+}

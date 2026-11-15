@@ -1,0 +1,242 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, technique, platform, parent, is_subtechnique, technique_name, tactics,\n                catalog_status, attack_platform, state, own_state, tests_total, tests_validated,\n                tests_failing, tests_stale, manual_signatures, measured_signatures, last_reviewed_at,\n                retired_at\n         FROM svs.coverage",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "svs.coverage",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "technique",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.coverage",
+            "name": "technique"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "platform",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.coverage",
+            "name": "platform"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "parent",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.coverage",
+            "name": "parent"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "is_subtechnique",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "svs.coverage",
+            "name": "is_subtechnique"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "technique_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.coverage",
+            "name": "technique_name"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "tactics",
+        "type_info": "TextArray",
+        "origin": {
+          "Table": {
+            "table": "svs.coverage",
+            "name": "tactics"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "catalog_status",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.coverage",
+            "name": "catalog_status"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "attack_platform",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "svs.coverage",
+            "name": "attack_platform"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "state",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.coverage",
+            "name": "state"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "own_state",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.coverage",
+            "name": "own_state"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "tests_total",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "svs.coverage",
+            "name": "tests_total"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "tests_validated",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "svs.coverage",
+            "name": "tests_validated"
+          }
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "tests_failing",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "svs.coverage",
+            "name": "tests_failing"
+          }
+        }
+      },
+      {
+        "ordinal": 14,
+        "name": "tests_stale",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "svs.coverage",
+            "name": "tests_stale"
+          }
+        }
+      },
+      {
+        "ordinal": 15,
+        "name": "manual_signatures",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "svs.coverage",
+            "name": "manual_signatures"
+          }
+        }
+      },
+      {
+        "ordinal": 16,
+        "name": "measured_signatures",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "svs.coverage",
+            "name": "measured_signatures"
+          }
+        }
+      },
+      {
+        "ordinal": 17,
+        "name": "last_reviewed_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "svs.coverage",
+            "name": "last_reviewed_at"
+          }
+        }
+      },
+      {
+        "ordinal": 18,
+        "name": "retired_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "svs.coverage",
+            "name": "retired_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "8b3a0dd2eaf666cc880f147e79121d32e0732bd221b569e7f43bc5e79b54e285"
+}

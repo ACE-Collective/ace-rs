@@ -2,8 +2,8 @@
 //! the refresh of `saq/svs/catalog.py`, over `ace_core::svs::catalog`.
 //!
 //! **Reading** needs `svs:run_read`, as in ace3: the tests by technique and then name, a page at a time
-//! with ace3's tests screen (`FilterScreen::SvsTests`), one test with its description and its atomic entry,
-//! and each catalog repository's status.
+//! with ace3's tests screen (`FilterScreen::SvsTests`), each with its state and run history, one test with
+//! its description and its atomic entry, and each catalog repository's status.
 //!
 //! **The refresh** needs `svs:catalog_refresh`, which only the scheduler's `svs_catalog_refresh` holds;
 //! `ace svs catalog refresh` acts as that component. `refresh_svs_catalog` fetches each repository in the
@@ -20,10 +20,8 @@
 //! read.
 //!
 //! What differs from ace3's:
-//! - ace3's list also carries each test's state and run history (`saq/svs/test_state.py`): `test_state`,
-//!   `run_count`, the last and last reviewed runs, `expected_signatures` and the recent runs. Those come
-//!   from runs and decisions, which batches 5 and 8 bring, and join the list there. Until then a test is its
-//!   catalog row.
+//! - Each test carries its state and run history (`svs_test_state`, batch 8), read for the whole page at
+//!   once, as ace3's does: `history`. One test adds its state on each platform.
 //! - ace3's refresh is not audited; here each write of it is.
 //! - Two replicas may refresh at once: each reads its own mirror and the row lock orders their writes. One
 //!   that fetched an older commit can store it after the other stored a newer one; the next refresh sees
@@ -32,6 +30,7 @@
 use ace_core::svs::catalog::{
     self, CatalogConfig, ParseResult, RefreshResult, RepositoryStatus, Skipped,
 };
+use ace_core::svs::test_state::TestHistory;
 use chrono::{DateTime, Utc};
 use chrono_tz::Tz;
 use serde::{Deserialize, Serialize};
@@ -42,6 +41,7 @@ use crate::alerts::page_limit;
 use crate::filters::{FilterEntry, FilterScreen, Resolved};
 use crate::gate::{Audited, Change, Recorded, Target};
 use crate::permission::{SVS_CATALOG_REFRESH, SVS_RUN_READ};
+use crate::svs_test_state::{StateTest, catalog_histories};
 use crate::{Actor, Service, ServiceError};
 
 /// The most tests one page holds.
@@ -50,7 +50,7 @@ pub const MAX_CATALOG_TESTS_PAGE: u32 = 1000;
 const AUDITED_SKIPS: usize = 50;
 
 /// An Atomic Red Team test, by its `auto_generated_guid`.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CatalogTest {
     pub guid: Uuid,
     /// The catalog repository it is read from.
@@ -71,14 +71,17 @@ pub struct CatalogTest {
     pub first_seen_at: DateTime<Utc>,
     /// When the test disappeared from its repository; it keeps its runs.
     pub removed_at: Option<DateTime<Utc>>,
-    /// When the catalog row last changed: the `changed_since` key.
+    /// When the catalog row last changed: the `changed_since` key. A change to the test's runs or state
+    /// doesn't change it.
     pub updated_at: DateTime<Utc>,
+    /// Its state and run history (`ace_core::svs::test_state`): never_run without runs, else the worst of
+    /// its platforms' states. One test's detail has each platform's in `platform_states`.
+    pub history: TestHistory,
 }
 
 /// One test with its description and its entry.
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct CatalogTestDetail {
-    #[serde(flatten)]
     pub test: CatalogTest,
     pub description: Option<String>,
     /// The platforms a run of it can be on: its `supported_platforms` as ATT&CK's platform slugs, sorted.
@@ -189,8 +192,17 @@ struct ListRow {
 }
 
 impl ListRow {
-    fn test(self) -> CatalogTest {
+    fn state_test(&self) -> StateTest {
+        StateTest {
+            guid: self.guid,
+            content_hash: self.content_hash.clone(),
+            platforms: self.platforms.clone(),
+        }
+    }
+
+    fn test(self, history: TestHistory) -> CatalogTest {
         CatalogTest {
+            history,
             guid: self.guid,
             repository: self.repository,
             technique: self.technique,
@@ -371,8 +383,20 @@ impl Service {
                     } else {
                         None
                     };
+                    // each test's state and run history, for the whole page at once
+                    let state_tests: Vec<StateTest> =
+                        rows.iter().map(ListRow::state_test).collect();
+                    let mut histories = catalog_histories(tx.conn(), &state_tests).await?;
                     Ok(CatalogTestPage {
-                        tests: rows.into_iter().map(ListRow::test).collect(),
+                        tests: rows
+                            .into_iter()
+                            .map(|row| {
+                                let history = histories
+                                    .remove(&row.guid)
+                                    .unwrap_or_else(TestHistory::never_run);
+                                row.test(history)
+                            })
+                            .collect(),
                         next_cursor,
                     })
                 })
@@ -432,6 +456,17 @@ impl Service {
                     .fetch_optional(tx.conn())
                     .await?
                     .ok_or_else(|| no_test(guid))?;
+                    let history = catalog_histories(
+                        tx.conn(),
+                        &[StateTest {
+                            guid: row.guid,
+                            content_hash: row.content_hash.clone(),
+                            platforms: row.platforms.clone(),
+                        }],
+                    )
+                    .await?
+                    .remove(&row.guid)
+                    .unwrap_or_else(TestHistory::never_run);
                     Ok(CatalogTestDetail {
                         platform_slugs: catalog::platform_slugs(&row.platforms),
                         description: row.description,
@@ -450,6 +485,7 @@ impl Service {
                             first_seen_at: row.first_seen_at,
                             removed_at: row.removed_at,
                             updated_at: row.updated_at,
+                            history,
                         },
                     })
                 })

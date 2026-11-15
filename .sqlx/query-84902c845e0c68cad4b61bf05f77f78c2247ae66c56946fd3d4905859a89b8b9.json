@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO svs.technique_worklist\n                 (signature_uuid, technique, kind, status, declared_as, tag_present, signature_counts,\n                  counts, measured, measured_techniques, signature_family, signature_name, resolution,\n                  reason, reference, resolved_by, resolved_at, first_seen_at, status_changed_at)\n             SELECT u.signature_uuid, u.technique, u.kind, u.status, u.declared_as, u.tag_present,\n                    u.signature_counts, u.counts, u.measured, u.measured_techniques,\n                    u.signature_family, u.signature_name, u.resolution, u.reason, u.reference,\n                    u.resolved_by, u.resolved_at, $2, $2\n             FROM jsonb_to_recordset($1) AS u (\n                 signature_uuid text, technique text, kind text, status text, declared_as text[],\n                 tag_present boolean, signature_counts boolean, counts boolean, measured boolean,\n                 measured_techniques text[], signature_family text, signature_name text,\n                 resolution text, reason text, reference text, resolved_by jsonb,\n                 resolved_at timestamptz)\n             ON CONFLICT (signature_uuid, technique) DO UPDATE SET\n                 kind = EXCLUDED.kind, declared_as = EXCLUDED.declared_as,\n                 tag_present = EXCLUDED.tag_present, signature_counts = EXCLUDED.signature_counts,\n                 counts = EXCLUDED.counts, measured = EXCLUDED.measured,\n                 measured_techniques = EXCLUDED.measured_techniques,\n                 signature_family = EXCLUDED.signature_family,\n                 signature_name = EXCLUDED.signature_name, resolution = EXCLUDED.resolution,\n                 reason = EXCLUDED.reason, reference = EXCLUDED.reference,\n                 resolved_by = EXCLUDED.resolved_by, resolved_at = EXCLUDED.resolved_at,\n                 status_changed_at = CASE WHEN svs.technique_worklist.status <> EXCLUDED.status\n                                          THEN EXCLUDED.status_changed_at\n                                          ELSE svs.technique_worklist.status_changed_at END,\n                 status = EXCLUDED.status",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Jsonb",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "84902c845e0c68cad4b61bf05f77f78c2247ae66c56946fd3d4905859a89b8b9"
+}

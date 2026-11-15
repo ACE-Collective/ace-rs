@@ -1,0 +1,26 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT attack_release FROM svs.coverage_state WHERE id = 1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "attack_release",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.coverage_state",
+            "name": "attack_release"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "6b59dbd821e0b8cda51e523ff66844fc07af7a31fb1006ef5073db569cf59250"
+}

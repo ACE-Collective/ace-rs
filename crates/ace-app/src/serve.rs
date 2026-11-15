@@ -140,7 +140,7 @@ async fn serve(app: &App) -> Result<ExitCode> {
     }
     // the Atomic Red Team catalog and the ATT&CK release (PLAN.md 7.10 batch 4): a release this build has
     // no extract of stops startup, as ace3's config refuses one whose file is missing
-    ace_core::svs::attack::attack_catalog(&overlay.svs.attack_release)
+    let attack = ace_core::svs::attack::attack_catalog(&overlay.svs.attack_release)
         .map_err(anyhow::Error::msg)
         .context("the overlay's svs.attack_release")?;
     let catalog = ace_core::svs::catalog::CatalogConfig::from_section(&overlay.svs.catalog)
@@ -192,6 +192,8 @@ async fn serve(app: &App) -> Result<ExitCode> {
         .with_bucket(bucket.clone())
         .with_validation(validation.clone())
         .with_catalog(catalog)
+        // coverage is computed against the pinned ATT&CK release (PLAN.md 7.10 batch 8)
+        .with_attack_catalog(attack)
         .with_runs(runs)
         .with_routers(routers);
     // each scan runs in this binary again, contained (`ace yara replay --contained`)

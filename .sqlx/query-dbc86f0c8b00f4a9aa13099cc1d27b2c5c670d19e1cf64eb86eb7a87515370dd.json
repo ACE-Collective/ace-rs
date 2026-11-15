@@ -1,0 +1,284 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, technique, platform, parent, is_subtechnique, technique_name, tactics,\n                  catalog_status, attack_platform, state, own_state, tests_total, tests_validated,\n                  tests_failing, tests_stale, manual_signatures, measured_signatures,\n                  last_reviewed_at, state_changed_at, first_seen_at, retired_at, updated_at\n           FROM svs.coverage c\n           WHERE svs.coverage_matches(c, $1)\n             AND ($2::bigint IS NULL\n                  OR (c.technique COLLATE \"C\", c.platform COLLATE \"C\", c.id)\n                     > ($3::text, $4::text, $2))\n           ORDER BY c.technique COLLATE \"C\", c.platform COLLATE \"C\", c.id\n           LIMIT $5",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "svs.coverage",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "technique",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.coverage",
+            "name": "technique"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "platform",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.coverage",
+            "name": "platform"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "parent",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.coverage",
+            "name": "parent"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "is_subtechnique",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "svs.coverage",
+            "name": "is_subtechnique"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "technique_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.coverage",
+            "name": "technique_name"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "tactics",
+        "type_info": "TextArray",
+        "origin": {
+          "Table": {
+            "table": "svs.coverage",
+            "name": "tactics"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "catalog_status",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.coverage",
+            "name": "catalog_status"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "attack_platform",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "svs.coverage",
+            "name": "attack_platform"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "state",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.coverage",
+            "name": "state"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "own_state",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.coverage",
+            "name": "own_state"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "tests_total",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "svs.coverage",
+            "name": "tests_total"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "tests_validated",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "svs.coverage",
+            "name": "tests_validated"
+          }
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "tests_failing",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "svs.coverage",
+            "name": "tests_failing"
+          }
+        }
+      },
+      {
+        "ordinal": 14,
+        "name": "tests_stale",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "svs.coverage",
+            "name": "tests_stale"
+          }
+        }
+      },
+      {
+        "ordinal": 15,
+        "name": "manual_signatures",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "svs.coverage",
+            "name": "manual_signatures"
+          }
+        }
+      },
+      {
+        "ordinal": 16,
+        "name": "measured_signatures",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "svs.coverage",
+            "name": "measured_signatures"
+          }
+        }
+      },
+      {
+        "ordinal": 17,
+        "name": "last_reviewed_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "svs.coverage",
+            "name": "last_reviewed_at"
+          }
+        }
+      },
+      {
+        "ordinal": 18,
+        "name": "state_changed_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "svs.coverage",
+            "name": "state_changed_at"
+          }
+        }
+      },
+      {
+        "ordinal": 19,
+        "name": "first_seen_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "svs.coverage",
+            "name": "first_seen_at"
+          }
+        }
+      },
+      {
+        "ordinal": 20,
+        "name": "retired_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "svs.coverage",
+            "name": "retired_at"
+          }
+        }
+      },
+      {
+        "ordinal": 21,
+        "name": "updated_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "svs.coverage",
+            "name": "updated_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Jsonb",
+        "Int8",
+        "Text",
+        "Text",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "dbc86f0c8b00f4a9aa13099cc1d27b2c5c670d19e1cf64eb86eb7a87515370dd"
+}

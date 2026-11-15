@@ -1,0 +1,88 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT guid, name, technique, technique_name, platforms, content_hash\n                         FROM svs.catalog_tests t\n                         WHERE t.removed_at IS NULL\n                           AND EXISTS (SELECT FROM svs.expectations e\n                                       WHERE e.test_guid = t.guid AND e.signature_uuid = $1\n                                         AND e.state = 'expected')",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "guid",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "svs.catalog_tests",
+            "name": "guid"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.catalog_tests",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "technique",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.catalog_tests",
+            "name": "technique"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "technique_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.catalog_tests",
+            "name": "technique_name"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "platforms",
+        "type_info": "TextArray",
+        "origin": {
+          "Table": {
+            "table": "svs.catalog_tests",
+            "name": "platforms"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "content_hash",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "svs.catalog_tests",
+            "name": "content_hash"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "540de36cbb7bd4e9f12932ce459893fa6766c083f512cfe1ee79f21317172baa"
+}

@@ -257,11 +257,11 @@
 //! | `GET /catalog/repositories` | `GET /api/svs/v1/catalog/repositories` |
 //! | `PUT`/`DELETE /tests/{guid}/expectations/{platform}/{signature_uuid}`, `PUT`/`DELETE /tests/{guid}/ignores/{signature_uuid}`, `GET`/`PUT`/`DELETE /tests/{guid}/settings` | the same paths under `/api/svs/v1`, with part 5b's decisions, below |
 //!
-//! What differs: a page is `{tests, next}`; a bad request is 400 where ace3's is 422; a test's state and run
-//! history (`test_state`, `run_count`, `last_run_*`, `last_reviewed_*`, `expected_signatures`,
-//! `recent_runs*`, and the detail's `platform_states`) come with the runs and decisions of batches 5 and
-//! 8; the detail's atomic entry is `entry`, and it adds `platform_slugs`. Nothing here writes: the catalog
-//! is refreshed by the scheduler's `svs_catalog_refresh` and `ace svs catalog refresh`.
+//! What differs: a page is `{tests, next}`; a bad request is 400 where ace3's is 422; the detail's atomic
+//! entry is `entry`, and it adds `platform_slugs`. Each test carries its state and run history
+//! (`test_state`, `run_count`, `last_run_*`, `last_reviewed_*`, `expected_signatures`, `recent_runs*`, and
+//! the detail's `platform_states`), which batch 8 brought. Nothing here writes: the catalog is refreshed by
+//! the scheduler's `svs_catalog_refresh` and `ace svs catalog refresh`.
 //!
 //! ace3's `svs` routers' runs and test hosts (PLAN.md 7.10 batch 5, part 5a): a launcher's calls under
 //! ace3's `svs:run_register`, reads under `svs:run_read`, and the test hosts' writes under `svs:admin`
@@ -314,7 +314,10 @@
 //! comment, as in ace3. Batch 7a's association routes (what SVS makes of an alert, and a person's
 //! associate, disassociate, not a test and keep, from the run's side and the alert's) are `svs_association`'s,
 //! whose docs map them. Batch 7b's (a run's alerts, a person's bulk actions under `/runs/bulk/*`, review
-//! and a run's review blockers) are `svs_review`'s, whose docs map them too.
+//! and a run's review blockers) are `svs_review`'s, whose docs map them too. Batch 8's coverage
+//! (`/api/svs/v1/coverage`, its summary, a technique's drill-down and the daily snapshots) and worklist
+//! (`/api/svs/v1/worklist` and its resolutions) are `svs_coverage`'s and `svs_worklist`'s, whose docs map
+//! ace3's `coverage` and `worklist` routers.
 //!
 //! ace3's `observable_comments` router (PLAN.md 5.6), under ace3's `observable:read` and `observable:write`
 //! (`ace_service`'s `observable_comments` docs). A comment is on a type and value, across alerts:
@@ -530,12 +533,14 @@ mod params;
 mod remediation;
 mod svs_association;
 mod svs_catalog;
+mod svs_coverage;
 mod svs_decisions;
 mod svs_review;
 mod svs_run_reads;
 mod svs_runs;
 mod svs_samples;
 mod svs_validations;
+mod svs_worklist;
 mod user_preferences;
 mod users;
 mod yara_qa;
@@ -926,6 +931,44 @@ impl Web {
             .route(
                 "/api/svs/v1/catalog/repositories",
                 get(svs_catalog::repositories),
+            )
+            .route("/api/svs/v1/coverage", get(svs_coverage::list))
+            .route(
+                "/api/svs/v1/coverage/export/{format}",
+                get(svs_coverage::export),
+            )
+            .route("/api/svs/v1/coverage/summary", get(svs_coverage::summary))
+            .route("/api/svs/v1/coverage/history", get(svs_coverage::history))
+            .route(
+                "/api/svs/v1/coverage/history/export/{format}",
+                get(svs_coverage::export_history),
+            )
+            .route(
+                "/api/svs/v1/coverage/history/counts",
+                get(svs_coverage::history_counts),
+            )
+            .route(
+                "/api/svs/v1/coverage/{technique}",
+                get(svs_coverage::technique),
+            )
+            .route("/api/svs/v1/worklist", get(svs_worklist::list))
+            .route(
+                "/api/svs/v1/worklist/export/{format}",
+                get(svs_worklist::export),
+            )
+            .route(
+                "/api/svs/v1/worklist/bulk/resolve",
+                post(svs_worklist::bulk_resolve).layer(json_limit),
+            )
+            .route(
+                "/api/svs/v1/worklist/{signature_uuid}",
+                get(svs_worklist::signature),
+            )
+            .route(
+                "/api/svs/v1/worklist/{signature_uuid}/{technique}/resolution",
+                put(svs_worklist::set_resolution)
+                    .delete(svs_worklist::clear_resolution)
+                    .layer(json_limit),
             )
             .route(
                 "/api/svs/v1/runs",
@@ -1404,6 +1447,19 @@ impl Web {
         svs_catalog::export_ndjson,
         svs_catalog::detail,
         svs_catalog::repositories,
+        svs_coverage::list,
+        svs_coverage::export,
+        svs_coverage::summary,
+        svs_coverage::history,
+        svs_coverage::export_history,
+        svs_coverage::history_counts,
+        svs_coverage::technique,
+        svs_worklist::list,
+        svs_worklist::export,
+        svs_worklist::bulk_resolve,
+        svs_worklist::signature,
+        svs_worklist::set_resolution,
+        svs_worklist::clear_resolution,
         svs_runs::register,
         svs_runs::validate,
         svs_runs::detail,

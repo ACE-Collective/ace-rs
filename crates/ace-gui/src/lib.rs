@@ -58,6 +58,12 @@
 //!   `svs_run_reads`, `svs_decisions` and `svs` services. The base layout links to it for whoever holds
 //!   `svs:run_read`. Batch 7b brought the run page's alerts, association forms and review, and a person's
 //!   take, cancel, end and close of runs, over `svs_review` and `svs_association`.
+//! - `svs_coverage`: the SVS area's Tests, Coverage and Worklist tabs (PLAN.md 7.10 batch 8), ace3's
+//!   `tests.html`, `test.html`, `coverage.html`, `coverage_detail.html`, `worklist.html` and
+//!   `worklist_signature.html`: the catalog's tests with their state and run history, a test's page with
+//!   its settings and decisions, coverage per technique and platform with a technique's drill-down, and
+//!   the declared-vs-measured worklist with its resolutions as forms, over the `svs_catalog`,
+//!   `svs_coverage`, `svs_worklist` and `svs_decisions` services.
 //! - `svs_alert`: what SVS makes of an alert, on its page (PLAN.md 7.10 batch 7b): ace3's SVS banner, with
 //!   the root's tags, and the forms that give the alert back to analysts. The alert list shows the same
 //!   status and tags beside each alert's description (`list`).
@@ -105,6 +111,7 @@ mod session;
 pub mod signatures;
 pub mod svs;
 pub mod svs_alert;
+pub mod svs_coverage;
 pub mod svs_samples;
 pub mod svs_validations;
 pub mod templates;
@@ -323,6 +330,30 @@ impl Gui {
                 get(svs::test_host).post(svs::change_test_host),
             )
             .route("/svs/test-hosts/{id}/delete", post(svs::remove_test_host))
+            .route("/svs/tests", get(svs_coverage::tests))
+            .route("/svs/tests/{guid}", get(svs_coverage::test))
+            .route(
+                "/svs/tests/{guid}/settings",
+                post(svs_coverage::test_settings),
+            )
+            .route("/svs/tests/{guid}/decide", post(svs_coverage::test_decide))
+            .route("/svs/coverage", get(svs_coverage::coverage))
+            .route("/svs/coverage/{technique}", get(svs_coverage::technique))
+            .route("/svs/worklist", get(svs_coverage::worklist))
+            .route(
+                "/svs/worklist/resolve",
+                post(svs_coverage::resolve_many)
+                    .layer(DefaultBodyLimit::max(svs_coverage::MAX_WORKLIST_FORM_BYTES)),
+            )
+            .route(
+                "/svs/worklist/{signature_uuid}",
+                get(svs_coverage::worklist_signature),
+            )
+            .route(
+                "/svs/worklist/{signature_uuid}/resolve",
+                post(svs_coverage::resolve)
+                    .layer(DefaultBodyLimit::max(svs_coverage::MAX_WORKLIST_FORM_BYTES)),
+            )
             .route("/signatures", get(signatures::hub))
             .route("/signatures/yara-qa", get(signatures::yara_qa))
             .route(

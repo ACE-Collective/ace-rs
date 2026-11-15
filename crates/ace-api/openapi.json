@@ -7198,6 +7198,663 @@
         }
       }
     },
+    "/api/svs/v1/coverage": {
+      "get": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "The coverage rows by technique, then platform, a page at a time. Follow `next` with the same filters\nuntil it's null.",
+        "operationId": "list",
+        "parameters": [
+          {
+            "name": "f",
+            "in": "query",
+            "description": "A filter in the share-link encoding (`[!]slug:v1,v2`) with the coverage screen's slugs: technique\n(T1059 also finds its sub-techniques), name, tactic (an id or a shortname), platform, state,\nown_state, level, attack_platform, catalog_status, has_manual, state_changed, retired. Repeat it\nfor more; filters are ANDed, the values of one ORed.",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "style": "form",
+            "explode": true
+          },
+          {
+            "name": "changed_since",
+            "in": "query",
+            "description": "Only rows written or changed at or after this time; the pages are then in (updated_at, id) order.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tz",
+            "in": "query",
+            "description": "The timezone relative date filters resolve in; UTC when left out.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "How many, 1 to 1000; 100 when left out.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "description": "The `next` of the previous page.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of coverage rows",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoveragePageBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A filter, time, timezone, limit or cursor that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold svs:run_read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/svs/v1/coverage/export/{format}": {
+      "get": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "Every row the list's filters match, as CSV (its tactics joined with `,`) or NDJSON, one row as the list\ngives it on each line. A failure part-way ends the CSV there, and the NDJSON with an `{\"error\": ...}`\nline.",
+        "operationId": "export",
+        "parameters": [
+          {
+            "name": "format",
+            "in": "path",
+            "description": "`csv` or `ndjson`",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "f",
+            "in": "query",
+            "description": "A filter, as the coverage list takes it; repeat it for more.",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "style": "form",
+            "explode": true
+          },
+          {
+            "name": "changed_since",
+            "in": "query",
+            "description": "Only rows written or changed at or after this time, where the listing takes it.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tz",
+            "in": "query",
+            "description": "The timezone relative date filters resolve in; UTC when left out.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The rows, as text/csv or application/x-ndjson",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A format, filter, time or timezone that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold svs:run_read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "More rows than an export holds",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/svs/v1/coverage/history": {
+      "get": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "The daily snapshot rows by day, technique and platform, oldest first, a page at a time.",
+        "operationId": "history",
+        "parameters": [
+          {
+            "name": "f",
+            "in": "query",
+            "description": "A filter in the share-link encoding with the coverage history's slugs: date, technique (T1059 also\nfinds its sub-techniques), platform, state, own_state, level. Repeat it for more.",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "style": "form",
+            "explode": true
+          },
+          {
+            "name": "changed_since",
+            "in": "query",
+            "description": "Only rows written at or after this time; the pages are then in (updated_at, id) order.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tz",
+            "in": "query",
+            "description": "The timezone relative date filters resolve in, and a date range's days are counted in; UTC when\nleft out.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "How many, 1 to 1000; 100 when left out.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "description": "The `next` of the previous page.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of snapshot rows",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoverageHistoryPageBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A filter, time, timezone, limit or cursor that isn't one, or a query that ran too long: narrow its filters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold svs:run_read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/svs/v1/coverage/history/counts": {
+      "get": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "The snapshot rows the filters match counted per state and own state, per day, or per month from each\nmonth's last snapshot. A day whose rows the filters leave out still counts, as zeros.",
+        "operationId": "history_counts",
+        "parameters": [
+          {
+            "name": "f",
+            "in": "query",
+            "description": "A filter, as the history takes it; repeat it for more.",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "style": "form",
+            "explode": true
+          },
+          {
+            "name": "group",
+            "in": "query",
+            "description": "`day`, each day's snapshot, or `month`, each month's last; `day` when left out.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tz",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The counts, oldest first",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoverageHistoryCountsBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A filter, group or timezone that isn't one, or a query that ran too long",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold svs:run_read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/svs/v1/coverage/history/export/{format}": {
+      "get": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "Every snapshot row the filters match, as CSV or NDJSON.",
+        "operationId": "export_history",
+        "parameters": [
+          {
+            "name": "format",
+            "in": "path",
+            "description": "`csv` or `ndjson`",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "f",
+            "in": "query",
+            "description": "A filter, as the history takes it; repeat it for more.",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "style": "form",
+            "explode": true
+          },
+          {
+            "name": "changed_since",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tz",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The rows, as text/csv or application/x-ndjson",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A format, filter, time or timezone that isn't one, or a query that ran too long",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold svs:run_read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "More rows than an export holds",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/svs/v1/coverage/summary": {
+      "get": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "The rows the filters match, counted per state and per own state, overall and per platform, with what\nthe last refresh did.",
+        "operationId": "summary",
+        "parameters": [
+          {
+            "name": "f",
+            "in": "query",
+            "description": "A filter, as the coverage list takes it; repeat it for more.",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "style": "form",
+            "explode": true
+          },
+          {
+            "name": "changed_since",
+            "in": "query",
+            "description": "Only rows written or changed at or after this time, where the listing takes it.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tz",
+            "in": "query",
+            "description": "The timezone relative date filters resolve in; UTC when left out.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The counts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoverageSummaryBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A filter or timezone that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold svs:run_read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/svs/v1/coverage/{technique}": {
+      "get": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "A technique's coverage: its rows and its sub-techniques' as of the last refresh, and the tests and\nsignatures that count toward them now. A revoked id answers for its successor.",
+        "operationId": "technique",
+        "parameters": [
+          {
+            "name": "technique",
+            "in": "path",
+            "description": "An ATT&CK technique id, such as T1059 or T1059.001",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The technique's coverage",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TechniqueCoverageBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Something that isn't a technique id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold svs:run_read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "A technique with no rows that the release doesn't have",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/svs/v1/expectations": {
       "get": {
         "tags": [
@@ -14587,6 +15244,592 @@
         }
       }
     },
+    "/api/svs/v1/worklist": {
+      "get": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "The worklist rows by signature, then technique, a page at a time. Follow `next` with the same filters\nuntil it's null.",
+        "operationId": "list",
+        "parameters": [
+          {
+            "name": "f",
+            "in": "query",
+            "description": "A filter in the share-link encoding (`[!]slug:v1,v2`) with the worklist screen's slugs: signature\n(a uuid, or text in the name), family, technique (T1059 also finds its sub-techniques), status,\nkind, resolution (keep, remove, none), resolved_by, resolved. Repeat it for more; filters are\nANDed, the values of one ORed.",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "style": "form",
+            "explode": true
+          },
+          {
+            "name": "changed_since",
+            "in": "query",
+            "description": "Only rows written or changed at or after this time; the pages are then in (updated_at, id) order.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tz",
+            "in": "query",
+            "description": "The timezone relative date filters resolve in; UTC when left out.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "How many, 1 to 1000; 100 when left out.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "description": "The `next` of the previous page.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of worklist rows",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorklistPageBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A filter, time, timezone, limit or cursor that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold svs:run_read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/svs/v1/worklist/bulk/resolve": {
+      "post": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "Resolve many rows alike; a row that doesn't exist or can't be resolved is reported and left alone.",
+        "operationId": "bulk_resolve",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BulkResolutionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "What happened to each row",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BulkResolutionBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A body, resolution, reason or reference that isn't one, or no rows, or more than 500",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold svs:run_manage",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The body is too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/svs/v1/worklist/export/{format}": {
+      "get": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "Every row the list's filters match, as CSV (`declared_as` and `measured_techniques` joined with `,`,\nwho resolved it by name) or NDJSON, one row as the list gives it on each line.",
+        "operationId": "export",
+        "parameters": [
+          {
+            "name": "format",
+            "in": "path",
+            "description": "`csv` or `ndjson`",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "f",
+            "in": "query",
+            "description": "A filter, as the worklist takes it; repeat it for more.",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "style": "form",
+            "explode": true
+          },
+          {
+            "name": "changed_since",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tz",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The rows, as text/csv or application/x-ndjson",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A format, filter, time or timezone that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold svs:run_read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "More rows than an export holds",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/svs/v1/worklist/{signature_uuid}": {
+      "get": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "A signature's rows, retired ones included, and what it is measured on now.",
+        "operationId": "signature",
+        "parameters": [
+          {
+            "name": "signature_uuid",
+            "in": "path",
+            "description": "The signature",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The signature's rows",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignatureWorklistBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold svs:run_read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The signature has no worklist rows",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/svs/v1/worklist/{signature_uuid}/{technique}/resolution": {
+      "put": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "Resolve a tag measurement doesn't confirm: keep it, or remove it (it stops counting toward coverage\nfrom the next refresh). With `If-Match`, the row's `updated_at` as last read, it applies only while the\nrow is unchanged since.",
+        "operationId": "set_resolution",
+        "parameters": [
+          {
+            "name": "signature_uuid",
+            "in": "path",
+            "description": "The signature",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "technique",
+            "in": "path",
+            "description": "The row's technique",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "The row's updated_at as last read",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          {
+            "name": "If-None-Match",
+            "in": "header",
+            "description": "`*`: no row was seen, which a row that exists never satisfies",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResolutionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The row, resolved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorklistRowBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A body, resolution, reason, reference or precondition that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold svs:run_manage",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such row",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The row is confirmed, informational, retired or removed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "The row changed since it was read; read it again",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The body is too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "svs"
+        ],
+        "summary": "Clear a row's resolution: an unconfirmed tag is open again, and counts from the next refresh.",
+        "operationId": "clear_resolution",
+        "parameters": [
+          {
+            "name": "signature_uuid",
+            "in": "path",
+            "description": "The signature",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "technique",
+            "in": "path",
+            "description": "The row's technique",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "The row's updated_at as last read",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The row, with no resolution",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorklistRowBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A precondition that isn't one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold svs:run_manage",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such row, or it has no resolution",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "The row changed since it was read; read it again",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/svs/v1/yara/validations": {
       "get": {
         "tags": [
@@ -18782,6 +20025,71 @@
           }
         }
       },
+      "BulkResolutionBody": {
+        "type": "object",
+        "description": "What a bulk resolution did to each row it was given.",
+        "required": [
+          "done",
+          "conflicts",
+          "unknown"
+        ],
+        "properties": {
+          "conflicts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorklistConflictBody"
+            },
+            "description": "Rows that are confirmed, informational, retired or removed; left alone."
+          },
+          "done": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorklistKeyBody"
+            },
+            "description": "The rows resolved."
+          },
+          "unknown": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorklistKeyBody"
+            },
+            "description": "Rows that don't exist."
+          }
+        }
+      },
+      "BulkResolutionRequest": {
+        "type": "object",
+        "description": "A resolution to make of many rows alike.",
+        "required": [
+          "resolution",
+          "reason",
+          "rows"
+        ],
+        "properties": {
+          "reason": {
+            "type": "string",
+            "description": "Why; required."
+          },
+          "reference": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "resolution": {
+            "type": "string",
+            "description": "`keep` or `remove`."
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorklistKeyBody"
+            },
+            "description": "The rows, 1 to 500."
+          }
+        },
+        "additionalProperties": false
+      },
       "BulkRunBody": {
         "type": "object",
         "description": "What a bulk action did to each run.",
@@ -18972,7 +20280,12 @@
           "commit",
           "content_hash",
           "first_seen_at",
-          "updated_at"
+          "updated_at",
+          "test_state",
+          "run_count",
+          "expected_signatures",
+          "recent_runs",
+          "recent_runs_missing"
         ],
         "properties": {
           "commit": {
@@ -18990,6 +20303,11 @@
             ],
             "description": "`command_prompt`, `powershell`, `sh`, `bash` or `manual`."
           },
+          "expected_signatures": {
+            "type": "integer",
+            "description": "Signatures expected of it on any platform, that no ignore applies to.",
+            "minimum": 0
+          },
           "first_seen_at": {
             "type": "string",
             "format": "date-time"
@@ -18998,6 +20316,34 @@
             "type": "string",
             "format": "uuid",
             "description": "The test's `auto_generated_guid`, lower case."
+          },
+          "last_reviewed_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "last_reviewed_run_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "last_run_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "last_run_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
           },
           "name": {
             "type": "string"
@@ -19013,6 +20359,16 @@
             },
             "description": "Its `supported_platforms`, lower case."
           },
+          "recent_runs": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Its latest ended or reviewed runs looked at (at most 5)."
+          },
+          "recent_runs_missing": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Of those, the runs that missed an expected signature."
+          },
           "removed_at": {
             "type": [
               "string",
@@ -19025,6 +20381,10 @@
             "type": "string",
             "description": "The catalog repository it is read from, a name in the overlay's `svs.catalog.repositories`."
           },
+          "run_count": {
+            "type": "integer",
+            "format": "int64"
+          },
           "technique": {
             "type": "string",
             "description": "The ATT&CK technique of its atomic file, such as `T1059.001`."
@@ -19035,10 +20395,14 @@
               "null"
             ]
           },
+          "test_state": {
+            "type": "string",
+            "description": "`never_run`, `awaiting_review`, `no_expectations`, `failing`, `stale` or `validated`: `never_run`\nwithout runs, else the worst of its platforms' states."
+          },
           "updated_at": {
             "type": "string",
             "format": "date-time",
-            "description": "When the catalog row last changed: the `changed_since` key."
+            "description": "When the catalog row last changed: the `changed_since` key. A change to the test's runs or state\ndoesn't change it."
           }
         }
       },
@@ -19050,6 +20414,7 @@
           {
             "type": "object",
             "required": [
+              "platform_states",
               "platform_slugs",
               "entry"
             ],
@@ -19070,6 +20435,13 @@
                   "type": "string"
                 },
                 "description": "The platforms a run of it can be on: its `supported_platforms` as ATT&CK's platform slugs, sorted."
+              },
+              "platform_states": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/PlatformStateBody"
+                },
+                "description": "Its state on each platform: each one it has a run or a decision on, and each one it supports."
               }
             }
           }
@@ -19403,6 +20775,468 @@
             "type": "integer",
             "description": "How many unconfirmed (inherited_multi) detections were confirmed.",
             "minimum": 0
+          }
+        }
+      },
+      "CoverageHistoryCountsBody": {
+        "type": "object",
+        "description": "The snapshot rows the filters match, counted per period.",
+        "required": [
+          "group",
+          "periods",
+          "truncated"
+        ],
+        "properties": {
+          "group": {
+            "type": "string",
+            "description": "`day` or `month`."
+          },
+          "periods": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PeriodCountsBody"
+            },
+            "description": "Oldest first."
+          },
+          "truncated": {
+            "type": "boolean",
+            "description": "There were more than 366 periods, and these are the newest: narrow the Date filter for the rest."
+          }
+        }
+      },
+      "CoverageHistoryPageBody": {
+        "type": "object",
+        "description": "A page of snapshot rows.",
+        "required": [
+          "rows"
+        ],
+        "properties": {
+          "next": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Pass it as `cursor`, with the same filters, for the next page; null on the last."
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CoverageSnapshotBody"
+            }
+          }
+        }
+      },
+      "CoveragePageBody": {
+        "type": "object",
+        "description": "A page of coverage rows.",
+        "required": [
+          "rows"
+        ],
+        "properties": {
+          "next": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Pass it as `cursor`, with the same filters, for the next page; null on the last."
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CoverageRowBody"
+            }
+          }
+        }
+      },
+      "CoverageRefreshBody": {
+        "type": "object",
+        "description": "What the last coverage refresh did.",
+        "required": [
+          "rows",
+          "changed",
+          "retired",
+          "unknown_tags",
+          "ignored_tags"
+        ],
+        "properties": {
+          "attack_release": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The ATT&CK release of the last refresh that completed."
+          },
+          "changed": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "duration_ms": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32"
+          },
+          "error": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Why the latest refresh failed; null once one completes."
+          },
+          "ignored_tags": {
+            "type": "integer",
+            "format": "int32",
+            "description": "`mitre:` tags that aren't technique ids (templated, tactics)."
+          },
+          "refreshed_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "When the last refresh completed; null before the first."
+          },
+          "retired": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "rows": {
+            "type": "integer",
+            "format": "int32",
+            "description": "The rows it computed, how many it wrote, and how many of those it retired."
+          },
+          "unknown_tags": {
+            "type": "integer",
+            "format": "int32",
+            "description": "`mitre:` tags naming an id the release doesn't have."
+          }
+        }
+      },
+      "CoverageRowBody": {
+        "type": "object",
+        "description": "Coverage of one ATT&CK technique on one platform, as of the last refresh.",
+        "required": [
+          "technique",
+          "platform",
+          "is_subtechnique",
+          "tactics",
+          "catalog_status",
+          "attack_platform",
+          "state",
+          "own_state",
+          "tests_total",
+          "tests_validated",
+          "tests_failing",
+          "tests_stale",
+          "manual_signatures",
+          "measured_signatures",
+          "state_changed_at",
+          "first_seen_at",
+          "updated_at"
+        ],
+        "properties": {
+          "attack_platform": {
+            "type": "boolean",
+            "description": "ATT&CK lists the platform for the technique; otherwise only a test brought the row."
+          },
+          "catalog_status": {
+            "type": "string",
+            "description": "`active`, `deprecated`, or `unknown` (not in the pinned release)."
+          },
+          "first_seen_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "is_subtechnique": {
+            "type": "boolean"
+          },
+          "last_reviewed_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "The latest review of a run that counts."
+          },
+          "manual_signatures": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Signatures whose `mitre:` tag counts toward `state`."
+          },
+          "measured_signatures": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Signatures expected of the counted tests on the platform."
+          },
+          "own_state": {
+            "type": "string",
+            "description": "The same, leaving the sub-techniques out."
+          },
+          "parent": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The parent technique of a sub-technique."
+          },
+          "platform": {
+            "type": "string",
+            "description": "An ATT&CK platform slug: `windows`, `linux`, `macos`, `iaas`, ..."
+          },
+          "retired_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "When the computation stopped producing the row; it is never deleted."
+          },
+          "state": {
+            "type": "string",
+            "description": "`failing`, `stale`, `validated`, `manual`, `untested` or `none`: the worst of what counts toward\nthe technique and its sub-techniques on the platform."
+          },
+          "state_changed_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "tactics": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The technique's tactic ids (`TA0002`) in the pinned release."
+          },
+          "technique": {
+            "type": "string",
+            "description": "The ATT&CK technique id, such as `T1059` or `T1059.001`."
+          },
+          "technique_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "tests_failing": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "tests_stale": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "tests_total": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Tests counted toward `state`, the sub-techniques' included."
+          },
+          "tests_validated": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the row last changed: the `changed_since` key."
+          }
+        }
+      },
+      "CoverageSnapshotBody": {
+        "type": "object",
+        "description": "A coverage row as it was on one day.",
+        "required": [
+          "snapshot_date",
+          "technique",
+          "platform",
+          "attack_release",
+          "is_subtechnique",
+          "state",
+          "own_state",
+          "tests_total",
+          "tests_validated",
+          "tests_failing",
+          "tests_stale",
+          "manual_signatures",
+          "measured_signatures",
+          "updated_at"
+        ],
+        "properties": {
+          "attack_release": {
+            "type": "string"
+          },
+          "is_subtechnique": {
+            "type": "boolean"
+          },
+          "manual_signatures": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "measured_signatures": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "own_state": {
+            "type": "string"
+          },
+          "parent": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "platform": {
+            "type": "string"
+          },
+          "snapshot_date": {
+            "type": "string",
+            "format": "date",
+            "description": "The UTC day."
+          },
+          "state": {
+            "type": "string"
+          },
+          "technique": {
+            "type": "string"
+          },
+          "tests_failing": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "tests_stale": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "tests_total": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "tests_validated": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the row was written; a second snapshot the same day rewrites it only when it differs."
+          }
+        }
+      },
+      "CoverageSummaryBody": {
+        "type": "object",
+        "description": "The rows the filters match, counted, and what the last refresh did.",
+        "required": [
+          "rows",
+          "states",
+          "own_states",
+          "platforms"
+        ],
+        "properties": {
+          "own_states": {
+            "type": "object",
+            "description": "Rows per own_state, every state named.",
+            "additionalProperties": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "propertyNames": {
+              "type": "string"
+            }
+          },
+          "platforms": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlatformCountsBody"
+            },
+            "description": "The same per platform, in the release's platform order, then any other platform a test brought."
+          },
+          "refresh": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/CoverageRefreshBody",
+                "description": "Null before anything refreshed."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "rows": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "states": {
+            "type": "object",
+            "description": "Rows per state, every state named.",
+            "additionalProperties": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "propertyNames": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "CoverageTestBody": {
+        "type": "object",
+        "description": "One catalog test on one platform, as it counts toward the technique's coverage there.",
+        "required": [
+          "guid",
+          "name",
+          "test_technique",
+          "technique",
+          "platform",
+          "test_state",
+          "contribution",
+          "expected_signatures"
+        ],
+        "properties": {
+          "contribution": {
+            "type": "string",
+            "description": "What it counts as toward the row: `failing`, `stale`, `validated` or `untested`."
+          },
+          "expected_signatures": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Signature uuids expected of it on the platform that no ignore applies to."
+          },
+          "guid": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "last_reviewed_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "last_reviewed_run_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "platform": {
+            "type": "string"
+          },
+          "technique": {
+            "type": "string",
+            "description": "The technique it counts toward (a revoked id becomes its successor)."
+          },
+          "test_state": {
+            "type": "string",
+            "description": "`never_run` (no run or decision on the platform), `awaiting_review`, `no_expectations`, `failing`,\n`stale` or `validated`."
+          },
+          "test_technique": {
+            "type": "string",
+            "description": "The technique as the test's atomic file names it."
           }
         }
       },
@@ -21820,6 +23654,50 @@
           }
         }
       },
+      "ManualSignatureBody": {
+        "type": "object",
+        "description": "A signature's `mitre:` tag naming the technique or a sub-technique: a manual mapping.",
+        "required": [
+          "signature_uuid",
+          "family",
+          "declared",
+          "technique",
+          "counts"
+        ],
+        "properties": {
+          "counts": {
+            "type": "boolean"
+          },
+          "declared": {
+            "type": "string",
+            "description": "The technique id the tag names."
+          },
+          "family": {
+            "type": "string",
+            "description": "`hunt` or `yara`."
+          },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "reason": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Why it doesn't count: `not_counting` (disabled, or a YARA rule in QA mode), `unknown_technique`, or\n`removed` (resolved remove on the worklist)."
+          },
+          "signature_uuid": {
+            "type": "string"
+          },
+          "technique": {
+            "type": "string",
+            "description": "The technique it counts toward (a revoked id becomes its successor)."
+          }
+        }
+      },
       "MarkerMismatchBody": {
         "type": "object",
         "description": "A marker in the alert that doesn't agree with its run.",
@@ -21856,6 +23734,86 @@
           "substring",
           "regex"
         ]
+      },
+      "MeasuredSignatureBody": {
+        "type": "object",
+        "description": "A signature expected of the technique's tests: a measured mapping.",
+        "required": [
+          "signature_uuid",
+          "tests"
+        ],
+        "properties": {
+          "family": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "signature_uuid": {
+            "type": "string"
+          },
+          "tests": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TestPlatformBody"
+            }
+          }
+        }
+      },
+      "MeasuredTechniqueBody": {
+        "type": "object",
+        "description": "A technique the signature is measured on now.",
+        "required": [
+          "technique",
+          "tests"
+        ],
+        "properties": {
+          "technique": {
+            "type": "string"
+          },
+          "technique_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "tests": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MeasuredTestBody"
+            },
+            "description": "The catalog tests, on each platform, the signature is expected of."
+          }
+        }
+      },
+      "MeasuredTestBody": {
+        "type": "object",
+        "description": "A catalog test, on a platform, that the signature is expected of.",
+        "required": [
+          "guid",
+          "platform"
+        ],
+        "properties": {
+          "guid": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "platform": {
+            "type": "string"
+          }
+        }
       },
       "MissingCountBody": {
         "type": "object",
@@ -22347,6 +24305,54 @@
         },
         "additionalProperties": false
       },
+      "PeriodCountsBody": {
+        "type": "object",
+        "description": "One period's counts.",
+        "required": [
+          "period",
+          "snapshot_date",
+          "rows",
+          "states",
+          "own_states"
+        ],
+        "properties": {
+          "own_states": {
+            "type": "object",
+            "description": "Rows per own_state, every state named.",
+            "additionalProperties": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "propertyNames": {
+              "type": "string"
+            }
+          },
+          "period": {
+            "type": "string",
+            "description": "The day (`2026-10-16`) or the month (`2026-10`)."
+          },
+          "rows": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "snapshot_date": {
+            "type": "string",
+            "format": "date",
+            "description": "The snapshot counted: the day's, or the month's last."
+          },
+          "states": {
+            "type": "object",
+            "description": "Rows per state, every state named.",
+            "additionalProperties": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "propertyNames": {
+              "type": "string"
+            }
+          }
+        }
+      },
       "PingBody": {
         "type": "object",
         "description": "The answer to a ping.",
@@ -22357,6 +24363,84 @@
           "result": {
             "type": "string",
             "description": "Always `pong`."
+          }
+        }
+      },
+      "PlatformCountsBody": {
+        "type": "object",
+        "description": "The rows of one platform, counted.",
+        "required": [
+          "platform",
+          "rows",
+          "states",
+          "own_states"
+        ],
+        "properties": {
+          "own_states": {
+            "type": "object",
+            "description": "Rows per own_state, every state named.",
+            "additionalProperties": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "propertyNames": {
+              "type": "string"
+            }
+          },
+          "platform": {
+            "type": "string"
+          },
+          "rows": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "states": {
+            "type": "object",
+            "description": "Rows per state, every state named.",
+            "additionalProperties": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "propertyNames": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "PlatformStateBody": {
+        "type": "object",
+        "description": "A test on one platform.",
+        "required": [
+          "platform",
+          "test_state",
+          "expected_signatures"
+        ],
+        "properties": {
+          "expected_signatures": {
+            "type": "integer",
+            "description": "Signatures expected of it there.",
+            "minimum": 0
+          },
+          "last_reviewed_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "last_reviewed_run_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "platform": {
+            "type": "string"
+          },
+          "test_state": {
+            "type": "string",
+            "description": "`never_run` (no run or decision on it), `awaiting_review`, `no_expectations`, `failing`, `stale` or\n`validated`."
           }
         }
       },
@@ -23217,6 +25301,34 @@
           }
         }
       },
+      "RemovedTestBody": {
+        "type": "object",
+        "description": "A test removed from its repository; it doesn't count.",
+        "required": [
+          "guid",
+          "name",
+          "technique"
+        ],
+        "properties": {
+          "guid": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "removed_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "technique": {
+            "type": "string"
+          }
+        }
+      },
       "RequestBody": {
         "type": "object",
         "description": "A file to ask a collector for.",
@@ -23286,6 +25398,32 @@
             "description": "`NEW`, `IN_PROGRESS` (waiting to be tried again) or `COMPLETED`."
           }
         }
+      },
+      "ResolutionRequest": {
+        "type": "object",
+        "description": "A resolution to make.",
+        "required": [
+          "resolution",
+          "reason"
+        ],
+        "properties": {
+          "reason": {
+            "type": "string",
+            "description": "Why; required, at most 4096 characters."
+          },
+          "reference": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "An http(s) link, such as the pull request removing the tag; at most 1024 characters."
+          },
+          "resolution": {
+            "type": "string",
+            "description": "`keep`: the tag covers something no test reaches; `remove`: the signature repository will drop the\ntag."
+          }
+        },
+        "additionalProperties": false
       },
       "ResultBody": {
         "type": "object",
@@ -25768,6 +27906,46 @@
           }
         }
       },
+      "SignatureWorklistBody": {
+        "type": "object",
+        "description": "A signature's worklist rows, and what it is measured on now.",
+        "required": [
+          "signature_uuid",
+          "rows",
+          "measured"
+        ],
+        "properties": {
+          "measured": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MeasuredTechniqueBody"
+            },
+            "description": "The techniques the signature is measured on now, with the tests that measure it, computed at the\nrequest."
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorklistRowBody"
+            },
+            "description": "Every row of the signature, retired ones included."
+          },
+          "signature_family": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "signature_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "signature_uuid": {
+            "type": "string"
+          }
+        }
+      },
       "SkippedDetectionBody": {
         "type": "object",
         "description": "A contributing detection that couldn't take the verdict, and why.",
@@ -26196,6 +28374,110 @@
           }
         }
       },
+      "TechniqueCoverageBody": {
+        "type": "object",
+        "description": "A technique's coverage: its rows as of the last refresh, and what counts toward them now.",
+        "required": [
+          "requested",
+          "technique",
+          "is_subtechnique",
+          "catalog_status",
+          "tactics",
+          "attack_release",
+          "rows",
+          "sub_technique_rows",
+          "tests",
+          "measured_signatures",
+          "manual_signatures",
+          "removed_tests"
+        ],
+        "properties": {
+          "attack_release": {
+            "type": "string",
+            "description": "The pinned ATT&CK release."
+          },
+          "catalog_status": {
+            "type": "string"
+          },
+          "is_subtechnique": {
+            "type": "boolean"
+          },
+          "manual_signatures": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ManualSignatureBody"
+            }
+          },
+          "measured_signatures": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MeasuredSignatureBody"
+            }
+          },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "parent": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "refreshed_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "When the rows were last refreshed; the tests and signatures below are read now."
+          },
+          "removed_tests": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RemovedTestBody"
+            },
+            "description": "Tests removed from their repository; they don't count."
+          },
+          "requested": {
+            "type": "string",
+            "description": "The id asked for."
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CoverageRowBody"
+            },
+            "description": "The technique's rows, retired ones included."
+          },
+          "sub_technique_rows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CoverageRowBody"
+            },
+            "description": "Its sub-techniques' rows, retired ones included."
+          },
+          "tactics": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "technique": {
+            "type": "string",
+            "description": "The technique answered for: the requested id, or its successor when revoked."
+          },
+          "tests": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CoverageTestBody"
+            },
+            "description": "The tests of the technique and its sub-techniques, per platform."
+          }
+        }
+      },
       "TestHostBody": {
         "type": "object",
         "description": "A host test runs may target.",
@@ -26335,6 +28617,23 @@
           }
         },
         "additionalProperties": false
+      },
+      "TestPlatformBody": {
+        "type": "object",
+        "description": "A (test, platform) pair that expects a signature.",
+        "required": [
+          "guid",
+          "platform"
+        ],
+        "properties": {
+          "guid": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "platform": {
+            "type": "string"
+          }
+        }
       },
       "TestSettingsBody": {
         "type": "object",
@@ -27151,6 +29450,202 @@
           "tp_inherited_single": {
             "type": "integer",
             "format": "int64"
+          }
+        }
+      },
+      "WorklistConflictBody": {
+        "type": "object",
+        "description": "A row that can't be resolved, and the status that says why.",
+        "required": [
+          "signature_uuid",
+          "technique",
+          "status"
+        ],
+        "properties": {
+          "signature_uuid": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "description": "The row's status, which can't be resolved."
+          },
+          "technique": {
+            "type": "string"
+          }
+        }
+      },
+      "WorklistKeyBody": {
+        "type": "object",
+        "description": "A worklist row's key.",
+        "required": [
+          "signature_uuid",
+          "technique"
+        ],
+        "properties": {
+          "signature_uuid": {
+            "type": "string"
+          },
+          "technique": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "WorklistPageBody": {
+        "type": "object",
+        "description": "A page of worklist rows.",
+        "required": [
+          "rows"
+        ],
+        "properties": {
+          "next": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Pass it as `cursor`, with the same filters, for the next page; null on the last."
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorklistRowBody"
+            }
+          }
+        }
+      },
+      "WorklistRowBody": {
+        "type": "object",
+        "description": "One signature's tag on, or measurement of, one ATT&CK technique, as of the last coverage refresh (the\nresolution as of now).",
+        "required": [
+          "signature_uuid",
+          "technique",
+          "kind",
+          "status",
+          "declared_as",
+          "tag_present",
+          "signature_counts",
+          "counts",
+          "measured",
+          "measured_techniques",
+          "first_seen_at",
+          "status_changed_at",
+          "updated_at"
+        ],
+        "properties": {
+          "counts": {
+            "type": "boolean",
+            "description": "The tag counts toward coverage as a manual mapping (from the next refresh, after a resolution)."
+          },
+          "declared_as": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The tag ids, as the signature writes them, that count as the technique."
+          },
+          "first_seen_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "kind": {
+            "type": "string",
+            "description": "`declared` (a tag of the signature), `undeclared` (measured, but no tag names it) or `unknown` (a\ntag naming an id the release doesn't have)."
+          },
+          "measured": {
+            "type": "boolean",
+            "description": "The signature is expected of a catalog test."
+          },
+          "measured_techniques": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The techniques the signature is measured on."
+          },
+          "reason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "reference": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "A link, such as the pull request removing the tag."
+          },
+          "resolution": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "`keep` or `remove`; null when nobody resolved the row."
+          },
+          "resolved_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "resolved_by": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ActorBody",
+                "description": "Who resolved it."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "signature_counts": {
+            "type": "boolean",
+            "description": "The signature is enabled, and isn't a YARA rule in QA mode."
+          },
+          "signature_family": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "signature_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "signature_uuid": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "description": "`confirmed`, `open`, `kept`, `remove_pending`, `removed`, `undeclared`, `unknown` or `retired`."
+          },
+          "status_changed_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "tag_present": {
+            "type": "boolean",
+            "description": "The signature has the tag now."
+          },
+          "technique": {
+            "type": "string",
+            "description": "The technique in the pinned ATT&CK release (a revoked tag id counts as its successor)."
+          },
+          "technique_name": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Its name in the pinned release."
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the row last changed: the `changed_since` key, and what an `If-Match` names."
           }
         }
       },

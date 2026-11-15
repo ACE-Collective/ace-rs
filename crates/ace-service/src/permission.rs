@@ -338,6 +338,13 @@ pub const SVS_RUN_MANAGE: PermissionName = PermissionName::known("svs", "run_man
 /// Move SVS test runs and maintenance windows on by time, as ace3's `service_svs` does. ace3 has no such
 /// permission. Only the scheduler's `scheduler:svs_run_timers` holds it.
 pub const SVS_RUN_TIMERS: PermissionName = PermissionName::known("svs", "run_timers");
+/// Recompute SVS's ATT&CK coverage and its worklist, as ace3's `service_svs` and `ace svs coverage
+/// refresh` do. ace3 has no such permission. Only the scheduler's `scheduler:svs_coverage_refresh` and
+/// `scheduler:svs_coverage_snapshot` hold it.
+pub const SVS_COVERAGE_REFRESH: PermissionName = PermissionName::known("svs", "coverage_refresh");
+/// File the day's snapshot of SVS's coverage, as ace3's `ace svs coverage snapshot` does. ace3 has no
+/// such permission. Only the scheduler's `scheduler:svs_coverage_snapshot` holds it.
+pub const SVS_COVERAGE_SNAPSHOT: PermissionName = PermissionName::known("svs", "coverage_snapshot");
 /// See users, groups, grants and keys: ace3's `user:read`.
 pub const USER_READ: PermissionName = PermissionName::known("user", "read");
 /// Change users, groups and grants: ace3's `user:write`.
@@ -509,8 +516,8 @@ pub static CATALOG: &[CatalogEntry] = &[
     },
     CatalogEntry {
         name: SVS_RUN_READ,
-        description: "Read the SVS test hosts, the Atomic Red Team tests runs may be registered for, and the \
-                      catalog's repositories.",
+        description: "Read the SVS test hosts, the Atomic Red Team tests runs may be registered for, the \
+                      catalog's repositories, the test runs, ATT&CK coverage and the worklist.",
     },
     CatalogEntry {
         name: SVS_VALIDATE,
@@ -534,12 +541,23 @@ pub static CATALOG: &[CatalogEntry] = &[
     },
     CatalogEntry {
         name: SVS_RUN_MANAGE,
-        description: "End an SVS test run before its observation window passes (audited).",
+        description: "A person's changes to SVS test runs and what's decided about them, and the \
+                      coverage worklist's resolutions (audited).",
     },
     CatalogEntry {
         name: SVS_RUN_TIMERS,
         description: "Move SVS test runs and maintenance windows on by time (audited). The scheduler \
                       holds it.",
+    },
+    CatalogEntry {
+        name: SVS_COVERAGE_REFRESH,
+        description: "Recompute SVS's ATT&CK coverage and its worklist (audited). The scheduler holds \
+                      it.",
+    },
+    CatalogEntry {
+        name: SVS_COVERAGE_SNAPSHOT,
+        description: "File the day's snapshot of SVS's ATT&CK coverage (audited). The scheduler holds \
+                      it.",
     },
     CatalogEntry {
         name: USER_READ,

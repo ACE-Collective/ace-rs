@@ -16,9 +16,15 @@
 //! developer to vendor: ace3's `bin/update-attack-catalog` (`ace_core::svs::attack::extract`). It reads no
 //! configuration and reaches nothing: the bundle is a file the developer downloaded.
 //!
-//! What differs from ace3: ace3's prune skips a node that isn't the primary one unless given `--force`; ace4
-//! has no primary node (every replica shares the queue), so there's no `--force`. ace3's coverage commands
-//! come with batch 8.
+//! `coverage refresh` recomputes ATT&CK coverage and the worklist at once, as the scheduler's
+//! `svs_coverage_refresh` does every two minutes, acting as that task's component; `coverage snapshot`
+//! refreshes and files the day's (UTC) copy, as `svs_coverage_snapshot` does daily, and a rerun replaces
+//! the day; `coverage status` prints the last refresh, the rows per state on each platform and the
+//! worklist's rows per status (batch 8, `ace_core::svs::coverage`). Their lines are ace3's.
+//!
+//! What differs from ace3: ace3's prune, refresh and snapshot skip a node that isn't the primary one unless
+//! given `--force`; ace4 has no primary node (every replica shares the queue and the refresh's lock), so
+//! there's no `--force`.
 
 use std::process::ExitCode;
 
@@ -53,6 +59,19 @@ pub enum SvsCommand {
     /// The ATT&CK release coverage is computed against.
     #[command(subcommand)]
     Attack(SvsAttackCommand),
+    /// ATT&CK coverage per technique and platform.
+    #[command(subcommand)]
+    Coverage(SvsCoverageCommand),
+}
+
+#[derive(Subcommand)]
+pub enum SvsCoverageCommand {
+    /// Recompute ATT&CK coverage (the scheduler does this on its own).
+    Refresh,
+    /// Print the last coverage refresh and the rows per state.
+    Status,
+    /// Refresh ATT&CK coverage and file today's (UTC) snapshot; a rerun replaces the day.
+    Snapshot,
 }
 
 #[derive(Subcommand)]
@@ -647,6 +666,166 @@ pub fn attack_extract(args: &AttackExtractArgs) -> Result<String> {
     Ok(out)
 }
 
+/// A component of the scheduler's, which a coverage command acts as.
+fn scheduler_actor(task: &str) -> Result<ace_service::Actor> {
+    Ok(ace_service::Actor::Internal {
+        id: ace_service::Component::new(format!("scheduler:{task}")).map_err(anyhow::Error::msg)?,
+    })
+}
+
+/// `ace svs coverage refresh` over `service`: its line and its exit code. ace3's `cli_coverage_refresh`.
+pub async fn coverage_refresh(service: &ace_service::Service) -> Result<(String, u8)> {
+    Ok(
+        match service
+            .refresh_svs_coverage(
+                &scheduler_actor("svs_coverage_refresh")?,
+                chrono::Utc::now(),
+            )
+            .await
+        {
+            Ok(result) => (
+                format!(
+                    "{} rows: {} changed ({} new, {} retired) in {}ms\n",
+                    result.rows,
+                    result.changed,
+                    result.inserted,
+                    result.retired,
+                    result.duration_ms
+                ),
+                0,
+            ),
+            Err(error) => (format!("coverage refresh failed: {error}\n"), 1),
+        },
+    )
+}
+
+/// `ace svs coverage snapshot` over `service`: its line and its exit code. ace3's
+/// `cli_coverage_snapshot`.
+pub async fn coverage_snapshot(service: &ace_service::Service) -> Result<(String, u8)> {
+    Ok(
+        match service
+            .write_svs_coverage_snapshot(
+                &scheduler_actor("svs_coverage_snapshot")?,
+                None,
+                chrono::Utc::now(),
+            )
+            .await
+        {
+            Ok(result) => {
+                let deleted = if result.deleted > 0 {
+                    format!(", {} earlier rows of the day removed", result.deleted)
+                } else {
+                    String::new()
+                };
+                (
+                    format!(
+                        "snapshot of {} against ATT&CK {}: {} rows{deleted}\n",
+                        result.snapshot_date, result.attack_release, result.rows
+                    ),
+                    0,
+                )
+            }
+            Err(error) => (format!("coverage snapshot failed: {error}\n"), 1),
+        },
+    )
+}
+
+/// `ace svs coverage status`'s lines: ace3's `cli_coverage_status`.
+pub fn coverage_status_report(status: &ace_service::SvsCoverageStatus) -> String {
+    let mut out = String::new();
+    match status
+        .state
+        .as_ref()
+        .and_then(|state| state.refreshed_at.map(|refreshed_at| (state, refreshed_at)))
+    {
+        None => put!(out, "coverage has never been refreshed"),
+        Some((state, refreshed_at)) => put!(
+            out,
+            "refreshed {} against ATT&CK {} in {}ms: {} rows, {} changed, {} retired; {} unknown and {} \
+             ignored mitre: tags",
+            refreshed_at.format("%Y-%m-%d %H:%M:%S UTC"),
+            state.attack_release.as_deref().unwrap_or("?"),
+            state.duration_ms.unwrap_or(0),
+            state.rows,
+            state.changed,
+            state.retired,
+            state.unknown_tags,
+            state.ignored_tags
+        ),
+    }
+    if let Some(error) = status.state.as_ref().and_then(|state| state.error.as_ref()) {
+        put!(out, "the latest refresh failed: {error}");
+    }
+    let listed = |counts: &std::collections::BTreeMap<String, i64>, order: Vec<&'static str>| {
+        order
+            .into_iter()
+            .filter_map(|value| counts.get(value).map(|count| format!("{count} {value}")))
+            .collect::<Vec<_>>()
+            .join(", ")
+    };
+    for (platform, counts) in &status.counts {
+        let states = ace_service::SvsCoverageState::ALL
+            .iter()
+            .map(|state| state.as_str())
+            .collect();
+        put!(out, "  {platform}: {}", listed(counts, states));
+    }
+    let statuses = ace_service::WorklistStatus::ALL
+        .iter()
+        .map(|status| status.as_str())
+        .collect();
+    let worklist = listed(&status.worklist, statuses);
+    put!(
+        out,
+        "worklist: {}",
+        if worklist.is_empty() {
+            "empty"
+        } else {
+            worklist.as_str()
+        }
+    );
+    out
+}
+
+/// `ace svs coverage status`'s lines, read as an operator reads them: with the database's own
+/// credentials, not through the service, as `catalog_status` is.
+pub async fn coverage_status(db: &Db) -> Result<String> {
+    let mut conn = db.pool().acquire().await.context("a connection")?;
+    let status = ace_core::svs::coverage::status(&mut conn).await?;
+    Ok(coverage_status_report(&status))
+}
+
+fn run_coverage(command: SvsCoverageCommand) -> Result<ExitCode> {
+    let overlay = crate::cli::overlay()?;
+    let catalog = ace_core::svs::attack::attack_catalog(&overlay.svs.attack_release)
+        .map_err(anyhow::Error::msg)
+        .context("the overlay's svs.attack_release")?;
+    let runtime = tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()
+        .context("starting the runtime")?;
+    runtime.block_on(async {
+        let db = Db::connect(&DbConfig::from_env("ace")?)
+            .await
+            .context("connecting to Postgres")?;
+        if let SvsCoverageCommand::Status = command {
+            print!("{}", coverage_status(&db).await?);
+            return Ok(ExitCode::SUCCESS);
+        }
+        let orchestrator = ace_core::orchestrator::Orchestrator::new(
+            ace_core::eligibility::Catalog::new(vec![]),
+            ace_core::modes::Modes::ace3(),
+        );
+        let service = ace_service::Service::new(db, orchestrator).with_attack_catalog(catalog);
+        let (out, code) = match command {
+            SvsCoverageCommand::Snapshot => coverage_snapshot(&service).await?,
+            _ => coverage_refresh(&service).await?,
+        };
+        print!("{out}");
+        Ok(ExitCode::from(code))
+    })
+}
+
 fn run_catalog(command: SvsCatalogCommand) -> Result<ExitCode> {
     let overlay = crate::cli::overlay()?;
     let config = ace_core::svs::catalog::CatalogConfig::from_section(&overlay.svs.catalog)
@@ -685,6 +864,7 @@ pub fn run(_app: &crate::App, command: SvsCommand) -> Result<ExitCode> {
     let command = match command {
         SvsCommand::Yara(command) => command,
         SvsCommand::Catalog(command) => return run_catalog(command),
+        SvsCommand::Coverage(command) => return run_coverage(command),
         SvsCommand::Attack(SvsAttackCommand::Extract(args)) => {
             print!("{}", attack_extract(&args)?);
             return Ok(ExitCode::SUCCESS);
