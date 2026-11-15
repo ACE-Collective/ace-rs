@@ -96,6 +96,19 @@ pub(crate) fn svs_component() -> Actor {
     }
 }
 
+/// Who a record of a person's change names beside its actor (the logging contract's `actor_user_id`
+/// and `actor_key_id`): the user, or the key and the user it belongs to. A component has neither.
+fn who_acted(actor: &Actor) -> (Option<String>, Option<String>) {
+    match actor {
+        Actor::User { id, .. } => (Some(id.0.to_string()), None),
+        Actor::ApiKey { id, owner, .. } => (
+            owner.map(|owner| owner.0.to_string()),
+            Some(id.0.to_string()),
+        ),
+        Actor::Internal { .. } => (None, None),
+    }
+}
+
 fn svs_queue() -> Queue {
     Queue::new(SVS_QUEUE).expect("a valid queue name")
 }
@@ -114,7 +127,13 @@ struct Routing {
     any: bool,
     mismatch: bool,
     owner_id: Option<Uuid>,
+    /// The run a record about this alert names (the logging contract): the first run a standing
+    /// attribution gives it to, with that attribution's confidence, else the run whose marker a
+    /// mismatch detection names.
     run: Option<Uuid>,
+    test: Option<Uuid>,
+    marker: Option<String>,
+    confidence: Option<String>,
 }
 
 impl MarkerRouter {
@@ -131,10 +150,21 @@ impl MarkerRouter {
                       EXISTS (SELECT FROM analysis.detections d
                               WHERE d.root_id = o.id AND d.signature_uuid = $2) AS "mismatch!",
                       o.owner_id,
-                      (SELECT r.uuid FROM svs.attributions a JOIN svs.runs r ON r.id = a.run_id
-                       WHERE a.root_id = o.id AND a.removed_at IS NULL
-                       ORDER BY r.id LIMIT 1) AS run
-               FROM analysis.roots o WHERE o.id = $1"#,
+                      n.uuid AS "run?", n.test_guid AS "test?", n.marker AS "marker?",
+                      n.confidence AS "confidence?"
+               FROM analysis.roots o
+               LEFT JOIN LATERAL (
+                   (SELECT r.uuid, r.test_guid, r.marker, a.confidence::text AS confidence,
+                           0 AS place, r.id AS run_id, a.id
+                    FROM svs.attributions a JOIN svs.runs r ON r.id = a.run_id
+                    WHERE a.root_id = o.id AND a.removed_at IS NULL)
+                   UNION ALL
+                   (SELECT r.uuid, r.test_guid, r.marker, NULL, 1, r.id, d.id
+                    FROM analysis.detections d
+                    JOIN svs.runs r ON r.marker = d.details ->> 'marker'
+                    WHERE d.root_id = o.id AND d.signature_uuid = $2)
+                   ORDER BY 5, 6, 7 LIMIT 1) n ON true
+               WHERE o.id = $1"#,
             alert.root,
             MARKER_MISMATCH_SIGNATURE,
         )
@@ -219,7 +249,10 @@ impl MarkerRouter {
             stage = stage.as_str(),
             decision = outcome,
             queue = decision.as_ref().map(|d| d.queue.as_str()),
+            confidence = read.confidence.as_deref(),
             svs_run = read.run.map(|run| run.to_string()),
+            svs_test = read.test.map(|test| test.to_string()),
+            svs_marker = read.marker.as_deref(),
             svs_maintenance = maintenance.as_ref().map(|w| w.uuid.to_string()),
             "svs router decision on an alert"
         );
@@ -445,8 +478,10 @@ impl Service {
         )
         .await?;
         changed(tx, run.id).await?;
+        let (actor_user_id, actor_key_id) = who_acted(actor);
         tracing::info!(
-            svs_run = %run.run.uuid, alert_uuid = %alert, actor = %actor, late, reason,
+            svs_run = %run.run.uuid, svs_test = %run.run.test_guid, svs_marker = run.run.marker,
+            alert_uuid = %alert, actor = %actor, actor_user_id, actor_key_id, late, reason,
             "svs alert associated with a run"
         );
         Ok(())
@@ -523,8 +558,10 @@ impl Service {
         )
         .await?;
         changed(tx, run.id).await?;
+        let (actor_user_id, actor_key_id) = who_acted(actor);
         tracing::info!(
-            svs_run = %run.run.uuid, alert_uuid = %alert, actor = %actor, reason, not_a_test,
+            svs_run = %run.run.uuid, svs_test = %run.run.test_guid, svs_marker = run.run.marker,
+            alert_uuid = %alert, actor = %actor, actor_user_id, actor_key_id, reason, not_a_test,
             "svs alert disassociated from a run"
         );
 
@@ -665,8 +702,11 @@ impl Service {
                                 now,
                             )
                             .await?;
+                            let (actor_user_id, actor_key_id) = who_acted(actor);
                             tracing::info!(
-                                svs_run = %loaded.run.uuid, alert_uuid = %alert, actor = %actor,
+                                svs_run = %loaded.run.uuid, svs_test = %loaded.run.test_guid,
+                                svs_marker = loaded.run.marker, alert_uuid = %alert,
+                                actor = %actor, actor_user_id, actor_key_id,
                                 "svs context attribution kept"
                             );
                         }
@@ -765,7 +805,8 @@ impl Service {
                             // a change that committed while this waited for the locks released it first
                             Err(ServiceError::Conflict(why)) => {
                                 tracing::info!(
-                                    svs_run = %run.uuid, alert_uuid = %alert,
+                                    svs_run = %loaded.run.uuid, svs_test = %loaded.run.test_guid,
+                                    svs_marker = loaded.run.marker, alert_uuid = %alert,
                                     "svs alert was no longer held by a run: {why}"
                                 );
                             }
@@ -1032,7 +1073,8 @@ impl Service {
             .await?;
         }
         tracing::info!(
-            svs_run = %run, alert_uuids = ?closed, left_alone = ?left_alone, late, actor = %who,
+            svs_run = %run, svs_test = %loaded.run.test_guid, svs_marker = loaded.run.marker,
+            alert_uuids = ?closed, left_alone = ?left_alone, late, actor = %who,
             "svs run: {} {}alerts closed as {SIMULATED}, {} left alone",
             closed.len(),
             if late { "late " } else { "" },

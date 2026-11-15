@@ -54,8 +54,10 @@
 //! ```
 //!
 //! Escaping: askama escapes every value for HTML in a template whose name ends in `.html`, unless it's
-//! marked `|safe` or the template sets `escape = "none"`. Every template here ends in `.html`, none uses
-//! either, and there's no `askama.toml` to change the escapers, which `tests/gui.rs` checks by reading
+//! marked `|safe`, the template sets `escape = "none"`, or its type is marked `HtmlSafe`: two are, a
+//! view's `ViewHtml` (`analysis`) and a guide's `GuideHtml` (`help`), each made in one place. Every
+//! template here ends in `.html`, none uses `|safe` or sets its escaper, and there's no `askama.toml`
+//! to change the escapers, which `tests/gui.rs` checks by reading
 //! them. A value is text, and askama's escaper writes `&`, `<`, `>`, `"` and `'` as entities, so it's safe
 //! inside an element or a quoted attribute. It isn't safe as a URL in `href`, or as code in a `data-*`
 //! expression, so a template puts neither text from an alert nor any other outside value there.
@@ -83,6 +85,9 @@ pub struct Layout {
     pub signatures: bool,
     /// Whether the viewer holds `svs:run_read`, for the link to the SVS area (PLAN.md 7.10 batch 5).
     pub svs: bool,
+    /// How many test runs need attention, beside that link (batch 9): ace3's `svs_nav_count`. None
+    /// when no run does, when the count can't be read, and for a viewer without `svs:run_read`.
+    pub svs_attention: Option<String>,
     /// Whether the viewer holds `event:read`, for the link to the event list.
     pub events: bool,
     /// Whether the viewer holds `remediation:read` and `file_collection:read`, for the links to those
@@ -107,6 +112,7 @@ impl Layout {
             admin: false,
             signatures: false,
             svs: false,
+            svs_attention: None,
             events: false,
             remediations: false,
             file_collections: false,

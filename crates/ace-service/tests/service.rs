@@ -6221,6 +6221,105 @@ impl tracing_subscriber::fmt::MakeWriter<'_> for Captured {
     }
 }
 
+/// One record a subscriber saw, with its fields: ace3's `LogRecord`, for the SVS logging contract's
+/// tests (PLAN.md 7.10 batch 9).
+#[derive(Debug, Clone)]
+struct LogRecord {
+    level: tracing::Level,
+    message: String,
+    /// Every field its callsite declares, set or not: what ace3's `hasattr` asks of a record.
+    declared: Vec<&'static str>,
+    /// The fields it set, as text. One left unset, ace3's None, isn't here.
+    fields: std::collections::BTreeMap<String, String>,
+}
+
+impl LogRecord {
+    fn get(&self, name: &str) -> Option<&str> {
+        self.fields.get(name).map(String::as_str)
+    }
+
+    /// ace3's `_assert_fields`: the record carries each of `fields`.
+    #[track_caller]
+    fn carries(&self, fields: &[&str]) {
+        let missing: Vec<&&str> = fields
+            .iter()
+            .filter(|name| !self.declared.contains(name))
+            .collect();
+        assert!(missing.is_empty(), "{:?} lacks {missing:?}", self.message);
+    }
+}
+
+impl tracing::field::Visit for LogRecord {
+    fn record_debug(&mut self, field: &tracing::field::Field, value: &dyn std::fmt::Debug) {
+        if field.name() == "message" {
+            self.message = format!("{value:?}");
+        } else {
+            self.fields
+                .insert(field.name().to_owned(), format!("{value:?}"));
+        }
+    }
+
+    fn record_str(&mut self, field: &tracing::field::Field, value: &str) {
+        if field.name() == "message" {
+            self.message = value.to_owned();
+        } else {
+            self.fields
+                .insert(field.name().to_owned(), value.to_owned());
+        }
+    }
+}
+
+/// The records a thread's subscriber kept, as ace3's `caplog.records`.
+#[derive(Clone, Default)]
+struct Records(Arc<Mutex<Vec<LogRecord>>>);
+
+impl Records {
+    /// ace3's `_records`: the records whose message starts with `prefix`, in order.
+    fn starting(&self, prefix: &str) -> Vec<LogRecord> {
+        self.0
+            .lock()
+            .expect("a lock")
+            .iter()
+            .filter(|record| record.message.starts_with(prefix))
+            .cloned()
+            .collect()
+    }
+
+    /// The one record whose message starts with `prefix`.
+    #[track_caller]
+    fn one(&self, prefix: &str) -> LogRecord {
+        let mut found = self.starting(prefix);
+        assert_eq!(found.len(), 1, "one record starting {prefix:?}: {found:?}");
+        found.remove(0)
+    }
+
+    fn clear(&self) {
+        self.0.lock().expect("a lock").clear();
+    }
+}
+
+impl<S: tracing::Subscriber> tracing_subscriber::Layer<S> for Records {
+    fn on_event(&self, event: &tracing::Event<'_>, _: tracing_subscriber::layer::Context<'_, S>) {
+        let metadata = event.metadata();
+        let mut record = LogRecord {
+            level: *metadata.level(),
+            message: String::new(),
+            declared: metadata.fields().iter().map(|field| field.name()).collect(),
+            fields: std::collections::BTreeMap::new(),
+        };
+        event.record(&mut record);
+        self.0.lock().expect("a lock").push(record);
+    }
+}
+
+/// A subscriber of this thread's own that keeps each record with its fields, as ace3's `caplog` does.
+fn record_capture() -> (Records, tracing::subscriber::DefaultGuard) {
+    use tracing_subscriber::layer::SubscriberExt;
+    let records = Records::default();
+    let subscriber = tracing_subscriber::registry().with(records.clone());
+    (records, tracing::subscriber::set_default(subscriber))
+}
+
 /// Everything at TRACE, including sqlx's statements, through every path a credential takes, with no
 /// credential in it. The subscriber is global, because with a thread's own subscriber another test's
 /// thread can reach a log line first and leave it switched off for good: `tracing` asks only the thread
@@ -29903,8 +30002,9 @@ mod svs_runs_tests {
 /// YARA rule is a signature of the current ruleset's row.
 ///
 /// `test_what_fired_only_in_the_cleanup`'s last assertion reads a review's blockers, which batch 7b
-/// brought. What has no counterpart: the log records ace3's cases read with `caplog` are checked on the
-/// `ComputedResult` the log lines are written from.
+/// brought. The log records ace3's cases read with `caplog` are checked on the `ComputedResult` the log
+/// lines are written from; the records themselves are batch 9's logging contract
+/// (`svs_attribution_tests::association::review::logging`).
 mod svs_results_tests {
     use super::*;
     use ace_service::{
@@ -33930,7 +34030,8 @@ mod svs_results_tests {
     /// raise `SignatureTagsUnavailable`, which has no counterpart, since the tags are read from the database
     /// in the refresh's own transaction; here a trigger refuses coverage's rows, a failing database. The
     /// log records ace3's cases read with `caplog` are checked on the refresh's result, which the lines
-    /// are written from, and its AUDIT records are the audit rows.
+    /// are written from, and its AUDIT records are the audit rows; the records themselves are batch 9's
+    /// logging contract (`logging`, at the end of this module).
     ///
     /// Without a counterpart: `test_an_inventory_error_raises` (there's no rule directory to be missing),
     /// and `test_today_in_utc_by_default`'s change of the process's timezone (the day is UTC's whatever the
@@ -37421,6 +37522,182 @@ mod svs_results_tests {
                 );
             }
             all
+        }
+
+        /// PLAN.md 7.10 batch 9: the SVS logging contract's records that aren't about a run, and carry
+        /// no `svs_run`. ace3's `tests/saq/svs/test_logging_contract.py`: `test_coverage_refreshes`,
+        /// `test_coverage_snapshots` and `test_worklist_records`; its other 13 cases are
+        /// `svs_attribution_tests::association::review::logging`, which says how a record here differs
+        /// from ace3's. A resolution a refresh cleared carries `resolution` unset, ace3's None, with
+        /// the one it cleared in `cleared_resolution`.
+        mod logging {
+            use super::*;
+
+            /// `test_coverage_refreshes`.
+            #[tokio::test(flavor = "current_thread")]
+            async fn coverage_refreshes() {
+                let test_db = TestDb::new().await;
+                let db = test_db.db();
+                let cx = refreshable(db).await;
+                cx.refresh().await;
+                tag(&cx, &["T1547"]).await;
+                let (log, _guard) = record_capture();
+                cx.refresh().await;
+
+                let refreshed = log.one("svs coverage refreshed");
+                assert_eq!(
+                    (
+                        refreshed.level,
+                        refreshed.get("changed"),
+                        refreshed.get("actor")
+                    ),
+                    (
+                        tracing::Level::INFO,
+                        Some("1"),
+                        Some(refresher().to_string().as_str())
+                    )
+                );
+                refreshed.carries(&[
+                    "attack_release",
+                    "rows",
+                    "changed",
+                    "retired",
+                    "duration_ms",
+                    "worklist_rows",
+                    "worklist_changed",
+                    "actor",
+                ]);
+                for field in [
+                    "attack_release",
+                    "rows",
+                    "retired",
+                    "duration_ms",
+                    "worklist_rows",
+                    "worklist_changed",
+                ] {
+                    assert!(refreshed.get(field).is_some(), "{field}: {refreshed:?}");
+                }
+                assert!(!refreshed.declared.contains(&"svs_run"));
+
+                let changed = log.one("svs coverage of T1547 on windows");
+                assert_eq!(
+                    (
+                        changed.level,
+                        changed.get("technique"),
+                        changed.get("platform"),
+                        changed.get("from_state"),
+                        changed.get("to_state")
+                    ),
+                    (
+                        tracing::Level::INFO,
+                        Some("T1547"),
+                        Some("windows"),
+                        Some("none"),
+                        Some("manual")
+                    )
+                );
+                changed.carries(&["technique", "platform", "from_state", "to_state"]);
+            }
+
+            /// `test_coverage_snapshots`.
+            #[tokio::test(flavor = "current_thread")]
+            async fn coverage_snapshots() {
+                let test_db = TestDb::new().await;
+                let db = test_db.db();
+                let cx = refreshable(db).await;
+                let (log, _guard) = record_capture();
+                cx.service
+                    .write_svs_coverage_snapshot(&snapshotter(), Some(day()), Utc::now())
+                    .await
+                    .expect("writes the snapshot");
+
+                let written = log.one("svs coverage snapshot of 2026-10-16 written");
+                assert_eq!(
+                    (
+                        written.level,
+                        written.get("snapshot_date"),
+                        written.get("actor")
+                    ),
+                    (
+                        tracing::Level::INFO,
+                        Some("2026-10-16"),
+                        Some(snapshotter().to_string().as_str())
+                    )
+                );
+                written.carries(&["snapshot_date", "rows", "attack_release", "actor"]);
+                assert!(written.get("rows").is_some() && written.get("attack_release").is_some());
+            }
+
+            /// `test_worklist_records`.
+            #[tokio::test(flavor = "current_thread")]
+            async fn worklist_records() {
+                let test_db = TestDb::new().await;
+                let db = test_db.db();
+                let cx = measured(db).await;
+                cx.refresh().await;
+                let (log, _guard) = record_capture();
+                cx.resolve("T1547", "remove", "why").await;
+                tag(&cx, &[]).await;
+                cx.refresh().await;
+                tag(&cx, &["T1547"]).await;
+                cx.refresh().await;
+
+                // a person's resolution: ace3's AUDIT record, beside the audit row
+                let resolved = log.one("svs worklist resolution set");
+                assert_eq!(
+                    (
+                        resolved.level,
+                        resolved.get("signature_uuid"),
+                        resolved.get("technique"),
+                        resolved.get("resolution"),
+                        resolved.get("actor")
+                    ),
+                    (
+                        tracing::Level::INFO,
+                        Some(SIGNATURE),
+                        Some("T1547"),
+                        Some("remove"),
+                        Some(cx.f.admin.to_string().as_str())
+                    )
+                );
+                resolved.carries(&["signature_uuid", "technique", "resolution", "actor"]);
+
+                let changed = log.one(&format!(
+                    "svs worklist row of signature {SIGNATURE} on T1547: remove_pending -> removed"
+                ));
+                assert_eq!(
+                    (
+                        changed.level,
+                        changed.get("from_status"),
+                        changed.get("to_status")
+                    ),
+                    (
+                        tracing::Level::INFO,
+                        Some("remove_pending"),
+                        Some("removed")
+                    )
+                );
+                changed.carries(&["signature_uuid", "technique", "from_status", "to_status"]);
+
+                let cleared = log.one(&format!(
+                    "svs worklist resolution remove of signature {SIGNATURE} on T1547 cleared"
+                ));
+                assert_eq!(
+                    (
+                        cleared.level,
+                        cleared.get("resolution"),
+                        cleared.get("cleared_resolution"),
+                        cleared.get("actor")
+                    ),
+                    (
+                        tracing::Level::INFO,
+                        None,
+                        Some("remove"),
+                        Some(refresher().to_string().as_str())
+                    )
+                );
+                cleared.carries(&["signature_uuid", "technique", "resolution", "actor"]);
+            }
         }
     }
 }
@@ -45016,6 +45293,626 @@ mod svs_attribution_tests {
                             .expect_err("refused"),
                     ),
                 ]
+            }
+
+            /// PLAN.md 7.10 batch 9: the SVS logging contract. ace3's
+            /// `tests/saq/svs/test_logging_contract.py` (16), the 13 cases about a run; the three that
+            /// aren't (`test_coverage_refreshes`, `test_coverage_snapshots`, `test_worklist_records`) are
+            /// `svs_results_tests::coverage::logging`. Each test names the case it ports. Every record
+            /// about a run carries `svs_run`, `svs_test` and `svs_marker`, plus the fields of its row in
+            /// `ace3/docs/SVS.md`'s *Logging contract* table, as `tracing` fields; the table is a
+            /// contract, and this keeps a change from dropping a field.
+            ///
+            /// What differs from ace3's records, each for a reason the batches give:
+            /// - A field ace3 sets to None is a field the record declares and leaves unset: `carries`
+            ///   asks whether the record declares it, as ace3's `hasattr` does, and the run's own three
+            ///   are checked by value (`names`).
+            /// - An actor is its identity (`user:<id>`, `api_key:<id>`, `internal:<component>`), which
+            ///   never changes, where ace3 logs a username; the timers are their scheduler component,
+            ///   where ace3's are `svs`.
+            /// - The router's stage is `alerted` or `analyzed` (7.13), ace3's `pre_insert` and
+            ///   `post_analysis`. The router reads what the core's hook wrote (batch 6), so its record's
+            ///   `confidence` is the standing attribution's, and a mismatch's run is the one its
+            ///   detection's marker names.
+            /// - A message's text is ace4's: the run is in `svs_run`, not in the message.
+            /// - ace3's `AUDIT:` records are audit rows here (5.3), and the association's and the
+            ///   worklist's are logged too, with the same fields.
+            mod logging {
+                use super::*;
+
+                const RUN_FIELDS: [&str; 3] = ["svs_run", "svs_test", "svs_marker"];
+
+                /// The run's own fields and `more`.
+                fn run_and(more: &[&'static str]) -> Vec<&'static str> {
+                    RUN_FIELDS.iter().chain(more).copied().collect()
+                }
+
+                /// The record names the run by all three of its fields.
+                #[track_caller]
+                fn names(record: &LogRecord, run: &Run) {
+                    assert_eq!(
+                        (
+                            record.get("svs_run"),
+                            record.get("svs_test"),
+                            record.get("svs_marker")
+                        ),
+                        (
+                            Some(run.uuid.to_string().as_str()),
+                            Some(GUID),
+                            Some(run.marker.as_str())
+                        ),
+                        "{record:?}"
+                    );
+                }
+
+                fn registration(host: &str) -> Registration {
+                    Registration {
+                        test_guid: GUID.to_owned(),
+                        targets: vec![TargetSpec::new(host, None)],
+                        launcher: "art".to_owned(),
+                        batch_id: None,
+                        extra: json!({}),
+                    }
+                }
+
+                // `association` has a `record` of its own
+                use super::super::super::record as record_dropped;
+
+                /// `_started`: a run on win10-01 started a minute ago.
+                async fn started(a: &Ax) -> Run {
+                    a.f.started_run("win10-01", now() - minutes(1)).await
+                }
+
+                /// `test_lifecycle_transitions`.
+                #[tokio::test(flavor = "current_thread")]
+                async fn lifecycle_transitions() {
+                    let test_db = TestDb::new().await;
+                    let db = test_db.db();
+                    let a = ax(db).await;
+                    let (service, launcher) = (&a.f.service, &a.f.admin);
+                    let (log, _guard) = record_capture();
+
+                    let first = service
+                        .register_svs_run(launcher, &registration("win10-01"), t0())
+                        .await
+                        .expect("registers");
+                    service
+                        .start_svs_run(launcher, first.uuid, t0())
+                        .await
+                        .expect("starts");
+                    service
+                        .svs_run_executed(launcher, first.uuid, 1, None, None, t0())
+                        .await
+                        .expect("records");
+                    // one run per host: each after the claim of the one before
+                    let later = t0() + hours(2);
+                    let second = service
+                        .register_svs_run(launcher, &registration("win10-01"), later)
+                        .await
+                        .expect("registers");
+                    service
+                        .cancel_svs_run(launcher, second.uuid, later)
+                        .await
+                        .expect("cancels");
+                    let third = service
+                        .register_svs_run(launcher, &registration("win10-01"), later)
+                        .await
+                        .expect("registers");
+                    service
+                        .start_svs_run(launcher, third.uuid, later)
+                        .await
+                        .expect("starts");
+                    service
+                        .run_svs_timers(&timers(), t0() + TimeDelta::days(2))
+                        .await
+                        .expect("runs the timers");
+
+                    // the transitions, not the other records about runs (an ended run's result, say)
+                    let records = log.starting("svs run transition");
+                    let moves: Set<(Option<&str>, Option<&str>)> = records
+                        .iter()
+                        .map(|r| (r.get("from_state"), r.get("to_state")))
+                        .collect();
+                    assert_eq!(
+                        moves,
+                        Set::from([
+                            (None, Some("created")),
+                            (Some("created"), Some("started")),
+                            (Some("started"), Some("error")),
+                            (Some("created"), Some("canceled")),
+                            (Some("canceled"), Some("closed")),
+                            (Some("started"), Some("ended")),
+                            (Some("error"), Some("closed")),
+                        ])
+                    );
+                    for record in &records {
+                        assert_eq!(record.level, tracing::Level::INFO);
+                        record.carries(&run_and(&["from_state", "to_state", "actor"]));
+                        assert_eq!(record.get("svs_test"), Some(GUID), "{record:?}");
+                        assert!(record.get("svs_marker").is_some(), "{record:?}");
+                    }
+                    assert_eq!(
+                        records
+                            .iter()
+                            .filter_map(|r| r.get("svs_run"))
+                            .collect::<Set<_>>(),
+                        Set::from([
+                            first.uuid.to_string().as_str(),
+                            second.uuid.to_string().as_str(),
+                            third.uuid.to_string().as_str()
+                        ])
+                    );
+                    // the launcher, and the timers
+                    assert_eq!(
+                        records
+                            .iter()
+                            .filter_map(|r| r.get("actor"))
+                            .collect::<Set<_>>(),
+                        Set::from([launcher.to_string().as_str(), timers().to_string().as_str()])
+                    );
+                }
+
+                /// `test_launcher_calls`.
+                #[tokio::test(flavor = "current_thread")]
+                async fn launcher_calls() {
+                    let test_db = TestDb::new().await;
+                    let db = test_db.db();
+                    let a = ax(db).await;
+                    let (service, launcher) = (&a.f.service, &a.f.admin);
+                    let (log, _guard) = record_capture();
+
+                    let run = service
+                        .register_svs_run(launcher, &registration("win10-01"), now())
+                        .await
+                        .expect("registers");
+                    service
+                        .start_svs_run(launcher, run.uuid, now())
+                        .await
+                        .expect("starts");
+                    service
+                        .svs_run_executed(launcher, run.uuid, 0, None, None, now())
+                        .await
+                        .expect("records");
+                    service
+                        .cancel_svs_run(launcher, run.uuid, now())
+                        .await
+                        .expect("cancels");
+
+                    let records = log.starting("svs launcher call");
+                    assert_eq!(
+                        records
+                            .iter()
+                            .map(|r| (r.get("call"), r.get("outcome")))
+                            .collect::<Vec<_>>(),
+                        [
+                            (Some("register"), Some("created")),
+                            (Some("start"), Some("started")),
+                            (Some("executed"), Some("recorded")),
+                            (Some("cancel"), Some("canceled")),
+                        ]
+                    );
+                    for record in &records {
+                        assert_eq!(record.level, tracing::Level::INFO);
+                        names(record, &run);
+                        record.carries(&run_and(&["launcher", "call", "outcome"]));
+                        assert_eq!(record.get("launcher"), Some("art"));
+                    }
+                    // the run's platform is decided at registration
+                    assert_eq!(records[0].get("platform"), Some("windows"));
+                }
+
+                /// `test_a_refused_registration`.
+                #[tokio::test(flavor = "current_thread")]
+                async fn a_refused_registration() {
+                    let test_db = TestDb::new().await;
+                    let db = test_db.db();
+                    let a = ax(db).await;
+                    let launcher = &a.f.admin;
+                    let (log, _guard) = record_capture();
+
+                    let refused =
+                        a.f.service
+                            .register_svs_run(launcher, &registration("prod-dc-01"), now())
+                            .await
+                            .expect_err("refused");
+                    assert!(matches!(refused, ServiceError::Forbidden(_)), "{refused:?}");
+
+                    let refusal = log.one("svs run registration refused");
+                    assert_eq!(refusal.level, tracing::Level::WARN);
+                    assert_eq!(refusal.get("caller"), Some(launcher.to_string().as_str()));
+                    assert_eq!(refusal.get("host"), Some("prod-dc-01"));
+                    assert_eq!(refusal.get("launcher"), Some("art"));
+                    assert!(refusal.get("reason").is_some() && refusal.get("svs_test").is_some());
+                    refusal.carries(&["caller", "host", "reason", "launcher", "svs_test"]);
+
+                    let call = log.one("svs launcher call");
+                    assert_eq!(
+                        (
+                            call.level,
+                            call.get("call"),
+                            call.get("outcome"),
+                            call.get("caller")
+                        ),
+                        (
+                            tracing::Level::WARN,
+                            Some("register"),
+                            Some("refused"),
+                            Some(launcher.to_string().as_str())
+                        )
+                    );
+                }
+
+                //
+                // attribution and routing
+                //
+
+                const SIGHTING_FIELDS: [&str; 4] =
+                    ["svs_marker", "alert_uuid", "scan_point", "result"];
+                const DECISION_FIELDS: [&str; 5] =
+                    ["alert_uuid", "stage", "decision", "queue", "confidence"];
+                const ATTRIBUTION_FIELDS: [&str; 5] =
+                    ["alert_uuid", "detection", "confidence", "late", "source"];
+
+                /// `test_attribution`. The removal is of a second alert's detection, whose marker
+                /// moves to a branch the detection isn't on: a detection's row never goes here, where
+                /// ace3's case clears the alert's detections.
+                #[tokio::test(flavor = "current_thread")]
+                async fn attribution() {
+                    let test_db = TestDb::new().await;
+                    let db = test_db.db();
+                    let a = ax(db).await;
+                    let run = started(&a).await;
+                    let (log, _guard) = record_capture();
+                    let root = alert(&a, db, "win10-01", Some(&run.marker)).await;
+
+                    let sighting = log.one("svs marker ");
+                    assert_eq!(
+                        (sighting.level, sighting.get("result")),
+                        (tracing::Level::INFO, Some("attributed"))
+                    );
+                    names(&sighting, &run);
+                    sighting.carries(&run_and(&SIGHTING_FIELDS));
+                    assert!(sighting.get("scan_point").is_some());
+
+                    let decision = log.one("svs router decision");
+                    assert_eq!(
+                        (
+                            decision.get("decision"),
+                            decision.get("stage"),
+                            decision.get("confidence"),
+                            decision.get("queue")
+                        ),
+                        (
+                            Some("routed"),
+                            Some("alerted"),
+                            Some("marker"),
+                            Some(SVS_QUEUE)
+                        )
+                    );
+                    assert_eq!(decision.level, tracing::Level::INFO);
+                    names(&decision, &run);
+                    decision.carries(&run_and(&DECISION_FIELDS));
+
+                    let written = log.one("svs attribution written");
+                    assert_eq!(
+                        (written.get("alert_uuid"), written.get("source")),
+                        (Some(root.to_string().as_str()), Some("router"))
+                    );
+                    assert_eq!(written.level, tracing::Level::INFO);
+                    names(&written, &run);
+                    written.carries(&run_and(&ATTRIBUTION_FIELDS));
+
+                    let (other, _) = marked_root(db, &run).await;
+                    pass(db, &a.service, other).await;
+                    log.clear();
+                    set_details(db, other, json!({})).await;
+                    observable(db, other, "indicator", &format!("ran {}", run.marker)).await;
+                    judge(db, other).await;
+                    let removed = log.one("svs attribution removed");
+                    assert_eq!(
+                        (removed.level, removed.get("alert_uuid")),
+                        (tracing::Level::INFO, Some(other.to_string().as_str()))
+                    );
+                    names(&removed, &run);
+                    removed.carries(&run_and(&ATTRIBUTION_FIELDS));
+                }
+
+                /// `test_a_mismatch`.
+                #[tokio::test(flavor = "current_thread")]
+                async fn a_mismatch() {
+                    let test_db = TestDb::new().await;
+                    let db = test_db.db();
+                    let a = ax(db).await;
+                    let run = started(&a).await;
+                    let (log, _guard) = record_capture();
+                    alert(&a, db, "prod-dc-01", Some(&run.marker)).await;
+
+                    let sighting = log.one("svs marker ");
+                    assert_eq!(
+                        (sighting.level, sighting.get("result")),
+                        (tracing::Level::WARN, Some("other host"))
+                    );
+                    names(&sighting, &run);
+                    sighting.carries(&run_and(&SIGHTING_FIELDS));
+
+                    let decision = log.one("svs router decision");
+                    assert_eq!(decision.get("decision"), Some("mismatch"));
+                    names(&decision, &run);
+                    decision.carries(&run_and(&DECISION_FIELDS));
+                }
+
+                /// `test_a_refused_context_attribution`: two runs whose claims on the host overlap,
+                /// written as rows, as ace3's `overlapping_runs` fixture lets them be.
+                #[tokio::test(flavor = "current_thread")]
+                async fn a_refused_context_attribution() {
+                    let test_db = TestDb::new().await;
+                    let db = test_db.db();
+                    let a = ax(db).await;
+                    // a test that holds the host keeps its claim for its attribution window
+                    let first = raw_run(db, "win10-01", Some(now() - hours(3)), 1, true).await;
+                    let second = run_at(db, "win10-01", Some(now() - minutes(30))).await;
+                    let (log, _guard) = record_capture();
+                    let root = alert(&a, db, "win10-01", None).await;
+
+                    let refused = log.one("svs context attribution");
+                    assert_eq!(refused.level, tracing::Level::WARN);
+                    let candidates = refused.get("candidate_runs").expect("the candidates");
+                    for run in [&first, &second] {
+                        assert!(candidates.contains(&run.uuid.to_string()), "{candidates}");
+                    }
+                    assert_eq!(candidates.matches(',').count(), 1, "{candidates}");
+                    assert_eq!(refused.get("alert_uuid"), Some(root.to_string().as_str()));
+                    // it is about two runs, so it names neither as its own
+                    assert!(!refused.declared.contains(&"svs_run"), "{refused:?}");
+                }
+
+                /// `test_alerts_closed_with_their_run`.
+                #[tokio::test(flavor = "current_thread")]
+                async fn alerts_closed_with_their_run() {
+                    let test_db = TestDb::new().await;
+                    let db = test_db.db();
+                    let a = ax(db).await;
+                    let run = started(&a).await;
+                    let root = alert(&a, db, "win10-01", Some(&run.marker)).await;
+                    let (log, _guard) = record_capture();
+                    close(&a, &run).await;
+
+                    let closed = log.one("svs run: 1 alerts closed");
+                    assert_eq!(closed.level, tracing::Level::INFO);
+                    assert_eq!(
+                        (closed.get("alert_uuids"), closed.get("late")),
+                        (Some(format!("[{root}]").as_str()), Some("false"))
+                    );
+                    assert_eq!(closed.get("actor"), Some(timers().to_string().as_str()));
+                    names(&closed, &run);
+                    closed.carries(&run_and(&["alert_uuids", "left_alone", "late", "actor"]));
+                }
+
+                /// `test_a_run_changed_since_review`.
+                #[tokio::test(flavor = "current_thread")]
+                async fn a_run_changed_since_review() {
+                    let test_db = TestDb::new().await;
+                    let db = test_db.db();
+                    let a = ax(db).await;
+                    let run = started(&a).await;
+                    set_state(db, run.uuid, "reviewed").await;
+                    let (log, _guard) = record_capture();
+                    let root = alert(&a, db, "win10-01", Some(&run.marker)).await;
+
+                    let changed = log.one("svs run changed since review");
+                    assert_eq!(
+                        (changed.level, changed.get("alert_uuid")),
+                        (tracing::Level::INFO, Some(root.to_string().as_str()))
+                    );
+                    names(&changed, &run);
+                    changed.carries(&run_and(&["alert_uuid"]));
+                }
+
+                /// `test_a_result`.
+                #[tokio::test(flavor = "current_thread")]
+                async fn a_result() {
+                    let test_db = TestDb::new().await;
+                    let db = test_db.db();
+                    let a = ax(db).await;
+                    decide(&a, RULE, "expected").await;
+                    let run = run_on(&a, "win10-01").await;
+                    let (log, _guard) = record_capture();
+                    ended(&a, &run).await;
+
+                    let computed = log.one("svs run result computed");
+                    assert_eq!(
+                        (computed.level, computed.get("counts")),
+                        (tracing::Level::INFO, Some(r#"{"missing":1}"#))
+                    );
+                    names(&computed, &run);
+                    computed.carries(&run_and(&["counts"]));
+
+                    let missing = log.one("svs run is missing expected signature");
+                    assert_eq!(
+                        (missing.level, missing.get("signature_uuid")),
+                        (tracing::Level::INFO, Some(RULE))
+                    );
+                    assert_eq!(missing.get("possibly_suppressed"), Some("false"));
+                    names(&missing, &run);
+                    missing.carries(&run_and(&[
+                        "signature_uuid",
+                        "signature_family",
+                        "possibly_suppressed",
+                    ]));
+
+                    // and each signature's status at DEBUG
+                    let signature = log.one("svs run result signature");
+                    assert_eq!(
+                        (
+                            signature.level,
+                            signature.get("signature_uuid"),
+                            signature.get("status")
+                        ),
+                        (tracing::Level::DEBUG, Some(RULE), Some("missing"))
+                    );
+                    names(&signature, &run);
+                }
+
+                /// `test_a_suppressed_match`.
+                #[tokio::test(flavor = "current_thread")]
+                async fn a_suppressed_match() {
+                    let test_db = TestDb::new().await;
+                    let db = test_db.db();
+                    let a = ax(db).await;
+                    let run = started(&a).await;
+                    let (log, _guard) = record_capture();
+                    let recorded = record_dropped(db, HUNT_UUID, &[dropped(now())]).await;
+                    assert_eq!(recorded.len(), 1);
+
+                    let record = log.one("svs run: a hunt suppressed a match");
+                    assert_eq!(
+                        (
+                            record.level,
+                            record.get("hunt_uuid"),
+                            record.get("group_value")
+                        ),
+                        (tracing::Level::INFO, Some(HUNT_UUID), Some("alice"))
+                    );
+                    names(&record, &run);
+                    record.carries(&run_and(&["hunt_uuid", "group_value"]));
+                }
+
+                /// `test_a_duplicate_match`.
+                #[tokio::test(flavor = "current_thread")]
+                async fn a_duplicate_match() {
+                    let test_db = TestDb::new().await;
+                    let db = test_db.db();
+                    let a = ax(db).await;
+                    let run = started(&a).await;
+                    let dedup_key = format!("{HUNT_UUID}:win10-01");
+                    let (log, _guard) = record_capture();
+                    let recorded = record_dropped(
+                        db,
+                        HUNT_UUID,
+                        &[Dropped {
+                            at: now(),
+                            host: "win10-01",
+                            group: None,
+                            dedup_key: Some(dedup_key.clone()),
+                        }],
+                    )
+                    .await;
+                    assert_eq!(recorded.len(), 1);
+
+                    let record = log.one("svs run: a hunt dropped a duplicate match");
+                    assert_eq!(
+                        (record.level, record.get("dedup_key")),
+                        (tracing::Level::INFO, Some(dedup_key.as_str()))
+                    );
+                    assert_eq!(record.get("hunt_uuid"), Some(HUNT_UUID));
+                    names(&record, &run);
+                    record.carries(&run_and(&["hunt_uuid", "group_value", "dedup_key"]));
+                }
+
+                /// `test_a_persons_association_changes`: a person acting through a key of theirs, so
+                /// the records name the user and the key.
+                #[tokio::test(flavor = "current_thread")]
+                async fn a_persons_association_changes() {
+                    let test_db = TestDb::new().await;
+                    let db = test_db.db();
+                    let a = ax(db).await;
+                    let key_id = ApiKeyId(Uuid::from_u128(7));
+                    grant(db, &Holder::ApiKey(key_id), "*", "*", Effect::Allow).await;
+                    let who = key(key_id, Some(UserId(admin_id())));
+                    let run = started(&a).await;
+                    let root = alert(&a, db, "win10-01", None).await;
+                    let (log, _guard) = record_capture();
+                    for change in [
+                        Association::Keep,
+                        disassociation(None, true),
+                        Association::Associate {
+                            reason: Some("it was the test after all".to_owned()),
+                        },
+                    ] {
+                        a.service
+                            .change_svs_association(&who, run.uuid, root, &change, now())
+                            .await
+                            .expect("changes the association");
+                    }
+
+                    for message in [
+                        "svs context attribution kept",
+                        "svs alert disassociated from a run",
+                        "svs alert associated with a run",
+                    ] {
+                        let record = log.one(message);
+                        assert_eq!(record.level, tracing::Level::INFO);
+                        names(&record, &run);
+                        assert_eq!(record.get("alert_uuid"), Some(root.to_string().as_str()));
+                        record.carries(&run_and(&[
+                            "alert_uuid",
+                            "actor",
+                            "actor_user_id",
+                            "actor_key_id",
+                        ]));
+                        assert_eq!(
+                            (
+                                record.get("actor"),
+                                record.get("actor_user_id"),
+                                record.get("actor_key_id")
+                            ),
+                            (
+                                Some(who.to_string().as_str()),
+                                Some(admin_id().to_string().as_str()),
+                                Some(key_id.0.to_string().as_str())
+                            )
+                        );
+                    }
+                }
+
+                /// `test_a_review`.
+                #[tokio::test(flavor = "current_thread")]
+                async fn a_review() {
+                    let test_db = TestDb::new().await;
+                    let db = test_db.db();
+                    let a = ax(db).await;
+                    let run = run_on(&a, "win10-01").await;
+                    ended(&a, &run).await;
+                    let (log, _guard) = record_capture();
+                    reviewed(review(&a, &a.f.admin, run.uuid, None).await);
+
+                    let transition = log.one("svs run transition");
+                    assert_eq!(
+                        (transition.get("from_state"), transition.get("to_state")),
+                        (Some("ended"), Some("reviewed"))
+                    );
+                    assert_eq!(
+                        transition.get("actor"),
+                        Some(a.f.admin.to_string().as_str())
+                    );
+                    names(&transition, &run);
+                    transition.carries(&run_and(&["from_state", "to_state", "actor"]));
+
+                    let record = log.one("svs run reviewed");
+                    assert_eq!(record.level, tracing::Level::INFO);
+                    assert_eq!(
+                        (
+                            record.get("actor"),
+                            record.get("re_review"),
+                            record.get("alerts_closed"),
+                            record.get("fp_verdicts")
+                        ),
+                        (
+                            Some(a.f.admin.to_string().as_str()),
+                            Some("false"),
+                            Some("0"),
+                            Some("0")
+                        )
+                    );
+                    names(&record, &run);
+                    record.carries(&run_and(&[
+                        "actor",
+                        "counts",
+                        "re_review",
+                        "alerts_closed",
+                        "fp_verdicts",
+                    ]));
+                }
             }
         }
     }

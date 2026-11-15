@@ -41,7 +41,7 @@ use crate::run::{
     LeaseKeeper, TaskDir, fetch_email_body, fetch_input, fetch_scan_output, fetch_tree_files,
     finish,
 };
-use crate::tools::{TOOL_FD, ToolDirs, ToolHost, ToolTable};
+use crate::tools::{ToolDirs, ToolHost, ToolTable};
 
 /// The task's end is on stdout.
 pub const EXIT_DONE: i32 = 0;
@@ -363,18 +363,8 @@ async fn run_process(
         command.uid(uid).gid(gid);
     }
     if let Some(socket) = &tools {
-        use std::os::fd::AsRawFd;
-        let fd = socket.as_raw_fd();
-        // SAFETY: dup2 is async-signal-safe, and the closure touches nothing else. The original
-        // stays close-on-exec, so only this task process gets the socket.
-        unsafe {
-            command.pre_exec(move || {
-                if libc::dup2(fd, TOOL_FD) < 0 {
-                    return Err(std::io::Error::last_os_error());
-                }
-                Ok(())
-            });
-        }
+        // only this task process gets the socket
+        crate::tools::pass_as_tool_fd(command.as_std_mut(), socket);
     }
     let mut child = command.spawn()?;
     drop(tools);

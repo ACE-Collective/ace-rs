@@ -1113,7 +1113,9 @@ fn every_template_escapes_html() {
             safe += source.matches("HtmlSafe for").count();
         }
     }
-    assert_eq!(safe, 1, "one type is marked as already escaped");
+    // ... and a guide's HTML, which only `help::render_markdown` makes, from the repository's own
+    // Markdown with any raw HTML in it written as text (src/help.rs, PLAN.md 7.10 batch 9).
+    assert_eq!(safe, 2, "two types are marked as already escaped");
     let source = std::fs::read_to_string(root.join("src/templates.rs")).expect("reads the source");
     let code: String = source
         .lines()
@@ -14476,7 +14478,13 @@ async fn the_svs_pages_need_run_read_then_run_manage_and_svs_admin() {
     assert_eq!(list.status(), StatusCode::OK);
     let list = list.text().await.expect("a page");
     assert!(list.contains(&format!(r#"<a href="{page_of}">"#)), "{list}");
-    assert!(list.contains(r#"<a href="/svs">SVS</a>"#), "{list}");
+    // the layout's link, with the one run that needs attention (batch 9)
+    assert!(
+        list.contains(
+            r#"<a href="/svs">SVS<span class="count" id="svs-nav-count" title="runs that need attention">(1)</span></a>"#
+        ),
+        "{list}"
+    );
     assert!(
         !list.contains("<script>alert") && !list.contains(r#"href="/svs/test-hosts""#),
         "{list}"
@@ -16052,4 +16060,638 @@ async fn the_svs_coverage_pages_need_run_read_then_run_manage() {
     // settings set and cleared; kept, reopened, removed in bulk, kept in bulk; undecided
     assert_eq!(svs_writes().await, audit + 7);
     assert_eq!(last_action(&stack).await, "remove_svs_expectation");
+}
+
+// ---- the help area (PLAN.md 5.11's help area, built with 7.10 batch 9) ----
+//
+// ace3's tests/app/help: test_help_rendering.py (6), test_help_content.py (5 kinds) and
+// test_help_pages.py (10). Each test names the cases it ports. What differs: guides and images are
+// embedded in the binary, so "the file exists" is the build, an image is looked up by name and a path
+// can't leave `images/`, and a guide's links to GUI pages are asked of the server, where ace3 asks its
+// URL map.
+
+use ace_gui::help::{GUIDE_SETS, GuideSet, RenderedGuide, render_markdown};
+
+/// `test_guide_links_drop_the_md_suffix`.
+#[test]
+fn guide_links_drop_the_md_suffix() {
+    let html =
+        render_markdown("[review](users.md#reviewing-a-run) [admin](administrators.md)").html;
+    let html = html.as_str();
+    assert!(html.contains(r#"href="users#reviewing-a-run""#), "{html}");
+    assert!(html.contains(r#"href="administrators""#), "{html}");
+}
+
+/// `test_only_absolute_links_open_in_a_new_tab`.
+#[test]
+fn only_absolute_links_open_in_a_new_tab() {
+    let html = render_markdown("[out](https://example.com/x) [in](users.md) [here](#top)").html;
+    let html = html.as_str();
+    assert!(
+        html.contains(
+            r#"<a href="https://example.com/x" rel="noopener noreferrer" target="_blank">"#
+        ),
+        "{html}"
+    );
+    assert!(html.contains(r#"<a href="users">"#), "{html}");
+    assert!(html.contains(r##"<a href="#top">"##), "{html}");
+}
+
+/// `test_github_alert_becomes_a_callout`.
+#[test]
+fn a_github_alert_becomes_a_callout() {
+    let html = render_markdown("> [!WARNING]\n> Review sets SIMULATED.").html;
+    let html = html.as_str();
+    assert!(
+        html.contains(r#"<div class="help-callout help-callout-warning">"#),
+        "{html}"
+    );
+    assert!(
+        html.contains(r#"<p class="help-callout-title">Warning</p>"#),
+        "{html}"
+    );
+    assert!(!html.contains("[!WARNING]"), "{html}");
+    assert!(html.contains("Review sets SIMULATED."), "{html}");
+    assert!(html.trim_end().ends_with("</div>"), "{html}");
+}
+
+/// `test_plain_blockquote_is_left_alone`.
+#[test]
+fn a_plain_blockquote_is_left_alone() {
+    let html = render_markdown("> just a quote").html;
+    let html = html.as_str();
+    assert!(html.contains("<blockquote>"), "{html}");
+    assert!(!html.contains("help-callout"), "{html}");
+}
+
+/// `test_image_links_to_its_full_size_file`.
+#[test]
+fn an_image_links_to_its_full_size_file() {
+    let html = render_markdown("![The runs list](images/runs.png)").html;
+    assert!(
+        html.as_str().contains(
+            r#"<a class="help-image" href="images/runs.png" target="_blank" title="Open the full-size image"><img alt="The runs list" src="images/runs.png"></a>"#
+        ),
+        "{html}"
+    );
+}
+
+/// `test_toc_holds_sections_and_subsections_only`, and the ids Python-Markdown's `toc` gives: a
+/// heading's text slugged, and a repeated one numbered.
+#[test]
+fn the_toc_holds_sections_and_subsections_only() {
+    let rendered = render_markdown("# Guide\n\n## First\n\n### Inner\n\n#### Deep\n\n## Second\n");
+    let sections: Vec<(&str, &str)> = rendered
+        .toc
+        .iter()
+        .map(|e| (e.id.as_str(), e.name.as_str()))
+        .collect();
+    assert_eq!(sections, [("first", "First"), ("second", "Second")]);
+    let inner: Vec<(&str, usize)> = rendered.toc[0]
+        .children
+        .iter()
+        .map(|e| (e.id.as_str(), e.children.len()))
+        .collect();
+    assert_eq!(inner, [("inner", 0)]);
+    let html = rendered.html.as_str();
+    assert!(
+        html.contains(
+            r##"<h2 id="first">First<a class="help-anchor" href="#first" title="Link to this section">#</a></h2>"##
+        ),
+        "{html}"
+    );
+    assert!(
+        html.contains("<h1>Guide</h1>") && html.contains("<h4>Deep</h4>"),
+        "{html}"
+    );
+
+    let rendered = render_markdown(
+        "## Step 1: take `ownership`\n\n## The svs_samples pool -- and more\n\n## Logs\n\n## Logs\n",
+    );
+    let ids: Vec<&str> = rendered.toc.iter().map(|e| e.id.as_str()).collect();
+    assert_eq!(
+        ids,
+        [
+            "step-1-take-ownership",
+            "the-svs_samples-pool-and-more",
+            "logs",
+            "logs_1"
+        ]
+    );
+}
+
+/// What ace4's renderer adds to ace3's: a guide's raw HTML is shown as text, and nothing it writes
+/// is an inline style or a script, which the pages' policy would refuse.
+#[test]
+fn a_guide_s_raw_html_is_text_and_a_table_has_no_inline_style() {
+    let rendered = render_markdown(
+        "<script>alert(1)</script>\n\nan <img src=x onerror=alert(1)> inline\n\n\
+         | a | b |\n|:--|--:|\n| 1 | 2 |\n\n[x](users.md \"a \\\"title\\\" <b>\")\n",
+    );
+    let html = rendered.html.as_str();
+    assert!(
+        !html.contains("<script") && !html.contains("<img"),
+        "{html}"
+    );
+    assert!(
+        html.contains("&lt;script&gt;alert(1)&lt;/script&gt;"),
+        "{html}"
+    );
+    assert!(
+        html.contains("&lt;img src=x onerror=alert(1)&gt;"),
+        "{html}"
+    );
+    assert!(
+        html.contains("<table>") && html.contains("<th>a</th>"),
+        "{html}"
+    );
+    assert!(!html.contains("style="), "{html}");
+    assert!(
+        html.contains(r#"<a href="users" title="a &quot;title&quot; &lt;b&gt;">"#),
+        "{html}"
+    );
+}
+
+/// What a rendered guide refers to: ace3's `_References`.
+#[derive(Debug, Default)]
+struct GuideReferences {
+    hrefs: Vec<String>,
+    images: Vec<String>,
+    ids: BTreeSet<String>,
+    /// Each tag, as written.
+    tags: Vec<String>,
+}
+
+/// The value of `name="..."` in a tag the renderer wrote, with its entities read back.
+fn attribute(tag: &str, name: &str) -> Option<String> {
+    let start = tag.find(&format!(" {name}=\""))? + name.len() + 3;
+    let end = start + tag[start..].find('"')?;
+    Some(
+        tag[start..end]
+            .replace("&quot;", "\"")
+            .replace("&lt;", "<")
+            .replace("&gt;", ">")
+            .replace("&#39;", "'")
+            .replace("&amp;", "&"),
+    )
+}
+
+fn references(rendered: &RenderedGuide) -> GuideReferences {
+    let html = rendered.html.as_str();
+    let mut refs = GuideReferences::default();
+    let mut rest = html;
+    // text's `<` is an entity, so each `<` opens a tag the renderer wrote
+    while let Some(open) = rest.find('<') {
+        let close = open + rest[open..].find('>').expect("a tag closes");
+        let tag = &rest[open..=close];
+        rest = &rest[close + 1..];
+        if tag.starts_with("</") {
+            continue;
+        }
+        if let Some(id) = attribute(tag, "id") {
+            refs.ids.insert(id);
+        }
+        if tag.starts_with("<a ")
+            && let Some(href) = attribute(tag, "href")
+        {
+            refs.hrefs.push(href);
+        }
+        if tag.starts_with("<img ") {
+            refs.images
+                .push(attribute(tag, "src").expect("an image's src"));
+        }
+        refs.tags.push(tag.to_owned());
+    }
+    refs
+}
+
+fn guide_references(set: &GuideSet, slug: &str) -> GuideReferences {
+    references(ace_gui::help::rendered(set.slug, slug).expect("a guide of the set"))
+}
+
+/// The files of a directory of this crate's `help/`, by name.
+fn help_files(path: &str) -> BTreeSet<String> {
+    std::fs::read_dir(
+        Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("help")
+            .join(path),
+    )
+    .expect("reads the directory")
+    .map(|entry| entry.expect("an entry"))
+    .filter(|entry| entry.path().is_file())
+    .map(|entry| entry.file_name().to_string_lossy().into_owned())
+    .collect()
+}
+
+/// A guide's links to pages of the GUI, as paths.
+fn gui_links(refs: &GuideReferences) -> impl Iterator<Item = &str> {
+    refs.hrefs
+        .iter()
+        .filter(|href| href.starts_with('/'))
+        .map(|href| href.split(['#', '?']).next().unwrap_or(href))
+}
+
+/// test_help_content.py's `test_guide_file_exists`, `test_images_exist` and `test_links_resolve`, for
+/// every guide: each guide in the registry is a file of its set and each file is in the registry, each
+/// image is one of the set's, and each link is an http(s) or mailto URL, an image, a page of the GUI
+/// (asked of the server in `the_help_pages_are_for_anyone_signed_in`), or a guide of the set with a
+/// section that is there. And what ace4's pages need of a guide: no tag with an inline style, a
+/// handler or a script, and none of ace3's screenshots or its `/ace` prefix.
+#[test]
+fn every_guide_s_links_sections_and_images_resolve() {
+    let mut problems = Vec::new();
+    for set in GUIDE_SETS {
+        let files: BTreeSet<String> = set
+            .guides
+            .iter()
+            .map(|g| format!("{}.md", g.slug))
+            .collect();
+        assert_eq!(help_files(set.slug), files, "{}", set.slug);
+        for guide in set.guides {
+            let at = format!("{}/{}", set.slug, guide.slug);
+            assert!(guide.source.starts_with("# "), "{at} starts with its title");
+            assert!(!guide.source.contains('\r'), "{at} has LF line endings");
+            let refs = guide_references(set, guide.slug);
+            assert!(!refs.ids.is_empty(), "{at} has sections");
+            for tag in &refs.tags {
+                let name = tag[1..]
+                    .split(|c: char| !c.is_ascii_alphanumeric())
+                    .next()
+                    .unwrap_or("");
+                if !inline_free(tag)
+                    || ["script", "style", "iframe", "object", "embed"].contains(&name)
+                {
+                    problems.push(format!("{at}: {tag}: an inline style, handler or script"));
+                }
+            }
+            for src in &refs.images {
+                match src.strip_prefix("images/") {
+                    Some(name) if set.image(name).is_some() => {}
+                    _ => problems.push(format!("{at}: {src}: no such image in the set")),
+                }
+            }
+            for href in &refs.hrefs {
+                if ["http://", "https://", "mailto:"]
+                    .iter()
+                    .any(|scheme| href.starts_with(scheme))
+                {
+                    continue;
+                }
+                if let Some(name) = href.strip_prefix("images/") {
+                    if set.image(name).is_none() {
+                        problems.push(format!("{at}: {href}: no such image"));
+                    }
+                    continue;
+                }
+                if href.starts_with('/') {
+                    if href.starts_with("/ace/") || href == "/ace" {
+                        problems.push(format!("{at}: {href}: ace4's pages have no /ace prefix"));
+                    }
+                    continue;
+                }
+                let (path, fragment) = match href.split_once('#') {
+                    Some((path, fragment)) => (path, Some(fragment)),
+                    None => (href.as_str(), None),
+                };
+                let target = if path.is_empty() { guide.slug } else { path };
+                if set.guide(target).is_none() {
+                    problems.push(format!("{at}: {href}: no such guide in {}", set.slug));
+                    continue;
+                }
+                if let Some(fragment) = fragment
+                    && !guide_references(set, target).ids.contains(fragment)
+                {
+                    problems.push(format!("{at}: {href}: no section #{fragment} in {target}"));
+                }
+            }
+        }
+    }
+    assert_eq!(problems, Vec::<String>::new());
+}
+
+/// `test_no_orphan_images`: the set's images are the files of its `images/`, and a guide uses each.
+#[test]
+fn no_guide_image_is_unused() {
+    for set in GUIDE_SETS {
+        let mut used = BTreeSet::new();
+        for guide in set.guides {
+            let refs = guide_references(set, guide.slug);
+            for reference in refs.images.iter().chain(&refs.hrefs) {
+                if let Some(name) = reference.strip_prefix("images/") {
+                    used.insert(name.to_owned());
+                }
+            }
+        }
+        let registered: BTreeSet<String> = set.images.iter().map(|i| i.name.to_owned()).collect();
+        assert_eq!(
+            help_files(&format!("{}/images", set.slug)),
+            registered,
+            "{}",
+            set.slug
+        );
+        assert_eq!(used, registered, "{}", set.slug);
+        for image in set.images {
+            assert!(image.content_type.starts_with("image/"), "{}", image.name);
+            if image.content_type == "image/svg+xml" {
+                // a diagram opened on its own is a document: nothing in it runs or loads
+                let text = std::str::from_utf8(image.bytes).expect("an SVG is text");
+                for banned in [
+                    "<script",
+                    "<style",
+                    "style=",
+                    "href=",
+                    "<foreignObject",
+                    "\r",
+                ] {
+                    assert!(!text.contains(banned), "{}: {banned}", image.name);
+                }
+                assert!(inline_free(text), "{}", image.name);
+            }
+        }
+    }
+}
+
+/// `test_guide_slugs_are_unique`.
+#[test]
+fn guide_slugs_are_unique() {
+    let mut sets = BTreeSet::new();
+    for set in GUIDE_SETS {
+        assert!(sets.insert(set.slug), "{}", set.slug);
+        let mut slugs = BTreeSet::new();
+        for guide in set.guides {
+            assert!(slugs.insert(guide.slug), "{}/{}", set.slug, guide.slug);
+        }
+        // a guide named "images" would be shadowed by the image route
+        assert!(!slugs.contains("images"), "{}", set.slug);
+        assert!(!set.guides.is_empty(), "{}", set.slug);
+    }
+}
+
+/// test_help_pages.py through the server: `test_help_requires_login`, `test_help_area_serves_only_get`,
+/// `test_index_lists_every_guide`, `test_every_guide_renders_without_permissions`,
+/// `test_pager_links_neighbours`, `test_set_redirects_to_its_first_guide`,
+/// `test_unknown_pages_are_404` (its five paths), `test_image_is_served`,
+/// `test_image_route_stays_in_images` (its five names) and
+/// `test_svs_tabs_and_signatures_hub_link_the_guides`; and test_help_content.py's GUI links, each of
+/// which is a page this server has.
+#[tokio::test]
+async fn the_help_pages_are_for_anyone_signed_in() {
+    let stack = stack().await;
+    // a user holding no permission at all: the guides need only a login
+    let reader = user(&stack, "help_reader").await;
+    let set = &GUIDE_SETS[0];
+    let first = &set.guides[0];
+    let guide_path = |slug: &str| format!("/help/{}/{slug}", set.slug);
+    let image_path = format!("/help/{}/images/{}", set.slug, set.images[0].name);
+
+    for path in [
+        "/help".to_owned(),
+        guide_path(first.slug),
+        set.href(),
+        image_path.clone(),
+    ] {
+        let page = stack.get(&path).send().await.expect("answered");
+        assert_eq!(page.status(), StatusCode::SEE_OTHER, "{path}");
+        assert!(location(&page).starts_with("/login?next="), "{path}");
+    }
+
+    let session = session_of(&stack, "help_reader").await;
+    let get = |path: String| stack.get(&path).header("cookie", cookie(&session)).send();
+
+    // the area serves only GET
+    for path in [
+        "/help".to_owned(),
+        guide_path(first.slug),
+        set.href(),
+        image_path.clone(),
+    ] {
+        let post = stack
+            .post(&path, &[])
+            .header("cookie", cookie(&session))
+            .send()
+            .await
+            .expect("answered");
+        assert_eq!(post.status(), StatusCode::METHOD_NOT_ALLOWED, "{path}");
+    }
+
+    let index = get("/help".to_owned()).await.expect("answered");
+    assert_eq!(index.status(), StatusCode::OK);
+    let index = index.text().await.expect("a page");
+    assert!(
+        index.contains(r#"<a href="/help">Documentation</a>"#),
+        "{index}"
+    );
+    // nothing here says the reader may open SVS
+    assert!(!index.contains(r#"href="/svs""#), "{index}");
+    for guide in set.guides {
+        assert!(
+            index.contains(&format!(r#"<a href="{}"><b>"#, guide_path(guide.slug))),
+            "{}",
+            guide.slug
+        );
+    }
+
+    let mut gui_pages = BTreeSet::new();
+    for guide in set.guides {
+        let page = get(guide_path(guide.slug)).await.expect("answered");
+        assert_eq!(page.status(), StatusCode::OK, "{}", guide.slug);
+        let csp = page.headers()["content-security-policy"]
+            .to_str()
+            .expect("text")
+            .to_owned();
+        assert!(!csp.contains("unsafe"), "{csp}");
+        let page = page.text().await.expect("a page");
+        assert!(
+            page.contains(r#"<article class="help-guide">"#),
+            "{}",
+            guide.slug
+        );
+        let title = guide.title.replace('\'', "&#39;");
+        assert!(
+            page.contains(&format!(r#"<b aria-current="page">{title}</b>"#)),
+            "{}: {title}",
+            guide.slug
+        );
+        assert!(page.contains("On this page"), "{}", guide.slug);
+        // the page around the guide has no inline style or handler either
+        let (head, rest) = page
+            .split_once(r#"<article class="help-guide">"#)
+            .expect("the guide");
+        let (_, tail) = rest.rsplit_once("</article>").expect("the guide ends");
+        assert!(inline_free(head) && inline_free(tail), "{}", guide.slug);
+        let refs = guide_references(set, guide.slug);
+        gui_pages.extend(gui_links(&refs).map(str::to_owned));
+    }
+
+    // each page of the GUI a guide links to is one this server has, whether or not this reader may
+    // open it
+    assert!(gui_pages.contains("/svs/runs"), "{gui_pages:?}");
+    for path in &gui_pages {
+        let page = get(path.clone()).await.expect("answered");
+        assert!(
+            ![StatusCode::NOT_FOUND, StatusCode::METHOD_NOT_ALLOWED].contains(&page.status())
+                && !page.status().is_server_error(),
+            "{path}: {}",
+            page.status()
+        );
+    }
+
+    // the pager links a guide's neighbours
+    let [before, middle, after] = [&set.guides[0], &set.guides[1], &set.guides[2]];
+    let page = get(guide_path(middle.slug))
+        .await
+        .expect("answered")
+        .text()
+        .await
+        .expect("a page");
+    let pager = page.split(r#"class="help-pager""#).nth(1).expect("a pager");
+    assert!(
+        pager.contains(&format!(r#"href="{}" rel="prev""#, guide_path(before.slug))),
+        "{pager}"
+    );
+    assert!(
+        pager.contains(&format!(r#"href="{}" rel="next""#, guide_path(after.slug))),
+        "{pager}"
+    );
+
+    // the set goes to its first guide, with or without the slash
+    for path in [set.href(), format!("/help/{}", set.slug)] {
+        let home = get(path.clone()).await.expect("answered");
+        assert_eq!(home.status(), StatusCode::SEE_OTHER, "{path}");
+        assert_eq!(location(&home), guide_path(first.slug), "{path}");
+    }
+
+    for path in [
+        "/help/nope/",
+        "/help/nope/beginners",
+        "/help/svs/nope",
+        "/help/svs/images",
+        "/help/nope/images/x.png",
+        "/help/svs/beginners.md",
+    ] {
+        let missing = get(path.to_owned()).await.expect("answered");
+        assert_eq!(missing.status(), StatusCode::NOT_FOUND, "{path}");
+    }
+
+    // an image is served as it is embedded, and only an image of the set
+    for image in set.images {
+        let served = get(format!("/help/{}/images/{}", set.slug, image.name))
+            .await
+            .expect("answered");
+        assert_eq!(served.status(), StatusCode::OK, "{}", image.name);
+        assert!(
+            served.headers()["content-type"]
+                .to_str()
+                .expect("text")
+                .starts_with("image/"),
+            "{}",
+            image.name
+        );
+        assert_eq!(
+            served.headers()["cache-control"],
+            "private, max-age=3600",
+            "{}",
+            image.name
+        );
+        assert_eq!(served.headers()["x-content-type-options"], "nosniff");
+        assert_eq!(
+            served.bytes().await.expect("a body").as_ref(),
+            image.bytes,
+            "{}",
+            image.name
+        );
+    }
+    for name in [
+        "..%2Fbeginners.md",
+        "%2E%2E/beginners.md",
+        "%2E%2E%2Fbeginners.md",
+        "..%2F..%2F..%2Fsrc%2Fhelp.rs",
+        "missing.png",
+        "beginners.md",
+    ] {
+        let path = format!("/help/svs/images/{name}");
+        let refused = get(path.clone()).await.expect("answered");
+        assert_eq!(refused.status(), StatusCode::NOT_FOUND, "{path}");
+    }
+
+    // the SVS tabs and the signatures hub link the guides
+    grant_to(&stack, &reader, "svs", "run_read").await;
+    grant_to(&stack, &reader, "signature", "read").await;
+    for path in ["/svs/runs", "/signatures"] {
+        let page = get(path.to_owned()).await.expect("answered");
+        assert_eq!(page.status(), StatusCode::OK, "{path}");
+        let page = page.text().await.expect("a page");
+        assert!(page.contains(r#"<a href="/help/svs/">"#), "{path}: {page}");
+    }
+}
+
+/// PLAN.md 7.10 batch 9: the navigation's SVS entry says how many test runs need attention, to
+/// whoever holds `svs:run_read`, as ace3's `svs_nav.js` fills it in: nothing when no run does, the
+/// count when some do, and nothing at all for a viewer who can't open SVS.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn the_svs_link_counts_the_runs_that_need_attention() {
+    let stack = stack_of_db(Catalog::new(vec![]), |service, _| {
+        // read on every page here, rather than kept for a while
+        Gui::new(service, Transport::Plain).with_svs_attention_fresh(std::time::Duration::ZERO)
+    })
+    .await;
+    let alice = user(&stack, "alice").await;
+    let _bob = user(&stack, "bob").await;
+    let boss = user(&stack, "boss").await;
+    for minor in ["admin", "run_register"] {
+        grant_to(&stack, &boss, "svs", minor).await;
+    }
+    grant_to(&stack, &alice, "svs", "run_read").await;
+    let alice_session = session_of(&stack, "alice").await;
+    let bob_session = session_of(&stack, "bob").await;
+    let pages = &stack;
+    let home = |session: String| async move {
+        pages
+            .get("/help")
+            .header("cookie", cookie(&session))
+            .send()
+            .await
+            .expect("answered")
+            .text()
+            .await
+            .expect("a page")
+    };
+
+    // no run needs attention: the link alone
+    let page = home(alice_session.clone()).await;
+    assert!(page.contains(r#"<a href="/svs">SVS</a>"#), "{page}");
+
+    // an ended run does
+    gui_run(&stack, &boss).await;
+    let page = home(alice_session.clone()).await;
+    assert!(
+        page.contains(
+            r#"<a href="/svs">SVS<span class="count" id="svs-nav-count" title="runs that need attention">(1)</span></a>"#
+        ),
+        "{page}"
+    );
+    // someone who can't open SVS has neither the link nor the count
+    let page = home(bob_session).await;
+    assert!(
+        !page.contains(r#"href="/svs""#) && !page.contains("svs-nav-count"),
+        "{page}"
+    );
+
+    // past the cap it says only that there are more
+    sqlx::query(
+        "INSERT INTO svs.runs
+             (uuid, test_guid, platform, test_content_hash, catalog_commit, state, marker, launcher,
+              observation_seconds, attribution_seconds)
+         SELECT gen_random_uuid(), r.test_guid, 'windows', repeat('0', 64), repeat('a', 40), 'error',
+                'svs-' || translate(substr(md5(n::text), 1, 26), '0189', 'abcd'), 'art', 3600, 90000
+         FROM svs.runs r, generate_series(1, 120) n",
+    )
+    .execute(stack.test_db.db().pool())
+    .await
+    .expect("more runs");
+    let page = home(alice_session).await;
+    assert!(
+        page.contains(r#"title="runs that need attention">(99+)</span>"#),
+        "{page}"
+    );
 }

@@ -1,0 +1,113 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="790" viewBox="0 0 1000 790" font-family="Inter, Arial, sans-serif" font-size="13" fill="#212529">
+  <title>SVS architecture: callers, the API and the GUI, the service, the core's workers and the pools, the scheduler and storage</title>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#6c757d"/>
+    </marker>
+  </defs>
+  <rect x="0" y="0" width="1000" height="790" fill="#ffffff"/>
+
+  <!-- callers -->
+  <rect x="20" y="20" width="300" height="60" rx="6" fill="#f4f5f7" stroke="#8a9099"/>
+  <text x="170" y="44" text-anchor="middle" font-weight="600">Launcher (outside ACE)</text>
+  <text x="170" y="64" text-anchor="middle">svs:run_register: register, start, executed, cancel</text>
+
+  <rect x="350" y="20" width="300" height="60" rx="6" fill="#f4f5f7" stroke="#8a9099"/>
+  <text x="500" y="44" text-anchor="middle" font-weight="600">Rule repository CI</text>
+  <text x="500" y="64" text-anchor="middle">svs:validate: request a YARA validation</text>
+
+  <rect x="680" y="20" width="300" height="60" rx="6" fill="#f4f5f7" stroke="#8a9099"/>
+  <text x="830" y="44" text-anchor="middle" font-weight="600">Browser</text>
+  <text x="830" y="64" text-anchor="middle">links and forms, a session cookie</text>
+
+  <line x1="170" y1="80" x2="170" y2="108" stroke="#6c757d" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="500" y1="80" x2="500" y2="108" stroke="#6c757d" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="830" y1="80" x2="830" y2="108" stroke="#6c757d" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- the two adapters -->
+  <rect x="20" y="110" width="630" height="60" rx="6" fill="#e8f0f9" stroke="#6a8db8"/>
+  <text x="335" y="134" text-anchor="middle" font-weight="600">ace-api (axum): crates/ace-api/src/svs_*.rs, openapi.json</text>
+  <text x="335" y="154" text-anchor="middle">/api/svs/v1/ runs, tests, test-hosts, samples, yara/validations, coverage, worklist</text>
+
+  <rect x="680" y="110" width="300" height="60" rx="6" fill="#e8f0f9" stroke="#6a8db8"/>
+  <text x="830" y="134" text-anchor="middle" font-weight="600">ace-gui: server-drawn pages</text>
+  <text x="830" y="154" text-anchor="middle">/svs, /signatures, /help; askama templates</text>
+
+  <line x1="335" y1="170" x2="335" y2="198" stroke="#6c757d" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="830" y1="170" x2="830" y2="198" stroke="#6c757d" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- the service -->
+  <rect x="20" y="200" width="960" height="60" rx="6" fill="#e8f0f9" stroke="#6a8db8"/>
+  <text x="500" y="224" text-anchor="middle" font-weight="600">ace-service: crates/ace-service/src/svs*.rs, one Service function per read and write</text>
+  <text x="500" y="244" text-anchor="middle">the gate checks the actor's permission and writes the audit row in the write's transaction</text>
+
+  <!-- service to Postgres, down the left lane -->
+  <line x1="38" y1="260" x2="38" y2="678" stroke="#6c757d" stroke-width="1.5" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
+
+  <!-- analysis -->
+  <rect x="60" y="295" width="420" height="250" rx="6" fill="#edf5ee" stroke="#7fa886"/>
+  <text x="270" y="316" text-anchor="middle" font-weight="600">Analysis: ace serve's core workers, and the pools</text>
+
+  <rect x="75" y="328" width="390" height="46" rx="4" fill="#ffffff" stroke="#7fa886"/>
+  <text x="270" y="347" text-anchor="middle">core hook svs_alert_tagger (ace_core::hooks)</text>
+  <text x="270" y="365" text-anchor="middle">attribution::judge at a pass's end: attributions, tags</text>
+
+  <rect x="75" y="381" width="390" height="46" rx="4" fill="#ffffff" stroke="#7fa886"/>
+  <text x="270" y="400" text-anchor="middle">svs_marker router (svs_association.rs)</text>
+  <text x="270" y="418" text-anchor="middle">routing worker: reads svs.attributions, moves the queue</text>
+
+  <rect x="75" y="434" width="390" height="46" rx="4" fill="#ffffff" stroke="#7fa886"/>
+  <text x="270" y="453" text-anchor="middle">ruleset builder (ace_core::rulesets)</text>
+  <text x="270" y="471" text-anchor="middle">adds the svs_marker namespace to every ruleset</text>
+
+  <rect x="75" y="487" width="390" height="46" rx="4" fill="#ffffff" stroke="#7fa886"/>
+  <text x="270" y="506" text-anchor="middle">svs_yara_sample_capture (ace-mod-svs, on a pool)</text>
+  <text x="270" y="524" text-anchor="middle">files YARA matched on tp/fp alerts; the core lands them</text>
+
+  <!-- the workers and the scheduler -->
+  <rect x="530" y="295" width="450" height="250" rx="6" fill="#fbf3e8" stroke="#c99a5b"/>
+  <text x="755" y="316" text-anchor="middle" font-weight="600">ace serve: validation workers and the scheduler, every replica</text>
+
+  <rect x="545" y="328" width="420" height="46" rx="4" fill="#ffffff" stroke="#c99a5b"/>
+  <text x="755" y="347" text-anchor="middle">validations::Workers x max_concurrent_validations</text>
+  <text x="755" y="365" text-anchor="middle">claim, heartbeat, Replayer::run, complete</text>
+
+  <rect x="545" y="381" width="420" height="46" rx="4" fill="#ffffff" stroke="#c99a5b"/>
+  <text x="755" y="400" text-anchor="middle">svs_catalog_refresh, every 5 minutes</text>
+  <text x="755" y="418" text-anchor="middle">atomics/T*/T*.yaml into svs.catalog_tests</text>
+
+  <rect x="545" y="434" width="420" height="46" rx="4" fill="#ffffff" stroke="#c99a5b"/>
+  <text x="755" y="453" text-anchor="middle">svs_run_timers, every minute</text>
+  <text x="755" y="471" text-anchor="middle">timeouts, ends, closes, closing alerts, stale results</text>
+
+  <rect x="545" y="487" width="420" height="46" rx="4" fill="#ffffff" stroke="#c99a5b"/>
+  <text x="755" y="506" text-anchor="middle">svs_coverage_refresh, every 2 minutes</text>
+  <text x="755" y="524" text-anchor="middle">worklist, then svs.coverage; daily snapshot and prune</text>
+
+  <!-- downwards -->
+  <line x1="180" y1="547" x2="180" y2="578" stroke="#6c757d" stroke-width="1.5" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
+  <line x1="320" y1="547" x2="320" y2="678" stroke="#6c757d" stroke-width="1.5" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
+  <line x1="420" y1="545" x2="420" y2="578" stroke="#6c757d" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="580" y1="545" x2="580" y2="578" stroke="#6c757d" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="650" y1="545" x2="650" y2="678" stroke="#6c757d" stroke-width="1.5" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
+  <line x1="830" y1="545" x2="830" y2="578" stroke="#6c757d" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- the YARA pool, the bucket, the contained scan -->
+  <rect x="60" y="580" width="240" height="60" rx="6" fill="#f4f5f7" stroke="#8a9099"/>
+  <text x="180" y="604" text-anchor="middle" font-weight="600">YARA pool (ace-mod-yara)</text>
+  <text x="180" y="624" text-anchor="middle">scans with svs_marker/SVS_Marker</text>
+
+  <rect x="340" y="580" width="280" height="60" rx="6" fill="#f2eef7" stroke="#957bb0"/>
+  <text x="480" y="604" text-anchor="middle" font-weight="600">Bucket pool svs_samples</text>
+  <text x="480" y="624" text-anchor="middle">bytes, one hold per capture</text>
+
+  <rect x="680" y="580" width="300" height="60" rx="6" fill="#f4f5f7" stroke="#8a9099"/>
+  <text x="830" y="604" text-anchor="middle" font-weight="600">ace yara replay --contained</text>
+  <text x="830" y="624" text-anchor="middle">compile and scan base and head</text>
+
+  <!-- Postgres -->
+  <rect x="20" y="680" width="960" height="90" rx="6" fill="#f2eef7" stroke="#957bb0"/>
+  <text x="500" y="704" text-anchor="middle" font-weight="600">Postgres, schema svs (crates/ace-core/migrations, 0047 to 0058)</text>
+  <text x="500" y="726" text-anchor="middle">svs.runs, svs.run_targets, svs.run_events, svs.attributions, svs.run_results, svs.expectations, svs.ignores,</text>
+  <text x="500" y="746" text-anchor="middle">svs.yara_captures, svs.validations, svs.coverage, svs.technique_worklist, analysis.detection_verdicts</text>
+</svg>

@@ -44,8 +44,8 @@
 //! `?direct=`, which is `/alerts/{id}` here; and its note that a file is on another node, since ace4's
 //! files are in one bucket. ace3's folder holds four more pages: `samples.html` and `sample_detail.html`,
 //! with `_samples_page.html`, are `svs_samples` (7.10 batch 2); `validations.html` and
-//! `validation_detail.html`, with `_validations_page.html`, are `svs_validations` (batch 3), and the hub's
-//! link to the SVS guides moves with the help area (batch 9).
+//! `validation_detail.html`, with `_validations_page.html`, are `svs_validations` (batch 3). The hub
+//! links to the SVS guides (`help`, batch 9).
 
 use ace_service::{
     MAX_QA_DOWNLOAD_FILES, QaMatch, QaMatchDetail, QaPurge, QaRuleDetail, QaRuleFilter, QaRulePage,

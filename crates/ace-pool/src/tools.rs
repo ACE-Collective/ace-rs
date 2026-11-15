@@ -854,7 +854,6 @@ pub async fn execute_keeping(
     keep: Option<Keeping<'_>>,
 ) -> Result<Ran, String> {
     let (ours, theirs) = UnixStream::pair().map_err(|e| format!("a socket: {e}"))?;
-    let theirs_fd = theirs.as_raw_fd();
     let mut command = tokio::process::Command::new(program);
     command
         .args(args)
@@ -867,15 +866,7 @@ pub async fn execute_keeping(
     if let Some((uid, gid)) = user {
         command.uid(uid).gid(gid);
     }
-    // SAFETY: dup2 is async-signal-safe, and the closure touches nothing else.
-    unsafe {
-        command.pre_exec(move || {
-            if libc::dup2(theirs_fd, TOOL_FD) < 0 {
-                return Err(io::Error::last_os_error());
-            }
-            Ok(())
-        });
-    }
+    pass_as_tool_fd(command.as_std_mut(), &theirs);
     let mut child = command
         .spawn()
         .map_err(|e| format!("the tool runner: {e}"))?;
@@ -903,8 +894,15 @@ pub async fn execute_keeping(
     let (listener, ours) = match handshake {
         Ok(pair) => pair,
         Err(why) => {
+            // how the runner ended and what it said, which is all there is to learn why from
             child.kill().await.ok();
-            return Err(why);
+            let status = child.wait().await.ok();
+            let said = read_capped(stderr, Arc::new(AtomicBool::new(false))).await;
+            let said = String::from_utf8_lossy(&said[..said.len().min(2000)]).into_owned();
+            let ended = status.map_or_else(|| "unknown".to_owned(), |status| status.to_string());
+            return Err(format!(
+                "{why} (the runner's end: {ended}; it wrote {said:?})"
+            ));
         }
     };
     let done = Arc::new(AtomicBool::new(false));
@@ -983,6 +981,34 @@ pub async fn execute_keeping(
         stderr,
         kept,
     })
+}
+
+/// Has the process `command` starts hold `socket` as its descriptor [`TOOL_FD`], and nowhere else:
+/// the original stays close-on-exec, so only this child gets it.
+///
+/// `dup2` makes the copy without the close-on-exec flag. When `socket` already is descriptor
+/// `TOOL_FD` in this process, `dup2` of a descriptor onto itself does nothing, so the flag would stay
+/// and the exec would close it: the child would start with no socket, could send neither the listener
+/// nor its reason, and the supervisor would read end-of-file ("ended before containing itself"). So
+/// that case clears the flag instead. The socket is `TOOL_FD` here only when descriptor 3 was free as
+/// it was made, which a process that opens and closes descriptors on other threads can have.
+pub fn pass_as_tool_fd(command: &mut std::process::Command, socket: &impl AsRawFd) {
+    use std::os::unix::process::CommandExt;
+    let fd = socket.as_raw_fd();
+    // SAFETY: dup2 and fcntl are async-signal-safe, and the closure touches nothing else.
+    unsafe {
+        command.pre_exec(move || {
+            let passed = if fd == TOOL_FD {
+                libc::fcntl(fd, libc::F_SETFD, 0)
+            } else {
+                libc::dup2(fd, TOOL_FD)
+            };
+            if passed < 0 {
+                return Err(io::Error::last_os_error());
+            }
+            Ok(())
+        });
+    }
 }
 
 /// Reads a pipe up to `MAX_OUTPUT_BYTES`, and sets `over` when there was more.

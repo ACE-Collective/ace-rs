@@ -67,6 +67,10 @@
 //! - `svs_alert`: what SVS makes of an alert, on its page (PLAN.md 7.10 batch 7b): ace3's SVS banner, with
 //!   the root's tags, and the forms that give the alert back to analysts. The alert list shows the same
 //!   status and tags beside each alert's description (`list`).
+//! - `help`: the help area (5.11's help area, with PLAN.md 7.10 batch 9), ace3's `app/help`: the
+//!   training guides, Markdown embedded in the binary and drawn as pages for any signed-in user, with
+//!   the SVS guide set. The base layout links to it as Documentation, and beside its SVS link says how
+//!   many test runs need attention.
 //! - `events`: the events area under `event:read` (5.11's events area): ace3's event list with its
 //!   filters, sorts and CSV export, an event's page with Close Event behind a confirm, and its
 //!   add-to-event modal as a page, opened from the alert list's bulk form, and Create Event, the same
@@ -102,6 +106,7 @@ pub mod cli;
 pub mod detection;
 pub mod events;
 mod headers;
+pub mod help;
 pub mod list;
 mod places;
 pub mod preferences;
@@ -139,6 +144,7 @@ pub struct Gui {
     actions: std::sync::Arc<ObservableActions>,
     refreshes: std::sync::Arc<places::Places>,
     cli_refreshes: std::sync::Arc<places::Places>,
+    svs_attention: std::sync::Arc<session::NavCount>,
 }
 
 impl Gui {
@@ -162,7 +168,17 @@ impl Gui {
                 cli::REFRESH_LIMITS.0,
                 cli::REFRESH_LIMITS.1,
             )),
+            svs_attention: std::sync::Arc::new(session::NavCount::new(
+                session::SVS_ATTENTION_FRESH,
+            )),
         }
+    }
+
+    /// The GUI reading the navigation's count of runs that need attention again once it is this old,
+    /// rather than `session`'s default.
+    pub fn with_svs_attention_fresh(mut self, fresh: std::time::Duration) -> Self {
+        self.svs_attention = std::sync::Arc::new(session::NavCount::new(fresh));
+        self
     }
 
     /// The GUI drawing results with these analysis views (5.9), the binary's list, rather than the
@@ -444,6 +460,11 @@ impl Gui {
                 "/file-collections/{id}/{what}",
                 post(remediation::collection_write),
             )
+            .route("/help", get(help::index))
+            .route("/help/{set}", get(help::set_home))
+            .route("/help/{set}/", get(help::set_home))
+            .route("/help/{set}/{guide}", get(help::guide))
+            .route("/help/{set}/images/{file}", get(help::image))
             .route("/static/{name}", get(assets::serve))
             .layer(DefaultBodyLimit::max(MAX_FORM_BYTES))
             .layer(axum::middleware::from_fn(headers::secure))

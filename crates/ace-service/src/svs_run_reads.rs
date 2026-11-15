@@ -53,6 +53,8 @@ use crate::{Actor, Service, ServiceError};
 
 /// The most runs, batches, events or result rows one page holds.
 pub const MAX_RUNS_PAGE: u32 = 1000;
+/// The most runs [`Service::svs_needs_attention`] counts exactly; past it, it says only "more".
+pub const SVS_NEEDS_ATTENTION_CAP: i64 = 99;
 /// The most earlier runs a run's history compares with: ace3's `RUN_HISTORY_MAX_RUNS`.
 pub const MAX_RUN_HISTORY: u32 = 50;
 /// A comment is text a person types, not a document: ace3's `MAX_COMMENT_LENGTH`.
@@ -1154,6 +1156,29 @@ impl Service {
                     Ok(sqlx::query_scalar!(
                         r#"SELECT count(*) AS "count!" FROM svs.runs r WHERE svs.run_matches(r, $1)"#,
                         filter,
+                    )
+                    .fetch_one(tx.conn())
+                    .await?)
+                })
+            })
+            .await
+    }
+
+    /// How many runs need attention, counted to one past [`SVS_NEEDS_ATTENTION_CAP`] and no further:
+    /// what the navigation shows beside its SVS link (PLAN.md 7.10 batch 9), by the one definition of
+    /// Needs attention (`svs.run_needs_attention`), which the runs list's filter is too. The count
+    /// stops at the cap, so a backlog costs no more than the cap to count; with few to find it reads
+    /// every run that could need attention, so a caller that asks often keeps the answer a while, as
+    /// the GUI does. ace3's `GET /api/v2/svs/runs/count?f=needs_attention:true`, which
+    /// [`Service::svs_run_count`] also answers, uncapped. It needs `svs:run_read`.
+    pub async fn svs_needs_attention(&self, actor: &Actor) -> Result<i64, ServiceError> {
+        self.gate
+            .read(actor, "svs_needs_attention", &SVS_RUN_READ, &|tx| {
+                Box::pin(async move {
+                    Ok(sqlx::query_scalar!(
+                        r#"SELECT count(*) AS "count!"
+                           FROM (SELECT FROM svs.runs r WHERE svs.run_needs_attention(r) LIMIT $1) n"#,
+                        SVS_NEEDS_ATTENTION_CAP + 1,
                     )
                     .fetch_one(tx.conn())
                     .await?)

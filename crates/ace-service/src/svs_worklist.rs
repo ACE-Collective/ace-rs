@@ -469,6 +469,18 @@ pub(crate) async fn refresh_in(
     ))
 }
 
+/// Logs a resolution a person set, once it committed: ace3's `AUDIT: svs worklist resolution set`. The
+/// audit row holds the reason and the reference.
+fn log_resolution_set(signature_uuid: &str, technique: &str, resolution: &str, actor: &Actor) {
+    tracing::info!(
+        signature_uuid,
+        technique,
+        resolution,
+        %actor,
+        "svs worklist resolution set"
+    );
+}
+
 /// Logs what a committed refresh did to the worklist: ace3's `log_worklist_refresh`.
 pub(crate) fn log_refresh(result: &WorklistRefresh, actor: &Actor) {
     for (signature_uuid, from_technique, technique, resolution) in &result.moved {
@@ -486,6 +498,8 @@ pub(crate) fn log_refresh(result: &WorklistRefresh, actor: &Actor) {
         tracing::info!(
             signature_uuid,
             technique,
+            // what stands now: nothing. The one that was cleared is beside it.
+            resolution = tracing::field::Empty,
             cleared_resolution = resolution,
             %actor,
             "svs worklist resolution {resolution} of signature {signature_uuid} on {technique} cleared: \
@@ -1013,7 +1027,8 @@ impl Service {
         let (reason, reference) = (reason.as_str(), reference.as_deref());
         let technique = &technique_of(technique);
         let catalog = &self.attack_catalog()?;
-        self.gate
+        let row = self
+            .gate
             .write(actor, "resolve_svs_worklist_row", &SVS_RUN_MANAGE, &|tx| {
                 Box::pin(async move {
                     lock_refresh(tx.conn()).await?;
@@ -1039,7 +1054,9 @@ impl Service {
                     }
                 })
             })
-            .await
+            .await?;
+        log_resolution_set(signature_uuid, technique, resolution.as_str(), actor);
+        Ok(row)
     }
 
     /// Resolves each of `keys`, (signature, technique) pairs, alike, each under the refresh lock; a row
@@ -1102,7 +1119,10 @@ impl Service {
                 })
                 .await?;
             match outcome {
-                Ok(key) => result.done.push(key),
+                Ok(key) => {
+                    log_resolution_set(&key.0, &key.1, resolution.as_str(), actor);
+                    result.done.push(key);
+                }
                 Err(Refused::Conflict(status)) => {
                     result
                         .conflicts
@@ -1129,7 +1149,8 @@ impl Service {
     ) -> Result<WorklistRow, ServiceError> {
         let technique = &technique_of(technique);
         let catalog = &self.attack_catalog()?;
-        self.gate
+        let row = self
+            .gate
             .write(actor, "reopen_svs_worklist_row", &SVS_RUN_MANAGE, &|tx| {
                 Box::pin(async move {
                     lock_refresh(tx.conn()).await?;
@@ -1184,6 +1205,15 @@ impl Service {
                     Ok(Audited::changed(after.row(catalog)?, change))
                 })
             })
-            .await
+            .await?;
+        // a person cleared it: no resolution stands, as ace3's record carries none
+        tracing::info!(
+            signature_uuid,
+            technique,
+            resolution = tracing::field::Empty,
+            %actor,
+            "svs worklist resolution cleared"
+        );
+        Ok(row)
     }
 }

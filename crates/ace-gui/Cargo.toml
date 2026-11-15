@@ -26,6 +26,9 @@ futures-util = { version = "0.3.34", default-features = false }
 # The CSP nonce.
 getrandom = "0.4.3"
 hex = "0.4.3"
+# The help area's guides are Markdown (PLAN.md 7.10 batch 9): CommonMark with tables and GitHub's
+# alerts, as ace3's guides use through Python-Markdown.
+pulldown-cmark = { version = "0.13.6", default-features = false, features = ["html"] }
 serde = { version = "1.0.229", features = ["derive"] }
 # A result's details, which a view reads as its type.
 serde_json = "1.0.154"

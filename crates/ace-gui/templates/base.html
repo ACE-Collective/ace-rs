@@ -44,8 +44,9 @@
     <a href="/signatures">Signatures</a>
     {%- endif %}
     {%- if layout.svs %}
-    <a href="/svs">SVS</a>
+    <a href="/svs">SVS{% if let Some(count) = layout.svs_attention %}<span class="count" id="svs-nav-count" title="runs that need attention">({{ count }})</span>{% endif %}</a>
     {%- endif %}
+    <a href="/help">Documentation</a>
     <a href="/preferences">Preferences</a>
     <a href="/login/change">Change Password</a>
     <form method="post" action="/logout">

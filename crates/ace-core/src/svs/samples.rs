@@ -705,7 +705,7 @@ async fn land_one(
     }
     if candidate.signature_version == SIGNATURE_VERSION_UNKNOWN && newly_stored {
         tracing::error!(
-            root = %root,
+            alert_uuid = %root,
             sha256 = %sha256,
             rule_uuid = %rule_uuid,
             "captured svs sample {} of alert {root} with an unknown signature version",

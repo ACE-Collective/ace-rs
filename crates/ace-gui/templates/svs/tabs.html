@@ -1,6 +1,7 @@
 {#- ace3's svs/_tabs.html (PLAN.md 7.10 batch 5): the SVS area's tabs, only those the viewer may open
     (src/svs.rs). Each tab opens on ace3's default view of its screen. The Tests, Coverage and Worklist
-    tabs are batch 8's (src/svs_coverage.rs); the Guides link comes with batch 9. -#}
+    tabs are batch 8's (src/svs_coverage.rs). The guides (src/help.rs) sit at the end of the row, a
+    link rather than a tab, as in ace3. -#}
   <h1>SVS</h1>
   <nav class="pager" aria-label="SVS">
     <a href="/svs/runs?f=needs_attention%3Atrue"{% if view.tabs.open == "runs" %} aria-current="page"{% endif %}>Runs</a>
@@ -10,4 +11,5 @@
     {%- if view.tabs.admin %}
     <a href="/svs/test-hosts"{% if view.tabs.open == "test_hosts" %} aria-current="page"{% endif %}>Test hosts</a>
     {%- endif %}
+    <a href="/help/svs/">Guides</a>
   </nav>

@@ -1767,13 +1767,35 @@ impl Service {
         match registered {
             Ok(run) => {
                 log_transition(&run, None, run.state, actor, None);
-                log_call(&run, "register", "created", actor);
+                // the run's platform is decided at registration, so its record says it
+                tracing::info!(
+                    svs_run = %run.uuid,
+                    svs_test = %run.test_guid,
+                    svs_marker = run.marker,
+                    launcher = run.launcher,
+                    call = "register",
+                    outcome = "created",
+                    platform = run.platform,
+                    caller = %actor,
+                    "svs launcher call"
+                );
                 Ok(run)
             }
-            Err(reasons) => Err(ServiceError::Forbidden(format!(
-                "registration refused: {}",
-                reasons.join("; ")
-            ))),
+            Err(reasons) => {
+                // each refused target has its own record; this is the call's
+                tracing::warn!(
+                    launcher = registration.launcher,
+                    svs_test = registration.test_guid,
+                    call = "register",
+                    outcome = "refused",
+                    caller = %actor,
+                    "svs launcher call"
+                );
+                Err(ServiceError::Forbidden(format!(
+                    "registration refused: {}",
+                    reasons.join("; ")
+                )))
+            }
         }
     }
 

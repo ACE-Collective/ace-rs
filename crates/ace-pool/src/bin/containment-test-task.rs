@@ -234,6 +234,7 @@ fn act(action: &str, argument: Option<&str>) -> io::Result<String> {
             }
             Ok("left many files".into())
         }
+        "tool-fd" => tool_fd(argument()?),
         "keep" => {
             // a file to keep, and a symlink and a hard link that mustn't be
             fs::write("out", "kept\n")?;
@@ -244,6 +245,59 @@ fn act(action: &str, argument: Option<&str>) -> io::Result<String> {
         }
         _ => Err(io::Error::other(format!("unknown action {action}"))),
     }
+}
+
+/// Starts a child that writes to its descriptor 3, with a socket this process holds as its own
+/// descriptor 3, close-on-exec: the place a socket pair's second end lands when descriptor 3 was
+/// free as the pair was made. `how` is `pass`, the runner's `pass_as_tool_fd`, or `dup2`, the plain
+/// `dup2` onto descriptor 3 the runner made before, which leaves the flag set and the child without
+/// the socket. Says what this process read from the other end: nothing is the end-of-file a
+/// supervisor reports as a runner that "ended before containing itself".
+fn tool_fd(how: &str) -> io::Result<String> {
+    use std::os::fd::{AsRawFd, FromRawFd};
+    use std::os::unix::net::UnixStream;
+    use std::os::unix::process::CommandExt;
+
+    use ace_pool::tools::{TOOL_FD, pass_as_tool_fd};
+
+    let (ours, theirs) = UnixStream::pair()?;
+    // our end out of the way, then theirs onto descriptor 3
+    let kept = ours.try_clone()?;
+    drop(ours);
+    let theirs = if theirs.as_raw_fd() == TOOL_FD {
+        theirs
+    } else {
+        // SAFETY: dup3 takes integers; descriptor 3 is free or ours to replace.
+        if unsafe { libc::dup3(theirs.as_raw_fd(), TOOL_FD, libc::O_CLOEXEC) } < 0 {
+            return Err(io::Error::last_os_error());
+        }
+        drop(theirs);
+        // SAFETY: dup3 made descriptor 3, which nothing else owns.
+        unsafe { UnixStream::from_raw_fd(TOOL_FD) }
+    };
+    let mut command = Command::new("/bin/sh");
+    command.args(["-c", "echo from the child >&3"]);
+    match how {
+        "pass" => pass_as_tool_fd(&mut command, &theirs),
+        "dup2" => {
+            let fd = theirs.as_raw_fd();
+            // SAFETY: dup2 is async-signal-safe, and the closure touches nothing else.
+            unsafe {
+                command.pre_exec(move || {
+                    if libc::dup2(fd, TOOL_FD) < 0 {
+                        return Err(io::Error::last_os_error());
+                    }
+                    Ok(())
+                });
+            }
+        }
+        other => return Err(io::Error::other(format!("unknown way {other}"))),
+    }
+    let status = command.stderr(std::process::Stdio::null()).status()?;
+    drop(theirs);
+    let mut read = String::new();
+    (&kept).read_to_string(&mut read)?;
+    Ok(format!("the child ({status}) wrote {read:?}"))
 }
 
 fn fork() -> io::Result<String> {

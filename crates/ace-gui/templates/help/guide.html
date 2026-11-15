@@ -1,0 +1,57 @@
+{#- ace3's help/guide.html (PLAN.md 5.11's help area, with 7.10 batch 9): one guide, with its set's
+    other guides, its sections and the guides before and after it (src/help.rs). `rendered.html` is a
+    GuideHtml, which the renderer made from the repository's Markdown. -#}
+{% extends "base.html" %}
+{% block title %}{{ guide.title }} · {{ set.title }} · ACE{% endblock %}
+{% block content %}
+<div class="help-page">
+  <nav class="help-sidebar" aria-label="Guides">
+    <p><a href="/help">Documentation</a></p>
+    <p><b>{{ set.title }}</b></p>
+    <ul class="help-guide-list">
+      {%- for other in set.guides %}
+      <li>
+        {%- if other.slug == guide.slug %}
+        <b aria-current="page">{{ other.title }}</b>
+        {%- else %}
+        <a href="/help/{{ set.slug }}/{{ other.slug }}">{{ other.title }}</a>
+        {%- endif %}
+      </li>
+      {%- endfor %}
+    </ul>
+    {%- if !rendered.toc.is_empty() %}
+    <p><b>On this page</b></p>
+    <ul class="help-toc">
+      {%- for section in rendered.toc %}
+      <li><a href="#{{ section.id }}">{{ section.name }}</a>
+        {%- if !section.children.is_empty() %}
+        <ul>
+          {%- for child in section.children %}
+          <li><a href="#{{ child.id }}">{{ child.name }}</a></li>
+          {%- endfor %}
+        </ul>
+        {%- endif %}
+      </li>
+      {%- endfor %}
+    </ul>
+    {%- endif %}
+  </nav>
+  <div class="help-main">
+    <article class="help-guide">
+{{ rendered.html }}
+    </article>
+    <nav class="help-pager" aria-label="Previous and next guide">
+      <span>
+        {%- if let Some(previous) = previous %}
+        <a href="/help/{{ set.slug }}/{{ previous.slug }}" rel="prev">&larr; {{ previous.title }}</a>
+        {%- endif %}
+      </span>
+      <span>
+        {%- if let Some(next) = next %}
+        <a href="/help/{{ set.slug }}/{{ next.slug }}" rel="next">{{ next.title }} &rarr;</a>
+        {%- endif %}
+      </span>
+    </nav>
+  </div>
+</div>
+{% endblock %}

@@ -1606,18 +1606,24 @@ pub async fn write_attributions(
         .collect::<BTreeSet<_>>()
         .into_iter()
         .collect();
-    let observation_ends: HashMap<i64, Option<DateTime<Utc>>> = sqlx::query!(
-        "SELECT id, observation_ends_at FROM svs.runs
+    let locked = sqlx::query!(
+        "SELECT id, uuid, test_guid, marker, observation_ends_at FROM svs.runs
          WHERE id = ANY ($1) OR id IN (SELECT run_id FROM svs.attributions WHERE root_id = $2)
          ORDER BY id FOR UPDATE",
         &wanted,
         root,
     )
     .fetch_all(&mut *conn)
-    .await?
-    .into_iter()
-    .map(|row| (row.id, row.observation_ends_at))
-    .collect();
+    .await?;
+    let observation_ends: HashMap<i64, Option<DateTime<Utc>>> = locked
+        .iter()
+        .map(|row| (row.id, row.observation_ends_at))
+        .collect();
+    // what a record about a run names it by (the logging contract): its uuid, test and marker
+    let named: HashMap<i64, (Uuid, Uuid, &str)> = locked
+        .iter()
+        .map(|row| (row.id, (row.uuid, row.test_guid, row.marker.as_str())))
+        .collect();
 
     let mut desired: BTreeMap<(i64, i64), Attribution> = BTreeMap::new();
     let mut order: Vec<(i64, i64)> = Vec::new();
@@ -1809,15 +1815,25 @@ pub async fn write_attributions(
         );
     }
     for row in &result.removed {
+        // every run a removed row names was locked above, so it is named
+        let Some((run, test, marker)) = named.get(&row.run_id) else {
+            continue;
+        };
         tracing::info!(
-            svs_run_id = row.run_id, alert_uuid = %root, detection = row.detection,
-            confidence = row.confidence.as_str(), late = row.late, source = "router",
-            reason = REMOVAL_NO_LONGER_APPLIES,
+            svs_run = %run, svs_test = %test, svs_marker = marker, alert_uuid = %root,
+            detection = row.detection, confidence = row.confidence.as_str(), late = row.late,
+            source = "router", reason = REMOVAL_NO_LONGER_APPLIES,
             "svs attribution removed"
         );
     }
-    for run in &result.flagged {
-        tracing::info!(svs_run_id = run, alert_uuid = %root, "svs run changed since review");
+    for id in &result.flagged {
+        let Some((run, test, marker)) = named.get(id) else {
+            continue;
+        };
+        tracing::info!(
+            svs_run = %run, svs_test = %test, svs_marker = marker, alert_uuid = %root,
+            "svs run changed since review"
+        );
     }
     Ok(result)
 }
@@ -1901,16 +1917,20 @@ pub struct Judged {
 
 fn log_sightings(root: Uuid, evaluation: &Evaluation) {
     for judgement in &evaluation.judgements {
+        // a marker no run made names no run: its record has the marker alone
         let run = judgement.run.as_ref().map(|run| run.uuid.to_string());
+        let test = judgement.run.as_ref().map(|run| run.test_guid.to_string());
         if judgement.result == MarkerResult::Attributed {
             tracing::info!(
                 svs_marker = %judgement.marker, alert_uuid = %root, svs_run = run.as_deref(),
+                svs_test = test.as_deref(),
                 scan_point = judgement.scan_point.as_str(), result = judgement.result.as_str(),
                 "svs marker in an alert"
             );
         } else {
             tracing::warn!(
                 svs_marker = %judgement.marker, alert_uuid = %root, svs_run = run.as_deref(),
+                svs_test = test.as_deref(),
                 scan_point = judgement.scan_point.as_str(), result = judgement.result.as_str(),
                 "svs marker in an alert does not match its run"
             );
@@ -2137,6 +2157,18 @@ pub async fn record_suppressed_matches(
         .await?
         .rows_affected();
         if inserted == 1 {
+            match &dropped.dedup_key {
+                Some(dedup_key) => tracing::info!(
+                    svs_run = %run.uuid, svs_test = %run.test_guid, svs_marker = run.marker,
+                    hunt_uuid, group_value = dropped.group_value.as_deref(), dedup_key = %dedup_key,
+                    "svs run: a hunt dropped a duplicate match"
+                ),
+                None => tracing::info!(
+                    svs_run = %run.uuid, svs_test = %run.test_guid, svs_marker = run.marker,
+                    hunt_uuid, group_value = dropped.group_value.as_deref(),
+                    "svs run: a hunt suppressed a match"
+                ),
+            }
             recorded.push(RecordedSuppression {
                 run: run.uuid,
                 run_id: run.id,
@@ -2148,19 +2180,6 @@ pub async fn record_suppressed_matches(
     }
     let written: Vec<i64> = recorded.iter().map(|row| row.run_id).collect();
     mark_runs_stale(conn, &written).await?;
-    for row in &recorded {
-        match &row.dedup_key {
-            Some(dedup_key) => tracing::info!(
-                svs_run = %row.run, hunt_uuid, group_value = row.group_value.as_deref(),
-                dedup_key = %dedup_key,
-                "svs run: a hunt dropped a duplicate match"
-            ),
-            None => tracing::info!(
-                svs_run = %row.run, hunt_uuid, group_value = row.group_value.as_deref(),
-                "svs run: a hunt suppressed a match"
-            ),
-        }
-    }
     Ok(recorded)
 }
 

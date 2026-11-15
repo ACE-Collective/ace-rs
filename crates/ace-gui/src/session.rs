@@ -10,6 +10,8 @@
 //! `reject_unauthenticated_datastar` does, so the page doesn't morph the login form into itself.
 
 use std::net::SocketAddr;
+use std::sync::Mutex;
+use std::time::{Duration, Instant};
 
 use ace_service::{Actor, RequestParts, ServiceError, Theme};
 use askama::Template;
@@ -101,6 +103,9 @@ pub(crate) async fn layout_for(gui: &Gui, actor: Option<&Actor>, parts: &Parts) 
             tracing::warn!(%actor, "checking svs:run_read failed, so the page has no SVS link: {error}");
             false
         });
+    if layout.svs {
+        layout.svs_attention = svs_attention(gui, actor).await;
+    }
     layout.events = gui
         .service
         .allowed(actor, &ace_service::EVENT_READ)
@@ -126,6 +131,64 @@ pub(crate) async fn layout_for(gui: &Gui, actor: Option<&Actor>, parts: &Parts) 
             false
         });
     layout
+}
+
+/// How old the navigation's count of runs that need attention may be before a page reads it again.
+pub(crate) const SVS_ATTENTION_FRESH: Duration = Duration::from_secs(15);
+
+/// The count beside the navigation's SVS link, kept for a short while: every page of everyone who
+/// holds `svs:run_read` shows it, it is the same for each of them, and reading it looks at every run
+/// that could need attention. So a process reads it at most once in `fresh`, however many pages it
+/// draws. ace3's page asks its API for the count once per page, from a script.
+#[derive(Debug)]
+pub(crate) struct NavCount {
+    fresh: Duration,
+    read: Mutex<Option<(Instant, i64)>>,
+}
+
+impl NavCount {
+    pub(crate) fn new(fresh: Duration) -> Self {
+        NavCount {
+            fresh,
+            read: Mutex::new(None),
+        }
+    }
+
+    fn get(&self) -> Option<i64> {
+        let read = self.read.lock().unwrap_or_else(|e| e.into_inner());
+        read.filter(|(at, _)| at.elapsed() < self.fresh)
+            .map(|(_, count)| count)
+    }
+
+    fn set(&self, count: i64) {
+        *self.read.lock().unwrap_or_else(|e| e.into_inner()) = Some((Instant::now(), count));
+    }
+}
+
+/// What the navigation shows beside the SVS link for a viewer who holds `svs:run_read`: how many test
+/// runs need attention, `99+` past the service's cap, and nothing when no run does or the count can't
+/// be read, as ace3's `svs_nav.js` shows nothing then.
+async fn svs_attention(gui: &Gui, actor: &Actor) -> Option<String> {
+    let count = match gui.svs_attention.get() {
+        Some(count) => count,
+        None => match gui.service.svs_needs_attention(actor).await {
+            Ok(count) => {
+                gui.svs_attention.set(count);
+                count
+            }
+            Err(error) => {
+                tracing::warn!(%actor, "counting the svs runs that need attention failed, so the page has no count: {error}");
+                return None;
+            }
+        },
+    };
+    match count {
+        0 => None,
+        count if count > ace_service::SVS_NEEDS_ATTENTION_CAP => {
+            Some(format!("{}+", ace_service::SVS_NEEDS_ATTENTION_CAP))
+        }
+        count => Some(count.to_string()),
+    }
 }
 
 /// Anyone: the actor if the request has a live session, and the page's layout.

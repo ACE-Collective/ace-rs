@@ -271,6 +271,32 @@ fn udp_is_not_contained() {
     assert_eq!(&datagram[..length], b"from a test task");
 }
 
+/// A child gets its supervisor's socket as descriptor 3 even when the socket already is descriptor 3
+/// in the supervisor, close-on-exec, which is where a socket pair's second end lands when another
+/// thread frees descriptor 3 as the pair is made. `dup2` of a descriptor onto itself does nothing, so
+/// the flag stayed, the exec closed the socket and the supervisor read end-of-file, which it reports
+/// as "the tool runner ended before containing itself": a runner test failed that way now and then
+/// in a whole run of this file and never alone. The test task sets that up in a process of one
+/// thread, where the descriptor numbers are certain, with the plain `dup2` and with
+/// `pass_as_tool_fd`.
+#[test]
+fn a_socket_that_already_is_descriptor_3_reaches_the_child() {
+    let lost = run(&["--uncontained", "tool-fd", "dup2"]);
+    lost.assert_done();
+    assert!(
+        lost.stdout.contains("exit status: 2) wrote \"\""),
+        "a plain dup2 leaves the child without the socket: {lost}"
+    );
+    let passed = run(&["--uncontained", "tool-fd", "pass"]);
+    passed.assert_done();
+    assert!(
+        passed
+            .stdout
+            .contains("exit status: 0) wrote \"from the child\\n\""),
+        "{passed}"
+    );
+}
+
 // PLAN.md 7.5 batch 10: the sandbox runner (`ace_pool::tools`). Each test runs this file's test task
 // as a tool: `containment-test-task tool` contains itself and execs `containment-test-task
 // --uncontained ACTION`, as a pool's `tool` mode execs a program, so every refusal is the runner's.

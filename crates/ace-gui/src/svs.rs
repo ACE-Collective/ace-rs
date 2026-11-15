@@ -40,11 +40,12 @@
 //!
 //! The Tests, Coverage and Worklist tabs are `svs_coverage`'s (batch 8).
 //!
-//! Left out, each with the batch that brings it: ace3's saved filters for this screen (the alert list's
-//! saved filters cover no SVS screen yet); and the Guides link and the navigation entry's count (batch
-//! 9). ace3's bulk bar ticks every row with a script;
-//! here each row has its own box. The layout has
-//! a plain SVS link for whoever holds `svs:run_read`, so the area can be reached until then.
+//! Batch 9's: the tabs end with a link to the SVS guides (`help`), and the layout's SVS link, for
+//! whoever holds `svs:run_read`, says how many runs need attention (`session`'s `svs_attention`),
+//! which ace3's `svs_nav.js` fills in from the API's count.
+//!
+//! Left out: ace3's saved filters for this screen (the alert list's saved filters cover no SVS screen
+//! yet). ace3's bulk bar ticks every row with a script; here each row has its own box.
 
 use ace_service::filters::FilterScreen;
 use ace_service::{

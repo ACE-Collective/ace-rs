@@ -38,6 +38,7 @@
 //! - Each write has an audit row; a bulk action has one per run it changed.
 
 use std::collections::{BTreeMap, BTreeSet};
+use std::sync::{Mutex, PoisonError};
 
 use ace_core::db::{Retryable, Tx};
 use ace_core::svs::RunState;
@@ -53,8 +54,8 @@ use crate::gate::{Audited, Change, Recorded, Target};
 use crate::permission::{SVS_RUN_MANAGE, SVS_RUN_READ};
 use crate::svs_association::{AlertsClosed, svs_component};
 use crate::svs_runs::{
-    Loaded, StateRecord, Values, add_event, close, end_in, find_run, log_transition, mark_stale,
-    state_conflict, transition, unknown_run,
+    Loaded, Run, StateRecord, Values, add_event, close, end_in, find_run, log_transition,
+    mark_stale, state_conflict, transition, unknown_run,
 };
 use crate::{Actor, Service, ServiceError};
 
@@ -253,7 +254,8 @@ async fn take(
     )
     .await?;
     tracing::info!(
-        svs_run = %run.run.uuid, actor = %actor, previous_owner = from,
+        svs_run = %run.run.uuid, svs_test = %run.run.test_guid, svs_marker = run.run.marker,
+        actor = %actor, previous_owner = from,
         "svs run ownership taken"
     );
     Ok(())
@@ -833,6 +835,10 @@ impl Service {
         confirmed_from: Option<&str>,
         now: DateTime<Utc>,
     ) -> Result<ReviewOutcome, ServiceError> {
+        // the run and the state the sign-off moved it from, for the records written once it committed;
+        // a transaction tried again sets it again
+        let signed_off: Mutex<Option<(Run, RunState)>> = Mutex::new(None);
+        let signed_off = &signed_off;
         let outcome = self
             .gate
             .write(actor, "review_svs_run", &SVS_RUN_MANAGE, &|tx| {
@@ -1014,13 +1020,21 @@ impl Service {
                         fp_verdicts: &closing.fp_verdicts,
                         closing_failed: failed.as_deref(),
                     })?;
+                    *signed_off.lock().unwrap_or_else(PoisonError::into_inner) =
+                        Some((loaded.run.clone(), from));
                     Ok(Audited::changed(ReviewOutcome::Reviewed(reviewed), change))
                 })
             })
             .await?;
-        if let ReviewOutcome::Reviewed(reviewed) = &outcome {
+        let signed_off = signed_off
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .take();
+        if let (ReviewOutcome::Reviewed(reviewed), Some((run, from))) = (&outcome, signed_off) {
+            log_transition(&run, Some(from), RunState::Reviewed, actor, None);
             tracing::info!(
-                svs_run = %uuid, actor = %actor, counts = ?reviewed.counts,
+                svs_run = %uuid, svs_test = %run.test_guid, svs_marker = run.marker,
+                actor = %actor, counts = %json!(reviewed.counts),
                 re_review = reviewed.re_review, alerts_closed = reviewed.alerts_closed,
                 fp_verdicts = reviewed.fp_verdicts,
                 "svs run reviewed: {} alerts closed, {} ignored detections FP",

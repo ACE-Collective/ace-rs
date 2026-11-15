@@ -886,3 +886,134 @@ table.saved-filters .place {
 .detection .pager span {
   margin-right: 0.5rem;
 }
+
+/* The help area (PLAN.md 5.11's help area, with 7.10 batch 9): a guide beside its sidebar. */
+.help-page {
+  display: flex;
+  align-items: flex-start;
+  gap: 2rem;
+}
+
+.help-sidebar {
+  flex: 0 0 16rem;
+  position: sticky;
+  top: 1rem;
+  max-height: calc(100vh - 2rem);
+  overflow-y: auto;
+  font-size: 0.9em;
+}
+
+.help-sidebar p {
+  margin: 0.75rem 0 0.25rem;
+}
+
+.help-sidebar ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.help-sidebar ul ul {
+  padding-left: 1rem;
+}
+
+.help-main {
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 60rem;
+}
+
+.help-guide h2 {
+  margin-top: 2rem;
+  padding-bottom: 0.25rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.help-guide .help-anchor {
+  margin-left: 0.5rem;
+  color: var(--muted);
+  text-decoration: none;
+  visibility: hidden;
+}
+
+.help-guide h2:hover .help-anchor,
+.help-guide h3:hover .help-anchor,
+.help-guide .help-anchor:focus {
+  visibility: visible;
+}
+
+.help-guide img {
+  max-width: 100%;
+  height: auto;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: #ffffff;
+}
+
+.help-guide table {
+  border-collapse: collapse;
+  margin: 1rem 0;
+}
+
+.help-guide th,
+.help-guide td {
+  padding: 0.35rem 0.6rem;
+  border: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.help-guide th {
+  background: var(--surface);
+}
+
+.help-guide pre {
+  padding: 0.75rem 1rem;
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface);
+}
+
+.help-guide blockquote {
+  margin: 1rem 0;
+  padding: 0 1rem;
+  border-left: 4px solid var(--border);
+  color: var(--muted);
+}
+
+.help-callout {
+  margin: 1rem 0;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: 4px;
+  background: var(--surface);
+}
+
+.help-callout-warning,
+.help-callout-caution {
+  border-left-color: var(--danger);
+}
+
+.help-callout p {
+  margin: 0.35rem 0;
+}
+
+.help-callout-title {
+  font-weight: 600;
+}
+
+.help-pager {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 2rem 0;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.menu .count {
+  margin-left: 0.25rem;
+  font-size: 0.85em;
+}
