@@ -202,6 +202,25 @@ async fn serve(app: &App) -> Result<ExitCode> {
         .with_attack_catalog(attack)
         .with_runs(runs)
         .with_routers(routers);
+    // the AI investigation API (PLAN.md 7.15), off unless the overlay turns it on
+    let ai = crate::ai::surface(
+        &app.ai_backend_types(),
+        &overlay,
+        db.clone(),
+        &ace_pool::secrets::process_env,
+    )
+    .map_err(anyhow::Error::msg)
+    .context("the overlay's ai_api section")?;
+    let service = match ai {
+        Some(surface) => {
+            tracing::info!(
+                backends = ?surface.backend_names(),
+                "the AI investigation API is on"
+            );
+            service.with_ai(surface)
+        }
+        None => service,
+    };
     // search (PLAN.md 7.11): the index in Postgres, with the embedding model the image carries. The
     // model is read here once, each file checked against its pinned hash, and nothing is downloaded.
     // With no model named, alerts aren't indexed and a search runs its exact lane and its listings.

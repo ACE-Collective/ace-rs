@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM ai.windows\n             WHERE bucket = $1\n               AND ((kind = 'minute' AND window_start < $2) OR (kind = 'hour' AND window_start < $3))",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "38f02bce5c68d32a1e3d2bd0d5aa5dd4bc80f4c3edb0f92c23543f306651039c"
+}

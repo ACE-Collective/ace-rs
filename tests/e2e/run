@@ -33,6 +33,12 @@ the Postgres image carries, and a search through the JSON API has to find them b
 one by its id as an exact match, nothing for a query that resembles nothing, and each as the alert
 most like the other.
 
+Then the AI investigation API (PLAN.md 7.15), which tests/e2e/site/overlay.yaml turns on with ace3's
+testing backend: a key scoped to it lists the backend, runs a query that answers its canned rows,
+reads the first alert and finds it by its id, and is refused by the main API; each of those wrote its
+audit row, and the query was counted by the limiter in Postgres. Nothing leaves the stack: the backend
+reaches nothing, and ACE calls no model.
+
 Then the browser test (PLAN.md 5.8, 5.9 and 5.10): the e2e profile's headless Chromium, pinned by digest in
 compose.yaml, logs in to the GUI as an analyst that `ace user create-first` makes and opens a third
 submission's alert page while the network pool is frozen, so the page has no RDAP result. The pool is
@@ -1255,6 +1261,86 @@ def check_search(first, second, failures):
            f"the same email's other alert is among those like it, and it isn't among its own: {like}")
 
 
+def check_ai(first, failures):
+    """PLAN.md 7.15: the AI investigation API, on in this stack with ace3's testing backend. A key
+    scoped to it reaches its own routes and nothing else, and each call is recorded."""
+
+    def expect(ok, message):
+        log(("ok    " if ok else "FAIL  ") + message)
+        if not ok:
+            failures.append(f"ai: {message}")
+        return ok
+
+    out = compose(
+        "exec", "-T", "ace", ACE_COMMAND, "user", "create-key", "e2e-agent",
+        "--grant", "ai:fake", "--grant", "ai:alert", "--grant", "ai:search",
+        "--grant", "ai:backends", capture=True,
+    )
+    token = next(
+        (line.split(": ", 1)[1] for line in out.splitlines()
+         if line.startswith("token (shown once): ")),
+        None,
+    )
+    if not token:
+        raise SystemExit(f"e2e: `ace user create-key` printed no token:\n{out}")
+
+    def call(method, path, body=None):
+        """The status and the JSON body."""
+        request = urllib.request.Request(
+            f"http://127.0.0.1:{PORT}{path}",
+            data=None if body is None else json.dumps(body).encode(),
+            method=method,
+            headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+        )
+        try:
+            with urllib.request.urlopen(request, timeout=60) as response:
+                return response.status, json.load(response)
+        except urllib.error.HTTPError as error:
+            return error.code, json.load(error)
+
+    status, listed = call("GET", "/api/ai/v1/backends")
+    backends = {b["name"]: b for b in listed.get("backends", [])}
+    expect(status == 200 and list(backends) == ["fake"] and backends["fake"]["authorized"]
+           and backends["fake"]["describe"]["query_language"] == "fake",
+           f"the key lists the one backend the overlay enables, and reaches it: {status} {list(backends)}")
+    status, answer = call("POST", "/api/ai/v1/query/fake", {
+        "query": "search e2e", "start_time": "2026-01-01T00:00:00Z", "end_time": "2026-01-01T01:00:00Z",
+    })
+    expect(status == 200 and answer.get("backend") == "fake" and answer.get("row_count") == 2
+           and answer.get("truncated") is False and answer.get("meta") == {"fake": True},
+           f"a query answers the backend's canned rows: {status} {answer.get('row_count')} rows")
+    status, refused = call("POST", "/api/ai/v1/query/fake", {"query": "search e2e"})
+    expect(status == 400 and "requires start_time and end_time" in refused.get("error", ""),
+           f"a query with no window is refused: {status} {refused.get('error')}")
+    status, alert = call("GET", f"/api/ai/v1/alerts/{first}")
+    expect(status == 200 and alert.get("alert", {}).get("id") == first,
+           f"the key reads the first alert: {status}")
+    status, found = call("POST", "/api/ai/v1/search/alerts", {"query": f"uuid:{first}"})
+    expect(status == 200 and [r["alert"]["id"] for r in found.get("results", [])] == [first],
+           f"and finds it by its id: {status}")
+    status, refused = call("GET", "/api/ai/v1/export/alerts")
+    expect(status == 403 and refused.get("error") == "this needs ai:export",
+           f"the export needs a permission the key doesn't hold: {status} {refused.get('error')}")
+    status, refused = call("GET", f"/api/alerts/v1/alerts/{first}")
+    expect(status == 403 and refused.get("error") == "this needs alert:read",
+           f"the main API refuses the key: {status} {refused.get('error')}")
+
+    events = [row[0] for row in sql(
+        "SELECT details->>'event' FROM service.audit WHERE action = 'ai_record' "
+        "AND actor->>'name' = 'e2e-agent' ORDER BY id")]
+    expect(events == ["query", "query_rejected", "alert_read", "search"],
+           f"each call that reached the service has its audit row, and the refusals none: {events}")
+    recorded = sql(
+        "SELECT details->>'query', details->>'row_count', details ? 'rows' FROM service.audit "
+        "WHERE action = 'ai_record' AND details->>'event' = 'query'")[0]
+    expect(recorded == ["search e2e", "2", "f"],
+           f"the query's row holds what was asked and how much came back, not the rows: {recorded}")
+    counted = sql("SELECT count FROM ai.windows WHERE bucket = 'fake' AND kind = 'minute'")
+    expect(sum(int(row[0]) for row in counted) == 1 and
+           sql("SELECT count(*) FROM ai.inflight")[0][0] == "0",
+           f"the limiter counted the one query that ran, in Postgres, and holds no slot: {counted}")
+
+
 def check_library_diff(failures):
     """That the library diff (PLAN.md 4.8) has teeth. Its full run over the sample set is a separate
     invocation, tools/library-diff/run --all, since it takes as long as the comparison."""
@@ -1494,6 +1580,7 @@ def main(argv):
             log("FAIL  the roots' normal forms differ; see normal-form*.json in " + str(WORK))
             failures.append("the same email's two roots have different normal forms")
         check_search(first, second, failures)
+        check_ai(first, failures)
         check_whitelist(email, failures)
         check_scanners(failures)
         if browser:

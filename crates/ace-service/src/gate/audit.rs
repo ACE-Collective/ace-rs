@@ -324,6 +324,30 @@ impl Target {
         }
     }
 
+    /// A backend of the AI investigation API, by its name (PLAN.md 7.15).
+    pub(crate) fn ai_backend(name: &str) -> Self {
+        Target {
+            kind: "ai_backend",
+            id: name.to_owned(),
+        }
+    }
+
+    /// The AI investigation API's search of the alerts.
+    pub(crate) fn ai_search() -> Self {
+        Target {
+            kind: "ai_search",
+            id: "alerts".to_owned(),
+        }
+    }
+
+    /// The AI investigation API's export of the alerts.
+    pub(crate) fn ai_export() -> Self {
+        Target {
+            kind: "ai_export",
+            id: "alerts".to_owned(),
+        }
+    }
+
     /// An event, by its numeric id.
     pub(crate) fn event(id: i64) -> Self {
         Target {

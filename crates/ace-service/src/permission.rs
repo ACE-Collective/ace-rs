@@ -257,6 +257,21 @@ pub const SEARCH_INDEX: PermissionName = PermissionName::known("search", "index"
 /// Enter the GUI's administration area: ace3's `admin:read`, its umbrella gate. Each page there needs its
 /// own permission too, such as `user:read` for Users & Roles.
 pub const ADMIN_READ: PermissionName = PermissionName::known("admin", "read");
+/// Read an alert and its observables through the AI investigation API (PLAN.md 7.15): ace3's `ai:alert`.
+/// It opens nothing on the main API. A backend's query needs `ai:<the backend's name>`, which isn't
+/// listed here: the overlay names the backends.
+pub const AI_ALERT: PermissionName = PermissionName::known("ai", "alert");
+/// List the AI investigation API's backends and which of them the key reaches. ace3 asks only for a
+/// valid key; ace4 has no route but the ping that asks for no permission.
+pub const AI_BACKENDS: PermissionName = PermissionName::known("ai", "backends");
+/// Read an event through the AI investigation API: ace3's `ai:event`.
+pub const AI_EVENT: PermissionName = PermissionName::known("ai", "event");
+/// Export every alert with its observables, detections and events through the AI investigation API:
+/// ace3's `ai:export`. A key that can read every observable ACE has seen is a different grant from one
+/// that can search.
+pub const AI_EXPORT: PermissionName = PermissionName::known("ai", "export");
+/// Search past alerts through the AI investigation API: ace3's `ai:search`.
+pub const AI_SEARCH: PermissionName = PermissionName::known("ai", "search");
 /// Read an alert and its files: ace3's `alert:read`.
 pub const ALERT_READ: PermissionName = PermissionName::known("alert", "read");
 /// Change an alert: ace3's `alert:write`, which its disposition route requires.
@@ -379,6 +394,28 @@ pub static CATALOG: &[CatalogEntry] = &[
     CatalogEntry {
         name: ADMIN_READ,
         description: "Enter the administration area. Each page there needs its own permission too.",
+    },
+    CatalogEntry {
+        name: AI_ALERT,
+        description: "Read an alert and its observables through the AI investigation API. For an AI agent's \
+                      key; it opens nothing on the main API. A backend's query needs ai:<backend>.",
+    },
+    CatalogEntry {
+        name: AI_BACKENDS,
+        description: "List the AI investigation API's query backends and which of them the key reaches.",
+    },
+    CatalogEntry {
+        name: AI_EVENT,
+        description: "Read an event and its alerts through the AI investigation API.",
+    },
+    CatalogEntry {
+        name: AI_EXPORT,
+        description: "Export every alert with its observables, detections and events through the AI \
+                      investigation API, for offline analysis.",
+    },
+    CatalogEntry {
+        name: AI_SEARCH,
+        description: "Search past alerts through the AI investigation API.",
     },
     CatalogEntry {
         name: ALERT_CREATE,

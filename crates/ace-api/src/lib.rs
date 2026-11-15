@@ -527,8 +527,13 @@
 //!   have.
 //! - `hint` and `warnings` are new: how to name a bare indicator, which ace3's GUI and CLI work out for
 //!   themselves, and the lanes that didn't run, which ace3 only logs. `tz` says where a relative date is.
-//! - ace3's AI API (`/ai/v1/search`), the same two routes under `ai:search` with a rate limit and its
-//!   own audit lines, isn't here: no step brings the AI API.
+//! - ace3's AI API has the same two routes under `ai:search`, with a rate limit and its own audit
+//!   rows: they are `/api/ai/v1/search/alerts` and `/similar` (PLAN.md 7.15).
+//!
+//! ace3's AI investigation API (PLAN.md 7.15), `aceapi_ai`, which its `http-api-ai` service serves, is
+//! `/api/ai/v1`: read-only routes an AI agent's own key calls, each under its own `ai:` permission,
+//! off until the overlay's `ai_api` section turns them on. ACE calls no language model. `ai`'s docs
+//! map the routes and say what differs.
 use std::net::SocketAddr;
 
 use ace_core::bucket::Bucket;
@@ -538,6 +543,7 @@ use axum::extract::DefaultBodyLimit;
 use axum::routing::{delete, get, patch, post, put};
 use utoipa::OpenApi;
 
+mod ai;
 mod alerts;
 mod analysis;
 mod auth;
@@ -796,6 +802,26 @@ impl Web {
                 "/api/search/v1/similar",
                 post(search::similar).layer(json_limit),
             )
+            .route("/api/ai/v1/backends", get(ai::backends))
+            .route(
+                "/api/ai/v1/query/{backend}",
+                post(ai::query).layer(json_limit),
+            )
+            .route("/api/ai/v1/alerts/{id}", get(ai::alert))
+            .route(
+                "/api/ai/v1/alerts/{id}/observables",
+                get(ai::alert_observables),
+            )
+            .route("/api/ai/v1/events/{event}", get(ai::event))
+            .route(
+                "/api/ai/v1/search/alerts",
+                post(ai::search_alerts).layer(json_limit),
+            )
+            .route(
+                "/api/ai/v1/search/similar",
+                post(ai::search_similar).layer(json_limit),
+            )
+            .route("/api/ai/v1/export/alerts", get(ai::export_alerts))
             .route("/api/hunts/v1/hunts", get(hunts::list))
             .route("/api/hunts/v1/hunts/{uuid}", get(hunts::one))
             .route(
@@ -1398,6 +1424,14 @@ impl Web {
         monitoring::state,
         search::alerts,
         search::similar,
+        ai::backends,
+        ai::query,
+        ai::alert,
+        ai::alert_observables,
+        ai::event,
+        ai::search_alerts,
+        ai::search_similar,
+        ai::export_alerts,
         hunts::list,
         hunts::one,
         hunts::suppressions,
@@ -1616,6 +1650,7 @@ impl Web {
         (name = "lists", description = "The analyst-edited lists, such as the email whitelists, which apply to the next task that reads them"),
         (name = "monitoring", description = "What the monitoring checks last found, and the scheduled tasks' runs"),
         (name = "search", description = "Search over alerts: exact lookups, the meaning of their text, and alerts like one"),
+        (name = "ai", description = "The AI investigation API: read-only routes for an AI agent's own API key, off unless the site turns them on"),
     )
 )]
 pub struct ApiDoc;

@@ -57,6 +57,11 @@
 //! `alert_routers:` is ace3's section of that name (PLAN.md 7.13, `ace_service::routing`): each router, by its
 //! name, with its `type`, `priority` and `settings`. `ace serve` builds and checks them when it starts.
 //!
+//! `ai_api:` turns on the AI investigation API (PLAN.md 7.15, `ace_service::ai`), which is off without
+//! it, and names its query backends: ace3's `ai_api:` and `ai_query_backend_<name>:` sections. Each
+//! backend has a `type` the binary has, its `limits`, the `secrets` it is given and its `settings`.
+//! `ace serve` builds and checks them when it starts; a pool doesn't read them.
+//!
 //! `secrets:` says where each secret comes from, by the name modules declare in
 //! `Module::SECRETS`: `env:<VARIABLE>` or `file:<path>`, as ace3's `env:` references. Nothing
 //! is read when the overlay loads; a pool reads only the ones its modules declare (PLAN.md 2.24,
@@ -115,6 +120,77 @@ pub struct Overlay {
     /// `yara_export_string_modifiers:` and `yara_export_string_boundaries:`. `ace serve` reads it; a pool
     /// doesn't.
     pub yara_export: YaraExportSection,
+    /// The AI investigation API (PLAN.md 7.15): ace3's `ai_api:` and `ai_query_backend_<name>:`
+    /// sections. Off unless `enabled`. `ace serve` reads it; a pool doesn't.
+    pub ai_api: AiApiSection,
+}
+
+/// The AI investigation API's settings (PLAN.md 7.15, `ace_service::ai`): read-only routes an AI agent's
+/// own key calls. ace3's `ai_api:` section, with its `ai_query_backend_<name>:` sections as `backends`.
+///
+/// What differs from ace3's: `enabled` turns the whole API on, where ace3 runs it as a service of its
+/// own that a site starts or doesn't; a backend's `type` names a backend type the binary was built with
+/// (`App::ai_backend_type`) where ace3 names a Python module and class; and a backend names the
+/// secrets it is given, from `secrets:`, and gets no other. `ace serve` checks the section when it
+/// starts, and one it can't use stops it.
+#[derive(Debug, Clone, Default, PartialEq, Deserialize)]
+#[serde(deny_unknown_fields, default)]
+pub struct AiApiSection {
+    /// Whether the API answers at all. False by default: its routes then say it's off.
+    pub enabled: bool,
+    /// Serve requests without limits when the limiter's store can't be reached. False by default,
+    /// which refuses them: the limits protect a data source's quota.
+    pub rate_limit_fail_open: bool,
+    /// The search routes' limits: only the concurrency, the two rates and `max_query_timeout` are used.
+    pub search_limits: AiLimitsSection,
+    /// The export route's limits, the same four.
+    pub export_limits: AiLimitsSection,
+    /// The query backends, by name. A backend's name is its route, `/api/ai/v1/query/<name>`, and its
+    /// permission, `ai:<name>`.
+    pub backends: BTreeMap<String, AiBackendSection>,
+}
+
+/// ace3's `AIQueryBackendLimits`. A key left out keeps ace3's default.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields, default)]
+pub struct AiLimitsSection {
+    /// The most queries running at once, across every node. ace3's default is 2.
+    pub max_concurrency: Option<u32>,
+    /// 10 by default; 60 for the export.
+    pub requests_per_minute: Option<u32>,
+    /// 120 by default; 1200 for the export.
+    pub hourly_budget: Option<u32>,
+    /// The row limit when a request names none: 1000.
+    pub default_limit: Option<u32>,
+    /// The largest row limit a request may name: 5000.
+    pub max_limit: Option<u32>,
+    /// The widest window a query may cover, as `DD:HH:MM:SS`: `90:00:00:00`.
+    pub max_window: Option<String>,
+    /// The timeout when a request names none, in seconds: 300.
+    pub default_query_timeout: Option<u32>,
+    /// The largest timeout a request may name, in seconds: 600.
+    pub max_query_timeout: Option<u32>,
+}
+
+/// One of ace3's `ai_query_backend_<name>:` sections.
+#[derive(Debug, Clone, PartialEq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct AiBackendSection {
+    /// The backend type, as the binary names it: `splunk`, or ace3's testing backends `fake` and
+    /// `fake_unwindowed`, which answer canned rows.
+    #[serde(rename = "type")]
+    pub kind: String,
+    /// Whether the API serves it. False by default, as in ace3.
+    #[serde(default)]
+    pub enabled: bool,
+    #[serde(default)]
+    pub limits: AiLimitsSection,
+    /// The secrets the backend is given, each a name in `secrets:`. It gets no other.
+    #[serde(default)]
+    pub secrets: Vec<String>,
+    /// What the type's builder takes; null when left out.
+    #[serde(default)]
+    pub settings: Option<Value>,
 }
 
 /// ace3's `yara_export:` section, with its two neighbours `yara_export_string_modifiers:` and
@@ -893,6 +969,19 @@ impl Overlay {
             .repositories
             .iter()
             .map(|(name, r)| ("catalog", name, &r.ssh_key));
+        // and so is a backend's secret
+        for (name, backend) in &overlay.ai_api.backends {
+            if let Some(secret) = backend
+                .secrets
+                .iter()
+                .find(|secret| !overlay.secrets.contains_key(*secret))
+            {
+                return Err(parse_error(
+                    format!("ai_api.backends.{name}.secrets"),
+                    format!("{secret:?} isn't a secret in secrets:"),
+                ));
+            }
+        }
         for (section, name, ssh_key) in yara.chain(catalog) {
             if let Some(secret) = ssh_key
                 && !overlay.secrets.contains_key(secret)
@@ -938,6 +1027,8 @@ impl Overlay {
             svs: SvsSection::default(),
             alert_routers: BTreeMap::new(),
             yara_export: YaraExportSection::default(),
+            // a pool serves no API, and reads no backend's secret
+            ai_api: AiApiSection::default(),
         }
     }
 
@@ -1578,5 +1669,61 @@ mod tests {
             matches!(&err, OverlayError::Parse { path, .. } if path == "secrets.resolver_token"),
             "{err}"
         );
+    }
+    /// PLAN.md 7.15: the `ai_api` section, off by default, and what it refuses.
+    #[test]
+    fn the_ai_api_section_is_off_unless_it_says_otherwise() {
+        let overlay = Overlay::from_yaml("modules: {}").expect("parses");
+        assert_eq!(overlay.ai_api, AiApiSection::default());
+        assert!(!overlay.ai_api.enabled && overlay.ai_api.backends.is_empty());
+
+        let overlay = Overlay::from_yaml(
+            "secrets: {token: 'env:AI_TOKEN'}\n\
+             ai_api:\n  enabled: true\n  rate_limit_fail_open: true\n  \
+             search_limits: {requests_per_minute: 20}\n  backends:\n    \
+             splunk:\n      type: splunk\n      enabled: true\n      secrets: [token]\n      \
+             limits: {max_concurrency: 4, max_window: '180:00:00:00'}\n      \
+             settings: {splunk: {host: h, timezone: GMT}}\n    \
+             off: {type: fake}\n",
+        )
+        .expect("parses");
+        let section = &overlay.ai_api;
+        assert!(section.enabled && section.rate_limit_fail_open);
+        assert_eq!(section.search_limits.requests_per_minute, Some(20));
+        assert_eq!(section.export_limits, AiLimitsSection::default());
+        let splunk = &section.backends["splunk"];
+        assert_eq!((splunk.kind.as_str(), splunk.enabled), ("splunk", true));
+        assert_eq!(splunk.secrets, ["token"]);
+        assert_eq!(splunk.limits.max_concurrency, Some(4));
+        assert_eq!(splunk.limits.max_window.as_deref(), Some("180:00:00:00"));
+        assert!(splunk.settings.is_some());
+        // a backend is off until its entry says enabled, as in ace3
+        assert!(!section.backends["off"].enabled);
+        // a pool's view of the overlay holds none of it
+        assert_eq!(overlay.for_pool(&[]).ai_api, AiApiSection::default());
+
+        for (text, path) in [
+            ("ai_api: {enable: true}", "ai_api"),
+            (
+                "ai_api: {backends: {b: {enabled: true}}}",
+                "ai_api.backends.b",
+            ),
+            (
+                "ai_api: {backends: {b: {type: fake, limit: 1}}}",
+                "ai_api.backends.b",
+            ),
+            (
+                "ai_api: {search_limits: {per_minute: 1}}",
+                "ai_api.search_limits",
+            ),
+            // a secret has to have a source in secrets:
+            (
+                "ai_api: {backends: {b: {type: fake, secrets: [nowhere]}}}",
+                "ai_api.backends.b.secrets",
+            ),
+        ] {
+            let error = Overlay::from_yaml(text).expect_err(text).to_string();
+            assert!(error.contains(path), "{text}: {error}");
+        }
     }
 }

@@ -105,6 +105,7 @@
 //!   (5.12), which its pool makes; its start and cancel are here.
 
 mod actor;
+pub mod ai;
 mod alert_graph;
 mod alert_view;
 mod alerts;
@@ -265,16 +266,16 @@ pub use ownership::{
     SkippedAlert, check_alert_ownership, confirmed_takes, describe_frozen, describe_skipped,
 };
 pub use permission::{
-    ADMIN_READ, ALERT_CREATE, ALERT_QUEUE, ALERT_READ, ALERT_WRITE, BUCKET_GC, BUCKET_VERIFY,
-    CATALOG, CLI_EXECUTE, CRASH_READ, CatalogEntry, DETECTION_READ, DETECTION_WRITE,
-    EMAIL_ARCHIVE_MAINTAIN, EMAIL_READ, EVENT_READ, EVENT_WRITE, Effect, FILE_COLLECTION_CREATE,
-    FILE_COLLECTION_PRUNE, FILE_COLLECTION_READ, FILE_COLLECTION_WRITE, HUNT_READ, HUNT_WRITE,
-    InvalidPermission, LIST_READ, LIST_WRITE, MONITORING_READ, MONITORING_REPORT, NRD_REFRESH,
-    OBSERVABLE_READ, OBSERVABLE_WRITE, PermissionName, PermissionPattern, REMEDIATION_READ,
-    REMEDIATION_WRITE, SEARCH_INDEX, SIGNATURE_DOWNLOAD, SIGNATURE_QA_PURGE, SIGNATURE_READ,
-    SVS_ADMIN, SVS_COVERAGE_REFRESH, SVS_COVERAGE_SNAPSHOT, SVS_RUN_MANAGE, SVS_RUN_READ,
-    SVS_RUN_REGISTER, SVS_RUN_TIMERS, SVS_VALIDATE, SVS_VALIDATION_PRUNE, USER_READ, USER_SELF,
-    USER_WRITE,
+    ADMIN_READ, AI_ALERT, AI_BACKENDS, AI_EVENT, AI_EXPORT, AI_SEARCH, ALERT_CREATE, ALERT_QUEUE,
+    ALERT_READ, ALERT_WRITE, BUCKET_GC, BUCKET_VERIFY, CATALOG, CLI_EXECUTE, CRASH_READ,
+    CatalogEntry, DETECTION_READ, DETECTION_WRITE, EMAIL_ARCHIVE_MAINTAIN, EMAIL_READ, EVENT_READ,
+    EVENT_WRITE, Effect, FILE_COLLECTION_CREATE, FILE_COLLECTION_PRUNE, FILE_COLLECTION_READ,
+    FILE_COLLECTION_WRITE, HUNT_READ, HUNT_WRITE, InvalidPermission, LIST_READ, LIST_WRITE,
+    MONITORING_READ, MONITORING_REPORT, NRD_REFRESH, OBSERVABLE_READ, OBSERVABLE_WRITE,
+    PermissionName, PermissionPattern, REMEDIATION_READ, REMEDIATION_WRITE, SEARCH_INDEX,
+    SIGNATURE_DOWNLOAD, SIGNATURE_QA_PURGE, SIGNATURE_READ, SVS_ADMIN, SVS_COVERAGE_REFRESH,
+    SVS_COVERAGE_SNAPSHOT, SVS_RUN_MANAGE, SVS_RUN_READ, SVS_RUN_REGISTER, SVS_RUN_TIMERS,
+    SVS_VALIDATE, SVS_VALIDATION_PRUNE, USER_READ, USER_SELF, USER_WRITE,
 };
 pub use preferences::{
     AlertSectionsPreference, MANAGE_COLUMNS, MAX_ALERT_SECTIONS, ManageColumn,
@@ -448,6 +449,20 @@ pub enum ServiceError {
     /// in a way only an operator can fix. Its message says which.
     #[error("{0}")]
     Unconfigured(String),
+    /// A limit refused the request (PLAN.md 7.15, `ai`): HTTP's 429, with how long to wait.
+    #[error("{detail}")]
+    RateLimited {
+        detail: String,
+        retry_after_seconds: u64,
+    },
+    /// The request can't be served for now and may be tried again, such as when the AI API's rate
+    /// limiter can't be reached: HTTP's 503.
+    #[error("{0}")]
+    Unavailable(String),
+    /// A data source the request was sent on to failed or ran out of time (PLAN.md 7.15): HTTP's 502
+    /// or 504. The reason is the source's own, and holds no credential.
+    #[error("{reason}")]
+    Upstream { status: u16, reason: String },
 }
 
 impl From<DbError> for ServiceError {
@@ -469,6 +484,9 @@ impl Retryable for ServiceError {
             ServiceError::Bucket(BucketError::Db(e)) => e.is_retryable(),
             ServiceError::Bucket(_)
             | ServiceError::Unconfigured(_)
+            | ServiceError::RateLimited { .. }
+            | ServiceError::Unavailable(_)
+            | ServiceError::Upstream { .. }
             | ServiceError::InvalidRequest(_)
             | ServiceError::NotFound(_)
             | ServiceError::TooLarge(_)
@@ -578,6 +596,9 @@ pub struct Service {
     search: Option<std::sync::Arc<dyn search::SearchIndex>>,
     /// Search's settings, ace3's defaults unless the binary sets others.
     search_config: std::sync::Arc<search::SearchConfig>,
+    /// The AI investigation API (PLAN.md 7.15), `ai`'s docs. None unless the binary turns it on, and
+    /// then its routes say it's off.
+    ai: Option<std::sync::Arc<ai::AiSurface>>,
 }
 
 impl Service {
@@ -599,6 +620,7 @@ impl Service {
             attack: None,
             search: None,
             search_config: std::sync::Arc::default(),
+            ai: None,
         }
     }
 

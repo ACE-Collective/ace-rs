@@ -22,6 +22,8 @@ pub struct ErrorBody {
 pub(crate) struct ApiError {
     status: StatusCode,
     message: String,
+    /// How many seconds a refused client should wait, as a 429's `Retry-After`.
+    retry_after: Option<u64>,
 }
 
 impl ApiError {
@@ -29,6 +31,7 @@ impl ApiError {
         ApiError {
             status,
             message: message.into(),
+            retry_after: None,
         }
     }
 
@@ -73,6 +76,22 @@ impl From<ServiceError> for ApiError {
             ServiceError::Bucket(BucketError::Deleting { .. }) => StatusCode::SERVICE_UNAVAILABLE,
             // its message is an operator's, such as a missing key, and holds nothing secret
             ServiceError::Unconfigured(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            ServiceError::RateLimited {
+                detail,
+                retry_after_seconds,
+            } => {
+                return ApiError {
+                    status: StatusCode::TOO_MANY_REQUESTS,
+                    message: detail.clone(),
+                    retry_after: Some(*retry_after_seconds),
+                };
+            }
+            ServiceError::Unavailable(_) => StatusCode::SERVICE_UNAVAILABLE,
+            // a data source's failure, 502 or 504: the service lets no other status through
+            ServiceError::Upstream { status, .. } => match *status {
+                504 => StatusCode::GATEWAY_TIMEOUT,
+                _ => StatusCode::BAD_GATEWAY,
+            },
             error if error.is_retryable() => StatusCode::SERVICE_UNAVAILABLE,
             ServiceError::Orchestrator(_)
             | ServiceError::Bucket(_)
@@ -120,6 +139,11 @@ impl IntoResponse for ApiError {
             }),
         )
             .into_response();
+        if let Some(seconds) = self.retry_after {
+            response
+                .headers_mut()
+                .insert(header::RETRY_AFTER, HeaderValue::from(seconds));
+        }
         if self.status == StatusCode::UNAUTHORIZED {
             response
                 .headers_mut()

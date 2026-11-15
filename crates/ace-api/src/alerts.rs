@@ -240,6 +240,17 @@ pub(crate) struct AlertDetailBody {
     detections: i64,
 }
 
+impl From<ace_service::Alert> for AlertDetailBody {
+    fn from(alert: ace_service::Alert) -> Self {
+        AlertDetailBody {
+            alert: alert.summary.into(),
+            observables: alert.observables,
+            files: alert.files,
+            detections: alert.detections,
+        }
+    }
+}
+
 /// The alert list's parameters, which its exports share but for `limit` and `after`. The handler reads
 /// them from the query itself, since `f` repeats.
 #[derive(Debug, IntoParams)]
@@ -311,9 +322,9 @@ fn alert_query(params: &Params) -> Result<AlertQuery, ApiError> {
 #[into_params(parameter_in = Query)]
 pub(crate) struct ObservablesQuery {
     /// How many observables, 1 to 500; 100 when left out.
-    limit: Option<u32>,
+    pub(crate) limit: Option<u32>,
     /// The `next` of the previous page.
-    after: Option<i64>,
+    pub(crate) after: Option<i64>,
 }
 
 #[derive(Debug, Serialize, ToSchema)]
@@ -451,6 +462,19 @@ pub(crate) struct ObservablePageBody {
     observables: Vec<ObservableBody>,
     /// Pass as `after` for the next page; null on the last.
     next: Option<i64>,
+}
+
+impl From<ace_service::ObservablePage> for ObservablePageBody {
+    fn from(page: ace_service::ObservablePage) -> Self {
+        ObservablePageBody {
+            observables: page
+                .observables
+                .into_iter()
+                .map(ObservableBody::from)
+                .collect(),
+            next: page.next,
+        }
+    }
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
@@ -718,12 +742,7 @@ pub(crate) async fn one(
 ) -> Result<Json<AlertDetailBody>, ApiError> {
     let Path(id) = id?;
     let alert = web.service.alert(&actor, id).await?;
-    Ok(Json(AlertDetailBody {
-        alert: alert.summary.into(),
-        observables: alert.observables,
-        files: alert.files,
-        detections: alert.detections,
-    }))
+    Ok(Json(alert.into()))
 }
 
 /// An alert's observables in the order they were added, each with its files, relationships, results
@@ -752,14 +771,7 @@ pub(crate) async fn observables(
         .service
         .alert_observables(&actor, id, query.limit, query.after)
         .await?;
-    Ok(Json(ObservablePageBody {
-        observables: page
-            .observables
-            .into_iter()
-            .map(ObservableBody::from)
-            .collect(),
-        next: page.next,
-    }))
+    Ok(Json(page.into()))
 }
 
 #[derive(Debug, Serialize, ToSchema)]

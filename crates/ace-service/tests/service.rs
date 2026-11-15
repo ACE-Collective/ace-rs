@@ -1054,14 +1054,14 @@ async fn an_actor_with_no_grants_is_refused_every_write() {
     let (rows,): (i64,) = sqlx::query_as(
         "SELECT count(*) FROM service.permissions
          WHERE component IS NULL
-            OR (component NOT IN ('bootstrap', 'hunter', 'alert_routing', 'search_indexer')
+            OR (component NOT IN ('bootstrap', 'hunter', 'alert_routing', 'search_indexer', 'ai_api')
                 AND component NOT LIKE 'scheduler:%')",
     )
     .fetch_one(db.pool())
     .await
     .expect("counts");
     // the migrations' grants are the bootstrap's, the hunter's, the scheduler's tasks', alert
-    // routing's and the search indexer's (0022, 0034, 0036, 0050, 0061)
+    // routing's, the search indexer's and the AI API's reads (0022, 0034, 0036, 0050, 0061, 0062)
     assert_eq!(rows, 0, "nothing was granted, and no admin was seeded");
 }
 
@@ -1672,6 +1672,7 @@ async fn every_write_function_has_an_audit_test() {
         svs_attribution_tests::association::review::end_svs_runs_records_its_row(db).await,
         svs_attribution_tests::association::review::close_svs_runs_records_its_row(db).await,
         svs_attribution_tests::association::review::review_svs_run_records_its_row(db).await,
+        ai_tests::ai_record_records_its_row(db).await,
     ]);
     assert_eq!(covered, write_functions(), "{WRITES_NEED_A_TEST}");
 }
@@ -3471,6 +3472,7 @@ async fn every_write_fails_when_its_audit_fails() {
     let actions_before = action_rows(db).await;
     let lists_before = list_rows(db).await;
     let commands_before = command_rows(db).await;
+    let ai = ai_tests::before_the_audit_breaks(db).await;
     let before = (
         row(db, root).await,
         tasks(db, root).await,
@@ -4360,6 +4362,7 @@ async fn every_write_fails_when_its_audit_fails() {
         )
         .await,
     );
+    attempts.extend(ai_tests::attempts_with_the_audit_broken(&ai).await);
     let mut covered = BTreeSet::new();
     for (function, error) in &attempts {
         assert!(error.to_string().contains("broken"), "{function}: {error}");
@@ -49415,5 +49418,897 @@ mod search_tests {
             matches!(refused, Err(ServiceError::PermissionDenied { .. })),
             "{refused:?}"
         );
+    }
+}
+
+/// PLAN.md 7.15: the AI investigation API's service half (`ace_service::ai`): its limiter, ace3's testing
+/// backend, the gate every route goes through, and the audit row every operation writes. The routes'
+/// own contract, ace3's `tests/aceapi_ai`, is `ace-api`'s tests, whose docs map every case.
+///
+/// | ace3 `tests/aceapi_ai/test_ratelimit.py` | here |
+/// |---|---|
+/// | `test_slots_enforce_cap_and_release` | `slots_enforce_the_cap_and_are_given_back` |
+/// | `test_slot_released_when_query_raises` | `a_query_that_fails_or_runs_out_of_time_gives_its_slot_back` |
+/// | `test_reaper_reclaims_leaked_slot`, `test_fresh_slot_is_not_reaped` | `a_stale_slot_is_reaped_and_a_fresh_one_is_not` |
+/// | `test_rate_window`, `test_hourly_budget` | `the_minute_and_the_hour_are_counted` |
+/// | `test_backends_have_independent_counters` | `the_minute_and_the_hour_are_counted` |
+/// | `test_fails_closed_by_default`, `test_fail_open_when_configured` | `an_unreachable_limiter_refuses_unless_the_site_fails_open` |
+/// | `test_rate_limited_query_is_429_with_retry_after` | `a_refused_request_is_recorded_and_says_when_to_retry`, and `ace-api`'s |
+/// | `test_concurrency_rejection_does_not_consume_rate_token` | `a_refused_request_is_recorded_and_says_when_to_retry` |
+///
+/// | ace3 `tests/saq/ai_query/test_registry.py` | here |
+/// |---|---|
+/// | `test_fake_backend_execute_returns_canned_rows`, `test_fake_backend_truncation_signal`, `test_fake_backend_rejection_and_error`, `test_fake_backend_describe` | `the_fake_backend_answers_as_ace3_s` |
+mod ai_tests {
+    use std::sync::Arc;
+    use std::time::Duration;
+
+    use ace_service::ai::testing::{FakeBackend, ScriptedLimiter, fake_rows};
+    use ace_service::ai::{
+        AiFuture, AiLimiter, AiLimits, AiQueryBackend, AiQueryError, AiQueryRequest, AiQueryResult,
+        AiSurface, LimitError, LimitKind, MAX_QUERY_CHARS, MAX_RESPONSE_BYTES, PgLimiter,
+        limiter::STALE_SLOT_GRACE_SECONDS,
+    };
+    use chrono::{DateTime, TimeDelta, TimeZone, Utc};
+    use serde_json::Map;
+
+    use super::*;
+
+    const KEY: u128 = 0xA1_0001;
+
+    fn window() -> (DateTime<Utc>, DateTime<Utc>) {
+        let end = Utc.with_ymd_and_hms(2026, 1, 2, 0, 0, 0).unwrap();
+        (end - TimeDelta::hours(1), end)
+    }
+
+    fn query(text: &str) -> AiQueryRequest {
+        let (start, end) = window();
+        AiQueryRequest {
+            query: text.to_owned(),
+            start_time: Some(start),
+            end_time: Some(end),
+            limit: None,
+            timeout_seconds: None,
+            extras: Map::new(),
+        }
+    }
+
+    fn simulate(what: Value) -> AiQueryRequest {
+        AiQueryRequest {
+            extras: what.as_object().cloned().expect("an object"),
+            ..query("search something")
+        }
+    }
+
+    /// A surface with ace3's two fakes, on the real limiter, with no grace so a timeout is quick.
+    fn surface(db: &Db) -> AiSurface {
+        surface_on(Arc::new(PgLimiter::new(db.clone())))
+    }
+
+    fn surface_on(limiter: Arc<dyn AiLimiter>) -> AiSurface {
+        AiSurface::new(limiter)
+            .with_backend("fake", Arc::new(FakeBackend::new()), AiLimits::default())
+            .expect("a backend")
+            .with_backend(
+                "fake_unwindowed",
+                Arc::new(FakeBackend::unwindowed()),
+                AiLimits::default(),
+            )
+            .expect("a backend")
+            .with_grace(Duration::ZERO, Duration::ZERO)
+    }
+
+    /// An API key with no owner that holds these `ai:` minors.
+    async fn ai_key(db: &Db, id: u128, minors: &[&str]) -> Actor {
+        let id = ApiKeyId(Uuid::from_u128(id));
+        exists(db, &Holder::ApiKey(id)).await;
+        for minor in minors {
+            grant(db, &Holder::ApiKey(id), "ai", minor, Effect::Allow).await;
+        }
+        key(id, None)
+    }
+
+    fn key_json(id: u128) -> Value {
+        json!({"kind": "api_key", "id": Uuid::from_u128(id), "name": "triage", "owner": null})
+    }
+
+    async fn ai_rows(db: &Db) -> Vec<AuditRow> {
+        audit_rows(db)
+            .await
+            .into_iter()
+            .filter(|row| row.action == "ai_record")
+            .collect()
+    }
+
+    /// The audit test of `ai_record`, the one write of the AI API: a query's row, whole.
+    pub(super) async fn ai_record_records_its_row(db: &Db) -> String {
+        let service = service(db).with_ai(surface(db));
+        let actor = ai_key(db, KEY, &["fake"]).await;
+        let source = "192.0.2.77".parse().expect("an address");
+        let (start, end) = window();
+        let answered = with_source_ip(
+            Some(source),
+            service.ai_query(&actor, "fake", query("search audit-me")),
+        )
+        .await
+        .expect("answers");
+        assert_eq!(answered.rows, fake_rows());
+        let bytes: usize = fake_rows()
+            .iter()
+            .map(|row| serde_json::to_vec(row).unwrap().len())
+            .sum();
+        let row = last_audit(db).await;
+        assert_eq!(
+            row,
+            AuditRow {
+                actor: key_json(KEY),
+                action: "ai_record".to_owned(),
+                target: ("ai_backend".to_owned(), "fake".to_owned()),
+                before: None,
+                after: None,
+                // who asked is the row's actor; what was asked, and how much came back: no row of
+                // the answer
+                details: json!({
+                    "event": "query",
+                    "status": 200,
+                    "backend": "fake",
+                    "query": "search audit-me",
+                    "window_start": start,
+                    "window_end": end,
+                    "row_count": 2,
+                    "bytes": bytes,
+                    "truncated": false,
+                    "duration_ms": 0,
+                }),
+            }
+        );
+        assert_eq!(src_ip_of_last(db).await.as_deref(), Some("192.0.2.77"));
+        assert!(!row.details.to_string().contains("host-a"));
+        row.action
+    }
+
+    pub(super) struct BeforeTheAuditBreaks {
+        service: Service,
+        actor: Actor,
+    }
+
+    pub(super) async fn before_the_audit_breaks(db: &Db) -> BeforeTheAuditBreaks {
+        BeforeTheAuditBreaks {
+            service: service(db).with_ai(surface(db)),
+            actor: ai_key(db, 0xA1_0002, &["fake", "alert"]).await,
+        }
+    }
+
+    /// With the audit broken a query runs and returns nothing: no answer leaves without its record.
+    pub(super) async fn attempts_with_the_audit_broken(
+        fixture: &BeforeTheAuditBreaks,
+    ) -> Vec<(&'static str, ServiceError)> {
+        let failed = fixture
+            .service
+            .ai_query(&fixture.actor, "fake", query("search x"))
+            .await
+            .map(|_| ())
+            .expect_err("refused");
+        // a refusal's record fails the same way
+        let rejected = fixture
+            .service
+            .ai_query(&fixture.actor, "fake", query("  "))
+            .await
+            .map(|_| ())
+            .expect_err("refused");
+        assert!(rejected.to_string().contains("broken"), "{rejected}");
+        vec![("ai_record", failed)]
+    }
+
+    #[tokio::test]
+    async fn slots_enforce_the_cap_and_are_given_back() {
+        let test_db = TestDb::new().await;
+        let limiter = PgLimiter::new(test_db.db().clone());
+        let limits = AiLimits {
+            max_concurrency: 1,
+            ..AiLimits::default()
+        };
+        let slot = limiter.acquire("b", &limits).await.expect("a slot");
+        let refused = limiter.acquire("b", &limits).await.expect_err("full");
+        assert_eq!(
+            refused,
+            LimitError::Exceeded {
+                kind: LimitKind::Concurrency,
+                detail: "backend b allows 1 concurrent queries".to_owned(),
+                retry_after_seconds: 10,
+            }
+        );
+        // another bucket has slots of its own
+        let other = limiter.acquire("c", &limits).await.expect("a slot");
+        limiter.release(slot).await;
+        limiter.release(other).await;
+        // given back: it can be taken again
+        let again = limiter.acquire("b", &limits).await.expect("a slot");
+        limiter.release(again).await;
+        let held: i64 = sqlx::query_scalar("SELECT count(*) FROM ai.inflight")
+            .fetch_one(test_db.db().pool())
+            .await
+            .unwrap();
+        assert_eq!(held, 0);
+    }
+
+    #[tokio::test]
+    async fn a_stale_slot_is_reaped_and_a_fresh_one_is_not() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let limiter = PgLimiter::new(db.clone());
+        let limits = AiLimits {
+            max_concurrency: 1,
+            max_query_timeout: 10,
+            default_query_timeout: 10,
+            ..AiLimits::default()
+        };
+        let now = Utc::now();
+        // a slot a process that died left: there, and never given back
+        let leaked = now - TimeDelta::seconds(10 + STALE_SLOT_GRACE_SECONDS + 1);
+        let insert = |bucket: &'static str, started: DateTime<Utc>| async move {
+            sqlx::query("INSERT INTO ai.inflight (token, bucket, started_at) VALUES ($1, $2, $3)")
+                .bind(Uuid::new_v4())
+                .bind(bucket)
+                .bind(started)
+                .execute(db.pool())
+                .await
+                .expect("inserts");
+        };
+        insert("stale", leaked).await;
+        // taking a slot reaps it in the same step
+        limiter
+            .acquire_at("stale", &limits, now)
+            .await
+            .expect("the stale slot is reaped");
+        let held: i64 =
+            sqlx::query_scalar("SELECT count(*) FROM ai.inflight WHERE bucket = 'stale'")
+                .fetch_one(db.pool())
+                .await
+                .unwrap();
+        assert_eq!(held, 1);
+
+        // one a second short of stale is a query that may still be running
+        insert("fresh", leaked + TimeDelta::seconds(2)).await;
+        let refused = limiter.acquire_at("fresh", &limits, now).await;
+        assert!(
+            matches!(
+                refused,
+                Err(LimitError::Exceeded {
+                    kind: LimitKind::Concurrency,
+                    ..
+                })
+            ),
+            "{refused:?}"
+        );
+    }
+
+    #[tokio::test]
+    async fn the_minute_and_the_hour_are_counted() {
+        let test_db = TestDb::new().await;
+        let limiter = PgLimiter::new(test_db.db().clone());
+        // a fixed time, so a burst can't straddle a window: 12:00:20
+        let now = Utc.with_ymd_and_hms(2026, 3, 4, 12, 0, 20).unwrap();
+        let limits = AiLimits {
+            requests_per_minute: 2,
+            hourly_budget: 100,
+            ..AiLimits::default()
+        };
+        for _ in 0..2 {
+            limiter
+                .check_request_at("b", &limits, now)
+                .await
+                .expect("allowed");
+        }
+        assert_eq!(
+            limiter.check_request_at("b", &limits, now).await,
+            Err(LimitError::Exceeded {
+                kind: LimitKind::Rate,
+                detail: "backend b allows 2 requests per minute".to_owned(),
+                retry_after_seconds: 40,
+            })
+        );
+        // the next minute is a new window, and the old one's row goes two minutes on
+        let later = now + TimeDelta::seconds(41);
+        limiter
+            .check_request_at("b", &limits, later)
+            .await
+            .expect("allowed");
+
+        let budget = AiLimits {
+            requests_per_minute: 100,
+            hourly_budget: 2,
+            ..AiLimits::default()
+        };
+        for _ in 0..2 {
+            limiter
+                .check_request_at("h", &budget, now)
+                .await
+                .expect("allowed");
+        }
+        assert_eq!(
+            limiter.check_request_at("h", &budget, now).await,
+            Err(LimitError::Exceeded {
+                kind: LimitKind::Budget,
+                detail: "backend h allows 2 requests per hour".to_owned(),
+                retry_after_seconds: 3580,
+            })
+        );
+        // the hour holds across minutes
+        assert!(
+            limiter
+                .check_request_at("h", &budget, now + TimeDelta::minutes(30))
+                .await
+                .is_err()
+        );
+        limiter
+            .check_request_at("h", &budget, now + TimeDelta::hours(1))
+            .await
+            .expect("a new hour");
+
+        // each bucket counts alone
+        let one = AiLimits {
+            requests_per_minute: 1,
+            ..AiLimits::default()
+        };
+        limiter
+            .check_request_at("b1", &one, now)
+            .await
+            .expect("allowed");
+        limiter
+            .check_request_at("b2", &one, now)
+            .await
+            .expect("allowed");
+        assert!(limiter.check_request_at("b1", &one, now).await.is_err());
+
+        // windows two behind are removed as their bucket is counted
+        let far = now + TimeDelta::hours(5);
+        limiter
+            .check_request_at("b", &limits, far)
+            .await
+            .expect("allowed");
+        let kept: Vec<(String, i64)> = sqlx::query_as(
+            "SELECT kind, window_start FROM ai.windows WHERE bucket = 'b' ORDER BY kind",
+        )
+        .fetch_all(test_db.db().pool())
+        .await
+        .unwrap();
+        assert_eq!(
+            kept,
+            [
+                ("hour".to_owned(), far.timestamp() / 3600),
+                ("minute".to_owned(), far.timestamp() / 60)
+            ]
+        );
+    }
+
+    #[tokio::test]
+    async fn an_unreachable_limiter_refuses_unless_the_site_fails_open() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        // the limiter's own database is gone
+        let gone = TestDb::new().await;
+        let broken = PgLimiter::new(gone.db().clone());
+        gone.db().close().await;
+        assert!(matches!(
+            broken.acquire("b", &AiLimits::default()).await,
+            Err(LimitError::Unavailable(_))
+        ));
+        assert!(matches!(
+            broken.check_request("b", &AiLimits::default()).await,
+            Err(LimitError::Unavailable(_))
+        ));
+
+        let actor = ai_key(db, KEY, &["fake"]).await;
+        // closed by default: the query is refused, and the refusal is recorded
+        let closed = service(db).with_ai(surface_on(Arc::new(broken.clone())));
+        let refused = closed.ai_query(&actor, "fake", query("search x")).await;
+        assert!(
+            matches!(&refused, Err(ServiceError::Unavailable(why))
+                if why == "rate limiter unavailable, refusing query"),
+            "{refused:?}"
+        );
+        let row = last_audit(db).await;
+        assert_eq!(
+            (
+                &row.details["event"],
+                &row.details["status"],
+                &row.details["detail"]
+            ),
+            (
+                &json!("query_error"),
+                &json!(503),
+                &json!("rate limiter unavailable")
+            )
+        );
+
+        // open when the site says so: the query runs with no limit
+        let open = service(db).with_ai(surface_on(Arc::new(broken)).with_fail_open(true));
+        let answered = open
+            .ai_query(&actor, "fake", query("search x"))
+            .await
+            .expect("answers");
+        assert_eq!(answered.rows.len(), 2);
+        assert_eq!(last_audit(db).await.details["event"], "query");
+    }
+
+    #[tokio::test]
+    async fn a_refused_request_is_recorded_and_says_when_to_retry() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let actor = ai_key(db, KEY, &["fake"]).await;
+        let exceeded = |kind, seconds| LimitError::Exceeded {
+            kind,
+            detail: "simulated exhaustion".to_owned(),
+            retry_after_seconds: seconds,
+        };
+
+        // the minute's count refuses: 429 in the API, with ace3's Retry-After
+        let limiter = Arc::new(ScriptedLimiter {
+            request: Some(exceeded(LimitKind::Rate, 17)),
+            ..ScriptedLimiter::default()
+        });
+        let service_ = service(db).with_ai(surface_on(limiter.clone()));
+        let refused = service_.ai_query(&actor, "fake", query("search x")).await;
+        assert!(
+            matches!(&refused, Err(ServiceError::RateLimited { detail, retry_after_seconds: 17 })
+                if detail == "simulated exhaustion"),
+            "{refused:?}"
+        );
+        let row = last_audit(db).await;
+        assert_eq!(
+            row.details,
+            json!({
+                "event": "rate_limited",
+                "status": 429,
+                "backend": "fake",
+                "query": "search x",
+                "window_start": window().0,
+                "window_end": window().1,
+                "kind": "rate",
+                "detail": "simulated exhaustion",
+            })
+        );
+        // the slot it took was given back
+        assert_eq!(*limiter.released.lock().unwrap(), 1);
+
+        // a request refused a slot leaves the minute and the hour alone: the slot comes first, so a
+        // client that retries on the short wait doesn't use up the minute
+        let limiter = Arc::new(ScriptedLimiter {
+            slot: Some(exceeded(LimitKind::Concurrency, 10)),
+            ..ScriptedLimiter::default()
+        });
+        let service_ = service(db).with_ai(surface_on(limiter.clone()));
+        let refused = service_.ai_query(&actor, "fake", query("search x")).await;
+        assert!(
+            matches!(
+                &refused,
+                Err(ServiceError::RateLimited {
+                    retry_after_seconds: 10,
+                    ..
+                })
+            ),
+            "{refused:?}"
+        );
+        assert!(limiter.checked.lock().unwrap().is_empty());
+        assert_eq!(last_audit(db).await.details["kind"], "concurrency");
+
+        // a request the service or the backend refuses is charged to no limit at all
+        let limiter = Arc::new(ScriptedLimiter::default());
+        let service_ = service(db).with_ai(surface_on(limiter.clone()));
+        let refused = service_.ai_query(&actor, "fake", query("  ")).await;
+        assert!(matches!(refused, Err(ServiceError::InvalidRequest(_))));
+        assert!(limiter.checked.lock().unwrap().is_empty());
+        service_
+            .ai_query(&actor, "fake", query("search x"))
+            .await
+            .expect("answers");
+        assert_eq!(*limiter.checked.lock().unwrap(), ["fake"]);
+    }
+
+    #[tokio::test]
+    async fn a_query_that_fails_or_runs_out_of_time_gives_its_slot_back() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let actor = ai_key(db, KEY, &["tight"]).await;
+        let limits = AiLimits {
+            max_concurrency: 1,
+            ..AiLimits::default()
+        };
+        let service = service(db).with_ai(
+            AiSurface::new(Arc::new(PgLimiter::new(db.clone())))
+                .with_backend("tight", Arc::new(FakeBackend::new()), limits)
+                .expect("a backend")
+                .with_grace(Duration::ZERO, Duration::ZERO),
+        );
+        let held = || async {
+            sqlx::query_scalar::<_, i64>("SELECT count(*) FROM ai.inflight")
+                .fetch_one(db.pool())
+                .await
+                .unwrap()
+        };
+
+        // the backend fails
+        let failed = service
+            .ai_query(
+                &actor,
+                "tight",
+                simulate(json!({"simulate": "backend_error", "error_status_code": 504})),
+            )
+            .await;
+        assert!(
+            matches!(&failed, Err(ServiceError::Upstream { status: 504, reason })
+                if reason == "simulated backend failure"),
+            "{failed:?}"
+        );
+        assert_eq!(held().await, 0);
+        let row = last_audit(db).await;
+        assert_eq!(
+            (&row.details["event"], &row.details["status"]),
+            (&json!("query_error"), &json!(504))
+        );
+        // a status that isn't a failure's can't become this API's answer
+        let odd = service
+            .ai_query(
+                &actor,
+                "tight",
+                simulate(json!({"simulate": "backend_error", "error_status_code": 200})),
+            )
+            .await;
+        assert!(
+            matches!(odd, Err(ServiceError::Upstream { status: 502, .. })),
+            "{odd:?}"
+        );
+
+        // the query runs past its own timeout: the request gives up, and the slot is free
+        let slow = AiQueryRequest {
+            timeout_seconds: Some(1),
+            ..simulate(json!({"simulate": "sleep", "sleep_seconds": 30}))
+        };
+        let started = std::time::Instant::now();
+        let timed_out = service.ai_query(&actor, "tight", slow).await;
+        assert!(
+            matches!(&timed_out, Err(ServiceError::Upstream { status: 504, reason })
+                if reason == "query timed out"),
+            "{timed_out:?}"
+        );
+        assert!(started.elapsed() < Duration::from_secs(10));
+        assert_eq!(held().await, 0);
+        let row = last_audit(db).await;
+        assert_eq!(
+            (
+                &row.details["event"],
+                &row.details["status"],
+                &row.details["timeout_seconds"]
+            ),
+            (&json!("query_error"), &json!(504), &json!(1))
+        );
+        service
+            .ai_query(&actor, "tight", query("search x"))
+            .await
+            .expect("the slot is free");
+    }
+
+    #[tokio::test]
+    async fn the_fake_backend_answers_as_ace3_s() {
+        let backend = FakeBackend::new();
+        let limits = AiLimits::default();
+        // test_fake_backend_execute_returns_canned_rows
+        let request = query("search");
+        let result = backend.execute(&request, &limits).await.expect("answers");
+        assert_eq!(result.rows.len(), 2);
+        assert!(!result.truncated);
+        assert_eq!(
+            (result.window_start, result.window_end),
+            (request.start_time, request.end_time)
+        );
+        assert_eq!(backend.last_request(), Some(request));
+        // test_fake_backend_truncation_signal
+        let result = backend
+            .execute(&simulate(json!({"simulate": "truncated"})), &limits)
+            .await
+            .expect("answers");
+        assert!(result.truncated);
+        assert_eq!(result.truncation_reason.as_deref(), Some("backend_cap"));
+        assert_eq!(result.rows.len(), 1);
+        // test_fake_backend_rejection_and_error
+        assert_eq!(
+            backend.validate(&simulate(json!({"simulate": "rejected"})), &limits),
+            Err("simulated rejection".to_owned())
+        );
+        assert_eq!(
+            backend.validate(&query("   "), &limits),
+            Err("query must not be empty".to_owned())
+        );
+        assert_eq!(
+            backend
+                .execute(
+                    &simulate(json!({"simulate": "backend_error", "error_status_code": 504})),
+                    &limits
+                )
+                .await,
+            Err(AiQueryError::Backend {
+                status: 504,
+                reason: "simulated backend failure".to_owned()
+            })
+        );
+        assert!(
+            backend
+                .check_extras(&simulate(json!({"sleep_seconds": "x"})).extras)
+                .is_err()
+        );
+        assert!(
+            backend
+                .check_extras(&simulate(json!({"other": 1})).extras)
+                .is_err()
+        );
+
+        // test_fake_backend_describe, as the service lists it
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let service = service(db).with_ai(surface(db));
+        let actor = ai_key(db, KEY, &["backends", "fake"]).await;
+        let listed = service.ai_backends(&actor).await.expect("lists");
+        let names: Vec<(&str, bool)> = listed
+            .iter()
+            .map(|backend| (backend.name.as_str(), backend.authorized))
+            .collect();
+        assert_eq!(names, [("fake", true), ("fake_unwindowed", false)]);
+        let described = &listed[0].describe;
+        assert_eq!(described["name"], "fake");
+        assert_eq!(described["windowed"], true);
+        assert_eq!(described["limits"]["max_limit"], 5000);
+        assert_eq!(described["limits"]["max_window"], "90:00:00:00");
+        assert_eq!(described["query_language"], "fake");
+        assert!(described["extras_schema"]["properties"]["simulate"].is_object());
+        assert_eq!(listed[1].describe["windowed"], false);
+    }
+
+    /// A backend that answers with as many rows as it's told, each of a size, whatever the limit.
+    #[derive(Debug)]
+    struct Flood {
+        rows: usize,
+        bytes: usize,
+    }
+
+    impl AiQueryBackend for Flood {
+        fn describe(&self) -> Map<String, Value> {
+            Map::new()
+        }
+
+        fn validate(&self, _request: &AiQueryRequest, _limits: &AiLimits) -> Result<(), String> {
+            Ok(())
+        }
+
+        fn execute<'a>(
+            &'a self,
+            request: &'a AiQueryRequest,
+            _limits: &'a AiLimits,
+        ) -> AiFuture<'a, Result<AiQueryResult, AiQueryError>> {
+            Box::pin(async move {
+                let row = json!({"field": "x".repeat(self.bytes)})
+                    .as_object()
+                    .cloned()
+                    .unwrap();
+                Ok(AiQueryResult {
+                    rows: vec![row; self.rows],
+                    truncated: false,
+                    truncation_reason: None,
+                    window_start: request.start_time,
+                    window_end: request.end_time,
+                    duration_ms: 1,
+                    meta: Map::new(),
+                })
+            })
+        }
+    }
+
+    /// What leaves is bounded whatever a backend returns: the row limit, then the bytes, each cut
+    /// said out loud; and a query's own text has a limit.
+    #[tokio::test]
+    async fn what_a_query_returns_is_bounded() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let actor = ai_key(db, KEY, &["many", "big"]).await;
+        let limits = AiLimits {
+            default_limit: 5,
+            max_limit: 8,
+            ..AiLimits::default()
+        };
+        let service = service(db).with_ai(
+            AiSurface::new(Arc::new(PgLimiter::new(db.clone())))
+                .with_backend(
+                    "many",
+                    Arc::new(Flood {
+                        rows: 20,
+                        bytes: 10,
+                    }),
+                    limits.clone(),
+                )
+                .expect("a backend")
+                .with_backend(
+                    "big",
+                    Arc::new(Flood {
+                        rows: 5,
+                        bytes: MAX_RESPONSE_BYTES / 3,
+                    }),
+                    AiLimits::default(),
+                )
+                .expect("a backend"),
+        );
+        // a backend that ignores the limit is held to it: the default, the request's, and never more
+        // than the most a request may ask
+        for (asked, kept) in [(None, 5), (Some(3), 3), (Some(8), 8)] {
+            let answered = service
+                .ai_query(
+                    &actor,
+                    "many",
+                    AiQueryRequest {
+                        limit: asked,
+                        ..query("search x")
+                    },
+                )
+                .await
+                .expect("answers");
+            assert_eq!(answered.rows.len(), kept);
+            assert!(answered.truncated);
+            assert_eq!(answered.truncation_reason.as_deref(), Some("limit"));
+        }
+        // rows past the byte bound are left out, and the record says how much left
+        let answered = service
+            .ai_query(&actor, "big", query("search x"))
+            .await
+            .expect("answers");
+        assert_eq!(answered.rows.len(), 2);
+        assert_eq!(answered.truncation_reason.as_deref(), Some("size"));
+        let row = last_audit(db).await;
+        assert_eq!(row.details["row_count"], 2);
+        assert_eq!(row.details["truncated"], true);
+        let bytes = row.details["bytes"].as_u64().unwrap() as usize;
+        assert!(bytes <= MAX_RESPONSE_BYTES && bytes > MAX_RESPONSE_BYTES / 2);
+
+        // a query too long to run is refused, and its text isn't kept: its length is
+        let long = "x".repeat(MAX_QUERY_CHARS + 1);
+        let refused = service.ai_query(&actor, "many", query(&long)).await;
+        assert!(
+            matches!(&refused, Err(ServiceError::InvalidRequest(why))
+                if why == "a query has at most 16384 characters"),
+            "{refused:?}"
+        );
+        let row = last_audit(db).await;
+        assert_eq!(row.details["event"], "query_rejected");
+        assert_eq!(row.details["query_chars"], MAX_QUERY_CHARS + 1);
+        assert!(row.details.get("query").is_none());
+        service
+            .ai_query(&actor, "many", query(&"x".repeat(MAX_QUERY_CHARS)))
+            .await
+            .expect("the longest query runs");
+    }
+
+    /// The gate every route goes through: the permission, then an API key, then the surface.
+    #[tokio::test]
+    async fn the_api_is_for_a_key_that_holds_the_route_s_permission() {
+        let test_db = TestDb::new().await;
+        let db = test_db.db();
+        let root = alert(db).await;
+        sqlx::query("UPDATE analysis.roots SET alerted_at = now() WHERE id = $1")
+            .bind(root)
+            .execute(db.pool())
+            .await
+            .expect("makes it an alert");
+        let on = service(db).with_ai(surface(db));
+        let off = service(db);
+        let actor = ai_key(db, KEY, &["fake", "alert"]).await;
+
+        // a key that holds another minor, or none: refused, with what it needs, and no row
+        let nothing = ai_key(db, 0xA1_0003, &[]).await;
+        for refused in [
+            on.ai_query(&nothing, "fake", query("search x"))
+                .await
+                .map(|_| ()),
+            on.ai_query(&actor, "fake_unwindowed", query("search x"))
+                .await
+                .map(|_| ()),
+            on.ai_alert(&nothing, root).await.map(|_| ()),
+            on.ai_event(&actor, EventRef::Id(1)).await.map(|_| ()),
+            on.ai_backends(&actor).await.map(|_| ()),
+            on.ai_export_alerts(&actor, None, None).await.map(|_| ()),
+            // off or on, the answer to a key with no permission is the same
+            off.ai_alert(&nothing, root).await.map(|_| ()),
+        ] {
+            assert!(
+                matches!(&refused, Err(ServiceError::PermissionDenied { permission, .. })
+                    if permission.major() == "ai"),
+                "{refused:?}"
+            );
+        }
+        // alert:read, the main API's, opens nothing here
+        let analyst = ai_key(db, 0xA1_0004, &[]).await;
+        grant(
+            db,
+            &Holder::ApiKey(ApiKeyId(Uuid::from_u128(0xA1_0004))),
+            "alert",
+            "read",
+            Effect::Allow,
+        )
+        .await;
+        assert!(matches!(
+            on.ai_alert(&analyst, root).await,
+            Err(ServiceError::PermissionDenied { .. })
+        ));
+
+        // a session and a component are refused even with the permission: this is a key's API
+        let admin = admin(db).await;
+        let scheduler = component("scheduler:ai");
+        grant(
+            db,
+            &Holder::Component(Component::new("scheduler:ai").unwrap()),
+            "ai",
+            "*",
+            Effect::Allow,
+        )
+        .await;
+        for caller in [&admin, &scheduler] {
+            let refused = on.ai_alert(caller, root).await;
+            assert!(
+                matches!(&refused, Err(ServiceError::Forbidden(why))
+                    if why == "the AI investigation API takes an API key, not a session"),
+                "{refused:?}"
+            );
+        }
+
+        // with the permission and no surface, the route says the API is off
+        let disabled = off.ai_alert(&actor, root).await;
+        assert!(
+            matches!(&disabled, Err(ServiceError::NotFound(why)) if why.contains("isn't enabled")),
+            "{disabled:?}"
+        );
+        // a backend that isn't there, and a name that couldn't be one
+        for missing in ["nonexistent", "Not A Name"] {
+            let key = ai_key(db, 0xA1_0005, &["*"]).await;
+            let refused = on.ai_query(&key, missing, query("search x")).await;
+            assert!(
+                matches!(&refused, Err(ServiceError::NotFound(why)) if why.contains("no AI query backend")),
+                "{missing}: {refused:?}"
+            );
+        }
+        assert_eq!(ai_rows(db).await, [], "none of these has a row");
+
+        // and with all three, the read is the alert's and is recorded as the key's, though the key
+        // holds no alert:read: the component reads for it
+        let read = on.ai_alert(&actor, root).await.expect("reads");
+        assert_eq!(read.summary.id, root);
+        assert_eq!(
+            ai_rows(db).await.last().unwrap(),
+            &AuditRow {
+                actor: key_json(KEY),
+                action: "ai_record".to_owned(),
+                target: ("root".to_owned(), root.to_string()),
+                before: None,
+                after: None,
+                details: json!({"event": "alert_read", "status": 200, "alert": root}),
+            }
+        );
+        let page = on
+            .ai_alert_observables(&actor, root, Some(10), None)
+            .await
+            .expect("reads");
+        let row = last_audit(db).await;
+        assert_eq!(
+            row.details,
+            json!({
+                "event": "alert_observables",
+                "status": 200,
+                "alert": root,
+                "limit": 10,
+                "result_count": page.observables.len(),
+                "more": false,
+            })
+        );
+        // the main API still refuses the key
+        assert!(matches!(
+            on.alert(&actor, root).await,
+            Err(ServiceError::PermissionDenied { .. })
+        ));
     }
 }

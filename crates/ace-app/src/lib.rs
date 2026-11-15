@@ -35,6 +35,7 @@
 //! time, and nothing from this workspace's checkout, so a binary built in another repository
 //! runs the same way.
 
+pub mod ai;
 mod cli;
 mod compare;
 pub mod hunter;
@@ -76,6 +77,7 @@ pub struct App {
     scheduled_tasks: Vec<scheduler::Task>,
     alert_routers: Vec<(String, i32, Arc<dyn ace_service::routing::Router>)>,
     router_types: ace_service::routing::RouterTypes,
+    ai_backend_types: Vec<(String, ai::AiBackendFactory)>,
 }
 
 /// What builds a script command type from the hunter's network and the type's settings (its entry
@@ -335,6 +337,34 @@ impl App {
     ) -> App {
         self.router_types = std::mem::take(&mut self.router_types).with(kind, Arc::new(build));
         self
+    }
+
+    /// Adds a backend type to the AI investigation API (PLAN.md 7.15), which the overlay's
+    /// `ai_api.backends` entries name with their own name, limits, secrets and settings, as an ace3
+    /// integration's `ai_query_backend_<name>` section names its class. `build` makes a backend from
+    /// an entry's settings and the secrets it lists, or says why it can't, which stops `ace serve`. One
+    /// with a type's name already there, a built-in's included, takes its place.
+    pub fn ai_backend_type(
+        mut self,
+        kind: &str,
+        build: impl Fn(&ai::AiBackendSetup) -> Result<Arc<dyn ace_service::ai::AiQueryBackend>, String>
+        + Send
+        + Sync
+        + 'static,
+    ) -> App {
+        self.ai_backend_types.retain(|(name, _)| name != kind);
+        self.ai_backend_types
+            .push((kind.to_owned(), Arc::new(build)));
+        self
+    }
+
+    /// The AI API's backend types: `splunk` and ace3's two testing backends, and the binary's own.
+    pub fn ai_backend_types(&self) -> std::collections::BTreeMap<String, ai::AiBackendFactory> {
+        let mut types = ai::builtin_types();
+        for (kind, build) in &self.ai_backend_types {
+            types.insert(kind.clone(), build.clone());
+        }
+        types
     }
 
     /// The alert routers `ace serve` runs: the built-in one, SVS's marker router, the binary's and the

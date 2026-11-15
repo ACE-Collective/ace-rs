@@ -105,5 +105,11 @@ hooks:
         phase: pre
         conditions: {observable_types: [email_subject]}
         actions: {ignore: true}
+# The AI investigation API (PLAN.md 7.15), turned on with ace3's testing backend, which answers canned
+# rows and reaches nothing. A site names its own backends here, each with the secrets it is given.
+ai_api:
+  enabled: true
+  backends:
+    fake: {type: fake, enabled: true}
 secrets:
   splunk_password: env:ACE4_SPLUNK_PASSWORD

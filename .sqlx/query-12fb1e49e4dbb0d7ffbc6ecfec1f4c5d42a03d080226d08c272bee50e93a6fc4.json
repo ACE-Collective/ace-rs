@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM ai.inflight WHERE bucket = $1 AND started_at <= $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "12fb1e49e4dbb0d7ffbc6ecfec1f4c5d42a03d080226d08c272bee50e93a6fc4"
+}

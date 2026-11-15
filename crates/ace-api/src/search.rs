@@ -195,6 +195,73 @@ pub(crate) struct SimilarAlertsRequest {
     tz: Option<String>,
 }
 
+impl AlertSearchRequest {
+    /// The search the body asks for, or why it can't be one.
+    pub(crate) fn into_request(self) -> Result<SearchRequest, ApiError> {
+        let tz = timezone(self.tz.as_deref())?;
+        let Parts {
+            filters,
+            exclude,
+            window,
+        } = self.filters.parts()?;
+        let query = self.query.unwrap_or_default();
+        if query.trim().is_empty() && filters.is_empty() && exclude.is_empty() && window.is_none() {
+            return Err(ApiError::bad_request(
+                "a query or at least one filter is required",
+            ));
+        }
+        let mut semantic = false;
+        let mut lexical = false;
+        for lane in &self.lanes {
+            match lane.as_str() {
+                "semantic" => semantic = true,
+                "lexical" => lexical = true,
+                other => {
+                    return Err(ApiError::bad_request(format!(
+                        "{other:?} isn't a lane: semantic or lexical"
+                    )));
+                }
+            }
+        }
+        Ok(SearchRequest {
+            query,
+            filters,
+            exclude,
+            window,
+            tz,
+            limit: self.limit.unwrap_or(20),
+            offset: self.offset,
+            include_hits: self.include_hits,
+            semantic,
+            lexical,
+            include_test_alerts: self.include_test_alerts,
+        })
+    }
+}
+
+impl SimilarAlertsRequest {
+    /// The alerts-like-one request the body asks for, or why it can't be one.
+    pub(crate) fn into_request(self) -> Result<SimilarRequest, ApiError> {
+        let tz = timezone(self.tz.as_deref())?;
+        let Parts {
+            filters,
+            exclude,
+            window,
+        } = self.filters.parts()?;
+        Ok(SimilarRequest {
+            alert: self.alert_uuid,
+            filters,
+            exclude,
+            window,
+            tz,
+            limit: self.limit.unwrap_or(10),
+            offset: self.offset,
+            include_hits: self.include_hits,
+            include_test_alerts: self.include_test_alerts,
+        })
+    }
+}
+
 /// One snippet that matched: ace3's `SearchHitOut`.
 #[derive(Debug, Serialize, ToSchema)]
 pub(crate) struct SearchHitBody {
@@ -320,49 +387,9 @@ pub(crate) async fn alerts(
     body: Result<Json<AlertSearchRequest>, JsonRejection>,
 ) -> Result<Json<AlertSearchBody>, ApiError> {
     let Json(body) = body?;
-    let tz = timezone(body.tz.as_deref())?;
-    let Parts {
-        filters,
-        exclude,
-        window,
-    } = body.filters.parts()?;
-    let query = body.query.unwrap_or_default();
-    if query.trim().is_empty() && filters.is_empty() && exclude.is_empty() && window.is_none() {
-        return Err(ApiError::bad_request(
-            "a query or at least one filter is required",
-        ));
-    }
-    let mut semantic = false;
-    let mut lexical = false;
-    for lane in &body.lanes {
-        match lane.as_str() {
-            "semantic" => semantic = true,
-            "lexical" => lexical = true,
-            other => {
-                return Err(ApiError::bad_request(format!(
-                    "{other:?} isn't a lane: semantic or lexical"
-                )));
-            }
-        }
-    }
     let response = web
         .service
-        .search_alerts(
-            &actor,
-            &SearchRequest {
-                query,
-                filters,
-                exclude,
-                window,
-                tz,
-                limit: body.limit.unwrap_or(20),
-                offset: body.offset,
-                include_hits: body.include_hits,
-                semantic,
-                lexical,
-                include_test_alerts: body.include_test_alerts,
-            },
-        )
+        .search_alerts(&actor, &body.into_request()?)
         .await?;
     Ok(Json(response.into()))
 }
@@ -389,28 +416,9 @@ pub(crate) async fn similar(
     body: Result<Json<SimilarAlertsRequest>, JsonRejection>,
 ) -> Result<Json<AlertSearchBody>, ApiError> {
     let Json(body) = body?;
-    let tz = timezone(body.tz.as_deref())?;
-    let Parts {
-        filters,
-        exclude,
-        window,
-    } = body.filters.parts()?;
     let response = web
         .service
-        .similar_alerts(
-            &actor,
-            &SimilarRequest {
-                alert: body.alert_uuid,
-                filters,
-                exclude,
-                window,
-                tz,
-                limit: body.limit.unwrap_or(10),
-                offset: body.offset,
-                include_hits: body.include_hits,
-                include_test_alerts: body.include_test_alerts,
-            },
-        )
+        .similar_alerts(&actor, &body.into_request()?)
         .await?;
     Ok(Json(response.into()))
 }
