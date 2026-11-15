@@ -197,6 +197,29 @@ pub fn build_commit_with(
     options: &LoadOptions,
     built_ins: &[BuiltIn],
 ) -> Result<Built, BuildError> {
+    build_commit_owning(repo, commit, dir, options, built_ins, &[])
+}
+
+/// A namespace the builder owns outright: whatever the commit holds under its name is removed, and
+/// these files are all it has. The export of the observables enabled for detection is one
+/// (`crate::export`, PLAN.md 7.16): ace3 writes its files into a directory of the signature directory
+/// and removes the ones it no longer exports. With no files the namespace isn't there at all.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Owned {
+    pub namespace: String,
+    /// Each file's name, ending `.yar` or `.yara`, and its source.
+    pub files: Vec<(String, String)>,
+}
+
+/// `build_commit_with`, with each of `owned` replacing the commit's namespace of its name.
+pub fn build_commit_owning(
+    repo: &Path,
+    commit: &str,
+    dir: &Path,
+    options: &LoadOptions,
+    built_ins: &[BuiltIn],
+    owned: &[Owned],
+) -> Result<Built, BuildError> {
     let export = tempfile::Builder::new()
         .prefix("ace4-ruleset-")
         .tempdir()
@@ -251,6 +274,35 @@ pub fn build_commit_with(
         }
         std::fs::create_dir_all(&namespace).map_err(BuildError::Io)?;
         std::fs::write(namespace.join(built_in.file), built_in.source).map_err(BuildError::Io)?;
+    }
+    for owned in owned {
+        let plain = |name: &str| {
+            !name.is_empty() && name != "." && name != ".." && !name.contains(['/', '\\', '\0'])
+        };
+        if !plain(&owned.namespace) || !owned.files.iter().all(|(name, _)| plain(name)) {
+            return Err(BuildError::Io(std::io::Error::new(
+                std::io::ErrorKind::InvalidInput,
+                format!(
+                    "the namespace {:?} or a file in it isn't a plain name",
+                    owned.namespace
+                ),
+            )));
+        }
+        let namespace = export.path().join(&owned.namespace);
+        match std::fs::symlink_metadata(&namespace) {
+            Ok(found) if found.is_dir() => {
+                std::fs::remove_dir_all(&namespace).map_err(BuildError::Io)?;
+            }
+            Ok(_) => std::fs::remove_file(&namespace).map_err(BuildError::Io)?,
+            Err(_) => {}
+        }
+        if owned.files.is_empty() {
+            continue;
+        }
+        std::fs::create_dir_all(&namespace).map_err(BuildError::Io)?;
+        for (name, source) in &owned.files {
+            std::fs::write(namespace.join(name), source).map_err(BuildError::Io)?;
+        }
     }
     build_with(export.path(), options, Some(commit.to_owned()))
 }

@@ -2,7 +2,7 @@
 //! (`ace3/saq/cron_tasks.py`, `ace3/docs/CRON.md`) runs from `etc/cron/<cadence>/` on yacron's
 //! schedules in `etc/cron.yaml`, here as tasks of `ace serve`.
 //!
-//! **What runs.** Of ace3's 25 core tasks (3 hourly, 20 daily, 2 weekly), eight have a counterpart in
+//! **What runs.** Of ace3's 25 core tasks (3 hourly, 20 daily, 2 weekly), nine have a counterpart in
 //! ace4 now, and run here on ace3's cadence (`Task::builtin`), with one of the cron jobs ace3 runs
 //! outside them, `nrd-refresh` (PLAN.md 7.4, `crate::nrd`). `daily/partitions` keeps the email
 //! archive's weekly partitions and ace3's analysis result cache's daily ones; ace4 has no result
@@ -23,6 +23,20 @@
 //! | `svs_coverage_refresh` | `service_svs`'s coverage refresher, every `svs.coverage.refresh_interval_seconds` (120), `ace svs coverage refresh` (PLAN.md 7.10 batch 8) | `*/2 * * * *` | 10 min | `scheduler:svs_coverage_refresh`, `svs:coverage_refresh` |
 //! | `svs_coverage_snapshot` | `daily/svs-coverage-snapshot`, `ace svs coverage snapshot` (PLAN.md 7.10 batch 8) | `0 5 * * *` | 1 h | `scheduler:svs_coverage_snapshot`, `svs:coverage_snapshot` and `svs:coverage_refresh` |
 //! | `nrd_refresh` | `etc/cron.yaml`'s `nrd-refresh`, `ace nrd refresh` | `*/30 * * * *` | 25 min | `scheduler:nrd_refresh`, `nrd:refresh` |
+//! | `bucket_node_stats` | `hourly/cas-node-stats`, `ace cas node-stats` (PLAN.md 7.12) | `0 * * * *` | 10 min | `scheduler:bucket_node_stats`, `monitoring:report` |
+//!
+//! ace3's `monitoring` service isn't a cron task there: each of its monitors is a thread on a timer
+//! (PLAN.md 7.12, `ace_core::monitoring` lists each with what it is here). Its checks are tasks here
+//! too, each its own component holding only `monitoring:report`:
+//!
+//! | task | ace3's monitor | schedule | timeout |
+//! |---|---|---|---|
+//! | `monitor_workload` | `distributed_workload`, every 5 s | `* * * * *` | 1 min |
+//! | `monitor_delayed_analysis` | `distributed_delayed_analysis`, 5 s | `* * * * *` | 1 min |
+//! | `monitor_leases` | `distributed_locks`, 5 s | `* * * * *` | 1 min |
+//! | `monitor_queue` | stands in for `node_status`, 30 s | `* * * * *` | 1 min |
+//! | `monitor_bucket_pools` | `cas_pools`, 300 s | `*/5 * * * *` | 4 min |
+//! | `monitor_scheduler` | fluent-bit's `cron-jobs` records, which this table's `scheduler.runs` replaces | `* * * * *` | 1 min |
 //!
 //! The rest, and a site's one, wait for the step that brings what they maintain, or mean nothing in
 //! ace4; PLAN.md 6.7 lists each with why. ace3's other cron jobs, outside `cron_tasks.py` in `etc/cron.yaml`, are listed
@@ -38,7 +52,8 @@
 //! `abandoned`. Each run is a row of `scheduler.runs`: when it was due, the node, its start and end,
 //! its outcome (`succeeded`, `failed`, `timed_out`, `stopped`, `abandoned`), its error and what it did.
 //! ace3 writes each task's outcome to fluent-bit's `cron-jobs` tag and shows it nowhere in its GUI or
-//! API, so there's no route for the table; 7.12's monitoring reads it.
+//! API. 7.12's monitoring reads the table: `monitor_scheduler` reports each task's state from it, and
+//! the administration area's Monitoring page and `GET /api/monitoring/v1/state` list the runs.
 //!
 //! **Bounds.** Each task runs as a tokio task of its own, so a hung one holds up no other, and each
 //! run is stopped at its timeout, which is `timed_out`. At shutdown the running tasks are stopped and
@@ -113,6 +128,9 @@ pub struct TaskContext {
     pub overlay: Arc<ace_sdk::Overlay>,
     /// The email archive's retention, which `email_archive_partitions` keeps.
     pub archive: ace_core::email_archive::ArchiveConfig,
+    /// The process running the task, host and process id, as its run's row names it: what
+    /// `bucket_node_stats` reports its read cache under.
+    pub node: String,
 }
 
 /// A run's future.
@@ -153,8 +171,46 @@ impl Task {
         Component::new(format!("scheduler:{}", self.name)).map_err(|e| e.to_string())
     }
 
+    /// A monitoring check (PLAN.md 7.12): one of ace3's monitors, run as its own component.
+    fn monitor(check: ace_service::MonitorCheck, schedule: &str, timeout: Duration) -> Task {
+        Task::new(check.task(), schedule, timeout, move |ctx| {
+            Box::pin(async move {
+                let done = ctx
+                    .service
+                    .report_monitor(&ctx.actor, check, &ctx.bucket, &ctx.node)
+                    .await
+                    .map_err(|e| e.to_string())?;
+                Ok(Done::ok(summary(&done)))
+            })
+        })
+    }
+
+    /// The monitoring checks (PLAN.md 7.12, `ace_core::monitoring`): ace3's monitors run every 5 or 30
+    /// seconds, here every minute, cron's finest; its pools' every 300 seconds, here every five
+    /// minutes; and its `hourly/cas-node-stats`, hourly.
+    pub fn monitors() -> Vec<Task> {
+        use ace_service::MonitorCheck as Check;
+        let minute = Duration::from_secs(60);
+        vec![
+            Task::monitor(Check::Workload, "* * * * *", minute),
+            Task::monitor(Check::DelayedAnalysis, "* * * * *", minute),
+            Task::monitor(Check::Leases, "* * * * *", minute),
+            Task::monitor(Check::Queue, "* * * * *", minute),
+            Task::monitor(Check::BucketPools, "*/5 * * * *", 4 * minute),
+            Task::monitor(Check::Scheduler, "* * * * *", minute),
+            Task::monitor(Check::NodeCache, "0 * * * *", 10 * minute),
+        ]
+    }
+
     /// The core's tasks, on ace3's schedules (the module's docs).
     pub fn builtin() -> Vec<Task> {
+        let mut tasks = Task::maintenance();
+        tasks.extend(Task::monitors());
+        tasks
+    }
+
+    /// ace3's maintenance tasks (PLAN.md 6.7).
+    fn maintenance() -> Vec<Task> {
         vec![
             Task::new(
                 "bucket_gc",
@@ -582,6 +638,7 @@ impl Scheduler {
                             actor: task.actor.clone(),
                             overlay: self.overlay.clone(),
                             archive: self.archive.clone(),
+                            node: self.node.clone(),
                         };
                         runs.spawn(run_one(
                             self.db.clone(),

@@ -243,6 +243,13 @@ pub const BUCKET_VERIFY: PermissionName = PermissionName::known("bucket", "verif
 /// Rebuild the newly registered domains list from its feeds, as ace3's `ace nrd refresh` does. Only
 /// the scheduler's `scheduler:nrd_refresh` holds it.
 pub const NRD_REFRESH: PermissionName = PermissionName::known("nrd", "refresh");
+/// Run a monitoring check: read what it reports on and replace its records (PLAN.md 7.12). ace3's
+/// monitors run in its `monitoring` service with the database's credentials, under no permission. Only
+/// the scheduler's check components hold it.
+pub const MONITORING_REPORT: PermissionName = PermissionName::known("monitoring", "report");
+/// Read what the monitoring checks last found and how the scheduled tasks ran (PLAN.md 7.12). ace3 has
+/// no such permission: its records go to fluent-bit and it shows them nowhere.
+pub const MONITORING_READ: PermissionName = PermissionName::known("monitoring", "read");
 /// Enter the GUI's administration area: ace3's `admin:read`, its umbrella gate. Each page there needs its
 /// own permission too, such as `user:read` for Users & Roles.
 pub const ADMIN_READ: PermissionName = PermissionName::known("admin", "read");
@@ -469,6 +476,15 @@ pub static CATALOG: &[CatalogEntry] = &[
         name: LIST_WRITE,
         description: "Add, change and delete entries on the analyst-edited lists. An entry applies to the \
                       next task that reads its list: a whitelist entry stops the analysis of what it matches.",
+    },
+    CatalogEntry {
+        name: MONITORING_READ,
+        description: "Read what the monitoring checks last found, and the scheduled tasks' runs and state.",
+    },
+    CatalogEntry {
+        name: MONITORING_REPORT,
+        description: "Run a monitoring check: read the state it reports on and replace its records. The \
+                      scheduler holds it.",
     },
     CatalogEntry {
         name: NRD_REFRESH,

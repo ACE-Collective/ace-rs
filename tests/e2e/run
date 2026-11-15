@@ -1216,6 +1216,12 @@ def give_ace4_the_trees_world():
     tags, which the overlay holds. Returns why it couldn't, or None."""
     sql("DELETE FROM lists.entries WHERE list = 'observable_detection'; "
         "TRUNCATE analysis.observable_tags")
+    # ace3's export names each rule's strings by its detection's id, which make-trees made its place in
+    # the file from 1 (PLAN.md 7.16), so ace4's entries take the same ids
+    left = sql("SELECT count(*) FROM lists.entries")[0][0]
+    if left != "0":
+        return f"lists.entries holds {left} entries, so the detections can't take the ids ace3's trees have"
+    sql("ALTER TABLE lists.entries ALTER COLUMN id RESTART WITH 1")
     out = compose(
         "exec", "-T", "ace", ACE_COMMAND, "user", "create-key", f"e2e-detections-{uuid.uuid4().hex[:8]}",
         "--grant", "detection:write", capture=True,
@@ -1224,7 +1230,8 @@ def give_ace4_the_trees_world():
                   if line.startswith("token (shown once): ")), None)
     if not token:
         return f"`ace user create-key` printed no token:\n{out}"
-    for detection in json.loads((TREES / "detections.json").read_text())["detections"]:
+    detections = json.loads((TREES / "detections.json").read_text())["detections"]
+    for expected, detection in enumerate(detections, start=1):
         status, _, body = web_request(
             "POST", "/api/observables/v1/detections",
             json.dumps({"type": detection["type"], "value": detection["value"], "expires_on": None,
@@ -1233,6 +1240,25 @@ def give_ace4_the_trees_world():
         )
         if status != 201:
             return f"adding the detection {detection} answered {status}: {body}"
+        if json.loads(body)["id"] != expected:
+            return f"the detection {detection} got the id {json.loads(body)['id']}, not {expected}"
+    # the detections are rules of the ruleset too: the core builds them in, and the parser pool
+    # switches to that ruleset, before a sample is scanned
+    exported = (
+        "SELECT key FROM yara.rulesets WHERE id = (SELECT max(id) FROM yara.rulesets) AND "
+        "(SELECT sum((t->>'detections')::int) FROM jsonb_array_elements(detection_export->'types') t) = "
+        f"{len(detections)}"
+    )
+    key = wait_for("the core to build the detections into the ruleset", lambda: sql(exported), within=120)[0][0]
+
+    def loaded():
+        # the pool's last switch is to that ruleset: an earlier comparison on this stack loaded it too
+        switches = [line for line in compose("logs", "parsers", capture=True).splitlines()
+                    if "switched to a new ruleset" in line]
+        # the line names the ruleset it switched to, then the one it left
+        return bool(switches) and key in switches[-1].split("previous")[0]
+
+    wait_for("the parser pool to load the ruleset with the detections", loaded, within=120)
     for mapping in json.loads((TREES / "observable_tags.json").read_text())["tags"]:
         quoted = [mapping[k].replace("'", "''") for k in ("type", "value", "tag")]
         sql("INSERT INTO analysis.observable_tags (type, value, tag) VALUES ('"

@@ -1,0 +1,61 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT pool, state::text AS \"state!\", count(*) AS \"count!\",\n                  COALESCE(sum(size), 0)::bigint AS \"size!\",\n                  count(*) FILTER (WHERE verified_at IS NULL) AS \"never_verified!\",\n                  count(*) FILTER (WHERE verified_at > now() - interval '7 days')\n                      AS \"verified_recently!\"\n           FROM store.objects GROUP BY pool, state",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "pool",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "store.objects",
+            "name": "pool"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "state!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 2,
+        "name": "count!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 3,
+        "name": "size!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 4,
+        "name": "never_verified!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 5,
+        "name": "verified_recently!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "5c270fa0aef8bf7dc0a94a5678026a24edc94b817b07d9e29198369118046c22"
+}

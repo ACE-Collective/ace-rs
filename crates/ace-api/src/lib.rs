@@ -366,6 +366,10 @@
 //! - A new expiry has to be in the future (400), as on every list; ace3 takes a past one. Remove a
 //!   detection to turn it off.
 //! - ace3's audit is a log line; here each write has an audit row, as a list entry's.
+//! - `GET /api/observables/v1/detections/yara-export` is ace4's own (PLAN.md 7.16), under `detection:read`:
+//!   what the current ruleset holds of the detections as YARA rules, each exported type with its counts,
+//!   and each detection the export left out with why. ace3's export (`saq/observables/export/yara.py`,
+//!   its `export-observables` cron) only logs a value its YARA refuses.
 //!
 //! ace3's `detection_points` router (PLAN.md 5.6), and its alerts router's list of one alert's, under
 //! `alert:read` as there (`ace_service`'s `detection_points` docs):
@@ -503,6 +507,11 @@
 //! - ace3 refuses `--password` and other secret options. No ace4 command takes a secret on its command
 //!   line, so nothing is refused for one; a leading option other than help or version is, as there.
 //! - A key with no owner is refused with 403, as ace3 refuses a config key: a run names its person.
+//!
+//! `GET /api/monitoring/v1/state` is ace4's own (PLAN.md 7.12), under `monitoring:read`: every scheduled
+//! task's state, the runs of all of them or of one (`?task=`, `?runs=` up to 500), newest first, and the
+//! records the monitoring checks last emitted (`ace_core::monitoring` maps each of ace3's monitors). ace3
+//! has no route for either: its monitors' records and its cron runs' outcomes go to fluent-bit.
 use std::net::SocketAddr;
 
 use ace_core::bucket::Bucket;
@@ -528,6 +537,7 @@ mod filters;
 mod health;
 mod hunts;
 mod lists;
+mod monitoring;
 mod observable_comments;
 mod observables;
 mod params;
@@ -748,6 +758,10 @@ impl Web {
                 get(detection::types),
             )
             .route(
+                "/api/observables/v1/detections/yara-export",
+                get(detection::yara_export),
+            )
+            .route(
                 "/api/observables/v1/detections/{id}",
                 delete(detection::delete),
             )
@@ -755,6 +769,7 @@ impl Web {
                 "/api/observables/v1/detections/{id}/expiration",
                 patch(detection::set_expiration).layer(json_limit),
             )
+            .route("/api/monitoring/v1/state", get(monitoring::state))
             .route("/api/hunts/v1/hunts", get(hunts::list))
             .route("/api/hunts/v1/hunts/{uuid}", get(hunts::one))
             .route(
@@ -1350,9 +1365,11 @@ impl Web {
         observable_comments::delete,
         detection::list,
         detection::types,
+        detection::yara_export,
         detection::create,
         detection::delete,
         detection::set_expiration,
+        monitoring::state,
         hunts::list,
         hunts::one,
         hunts::suppressions,
@@ -1569,6 +1586,7 @@ impl Web {
         (name = "remediation", description = "Remediations: removing what an alert found, such as an email from a mailbox, and restoring it"),
         (name = "file_collections", description = "Files fetched from hosts for alerts, and their tries"),
         (name = "lists", description = "The analyst-edited lists, such as the email whitelists, which apply to the next task that reads them"),
+        (name = "monitoring", description = "What the monitoring checks last found, and the scheduled tasks' runs"),
     )
 )]
 pub struct ApiDoc;

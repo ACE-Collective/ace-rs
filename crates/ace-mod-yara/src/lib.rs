@@ -8,6 +8,10 @@
 //! alert (no `no_alert` or `qa` modifier) is a detection on the file and sandboxes it, or the
 //! document it redirects to; `directive=` modifiers add directives and rule tags tag the file.
 //!
+//! A matched string named `$obsd_<id>` is an observable enabled for detection, exported to the ruleset
+//! as a rule (PLAN.md 7.16, `ace_yara::export`): the module adds that observable, tagged with the rule,
+//! as ace3 does from its `observable_detections` row.
+//!
 //! In a YARA pool the module loads the ruleset the core built, from the pool's ruleset
 //! directory (`rulesets`, PLAN.md 2.26), and every match records that ruleset's key and commit.
 //! Without one, as in tests and `ace task replay` on a laptop, it compiles `signature_dir` when it
@@ -310,8 +314,36 @@ impl Parser for YaraScanner {
                     &format!("{}:{}", m.rule, pattern.identifier),
                 );
             }
-            // the database lookups of $obsd_ strings come on the ruleset, which 7.6 builds
-            // (crates/ace-core/src/reads.md); $obs_ strings aren't served
+            // a matched $obsd_ string names an observable enabled for detection, which ace3 reads
+            // from its row and adds, tagged with the rule. Here the ruleset carries each one beside
+            // its rule (crates/ace-core/src/reads.md); $obs_ strings aren't served
+            let mut named: Vec<i64> = Vec::new();
+            for pattern in &m.patterns {
+                let Some(id) = ace_yara::export::string_id(&pattern.identifier) else {
+                    continue;
+                };
+                if named.contains(&id) {
+                    continue;
+                }
+                named.push(id);
+                let Some((kind, value)) = loaded.ruleset.detection(id) else {
+                    continue;
+                };
+                match kind.parse::<ObservableKind>() {
+                    // a file observable is its bytes, which a detection's sha256 doesn't bring
+                    Ok(kind) if kind != ObservableKind::File => {
+                        push_tagged(&mut result.observables, kind, value, &m.rule);
+                    }
+                    _ => {
+                        tracing::warn!(
+                            id,
+                            kind,
+                            rule = %m.rule,
+                            "a matched detection's type isn't one this module can add"
+                        );
+                    }
+                }
+            }
 
             if !no_alert_rules.contains(&m.rule.as_str()) {
                 let mut detection =
@@ -428,6 +460,16 @@ impl Parser for YaraScanner {
 fn push_observable(list: &mut Vec<NewObservable>, kind: ObservableKind, value: &str) {
     if !list.iter().any(|o| o.kind == kind && o.value == value) {
         list.push(NewObservable::new(kind, value));
+    }
+}
+
+/// Adds the observable if it isn't there, and the tag to it if it doesn't have it.
+fn push_tagged(list: &mut Vec<NewObservable>, kind: ObservableKind, value: &str, tag: &str) {
+    push_observable(list, kind, value);
+    if let Some(observable) = list.iter_mut().find(|o| o.kind == kind && o.value == value)
+        && !observable.tags.iter().any(|t| t == tag)
+    {
+        observable.tags.push(tag.to_owned());
     }
 }
 

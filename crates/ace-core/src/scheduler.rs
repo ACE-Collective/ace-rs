@@ -207,6 +207,27 @@ pub async fn runs(db: &Db, task: &str, limit: i64) -> Result<Vec<Run>, DbError> 
     .await?)
 }
 
+/// The most runs one read of the table returns.
+pub const MAX_RUNS_READ: i64 = 500;
+
+/// Runs of every task, or of one, newest first, at most `limit` (and `MAX_RUNS_READ`): what the
+/// administration area's monitoring page lists (PLAN.md 7.12).
+pub async fn recent_runs<'c>(
+    executor: impl sqlx::PgExecutor<'c>,
+    task: Option<&str>,
+    limit: i64,
+) -> Result<Vec<Run>, DbError> {
+    Ok(sqlx::query_as!(
+        Run,
+        "SELECT id, task, scheduled_for, node, started_at, ended_at, outcome, error, summary
+         FROM scheduler.runs WHERE $1::text IS NULL OR task = $1 ORDER BY id DESC LIMIT $2",
+        task,
+        limit.clamp(1, MAX_RUNS_READ),
+    )
+    .fetch_all(executor)
+    .await?)
+}
+
 /// When the task is next due, if it has a row.
 pub async fn due_at(db: &Db, task: &str) -> Result<Option<DateTime<Utc>>, DbError> {
     Ok(

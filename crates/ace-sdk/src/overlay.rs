@@ -111,6 +111,37 @@ pub struct Overlay {
     /// ace3's `alert_routers:` (PLAN.md 7.13), by router name: the routers of the types the binary has
     /// that decide which queue an alert belongs in. `ace serve` reads it; a pool doesn't.
     pub alert_routers: BTreeMap<String, AlertRouterSection>,
+    /// The YARA export of the observables enabled for detection (PLAN.md 7.16): ace3's `yara_export:`,
+    /// `yara_export_string_modifiers:` and `yara_export_string_boundaries:`. `ace serve` reads it; a pool
+    /// doesn't.
+    pub yara_export: YaraExportSection,
+}
+
+/// ace3's `yara_export:` section, with its two neighbours `yara_export_string_modifiers:` and
+/// `yara_export_string_boundaries:` as `string_modifiers` and `string_boundaries`, and its template
+/// directory as `templates`. A key left out keeps ace3's default (`ace_yara::export::ExportConfig`).
+/// `ace serve` checks the section when it starts, and one it can't use stops it.
+///
+/// What differs from ace3's: there is no `max_strings_per_rule`, a libyara setting yara-x doesn't have
+/// (a list's 1,000 entries bound the rule). `templates` holds each template's text by type, over the
+/// ones ace3 ships, where ace3's `export_template_dir` names a directory. `string_modifiers` and
+/// `string_boundaries` replace ace3's maps whole when given, so a site can drop an entry.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields, default)]
+pub struct YaraExportSection {
+    /// False builds rulesets without the detections' rules. ace3 turns the export off by disabling its
+    /// `observable_export_yara` target.
+    pub enabled: Option<bool>,
+    /// The observable types to export. An entry also covers every type that extends it.
+    pub export_list: Option<Vec<String>>,
+    /// The fewest characters a value has to be exported.
+    pub export_minimum_length: Option<u32>,
+    /// The string modifiers by type; `default` is every other type's.
+    pub string_modifiers: Option<BTreeMap<String, String>>,
+    /// The boundary family by type: `hostname`, `email_address`, `ipv4`, `ipv6`, `hex`, or `ip`.
+    pub string_boundaries: Option<BTreeMap<String, String>>,
+    /// A rule template by type, or `default`, each replacing or adding to ace3's.
+    pub templates: BTreeMap<String, String>,
 }
 
 /// One of ace3's `alert_routers:` entries (PLAN.md 7.13): a router of a type the binary has, which a site
@@ -906,6 +937,7 @@ impl Overlay {
             disposition_order: Vec::new(),
             svs: SvsSection::default(),
             alert_routers: BTreeMap::new(),
+            yara_export: YaraExportSection::default(),
         }
     }
 

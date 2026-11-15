@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, key, commit, tree, sources_sha256, yara_x_version, files, left_out, qa_rules,\n                signatures, built_at\n         FROM yara.rulesets WHERE commit = $1 AND yara_x_version = $2",
+  "query": "SELECT id, key, commit, tree, sources_sha256, yara_x_version, files, left_out, qa_rules,\n                signatures, detection_export, built_at\n         FROM yara.rulesets WHERE commit = $1 AND yara_x_version = $2",
   "describe": {
     "columns": [
       {
@@ -115,6 +115,17 @@
       },
       {
         "ordinal": 10,
+        "name": "detection_export",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "yara.rulesets",
+            "name": "detection_export"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
         "name": "built_at",
         "type_info": "Timestamptz",
         "origin": {
@@ -142,8 +153,9 @@
       false,
       true,
       true,
+      true,
       false
     ]
   },
-  "hash": "0e780f248965b6920ce365e09d8b1b9a6e9c7f11dea46978bb63678a5a2fb49e"
+  "hash": "b90b8137a0e5417eae150defaf0e5aaadc85049099e43c8bbeb1414e218b880f"
 }

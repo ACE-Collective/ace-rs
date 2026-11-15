@@ -692,8 +692,10 @@ when that row has none.
 
 `ace serve`'s scheduler runs every task. Each run is a row of `scheduler.runs` in Postgres: the task, the
 time it was due, the node, its start and end, its outcome (`succeeded`, `failed`, `timed_out`, `stopped`
-or `abandoned`), its error and a summary of what it did. Rows are kept for 90 days. No page or API route
-shows them yet, so read the table:
+or `abandoned`), its error and a summary of what it did. Rows are kept for 90 days. Administration's
+[Monitoring](/admin/monitoring) page lists every task with how its last run ended and how many have
+failed since one succeeded, and the runs themselves, to whoever holds `monitoring:read`;
+`GET /api/monitoring/v1/state` returns the same. The table can be read directly too:
 
 ```bash
 docker compose exec postgres psql -U ace4 -d ace4 -c \
@@ -897,8 +899,9 @@ minutes hasn't been moved.
    checkout, and the log says `building rulesets` at start.
 2. **Samples are complete.** On [Samples](/signatures/samples), the table *Captures missing something*
    counts, per rule, the captures whose bytes could not be stored.
-3. **The scheduled tasks succeed.** Query `scheduler.runs` for `svs_coverage_snapshot`,
-   `svs_validations_prune` and `bucket_verify`: one `succeeded` row for each day or week.
+3. **The scheduled tasks succeed.** On [Monitoring](/admin/monitoring), or in `scheduler.runs`, look at
+   `svs_coverage_snapshot`, `svs_validations_prune` and `bucket_verify`: one `succeeded` run for each day
+   or week, and no failures since.
 4. **Storage.** Check the size of the mirror directories and the validation work directory. The work
    directory should be empty while no validation runs.
 5. **Test hosts are current.** Rebuilt or retired lab machines are updated on the Test hosts tab, with
@@ -939,10 +942,11 @@ minutes hasn't been moved.
 
 ## Known limitations
 
-- **Nothing signals that the timers have stopped.** No health indicator exists in the GUI or the API.
-  While `svs_run_timers` doesn't run, runs stay `started` past their window. Use the daily checks above,
-  or alert on the age of the last `succeeded` row of `scheduler.runs` for each task.
-- **Scheduled runs have no page.** Their outcomes are only in `scheduler.runs`.
+- **Nothing alerts when the timers have stopped.** While `svs_run_timers` doesn't run, runs stay `started`
+  past their window. The [Monitoring](/admin/monitoring) page marks a task that is behind and one whose
+  last run failed, and the `monitor_scheduler` check logs each task's state every minute as a
+  `scheduler.task` record (`overdue_seconds`, `failures_since_success`), but nothing in ACE raises an
+  alarm: alert on those records where your logs are collected, or use the daily checks above.
 - **No command reads the overlay back.** A wrong value shows when `ace serve` refuses it at start, or in
   what SVS then does.
 - **Logs are not collected.** ACE writes to standard error; searching by field needs your own log

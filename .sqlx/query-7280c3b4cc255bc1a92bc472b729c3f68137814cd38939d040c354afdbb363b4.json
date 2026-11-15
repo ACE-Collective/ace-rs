@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO monitoring.records (task, path, identifier, value)\n         SELECT $1, path, identifier, value\n         FROM unnest($2::text[], $3::text[], $4::jsonb[]) WITH ORDINALITY AS r(path, identifier, value, n)\n         ORDER BY n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "TextArray",
+        "TextArray",
+        "JsonbArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "7280c3b4cc255bc1a92bc472b729c3f68137814cd38939d040c354afdbb363b4"
+}

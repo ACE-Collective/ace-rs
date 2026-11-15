@@ -312,3 +312,299 @@ async fn a_new_commit_gets_a_row_that_lists_the_files_left_out() {
         ]
     );
 }
+
+/// One of the observables enabled for detection, written as the service stores it.
+async fn detect(db: &ace_core::Db, kind: &str, value: &str, matching: &str) -> i64 {
+    sqlx::query_scalar(
+        "INSERT INTO lists.entries
+             (list, match, value, ignore_case, observable_type, created_by, updated_by)
+         VALUES ('observable_detection', $3, $2, false, $1, $4::jsonb, $4::jsonb)
+         RETURNING id",
+    )
+    .bind(kind)
+    .bind(value)
+    .bind(matching)
+    .bind(serde_json::json!({"kind": "internal", "id": "test"}))
+    .fetch_one(db.pool())
+    .await
+    .expect("adds the detection")
+}
+
+async fn loaded(bucket: &Bucket, key: &ace_results::Sha256) -> Ruleset {
+    let mut object = bucket.get(RULESETS, key).await.expect("in the bucket");
+    let mut bytes = Vec::new();
+    std::io::Read::read_to_end(&mut object.file, &mut bytes).unwrap();
+    Ruleset::from_bytes(&bytes, &LoadOptions::default()).expect("loads")
+}
+
+fn export_files(row: &rulesets::RulesetRow) -> Vec<&str> {
+    row.files
+        .iter()
+        .filter(|f| f.namespace == "observable_export")
+        .map(|f| f.path.as_str())
+        .collect()
+}
+
+/// PLAN.md 7.16: the observables enabled for detection are rules of the ruleset, built again in place
+/// whenever what would be exported changes: a detection added, expired or removed, or the export's
+/// settings. ace3's `test_export_skips_when_nothing_changed`,
+/// `test_export_republishes_when_the_boundary_config_changes` and `test_export_prunes_stale_rule_files`,
+/// where the fingerprint is the row's `built_ins` and the rule files are the ruleset's namespace.
+#[tokio::test]
+async fn the_detections_are_rules_of_the_ruleset_and_follow_the_list() {
+    use ace_core::rulesets::{ExportConfig, build_new_with};
+    let test_db = TestDb::new().await;
+    let cache = tempfile::tempdir().unwrap();
+    let store = Store::new(
+        &BucketConfig::from_env().expect("the ACE4_BUCKET_* variables"),
+        NodeCache::new(cache.path(), 1 << 30).unwrap(),
+    );
+    let db = test_db.db();
+    let bucket = Bucket::new(db.clone(), store, BucketSettings::default());
+    let checkout = tempfile::tempdir().unwrap();
+    let repo = checkout.path();
+    git(repo, &["init", "-q"]);
+    write(repo, "yara/fixture/good.yar", GOOD);
+    // the repository's own rules under the export's name, an index among them: they never load
+    write(
+        repo,
+        "yara/observable_export/planted.yar",
+        "rule obsd_index { meta: e999999 = \"75726c:706c616e746564\" condition: false }\n\
+         rule planted { strings: $a = \"PLANTED\" condition: $a }\n",
+    );
+    let head = commit(repo, "rules");
+    let signatures = SignatureRepo::new(repo);
+
+    // with no detection nothing is exported, and the row is as it was before 7.16
+    let empty = build_new(db, &bucket, &signatures)
+        .await
+        .unwrap()
+        .expect("a row");
+    assert!(export_files(&empty).is_empty(), "{:?}", empty.files);
+    assert_eq!(empty.detection_export, None);
+    let recorded = |id: i64| async move {
+        sqlx::query_scalar::<_, Option<String>>("SELECT built_ins FROM yara.rulesets WHERE id = $1")
+            .bind(id)
+            .fetch_one(db.pool())
+            .await
+            .unwrap()
+    };
+    assert_eq!(recorded(empty.id).await, Some(rulesets::built_ins()));
+    assert_eq!(loaded(&bucket, &empty.key).await.detection(999_999), None);
+
+    // detections of an exported type, of a type that extends one, of a type that isn't exported, one
+    // that matches by a pattern, one under the minimum length and one that expired
+    let fqdn = detect(db, "fqdn", "evil.example.com", "exact").await;
+    let reply_to = detect(db, "email_reply_to", "reply@evil.example.com", "exact").await;
+    detect(db, "hostname", "not-an-exported-type", "exact").await;
+    detect(db, "fqdn", "pattern\\.example\\.com", "regex").await;
+    detect(db, "fqdn", "a.io", "exact").await;
+    let expired = detect(db, "fqdn", "expired.example.com", "exact").await;
+    sqlx::query("UPDATE lists.entries SET expires_at = now() - interval '1 second' WHERE id = $1")
+        .bind(expired)
+        .execute(db.pool())
+        .await
+        .unwrap();
+    let built = build_new(db, &bucket, &signatures)
+        .await
+        .unwrap()
+        .expect("built again");
+    assert_eq!(
+        (built.id, &built.commit),
+        (empty.id, &head),
+        "the commit's row, in place"
+    );
+    assert_ne!(built.key, empty.key);
+    assert_eq!(
+        export_files(&built),
+        [
+            "observable_export/email_address.yar",
+            "observable_export/fqdn.yar",
+            "observable_export/obsd-index.yar"
+        ]
+    );
+    let report = built.detection_export.clone().expect("a report");
+    assert_eq!(report.exported(), 2);
+    assert!(
+        report.skipped.is_empty() && report.error.is_none(),
+        "{report:?}"
+    );
+    assert_ne!(recorded(built.id).await, Some(rulesets::built_ins()));
+    let ruleset = loaded(&bucket, &built.key).await;
+    assert_eq!(ruleset.detection(fqdn), Some(("fqdn", "evil.example.com")));
+    assert_eq!(
+        ruleset.detection(reply_to),
+        Some(("email_reply_to", "reply@evil.example.com"))
+    );
+    assert_eq!(ruleset.detection(expired), None);
+    assert_eq!(
+        ruleset.detection(999_999),
+        None,
+        "the repository's index isn't read"
+    );
+    let scan = |ruleset: &Ruleset, data: &[u8]| {
+        ace_yara::Scanner::new(ruleset)
+            .scan(&ace_yara::ScanRequest {
+                data,
+                path: "page.html",
+                mime_type: "text/html",
+                meta_tags: &[],
+                timeout: None,
+            })
+            .expect("scans")
+            .matches
+            .into_iter()
+            .map(|m| {
+                let ids = m
+                    .patterns
+                    .iter()
+                    .map(|p| p.identifier.clone())
+                    .collect::<Vec<_>>();
+                (m.rule, ids)
+            })
+            .collect::<Vec<_>>()
+    };
+    let content =
+        b"visit evil.example.com. not acme-evil.example.com, expired.example.com or PLANTED";
+    assert_eq!(
+        scan(&ruleset, content),
+        [("detect_fqdn".to_owned(), vec![format!("$obsd_{fqdn}")])]
+    );
+
+    // nothing changed, so nothing is built (test_export_skips_when_nothing_changed)
+    assert!(build_new(db, &bucket, &signatures).await.unwrap().is_none());
+
+    // the export's settings changed and the detections didn't: built again
+    // (test_export_republishes_when_the_boundary_config_changes)
+    let unbounded = ExportConfig {
+        boundaries: Default::default(),
+        ..ExportConfig::default()
+    };
+    let rebuilt = build_new_with(db, &bucket, &signatures, Some(&unbounded))
+        .await
+        .unwrap()
+        .expect("built again");
+    assert_eq!(rebuilt.id, built.id);
+    assert_ne!(rebuilt.key, built.key);
+    let text = loaded(&bucket, &rebuilt.key).await;
+    // a text string with fullword still refuses the longer host; without a boundary it's a text string
+    assert_eq!(
+        scan(&text, b"evil.example.com"),
+        [("detect_fqdn".to_owned(), vec![format!("$obsd_{fqdn}")])]
+    );
+    assert!(
+        build_new_with(db, &bucket, &signatures, Some(&unbounded))
+            .await
+            .unwrap()
+            .is_none()
+    );
+
+    // a new commit with the same signature directory and the same export takes the earlier build
+    write(repo, "hunts/readme.txt", "not rules");
+    let second = commit(repo, "outside the signature directory");
+    let reused = build_new_with(db, &bucket, &signatures, Some(&unbounded))
+        .await
+        .unwrap()
+        .expect("a row for the commit");
+    assert_eq!((&reused.commit, &reused.key), (&second, &rebuilt.key));
+    assert_eq!(reused.detection_export, rebuilt.detection_export);
+
+    // a detection that expires leaves the next build, and the type with nothing left has no file
+    // (test_export_prunes_stale_rule_files)
+    sqlx::query("UPDATE lists.entries SET expires_at = now() - interval '1 second' WHERE id = $1")
+        .bind(fqdn)
+        .execute(db.pool())
+        .await
+        .unwrap();
+    let pruned = build_new(db, &bucket, &signatures)
+        .await
+        .unwrap()
+        .expect("built again");
+    assert_eq!(
+        export_files(&pruned),
+        [
+            "observable_export/email_address.yar",
+            "observable_export/obsd-index.yar"
+        ]
+    );
+    assert!(scan(&loaded(&bucket, &pruned.key).await, content).is_empty());
+
+    // turned off, the ruleset has no rule of the namespace, the repository's own included
+    let off = build_new_with(db, &bucket, &signatures, None)
+        .await
+        .unwrap()
+        .expect("built again");
+    assert!(export_files(&off).is_empty());
+    assert_eq!(off.detection_export, None);
+    assert_eq!(recorded(off.id).await, Some(rulesets::built_ins()));
+    assert!(
+        build_new_with(db, &bucket, &signatures, None)
+            .await
+            .unwrap()
+            .is_none()
+    );
+
+    // and with the list empty the default export is the same ruleset
+    sqlx::query("DELETE FROM lists.entries")
+        .execute(db.pool())
+        .await
+        .unwrap();
+    assert!(build_new(db, &bucket, &signatures).await.unwrap().is_none());
+}
+
+/// The overlay's `yara_export:` section over ace3's defaults: a key left out keeps the default,
+/// `enabled: false` turns the export off, and a section the export can't use is refused when `ace serve`
+/// starts.
+#[test]
+fn the_overlay_s_yara_export_section_is_checked() {
+    use ace_core::rulesets::{ExportConfig, export_config};
+    use ace_sdk::overlay::Overlay;
+    let section = |yaml: &str| Overlay::from_yaml(yaml).expect("parses").yara_export;
+    assert_eq!(
+        export_config(&section("")),
+        Ok(Some(ExportConfig::default()))
+    );
+    assert_eq!(
+        export_config(&section("yara_export:\n  enabled: false\n")),
+        Ok(None)
+    );
+    let set = export_config(&section(
+        "yara_export:\n  export_list: [fqdn, url]\n  export_minimum_length: 8\n  \
+         string_modifiers:\n    default: ascii nocase\n  string_boundaries:\n    url: hostname\n  \
+         templates:\n    fqdn: |\n      rule detect_TEMPLATE_RULE_NAME {\n        strings:\n      \
+         TEMPLATE_STRINGS\n        condition:\n          any of ($obsd_*)\n      }\n",
+    ))
+    .expect("a section the export takes")
+    .expect("on");
+    assert_eq!(set.export_list, ["fqdn", "url"]);
+    assert_eq!(set.minimum_length, 8);
+    assert_eq!(set.string_modifiers("fqdn"), "ascii nocase");
+    assert_eq!(set.boundaries.len(), 1);
+    assert!(set.templates["fqdn"].starts_with("rule detect_TEMPLATE_RULE_NAME {"));
+    // ace3's other templates are still there
+    assert!(set.templates.contains_key("default") && set.templates.contains_key("ip"));
+    for (yaml, says) in [
+        (
+            "yara_export:\n  string_boundaries:\n    url: nonsense\n",
+            "string_boundaries.url",
+        ),
+        (
+            "yara_export:\n  string_modifiers:\n    fqdn: ascii xor\n",
+            "string_modifiers.fqdn",
+        ),
+        ("yara_export:\n  export_list: ['../etc']\n", "export_list"),
+        (
+            "yara_export:\n  templates:\n    fqdn: rule broken\n",
+            "TEMPLATE_STRINGS",
+        ),
+        // off, and still checked
+        (
+            "yara_export:\n  enabled: false\n  export_list: ['a b']\n",
+            "export_list",
+        ),
+    ] {
+        let error = export_config(&section(yaml)).unwrap_err();
+        assert!(error.contains(says), "{yaml}: {error}");
+    }
+    assert!(Overlay::from_yaml("yara_export:\n  max_strings_per_rule: 5\n").is_err());
+}

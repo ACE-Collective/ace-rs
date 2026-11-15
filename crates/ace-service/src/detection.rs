@@ -28,6 +28,11 @@
 //! - A second detection of the same type and value is a conflict. A detection's comments are the
 //!   observable's (`observable_comments`), oldest first, shown read-only.
 //!
+//! The detections are also YARA rules of the ruleset the core builds (PLAN.md 7.16,
+//! `ace_core::rulesets`, ace3's `saq/observables/export/yara.py`), so one matches a file's content too.
+//! `detection_export` says what the current ruleset holds of them and which were left out, which ace3
+//! only logs.
+//!
 //! What differs:
 //! - ace3 runs a value through its observable class, which normalizes some types. ace4's observables
 //!   have no normalization: a `file` value is trimmed, lowercased and has to be a sha256, as ace3's is,
@@ -364,7 +369,108 @@ async fn add_comments(
     Ok(())
 }
 
+/// The ruleset the YARA export of the detections is in: the latest the core built.
+#[derive(Debug, Clone, PartialEq)]
+pub struct DetectionExportRuleset {
+    /// The serialized ruleset's sha256.
+    pub key: String,
+    pub commit: String,
+    pub built_at: DateTime<Utc>,
+}
+
+/// One exported type's rule.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DetectionExportType {
+    pub observable_type: String,
+    /// How many detections its rule holds, and how many strings they are.
+    pub detections: i64,
+    pub strings: i64,
+}
+
+/// A detection the export left out. The error is the compiler's or the export's, and may quote the
+/// value: text to show, never markup.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DetectionExportSkipped {
+    pub id: i64,
+    /// The type it would have been exported under.
+    pub observable_type: String,
+    /// The detection's value as it is now; None when it's gone since the build.
+    pub value: Option<String>,
+    pub error: String,
+}
+
+/// What the current ruleset holds of the detections as YARA rules (PLAN.md 7.16).
+#[derive(Debug, Clone, PartialEq, Default)]
+pub struct DetectionExport {
+    /// None when no ruleset has been built: the core builds none without a signatures repository.
+    pub ruleset: Option<DetectionExportRuleset>,
+    /// The detections in the ruleset's rules.
+    pub exported: i64,
+    pub types: Vec<DetectionExportType>,
+    pub skipped: Vec<DetectionExportSkipped>,
+    /// Why nothing was exported, when the generated files didn't load together.
+    pub error: Option<String>,
+}
+
 impl Service {
+    /// What the current ruleset holds of the detections as YARA rules: each exported type, and each
+    /// detection left out with why (PLAN.md 7.16, `ace_core::rulesets`). A detection added since the
+    /// ruleset was built is in neither until the next build, a minute away at most. It needs
+    /// `detection:read`.
+    pub async fn detection_export(&self, actor: &Actor) -> Result<DetectionExport, ServiceError> {
+        let catalog = self.orchestrator.catalog();
+        self.gate
+            .read(actor, "detection_export", &DETECTION_READ, &|tx| {
+                Box::pin(async move {
+                    let spec = detection_list(catalog)?;
+                    let Some(ruleset) = ace_core::rulesets::current_with(tx.conn()).await? else {
+                        return Ok(DetectionExport::default());
+                    };
+                    let report = ruleset.detection_export.unwrap_or_default();
+                    let ids: Vec<i64> = report.skipped.iter().map(|s| s.id).collect();
+                    let values: std::collections::BTreeMap<i64, String> = sqlx::query!(
+                        "SELECT id, value FROM lists.entries WHERE list = $1 AND id = ANY($2)",
+                        spec.name,
+                        &ids,
+                    )
+                    .fetch_all(tx.conn())
+                    .await?
+                    .into_iter()
+                    .map(|row| (row.id, row.value))
+                    .collect();
+                    Ok(DetectionExport {
+                        ruleset: Some(DetectionExportRuleset {
+                            key: ruleset.key.to_hex(),
+                            commit: ruleset.commit,
+                            built_at: ruleset.built_at,
+                        }),
+                        exported: report.exported() as i64,
+                        types: report
+                            .types
+                            .into_iter()
+                            .map(|t| DetectionExportType {
+                                observable_type: t.export_type,
+                                detections: t.detections as i64,
+                                strings: t.strings as i64,
+                            })
+                            .collect(),
+                        skipped: report
+                            .skipped
+                            .into_iter()
+                            .map(|s| DetectionExportSkipped {
+                                value: values.get(&s.id).cloned(),
+                                id: s.id,
+                                observable_type: s.export_type,
+                                error: s.error,
+                            })
+                            .collect(),
+                        error: report.error,
+                    })
+                })
+            })
+            .await
+    }
+
     /// A page of the detections, with their comments. It needs `detection:read`.
     pub async fn detections(
         &self,

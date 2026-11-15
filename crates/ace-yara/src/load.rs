@@ -115,6 +115,9 @@ pub struct Ruleset {
     pub(crate) blacklist: BTreeSet<String>,
     /// Keyed by (namespace, rule name).
     pub(crate) filters: HashMap<(String, String), RuleFilter>,
+    /// The exported detections' types and values by id, from the export's index rule
+    /// (`crate::export`, PLAN.md 7.16).
+    pub(crate) detections: std::collections::BTreeMap<i64, (String, String)>,
 }
 
 impl Ruleset {
@@ -122,8 +125,14 @@ impl Ruleset {
     /// the regex crate can't compile, which `compile` has already left out.
     pub fn new(rules: yara_x::Rules, options: &LoadOptions) -> Result<Ruleset, String> {
         let mut filters = HashMap::new();
+        let mut detections = std::collections::BTreeMap::new();
         for rule in rules.iter() {
             let meta = Meta::from_yara_x(rule.metadata());
+            if rule.namespace() == crate::export::NAMESPACE
+                && rule.identifier() == crate::export::INDEX_RULE
+            {
+                detections = crate::export::read_index(&meta);
+            }
             let filter = RuleFilter::from_meta(&meta)
                 .map_err(|e| format!("rule {}: {e}", rule.identifier()))?;
             filters.insert(
@@ -135,7 +144,16 @@ impl Ruleset {
             rules,
             blacklist: options.blacklist.clone(),
             filters,
+            detections,
         })
+    }
+
+    /// The type and value of the detection a matched `$obsd_` string names (`export::string_id`),
+    /// when the ruleset's export holds it: what ace3's scanner reads from the detection's row.
+    pub fn detection(&self, id: i64) -> Option<(&str, &str)> {
+        self.detections
+            .get(&id)
+            .map(|(observable_type, value)| (observable_type.as_str(), value.as_str()))
     }
 
     pub fn rules(&self) -> &yara_x::Rules {

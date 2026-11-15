@@ -158,6 +158,18 @@ impl NodeCache {
         }
     }
 
+    /// Walks the cache and says how many entries and bytes it holds, removing nothing: ace3's
+    /// `ReadCache.usage`, for monitoring (PLAN.md 7.12).
+    pub fn usage(&self) -> io::Result<CacheStats> {
+        let mut entries = Vec::new();
+        walk(&self.inner.dir, &mut entries)?;
+        Ok(CacheStats {
+            entries: entries.len() as u64,
+            bytes: entries.iter().map(|e| e.size).sum(),
+            evicted: 0,
+        })
+    }
+
     /// Walks the cache and removes the least recently read entries until it fits its cap.
     pub fn evict(&self) -> io::Result<CacheStats> {
         let mut entries = Vec::new();

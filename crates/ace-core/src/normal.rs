@@ -42,7 +42,9 @@
 //! signature fields name a ruleset commit, which is a fact about the run.
 //!
 //! Some fields of a result are about the run too. `RUN_FIELDS` lists them, and the form leaves
-//! them out.
+//! them out. One more is found by its rule: the `date` meta of a rule the YARA export of the
+//! detections generated (PLAN.md 7.16) is the day the export ran, where another rule's `date` is
+//! what its author wrote and stays.
 
 use std::collections::BTreeMap;
 
@@ -226,6 +228,27 @@ fn remove_run_fields(analysis_type: &str, result: &mut Value) {
         let segments: Vec<&str> = path.split('/').filter(|s| !s.is_empty()).collect();
         remove_at(result, &segments);
     }
+    if analysis_type == "yara_scan_results" {
+        remove_export_dates(result);
+    }
+}
+
+/// Takes the `date` meta out of each match of a rule the export of the detections generated: the
+/// templates write the day the rules were generated (`ace_yara::export`), as ace3's do.
+fn remove_export_dates(result: &mut Value) {
+    let Some(matches) = result
+        .pointer_mut("/details/scan_results")
+        .and_then(Value::as_array_mut)
+    else {
+        return;
+    };
+    for matched in matches {
+        if matched["namespace"] == ace_yara::export::NAMESPACE
+            && let Some(meta) = matched.get_mut("meta").and_then(Value::as_object_mut)
+        {
+            meta.remove("date");
+        }
+    }
 }
 
 fn remove_at(value: &mut Value, segments: &[&str]) {
@@ -265,6 +288,21 @@ mod tests {
                 "summary": "matched",
                 "details": {"scan_results": [{"rule": "a"}, {"rule": "b"}]},
             })
+        );
+
+        // the day the export of the detections generated its rule; an author's date stays
+        let mut exported = json!({"details": {"scan_results": [
+            {"rule": "detect_fqdn", "namespace": "observable_export",
+             "meta": {"date": "11/15/2026", "tlp": "amber"}},
+            {"rule": "theirs", "namespace": "fixture", "meta": {"date": "2024-01-01"}},
+        ]}});
+        remove_run_fields("yara_scan_results", &mut exported);
+        assert_eq!(
+            exported,
+            json!({"details": {"scan_results": [
+                {"rule": "detect_fqdn", "namespace": "observable_export", "meta": {"tlp": "amber"}},
+                {"rule": "theirs", "namespace": "fixture", "meta": {"date": "2024-01-01"}},
+            ]}})
         );
 
         let mut rdap =

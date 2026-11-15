@@ -62,7 +62,16 @@
       "tags": {}
     },
     "file:1e85c37df423fa45af669a3d0225466a36e57ab1eb898f102f8ff2ec3196d4eb": {
-      "detections": {},
+      "detections": {
+        "ole_bad_name_length.doc.officeparser/Module1.bas matched yara rule detect_url": [
+          {
+            "namespace": "observable_export",
+            "rule": "detect_url",
+            "rule_uuid": null,
+            "sha256": "1e85c37df423fa45af669a3d0225466a36e57ab1eb898f102f8ff2ec3196d4eb"
+          }
+        ]
+      },
       "directives": {
         "extract_urls": true,
         "sandbox": true
@@ -139,11 +148,99 @@
           },
           "summary": null,
           "tags": {}
+        },
+        "yara_scanner_v3_4": {
+          "details": {
+            "scan_results": [
+              {
+                "context": [
+                  [
+                    151,
+                    "$obsd_2",
+                    "\"http://example.com/payload.exe\"",
+                    "00000000  22 70 6f 77 65 72 73 68  65 6c 6c 20 2d 65 6e 63  |\"powershell -enc|\n00000010  20 34 44 35 41 39 30 30  30 20 61 48 52 30 63 44  | 4D5A9000 aHR0cD|\n00000020  6f 76 4c 32 56 34 59 57  31 77 62 47 55 75 59 32  |ovL2V4YW1wbGUuY2|\n00000030  39 74 4c 33 67 3d 22 29  0d 0a 20 20 79 20 3d 20  |9tL3g=\")..  y = |\n00000040  22 68 74 74 70 3a 2f 2f  65 78 61 6d 70 6c 65 2e  |\"http://example.|\n00000050  63 6f 6d 2f 70 61 79 6c  6f 61 64 2e 65 78 65 22  |com/payload.exe\"|\n00000060  20 26 20 22 68 74 74 70  3a 2f 2f 31 39 32 2e 30  | & \"http://192.0|\n00000070  2e 32 2e 31 3a 38 30 38  30 2f 61 20 62 2e 76 62  |.2.1:8080/a b.vb|\n00000080  73 22 0d 0a 20 20 7a 20  3d 20 22 56 47 68 70 63  |s\"..  z = \"VGhpc|\n00000090  79 42 77 63 6d 39 6e 63  6d 46 74 49 47 4e 68 62  |yBwcm9ncmFtIGNhb|\n000000a0\n"
+                  ]
+                ],
+                "match_context": [
+                  {
+                    "data": "InBvd2Vyc2hlbGwgLWVuYyA0RDVBOTAwMCBhSFIwY0RvdkwyVjRZVzF3YkdVdVkyOXRMM2c9IikNCiAgeSA9ICJodHRwOi8vZXhhbXBsZS5jb20vcGF5bG9hZC5leGUiICYgImh0dHA6Ly8xOTIuMC4yLjE6ODA4MC9hIGIudmJzIg0KICB6ID0gIlZHaHBjeUJ3Y205bmNtRnRJR05oYg==",
+                    "match_length": 32,
+                    "match_offset": 64
+                  }
+                ],
+                "meta": {
+                  "author": "ACE Automation",
+                  "description": "ACE Observable Export",
+                  "platform": "ACE",
+                  "scope": "['detection']",
+                  "tlp": "amber"
+                },
+                "namespace": "<work>/signatures/observable_export",
+                "rule": "detect_url",
+                "rule_content_hash": "9edb3f16aafc2a09cf2ffee91eaef05ce24342c9d90cde0c9221ce0b722de847",
+                "rule_source": {
+                  "file": "url.yar",
+                  "start_line": 1,
+                  "text": "rule detect_url : detect_url\n{\n    meta:\n        author = \"ACE Automation\"\n        description = \"ACE Observable Export\"\n        tlp = \"amber\"\n        date = \"11/15/2026\"\n        scope = \"['detection']\"\n        platform = \"ACE\"\n    strings:\n          $obsd_2 = /(^|[^a-zA-Z0-9_\\-])http:\\/\\/example\\.com\\/payload\\.exe([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase\n          $obsd_wide_2 = /(^|([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00]))h\\x00t\\x00t\\x00p\\x00:\\x00\\/\\x00\\/\\x00e\\x00x\\x00a\\x00m\\x00p\\x00l\\x00e\\x00\\.\\x00c\\x00o\\x00m\\x00\\/\\x00p\\x00a\\x00y\\x00l\\x00o\\x00a\\x00d\\x00\\.\\x00e\\x00x\\x00e\\x00(([^a-zA-Z0-9_\\-.]\\x00|[\\x00-\\xff][^\\x00])|\\.\\x00([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00])|(\\.\\x00)?$)/ nocase\n\n    condition:\n        any of ($obsd_*)\n}\n"
+                },
+                "string_patterns": {
+                  "$obsd_2": "/(^|[^a-zA-Z0-9_\\-])http:\\/\\/example\\.com\\/payload\\.exe([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase"
+                },
+                "strings": [
+                  [
+                    151,
+                    "$obsd_2",
+                    "\"http://example.com/payload.exe\""
+                  ]
+                ],
+                "tags": [
+                  "detect_url"
+                ],
+                "target": "<root>/files/ole_bad_name_length.doc.officeparser/Module1.bas"
+              }
+            ]
+          },
+          "summary": "Yara Scan Results: matched yara rules detect_url",
+          "tags": {}
         }
       },
       "tags": {
+        "detect_url": true,
         "macro": true
       }
+    },
+    "file:277b3ba1f9471c5d0e6b97336c2711a524d677f761ab473c7a7dfaa307a3a977": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "ole_bad_name_length.doc.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:62e712a65f3f7e5e54ad9361795e93b0d79cdb1eecd90c65f3d25c7ac3f75c00": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
     },
     "file:4bc03d883e84c6e66e0e608c1a98f8a4347cd41642277aacfdbb48255334ac60": {
       "detections": {},
@@ -229,8 +326,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 09:01:05+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 09:01:05+00:00",
+              "File:FileAccessDate": "2026:11:15 11:01:42+00:00",
+              "File:FileInodeChangeDate": "2026:11:15 11:01:42+00:00",
               "File:FileModifyDate": "2026:11:07 15:11:53+00:00",
               "File:FileName": "ole_bad_name_length.doc",
               "File:FilePermissions": 100644,
@@ -329,39 +426,6 @@
         "ole": true,
         "olevba": true
       }
-    },
-    "file:8a058d905e5f3a37b083ad13ebd18629a5fb0a689e8618cc20beac6d04099a03": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "ole_bad_name_length.doc.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:62e712a65f3f7e5e54ad9361795e93b0d79cdb1eecd90c65f3d25c7ac3f75c00": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
     },
     "file:9209d9f87d9a971a3c75208a0303e66e48b0a0fc923c0e81254bec0fb6368437": {
       "detections": {},
@@ -494,7 +558,16 @@
       "tags": {}
     },
     "file:e058931096278bcc4a93d131d179150561912d4070407e7daceb5e1117789b8c": {
-      "detections": {},
+      "detections": {
+        "ole_bad_name_length.doc.olevba/macro_0.bas matched yara rule detect_url": [
+          {
+            "namespace": "observable_export",
+            "rule": "detect_url",
+            "rule_uuid": null,
+            "sha256": "e058931096278bcc4a93d131d179150561912d4070407e7daceb5e1117789b8c"
+          }
+        ]
+      },
       "directives": {
         "sandbox": true
       },
@@ -541,9 +614,64 @@
           },
           "summary": null,
           "tags": {}
+        },
+        "yara_scanner_v3_4": {
+          "details": {
+            "scan_results": [
+              {
+                "context": [
+                  [
+                    118,
+                    "$obsd_2",
+                    "\"http://example.com/payload.exe\"",
+                    "00000000  28 22 70 6f 77 65 72 73  68 65 6c 6c 20 2d 65 6e  |(\"powershell -en|\n00000010  63 20 34 44 35 41 39 30  30 30 20 61 48 52 30 63  |c 4D5A9000 aHR0c|\n00000020  44 6f 76 4c 32 56 34 59  57 31 77 62 47 55 75 59  |DovL2V4YW1wbGUuY|\n00000030  32 39 74 4c 33 67 3d 22  29 0a 20 20 79 20 3d 20  |29tL3g=\").  y = |\n00000040  22 68 74 74 70 3a 2f 2f  65 78 61 6d 70 6c 65 2e  |\"http://example.|\n00000050  63 6f 6d 2f 70 61 79 6c  6f 61 64 2e 65 78 65 22  |com/payload.exe\"|\n00000060  20 26 20 22 68 74 74 70  3a 2f 2f 31 39 32 2e 30  | & \"http://192.0|\n00000070  2e 32 2e 31 3a 38 30 38  30 2f 61 20 62 2e 76 62  |.2.1:8080/a b.vb|\n00000080  73 22 0a 20 20 7a 20 3d  20 22 56 47 68 70 63 79  |s\".  z = \"VGhpcy|\n00000090  42 77 63 6d 39 6e 63 6d  46 74 49 47 4e 68 62 6d  |Bwcm9ncmFtIGNhbm|\n000000a0\n"
+                  ]
+                ],
+                "match_context": [
+                  {
+                    "data": "KCJwb3dlcnNoZWxsIC1lbmMgNEQ1QTkwMDAgYUhSMGNEb3ZMMlY0WVcxd2JHVXVZMjl0TDNnPSIpCiAgeSA9ICJodHRwOi8vZXhhbXBsZS5jb20vcGF5bG9hZC5leGUiICYgImh0dHA6Ly8xOTIuMC4yLjE6ODA4MC9hIGIudmJzIgogIHogPSAiVkdocGN5QndjbTluY21GdElHTmhibQ==",
+                    "match_length": 32,
+                    "match_offset": 64
+                  }
+                ],
+                "meta": {
+                  "author": "ACE Automation",
+                  "description": "ACE Observable Export",
+                  "platform": "ACE",
+                  "scope": "['detection']",
+                  "tlp": "amber"
+                },
+                "namespace": "<work>/signatures/observable_export",
+                "rule": "detect_url",
+                "rule_content_hash": "9edb3f16aafc2a09cf2ffee91eaef05ce24342c9d90cde0c9221ce0b722de847",
+                "rule_source": {
+                  "file": "url.yar",
+                  "start_line": 1,
+                  "text": "rule detect_url : detect_url\n{\n    meta:\n        author = \"ACE Automation\"\n        description = \"ACE Observable Export\"\n        tlp = \"amber\"\n        date = \"11/15/2026\"\n        scope = \"['detection']\"\n        platform = \"ACE\"\n    strings:\n          $obsd_2 = /(^|[^a-zA-Z0-9_\\-])http:\\/\\/example\\.com\\/payload\\.exe([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase\n          $obsd_wide_2 = /(^|([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00]))h\\x00t\\x00t\\x00p\\x00:\\x00\\/\\x00\\/\\x00e\\x00x\\x00a\\x00m\\x00p\\x00l\\x00e\\x00\\.\\x00c\\x00o\\x00m\\x00\\/\\x00p\\x00a\\x00y\\x00l\\x00o\\x00a\\x00d\\x00\\.\\x00e\\x00x\\x00e\\x00(([^a-zA-Z0-9_\\-.]\\x00|[\\x00-\\xff][^\\x00])|\\.\\x00([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00])|(\\.\\x00)?$)/ nocase\n\n    condition:\n        any of ($obsd_*)\n}\n"
+                },
+                "string_patterns": {
+                  "$obsd_2": "/(^|[^a-zA-Z0-9_\\-])http:\\/\\/example\\.com\\/payload\\.exe([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase"
+                },
+                "strings": [
+                  [
+                    118,
+                    "$obsd_2",
+                    "\"http://example.com/payload.exe\""
+                  ]
+                ],
+                "tags": [
+                  "detect_url"
+                ],
+                "target": "<root>/files/ole_bad_name_length.doc.olevba/macro_0.bas"
+              }
+            ]
+          },
+          "summary": "Yara Scan Results: matched yara rules detect_url",
+          "tags": {}
         }
       },
       "tags": {
+        "detect_url": true,
         "macro": true
       }
     },
@@ -1274,6 +1402,52 @@
           "details": {
             "extracted_url": "http://example.com/x",
             "protection_type": "unprotected"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "yara_rule:detect_url": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "yara_string:detect_url:$obsd_2": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
           },
           "summary": null,
           "tags": {}

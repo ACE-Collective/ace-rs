@@ -1,0 +1,18 @@
+// legacy: ACE has migrated to the generic `ip` observable type, but detections created before that
+// migration still carry `ipv4`. Kept in sync with ip.template so those keep the bitmap guard.
+rule detect_TEMPLATE_RULE_NAME : detect_TEMPLATE_TAGS
+{
+    meta:
+        author = "ACE Automation"
+        description = "ACE Observable Export"
+        tlp = "amber"
+        date = "TEMPLATE_DATE_STRING"
+        scope = "['detection']"
+        platform = "ACE"
+        // BMP files tend to hit on ip address in the lower ranges
+        file_ext = "!bmp"
+    strings:
+TEMPLATE_STRINGS
+    condition:
+        any of ($obsd_*)
+}

@@ -20,7 +20,9 @@ systems see the same world, as tests/e2e/run gives ace4:
   tests/e2e/run's stack starts with an empty archive. No sample has the archive directive, so the
   archiver archives nothing, and none is a .gz.e;
 - the observables enabled for detection are tools/ace3/trees/detections.json (run_module.py
-  --detections), and the tags analysts mapped to observables tools/ace3/trees/observable_tags.json
+  --detections), which ace3's own export also writes as YARA rules into the rule directory, as its
+  export-observables cron does every minute (--export-detections, PLAN.md 7.16), each detection's id its
+  place in the file from 1, and the tags analysts mapped to observables tools/ace3/trees/observable_tags.json
   (--observable-tags), as tests/e2e/run gives ace4's observable_detection list and
   analysis.observable_tags the same before its comparison;
 - the site tagger reads tools/ace3/trees/site_tags.csv, the text tests/e2e/site/overlay.yaml gives
@@ -208,7 +210,7 @@ def run(sample):
         "--brocess-store", f"{REMOTE}/trees-brocess.json",
         "--email-archive-store", f"{REMOTE}/fixtures/email_archive/empty.json",
         "--encryption-key", dumps.EMAIL_ARCHIVE_KEY,
-        "--detections", f"{REMOTE}/trees-detections.json",
+        "--detections", f"{REMOTE}/trees-detections.json", "--export-detections",
         "--observable-tags", f"{REMOTE}/trees-observable_tags.json",
     ]
     for tag in sample["meta_tags"]:

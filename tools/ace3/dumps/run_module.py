@@ -142,6 +142,12 @@ def parse_args():
         "--detections", help="a JSON file of the observables enabled for detection, the Redis cache "
         "observable_detection reads",
     )
+    parser.add_argument(
+        "--export-detections", action="store_true",
+        help="with --detections and --yara-rules: also export the detections to YARA rules as ace3's "
+        "export-observables cron does, into the rule directory's observable_export, each detection's id "
+        "its place in the file from 1, and answer the YARA module's read of a matched detection's row",
+    )
     parser.add_argument("--tree", action="store_true", help="also write the root in the normal form to tree.json")
     parser.add_argument(
         "--tree-view", action="store_true",
@@ -393,6 +399,46 @@ def fake_detections(path):
             return b"1" if key in keys else None
 
     detection.get_redis_connection = lambda *args, **kwargs: Redis()
+
+
+def export_detections(path):
+    """ace3's export of the observables enabled for detection to YARA rules, which its cron runs every
+    minute (bin/export-observables, saq/observables/export/yara.py), run once with ace3's own code and
+    settings into the signature directory the local scanner loads. The detections' rows are `path`'s,
+    each with its place in the file from 1 as its id, as tests/e2e/run gives ace4's entries the same ids
+    (PLAN.md 7.16). The YARA module reads a matched `$obsd_<id>` string's row through get_db
+    (saq/modules/file_analysis/yara.py), which answers from the same file."""
+    import types
+
+    import saq.modules.file_analysis.yara as yara_module
+    from saq.configuration import get_config
+    from saq.observables.export.yara import YaraObservableExport
+
+    with open(path) as fp:
+        detections = json.load(fp)["detections"]
+    by_type, rows = {}, {}
+    for row_id, detection in enumerate(detections, start=1):
+        by_type.setdefault(detection["type"], []).append({"id": row_id, "value": detection["value"]})
+        rows[row_id] = types.SimpleNamespace(type=detection["type"], value=detection["value"])
+    export = YaraObservableExport(get_config().get_observable_export_config("yara"))
+    export.publish(export.build_export_list(by_type))
+
+    class Db:
+        def get(self, model, row_id):
+            # $obs_ strings name ace3's legacy observables rows, of which there are none
+            return rows.get(row_id) if model is yara_module.db_ObservableDetection else None
+
+    yara_module.get_db = lambda: Db()
+
+
+def exported_rule_dates(result):
+    """Takes the `date` meta out of each match of a rule the export generated: its template writes the
+    day the export ran (remove_export_dates in crates/ace-core/src/normal.rs). ace3's namespace is the
+    rule directory's path."""
+    for match in result["details"].get("scan_results") or []:
+        namespace = str(match.get("namespace") or "").rstrip("/")
+        if os.path.basename(namespace) == "observable_export" and isinstance(match.get("meta"), dict):
+            match["meta"].pop("date", None)
 
 
 class FakeBrocess:
@@ -1252,6 +1298,8 @@ def tree_form(root):
             }
             for path in TREE_RUN_FIELDS.get(class_name, []):
                 remove_at(result, path.split("/"))
+            if class_name == "YaraScanResults_v3_4":
+                exported_rule_dates(result)
             # ace3 writes this with json.dumps' spaces and ace4 with serde_json, so it's compared
             # as the same compact text, which any change to its content still shows
             raw = result["details"].get("rdap_raw_json") if class_name == "RdapAnalysis" else None
@@ -1663,6 +1711,12 @@ def main():
             raise YaraServiceUnavailable("run_module.py scans with the local scanner")
 
         yara_client.scan_file = service_unavailable
+        if args.export_detections:
+            if not args.detections:
+                raise SystemExit("--export-detections needs --detections")
+            export_detections(args.detections)
+    elif args.export_detections:
+        raise SystemExit("--export-detections needs --yara-rules")
 
     root_dir = os.path.join(work, "root")
     root = RootAnalysis(uuid=str(uuid.uuid4()), storage_dir=root_dir)

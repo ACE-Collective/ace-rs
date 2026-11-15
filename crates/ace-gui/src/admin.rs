@@ -49,8 +49,8 @@ use std::collections::BTreeMap;
 
 use ace_service::{
     ADMIN_READ, ApiKey, ApiKeyId, CATALOG, CLI_EXECUTE, DETECTION_READ, Effect, Grant, Group,
-    GroupId, Holder, Password, PermissionPattern, Profile, ServiceError, USER_READ, USER_SELF,
-    USER_WRITE, User, UserDetail, UserId, Username,
+    GroupId, Holder, MONITORING_READ, Password, PermissionPattern, Profile, ServiceError,
+    USER_READ, USER_SELF, USER_WRITE, User, UserDetail, UserId, Username,
 };
 use askama::Template;
 use axum::body::Bytes;
@@ -76,7 +76,7 @@ pub struct Module {
     pub description: &'static str,
 }
 
-/// ace3's `ADMIN_MODULES`, of which this area has three so far.
+/// ace3's `ADMIN_MODULES`, of which this area has three so far, and one of its own (`MONITORING`).
 const USERS_AND_ROLES: Module = Module {
     href: "/admin/users",
     title: "Users & Roles",
@@ -95,6 +95,13 @@ const CLI: Module = Module {
     href: "/admin/cli",
     title: "CLI",
     description: "Run ACE CLI commands, contained on a parser pool, and see every run's output.",
+};
+
+/// The Monitoring tile (PLAN.md 7.12, `crate::monitoring`), which ace3's hub doesn't have.
+const MONITORING: Module = Module {
+    href: crate::monitoring::PAGE,
+    title: "Monitoring",
+    description: "See the scheduled tasks, their runs, and what the monitoring checks last found.",
 };
 
 /// `/admin`.
@@ -862,6 +869,7 @@ pub(crate) async fn hub(State(gui): State<Gui>, viewer: SignedIn, parts: Parts) 
         (&DETECTION_READ, OBSERVABLES),
         (&USER_READ, USERS_AND_ROLES),
         (&CLI_EXECUTE, CLI),
+        (&MONITORING_READ, MONITORING),
     ] {
         match gui.service.allowed(&viewer.actor, permission).await {
             Ok(true) => modules.push(module),

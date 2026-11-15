@@ -1,0 +1,125 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, task, scheduled_for, node, started_at, ended_at, outcome, error, summary\n         FROM scheduler.runs WHERE $1::text IS NULL OR task = $1 ORDER BY id DESC LIMIT $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "scheduler.runs",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "task",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "scheduler.runs",
+            "name": "task"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "scheduled_for",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "scheduler.runs",
+            "name": "scheduled_for"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "node",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "scheduler.runs",
+            "name": "node"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "started_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "scheduler.runs",
+            "name": "started_at"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "ended_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "scheduler.runs",
+            "name": "ended_at"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "outcome",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "scheduler.runs",
+            "name": "outcome"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "error",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "scheduler.runs",
+            "name": "error"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "summary",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "scheduler.runs",
+            "name": "summary"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "7f8a79a657437631413c1641d74b47581727c9f3b88423c992ea93affd3878b6"
+}

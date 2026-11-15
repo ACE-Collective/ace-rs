@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM monitoring.records WHERE task = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "9c3de300e06234f6c35ecfe51a8f6695da9b6bd89ad945089e03fbc2a9f94a5e"
+}

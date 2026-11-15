@@ -40,6 +40,8 @@
 //!   runs, and its cancel, over the `commands` service.
 //! - `detection`: Administration's Observables page (7.6), ace3's `admin/detection.html`: the observables
 //!   ACE detects, filtered and paged, added, given an expiry and removed, over the `detection` service.
+//! - `monitoring`: Administration's Monitoring page (7.12), which ace3 doesn't have: the scheduled tasks
+//!   and their runs, and what the monitoring checks last found, over the `monitoring` service.
 //! - `signatures`: the signatures area under `signature:read` (5.11's signatures area), ace3's
 //!   `signatures/hub.html` and `yara_qa.html`: the YARA QA rules, their versions and kept files, the
 //!   links to the API's downloads, and purges with a confirm page, over the `yara_qa` service. The base
@@ -108,6 +110,7 @@ pub mod events;
 mod headers;
 pub mod help;
 pub mod list;
+pub mod monitoring;
 mod places;
 pub mod preferences;
 pub mod remediation;
@@ -299,6 +302,7 @@ impl Gui {
                 post(detection::set_expiration),
             )
             .route("/admin/detection/{id}/delete", post(detection::delete))
+            .route("/admin/monitoring", get(monitoring::page))
             .route("/admin/cli", get(cli::console).post(cli::start))
             .route("/admin/cli/{id}", get(cli::run_page))
             .route("/admin/cli/{id}/output", get(cli::output))

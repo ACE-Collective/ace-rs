@@ -123,6 +123,7 @@ mod gate;
 mod hunts;
 mod lists;
 mod maintenance;
+mod monitoring;
 mod observable_comments;
 mod observables;
 mod ownership;
@@ -207,8 +208,9 @@ pub use commands::{
 pub use crashes::{Crash, CrashDetail, CrashFilter, CrashInput, CrashPage, MAX_CRASHES_PAGE};
 pub use detection::{
     DEFAULT_DETECTION_LIFETIME_DAYS, DEFAULT_DETECTION_PAGE_SIZE, DETECTION_LIST,
-    DETECTION_PAGE_SIZES, Detection, DetectionExpiry, DetectionFilter, DetectionPage,
-    DetectionStatus, DetectionTypes, NEVER_EXPIRING_TYPES, NewDetection, clamp_detection_page_size,
+    DETECTION_PAGE_SIZES, Detection, DetectionExpiry, DetectionExport, DetectionExportRuleset,
+    DetectionExportSkipped, DetectionExportType, DetectionFilter, DetectionPage, DetectionStatus,
+    DetectionTypes, NEVER_EXPIRING_TYPES, NewDetection, clamp_detection_page_size,
     default_detection_expiry, detection_identity, detection_search_pattern,
 };
 pub use detection_points::{
@@ -249,6 +251,10 @@ pub use hunts::{
 };
 pub use lists::{ListEntry, ListSummary, ListView, NewListEntry};
 pub use maintenance::{PoolGc, PoolOrphans, PoolVerify};
+pub use monitoring::{
+    MAX_MONITOR_RECORDS_READ, MonitorCheck, MonitorRecord, MonitorReport, MonitoringState,
+    ScheduledRun, ScheduledTask,
+};
 pub use observable_comments::{CommentAuthor, MAX_COMMENT_CHARS, ObservableComment};
 pub use observables::{
     Lookup, MAX_EXCLUDED_ALERTS, MAX_LOOKUP_PAIRS, MAX_RECENT_ALERTS, OPEN, Prevalence, RecentAlert,
@@ -262,11 +268,11 @@ pub use permission::{
     CATALOG, CLI_EXECUTE, CRASH_READ, CatalogEntry, DETECTION_READ, DETECTION_WRITE,
     EMAIL_ARCHIVE_MAINTAIN, EMAIL_READ, EVENT_READ, EVENT_WRITE, Effect, FILE_COLLECTION_CREATE,
     FILE_COLLECTION_PRUNE, FILE_COLLECTION_READ, FILE_COLLECTION_WRITE, HUNT_READ, HUNT_WRITE,
-    InvalidPermission, LIST_READ, LIST_WRITE, NRD_REFRESH, OBSERVABLE_READ, OBSERVABLE_WRITE,
-    PermissionName, PermissionPattern, REMEDIATION_READ, REMEDIATION_WRITE, SIGNATURE_DOWNLOAD,
-    SIGNATURE_QA_PURGE, SIGNATURE_READ, SVS_ADMIN, SVS_COVERAGE_REFRESH, SVS_COVERAGE_SNAPSHOT,
-    SVS_RUN_MANAGE, SVS_RUN_READ, SVS_RUN_REGISTER, SVS_RUN_TIMERS, SVS_VALIDATE,
-    SVS_VALIDATION_PRUNE, USER_READ, USER_SELF, USER_WRITE,
+    InvalidPermission, LIST_READ, LIST_WRITE, MONITORING_READ, MONITORING_REPORT, NRD_REFRESH,
+    OBSERVABLE_READ, OBSERVABLE_WRITE, PermissionName, PermissionPattern, REMEDIATION_READ,
+    REMEDIATION_WRITE, SIGNATURE_DOWNLOAD, SIGNATURE_QA_PURGE, SIGNATURE_READ, SVS_ADMIN,
+    SVS_COVERAGE_REFRESH, SVS_COVERAGE_SNAPSHOT, SVS_RUN_MANAGE, SVS_RUN_READ, SVS_RUN_REGISTER,
+    SVS_RUN_TIMERS, SVS_VALIDATE, SVS_VALIDATION_PRUNE, USER_READ, USER_SELF, USER_WRITE,
 };
 pub use preferences::{
     AlertSectionsPreference, MANAGE_COLUMNS, MAX_ALERT_SECTIONS, ManageColumn,

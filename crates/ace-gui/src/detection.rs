@@ -24,13 +24,17 @@
 //! `YYYY-MM-DD` and read as UTC, where ace3's page shows and takes the server's naive time. An empty
 //! expiry on a new detection takes its type's default lifetime, as in ace3.
 //!
+//! Under the table the page says what the current ruleset holds of the detections as YARA rules (PLAN.md
+//! 7.16, `Service::detection_export`): the ruleset, each exported type's counts, and each detection the
+//! export left out with why. ace3 has no such section: its export logs a value its YARA refuses.
+//!
 //! What differs, and why: ace3's "not yet observed" and FA hits come from its index of every observable,
 //! which ace4 doesn't have; its confirm before a delete needs a script; and its `style=` and `<style>`
 //! are classes in the stylesheet.
 
 use ace_service::{
-    ADMIN_READ, DETECTION_PAGE_SIZES, DETECTION_WRITE, Detection, DetectionExpiry, DetectionFilter,
-    DetectionPage, DetectionStatus, DetectionTypes, NewDetection, ServiceError,
+    ADMIN_READ, DETECTION_PAGE_SIZES, DETECTION_WRITE, Detection, DetectionExpiry, DetectionExport,
+    DetectionFilter, DetectionPage, DetectionStatus, DetectionTypes, NewDetection, ServiceError,
     clamp_detection_page_size,
 };
 use askama::Template;
@@ -92,6 +96,55 @@ pub struct DetectionDraft {
     pub context: String,
 }
 
+/// A detection the YARA export left out, as the page shows it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SkippedRow {
+    pub id: i64,
+    pub observable_type: String,
+    /// The value now, or empty when the detection is gone.
+    pub value: String,
+    pub error: String,
+}
+
+/// The page's section on the YARA export of the detections.
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct ExportView {
+    /// The ruleset's commit and key, shortened, and when it was built; None when none has been.
+    pub ruleset: Option<(String, String, String)>,
+    pub exported: i64,
+    /// Each exported type with its detections and strings.
+    pub types: Vec<(String, i64, i64)>,
+    pub skipped: Vec<SkippedRow>,
+    pub error: Option<String>,
+}
+
+/// The page's view of the export.
+pub fn export_view(export: DetectionExport) -> ExportView {
+    let short = |text: &str| text.chars().take(12).collect::<String>();
+    ExportView {
+        ruleset: export
+            .ruleset
+            .map(|r| (short(&r.commit), short(&r.key), time(r.built_at))),
+        exported: export.exported,
+        types: export
+            .types
+            .into_iter()
+            .map(|t| (t.observable_type, t.detections, t.strings))
+            .collect(),
+        skipped: export
+            .skipped
+            .into_iter()
+            .map(|s| SkippedRow {
+                id: s.id,
+                observable_type: s.observable_type,
+                value: s.value.unwrap_or_default(),
+                error: s.error,
+            })
+            .collect(),
+        error: export.error,
+    }
+}
+
 /// What the page shows.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DetectionView {
@@ -119,6 +172,8 @@ pub struct DetectionView {
     pub notice: Option<&'static str>,
     pub problem: Option<String>,
     pub draft: DetectionDraft,
+    /// The YARA export of the detections; `detection_view` leaves it empty.
+    pub export: ExportView,
 }
 
 /// `/admin/detection`.
@@ -302,6 +357,7 @@ pub fn detection_view(
         notice: None,
         problem: None,
         draft: DetectionDraft::default(),
+        export: ExportView::default(),
         rows: page.items.into_iter().map(row).collect(),
     }
 }
@@ -315,7 +371,10 @@ async fn read_view(
     let page = gui.service.detections(actor, filter).await?;
     let types = gui.service.detection_types(actor).await?;
     let can_write = gui.service.allowed(actor, &DETECTION_WRITE).await?;
-    Ok(detection_view(filter, page, types, can_write))
+    let export = gui.service.detection_export(actor).await?;
+    let mut view = detection_view(filter, page, types, can_write);
+    view.export = export_view(export);
+    Ok(view)
 }
 
 async fn page_with(

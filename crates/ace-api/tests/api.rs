@@ -522,6 +522,8 @@ const ENTRIES: &str = "/api/lists/v1/lists/{list}/entries";
 const ENTRY: &str = "/api/lists/v1/lists/{list}/entries/{id}";
 const OBSERVED: &str = "/api/observables/v1/detections";
 const OBSERVED_TYPES: &str = "/api/observables/v1/detections/types";
+const OBSERVED_EXPORT: &str = "/api/observables/v1/detections/yara-export";
+const MONITORING: &str = "/api/monitoring/v1/state";
 const OBSERVED_ONE: &str = "/api/observables/v1/detections/{id}";
 const OBSERVED_EXPIRY: &str = "/api/observables/v1/detections/{id}/expiration";
 const TARGETS: &str = "/api/remediation/v1/targets";
@@ -811,7 +813,7 @@ async fn refuses_without_a_credential_or_a_permission(
         .map(|(method, route, _)| (method, route))
         .filter(|route| !public.contains(route))
         .collect();
-    assert_eq!(routes.len(), 232, "{routes:?}");
+    assert_eq!(routes.len(), 234, "{routes:?}");
     for (method, route) in routes {
         let method: Method = method.to_uppercase().parse().expect("a method");
         let path = fill(&route, id, file);
@@ -4975,6 +4977,7 @@ async fn every_documented_status_is_tested() {
     events(&mut client).await;
     lists_router(&mut client).await;
     detection_router(&mut client).await;
+    monitoring(&mut client).await;
     hunts_router(&mut client).await;
     remediation_routers(&mut client).await;
     svs_samples(&mut client, &token).await;
@@ -7203,6 +7206,8 @@ async fn detection_router(client: &mut Client<'_>) {
         .await;
     assert_eq!(response.status(), S::NO_CONTENT);
 
+    yara_export(client, e, r).await;
+
     // a server whose modules don't read the list has no detections
     let bare = stack_of(
         ace_core::email_archive::ArchiveConfig::default(),
@@ -7235,8 +7240,404 @@ async fn detection_router(client: &mut Client<'_>) {
             S::NOT_FOUND,
         )
         .await;
+    other
+        .json(
+            M::GET,
+            OBSERVED_EXPORT,
+            OBSERVED_EXPORT,
+            a,
+            Send::Nothing,
+            S::NOT_FOUND,
+        )
+        .await;
     let seen = other.seen;
     client.seen.extend(seen);
+}
+
+/// PLAN.md 7.16's Done check: a detection added through the API matches a file's content through the
+/// ruleset the core builds from the list, and the match names its entry. A value the export refuses is
+/// left out alone and reported, and a detection removed is out of the next build.
+async fn yara_export(client: &mut Client<'_>, editor: Option<&str>, reader: Option<&str>) {
+    use Method as M;
+    use StatusCode as S;
+    use ace_core::rulesets::{RULESETS, SignatureRepo, build_new};
+    let stack = client.stack;
+    let db = stack.test_db.db();
+    let add = |body: Value| Send::Json(body);
+    let hostile = "<script>alert(1)</script>.evil.example";
+    let added = client
+        .json(
+            M::POST,
+            OBSERVED,
+            OBSERVED,
+            editor,
+            add(json!({"type": "fqdn", "value": hostile})),
+            S::CREATED,
+        )
+        .await;
+    let id = added["id"].as_i64().expect("an id");
+    // more backslashes than a rule's string may hold escapes (ace_yara::export::MAX_ESCAPES)
+    let refused_value = format!("{}refused", "\\".repeat(600));
+    let refused = client
+        .json(
+            M::POST,
+            OBSERVED,
+            OBSERVED,
+            editor,
+            add(json!({"type": "email_subject", "value": refused_value})),
+            S::CREATED,
+        )
+        .await;
+    // a type the export isn't set to hold
+    client
+        .json(
+            M::POST,
+            OBSERVED,
+            OBSERVED,
+            editor,
+            add(json!({"type": "hostname", "value": "not-exported-host"})),
+            S::CREATED,
+        )
+        .await;
+
+    // the signatures repository the core builds, with one rule of its own
+    let checkout = tempfile::tempdir().expect("a directory");
+    let repo = checkout.path();
+    let git = |args: &[&str]| {
+        let output = std::process::Command::new("git")
+            .arg("-C")
+            .arg(repo)
+            .args([
+                "-c",
+                "user.name=ace4 test",
+                "-c",
+                "user.email=test@example.invalid",
+            ])
+            .args([
+                "-c",
+                "commit.gpgsign=false",
+                "-c",
+                "init.defaultBranch=main",
+            ])
+            .args(args)
+            .output()
+            .expect("git runs");
+        assert!(output.status.success(), "git {args:?}: {output:?}");
+        String::from_utf8(output.stdout).unwrap().trim().to_owned()
+    };
+    git(&["init", "-q"]);
+    std::fs::create_dir_all(repo.join("yara/fixture")).unwrap();
+    std::fs::write(
+        repo.join("yara/fixture/good.yar"),
+        "rule fixture_good { strings: $a = \"EVIL\" condition: $a }",
+    )
+    .unwrap();
+    git(&["add", "."]);
+    git(&["commit", "-q", "-m", "a rule"]);
+    let commit = git(&["rev-parse", "HEAD"]);
+    let signatures = SignatureRepo::new(repo);
+    let row = build_new(db, &stack.bucket, &signatures)
+        .await
+        .expect("builds")
+        .expect("a row");
+    assert_eq!(row.commit, commit);
+
+    // the route says what the ruleset holds, and what it left out with why
+    let export = client
+        .json(
+            M::GET,
+            OBSERVED_EXPORT,
+            OBSERVED_EXPORT,
+            reader,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(export["ruleset"]["commit"], commit.as_str(), "{export}");
+    assert_eq!(export["ruleset"]["key"], row.key.to_hex());
+    assert_eq!(export["exported"], 1);
+    assert_eq!(
+        export["types"],
+        json!([{"type": "fqdn", "detections": 1, "strings": 2}])
+    );
+    assert_eq!(
+        export["skipped"],
+        json!([{
+            "id": refused["id"], "type": "email_subject", "value": refused_value,
+            "error": "the value holds more than 1024 characters a rule has to escape",
+        }])
+    );
+    assert_eq!(export["error"], Value::Null);
+
+    // the ruleset as a pool loads it: the value in a file's content matches, by the entry's id, and the
+    // ruleset says which observable that is
+    let scan = |key: ace_results::Sha256, data: &'static [u8]| async move {
+        let mut object = stack
+            .bucket
+            .get(RULESETS, &key)
+            .await
+            .expect("in the bucket");
+        let mut bytes = Vec::new();
+        std::io::Read::read_to_end(&mut object.file, &mut bytes).unwrap();
+        let ruleset = ace_yara::Ruleset::from_bytes(&bytes, &ace_yara::LoadOptions::default())
+            .expect("loads");
+        let outcome = ace_yara::Scanner::new(&ruleset)
+            .scan(&ace_yara::ScanRequest {
+                data,
+                path: "page.html",
+                mime_type: "text/html",
+                meta_tags: &[],
+                timeout: None,
+            })
+            .expect("scans");
+        (ruleset, outcome.matches)
+    };
+    let content: &[u8] =
+        b"<a href=\"http://<script>alert(1)</script>.evil.example/login\">sign in</a> not-exported-host";
+    let (ruleset, matches) = scan(row.key, content).await;
+    assert_eq!(matches.len(), 1, "{matches:?}");
+    assert_eq!(
+        (matches[0].namespace.as_str(), matches[0].rule.as_str()),
+        ("observable_export", "detect_fqdn")
+    );
+    let named: Vec<&str> = matches[0]
+        .patterns
+        .iter()
+        .map(|p| p.identifier.as_str())
+        .collect();
+    assert_eq!(named, [format!("$obsd_{id}")]);
+    assert_eq!(ace_yara::export::string_id(named[0]), Some(id));
+    assert_eq!(ruleset.detection(id), Some(("fqdn", hostile)));
+    assert_eq!(ruleset.detection(refused["id"].as_i64().unwrap()), None);
+
+    // nothing changed, so nothing is built; removed, the detection is out of the commit's next build
+    assert!(
+        build_new(db, &stack.bucket, &signatures)
+            .await
+            .expect("looks")
+            .is_none()
+    );
+    for gone in [&added, &refused] {
+        let path = OBSERVED_ONE.replace("{id}", &gone["id"].to_string());
+        let response = client
+            .call(M::DELETE, OBSERVED_ONE, &path, editor, Send::Nothing)
+            .await;
+        assert_eq!(response.status(), S::NO_CONTENT);
+    }
+    let rebuilt = build_new(db, &stack.bucket, &signatures)
+        .await
+        .expect("builds")
+        .expect("the commit's row again");
+    assert_eq!((rebuilt.id, &rebuilt.commit), (row.id, &row.commit));
+    assert_ne!(rebuilt.key, row.key);
+    let (ruleset, matches) = scan(rebuilt.key, content).await;
+    assert!(matches.is_empty(), "{matches:?}");
+    assert_eq!(ruleset.detection(id), None);
+    let export = client
+        .json(
+            M::GET,
+            OBSERVED_EXPORT,
+            OBSERVED_EXPORT,
+            reader,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(
+        (
+            export["exported"].clone(),
+            export["types"].clone(),
+            export["skipped"].clone()
+        ),
+        (json!(0), json!([]), json!([]))
+    );
+    sqlx::query("DELETE FROM lists.entries WHERE list = 'observable_detection'")
+        .execute(db.pool())
+        .await
+        .expect("clears the list");
+}
+
+/// PLAN.md 7.12: `GET /api/monitoring/v1/state`, the scheduled tasks, their runs and the monitoring
+/// checks' records, under `monitoring:read`, with a run's error and a record's value as they were stored.
+async fn monitoring(client: &mut Client<'_>) {
+    use Method as M;
+    use StatusCode as S;
+    let stack = client.stack;
+    let pool = stack.test_db.db().pool();
+    let reader = key(stack, &["monitoring:read"]).await;
+    let r = Some(reader.as_str());
+    let other = key(stack, &["admin:read", "alert:read"]).await;
+    let refused = client
+        .json(
+            M::GET,
+            MONITORING,
+            MONITORING,
+            Some(other.as_str()),
+            Send::Nothing,
+            S::FORBIDDEN,
+        )
+        .await;
+    assert_eq!(refused["error"], "this needs monitoring:read");
+
+    let hostile = "<script>alert(1)</script>";
+    sqlx::query("DELETE FROM scheduler.runs")
+        .execute(pool)
+        .await
+        .expect("clears");
+    sqlx::query("DELETE FROM scheduler.tasks")
+        .execute(pool)
+        .await
+        .expect("clears");
+    sqlx::query("DELETE FROM monitoring.records")
+        .execute(pool)
+        .await
+        .expect("clears");
+    sqlx::query(
+        "INSERT INTO scheduler.tasks (name, schedule, due_at)
+         VALUES ('bucket_gc', '0 * * * *', now() + interval '1 hour'),
+                ('monitor_queue', '* * * * *', now() - interval '2 hours')",
+    )
+    .execute(pool)
+    .await
+    .expect("tasks");
+    for (task, outcome, error) in [
+        ("bucket_gc", "succeeded", None),
+        ("monitor_queue", "succeeded", None),
+        ("bucket_gc", "failed", Some(hostile)),
+    ] {
+        sqlx::query(
+            "INSERT INTO scheduler.runs (task, scheduled_for, node, ended_at, outcome, error, summary)
+             VALUES ($1, now(), 'host/1', now(), $2, $3, $4)",
+        )
+        .bind(task)
+        .bind(outcome)
+        .bind(error)
+        .bind(json!({"records": 1}))
+        .execute(pool)
+        .await
+        .expect("a run");
+    }
+    sqlx::query(
+        "INSERT INTO monitoring.records (task, path, identifier, value)
+         VALUES ('monitor_queue', 'workload.queue', $1, $2)",
+    )
+    .bind(hostile)
+    .bind(json!({"module": hostile, "queued": 3}))
+    .execute(pool)
+    .await
+    .expect("a record");
+
+    let state = client
+        .json(M::GET, MONITORING, MONITORING, r, Send::Nothing, S::OK)
+        .await;
+    let tasks = state["tasks"].as_array().expect("tasks");
+    assert_eq!(tasks.len(), 2, "{state}");
+    assert_eq!(
+        (
+            &tasks[0]["name"],
+            &tasks[0]["schedule"],
+            &tasks[0]["last_outcome"],
+            &tasks[0]["last_error"],
+            &tasks[0]["failures_since_success"],
+            &tasks[0]["running"],
+            &tasks[0]["overdue_seconds"],
+            &tasks[0]["last_node"],
+        ),
+        (
+            &json!("bucket_gc"),
+            &json!("0 * * * *"),
+            &json!("failed"),
+            &json!(hostile),
+            &json!(1),
+            &json!(false),
+            &json!(0),
+            &json!("host/1"),
+        )
+    );
+    let overdue = tasks[1]["overdue_seconds"].as_i64().expect("seconds");
+    assert!((7200..7260).contains(&overdue), "{state}");
+    let runs: Vec<(&str, &str)> = state["runs"]
+        .as_array()
+        .expect("runs")
+        .iter()
+        .map(|run| {
+            (
+                run["task"].as_str().unwrap(),
+                run["outcome"].as_str().unwrap(),
+            )
+        })
+        .collect();
+    assert_eq!(
+        runs,
+        [
+            ("bucket_gc", "failed"),
+            ("monitor_queue", "succeeded"),
+            ("bucket_gc", "succeeded")
+        ],
+        "newest first"
+    );
+    assert_eq!(state["runs"][0]["error"], hostile, "as it was stored");
+    assert_eq!(state["runs"][0]["summary"], json!({"records": 1}));
+    assert_eq!(
+        state["records"],
+        json!([{
+            "task": "monitor_queue", "path": "workload.queue", "identifier": hostile,
+            "value": {"module": hostile, "queued": 3},
+            "emitted_at": state["records"][0]["emitted_at"],
+        }])
+    );
+    assert!(state["records"][0]["emitted_at"].is_string());
+
+    // one task's runs, and as many as asked for
+    let one = client
+        .json(
+            M::GET,
+            MONITORING,
+            &format!("{MONITORING}?task=bucket_gc&runs=1"),
+            r,
+            Send::Nothing,
+            S::OK,
+        )
+        .await;
+    assert_eq!(one["runs"].as_array().map(Vec::len), Some(1));
+    assert_eq!(one["runs"][0]["outcome"], "failed");
+    assert_eq!(
+        one["tasks"].as_array().map(Vec::len),
+        Some(2),
+        "every task's state still"
+    );
+    // what it won't take
+    for query in [
+        "runs=0",
+        "runs=501",
+        "runs=many",
+        "task=Not%20A%20Task",
+        "task=../etc",
+    ] {
+        let refused = client
+            .json(
+                M::GET,
+                MONITORING,
+                &format!("{MONITORING}?{query}"),
+                r,
+                Send::Nothing,
+                S::BAD_REQUEST,
+            )
+            .await;
+        assert!(refused["error"].is_string(), "{query}: {refused}");
+    }
+    sqlx::query("DELETE FROM scheduler.runs")
+        .execute(pool)
+        .await
+        .expect("clears");
+    sqlx::query("DELETE FROM scheduler.tasks")
+        .execute(pool)
+        .await
+        .expect("clears");
+    sqlx::query("DELETE FROM monitoring.records")
+        .execute(pool)
+        .await
+        .expect("clears");
 }
 
 const LIST_POOL_TOKEN: &str = "list-pool-token";

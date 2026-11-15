@@ -10587,6 +10587,61 @@ fn the_observables_page_draws_detections_as_text() {
     assert!(html.contains("No detections found."));
     assert!(!html.contains("First"), "one page has no pager");
 
+    // with no ruleset built the page says so, and nothing of an export shows
+    assert!(html.contains("No ruleset has been built"), "{html}");
+
+    // the YARA export of the detections (PLAN.md 7.16): the ruleset, each type's counts, and what was left
+    // out with why, the compiler's error and the value as text
+    let at_time = chrono::DateTime::parse_from_rfc3339("2030-01-02T03:04:05Z")
+        .unwrap()
+        .with_timezone(&chrono::Utc);
+    let mut view = detection_view(&DetectionFilter::default(), page(), types(), false);
+    view.export = ace_gui::detection::export_view(ace_service::DetectionExport {
+        ruleset: Some(ace_service::DetectionExportRuleset {
+            key: "0123456789abcdef0123456789abcdef".to_owned(),
+            commit: "c0ffee00c0ffee00c0ffee00".to_owned(),
+            built_at: at_time,
+        }),
+        exported: 3,
+        types: vec![ace_service::DetectionExportType {
+            observable_type: "fqdn".to_owned(),
+            detections: 3,
+            strings: 6,
+        }],
+        skipped: vec![
+            ace_service::DetectionExportSkipped {
+                id: 9,
+                observable_type: "url".to_owned(),
+                value: Some(HOSTILE.to_owned()),
+                error: HOSTILE.to_owned(),
+            },
+            ace_service::DetectionExportSkipped {
+                id: 10,
+                observable_type: "url".to_owned(),
+                value: None,
+                error: "the value is over 4096 bytes".to_owned(),
+            },
+        ],
+        error: Some(HOSTILE.to_owned()),
+    });
+    let html = drawn_safely(&DetectionSettingsPage {
+        layout: layout(),
+        view,
+    });
+    for part in [
+        "<h2>YARA export</h2>",
+        "Ruleset <code>0123456789ab</code> of commit <code>c0ffee00c0ff</code>, built 2030-01-02 03:04:05 UTC, holds 3 detections as rules.",
+        "<tr><td>fqdn</td><td>3</td><td>6</td></tr>",
+        &format!(
+            "<tr><td>url</td><td><code>{HOSTILE_ESCAPED}</code></td><td>{HOSTILE_ESCAPED}</td></tr>"
+        ),
+        r#"<tr><td>url</td><td><span class="muted">removed since</span></td><td>the value is over 4096 bytes</td></tr>"#,
+        &format!(r#"<p class="error" role="alert">Nothing was exported: {HOSTILE_ESCAPED}</p>"#),
+    ] {
+        assert!(html.contains(part), "{part}: {html}");
+    }
+    assert!(!html.contains("No ruleset has been built"));
+
     let at = |s| parse_expiry(s).map(|t| t.to_rfc3339());
     assert_eq!(
         at("2030-01-02 03:04:05"),
@@ -10605,6 +10660,262 @@ fn the_observables_page_draws_detections_as_text() {
         Some("2030-01-02T00:00:00+00:00".to_owned())
     );
     assert_eq!(at("tomorrow"), None);
+}
+
+/// PLAN.md 7.12: the Monitoring page's view, called directly: the scheduled tasks, each a link to its
+/// runs, with a failed last run and one that's behind marked; the runs; and the checks' records. A run's
+/// error and summary and a record's identifier and value are text other code wrote, drawn as text.
+#[test]
+fn the_monitoring_page_draws_runs_and_records_as_text() {
+    use ace_gui::monitoring::{MAX_RECORDS_SHOWN, MonitoringPage, monitoring_view};
+    use ace_service::{MonitorRecord, MonitoringState, ScheduledRun, ScheduledTask};
+    use serde_json::json;
+    let at = chrono::DateTime::parse_from_rfc3339("2030-01-02T03:04:05Z")
+        .expect("a time")
+        .to_utc();
+    let task = |name: &str, outcome: Option<&str>, overdue: i64, running: bool| ScheduledTask {
+        name: name.to_owned(),
+        schedule: "*/5 * * * *".to_owned(),
+        due_at: at,
+        running,
+        overdue_seconds: overdue,
+        last_outcome: outcome.map(str::to_owned),
+        last_started_at: Some(at),
+        last_ended_at: outcome.map(|_| at),
+        last_error: (outcome == Some("failed")).then(|| HOSTILE.to_owned()),
+        last_node: Some("host/1".to_owned()),
+        failures_since_success: if outcome == Some("failed") { 3 } else { 0 },
+    };
+    let run = |outcome: Option<&str>| ScheduledRun {
+        id: 1,
+        task: "bucket_gc".to_owned(),
+        scheduled_for: at,
+        node: HOSTILE.to_owned(),
+        started_at: at,
+        ended_at: outcome.map(|_| at),
+        outcome: outcome.map(str::to_owned),
+        error: (outcome == Some("failed")).then(|| HOSTILE.to_owned()),
+        summary: Some(json!({"pool": HOSTILE, "deleted": 2})),
+    };
+    let record = |identifier: &str| MonitorRecord {
+        task: "monitor_queue".to_owned(),
+        path: "workload.queue".to_owned(),
+        identifier: Some(identifier.to_owned()),
+        value: json!({"module": identifier, "queued": 3}),
+        emitted_at: at,
+    };
+    let state = MonitoringState {
+        tasks: vec![
+            task("bucket_gc", Some("failed"), 11_520, false),
+            task("monitor_queue", Some("succeeded"), 30, true),
+            task("never_ran", None, 0, false),
+        ],
+        runs: vec![run(Some("failed")), run(Some("succeeded")), run(None)],
+        records: vec![record(HOSTILE)],
+    };
+    let layout = || {
+        Layout::new(
+            "n0nce",
+            Theme::Dark,
+            Some("alice".to_owned()),
+            "/admin/monitoring",
+        )
+    };
+    let html = drawn_safely(&MonitoringPage {
+        layout: layout(),
+        view: monitoring_view(state, Some("bucket_gc")),
+    });
+    // the value as JSON text, escaped: serde_json's own escaping of the quote, then the template's
+    let value = json!({"module": HOSTILE, "queued": 3}).to_string();
+    let escaped = |text: &str| {
+        text.replace('&', "&#38;")
+            .replace('<', "&#60;")
+            .replace('>', "&#62;")
+            .replace('"', "&#34;")
+            .replace('\'', "&#39;")
+    };
+    for part in [
+        "<h1>Monitoring</h1>",
+        r#"<td><a href="/admin/monitoring?task=bucket_gc">bucket_gc</a></td>"#,
+        "<td><code>*/5 * * * *</code></td>",
+        r#"<span class="nowrap">2030-01-02 03:04:05 UTC</span> <span class="badge">overdue 3h 12m</span>"#,
+        r#"<td><span class="badge">failed</span></td>"#,
+        "<td>3</td>",
+        &format!("<td>{HOSTILE_ESCAPED}</td>"),
+        // a task that is running and not a minute behind
+        r#"<span class="nowrap">2030-01-02 03:04:05 UTC</span> <span class="badge">running</span></td>"#,
+        "<td>succeeded</td>",
+        "<h2>Runs of bucket_gc</h2>",
+        r#"<p><a href="/admin/monitoring">Every task's runs</a></p>"#,
+        "<td>running</td>",
+        &format!(
+            "<td><code>{}</code></td>",
+            escaped(&json!({"pool": HOSTILE, "deleted": 2}).to_string())
+        ),
+        "<td><code>workload.queue</code></td>",
+        &format!("<td><code>{}</code></td>", escaped(&value)),
+    ] {
+        assert!(html.contains(part), "{part}: {html}");
+    }
+    assert!(!html.contains("aren't shown"));
+
+    // nothing scheduled and nothing found says so; more records than the page draws are counted
+    let html = drawn_safely(&MonitoringPage {
+        layout: layout(),
+        view: monitoring_view(MonitoringState::default(), None),
+    });
+    for part in [
+        "No task has been scheduled yet.",
+        "No runs.",
+        "No check has run yet.",
+        "<h2>Runs</h2>",
+    ] {
+        assert!(html.contains(part), "{part}: {html}");
+    }
+    let many = MonitoringState {
+        records: (0..MAX_RECORDS_SHOWN + 7)
+            .map(|n| record(&format!("m{n}")))
+            .collect(),
+        ..MonitoringState::default()
+    };
+    let view = monitoring_view(many, None);
+    assert_eq!(
+        (view.records.len(), view.records_left_out),
+        (MAX_RECORDS_SHOWN, 7)
+    );
+    let html = drawn_safely(&MonitoringPage {
+        layout: layout(),
+        view,
+    });
+    assert!(html.contains("7 more aren't shown."), "{html}");
+}
+
+/// PLAN.md 7.12: the Monitoring page through the server. It needs `admin:read` and `monitoring:read`, and
+/// the hub offers it to whoever holds `monitoring:read`. It lists the scheduled tasks, their runs and the
+/// checks' records, a task's runs alone when asked, and a query it can't read takes its default.
+#[tokio::test]
+async fn monitoring_is_read_through_the_admin_area() {
+    let stack = detection_stack().await;
+    let page = stack
+        .get("/admin/monitoring")
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(page.status(), StatusCode::SEE_OTHER);
+    assert_eq!(location(&page), "/login?next=%2Fadmin%2Fmonitoring");
+
+    let watcher = user(&stack, "watcher").await;
+    grant_to(&stack, &watcher, "admin", "read").await;
+    grant_to(&stack, &watcher, "monitoring", "read").await;
+    let admin_only = user(&stack, "admin-only").await;
+    grant_to(&stack, &admin_only, "admin", "read").await;
+    // monitoring:read alone doesn't enter the area
+    let outsider = user(&stack, "outsider").await;
+    grant_to(&stack, &outsider, "monitoring", "read").await;
+    let (wt, adm, out) = (
+        session_of(&stack, "watcher").await,
+        session_of(&stack, "admin-only").await,
+        session_of(&stack, "outsider").await,
+    );
+    let get = |session: &str, path: &str| stack.get(path).header("cookie", cookie(session)).send();
+    let text = |response: reqwest::Response| async move { response.text().await.expect("a page") };
+
+    let refused = get(&out, "/admin/monitoring").await.expect("answered");
+    assert_eq!(refused.status(), StatusCode::FORBIDDEN);
+    assert!(text(refused).await.contains("admin:read"));
+    let refused = get(&adm, "/admin/monitoring").await.expect("answered");
+    assert_eq!(refused.status(), StatusCode::FORBIDDEN);
+    assert!(text(refused).await.contains("monitoring:read"));
+    let hub = text(get(&adm, "/admin").await.expect("answered")).await;
+    assert!(!hub.contains(r#"href="/admin/monitoring""#), "{hub}");
+    let hub = text(get(&wt, "/admin").await.expect("answered")).await;
+    assert!(
+        hub.contains(r#"<a href="/admin/monitoring"><b>Monitoring</b>"#),
+        "{hub}"
+    );
+
+    let empty = get(&wt, "/admin/monitoring").await.expect("answered");
+    assert_eq!(empty.status(), StatusCode::OK);
+    let empty = text(empty).await;
+    assert!(
+        empty.contains("No task has been scheduled yet.")
+            && empty.contains("No check has run yet.")
+    );
+
+    let pool = stack.test_db.db().pool();
+    sqlx::query(
+        "INSERT INTO scheduler.tasks (name, schedule, due_at)
+         VALUES ('bucket_gc', '0 * * * *', now() + interval '1 hour'),
+                ('monitor_queue', '* * * * *', now() - interval '2 hours')",
+    )
+    .execute(pool)
+    .await
+    .expect("tasks");
+    for (task, outcome, error) in [
+        ("bucket_gc", "succeeded", None),
+        ("monitor_queue", "succeeded", None),
+        ("bucket_gc", "failed", Some(HOSTILE)),
+    ] {
+        sqlx::query(
+            "INSERT INTO scheduler.runs (task, scheduled_for, node, ended_at, outcome, error, summary)
+             VALUES ($1, now(), 'host/1', now(), $2, $3, $4)",
+        )
+        .bind(task)
+        .bind(outcome)
+        .bind(error)
+        .bind(serde_json::json!({"records": 1}))
+        .execute(pool)
+        .await
+        .expect("a run");
+    }
+    sqlx::query(
+        "INSERT INTO monitoring.records (task, path, identifier, value)
+         VALUES ('monitor_queue', 'workload.queue', $1, $2)",
+    )
+    .bind(HOSTILE)
+    .bind(serde_json::json!({"queued": 3}))
+    .execute(pool)
+    .await
+    .expect("a record");
+
+    let rows = stack.audit_count().await;
+    let all = text(get(&wt, "/admin/monitoring").await.expect("answered")).await;
+    for part in [
+        r#"<td><a href="/admin/monitoring?task=bucket_gc">bucket_gc</a></td>"#,
+        r#"<td><span class="badge">failed</span></td>"#,
+        r#"<span class="badge">overdue 2h 0m</span>"#,
+        &format!("<td>{HOSTILE_ESCAPED}</td>"),
+        "<h2>Runs</h2>",
+        "<td><code>workload.queue</code></td>",
+        "<td><code>{&#34;queued&#34;:3}</code></td>",
+    ] {
+        assert!(all.contains(part), "{part}: {all}");
+    }
+    assert_eq!(
+        all.matches("<td>host/1</td>").count(),
+        3,
+        "every task's runs"
+    );
+    let one = text(
+        get(&wt, "/admin/monitoring?task=monitor_queue&runs=1")
+            .await
+            .expect("answered"),
+    )
+    .await;
+    assert!(one.contains("<h2>Runs of monitor_queue</h2>"), "{one}");
+    assert_eq!(one.matches("<td>host/1</td>").count(), 1);
+    // a query that doesn't read takes its default: every task's runs
+    let odd = get(&wt, "/admin/monitoring?task=%3Cscript%3E&runs=many")
+        .await
+        .expect("answered");
+    assert_eq!(odd.status(), StatusCode::OK);
+    let odd = text(odd).await;
+    assert!(
+        odd.contains("<h2>Runs</h2>") && !odd.contains("<script>alert"),
+        "{odd}"
+    );
+    assert_eq!(odd.matches("<td>host/1</td>").count(), 3);
+    assert_eq!(stack.audit_count().await, rows, "the page writes nothing");
 }
 
 /// PLAN.md 7.6: the Observables page through the server. It needs `admin:read` and `detection:read`,
@@ -10745,6 +11056,40 @@ async fn detections_are_added_expired_and_removed_through_the_admin_area() {
     .fetch_one(stack.test_db.db().pool())
     .await
     .expect("the entry");
+
+    // the YARA export (PLAN.md 7.16): no ruleset yet, then one whose export left this detection out
+    assert!(shown.contains("<h2>YARA export</h2>"), "{shown}");
+    assert!(shown.contains("No ruleset has been built"), "{shown}");
+    sqlx::query(
+        "INSERT INTO yara.rulesets
+             (key, commit, tree, sources_sha256, yara_x_version, files, left_out, qa_rules,
+              signatures, detection_export)
+         VALUES (repeat('b', 64), 'c0ffee', 'tree', 'sources', $1, '[]', '[]', '[]', '[]', $2)",
+    )
+    .bind(ace_core::rulesets::YARA_X_VERSION)
+    .bind(serde_json::json!({
+        "types": [{"type": "ipv4", "detections": 2, "strings": 4}],
+        "skipped": [{"id": id, "type": "fqdn", "error": HOSTILE}],
+        "error": null,
+    }))
+    .execute(stack.test_db.db().pool())
+    .await
+    .expect("a ruleset");
+    let shown = text(get(&ed, "/admin/detection").await.expect("answered")).await;
+    for part in [
+        "Ruleset <code>bbbbbbbbbbbb</code> of commit <code>c0ffee</code>",
+        "holds 2 detections as rules",
+        "<tr><td>ipv4</td><td>2</td><td>4</td></tr>",
+        &format!(
+            "<tr><td>fqdn</td><td><code>{HOSTILE_ESCAPED}</code></td><td>{HOSTILE_ESCAPED}</td></tr>"
+        ),
+    ] {
+        assert!(shown.contains(part), "{part}: {shown}");
+    }
+    sqlx::query("DELETE FROM yara.rulesets")
+        .execute(stack.test_db.db().pool())
+        .await
+        .expect("removes it");
 
     // refusals draw the page again with the reason and what was typed
     for (form, status, says) in [

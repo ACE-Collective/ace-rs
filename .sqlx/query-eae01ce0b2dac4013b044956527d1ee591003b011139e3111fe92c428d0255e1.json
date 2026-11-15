@@ -1,0 +1,33 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT analysis_mode, count(*) AS \"count!\" FROM analysis.roots\n           WHERE completed_pass < pass GROUP BY analysis_mode ORDER BY analysis_mode",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "analysis_mode",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "analysis.roots",
+            "name": "analysis_mode"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "count!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      null
+    ]
+  },
+  "hash": "eae01ce0b2dac4013b044956527d1ee591003b011139e3111fe92c428d0255e1"
+}

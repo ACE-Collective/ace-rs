@@ -5,8 +5,8 @@
 //! returned as it was stored: show it as text.
 
 use ace_service::{
-    Detection, DetectionExpiry, DetectionFilter, DetectionPage, DetectionStatus, DetectionTypes,
-    NewDetection,
+    Detection, DetectionExpiry, DetectionExport, DetectionFilter, DetectionPage, DetectionStatus,
+    DetectionTypes, NewDetection,
 };
 use axum::Json;
 use axum::extract::rejection::{JsonRejection, PathRejection, QueryRejection};
@@ -224,6 +224,104 @@ pub(crate) async fn types(
 ) -> Result<Json<DetectionTypesBody>, ApiError> {
     let types = web.service.detection_types(&actor).await?;
     Ok(Json(DetectionTypesBody::from(types)))
+}
+
+/// The ruleset the detections' YARA rules are in.
+#[derive(Debug, Serialize, ToSchema)]
+pub(crate) struct DetectionExportRulesetBody {
+    /// The serialized ruleset's sha256.
+    key: String,
+    commit: String,
+    built_at: DateTime<Utc>,
+}
+
+/// One exported type's rule.
+#[derive(Debug, Serialize, ToSchema)]
+pub(crate) struct DetectionExportTypeBody {
+    #[serde(rename = "type")]
+    kind: String,
+    detections: i64,
+    strings: i64,
+}
+
+/// A detection left out of the YARA rules.
+#[derive(Debug, Serialize, ToSchema)]
+pub(crate) struct DetectionExportSkippedBody {
+    id: i64,
+    /// The type it would have been exported under.
+    #[serde(rename = "type")]
+    kind: String,
+    /// The detection's value now; null when it's gone since the ruleset was built. Show it as text.
+    value: Option<String>,
+    /// Why, which may quote the value. Show it as text.
+    error: String,
+}
+
+/// What the current ruleset holds of the detections as YARA rules.
+#[derive(Debug, Serialize, ToSchema)]
+pub(crate) struct DetectionExportBody {
+    /// Null when no ruleset has been built.
+    ruleset: Option<DetectionExportRulesetBody>,
+    /// How many detections the ruleset's rules hold.
+    exported: i64,
+    types: Vec<DetectionExportTypeBody>,
+    skipped: Vec<DetectionExportSkippedBody>,
+    /// Why nothing was exported, when the generated rules didn't load together.
+    error: Option<String>,
+}
+
+impl From<DetectionExport> for DetectionExportBody {
+    fn from(export: DetectionExport) -> Self {
+        DetectionExportBody {
+            ruleset: export.ruleset.map(|r| DetectionExportRulesetBody {
+                key: r.key,
+                commit: r.commit,
+                built_at: r.built_at,
+            }),
+            exported: export.exported,
+            types: export
+                .types
+                .into_iter()
+                .map(|t| DetectionExportTypeBody {
+                    kind: t.observable_type,
+                    detections: t.detections,
+                    strings: t.strings,
+                })
+                .collect(),
+            skipped: export
+                .skipped
+                .into_iter()
+                .map(|s| DetectionExportSkippedBody {
+                    id: s.id,
+                    kind: s.observable_type,
+                    value: s.value,
+                    error: s.error,
+                })
+                .collect(),
+            error: export.error,
+        }
+    }
+}
+
+/// What the current ruleset holds of the detections as YARA rules, and which were left out and why
+/// (PLAN.md 7.16). A detection added since the ruleset was built joins it at the next build.
+#[utoipa::path(
+    get,
+    path = "/api/observables/v1/detections/yara-export",
+    tag = "observables",
+    responses(
+        (status = 200, description = "The export", body = DetectionExportBody),
+        (status = 401, description = "No credential, or one that isn't valid", body = ErrorBody),
+        (status = 403, description = "The actor doesn't hold detection:read", body = ErrorBody),
+        (status = 404, description = "This server's modules don't detect observables", body = ErrorBody),
+    )
+)]
+pub(crate) async fn yara_export(
+    Authenticated(actor): Authenticated,
+    State(web): State<Web>,
+) -> Result<Json<DetectionExportBody>, ApiError> {
+    let export = web.service.detection_export(&actor).await?;
+    Ok(Json(DetectionExportBody::from(export)))
 }
 
 /// Adds a detection: every alert holding the observable gets a detection point from the next task that

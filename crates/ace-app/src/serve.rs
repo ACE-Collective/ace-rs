@@ -100,6 +100,10 @@ async fn serve(app: &App) -> Result<ExitCode> {
     let modes = app.modes_with(&components);
     let hooks = ace_core::hooks::Hooks::from_section(&overlay.hooks)
         .context("the overlay's hooks section")?;
+    // the YARA export of the detections (PLAN.md 7.16), checked even when no repository is built
+    let yara_export = ace_core::rulesets::export_config(&overlay.yara_export)
+        .map_err(anyhow::Error::msg)
+        .context("the overlay's yara_export section")?;
     let dispositions = ace_service::Dispositions::configured(&overlay)
         .map_err(anyhow::Error::msg)
         .context("the overlay's disposition sections")?;
@@ -289,6 +293,7 @@ async fn serve(app: &App) -> Result<ExitCode> {
             db,
             bucket,
             repo,
+            yara_export,
             Duration::from_secs(every),
             stop.clone(),
         ))

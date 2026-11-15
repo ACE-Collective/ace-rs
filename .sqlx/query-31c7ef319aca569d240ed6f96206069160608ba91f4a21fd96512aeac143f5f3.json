@@ -1,0 +1,61 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT root_id, module, count(*) AS \"count!\", min(run_after) AS \"next_run!\",\n                  count(*) OVER () AS \"groups!\"\n           FROM queue.tasks WHERE state = 'delayed'\n           GROUP BY root_id, module\n           ORDER BY count(*) DESC, root_id, module LIMIT $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "root_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "queue.tasks",
+            "name": "root_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "module",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "queue.tasks",
+            "name": "module"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "count!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 3,
+        "name": "next_run!",
+        "type_info": "Timestamptz",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 4,
+        "name": "groups!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "31c7ef319aca569d240ed6f96206069160608ba91f4a21fd96512aeac143f5f3"
+}

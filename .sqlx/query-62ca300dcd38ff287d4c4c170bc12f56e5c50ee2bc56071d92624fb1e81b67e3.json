@@ -1,0 +1,53 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, observable_type AS \"observable_type!\", value\n           FROM lists.entries\n           WHERE list = $1 AND match <> 'regex' AND observable_type IS NOT NULL\n             AND (expires_at IS NULL OR expires_at > now())\n           ORDER BY id LIMIT $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "lists.entries",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "observable_type!",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "lists.entries",
+            "name": "observable_type"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "value",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "lists.entries",
+            "name": "value"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "62ca300dcd38ff287d4c4c170bc12f56e5c50ee2bc56071d92624fb1e81b67e3"
+}

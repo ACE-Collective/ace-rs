@@ -41,6 +41,8 @@ zip = { version = "9.2.2", default-features = false, features = ["aes-crypto", "
 ace-core = { path = "../ace-core", features = ["testing"] }
 ace-sdk = { path = "../ace-sdk" }
 ace-store = { path = "../ace-store" }
+# The ruleset a detection's YARA rule is in, loaded and scanned as a pool does (PLAN.md 7.16).
+ace-yara = { path = "../ace-yara" }
 hex = "0.4.3"
 reqwest = { version = "0.13.5", default-features = false, features = ["json"] }
 schemars = "1.2.3"

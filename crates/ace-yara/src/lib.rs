@@ -7,6 +7,7 @@
 //! `enabled`, the uuid and `modifiers`. This crate ports both onto yara-x, so the YARA pool,
 //! SVS validation and `ace yara scan` filter matches the same way.
 
+pub mod export;
 pub mod filter;
 pub mod load;
 pub mod meta;

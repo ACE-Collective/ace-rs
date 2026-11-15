@@ -275,8 +275,19 @@
       "tags": {}
     },
     "file:5ba978b14d4991f9ae57018a993afec4b1339b3b808afd19fe4e847f4cddec16": {
-      "detections": {},
-      "directives": {},
+      "detections": {
+        "email.rfc822.headers matched yara rule detect_fqdn": [
+          {
+            "namespace": "observable_export",
+            "rule": "detect_fqdn",
+            "rule_uuid": null,
+            "sha256": "5ba978b14d4991f9ae57018a993afec4b1339b3b808afd19fe4e847f4cddec16"
+          }
+        ]
+      },
+      "directives": {
+        "sandbox": true
+      },
       "excluded_analysis": {
         "email_analyzer": true
       },
@@ -333,17 +344,130 @@
           },
           "summary": null,
           "tags": {}
+        },
+        "yara_scanner_v3_4": {
+          "details": {
+            "scan_results": [
+              {
+                "context": [
+                  [
+                    17,
+                    "$obsd_1",
+                    "@corp.example>",
+                    "00000000  46 72 6f 6d 3a 20 49 54  20 44 65 73 6b 20 3c 69  |From: IT Desk <i|\n00000010  74 40 63 6f 72 70 2e 65  78 61 6d 70 6c 65 3e 0a  |t@corp.example>.|\n00000020  54 6f 3a 20 70 61 74 40  63 6f 72 70 2e 65 78 61  |To: pat@corp.exa|\n00000030  6d 70 6c 65 0a 52 65 74  75 72 6e 2d 50 61 74 68  |mple.Return-Path|\n00000040  3a 20 3c 62 6f 75 6e 63  65 40 6d 61 69 6c 65 72  |: <bounce@mailer|\n00000050  2e 63 6f 72 70 2e 65 78  61 6d 70 6c 65 3e 0a 53  |.corp.example>.S|\n00000060  75 62 6a 65 63 74 3a 20  41 63 74 69 6f 6e 20 72  |ubject: Action r|\n00000070  65 71 75 69 72 65 64 3a  20 76 65 72 69 66 79 20  |equired: verify |\n00000080  79 6f 75 72 20 6d 61 69  6c 62 6f 78 0a 44        |your mailbox.D|\n0000008e\n"
+                  ],
+                  [
+                    39,
+                    "$obsd_1",
+                    "@corp.example\n",
+                    "00000000  46 72 6f 6d 3a 20 49 54  20 44 65 73 6b 20 3c 69  |From: IT Desk <i|\n00000010  74 40 63 6f 72 70 2e 65  78 61 6d 70 6c 65 3e 0a  |t@corp.example>.|\n00000020  54 6f 3a 20 70 61 74 40  63 6f 72 70 2e 65 78 61  |To: pat@corp.exa|\n00000030  6d 70 6c 65 0a 52 65 74  75 72 6e 2d 50 61 74 68  |mple.Return-Path|\n00000040  3a 20 3c 62 6f 75 6e 63  65 40 6d 61 69 6c 65 72  |: <bounce@mailer|\n00000050  2e 63 6f 72 70 2e 65 78  61 6d 70 6c 65 3e 0a 53  |.corp.example>.S|\n00000060  75 62 6a 65 63 74 3a 20  41 63 74 69 6f 6e 20 72  |ubject: Action r|\n00000070  65 71 75 69 72 65 64 3a  20 76 65 72 69 66 79 20  |equired: verify |\n00000080  79 6f 75 72 20 6d 61 69  6c 62 6f 78 0a 44        |your mailbox.D|\n0000008e\n"
+                  ],
+                  [
+                    80,
+                    "$obsd_1",
+                    ".corp.example>",
+                    "00000000  74 40 63 6f 72 70 2e 65  78 61 6d 70 6c 65 3e 0a  |t@corp.example>.|\n00000010  54 6f 3a 20 70 61 74 40  63 6f 72 70 2e 65 78 61  |To: pat@corp.exa|\n00000020  6d 70 6c 65 0a 52 65 74  75 72 6e 2d 50 61 74 68  |mple.Return-Path|\n00000030  3a 20 3c 62 6f 75 6e 63  65 40 6d 61 69 6c 65 72  |: <bounce@mailer|\n00000040  2e 63 6f 72 70 2e 65 78  61 6d 70 6c 65 3e 0a 53  |.corp.example>.S|\n00000050  75 62 6a 65 63 74 3a 20  41 63 74 69 6f 6e 20 72  |ubject: Action r|\n00000060  65 71 75 69 72 65 64 3a  20 76 65 72 69 66 79 20  |equired: verify |\n00000070  79 6f 75 72 20 6d 61 69  6c 62 6f 78 0a 44 61 74  |your mailbox.Dat|\n00000080  65 3a 20 4d 6f 6e 2c 20  30 39 20 4e 6f 76        |e: Mon, 09 Nov|\n0000008e\n"
+                  ],
+                  [
+                    203,
+                    "$obsd_1",
+                    "@corp.example>",
+                    "00000000  78 0a 44 61 74 65 3a 20  4d 6f 6e 2c 20 30 39 20  |x.Date: Mon, 09 |\n00000010  4e 6f 76 20 32 30 32 36  20 31 32 3a 30 30 3a 30  |Nov 2026 12:00:0|\n00000020  30 20 2b 30 30 30 30 0a  4d 65 73 73 61 67 65 2d  |0 +0000.Message-|\n00000030  49 44 3a 20 3c 6c 75 72  65 5f 62 75 74 74 6f 6e  |ID: <lure_button|\n00000040  40 63 6f 72 70 2e 65 78  61 6d 70 6c 65 3e 0a 4d  |@corp.example>.M|\n00000050  49 4d 45 2d 56 65 72 73  69 6f 6e 3a 20 31 2e 30  |IME-Version: 1.0|\n00000060  0a 43 6f 6e 74 65 6e 74  2d 54 79 70 65 3a 20 6d  |.Content-Type: m|\n00000070  75 6c 74 69 70 61 72 74  2f 61 6c 74 65 72 6e 61  |ultipart/alterna|\n00000080  74 69 76 65 3b 20 62 6f  75 6e 64 61 72 79        |tive; boundary|\n0000008e\n"
+                  ]
+                ],
+                "match_context": [
+                  {
+                    "data": "RnJvbTogSVQgRGVzayA8aXRAY29ycC5leGFtcGxlPgpUbzogcGF0QGNvcnAuZXhhbXBsZQpSZXR1cm4tUGF0aDogPGJvdW5jZUBtYWlsZXIuY29ycC5leGFtcGxlPgpTdWJqZWN0OiBBY3Rpb24gcmVxdWlyZWQ6IHZlcmlmeSB5b3VyIG1haWxib3gKRA==",
+                    "match_length": 14,
+                    "match_offset": 17
+                  },
+                  {
+                    "data": "RnJvbTogSVQgRGVzayA8aXRAY29ycC5leGFtcGxlPgpUbzogcGF0QGNvcnAuZXhhbXBsZQpSZXR1cm4tUGF0aDogPGJvdW5jZUBtYWlsZXIuY29ycC5leGFtcGxlPgpTdWJqZWN0OiBBY3Rpb24gcmVxdWlyZWQ6IHZlcmlmeSB5b3VyIG1haWxib3gKRA==",
+                    "match_length": 14,
+                    "match_offset": 39
+                  },
+                  {
+                    "data": "dEBjb3JwLmV4YW1wbGU+ClRvOiBwYXRAY29ycC5leGFtcGxlClJldHVybi1QYXRoOiA8Ym91bmNlQG1haWxlci5jb3JwLmV4YW1wbGU+ClN1YmplY3Q6IEFjdGlvbiByZXF1aXJlZDogdmVyaWZ5IHlvdXIgbWFpbGJveApEYXRlOiBNb24sIDA5IE5vdg==",
+                    "match_length": 14,
+                    "match_offset": 64
+                  },
+                  {
+                    "data": "eApEYXRlOiBNb24sIDA5IE5vdiAyMDI2IDEyOjAwOjAwICswMDAwCk1lc3NhZ2UtSUQ6IDxsdXJlX2J1dHRvbkBjb3JwLmV4YW1wbGU+Ck1JTUUtVmVyc2lvbjogMS4wCkNvbnRlbnQtVHlwZTogbXVsdGlwYXJ0L2FsdGVybmF0aXZlOyBib3VuZGFyeQ==",
+                    "match_length": 14,
+                    "match_offset": 64
+                  }
+                ],
+                "meta": {
+                  "author": "ACE Automation",
+                  "description": "ACE Observable Export",
+                  "platform": "ACE",
+                  "scope": "['detection']",
+                  "tlp": "amber"
+                },
+                "namespace": "<work>/signatures/observable_export",
+                "rule": "detect_fqdn",
+                "rule_content_hash": "ccb16da16578f5311ba0f4e3b8abf90cbdfcd67d540be95131fe7ab048bad5b4",
+                "rule_source": {
+                  "file": "fqdn.yar",
+                  "start_line": 1,
+                  "text": "rule detect_fqdn : detect_fqdn\n{\n    meta:\n        author = \"ACE Automation\"\n        description = \"ACE Observable Export\"\n        tlp = \"amber\"\n        date = \"11/15/2026\"\n        scope = \"['detection']\"\n        platform = \"ACE\"\n    strings:\n          $obsd_1 = /(^|[^a-zA-Z0-9_\\-])corp\\.example([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase\n          $obsd_wide_1 = /(^|([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00]))c\\x00o\\x00r\\x00p\\x00\\.\\x00e\\x00x\\x00a\\x00m\\x00p\\x00l\\x00e\\x00(([^a-zA-Z0-9_\\-.]\\x00|[\\x00-\\xff][^\\x00])|\\.\\x00([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00])|(\\.\\x00)?$)/ nocase\n\n    condition:\n        any of ($obsd_*)\n}\n"
+                },
+                "string_patterns": {
+                  "$obsd_1": "/(^|[^a-zA-Z0-9_\\-])corp\\.example([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase"
+                },
+                "strings": [
+                  [
+                    17,
+                    "$obsd_1",
+                    "@corp.example>"
+                  ],
+                  [
+                    39,
+                    "$obsd_1",
+                    "@corp.example\n"
+                  ],
+                  [
+                    80,
+                    "$obsd_1",
+                    ".corp.example>"
+                  ],
+                  [
+                    203,
+                    "$obsd_1",
+                    "@corp.example>"
+                  ]
+                ],
+                "tags": [
+                  "detect_fqdn"
+                ],
+                "target": "<root>/files/email.rfc822.headers"
+              }
+            ]
+          },
+          "summary": "Yara Scan Results: matched yara rules detect_fqdn",
+          "tags": {}
         }
       },
       "tags": {
+        "detect_fqdn": true,
         "email": true
       }
     },
     "file:77367fe8b6a5d18ff77b715a9d1aa0058ba70c027d3f0c97a5bf31b2b9eaa017": {
-      "detections": {},
+      "detections": {
+        "email.rfc822.unknown_text_html_000.html matched yara rule detect_fqdn": [
+          {
+            "namespace": "observable_export",
+            "rule": "detect_fqdn",
+            "rule_uuid": null,
+            "sha256": "77367fe8b6a5d18ff77b715a9d1aa0058ba70c027d3f0c97a5bf31b2b9eaa017"
+          }
+        ]
+      },
       "directives": {
         "extract_urls": true,
-        "render": true
+        "render": true,
+        "sandbox": true
       },
       "excluded_analysis": {},
       "paths": {
@@ -427,13 +551,128 @@
           },
           "summary": null,
           "tags": {}
+        },
+        "yara_scanner_v3_4": {
+          "details": {
+            "scan_results": [
+              {
+                "context": [
+                  [
+                    121,
+                    "$obsd_1",
+                    "/corp.example/",
+                    "00000000  66 61 6d 69 6c 79 3d 52  6f 62 6f 74 6f 22 20 72  |family=Roboto\" r|\n00000010  65 6c 3d 22 73 74 79 6c  65 73 68 65 65 74 22 3e  |el=\"stylesheet\">|\n00000020  3c 2f 68 65 61 64 3e 3c  62 6f 64 79 3e 3c 70 3e  |</head><body><p>|\n00000030  3c 61 20 68 72 65 66 3d  22 68 74 74 70 73 3a 2f  |<a href=\"https:/|\n00000040  2f 63 6f 72 70 2e 65 78  61 6d 70 6c 65 2f 22 3e  |/corp.example/\">|\n00000050  3c 69 6d 67 20 73 72 63  3d 22 68 74 74 70 73 3a  |<img src=\"https:|\n00000060  2f 2f 63 6f 72 70 2e 65  78 61 6d 70 6c 65 2f 6c  |//corp.example/l|\n00000070  6f 67 6f 2e 70 6e 67 22  20 61 6c 74 3d 22 43 6f  |ogo.png\" alt=\"Co|\n00000080  72 70 22 3e 3c 2f 61 3e  3c 2f 70 3e 3c 70        |rp\"></a></p><p|\n0000008e\n"
+                  ],
+                  [
+                    154,
+                    "$obsd_1",
+                    "/corp.example/",
+                    "00000000  2f 68 65 61 64 3e 3c 62  6f 64 79 3e 3c 70 3e 3c  |/head><body><p><|\n00000010  61 20 68 72 65 66 3d 22  68 74 74 70 73 3a 2f 2f  |a href=\"https://|\n00000020  63 6f 72 70 2e 65 78 61  6d 70 6c 65 2f 22 3e 3c  |corp.example/\"><|\n00000030  69 6d 67 20 73 72 63 3d  22 68 74 74 70 73 3a 2f  |img src=\"https:/|\n00000040  2f 63 6f 72 70 2e 65 78  61 6d 70 6c 65 2f 6c 6f  |/corp.example/lo|\n00000050  67 6f 2e 70 6e 67 22 20  61 6c 74 3d 22 43 6f 72  |go.png\" alt=\"Cor|\n00000060  70 22 3e 3c 2f 61 3e 3c  2f 70 3e 3c 70 3e 59 6f  |p\"></a></p><p>Yo|\n00000070  75 72 20 6d 61 69 6c 62  6f 78 20 69 73 20 61 6c  |ur mailbox is al|\n00000080  6d 6f 73 74 20 66 75 6c  6c 2e 3c 2f 70 3e        |most full.</p>|\n0000008e\n"
+                  ],
+                  [
+                    677,
+                    "$obsd_1",
+                    "/corp.example/",
+                    "00000000  73 72 63 3d 22 68 74 74  70 73 3a 2f 2f 63 64 6e  |src=\"https://cdn|\n00000010  2e 6c 75 72 65 2d 65 78  61 6d 70 6c 65 2e 6e 65  |.lure-example.ne|\n00000020  74 2f 70 69 78 65 6c 2e  67 69 66 22 3e 3c 70 3e  |t/pixel.gif\"><p>|\n00000030  3c 61 20 68 72 65 66 3d  22 68 74 74 70 73 3a 2f  |<a href=\"https:/|\n00000040  2f 63 6f 72 70 2e 65 78  61 6d 70 6c 65 2f 75 6e  |/corp.example/un|\n00000050  73 75 62 73 63 72 69 62  65 22 3e 55 6e 73 75 62  |subscribe\">Unsub|\n00000060  73 63 72 69 62 65 3c 2f  61 3e 20 7c 20 3c 61 20  |scribe</a> | <a |\n00000070  68 72 65 66 3d 22 68 74  74 70 73 3a 2f 2f 63 6f  |href=\"https://co|\n00000080  72 70 2e 65 78 61 6d 70  6c 65 2f 70 72 69        |rp.example/pri|\n0000008e\n"
+                  ],
+                  [
+                    738,
+                    "$obsd_1",
+                    "/corp.example/",
+                    "00000000  73 3a 2f 2f 63 6f 72 70  2e 65 78 61 6d 70 6c 65  |s://corp.example|\n00000010  2f 75 6e 73 75 62 73 63  72 69 62 65 22 3e 55 6e  |/unsubscribe\">Un|\n00000020  73 75 62 73 63 72 69 62  65 3c 2f 61 3e 20 7c 20  |subscribe</a> | |\n00000030  3c 61 20 68 72 65 66 3d  22 68 74 74 70 73 3a 2f  |<a href=\"https:/|\n00000040  2f 63 6f 72 70 2e 65 78  61 6d 70 6c 65 2f 70 72  |/corp.example/pr|\n00000050  69 76 61 63 79 22 3e 50  72 69 76 61 63 79 3c 2f  |ivacy\">Privacy</|\n00000060  61 3e 3c 2f 70 3e 3c 2f  62 6f 64 79 3e 3c 2f 68  |a></p></body></h|\n00000070  74 6d 6c 3e 0a                                    |tml>.|\n00000075\n"
+                  ]
+                ],
+                "match_context": [
+                  {
+                    "data": "ZmFtaWx5PVJvYm90byIgcmVsPSJzdHlsZXNoZWV0Ij48L2hlYWQ+PGJvZHk+PHA+PGEgaHJlZj0iaHR0cHM6Ly9jb3JwLmV4YW1wbGUvIj48aW1nIHNyYz0iaHR0cHM6Ly9jb3JwLmV4YW1wbGUvbG9nby5wbmciIGFsdD0iQ29ycCI+PC9hPjwvcD48cA==",
+                    "match_length": 14,
+                    "match_offset": 64
+                  },
+                  {
+                    "data": "L2hlYWQ+PGJvZHk+PHA+PGEgaHJlZj0iaHR0cHM6Ly9jb3JwLmV4YW1wbGUvIj48aW1nIHNyYz0iaHR0cHM6Ly9jb3JwLmV4YW1wbGUvbG9nby5wbmciIGFsdD0iQ29ycCI+PC9hPjwvcD48cD5Zb3VyIG1haWxib3ggaXMgYWxtb3N0IGZ1bGwuPC9wPg==",
+                    "match_length": 14,
+                    "match_offset": 64
+                  },
+                  {
+                    "data": "c3JjPSJodHRwczovL2Nkbi5sdXJlLWV4YW1wbGUubmV0L3BpeGVsLmdpZiI+PHA+PGEgaHJlZj0iaHR0cHM6Ly9jb3JwLmV4YW1wbGUvdW5zdWJzY3JpYmUiPlVuc3Vic2NyaWJlPC9hPiB8IDxhIGhyZWY9Imh0dHBzOi8vY29ycC5leGFtcGxlL3ByaQ==",
+                    "match_length": 14,
+                    "match_offset": 64
+                  },
+                  {
+                    "data": "czovL2NvcnAuZXhhbXBsZS91bnN1YnNjcmliZSI+VW5zdWJzY3JpYmU8L2E+IHwgPGEgaHJlZj0iaHR0cHM6Ly9jb3JwLmV4YW1wbGUvcHJpdmFjeSI+UHJpdmFjeTwvYT48L3A+PC9ib2R5PjwvaHRtbD4K",
+                    "match_length": 14,
+                    "match_offset": 64
+                  }
+                ],
+                "meta": {
+                  "author": "ACE Automation",
+                  "description": "ACE Observable Export",
+                  "platform": "ACE",
+                  "scope": "['detection']",
+                  "tlp": "amber"
+                },
+                "namespace": "<work>/signatures/observable_export",
+                "rule": "detect_fqdn",
+                "rule_content_hash": "ccb16da16578f5311ba0f4e3b8abf90cbdfcd67d540be95131fe7ab048bad5b4",
+                "rule_source": {
+                  "file": "fqdn.yar",
+                  "start_line": 1,
+                  "text": "rule detect_fqdn : detect_fqdn\n{\n    meta:\n        author = \"ACE Automation\"\n        description = \"ACE Observable Export\"\n        tlp = \"amber\"\n        date = \"11/15/2026\"\n        scope = \"['detection']\"\n        platform = \"ACE\"\n    strings:\n          $obsd_1 = /(^|[^a-zA-Z0-9_\\-])corp\\.example([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase\n          $obsd_wide_1 = /(^|([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00]))c\\x00o\\x00r\\x00p\\x00\\.\\x00e\\x00x\\x00a\\x00m\\x00p\\x00l\\x00e\\x00(([^a-zA-Z0-9_\\-.]\\x00|[\\x00-\\xff][^\\x00])|\\.\\x00([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00])|(\\.\\x00)?$)/ nocase\n\n    condition:\n        any of ($obsd_*)\n}\n"
+                },
+                "string_patterns": {
+                  "$obsd_1": "/(^|[^a-zA-Z0-9_\\-])corp\\.example([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase"
+                },
+                "strings": [
+                  [
+                    121,
+                    "$obsd_1",
+                    "/corp.example/"
+                  ],
+                  [
+                    154,
+                    "$obsd_1",
+                    "/corp.example/"
+                  ],
+                  [
+                    677,
+                    "$obsd_1",
+                    "/corp.example/"
+                  ],
+                  [
+                    738,
+                    "$obsd_1",
+                    "/corp.example/"
+                  ]
+                ],
+                "tags": [
+                  "detect_fqdn"
+                ],
+                "target": "<root>/files/email.rfc822.unknown_text_html_000.html"
+              }
+            ]
+          },
+          "summary": "Yara Scan Results: matched yara rules detect_fqdn",
+          "tags": {}
         }
       },
-      "tags": {}
+      "tags": {
+        "detect_fqdn": true
+      }
     },
     "file:890392a1c2d8445fac130cff74dfbc58c00c71a324873b55f3aaf7dd103aaf56": {
-      "detections": {},
-      "directives": {},
+      "detections": {
+        "email.rfc822 matched yara rule detect_fqdn": [
+          {
+            "namespace": "observable_export",
+            "rule": "detect_fqdn",
+            "rule_uuid": null,
+            "sha256": "890392a1c2d8445fac130cff74dfbc58c00c71a324873b55f3aaf7dd103aaf56"
+          }
+        ]
+      },
+      "directives": {
+        "sandbox": true
+      },
       "excluded_analysis": {},
       "paths": {
         "email.rfc822": {
@@ -760,15 +999,193 @@
           },
           "summary": null,
           "tags": {}
+        },
+        "yara_scanner_v3_4": {
+          "details": {
+            "scan_results": [
+              {
+                "context": [
+                  [
+                    17,
+                    "$obsd_1",
+                    "@corp.example>",
+                    "00000000  46 72 6f 6d 3a 20 49 54  20 44 65 73 6b 20 3c 69  |From: IT Desk <i|\n00000010  74 40 63 6f 72 70 2e 65  78 61 6d 70 6c 65 3e 0a  |t@corp.example>.|\n00000020  54 6f 3a 20 70 61 74 40  63 6f 72 70 2e 65 78 61  |To: pat@corp.exa|\n00000030  6d 70 6c 65 0a 52 65 74  75 72 6e 2d 50 61 74 68  |mple.Return-Path|\n00000040  3a 20 3c 62 6f 75 6e 63  65 40 6d 61 69 6c 65 72  |: <bounce@mailer|\n00000050  2e 63 6f 72 70 2e 65 78  61 6d 70 6c 65 3e 0a 53  |.corp.example>.S|\n00000060  75 62 6a 65 63 74 3a 20  41 63 74 69 6f 6e 20 72  |ubject: Action r|\n00000070  65 71 75 69 72 65 64 3a  20 76 65 72 69 66 79 20  |equired: verify |\n00000080  79 6f 75 72 20 6d 61 69  6c 62 6f 78 0a 44        |your mailbox.D|\n0000008e\n"
+                  ],
+                  [
+                    39,
+                    "$obsd_1",
+                    "@corp.example\n",
+                    "00000000  46 72 6f 6d 3a 20 49 54  20 44 65 73 6b 20 3c 69  |From: IT Desk <i|\n00000010  74 40 63 6f 72 70 2e 65  78 61 6d 70 6c 65 3e 0a  |t@corp.example>.|\n00000020  54 6f 3a 20 70 61 74 40  63 6f 72 70 2e 65 78 61  |To: pat@corp.exa|\n00000030  6d 70 6c 65 0a 52 65 74  75 72 6e 2d 50 61 74 68  |mple.Return-Path|\n00000040  3a 20 3c 62 6f 75 6e 63  65 40 6d 61 69 6c 65 72  |: <bounce@mailer|\n00000050  2e 63 6f 72 70 2e 65 78  61 6d 70 6c 65 3e 0a 53  |.corp.example>.S|\n00000060  75 62 6a 65 63 74 3a 20  41 63 74 69 6f 6e 20 72  |ubject: Action r|\n00000070  65 71 75 69 72 65 64 3a  20 76 65 72 69 66 79 20  |equired: verify |\n00000080  79 6f 75 72 20 6d 61 69  6c 62 6f 78 0a 44        |your mailbox.D|\n0000008e\n"
+                  ],
+                  [
+                    80,
+                    "$obsd_1",
+                    ".corp.example>",
+                    "00000000  74 40 63 6f 72 70 2e 65  78 61 6d 70 6c 65 3e 0a  |t@corp.example>.|\n00000010  54 6f 3a 20 70 61 74 40  63 6f 72 70 2e 65 78 61  |To: pat@corp.exa|\n00000020  6d 70 6c 65 0a 52 65 74  75 72 6e 2d 50 61 74 68  |mple.Return-Path|\n00000030  3a 20 3c 62 6f 75 6e 63  65 40 6d 61 69 6c 65 72  |: <bounce@mailer|\n00000040  2e 63 6f 72 70 2e 65 78  61 6d 70 6c 65 3e 0a 53  |.corp.example>.S|\n00000050  75 62 6a 65 63 74 3a 20  41 63 74 69 6f 6e 20 72  |ubject: Action r|\n00000060  65 71 75 69 72 65 64 3a  20 76 65 72 69 66 79 20  |equired: verify |\n00000070  79 6f 75 72 20 6d 61 69  6c 62 6f 78 0a 44 61 74  |your mailbox.Dat|\n00000080  65 3a 20 4d 6f 6e 2c 20  30 39 20 4e 6f 76        |e: Mon, 09 Nov|\n0000008e\n"
+                  ],
+                  [
+                    203,
+                    "$obsd_1",
+                    "@corp.example>",
+                    "00000000  78 0a 44 61 74 65 3a 20  4d 6f 6e 2c 20 30 39 20  |x.Date: Mon, 09 |\n00000010  4e 6f 76 20 32 30 32 36  20 31 32 3a 30 30 3a 30  |Nov 2026 12:00:0|\n00000020  30 20 2b 30 30 30 30 0a  4d 65 73 73 61 67 65 2d  |0 +0000.Message-|\n00000030  49 44 3a 20 3c 6c 75 72  65 5f 62 75 74 74 6f 6e  |ID: <lure_button|\n00000040  40 63 6f 72 70 2e 65 78  61 6d 70 6c 65 3e 0a 4d  |@corp.example>.M|\n00000050  49 4d 45 2d 56 65 72 73  69 6f 6e 3a 20 31 2e 30  |IME-Version: 1.0|\n00000060  0a 43 6f 6e 74 65 6e 74  2d 54 79 70 65 3a 20 6d  |.Content-Type: m|\n00000070  75 6c 74 69 70 61 72 74  2f 61 6c 74 65 72 6e 61  |ultipart/alterna|\n00000080  74 69 76 65 3b 20 62 6f  75 6e 64 61 72 79        |tive; boundary|\n0000008e\n"
+                  ],
+                  [
+                    729,
+                    "$obsd_1",
+                    "/corp.example/",
+                    "00000000  44 52 6f 62 6f 74 6f 22  20 72 3d 0a 65 6c 3d 33  |DRoboto\" r=.el=3|\n00000010  44 22 73 74 79 6c 65 73  68 65 65 74 22 3e 3c 2f  |D\"stylesheet\"></|\n00000020  68 65 61 64 3e 3c 62 6f  64 79 3e 3c 70 3e 3c 61  |head><body><p><a|\n00000030  20 68 72 65 66 3d 33 44  22 68 74 74 70 73 3a 2f  | href=3D\"https:/|\n00000040  2f 63 6f 72 70 2e 65 78  61 6d 70 6c 65 2f 22 3e  |/corp.example/\">|\n00000050  3c 69 6d 67 20 73 72 63  3d 0a 3d 33 44 22 68 74  |<img src=.=3D\"ht|\n00000060  74 70 73 3a 2f 2f 63 6f  72 70 2e 65 78 61 6d 70  |tps://corp.examp|\n00000070  6c 65 2f 6c 6f 67 6f 2e  70 6e 67 22 20 61 6c 74  |le/logo.png\" alt|\n00000080  3d 33 44 22 43 6f 72 70  22 3e 3c 2f 61 3e        |=3D\"Corp\"></a>|\n0000008e\n"
+                  ],
+                  [
+                    766,
+                    "$obsd_1",
+                    "/corp.example/",
+                    "00000000  3c 62 6f 64 79 3e 3c 70  3e 3c 61 20 68 72 65 66  |<body><p><a href|\n00000010  3d 33 44 22 68 74 74 70  73 3a 2f 2f 63 6f 72 70  |=3D\"https://corp|\n00000020  2e 65 78 61 6d 70 6c 65  2f 22 3e 3c 69 6d 67 20  |.example/\"><img |\n00000030  73 72 63 3d 0a 3d 33 44  22 68 74 74 70 73 3a 2f  |src=.=3D\"https:/|\n00000040  2f 63 6f 72 70 2e 65 78  61 6d 70 6c 65 2f 6c 6f  |/corp.example/lo|\n00000050  67 6f 2e 70 6e 67 22 20  61 6c 74 3d 33 44 22 43  |go.png\" alt=3D\"C|\n00000060  6f 72 70 22 3e 3c 2f 61  3e 3c 2f 70 3e 3c 70 3e  |orp\"></a></p><p>|\n00000070  59 6f 75 72 20 6d 61 69  6c 62 6f 78 20 69 73 20  |Your mailbox is |\n00000080  61 6c 3d 0a 6d 6f 73 74  20 66 75 6c 6c 2e        |al=.most full.|\n0000008e\n"
+                  ],
+                  [
+                    1325,
+                    "$obsd_1",
+                    "/corp.example/",
+                    "00000000  22 68 74 74 70 73 3a 2f  2f 63 64 6e 2e 6c 75 72  |\"https://cdn.lur|\n00000010  65 2d 65 78 61 6d 70 6c  65 2e 6e 65 74 2f 70 69  |e-example.net/pi|\n00000020  78 65 6c 2e 67 69 66 22  3e 3c 70 3e 3c 3d 0a 61  |xel.gif\"><p><=.a|\n00000030  20 68 72 65 66 3d 33 44  22 68 74 74 70 73 3a 2f  | href=3D\"https:/|\n00000040  2f 63 6f 72 70 2e 65 78  61 6d 70 6c 65 2f 75 6e  |/corp.example/un|\n00000050  73 75 62 73 63 72 69 62  65 22 3e 55 6e 73 75 62  |subscribe\">Unsub|\n00000060  73 63 72 69 62 65 3c 2f  61 3e 20 7c 20 3c 61 20  |scribe</a> | <a |\n00000070  68 72 65 66 3d 33 44 22  68 74 74 70 3d 0a 73 3a  |href=3D\"http=.s:|\n00000080  2f 2f 63 6f 72 70 2e 65  78 61 6d 70 6c 65        |//corp.example|\n0000008e\n"
+                  ],
+                  [
+                    1390,
+                    "$obsd_1",
+                    "/corp.example/",
+                    "00000000  63 6f 72 70 2e 65 78 61  6d 70 6c 65 2f 75 6e 73  |corp.example/uns|\n00000010  75 62 73 63 72 69 62 65  22 3e 55 6e 73 75 62 73  |ubscribe\">Unsubs|\n00000020  63 72 69 62 65 3c 2f 61  3e 20 7c 20 3c 61 20 68  |cribe</a> | <a h|\n00000030  72 65 66 3d 33 44 22 68  74 74 70 3d 0a 73 3a 2f  |ref=3D\"http=.s:/|\n00000040  2f 63 6f 72 70 2e 65 78  61 6d 70 6c 65 2f 70 72  |/corp.example/pr|\n00000050  69 76 61 63 79 22 3e 50  72 69 76 61 63 79 3c 2f  |ivacy\">Privacy</|\n00000060  61 3e 3c 2f 70 3e 3c 2f  62 6f 64 79 3e 3c 2f 68  |a></p></body></h|\n00000070  74 6d 6c 3e 0a 0a 2d 2d  6c 75 72 65 5f 62 75 74  |tml>..--lure_but|\n00000080  74 6f 6e 2d 62 6f 75 6e  64 61 72 79 2d 2d        |ton-boundary--|\n0000008e\n"
+                  ]
+                ],
+                "match_context": [
+                  {
+                    "data": "RnJvbTogSVQgRGVzayA8aXRAY29ycC5leGFtcGxlPgpUbzogcGF0QGNvcnAuZXhhbXBsZQpSZXR1cm4tUGF0aDogPGJvdW5jZUBtYWlsZXIuY29ycC5leGFtcGxlPgpTdWJqZWN0OiBBY3Rpb24gcmVxdWlyZWQ6IHZlcmlmeSB5b3VyIG1haWxib3gKRA==",
+                    "match_length": 14,
+                    "match_offset": 17
+                  },
+                  {
+                    "data": "RnJvbTogSVQgRGVzayA8aXRAY29ycC5leGFtcGxlPgpUbzogcGF0QGNvcnAuZXhhbXBsZQpSZXR1cm4tUGF0aDogPGJvdW5jZUBtYWlsZXIuY29ycC5leGFtcGxlPgpTdWJqZWN0OiBBY3Rpb24gcmVxdWlyZWQ6IHZlcmlmeSB5b3VyIG1haWxib3gKRA==",
+                    "match_length": 14,
+                    "match_offset": 39
+                  },
+                  {
+                    "data": "dEBjb3JwLmV4YW1wbGU+ClRvOiBwYXRAY29ycC5leGFtcGxlClJldHVybi1QYXRoOiA8Ym91bmNlQG1haWxlci5jb3JwLmV4YW1wbGU+ClN1YmplY3Q6IEFjdGlvbiByZXF1aXJlZDogdmVyaWZ5IHlvdXIgbWFpbGJveApEYXRlOiBNb24sIDA5IE5vdg==",
+                    "match_length": 14,
+                    "match_offset": 64
+                  },
+                  {
+                    "data": "eApEYXRlOiBNb24sIDA5IE5vdiAyMDI2IDEyOjAwOjAwICswMDAwCk1lc3NhZ2UtSUQ6IDxsdXJlX2J1dHRvbkBjb3JwLmV4YW1wbGU+Ck1JTUUtVmVyc2lvbjogMS4wCkNvbnRlbnQtVHlwZTogbXVsdGlwYXJ0L2FsdGVybmF0aXZlOyBib3VuZGFyeQ==",
+                    "match_length": 14,
+                    "match_offset": 64
+                  },
+                  {
+                    "data": "RFJvYm90byIgcj0KZWw9M0Qic3R5bGVzaGVldCI+PC9oZWFkPjxib2R5PjxwPjxhIGhyZWY9M0QiaHR0cHM6Ly9jb3JwLmV4YW1wbGUvIj48aW1nIHNyYz0KPTNEImh0dHBzOi8vY29ycC5leGFtcGxlL2xvZ28ucG5nIiBhbHQ9M0QiQ29ycCI+PC9hPg==",
+                    "match_length": 14,
+                    "match_offset": 64
+                  },
+                  {
+                    "data": "PGJvZHk+PHA+PGEgaHJlZj0zRCJodHRwczovL2NvcnAuZXhhbXBsZS8iPjxpbWcgc3JjPQo9M0QiaHR0cHM6Ly9jb3JwLmV4YW1wbGUvbG9nby5wbmciIGFsdD0zRCJDb3JwIj48L2E+PC9wPjxwPllvdXIgbWFpbGJveCBpcyBhbD0KbW9zdCBmdWxsLg==",
+                    "match_length": 14,
+                    "match_offset": 64
+                  },
+                  {
+                    "data": "Imh0dHBzOi8vY2RuLmx1cmUtZXhhbXBsZS5uZXQvcGl4ZWwuZ2lmIj48cD48PQphIGhyZWY9M0QiaHR0cHM6Ly9jb3JwLmV4YW1wbGUvdW5zdWJzY3JpYmUiPlVuc3Vic2NyaWJlPC9hPiB8IDxhIGhyZWY9M0QiaHR0cD0KczovL2NvcnAuZXhhbXBsZQ==",
+                    "match_length": 14,
+                    "match_offset": 64
+                  },
+                  {
+                    "data": "Y29ycC5leGFtcGxlL3Vuc3Vic2NyaWJlIj5VbnN1YnNjcmliZTwvYT4gfCA8YSBocmVmPTNEImh0dHA9CnM6Ly9jb3JwLmV4YW1wbGUvcHJpdmFjeSI+UHJpdmFjeTwvYT48L3A+PC9ib2R5PjwvaHRtbD4KCi0tbHVyZV9idXR0b24tYm91bmRhcnktLQ==",
+                    "match_length": 14,
+                    "match_offset": 64
+                  }
+                ],
+                "meta": {
+                  "author": "ACE Automation",
+                  "description": "ACE Observable Export",
+                  "platform": "ACE",
+                  "scope": "['detection']",
+                  "tlp": "amber"
+                },
+                "namespace": "<work>/signatures/observable_export",
+                "rule": "detect_fqdn",
+                "rule_content_hash": "ccb16da16578f5311ba0f4e3b8abf90cbdfcd67d540be95131fe7ab048bad5b4",
+                "rule_source": {
+                  "file": "fqdn.yar",
+                  "start_line": 1,
+                  "text": "rule detect_fqdn : detect_fqdn\n{\n    meta:\n        author = \"ACE Automation\"\n        description = \"ACE Observable Export\"\n        tlp = \"amber\"\n        date = \"11/15/2026\"\n        scope = \"['detection']\"\n        platform = \"ACE\"\n    strings:\n          $obsd_1 = /(^|[^a-zA-Z0-9_\\-])corp\\.example([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase\n          $obsd_wide_1 = /(^|([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00]))c\\x00o\\x00r\\x00p\\x00\\.\\x00e\\x00x\\x00a\\x00m\\x00p\\x00l\\x00e\\x00(([^a-zA-Z0-9_\\-.]\\x00|[\\x00-\\xff][^\\x00])|\\.\\x00([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00])|(\\.\\x00)?$)/ nocase\n\n    condition:\n        any of ($obsd_*)\n}\n"
+                },
+                "string_patterns": {
+                  "$obsd_1": "/(^|[^a-zA-Z0-9_\\-])corp\\.example([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase"
+                },
+                "strings": [
+                  [
+                    17,
+                    "$obsd_1",
+                    "@corp.example>"
+                  ],
+                  [
+                    39,
+                    "$obsd_1",
+                    "@corp.example\n"
+                  ],
+                  [
+                    80,
+                    "$obsd_1",
+                    ".corp.example>"
+                  ],
+                  [
+                    203,
+                    "$obsd_1",
+                    "@corp.example>"
+                  ],
+                  [
+                    729,
+                    "$obsd_1",
+                    "/corp.example/"
+                  ],
+                  [
+                    766,
+                    "$obsd_1",
+                    "/corp.example/"
+                  ],
+                  [
+                    1325,
+                    "$obsd_1",
+                    "/corp.example/"
+                  ],
+                  [
+                    1390,
+                    "$obsd_1",
+                    "/corp.example/"
+                  ]
+                ],
+                "tags": [
+                  "detect_fqdn"
+                ],
+                "target": "<root>/files/email.rfc822"
+              }
+            ]
+          },
+          "summary": "Yara Scan Results: matched yara rules detect_fqdn",
+          "tags": {}
         }
       },
       "tags": {
+        "detect_fqdn": true,
         "email": true
       }
     },
     "file:f3b45df763081c45d6bf3259ff77856d37951a1699782d329cd9eb170c9a0186": {
-      "detections": {},
-      "directives": {},
+      "detections": {
+        "email.rfc822.combined matched yara rule detect_fqdn": [
+          {
+            "namespace": "observable_export",
+            "rule": "detect_fqdn",
+            "rule_uuid": null,
+            "sha256": "f3b45df763081c45d6bf3259ff77856d37951a1699782d329cd9eb170c9a0186"
+          }
+        ]
+      },
+      "directives": {
+        "sandbox": true
+      },
       "excluded_analysis": {
         "email_analyzer": true
       },
@@ -825,9 +1242,176 @@
           },
           "summary": null,
           "tags": {}
+        },
+        "yara_scanner_v3_4": {
+          "details": {
+            "scan_results": [
+              {
+                "context": [
+                  [
+                    17,
+                    "$obsd_1",
+                    "@corp.example>",
+                    "00000000  46 72 6f 6d 3a 20 49 54  20 44 65 73 6b 20 3c 69  |From: IT Desk <i|\n00000010  74 40 63 6f 72 70 2e 65  78 61 6d 70 6c 65 3e 0a  |t@corp.example>.|\n00000020  54 6f 3a 20 70 61 74 40  63 6f 72 70 2e 65 78 61  |To: pat@corp.exa|\n00000030  6d 70 6c 65 0a 52 65 74  75 72 6e 2d 50 61 74 68  |mple.Return-Path|\n00000040  3a 20 3c 62 6f 75 6e 63  65 40 6d 61 69 6c 65 72  |: <bounce@mailer|\n00000050  2e 63 6f 72 70 2e 65 78  61 6d 70 6c 65 3e 0a 53  |.corp.example>.S|\n00000060  75 62 6a 65 63 74 3a 20  41 63 74 69 6f 6e 20 72  |ubject: Action r|\n00000070  65 71 75 69 72 65 64 3a  20 76 65 72 69 66 79 20  |equired: verify |\n00000080  79 6f 75 72 20 6d 61 69  6c 62 6f 78 0a 44        |your mailbox.D|\n0000008e\n"
+                  ],
+                  [
+                    39,
+                    "$obsd_1",
+                    "@corp.example\n",
+                    "00000000  46 72 6f 6d 3a 20 49 54  20 44 65 73 6b 20 3c 69  |From: IT Desk <i|\n00000010  74 40 63 6f 72 70 2e 65  78 61 6d 70 6c 65 3e 0a  |t@corp.example>.|\n00000020  54 6f 3a 20 70 61 74 40  63 6f 72 70 2e 65 78 61  |To: pat@corp.exa|\n00000030  6d 70 6c 65 0a 52 65 74  75 72 6e 2d 50 61 74 68  |mple.Return-Path|\n00000040  3a 20 3c 62 6f 75 6e 63  65 40 6d 61 69 6c 65 72  |: <bounce@mailer|\n00000050  2e 63 6f 72 70 2e 65 78  61 6d 70 6c 65 3e 0a 53  |.corp.example>.S|\n00000060  75 62 6a 65 63 74 3a 20  41 63 74 69 6f 6e 20 72  |ubject: Action r|\n00000070  65 71 75 69 72 65 64 3a  20 76 65 72 69 66 79 20  |equired: verify |\n00000080  79 6f 75 72 20 6d 61 69  6c 62 6f 78 0a 44        |your mailbox.D|\n0000008e\n"
+                  ],
+                  [
+                    80,
+                    "$obsd_1",
+                    ".corp.example>",
+                    "00000000  74 40 63 6f 72 70 2e 65  78 61 6d 70 6c 65 3e 0a  |t@corp.example>.|\n00000010  54 6f 3a 20 70 61 74 40  63 6f 72 70 2e 65 78 61  |To: pat@corp.exa|\n00000020  6d 70 6c 65 0a 52 65 74  75 72 6e 2d 50 61 74 68  |mple.Return-Path|\n00000030  3a 20 3c 62 6f 75 6e 63  65 40 6d 61 69 6c 65 72  |: <bounce@mailer|\n00000040  2e 63 6f 72 70 2e 65 78  61 6d 70 6c 65 3e 0a 53  |.corp.example>.S|\n00000050  75 62 6a 65 63 74 3a 20  41 63 74 69 6f 6e 20 72  |ubject: Action r|\n00000060  65 71 75 69 72 65 64 3a  20 76 65 72 69 66 79 20  |equired: verify |\n00000070  79 6f 75 72 20 6d 61 69  6c 62 6f 78 0a 44 61 74  |your mailbox.Dat|\n00000080  65 3a 20 4d 6f 6e 2c 20  30 39 20 4e 6f 76        |e: Mon, 09 Nov|\n0000008e\n"
+                  ],
+                  [
+                    203,
+                    "$obsd_1",
+                    "@corp.example>",
+                    "00000000  78 0a 44 61 74 65 3a 20  4d 6f 6e 2c 20 30 39 20  |x.Date: Mon, 09 |\n00000010  4e 6f 76 20 32 30 32 36  20 31 32 3a 30 30 3a 30  |Nov 2026 12:00:0|\n00000020  30 20 2b 30 30 30 30 0a  4d 65 73 73 61 67 65 2d  |0 +0000.Message-|\n00000030  49 44 3a 20 3c 6c 75 72  65 5f 62 75 74 74 6f 6e  |ID: <lure_button|\n00000040  40 63 6f 72 70 2e 65 78  61 6d 70 6c 65 3e 0a 4d  |@corp.example>.M|\n00000050  49 4d 45 2d 56 65 72 73  69 6f 6e 3a 20 31 2e 30  |IME-Version: 1.0|\n00000060  0a 43 6f 6e 74 65 6e 74  2d 54 79 70 65 3a 20 6d  |.Content-Type: m|\n00000070  75 6c 74 69 70 61 72 74  2f 61 6c 74 65 72 6e 61  |ultipart/alterna|\n00000080  74 69 76 65 3b 20 62 6f  75 6e 64 61 72 79        |tive; boundary|\n0000008e\n"
+                  ],
+                  [
+                    495,
+                    "$obsd_1",
+                    "/corp.example/",
+                    "00000000  66 61 6d 69 6c 79 3d 52  6f 62 6f 74 6f 22 20 72  |family=Roboto\" r|\n00000010  65 6c 3d 22 73 74 79 6c  65 73 68 65 65 74 22 3e  |el=\"stylesheet\">|\n00000020  3c 2f 68 65 61 64 3e 3c  62 6f 64 79 3e 3c 70 3e  |</head><body><p>|\n00000030  3c 61 20 68 72 65 66 3d  22 68 74 74 70 73 3a 2f  |<a href=\"https:/|\n00000040  2f 63 6f 72 70 2e 65 78  61 6d 70 6c 65 2f 22 3e  |/corp.example/\">|\n00000050  3c 69 6d 67 20 73 72 63  3d 22 68 74 74 70 73 3a  |<img src=\"https:|\n00000060  2f 2f 63 6f 72 70 2e 65  78 61 6d 70 6c 65 2f 6c  |//corp.example/l|\n00000070  6f 67 6f 2e 70 6e 67 22  20 61 6c 74 3d 22 43 6f  |ogo.png\" alt=\"Co|\n00000080  72 70 22 3e 3c 2f 61 3e  3c 2f 70 3e 3c 70        |rp\"></a></p><p|\n0000008e\n"
+                  ],
+                  [
+                    528,
+                    "$obsd_1",
+                    "/corp.example/",
+                    "00000000  2f 68 65 61 64 3e 3c 62  6f 64 79 3e 3c 70 3e 3c  |/head><body><p><|\n00000010  61 20 68 72 65 66 3d 22  68 74 74 70 73 3a 2f 2f  |a href=\"https://|\n00000020  63 6f 72 70 2e 65 78 61  6d 70 6c 65 2f 22 3e 3c  |corp.example/\"><|\n00000030  69 6d 67 20 73 72 63 3d  22 68 74 74 70 73 3a 2f  |img src=\"https:/|\n00000040  2f 63 6f 72 70 2e 65 78  61 6d 70 6c 65 2f 6c 6f  |/corp.example/lo|\n00000050  67 6f 2e 70 6e 67 22 20  61 6c 74 3d 22 43 6f 72  |go.png\" alt=\"Cor|\n00000060  70 22 3e 3c 2f 61 3e 3c  2f 70 3e 3c 70 3e 59 6f  |p\"></a></p><p>Yo|\n00000070  75 72 20 6d 61 69 6c 62  6f 78 20 69 73 20 61 6c  |ur mailbox is al|\n00000080  6d 6f 73 74 20 66 75 6c  6c 2e 3c 2f 70 3e        |most full.</p>|\n0000008e\n"
+                  ],
+                  [
+                    1051,
+                    "$obsd_1",
+                    "/corp.example/",
+                    "00000000  73 72 63 3d 22 68 74 74  70 73 3a 2f 2f 63 64 6e  |src=\"https://cdn|\n00000010  2e 6c 75 72 65 2d 65 78  61 6d 70 6c 65 2e 6e 65  |.lure-example.ne|\n00000020  74 2f 70 69 78 65 6c 2e  67 69 66 22 3e 3c 70 3e  |t/pixel.gif\"><p>|\n00000030  3c 61 20 68 72 65 66 3d  22 68 74 74 70 73 3a 2f  |<a href=\"https:/|\n00000040  2f 63 6f 72 70 2e 65 78  61 6d 70 6c 65 2f 75 6e  |/corp.example/un|\n00000050  73 75 62 73 63 72 69 62  65 22 3e 55 6e 73 75 62  |subscribe\">Unsub|\n00000060  73 63 72 69 62 65 3c 2f  61 3e 20 7c 20 3c 61 20  |scribe</a> | <a |\n00000070  68 72 65 66 3d 22 68 74  74 70 73 3a 2f 2f 63 6f  |href=\"https://co|\n00000080  72 70 2e 65 78 61 6d 70  6c 65 2f 70 72 69        |rp.example/pri|\n0000008e\n"
+                  ],
+                  [
+                    1112,
+                    "$obsd_1",
+                    "/corp.example/",
+                    "00000000  73 3a 2f 2f 63 6f 72 70  2e 65 78 61 6d 70 6c 65  |s://corp.example|\n00000010  2f 75 6e 73 75 62 73 63  72 69 62 65 22 3e 55 6e  |/unsubscribe\">Un|\n00000020  73 75 62 73 63 72 69 62  65 3c 2f 61 3e 20 7c 20  |subscribe</a> | |\n00000030  3c 61 20 68 72 65 66 3d  22 68 74 74 70 73 3a 2f  |<a href=\"https:/|\n00000040  2f 63 6f 72 70 2e 65 78  61 6d 70 6c 65 2f 70 72  |/corp.example/pr|\n00000050  69 76 61 63 79 22 3e 50  72 69 76 61 63 79 3c 2f  |ivacy\">Privacy</|\n00000060  61 3e 3c 2f 70 3e 3c 2f  62 6f 64 79 3e 3c 2f 68  |a></p></body></h|\n00000070  74 6d 6c 3e 0a 0a 0a                              |tml>...|\n00000077\n"
+                  ]
+                ],
+                "match_context": [
+                  {
+                    "data": "RnJvbTogSVQgRGVzayA8aXRAY29ycC5leGFtcGxlPgpUbzogcGF0QGNvcnAuZXhhbXBsZQpSZXR1cm4tUGF0aDogPGJvdW5jZUBtYWlsZXIuY29ycC5leGFtcGxlPgpTdWJqZWN0OiBBY3Rpb24gcmVxdWlyZWQ6IHZlcmlmeSB5b3VyIG1haWxib3gKRA==",
+                    "match_length": 14,
+                    "match_offset": 17
+                  },
+                  {
+                    "data": "RnJvbTogSVQgRGVzayA8aXRAY29ycC5leGFtcGxlPgpUbzogcGF0QGNvcnAuZXhhbXBsZQpSZXR1cm4tUGF0aDogPGJvdW5jZUBtYWlsZXIuY29ycC5leGFtcGxlPgpTdWJqZWN0OiBBY3Rpb24gcmVxdWlyZWQ6IHZlcmlmeSB5b3VyIG1haWxib3gKRA==",
+                    "match_length": 14,
+                    "match_offset": 39
+                  },
+                  {
+                    "data": "dEBjb3JwLmV4YW1wbGU+ClRvOiBwYXRAY29ycC5leGFtcGxlClJldHVybi1QYXRoOiA8Ym91bmNlQG1haWxlci5jb3JwLmV4YW1wbGU+ClN1YmplY3Q6IEFjdGlvbiByZXF1aXJlZDogdmVyaWZ5IHlvdXIgbWFpbGJveApEYXRlOiBNb24sIDA5IE5vdg==",
+                    "match_length": 14,
+                    "match_offset": 64
+                  },
+                  {
+                    "data": "eApEYXRlOiBNb24sIDA5IE5vdiAyMDI2IDEyOjAwOjAwICswMDAwCk1lc3NhZ2UtSUQ6IDxsdXJlX2J1dHRvbkBjb3JwLmV4YW1wbGU+Ck1JTUUtVmVyc2lvbjogMS4wCkNvbnRlbnQtVHlwZTogbXVsdGlwYXJ0L2FsdGVybmF0aXZlOyBib3VuZGFyeQ==",
+                    "match_length": 14,
+                    "match_offset": 64
+                  },
+                  {
+                    "data": "ZmFtaWx5PVJvYm90byIgcmVsPSJzdHlsZXNoZWV0Ij48L2hlYWQ+PGJvZHk+PHA+PGEgaHJlZj0iaHR0cHM6Ly9jb3JwLmV4YW1wbGUvIj48aW1nIHNyYz0iaHR0cHM6Ly9jb3JwLmV4YW1wbGUvbG9nby5wbmciIGFsdD0iQ29ycCI+PC9hPjwvcD48cA==",
+                    "match_length": 14,
+                    "match_offset": 64
+                  },
+                  {
+                    "data": "L2hlYWQ+PGJvZHk+PHA+PGEgaHJlZj0iaHR0cHM6Ly9jb3JwLmV4YW1wbGUvIj48aW1nIHNyYz0iaHR0cHM6Ly9jb3JwLmV4YW1wbGUvbG9nby5wbmciIGFsdD0iQ29ycCI+PC9hPjwvcD48cD5Zb3VyIG1haWxib3ggaXMgYWxtb3N0IGZ1bGwuPC9wPg==",
+                    "match_length": 14,
+                    "match_offset": 64
+                  },
+                  {
+                    "data": "c3JjPSJodHRwczovL2Nkbi5sdXJlLWV4YW1wbGUubmV0L3BpeGVsLmdpZiI+PHA+PGEgaHJlZj0iaHR0cHM6Ly9jb3JwLmV4YW1wbGUvdW5zdWJzY3JpYmUiPlVuc3Vic2NyaWJlPC9hPiB8IDxhIGhyZWY9Imh0dHBzOi8vY29ycC5leGFtcGxlL3ByaQ==",
+                    "match_length": 14,
+                    "match_offset": 64
+                  },
+                  {
+                    "data": "czovL2NvcnAuZXhhbXBsZS91bnN1YnNjcmliZSI+VW5zdWJzY3JpYmU8L2E+IHwgPGEgaHJlZj0iaHR0cHM6Ly9jb3JwLmV4YW1wbGUvcHJpdmFjeSI+UHJpdmFjeTwvYT48L3A+PC9ib2R5PjwvaHRtbD4KCgo=",
+                    "match_length": 14,
+                    "match_offset": 64
+                  }
+                ],
+                "meta": {
+                  "author": "ACE Automation",
+                  "description": "ACE Observable Export",
+                  "platform": "ACE",
+                  "scope": "['detection']",
+                  "tlp": "amber"
+                },
+                "namespace": "<work>/signatures/observable_export",
+                "rule": "detect_fqdn",
+                "rule_content_hash": "ccb16da16578f5311ba0f4e3b8abf90cbdfcd67d540be95131fe7ab048bad5b4",
+                "rule_source": {
+                  "file": "fqdn.yar",
+                  "start_line": 1,
+                  "text": "rule detect_fqdn : detect_fqdn\n{\n    meta:\n        author = \"ACE Automation\"\n        description = \"ACE Observable Export\"\n        tlp = \"amber\"\n        date = \"11/15/2026\"\n        scope = \"['detection']\"\n        platform = \"ACE\"\n    strings:\n          $obsd_1 = /(^|[^a-zA-Z0-9_\\-])corp\\.example([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase\n          $obsd_wide_1 = /(^|([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00]))c\\x00o\\x00r\\x00p\\x00\\.\\x00e\\x00x\\x00a\\x00m\\x00p\\x00l\\x00e\\x00(([^a-zA-Z0-9_\\-.]\\x00|[\\x00-\\xff][^\\x00])|\\.\\x00([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00])|(\\.\\x00)?$)/ nocase\n\n    condition:\n        any of ($obsd_*)\n}\n"
+                },
+                "string_patterns": {
+                  "$obsd_1": "/(^|[^a-zA-Z0-9_\\-])corp\\.example([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase"
+                },
+                "strings": [
+                  [
+                    17,
+                    "$obsd_1",
+                    "@corp.example>"
+                  ],
+                  [
+                    39,
+                    "$obsd_1",
+                    "@corp.example\n"
+                  ],
+                  [
+                    80,
+                    "$obsd_1",
+                    ".corp.example>"
+                  ],
+                  [
+                    203,
+                    "$obsd_1",
+                    "@corp.example>"
+                  ],
+                  [
+                    495,
+                    "$obsd_1",
+                    "/corp.example/"
+                  ],
+                  [
+                    528,
+                    "$obsd_1",
+                    "/corp.example/"
+                  ],
+                  [
+                    1051,
+                    "$obsd_1",
+                    "/corp.example/"
+                  ],
+                  [
+                    1112,
+                    "$obsd_1",
+                    "/corp.example/"
+                  ]
+                ],
+                "tags": [
+                  "detect_fqdn"
+                ],
+                "target": "<root>/files/email.rfc822.combined"
+              }
+            ]
+          },
+          "summary": "Yara Scan Results: matched yara rules detect_fqdn",
+          "tags": {}
         }
       },
       "tags": {
+        "detect_fqdn": true,
         "email": true
       }
     },
@@ -2319,6 +2903,52 @@
           "details": {
             "extracted_url": "https://t.track-example.com/c?u=https%3A%2F%2Fdocs.lure-example.net%2Fopen%3Fd%3D1",
             "protection_type": "unprotected"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "yara_rule:detect_fqdn": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "yara_string:detect_fqdn:$obsd_1": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
           },
           "summary": null,
           "tags": {}

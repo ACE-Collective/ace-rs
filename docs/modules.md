@@ -1653,7 +1653,7 @@ In the config's order. ace4 is the crate a ported module is in.
 
 - **Section**: `analysis_module_yara_scanner_v3_4`, class `YaraScanner_v3_4` in `saq/modules/file_analysis/yara.py`, enabled by default.
 - **ace4**: ported in `ace-mod-yara`.
-- **Pool**: parser. yara-x through `ace-yara` in the task's process (1.x, 2.26). Its database reads of $obsd_ strings come on the ruleset, which 7.6 builds with the `observable_detection` list (7.2, `reads.md`); $obs_ strings aren't served (`crates/ace-mod-yara/src/lib.rs:309`).
+- **Pool**: parser. yara-x through `ace-yara` in the task's process (1.x, 2.26). Its database reads of $obsd_ strings come on the ruleset: the core's build exports the `observable_detection` list as rules of the namespace `observable_export` with an index of each exported detection's type and value, and the module adds the observable a matched `$obsd_<id>` names, tagged with the rule (7.16, `ace_yara::export`, `reads.md`); $obs_ strings aren't served.
 - **Step**: done.
 - **Does**: Scans a file with ACE's yara rules through the yara scanner service over a Unix socket (falling back to an in-process scanner), adds rule/string/signature_id observables and detection points, resolves $obsd_/$obs_ strings to database observables, and applies rule modifiers and tags.
 - **Input**: file.

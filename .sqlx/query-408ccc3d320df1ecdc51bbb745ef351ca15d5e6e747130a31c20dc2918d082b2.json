@@ -1,0 +1,70 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT module,\n                  count(*) FILTER (WHERE state = 'queued') AS \"queued!\",\n                  count(*) FILTER (WHERE state = 'delayed') AS \"delayed!\",\n                  count(*) FILTER (WHERE state = 'running') AS \"running!\",\n                  count(*) FILTER (WHERE state = 'running' AND lease_expires_at <= now())\n                      AS \"expired_leases!\",\n                  COALESCE(EXTRACT(EPOCH FROM now() - min(run_after)\n                      FILTER (WHERE state IN ('queued', 'delayed') AND run_after <= now())), 0)::float8\n                      AS \"oldest_waiting_seconds!\",\n                  count(*) OVER () AS \"modules!\"\n           FROM queue.tasks WHERE state IN ('queued', 'delayed', 'running')\n           GROUP BY module\n           ORDER BY 6 DESC, module LIMIT $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "module",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "queue.tasks",
+            "name": "module"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "queued!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 2,
+        "name": "delayed!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 3,
+        "name": "running!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 4,
+        "name": "expired_leases!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 5,
+        "name": "oldest_waiting_seconds!",
+        "type_info": "Float8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 6,
+        "name": "modules!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "408ccc3d320df1ecdc51bbb745ef351ca15d5e6e747130a31c20dc2918d082b2"
+}

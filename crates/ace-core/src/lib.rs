@@ -23,6 +23,7 @@ pub mod email_archive;
 pub mod hooks;
 pub mod lists;
 pub mod modes;
+pub mod monitoring;
 pub mod normal;
 pub mod nrd;
 pub mod orchestrator;

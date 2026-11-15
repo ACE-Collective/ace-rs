@@ -210,6 +210,39 @@
       },
       "tags": {}
     },
+    "file:0169d891f8f248b2b0edc5c1cc04e8ff004440dc8cde76ffb2feb90db429dadf": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "receipt.doc.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:a363fb24edce3162326238d0152b99845d0dd0be53191183aad2ceba2d168a2a": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:057e3d39cd6e6b882c9cebfb56920db712f49cd628b35bf58e1fd544c0bea20b": {
       "detections": {},
       "directives": {
@@ -1001,8 +1034,19 @@
       "tags": {}
     },
     "file:61068bbecda49725b68da2f3bbaa54b275e505aecec920b4563ac82c6ff6c625": {
-      "detections": {},
-      "directives": {},
+      "detections": {
+        "email.rfc822 matched yara rule detect_fqdn": [
+          {
+            "namespace": "observable_export",
+            "rule": "detect_fqdn",
+            "rule_uuid": null,
+            "sha256": "61068bbecda49725b68da2f3bbaa54b275e505aecec920b4563ac82c6ff6c625"
+          }
+        ]
+      },
+      "directives": {
+        "sandbox": true
+      },
       "excluded_analysis": {},
       "paths": {
         "email.rfc822": {
@@ -1267,9 +1311,80 @@
           },
           "summary": null,
           "tags": {}
+        },
+        "yara_scanner_v3_4": {
+          "details": {
+            "scan_results": [
+              {
+                "context": [
+                  [
+                    78,
+                    "$obsd_1",
+                    ".corp.example>",
+                    "00000000  78 61 6d 70 6c 65 2e 63  6f 6d 0a 54 6f 3a 20 72  |xample.com.To: r|\n00000010  65 63 69 70 69 65 6e 74  40 65 78 61 6d 70 6c 65  |ecipient@example|\n00000020  2e 63 6f 6d 0a 52 65 74  75 72 6e 2d 50 61 74 68  |.com.Return-Path|\n00000030  3a 20 3c 62 6f 75 6e 63  65 40 6d 61 69 6c 65 72  |: <bounce@mailer|\n00000040  2e 63 6f 72 70 2e 65 78  61 6d 70 6c 65 3e 0a 53  |.corp.example>.S|\n00000050  75 62 6a 65 63 74 3a 20  74 68 65 20 61 74 74 61  |ubject: the atta|\n00000060  63 68 65 64 20 66 69 6c  65 0a 44 61 74 65 3a 20  |ched file.Date: |\n00000070  4d 6f 6e 2c 20 30 39 20  4e 6f 76 20 32 30 32 36  |Mon, 09 Nov 2026|\n00000080  20 31 32 3a 30 30 3a 30  30 20 2b 30 30 30        | 12:00:00 +000|\n0000008e\n"
+                  ],
+                  [
+                    187,
+                    "$obsd_1",
+                    "@corp.example>",
+                    "00000000  65 3a 20 4d 6f 6e 2c 20  30 39 20 4e 6f 76 20 32  |e: Mon, 09 Nov 2|\n00000010  30 32 36 20 31 32 3a 30  30 3a 30 30 20 2b 30 30  |026 12:00:00 +00|\n00000020  30 30 0a 4d 65 73 73 61  67 65 2d 49 44 3a 20 3c  |00.Message-ID: <|\n00000030  6d 61 63 72 6f 5f 61 74  74 61 63 68 6d 65 6e 74  |macro_attachment|\n00000040  40 63 6f 72 70 2e 65 78  61 6d 70 6c 65 3e 0a 4d  |@corp.example>.M|\n00000050  49 4d 45 2d 56 65 72 73  69 6f 6e 3a 20 31 2e 30  |IME-Version: 1.0|\n00000060  0a 43 6f 6e 74 65 6e 74  2d 54 79 70 65 3a 20 6d  |.Content-Type: m|\n00000070  75 6c 74 69 70 61 72 74  2f 6d 69 78 65 64 3b 20  |ultipart/mixed; |\n00000080  62 6f 75 6e 64 61 72 79  3d 22 6d 61 63 72        |boundary=\"macr|\n0000008e\n"
+                  ]
+                ],
+                "match_context": [
+                  {
+                    "data": "eGFtcGxlLmNvbQpUbzogcmVjaXBpZW50QGV4YW1wbGUuY29tClJldHVybi1QYXRoOiA8Ym91bmNlQG1haWxlci5jb3JwLmV4YW1wbGU+ClN1YmplY3Q6IHRoZSBhdHRhY2hlZCBmaWxlCkRhdGU6IE1vbiwgMDkgTm92IDIwMjYgMTI6MDA6MDAgKzAwMA==",
+                    "match_length": 14,
+                    "match_offset": 64
+                  },
+                  {
+                    "data": "ZTogTW9uLCAwOSBOb3YgMjAyNiAxMjowMDowMCArMDAwMApNZXNzYWdlLUlEOiA8bWFjcm9fYXR0YWNobWVudEBjb3JwLmV4YW1wbGU+Ck1JTUUtVmVyc2lvbjogMS4wCkNvbnRlbnQtVHlwZTogbXVsdGlwYXJ0L21peGVkOyBib3VuZGFyeT0ibWFjcg==",
+                    "match_length": 14,
+                    "match_offset": 64
+                  }
+                ],
+                "meta": {
+                  "author": "ACE Automation",
+                  "description": "ACE Observable Export",
+                  "platform": "ACE",
+                  "scope": "['detection']",
+                  "tlp": "amber"
+                },
+                "namespace": "<work>/signatures/observable_export",
+                "rule": "detect_fqdn",
+                "rule_content_hash": "ccb16da16578f5311ba0f4e3b8abf90cbdfcd67d540be95131fe7ab048bad5b4",
+                "rule_source": {
+                  "file": "fqdn.yar",
+                  "start_line": 1,
+                  "text": "rule detect_fqdn : detect_fqdn\n{\n    meta:\n        author = \"ACE Automation\"\n        description = \"ACE Observable Export\"\n        tlp = \"amber\"\n        date = \"11/15/2026\"\n        scope = \"['detection']\"\n        platform = \"ACE\"\n    strings:\n          $obsd_1 = /(^|[^a-zA-Z0-9_\\-])corp\\.example([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase\n          $obsd_wide_1 = /(^|([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00]))c\\x00o\\x00r\\x00p\\x00\\.\\x00e\\x00x\\x00a\\x00m\\x00p\\x00l\\x00e\\x00(([^a-zA-Z0-9_\\-.]\\x00|[\\x00-\\xff][^\\x00])|\\.\\x00([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00])|(\\.\\x00)?$)/ nocase\n\n    condition:\n        any of ($obsd_*)\n}\n"
+                },
+                "string_patterns": {
+                  "$obsd_1": "/(^|[^a-zA-Z0-9_\\-])corp\\.example([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase"
+                },
+                "strings": [
+                  [
+                    78,
+                    "$obsd_1",
+                    ".corp.example>"
+                  ],
+                  [
+                    187,
+                    "$obsd_1",
+                    "@corp.example>"
+                  ]
+                ],
+                "tags": [
+                  "detect_fqdn"
+                ],
+                "target": "<root>/files/email.rfc822"
+              }
+            ]
+          },
+          "summary": "Yara Scan Results: matched yara rules detect_fqdn",
+          "tags": {}
         }
       },
       "tags": {
+        "detect_fqdn": true,
         "email": true
       }
     },
@@ -1401,8 +1516,19 @@
       "tags": {}
     },
     "file:70f99bb18bf34adb09a9064ae981949a599641109c203f0570dabcdcd95caa9e": {
-      "detections": {},
-      "directives": {},
+      "detections": {
+        "email.rfc822.combined matched yara rule detect_fqdn": [
+          {
+            "namespace": "observable_export",
+            "rule": "detect_fqdn",
+            "rule_uuid": null,
+            "sha256": "70f99bb18bf34adb09a9064ae981949a599641109c203f0570dabcdcd95caa9e"
+          }
+        ]
+      },
+      "directives": {
+        "sandbox": true
+      },
       "excluded_analysis": {
         "email_analyzer": true
       },
@@ -1459,9 +1585,80 @@
           },
           "summary": null,
           "tags": {}
+        },
+        "yara_scanner_v3_4": {
+          "details": {
+            "scan_results": [
+              {
+                "context": [
+                  [
+                    78,
+                    "$obsd_1",
+                    ".corp.example>",
+                    "00000000  78 61 6d 70 6c 65 2e 63  6f 6d 0a 54 6f 3a 20 72  |xample.com.To: r|\n00000010  65 63 69 70 69 65 6e 74  40 65 78 61 6d 70 6c 65  |ecipient@example|\n00000020  2e 63 6f 6d 0a 52 65 74  75 72 6e 2d 50 61 74 68  |.com.Return-Path|\n00000030  3a 20 3c 62 6f 75 6e 63  65 40 6d 61 69 6c 65 72  |: <bounce@mailer|\n00000040  2e 63 6f 72 70 2e 65 78  61 6d 70 6c 65 3e 0a 53  |.corp.example>.S|\n00000050  75 62 6a 65 63 74 3a 20  74 68 65 20 61 74 74 61  |ubject: the atta|\n00000060  63 68 65 64 20 66 69 6c  65 0a 44 61 74 65 3a 20  |ched file.Date: |\n00000070  4d 6f 6e 2c 20 30 39 20  4e 6f 76 20 32 30 32 36  |Mon, 09 Nov 2026|\n00000080  20 31 32 3a 30 30 3a 30  30 20 2b 30 30 30        | 12:00:00 +000|\n0000008e\n"
+                  ],
+                  [
+                    187,
+                    "$obsd_1",
+                    "@corp.example>",
+                    "00000000  65 3a 20 4d 6f 6e 2c 20  30 39 20 4e 6f 76 20 32  |e: Mon, 09 Nov 2|\n00000010  30 32 36 20 31 32 3a 30  30 3a 30 30 20 2b 30 30  |026 12:00:00 +00|\n00000020  30 30 0a 4d 65 73 73 61  67 65 2d 49 44 3a 20 3c  |00.Message-ID: <|\n00000030  6d 61 63 72 6f 5f 61 74  74 61 63 68 6d 65 6e 74  |macro_attachment|\n00000040  40 63 6f 72 70 2e 65 78  61 6d 70 6c 65 3e 0a 4d  |@corp.example>.M|\n00000050  49 4d 45 2d 56 65 72 73  69 6f 6e 3a 20 31 2e 30  |IME-Version: 1.0|\n00000060  0a 43 6f 6e 74 65 6e 74  2d 54 79 70 65 3a 20 6d  |.Content-Type: m|\n00000070  75 6c 74 69 70 61 72 74  2f 6d 69 78 65 64 3b 20  |ultipart/mixed; |\n00000080  62 6f 75 6e 64 61 72 79  3d 22 6d 61 63 72        |boundary=\"macr|\n0000008e\n"
+                  ]
+                ],
+                "match_context": [
+                  {
+                    "data": "eGFtcGxlLmNvbQpUbzogcmVjaXBpZW50QGV4YW1wbGUuY29tClJldHVybi1QYXRoOiA8Ym91bmNlQG1haWxlci5jb3JwLmV4YW1wbGU+ClN1YmplY3Q6IHRoZSBhdHRhY2hlZCBmaWxlCkRhdGU6IE1vbiwgMDkgTm92IDIwMjYgMTI6MDA6MDAgKzAwMA==",
+                    "match_length": 14,
+                    "match_offset": 64
+                  },
+                  {
+                    "data": "ZTogTW9uLCAwOSBOb3YgMjAyNiAxMjowMDowMCArMDAwMApNZXNzYWdlLUlEOiA8bWFjcm9fYXR0YWNobWVudEBjb3JwLmV4YW1wbGU+Ck1JTUUtVmVyc2lvbjogMS4wCkNvbnRlbnQtVHlwZTogbXVsdGlwYXJ0L21peGVkOyBib3VuZGFyeT0ibWFjcg==",
+                    "match_length": 14,
+                    "match_offset": 64
+                  }
+                ],
+                "meta": {
+                  "author": "ACE Automation",
+                  "description": "ACE Observable Export",
+                  "platform": "ACE",
+                  "scope": "['detection']",
+                  "tlp": "amber"
+                },
+                "namespace": "<work>/signatures/observable_export",
+                "rule": "detect_fqdn",
+                "rule_content_hash": "ccb16da16578f5311ba0f4e3b8abf90cbdfcd67d540be95131fe7ab048bad5b4",
+                "rule_source": {
+                  "file": "fqdn.yar",
+                  "start_line": 1,
+                  "text": "rule detect_fqdn : detect_fqdn\n{\n    meta:\n        author = \"ACE Automation\"\n        description = \"ACE Observable Export\"\n        tlp = \"amber\"\n        date = \"11/15/2026\"\n        scope = \"['detection']\"\n        platform = \"ACE\"\n    strings:\n          $obsd_1 = /(^|[^a-zA-Z0-9_\\-])corp\\.example([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase\n          $obsd_wide_1 = /(^|([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00]))c\\x00o\\x00r\\x00p\\x00\\.\\x00e\\x00x\\x00a\\x00m\\x00p\\x00l\\x00e\\x00(([^a-zA-Z0-9_\\-.]\\x00|[\\x00-\\xff][^\\x00])|\\.\\x00([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00])|(\\.\\x00)?$)/ nocase\n\n    condition:\n        any of ($obsd_*)\n}\n"
+                },
+                "string_patterns": {
+                  "$obsd_1": "/(^|[^a-zA-Z0-9_\\-])corp\\.example([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase"
+                },
+                "strings": [
+                  [
+                    78,
+                    "$obsd_1",
+                    ".corp.example>"
+                  ],
+                  [
+                    187,
+                    "$obsd_1",
+                    "@corp.example>"
+                  ]
+                ],
+                "tags": [
+                  "detect_fqdn"
+                ],
+                "target": "<root>/files/email.rfc822.combined"
+              }
+            ]
+          },
+          "summary": "Yara Scan Results: matched yara rules detect_fqdn",
+          "tags": {}
         }
       },
       "tags": {
+        "detect_fqdn": true,
         "email": true
       }
     },
@@ -2113,8 +2310,19 @@
       "tags": {}
     },
     "file:9eb1da2611f9b1bf5504347a7ba278cc63b77304451e671f371eb2af3822a444": {
-      "detections": {},
-      "directives": {},
+      "detections": {
+        "email.rfc822.headers matched yara rule detect_fqdn": [
+          {
+            "namespace": "observable_export",
+            "rule": "detect_fqdn",
+            "rule_uuid": null,
+            "sha256": "9eb1da2611f9b1bf5504347a7ba278cc63b77304451e671f371eb2af3822a444"
+          }
+        ]
+      },
+      "directives": {
+        "sandbox": true
+      },
       "excluded_analysis": {
         "email_analyzer": true
       },
@@ -2171,9 +2379,80 @@
           },
           "summary": null,
           "tags": {}
+        },
+        "yara_scanner_v3_4": {
+          "details": {
+            "scan_results": [
+              {
+                "context": [
+                  [
+                    78,
+                    "$obsd_1",
+                    ".corp.example>",
+                    "00000000  78 61 6d 70 6c 65 2e 63  6f 6d 0a 54 6f 3a 20 72  |xample.com.To: r|\n00000010  65 63 69 70 69 65 6e 74  40 65 78 61 6d 70 6c 65  |ecipient@example|\n00000020  2e 63 6f 6d 0a 52 65 74  75 72 6e 2d 50 61 74 68  |.com.Return-Path|\n00000030  3a 20 3c 62 6f 75 6e 63  65 40 6d 61 69 6c 65 72  |: <bounce@mailer|\n00000040  2e 63 6f 72 70 2e 65 78  61 6d 70 6c 65 3e 0a 53  |.corp.example>.S|\n00000050  75 62 6a 65 63 74 3a 20  74 68 65 20 61 74 74 61  |ubject: the atta|\n00000060  63 68 65 64 20 66 69 6c  65 0a 44 61 74 65 3a 20  |ched file.Date: |\n00000070  4d 6f 6e 2c 20 30 39 20  4e 6f 76 20 32 30 32 36  |Mon, 09 Nov 2026|\n00000080  20 31 32 3a 30 30 3a 30  30 20 2b 30 30 30        | 12:00:00 +000|\n0000008e\n"
+                  ],
+                  [
+                    187,
+                    "$obsd_1",
+                    "@corp.example>",
+                    "00000000  65 3a 20 4d 6f 6e 2c 20  30 39 20 4e 6f 76 20 32  |e: Mon, 09 Nov 2|\n00000010  30 32 36 20 31 32 3a 30  30 3a 30 30 20 2b 30 30  |026 12:00:00 +00|\n00000020  30 30 0a 4d 65 73 73 61  67 65 2d 49 44 3a 20 3c  |00.Message-ID: <|\n00000030  6d 61 63 72 6f 5f 61 74  74 61 63 68 6d 65 6e 74  |macro_attachment|\n00000040  40 63 6f 72 70 2e 65 78  61 6d 70 6c 65 3e 0a 4d  |@corp.example>.M|\n00000050  49 4d 45 2d 56 65 72 73  69 6f 6e 3a 20 31 2e 30  |IME-Version: 1.0|\n00000060  0a 43 6f 6e 74 65 6e 74  2d 54 79 70 65 3a 20 6d  |.Content-Type: m|\n00000070  75 6c 74 69 70 61 72 74  2f 6d 69 78 65 64 3b 20  |ultipart/mixed; |\n00000080  62 6f 75 6e 64 61 72 79  3d 22 6d 61 63 72        |boundary=\"macr|\n0000008e\n"
+                  ]
+                ],
+                "match_context": [
+                  {
+                    "data": "eGFtcGxlLmNvbQpUbzogcmVjaXBpZW50QGV4YW1wbGUuY29tClJldHVybi1QYXRoOiA8Ym91bmNlQG1haWxlci5jb3JwLmV4YW1wbGU+ClN1YmplY3Q6IHRoZSBhdHRhY2hlZCBmaWxlCkRhdGU6IE1vbiwgMDkgTm92IDIwMjYgMTI6MDA6MDAgKzAwMA==",
+                    "match_length": 14,
+                    "match_offset": 64
+                  },
+                  {
+                    "data": "ZTogTW9uLCAwOSBOb3YgMjAyNiAxMjowMDowMCArMDAwMApNZXNzYWdlLUlEOiA8bWFjcm9fYXR0YWNobWVudEBjb3JwLmV4YW1wbGU+Ck1JTUUtVmVyc2lvbjogMS4wCkNvbnRlbnQtVHlwZTogbXVsdGlwYXJ0L21peGVkOyBib3VuZGFyeT0ibWFjcg==",
+                    "match_length": 14,
+                    "match_offset": 64
+                  }
+                ],
+                "meta": {
+                  "author": "ACE Automation",
+                  "description": "ACE Observable Export",
+                  "platform": "ACE",
+                  "scope": "['detection']",
+                  "tlp": "amber"
+                },
+                "namespace": "<work>/signatures/observable_export",
+                "rule": "detect_fqdn",
+                "rule_content_hash": "ccb16da16578f5311ba0f4e3b8abf90cbdfcd67d540be95131fe7ab048bad5b4",
+                "rule_source": {
+                  "file": "fqdn.yar",
+                  "start_line": 1,
+                  "text": "rule detect_fqdn : detect_fqdn\n{\n    meta:\n        author = \"ACE Automation\"\n        description = \"ACE Observable Export\"\n        tlp = \"amber\"\n        date = \"11/15/2026\"\n        scope = \"['detection']\"\n        platform = \"ACE\"\n    strings:\n          $obsd_1 = /(^|[^a-zA-Z0-9_\\-])corp\\.example([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase\n          $obsd_wide_1 = /(^|([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00]))c\\x00o\\x00r\\x00p\\x00\\.\\x00e\\x00x\\x00a\\x00m\\x00p\\x00l\\x00e\\x00(([^a-zA-Z0-9_\\-.]\\x00|[\\x00-\\xff][^\\x00])|\\.\\x00([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00])|(\\.\\x00)?$)/ nocase\n\n    condition:\n        any of ($obsd_*)\n}\n"
+                },
+                "string_patterns": {
+                  "$obsd_1": "/(^|[^a-zA-Z0-9_\\-])corp\\.example([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase"
+                },
+                "strings": [
+                  [
+                    78,
+                    "$obsd_1",
+                    ".corp.example>"
+                  ],
+                  [
+                    187,
+                    "$obsd_1",
+                    "@corp.example>"
+                  ]
+                ],
+                "tags": [
+                  "detect_fqdn"
+                ],
+                "target": "<root>/files/email.rfc822.headers"
+              }
+            ]
+          },
+          "summary": "Yara Scan Results: matched yara rules detect_fqdn",
+          "tags": {}
         }
       },
       "tags": {
+        "detect_fqdn": true,
         "email": true
       }
     },
@@ -2274,9 +2553,9 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 08:49:40+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 08:49:40+00:00",
-              "File:FileModifyDate": "2026:11:11 08:49:40+00:00",
+              "File:FileAccessDate": "2026:11:15 10:48:34+00:00",
+              "File:FileInodeChangeDate": "2026:11:15 10:48:34+00:00",
+              "File:FileModifyDate": "2026:11:15 10:48:34+00:00",
               "File:FileName": "receipt.doc",
               "File:FilePermissions": 100664,
               "File:FileSize": 219648,
@@ -2559,39 +2838,6 @@
       "tags": {
         "macro": true
       }
-    },
-    "file:a7be57a4cb72ca23fd1161e09d12ab2b399bb615d84e294f4b02ad57d53a6293": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "receipt.doc.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:a363fb24edce3162326238d0152b99845d0dd0be53191183aad2ceba2d168a2a": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
     },
     "file:a817e2cfadd09de374c315158cbe0531a1282d36336e88090de9ad455956e40b": {
       "detections": {},
@@ -3789,6 +4035,109 @@
       },
       "tags": {}
     },
+    "fqdn:corp.example": {
+      "detections": {
+        "Observable fqdn:corp.example is enabled for detection": [
+          null
+        ]
+      },
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "fqdn_analyzer": {
+          "details": {
+            "aliaslist": [],
+            "all_resolutions": [],
+            "ip_address": null,
+            "mx": null,
+            "resolution_count": null,
+            "status": "nxdomain",
+            "wildcard_dns": null
+          },
+          "summary": "DNS Analysis: does not exist (nxdomain)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": true
+          },
+          "summary": "Observable Detection Analysis: enabled for detection",
+          "tags": {}
+        },
+        "proxy_domain_splunk": {
+          "details": {
+            "dispatch_state": "DONE",
+            "gui_link": null,
+            "query": "index=proxy hostname=\"corp.example\"",
+            "query_error": null,
+            "query_results": [
+              {
+                "_time": "2026-10-30T14:02:11.000+00:00",
+                "dest_ip": "198.51.100.20",
+                "full_url": "https://www.example.com/login",
+                "src_ip": "192.0.2.10",
+                "src_translated_ip": "198.51.100.7",
+                "user": "alice@example.com"
+              },
+              {
+                "_time": "2026-10-30T14:05:42.000+00:00",
+                "dest_ip": "198.51.100.20",
+                "full_url": "http://www.example.com/",
+                "src_ip": "192.0.2.11",
+                "src_translated_ip": "198.51.100.7",
+                "user": "bob@example.com"
+              },
+              {
+                "_time": "2026-10-30T14:09:03.000+00:00",
+                "dest_ip": "198.51.100.21",
+                "full_url": "https://www.example.com/static/app.js",
+                "src_ip": "192.0.2.12"
+              }
+            ],
+            "query_summary": "Proxy correlation",
+            "question": "Was this domain seen in proxy logs?"
+          },
+          "summary": "Proxy correlation: (3 results)",
+          "tags": {}
+        },
+        "rdap_analyzer": {
+          "details": {
+            "assignment_type": null,
+            "country": null,
+            "datetime_created": null,
+            "datetime_expiration": null,
+            "datetime_of_last_update": null,
+            "domain_name": null,
+            "emails": null,
+            "error": "rdap: no RDAP service for TLD: TLD \"example\" has no known RDAP endpoint and is unsupported. It may be supported by overrides, try using whoisit.bootstrap(overrides=True); whois: no WHOIS in a replay",
+            "ip_version": null,
+            "lookup_protocol": null,
+            "name_servers": null,
+            "network_cidr": null,
+            "network_name": null,
+            "rdap_attempt_error": "no RDAP service for TLD: TLD \"example\" has no known RDAP endpoint and is unsupported. It may be supported by overrides, try using whoisit.bootstrap(overrides=True)",
+            "rdap_data": null,
+            "rdap_raw_json": null,
+            "rdap_service_url": null,
+            "registrar": null,
+            "whois_data": null,
+            "whois_raw_text": null
+          },
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {
+        "detect_fqdn": true
+      }
+    },
     "fqdn:example.com": {
       "detections": {},
       "directives": {},
@@ -4668,6 +5017,52 @@
           "details": {
             "extracted_url": "https://v9wq.kM/S32WLz/kGn2hT=Lm75zFjED:M/932=Lm<m9KDEDEGTMUekDIDEDVL5N;HL25HK8FDEDEHK7EEEDEHqO5mTMWLz7Ui3XWLp;NHlIQ.VLmXUnUH",
             "protection_type": "unprotected"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "yara_rule:detect_fqdn": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "yara_string:detect_fqdn:$obsd_1": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
           },
           "summary": null,
           "tags": {}

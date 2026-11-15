@@ -5516,6 +5516,81 @@
         }
       }
     },
+    "/api/monitoring/v1/state": {
+      "get": {
+        "tags": [
+          "monitoring"
+        ],
+        "summary": "Every scheduled task's state, the runs of all of them or of one, newest first, and the records the\nmonitoring checks last emitted.",
+        "operationId": "state",
+        "parameters": [
+          {
+            "name": "task",
+            "in": "query",
+            "description": "Only this task's runs.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "runs",
+            "in": "query",
+            "description": "How many runs, newest first: 1 to 500.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "default": 50,
+              "maximum": 500,
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The tasks, the runs and the records",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MonitoringStateBody"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A count of runs outside 1 to 500, a task's name that isn't one, or a parameter that doesn't read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold monitoring:read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/observables/v1/comments": {
       "get": {
         "tags": [
@@ -6028,6 +6103,57 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/DetectionTypesBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No credential, or one that isn't valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The actor doesn't hold detection:read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "This server's modules don't detect observables",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/observables/v1/detections/yara-export": {
+      "get": {
+        "tags": [
+          "observables"
+        ],
+        "summary": "What the current ruleset holds of the detections as YARA rules, and which were left out and why\n(PLAN.md 7.16). A detection added since the ruleset was built joins it at the next build.",
+        "operationId": "yara_export",
+        "responses": {
+          "200": {
+            "description": "The export",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DetectionExportBody"
                 }
               }
             }
@@ -21631,6 +21757,126 @@
           }
         }
       },
+      "DetectionExportBody": {
+        "type": "object",
+        "description": "What the current ruleset holds of the detections as YARA rules.",
+        "required": [
+          "exported",
+          "types",
+          "skipped"
+        ],
+        "properties": {
+          "error": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Why nothing was exported, when the generated rules didn't load together."
+          },
+          "exported": {
+            "type": "integer",
+            "format": "int64",
+            "description": "How many detections the ruleset's rules hold."
+          },
+          "ruleset": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/DetectionExportRulesetBody",
+                "description": "Null when no ruleset has been built."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "skipped": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DetectionExportSkippedBody"
+            }
+          },
+          "types": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DetectionExportTypeBody"
+            }
+          }
+        }
+      },
+      "DetectionExportRulesetBody": {
+        "type": "object",
+        "description": "The ruleset the detections' YARA rules are in.",
+        "required": [
+          "key",
+          "commit",
+          "built_at"
+        ],
+        "properties": {
+          "built_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "commit": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string",
+            "description": "The serialized ruleset's sha256."
+          }
+        }
+      },
+      "DetectionExportSkippedBody": {
+        "type": "object",
+        "description": "A detection left out of the YARA rules.",
+        "required": [
+          "id",
+          "type",
+          "error"
+        ],
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "Why, which may quote the value. Show it as text."
+          },
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "type": {
+            "type": "string",
+            "description": "The type it would have been exported under."
+          },
+          "value": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The detection's value now; null when it's gone since the ruleset was built. Show it as text."
+          }
+        }
+      },
+      "DetectionExportTypeBody": {
+        "type": "object",
+        "description": "One exported type's rule.",
+        "required": [
+          "type",
+          "detections",
+          "strings"
+        ],
+        "properties": {
+          "detections": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "strings": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "type": {
+            "type": "string"
+          }
+        }
+      },
       "DetectionObservableBody": {
         "type": "object",
         "required": [
@@ -23940,6 +24186,70 @@
           },
           "rule_uuid": {
             "type": "string"
+          }
+        }
+      },
+      "MonitorRecordBody": {
+        "type": "object",
+        "description": "A record a monitoring check last emitted.",
+        "required": [
+          "task",
+          "path",
+          "value",
+          "emitted_at"
+        ],
+        "properties": {
+          "emitted_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "identifier": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "What it's about, when its check emits several, such as a pool's name."
+          },
+          "path": {
+            "type": "string",
+            "description": "What it measures, such as `workload.distributed` or `cas.pool`."
+          },
+          "task": {
+            "type": "string",
+            "description": "The check: the scheduled task that emitted it."
+          },
+          "value": {}
+        }
+      },
+      "MonitoringStateBody": {
+        "type": "object",
+        "description": "The scheduled tasks, their runs and the monitoring checks' records.",
+        "required": [
+          "tasks",
+          "runs",
+          "records"
+        ],
+        "properties": {
+          "records": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MonitorRecordBody"
+            },
+            "description": "The records each check last emitted, by check."
+          },
+          "runs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ScheduledRunBody"
+            },
+            "description": "The runs asked for, newest first."
+          },
+          "tasks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ScheduledTaskBody"
+            },
+            "description": "Every scheduled task, by name."
           }
         }
       },
@@ -28042,6 +28352,134 @@
           }
         }
       },
+      "ScheduledRunBody": {
+        "type": "object",
+        "description": "A run of a scheduled task.",
+        "required": [
+          "id",
+          "task",
+          "scheduled_for",
+          "node",
+          "started_at"
+        ],
+        "properties": {
+          "ended_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "Null while it runs."
+          },
+          "error": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "node": {
+            "type": "string"
+          },
+          "outcome": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "scheduled_for": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The due time the run was claimed for."
+          },
+          "started_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "summary": {
+            "description": "What the task said it did."
+          },
+          "task": {
+            "type": "string"
+          }
+        }
+      },
+      "ScheduledTaskBody": {
+        "type": "object",
+        "description": "A scheduled task's state.",
+        "required": [
+          "name",
+          "schedule",
+          "due_at",
+          "running",
+          "overdue_seconds",
+          "failures_since_success"
+        ],
+        "properties": {
+          "due_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "failures_since_success": {
+            "type": "integer",
+            "format": "int64",
+            "description": "How many runs have ended otherwise than `succeeded` since the last that did."
+          },
+          "last_ended_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "last_error": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "last_node": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The process that ran it: host and process id."
+          },
+          "last_outcome": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "How its last run that ended did: `succeeded`, `failed`, `timed_out`, `stopped` or `abandoned`."
+          },
+          "last_started_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "name": {
+            "type": "string"
+          },
+          "overdue_seconds": {
+            "type": "integer",
+            "format": "int64",
+            "description": "How long ago it was due, when no run holds it."
+          },
+          "running": {
+            "type": "boolean",
+            "description": "A run holds it now."
+          },
+          "schedule": {
+            "type": "string",
+            "description": "Its cron schedule, in UTC."
+          }
+        }
+      },
       "ScopeEntry": {
         "type": "object",
         "description": "One pattern of a key's scope, which the key is allowed.",
@@ -29936,6 +30374,10 @@
     {
       "name": "lists",
       "description": "The analyst-edited lists, such as the email whitelists, which apply to the next task that reads them"
+    },
+    {
+      "name": "monitoring",
+      "description": "What the monitoring checks last found, and the scheduled tasks' runs"
     }
   ]
 }

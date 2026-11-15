@@ -1,0 +1,133 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT t.name, t.schedule, t.due_at,\n                  (t.run_id IS NOT NULL AND t.lease_until > now()) AS \"running!\",\n                  GREATEST(EXTRACT(EPOCH FROM now() - t.due_at), 0)::float8 AS \"overdue!\",\n                  last.outcome AS \"outcome?\", last.started_at AS \"started_at?\",\n                  last.ended_at AS \"ended_at?\", last.error AS \"error?\", last.node AS \"node?\",\n                  (SELECT count(*) FROM scheduler.runs r\n                   WHERE r.task = t.name AND r.outcome IS NOT NULL AND r.outcome <> 'succeeded'\n                     AND r.id > COALESCE((SELECT max(s.id) FROM scheduler.runs s\n                                          WHERE s.task = t.name AND s.outcome = 'succeeded'), 0))\n                      AS \"failures!\"\n           FROM scheduler.tasks t\n           LEFT JOIN LATERAL (\n               SELECT outcome, started_at, ended_at, error, node FROM scheduler.runs r\n               WHERE r.task = t.name AND r.ended_at IS NOT NULL ORDER BY r.id DESC LIMIT 1\n           ) last ON true\n           ORDER BY t.name LIMIT $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "scheduler.tasks",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "schedule",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "scheduler.tasks",
+            "name": "schedule"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "due_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "scheduler.tasks",
+            "name": "due_at"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "running!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 4,
+        "name": "overdue!",
+        "type_info": "Float8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 5,
+        "name": "outcome?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "scheduler.runs",
+            "name": "outcome"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "started_at?",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "scheduler.runs",
+            "name": "started_at"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "ended_at?",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "scheduler.runs",
+            "name": "ended_at"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "error?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "scheduler.runs",
+            "name": "error"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "node?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "scheduler.runs",
+            "name": "node"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "failures!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      null,
+      null,
+      true,
+      false,
+      true,
+      true,
+      false,
+      null
+    ]
+  },
+  "hash": "ac42820145b2cc67b1fb0583d9173a742c5f1b8fa5fbd34f3f0d330b5b161230"
+}

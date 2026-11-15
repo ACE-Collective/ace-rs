@@ -19287,6 +19287,249 @@ fn broken_bucket(db: &Db) -> (Bucket, tempfile::TempDir) {
     )
 }
 
+/// PLAN.md 7.12: a monitoring check needs `monitoring:report`, which only the scheduler's check
+/// components hold, and the read of what the checks found and how the scheduled tasks ran needs
+/// `monitoring:read`. A refusal reads and writes nothing. ace3's `test_emit_monitor_cache`: what a
+/// check emitted is kept, here in a table, and its next run replaces it.
+#[tokio::test]
+async fn monitoring_needs_its_permissions_and_keeps_what_each_check_last_found() {
+    use ace_service::{MONITORING_READ, MONITORING_REPORT, MonitorCheck};
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let service = service(db);
+    let (bucket, _cache) = bucket(db);
+    let denied = |error: ServiceError, wanted: &ace_service::PermissionName| {
+        assert!(
+            matches!(&error, ServiceError::PermissionDenied { permission, .. } if permission == wanted),
+            "{error}"
+        );
+    };
+
+    // a person, even one who may read the monitoring page, runs no check; nor does a component that isn't one
+    let reader = UserId(Uuid::from_u128(0x7A));
+    grant(
+        db,
+        &Holder::User(reader),
+        "monitoring",
+        "read",
+        Effect::Allow,
+    )
+    .await;
+    for actor in [
+        user(reader),
+        component("scheduler:bucket_gc"),
+        component("scheduler:nobody"),
+    ] {
+        for check in MonitorCheck::ALL {
+            let error = service
+                .report_monitor(&actor, check, &bucket, "test/1")
+                .await
+                .expect_err("refused");
+            denied(error, &MONITORING_REPORT);
+        }
+    }
+    let kept: i64 = sqlx::query_scalar("SELECT count(*) FROM monitoring.records")
+        .fetch_one(db.pool())
+        .await
+        .expect("counts");
+    assert_eq!(kept, 0, "a refused check writes nothing");
+
+    // each check's own component runs it, and only it holds the grant (migration 0060)
+    for check in MonitorCheck::ALL {
+        let actor = component(&format!("scheduler:{}", check.task()));
+        let report = service
+            .report_monitor(&actor, check, &bucket, "test/1")
+            .await
+            .unwrap_or_else(|e| panic!("{}: {e}", check.task()));
+        assert_eq!(report.left_out, 0, "{}", check.task());
+        denied(
+            service
+                .monitoring_state(&actor, None, 50)
+                .await
+                .expect_err("refused"),
+            &MONITORING_READ,
+        );
+    }
+    let holders: Vec<String> = sqlx::query_scalar(
+        "SELECT component FROM service.permissions WHERE major = 'monitoring' AND minor = 'report'
+         ORDER BY component",
+    )
+    .fetch_all(db.pool())
+    .await
+    .expect("reads the grants");
+    let mut expected: Vec<String> = MonitorCheck::ALL
+        .iter()
+        .map(|check| format!("scheduler:{}", check.task()))
+        .collect();
+    expected.sort();
+    assert_eq!(holders, expected);
+
+    // the read: refused without monitoring:read, and with it the records each check last emitted, by check
+    denied(
+        service
+            .monitoring_state(&user(UserId(Uuid::from_u128(0x7B))), None, 50)
+            .await
+            .expect_err("refused"),
+        &MONITORING_READ,
+    );
+    let state = service
+        .monitoring_state(&user(reader), None, 50)
+        .await
+        .expect("reads");
+    // an empty system: the node's cache, each configured pool, and an empty workload
+    let checks = |state: &ace_service::MonitoringState| -> Vec<(String, String)> {
+        let mut seen: Vec<(String, String)> = state
+            .records
+            .iter()
+            .map(|r| (r.task.clone(), r.path.clone()))
+            .collect();
+        seen.dedup();
+        seen
+    };
+    assert_eq!(
+        checks(&state),
+        [
+            ("bucket_node_stats".to_owned(), "cas.node".to_owned()),
+            ("monitor_bucket_pools".to_owned(), "cas.pool".to_owned()),
+            (
+                "monitor_workload".to_owned(),
+                "workload.distributed".to_owned()
+            ),
+        ]
+    );
+    let pools: Vec<&str> = state
+        .records
+        .iter()
+        .filter(|r| r.task == "monitor_bucket_pools")
+        .filter_map(|r| r.identifier.as_deref())
+        .collect();
+    let configured: Vec<&str> = bucket.pools().map(|(name, _)| name).collect();
+    assert_eq!(
+        pools, configured,
+        "a record for each configured pool, by name"
+    );
+    let workload = |state: &ace_service::MonitoringState| {
+        state
+            .records
+            .iter()
+            .find(|r| r.task == "monitor_workload")
+            .expect("the workload's record")
+            .value
+            .clone()
+    };
+    assert_eq!(workload(&state), json!({"workload": []}));
+    assert!(
+        state.tasks.is_empty() && state.runs.is_empty(),
+        "nothing is scheduled in this test"
+    );
+
+    // a check's next run replaces its records, and leaves the other checks' alone
+    let before = state.records.len();
+    sqlx::query(
+        "INSERT INTO analysis.roots (id, analysis_mode, event_time_source, pass, completed_pass)
+         VALUES ($1, 'correlation', 'unset', 1, 0)",
+    )
+    .bind(Uuid::new_v4())
+    .execute(db.pool())
+    .await
+    .expect("a root being analyzed");
+    service
+        .report_monitor(
+            &component("scheduler:monitor_workload"),
+            MonitorCheck::Workload,
+            &bucket,
+            "test/1",
+        )
+        .await
+        .expect("runs");
+    let state = service
+        .monitoring_state(&user(reader), None, 50)
+        .await
+        .expect("reads");
+    assert_eq!(state.records.len(), before);
+    assert_eq!(
+        workload(&state),
+        json!({"workload": [{"analysis_mode": "correlation", "count": 1}]})
+    );
+
+    // the runs: every task's or one's, newest first, as many as asked for
+    for (task, outcome, error) in [
+        ("bucket_gc", "succeeded", None),
+        ("bucket_gc", "failed", Some("the bucket didn't answer")),
+        ("nrd_refresh", "succeeded", None),
+    ] {
+        sqlx::query(
+            "INSERT INTO scheduler.runs (task, scheduled_for, node, ended_at, outcome, error, summary)
+             VALUES ($1, now(), 'host/1', now(), $2, $3, '{\"deleted\": 2}')",
+        )
+        .bind(task)
+        .bind(outcome)
+        .bind(error)
+        .execute(db.pool())
+        .await
+        .expect("a run");
+    }
+    sqlx::query(
+        "INSERT INTO scheduler.tasks (name, schedule, due_at) VALUES ('bucket_gc', '0 * * * *', now() + interval '1 hour')",
+    )
+    .execute(db.pool())
+    .await
+    .expect("a task");
+    let state = service
+        .monitoring_state(&user(reader), None, 50)
+        .await
+        .expect("reads");
+    let runs: Vec<(&str, Option<&str>)> = state
+        .runs
+        .iter()
+        .map(|r| (r.task.as_str(), r.outcome.as_deref()))
+        .collect();
+    assert_eq!(
+        runs,
+        [
+            ("nrd_refresh", Some("succeeded")),
+            ("bucket_gc", Some("failed")),
+            ("bucket_gc", Some("succeeded"))
+        ]
+    );
+    assert_eq!(
+        state.runs[1].error.as_deref(),
+        Some("the bucket didn't answer")
+    );
+    assert_eq!(state.runs[1].summary, Some(json!({"deleted": 2})));
+    let task = &state.tasks[0];
+    assert_eq!(
+        (
+            task.name.as_str(),
+            task.last_outcome.as_deref(),
+            task.failures_since_success,
+            task.running,
+            task.overdue_seconds
+        ),
+        ("bucket_gc", Some("failed"), 1, false, 0)
+    );
+    let one = service
+        .monitoring_state(&user(reader), Some("bucket_gc"), 1)
+        .await
+        .expect("reads");
+    assert_eq!(one.runs.len(), 1);
+    assert_eq!(
+        (one.runs[0].task.as_str(), one.runs[0].outcome.as_deref()),
+        ("bucket_gc", Some("failed"))
+    );
+    // a count outside what a read takes is brought inside it
+    let many = service
+        .monitoring_state(&user(reader), None, i64::MAX)
+        .await
+        .expect("reads");
+    assert_eq!(many.runs.len(), 3);
+    let none = service
+        .monitoring_state(&user(reader), Some("no_such_task"), 0)
+        .await
+        .expect("reads");
+    assert!(none.runs.is_empty());
+}
+
 /// test_capture.py's `test_capture_stores_the_file_and_the_record`.
 #[tokio::test]
 async fn capture_stores_the_file_and_the_record() {

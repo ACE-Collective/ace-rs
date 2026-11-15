@@ -284,8 +284,19 @@
       "tags": {}
     },
     "file:8a425c479fcfc2be2427de995b9721648a631a5188acb1eb2aaf8ca45c2057aa": {
-      "detections": {},
-      "directives": {},
+      "detections": {
+        "email.rfc822.headers matched yara rule detect_fqdn": [
+          {
+            "namespace": "observable_export",
+            "rule": "detect_fqdn",
+            "rule_uuid": null,
+            "sha256": "8a425c479fcfc2be2427de995b9721648a631a5188acb1eb2aaf8ca45c2057aa"
+          }
+        ]
+      },
+      "directives": {
+        "sandbox": true
+      },
       "excluded_analysis": {
         "email_analyzer": true
       },
@@ -342,15 +353,129 @@
           },
           "summary": null,
           "tags": {}
+        },
+        "yara_scanner_v3_4": {
+          "details": {
+            "scan_results": [
+              {
+                "context": [
+                  [
+                    17,
+                    "$obsd_1",
+                    "@corp.example>",
+                    "00000000  46 72 6f 6d 3a 20 49 54  20 44 65 73 6b 20 3c 69  |From: IT Desk <i|\n00000010  74 40 63 6f 72 70 2e 65  78 61 6d 70 6c 65 3e 0a  |t@corp.example>.|\n00000020  54 6f 3a 20 70 61 74 40  63 6f 72 70 2e 65 78 61  |To: pat@corp.exa|\n00000030  6d 70 6c 65 0a 52 65 74  75 72 6e 2d 50 61 74 68  |mple.Return-Path|\n00000040  3a 20 3c 62 6f 75 6e 63  65 40 6d 61 69 6c 65 72  |: <bounce@mailer|\n00000050  2e 63 6f 72 70 2e 65 78  61 6d 70 6c 65 3e 0a 53  |.corp.example>.S|\n00000060  75 62 6a 65 63 74 3a 20  49 6e 76 6f 69 63 65 0a  |ubject: Invoice.|\n00000070  44 61 74 65 3a 20 4d 6f  6e 2c 20 30 39 20 4e 6f  |Date: Mon, 09 No|\n00000080  76 20 32 30 32 36 20 31  32 3a 30 30 3a 30        |v 2026 12:00:0|\n0000008e\n"
+                  ],
+                  [
+                    39,
+                    "$obsd_1",
+                    "@corp.example\n",
+                    "00000000  46 72 6f 6d 3a 20 49 54  20 44 65 73 6b 20 3c 69  |From: IT Desk <i|\n00000010  74 40 63 6f 72 70 2e 65  78 61 6d 70 6c 65 3e 0a  |t@corp.example>.|\n00000020  54 6f 3a 20 70 61 74 40  63 6f 72 70 2e 65 78 61  |To: pat@corp.exa|\n00000030  6d 70 6c 65 0a 52 65 74  75 72 6e 2d 50 61 74 68  |mple.Return-Path|\n00000040  3a 20 3c 62 6f 75 6e 63  65 40 6d 61 69 6c 65 72  |: <bounce@mailer|\n00000050  2e 63 6f 72 70 2e 65 78  61 6d 70 6c 65 3e 0a 53  |.corp.example>.S|\n00000060  75 62 6a 65 63 74 3a 20  49 6e 76 6f 69 63 65 0a  |ubject: Invoice.|\n00000070  44 61 74 65 3a 20 4d 6f  6e 2c 20 30 39 20 4e 6f  |Date: Mon, 09 No|\n00000080  76 20 32 30 32 36 20 31  32 3a 30 30 3a 30        |v 2026 12:00:0|\n0000008e\n"
+                  ],
+                  [
+                    80,
+                    "$obsd_1",
+                    ".corp.example>",
+                    "00000000  74 40 63 6f 72 70 2e 65  78 61 6d 70 6c 65 3e 0a  |t@corp.example>.|\n00000010  54 6f 3a 20 70 61 74 40  63 6f 72 70 2e 65 78 61  |To: pat@corp.exa|\n00000020  6d 70 6c 65 0a 52 65 74  75 72 6e 2d 50 61 74 68  |mple.Return-Path|\n00000030  3a 20 3c 62 6f 75 6e 63  65 40 6d 61 69 6c 65 72  |: <bounce@mailer|\n00000040  2e 63 6f 72 70 2e 65 78  61 6d 70 6c 65 3e 0a 53  |.corp.example>.S|\n00000050  75 62 6a 65 63 74 3a 20  49 6e 76 6f 69 63 65 0a  |ubject: Invoice.|\n00000060  44 61 74 65 3a 20 4d 6f  6e 2c 20 30 39 20 4e 6f  |Date: Mon, 09 No|\n00000070  76 20 32 30 32 36 20 31  32 3a 30 30 3a 30 30 20  |v 2026 12:00:00 |\n00000080  2b 30 30 30 30 0a 4d 65  73 73 61 67 65 2d        |+0000.Message-|\n0000008e\n"
+                  ],
+                  [
+                    178,
+                    "$obsd_1",
+                    "@corp.example>",
+                    "00000000  74 65 3a 20 4d 6f 6e 2c  20 30 39 20 4e 6f 76 20  |te: Mon, 09 Nov |\n00000010  32 30 32 36 20 31 32 3a  30 30 3a 30 30 20 2b 30  |2026 12:00:00 +0|\n00000020  30 30 30 0a 4d 65 73 73  61 67 65 2d 49 44 3a 20  |000.Message-ID: |\n00000030  3c 6c 75 72 65 5f 61 74  74 61 63 68 6d 65 6e 74  |<lure_attachment|\n00000040  40 63 6f 72 70 2e 65 78  61 6d 70 6c 65 3e 0a 4d  |@corp.example>.M|\n00000050  49 4d 45 2d 56 65 72 73  69 6f 6e 3a 20 31 2e 30  |IME-Version: 1.0|\n00000060  0a 43 6f 6e 74 65 6e 74  2d 54 79 70 65 3a 20 6d  |.Content-Type: m|\n00000070  75 6c 74 69 70 61 72 74  2f 6d 69 78 65 64 3b 20  |ultipart/mixed; |\n00000080  62 6f 75 6e 64 61 72 79  3d 22 6c 75 72 65        |boundary=\"lure|\n0000008e\n"
+                  ]
+                ],
+                "match_context": [
+                  {
+                    "data": "RnJvbTogSVQgRGVzayA8aXRAY29ycC5leGFtcGxlPgpUbzogcGF0QGNvcnAuZXhhbXBsZQpSZXR1cm4tUGF0aDogPGJvdW5jZUBtYWlsZXIuY29ycC5leGFtcGxlPgpTdWJqZWN0OiBJbnZvaWNlCkRhdGU6IE1vbiwgMDkgTm92IDIwMjYgMTI6MDA6MA==",
+                    "match_length": 14,
+                    "match_offset": 17
+                  },
+                  {
+                    "data": "RnJvbTogSVQgRGVzayA8aXRAY29ycC5leGFtcGxlPgpUbzogcGF0QGNvcnAuZXhhbXBsZQpSZXR1cm4tUGF0aDogPGJvdW5jZUBtYWlsZXIuY29ycC5leGFtcGxlPgpTdWJqZWN0OiBJbnZvaWNlCkRhdGU6IE1vbiwgMDkgTm92IDIwMjYgMTI6MDA6MA==",
+                    "match_length": 14,
+                    "match_offset": 39
+                  },
+                  {
+                    "data": "dEBjb3JwLmV4YW1wbGU+ClRvOiBwYXRAY29ycC5leGFtcGxlClJldHVybi1QYXRoOiA8Ym91bmNlQG1haWxlci5jb3JwLmV4YW1wbGU+ClN1YmplY3Q6IEludm9pY2UKRGF0ZTogTW9uLCAwOSBOb3YgMjAyNiAxMjowMDowMCArMDAwMApNZXNzYWdlLQ==",
+                    "match_length": 14,
+                    "match_offset": 64
+                  },
+                  {
+                    "data": "dGU6IE1vbiwgMDkgTm92IDIwMjYgMTI6MDA6MDAgKzAwMDAKTWVzc2FnZS1JRDogPGx1cmVfYXR0YWNobWVudEBjb3JwLmV4YW1wbGU+Ck1JTUUtVmVyc2lvbjogMS4wCkNvbnRlbnQtVHlwZTogbXVsdGlwYXJ0L21peGVkOyBib3VuZGFyeT0ibHVyZQ==",
+                    "match_length": 14,
+                    "match_offset": 64
+                  }
+                ],
+                "meta": {
+                  "author": "ACE Automation",
+                  "description": "ACE Observable Export",
+                  "platform": "ACE",
+                  "scope": "['detection']",
+                  "tlp": "amber"
+                },
+                "namespace": "<work>/signatures/observable_export",
+                "rule": "detect_fqdn",
+                "rule_content_hash": "ccb16da16578f5311ba0f4e3b8abf90cbdfcd67d540be95131fe7ab048bad5b4",
+                "rule_source": {
+                  "file": "fqdn.yar",
+                  "start_line": 1,
+                  "text": "rule detect_fqdn : detect_fqdn\n{\n    meta:\n        author = \"ACE Automation\"\n        description = \"ACE Observable Export\"\n        tlp = \"amber\"\n        date = \"11/15/2026\"\n        scope = \"['detection']\"\n        platform = \"ACE\"\n    strings:\n          $obsd_1 = /(^|[^a-zA-Z0-9_\\-])corp\\.example([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase\n          $obsd_wide_1 = /(^|([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00]))c\\x00o\\x00r\\x00p\\x00\\.\\x00e\\x00x\\x00a\\x00m\\x00p\\x00l\\x00e\\x00(([^a-zA-Z0-9_\\-.]\\x00|[\\x00-\\xff][^\\x00])|\\.\\x00([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00])|(\\.\\x00)?$)/ nocase\n\n    condition:\n        any of ($obsd_*)\n}\n"
+                },
+                "string_patterns": {
+                  "$obsd_1": "/(^|[^a-zA-Z0-9_\\-])corp\\.example([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase"
+                },
+                "strings": [
+                  [
+                    17,
+                    "$obsd_1",
+                    "@corp.example>"
+                  ],
+                  [
+                    39,
+                    "$obsd_1",
+                    "@corp.example\n"
+                  ],
+                  [
+                    80,
+                    "$obsd_1",
+                    ".corp.example>"
+                  ],
+                  [
+                    178,
+                    "$obsd_1",
+                    "@corp.example>"
+                  ]
+                ],
+                "tags": [
+                  "detect_fqdn"
+                ],
+                "target": "<root>/files/email.rfc822.headers"
+              }
+            ]
+          },
+          "summary": "Yara Scan Results: matched yara rules detect_fqdn",
+          "tags": {}
         }
       },
       "tags": {
+        "detect_fqdn": true,
         "email": true
       }
     },
     "file:ae0023a3a35753a14cd1c10489cc7fcbca5e059e120f120986b455e240c16519": {
-      "detections": {},
-      "directives": {},
+      "detections": {
+        "email.rfc822 matched yara rule detect_fqdn": [
+          {
+            "namespace": "observable_export",
+            "rule": "detect_fqdn",
+            "rule_uuid": null,
+            "sha256": "ae0023a3a35753a14cd1c10489cc7fcbca5e059e120f120986b455e240c16519"
+          }
+        ]
+      },
+      "directives": {
+        "sandbox": true
+      },
       "excluded_analysis": {},
       "paths": {
         "email.rfc822": {
@@ -581,15 +706,129 @@
           },
           "summary": null,
           "tags": {}
+        },
+        "yara_scanner_v3_4": {
+          "details": {
+            "scan_results": [
+              {
+                "context": [
+                  [
+                    17,
+                    "$obsd_1",
+                    "@corp.example>",
+                    "00000000  46 72 6f 6d 3a 20 49 54  20 44 65 73 6b 20 3c 69  |From: IT Desk <i|\n00000010  74 40 63 6f 72 70 2e 65  78 61 6d 70 6c 65 3e 0a  |t@corp.example>.|\n00000020  54 6f 3a 20 70 61 74 40  63 6f 72 70 2e 65 78 61  |To: pat@corp.exa|\n00000030  6d 70 6c 65 0a 52 65 74  75 72 6e 2d 50 61 74 68  |mple.Return-Path|\n00000040  3a 20 3c 62 6f 75 6e 63  65 40 6d 61 69 6c 65 72  |: <bounce@mailer|\n00000050  2e 63 6f 72 70 2e 65 78  61 6d 70 6c 65 3e 0a 53  |.corp.example>.S|\n00000060  75 62 6a 65 63 74 3a 20  49 6e 76 6f 69 63 65 0a  |ubject: Invoice.|\n00000070  44 61 74 65 3a 20 4d 6f  6e 2c 20 30 39 20 4e 6f  |Date: Mon, 09 No|\n00000080  76 20 32 30 32 36 20 31  32 3a 30 30 3a 30        |v 2026 12:00:0|\n0000008e\n"
+                  ],
+                  [
+                    39,
+                    "$obsd_1",
+                    "@corp.example\n",
+                    "00000000  46 72 6f 6d 3a 20 49 54  20 44 65 73 6b 20 3c 69  |From: IT Desk <i|\n00000010  74 40 63 6f 72 70 2e 65  78 61 6d 70 6c 65 3e 0a  |t@corp.example>.|\n00000020  54 6f 3a 20 70 61 74 40  63 6f 72 70 2e 65 78 61  |To: pat@corp.exa|\n00000030  6d 70 6c 65 0a 52 65 74  75 72 6e 2d 50 61 74 68  |mple.Return-Path|\n00000040  3a 20 3c 62 6f 75 6e 63  65 40 6d 61 69 6c 65 72  |: <bounce@mailer|\n00000050  2e 63 6f 72 70 2e 65 78  61 6d 70 6c 65 3e 0a 53  |.corp.example>.S|\n00000060  75 62 6a 65 63 74 3a 20  49 6e 76 6f 69 63 65 0a  |ubject: Invoice.|\n00000070  44 61 74 65 3a 20 4d 6f  6e 2c 20 30 39 20 4e 6f  |Date: Mon, 09 No|\n00000080  76 20 32 30 32 36 20 31  32 3a 30 30 3a 30        |v 2026 12:00:0|\n0000008e\n"
+                  ],
+                  [
+                    80,
+                    "$obsd_1",
+                    ".corp.example>",
+                    "00000000  74 40 63 6f 72 70 2e 65  78 61 6d 70 6c 65 3e 0a  |t@corp.example>.|\n00000010  54 6f 3a 20 70 61 74 40  63 6f 72 70 2e 65 78 61  |To: pat@corp.exa|\n00000020  6d 70 6c 65 0a 52 65 74  75 72 6e 2d 50 61 74 68  |mple.Return-Path|\n00000030  3a 20 3c 62 6f 75 6e 63  65 40 6d 61 69 6c 65 72  |: <bounce@mailer|\n00000040  2e 63 6f 72 70 2e 65 78  61 6d 70 6c 65 3e 0a 53  |.corp.example>.S|\n00000050  75 62 6a 65 63 74 3a 20  49 6e 76 6f 69 63 65 0a  |ubject: Invoice.|\n00000060  44 61 74 65 3a 20 4d 6f  6e 2c 20 30 39 20 4e 6f  |Date: Mon, 09 No|\n00000070  76 20 32 30 32 36 20 31  32 3a 30 30 3a 30 30 20  |v 2026 12:00:00 |\n00000080  2b 30 30 30 30 0a 4d 65  73 73 61 67 65 2d        |+0000.Message-|\n0000008e\n"
+                  ],
+                  [
+                    178,
+                    "$obsd_1",
+                    "@corp.example>",
+                    "00000000  74 65 3a 20 4d 6f 6e 2c  20 30 39 20 4e 6f 76 20  |te: Mon, 09 Nov |\n00000010  32 30 32 36 20 31 32 3a  30 30 3a 30 30 20 2b 30  |2026 12:00:00 +0|\n00000020  30 30 30 0a 4d 65 73 73  61 67 65 2d 49 44 3a 20  |000.Message-ID: |\n00000030  3c 6c 75 72 65 5f 61 74  74 61 63 68 6d 65 6e 74  |<lure_attachment|\n00000040  40 63 6f 72 70 2e 65 78  61 6d 70 6c 65 3e 0a 4d  |@corp.example>.M|\n00000050  49 4d 45 2d 56 65 72 73  69 6f 6e 3a 20 31 2e 30  |IME-Version: 1.0|\n00000060  0a 43 6f 6e 74 65 6e 74  2d 54 79 70 65 3a 20 6d  |.Content-Type: m|\n00000070  75 6c 74 69 70 61 72 74  2f 6d 69 78 65 64 3b 20  |ultipart/mixed; |\n00000080  62 6f 75 6e 64 61 72 79  3d 22 6c 75 72 65        |boundary=\"lure|\n0000008e\n"
+                  ]
+                ],
+                "match_context": [
+                  {
+                    "data": "RnJvbTogSVQgRGVzayA8aXRAY29ycC5leGFtcGxlPgpUbzogcGF0QGNvcnAuZXhhbXBsZQpSZXR1cm4tUGF0aDogPGJvdW5jZUBtYWlsZXIuY29ycC5leGFtcGxlPgpTdWJqZWN0OiBJbnZvaWNlCkRhdGU6IE1vbiwgMDkgTm92IDIwMjYgMTI6MDA6MA==",
+                    "match_length": 14,
+                    "match_offset": 17
+                  },
+                  {
+                    "data": "RnJvbTogSVQgRGVzayA8aXRAY29ycC5leGFtcGxlPgpUbzogcGF0QGNvcnAuZXhhbXBsZQpSZXR1cm4tUGF0aDogPGJvdW5jZUBtYWlsZXIuY29ycC5leGFtcGxlPgpTdWJqZWN0OiBJbnZvaWNlCkRhdGU6IE1vbiwgMDkgTm92IDIwMjYgMTI6MDA6MA==",
+                    "match_length": 14,
+                    "match_offset": 39
+                  },
+                  {
+                    "data": "dEBjb3JwLmV4YW1wbGU+ClRvOiBwYXRAY29ycC5leGFtcGxlClJldHVybi1QYXRoOiA8Ym91bmNlQG1haWxlci5jb3JwLmV4YW1wbGU+ClN1YmplY3Q6IEludm9pY2UKRGF0ZTogTW9uLCAwOSBOb3YgMjAyNiAxMjowMDowMCArMDAwMApNZXNzYWdlLQ==",
+                    "match_length": 14,
+                    "match_offset": 64
+                  },
+                  {
+                    "data": "dGU6IE1vbiwgMDkgTm92IDIwMjYgMTI6MDA6MDAgKzAwMDAKTWVzc2FnZS1JRDogPGx1cmVfYXR0YWNobWVudEBjb3JwLmV4YW1wbGU+Ck1JTUUtVmVyc2lvbjogMS4wCkNvbnRlbnQtVHlwZTogbXVsdGlwYXJ0L21peGVkOyBib3VuZGFyeT0ibHVyZQ==",
+                    "match_length": 14,
+                    "match_offset": 64
+                  }
+                ],
+                "meta": {
+                  "author": "ACE Automation",
+                  "description": "ACE Observable Export",
+                  "platform": "ACE",
+                  "scope": "['detection']",
+                  "tlp": "amber"
+                },
+                "namespace": "<work>/signatures/observable_export",
+                "rule": "detect_fqdn",
+                "rule_content_hash": "ccb16da16578f5311ba0f4e3b8abf90cbdfcd67d540be95131fe7ab048bad5b4",
+                "rule_source": {
+                  "file": "fqdn.yar",
+                  "start_line": 1,
+                  "text": "rule detect_fqdn : detect_fqdn\n{\n    meta:\n        author = \"ACE Automation\"\n        description = \"ACE Observable Export\"\n        tlp = \"amber\"\n        date = \"11/15/2026\"\n        scope = \"['detection']\"\n        platform = \"ACE\"\n    strings:\n          $obsd_1 = /(^|[^a-zA-Z0-9_\\-])corp\\.example([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase\n          $obsd_wide_1 = /(^|([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00]))c\\x00o\\x00r\\x00p\\x00\\.\\x00e\\x00x\\x00a\\x00m\\x00p\\x00l\\x00e\\x00(([^a-zA-Z0-9_\\-.]\\x00|[\\x00-\\xff][^\\x00])|\\.\\x00([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00])|(\\.\\x00)?$)/ nocase\n\n    condition:\n        any of ($obsd_*)\n}\n"
+                },
+                "string_patterns": {
+                  "$obsd_1": "/(^|[^a-zA-Z0-9_\\-])corp\\.example([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase"
+                },
+                "strings": [
+                  [
+                    17,
+                    "$obsd_1",
+                    "@corp.example>"
+                  ],
+                  [
+                    39,
+                    "$obsd_1",
+                    "@corp.example\n"
+                  ],
+                  [
+                    80,
+                    "$obsd_1",
+                    ".corp.example>"
+                  ],
+                  [
+                    178,
+                    "$obsd_1",
+                    "@corp.example>"
+                  ]
+                ],
+                "tags": [
+                  "detect_fqdn"
+                ],
+                "target": "<root>/files/email.rfc822"
+              }
+            ]
+          },
+          "summary": "Yara Scan Results: matched yara rules detect_fqdn",
+          "tags": {}
         }
       },
       "tags": {
+        "detect_fqdn": true,
         "email": true
       }
     },
     "file:c67c094e14d3a34f7c257824c6b0a3ee67fbb4a989e2c4fde26e74b63281547b": {
-      "detections": {},
-      "directives": {},
+      "detections": {
+        "email.rfc822.combined matched yara rule detect_fqdn": [
+          {
+            "namespace": "observable_export",
+            "rule": "detect_fqdn",
+            "rule_uuid": null,
+            "sha256": "c67c094e14d3a34f7c257824c6b0a3ee67fbb4a989e2c4fde26e74b63281547b"
+          }
+        ]
+      },
+      "directives": {
+        "sandbox": true
+      },
       "excluded_analysis": {
         "email_analyzer": true
       },
@@ -646,9 +885,112 @@
           },
           "summary": null,
           "tags": {}
+        },
+        "yara_scanner_v3_4": {
+          "details": {
+            "scan_results": [
+              {
+                "context": [
+                  [
+                    17,
+                    "$obsd_1",
+                    "@corp.example>",
+                    "00000000  46 72 6f 6d 3a 20 49 54  20 44 65 73 6b 20 3c 69  |From: IT Desk <i|\n00000010  74 40 63 6f 72 70 2e 65  78 61 6d 70 6c 65 3e 0a  |t@corp.example>.|\n00000020  54 6f 3a 20 70 61 74 40  63 6f 72 70 2e 65 78 61  |To: pat@corp.exa|\n00000030  6d 70 6c 65 0a 52 65 74  75 72 6e 2d 50 61 74 68  |mple.Return-Path|\n00000040  3a 20 3c 62 6f 75 6e 63  65 40 6d 61 69 6c 65 72  |: <bounce@mailer|\n00000050  2e 63 6f 72 70 2e 65 78  61 6d 70 6c 65 3e 0a 53  |.corp.example>.S|\n00000060  75 62 6a 65 63 74 3a 20  49 6e 76 6f 69 63 65 0a  |ubject: Invoice.|\n00000070  44 61 74 65 3a 20 4d 6f  6e 2c 20 30 39 20 4e 6f  |Date: Mon, 09 No|\n00000080  76 20 32 30 32 36 20 31  32 3a 30 30 3a 30        |v 2026 12:00:0|\n0000008e\n"
+                  ],
+                  [
+                    39,
+                    "$obsd_1",
+                    "@corp.example\n",
+                    "00000000  46 72 6f 6d 3a 20 49 54  20 44 65 73 6b 20 3c 69  |From: IT Desk <i|\n00000010  74 40 63 6f 72 70 2e 65  78 61 6d 70 6c 65 3e 0a  |t@corp.example>.|\n00000020  54 6f 3a 20 70 61 74 40  63 6f 72 70 2e 65 78 61  |To: pat@corp.exa|\n00000030  6d 70 6c 65 0a 52 65 74  75 72 6e 2d 50 61 74 68  |mple.Return-Path|\n00000040  3a 20 3c 62 6f 75 6e 63  65 40 6d 61 69 6c 65 72  |: <bounce@mailer|\n00000050  2e 63 6f 72 70 2e 65 78  61 6d 70 6c 65 3e 0a 53  |.corp.example>.S|\n00000060  75 62 6a 65 63 74 3a 20  49 6e 76 6f 69 63 65 0a  |ubject: Invoice.|\n00000070  44 61 74 65 3a 20 4d 6f  6e 2c 20 30 39 20 4e 6f  |Date: Mon, 09 No|\n00000080  76 20 32 30 32 36 20 31  32 3a 30 30 3a 30        |v 2026 12:00:0|\n0000008e\n"
+                  ],
+                  [
+                    80,
+                    "$obsd_1",
+                    ".corp.example>",
+                    "00000000  74 40 63 6f 72 70 2e 65  78 61 6d 70 6c 65 3e 0a  |t@corp.example>.|\n00000010  54 6f 3a 20 70 61 74 40  63 6f 72 70 2e 65 78 61  |To: pat@corp.exa|\n00000020  6d 70 6c 65 0a 52 65 74  75 72 6e 2d 50 61 74 68  |mple.Return-Path|\n00000030  3a 20 3c 62 6f 75 6e 63  65 40 6d 61 69 6c 65 72  |: <bounce@mailer|\n00000040  2e 63 6f 72 70 2e 65 78  61 6d 70 6c 65 3e 0a 53  |.corp.example>.S|\n00000050  75 62 6a 65 63 74 3a 20  49 6e 76 6f 69 63 65 0a  |ubject: Invoice.|\n00000060  44 61 74 65 3a 20 4d 6f  6e 2c 20 30 39 20 4e 6f  |Date: Mon, 09 No|\n00000070  76 20 32 30 32 36 20 31  32 3a 30 30 3a 30 30 20  |v 2026 12:00:00 |\n00000080  2b 30 30 30 30 0a 4d 65  73 73 61 67 65 2d        |+0000.Message-|\n0000008e\n"
+                  ],
+                  [
+                    178,
+                    "$obsd_1",
+                    "@corp.example>",
+                    "00000000  74 65 3a 20 4d 6f 6e 2c  20 30 39 20 4e 6f 76 20  |te: Mon, 09 Nov |\n00000010  32 30 32 36 20 31 32 3a  30 30 3a 30 30 20 2b 30  |2026 12:00:00 +0|\n00000020  30 30 30 0a 4d 65 73 73  61 67 65 2d 49 44 3a 20  |000.Message-ID: |\n00000030  3c 6c 75 72 65 5f 61 74  74 61 63 68 6d 65 6e 74  |<lure_attachment|\n00000040  40 63 6f 72 70 2e 65 78  61 6d 70 6c 65 3e 0a 4d  |@corp.example>.M|\n00000050  49 4d 45 2d 56 65 72 73  69 6f 6e 3a 20 31 2e 30  |IME-Version: 1.0|\n00000060  0a 43 6f 6e 74 65 6e 74  2d 54 79 70 65 3a 20 6d  |.Content-Type: m|\n00000070  75 6c 74 69 70 61 72 74  2f 6d 69 78 65 64 3b 20  |ultipart/mixed; |\n00000080  62 6f 75 6e 64 61 72 79  3d 22 6c 75 72 65        |boundary=\"lure|\n0000008e\n"
+                  ]
+                ],
+                "match_context": [
+                  {
+                    "data": "RnJvbTogSVQgRGVzayA8aXRAY29ycC5leGFtcGxlPgpUbzogcGF0QGNvcnAuZXhhbXBsZQpSZXR1cm4tUGF0aDogPGJvdW5jZUBtYWlsZXIuY29ycC5leGFtcGxlPgpTdWJqZWN0OiBJbnZvaWNlCkRhdGU6IE1vbiwgMDkgTm92IDIwMjYgMTI6MDA6MA==",
+                    "match_length": 14,
+                    "match_offset": 17
+                  },
+                  {
+                    "data": "RnJvbTogSVQgRGVzayA8aXRAY29ycC5leGFtcGxlPgpUbzogcGF0QGNvcnAuZXhhbXBsZQpSZXR1cm4tUGF0aDogPGJvdW5jZUBtYWlsZXIuY29ycC5leGFtcGxlPgpTdWJqZWN0OiBJbnZvaWNlCkRhdGU6IE1vbiwgMDkgTm92IDIwMjYgMTI6MDA6MA==",
+                    "match_length": 14,
+                    "match_offset": 39
+                  },
+                  {
+                    "data": "dEBjb3JwLmV4YW1wbGU+ClRvOiBwYXRAY29ycC5leGFtcGxlClJldHVybi1QYXRoOiA8Ym91bmNlQG1haWxlci5jb3JwLmV4YW1wbGU+ClN1YmplY3Q6IEludm9pY2UKRGF0ZTogTW9uLCAwOSBOb3YgMjAyNiAxMjowMDowMCArMDAwMApNZXNzYWdlLQ==",
+                    "match_length": 14,
+                    "match_offset": 64
+                  },
+                  {
+                    "data": "dGU6IE1vbiwgMDkgTm92IDIwMjYgMTI6MDA6MDAgKzAwMDAKTWVzc2FnZS1JRDogPGx1cmVfYXR0YWNobWVudEBjb3JwLmV4YW1wbGU+Ck1JTUUtVmVyc2lvbjogMS4wCkNvbnRlbnQtVHlwZTogbXVsdGlwYXJ0L21peGVkOyBib3VuZGFyeT0ibHVyZQ==",
+                    "match_length": 14,
+                    "match_offset": 64
+                  }
+                ],
+                "meta": {
+                  "author": "ACE Automation",
+                  "description": "ACE Observable Export",
+                  "platform": "ACE",
+                  "scope": "['detection']",
+                  "tlp": "amber"
+                },
+                "namespace": "<work>/signatures/observable_export",
+                "rule": "detect_fqdn",
+                "rule_content_hash": "ccb16da16578f5311ba0f4e3b8abf90cbdfcd67d540be95131fe7ab048bad5b4",
+                "rule_source": {
+                  "file": "fqdn.yar",
+                  "start_line": 1,
+                  "text": "rule detect_fqdn : detect_fqdn\n{\n    meta:\n        author = \"ACE Automation\"\n        description = \"ACE Observable Export\"\n        tlp = \"amber\"\n        date = \"11/15/2026\"\n        scope = \"['detection']\"\n        platform = \"ACE\"\n    strings:\n          $obsd_1 = /(^|[^a-zA-Z0-9_\\-])corp\\.example([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase\n          $obsd_wide_1 = /(^|([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00]))c\\x00o\\x00r\\x00p\\x00\\.\\x00e\\x00x\\x00a\\x00m\\x00p\\x00l\\x00e\\x00(([^a-zA-Z0-9_\\-.]\\x00|[\\x00-\\xff][^\\x00])|\\.\\x00([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00])|(\\.\\x00)?$)/ nocase\n\n    condition:\n        any of ($obsd_*)\n}\n"
+                },
+                "string_patterns": {
+                  "$obsd_1": "/(^|[^a-zA-Z0-9_\\-])corp\\.example([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase"
+                },
+                "strings": [
+                  [
+                    17,
+                    "$obsd_1",
+                    "@corp.example>"
+                  ],
+                  [
+                    39,
+                    "$obsd_1",
+                    "@corp.example\n"
+                  ],
+                  [
+                    80,
+                    "$obsd_1",
+                    ".corp.example>"
+                  ],
+                  [
+                    178,
+                    "$obsd_1",
+                    "@corp.example>"
+                  ]
+                ],
+                "tags": [
+                  "detect_fqdn"
+                ],
+                "target": "<root>/files/email.rfc822.combined"
+              }
+            ]
+          },
+          "summary": "Yara Scan Results: matched yara rules detect_fqdn",
+          "tags": {}
         }
       },
       "tags": {
+        "detect_fqdn": true,
         "email": true
       }
     },
@@ -1461,6 +1803,52 @@
           "details": {
             "extracted_url": "https://pay.lure-example.net/invoice/1001",
             "protection_type": "unprotected"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "yara_rule:detect_fqdn": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "yara_string:detect_fqdn:$obsd_1": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
           },
           "summary": null,
           "tags": {}

@@ -21,6 +21,19 @@
 //! A row lists what SVS reads of each rule with a `uuid` meta as well (`signatures`, PLAN.md 7.10 batch
 //! 5): its name, the hash of its own text, its tags and whether they count. A row built before that
 //! column is filled in the same way.
+//!
+//! **The detections' rules (PLAN.md 7.16).** Each run also reads the observables enabled for detection,
+//! the live entries of 7.6's `observable_detection` list, and what the export would hold of them
+//! (`ace_yara::export`, ace3's `saq/observables/export/yara.py`). Its fingerprint joins the built-in
+//! rules' in the row's `built_ins`, so a commit's row is built again in place when a detection is added,
+//! removed or expires, or the export's settings change: ace3's `export-observables` cron, which runs every
+//! minute and writes only when its fingerprint moved. The rules are the namespace `observable_export` of
+//! the commit's export, which holds nothing else, with an index of each exported detection's type and
+//! value that the YARA module reads (`ace_yara::Ruleset::detection`), so a rule and the observable it
+//! names come from one read of the list. What the export made of the list is the row's
+//! `detection_export`: each type's counts, and each detection left out with why. A list with nothing to
+//! export changes nothing: the row's `built_ins` is the built-in rules' alone, as before 7.16. An entry
+//! that matches by a pattern has no value to find in a file, so it isn't exported.
 
 use std::path::PathBuf;
 use std::time::Duration;
@@ -28,6 +41,8 @@ use std::time::Duration;
 use ace_results::Sha256;
 use ace_yara::LoadOptions;
 pub use ace_yara::YARA_X_VERSION;
+use ace_yara::export::{self, Detection, ExportList};
+pub use ace_yara::export::{ExportConfig, ExportReport};
 use ace_yara::ruleset::{self, BuildError, IncludedFile, LeftOutFile};
 pub use ace_yara::ruleset::{QaRule, RuleSignature};
 use chrono::{DateTime, Utc};
@@ -85,12 +100,90 @@ impl SignatureRepo {
 
 /// The rule files the builder adds to every ruleset, whatever the signature directory holds (PLAN.md 7.10
 /// batch 6): SVS's marker rule, as its own namespace, where ace3 writes it into its signature directory.
-/// 7.16's export of the detections joins it.
+/// 7.16's export of the detections is a namespace beside it, made from the list at each build.
 pub const BUILT_INS: &[ruleset::BuiltIn] = &[crate::svs::marker_rule::BUILT_IN];
 
 /// Which built-ins this build's rulesets hold, as `yara.rulesets.built_ins` records it.
 pub fn built_ins() -> String {
     ruleset::built_ins_sha256(BUILT_INS)
+}
+
+/// The list whose live entries are the observables enabled for detection (`ace_service::detection`).
+pub const DETECTION_LIST: &str = "observable_detection";
+
+/// The most entries one run reads of the list. A list holds at most 1,000 (`ace_sdk::lists`); rows
+/// written past the service are bounded here, and the export leaves out what is over its own bound.
+const MAX_DETECTIONS_READ: i64 = 10_000;
+
+/// The export's settings from the overlay's `yara_export:` section over ace3's defaults, checked: None
+/// when the section turns the export off.
+pub fn export_config(
+    section: &ace_sdk::overlay::YaraExportSection,
+) -> Result<Option<ExportConfig>, String> {
+    let mut config = ExportConfig::default();
+    if let Some(export_list) = &section.export_list {
+        config.export_list = export_list.clone();
+    }
+    if let Some(minimum) = section.export_minimum_length {
+        config.minimum_length = minimum as usize;
+    }
+    if let Some(modifiers) = &section.string_modifiers {
+        config.modifiers = modifiers.clone();
+    }
+    if let Some(boundaries) = &section.string_boundaries {
+        config.boundaries = boundaries.clone();
+    }
+    for (name, template) in &section.templates {
+        config.templates.insert(name.clone(), template.clone());
+    }
+    config.check()?;
+    Ok(section.enabled.unwrap_or(true).then_some(config))
+}
+
+/// What a row's `built_ins` is with this export's fingerprint: the built-in rules' alone when nothing
+/// is exported.
+pub fn built_ins_with(fingerprint: Option<&str>) -> String {
+    match fingerprint {
+        None => built_ins(),
+        Some(fingerprint) => {
+            use sha2::Digest;
+            let digest = sha2::Sha256::digest(format!("{}:{fingerprint}", built_ins()).as_bytes());
+            digest.iter().map(|b| format!("{b:02x}")).collect()
+        }
+    }
+}
+
+/// The types `observable_type` extends, nearest first: none for a type this binary doesn't have.
+fn ancestors(observable_type: &str) -> Vec<String> {
+    observable_type
+        .parse::<ace_results::ObservableKind>()
+        .map(|kind| kind.ancestors().map(|k| k.as_str().to_owned()).collect())
+        .unwrap_or_default()
+}
+
+/// What the export would hold now: the live entries of the detection list that have a value, as the
+/// export's settings select them. ace3's `get_active_detections_by_type` and `build_export_list`.
+pub async fn detection_export_list(db: &Db, config: &ExportConfig) -> Result<ExportList, DbError> {
+    let rows = sqlx::query!(
+        r#"SELECT id, observable_type AS "observable_type!", value
+           FROM lists.entries
+           WHERE list = $1 AND match <> 'regex' AND observable_type IS NOT NULL
+             AND (expires_at IS NULL OR expires_at > now())
+           ORDER BY id LIMIT $2"#,
+        DETECTION_LIST,
+        MAX_DETECTIONS_READ,
+    )
+    .fetch_all(db.pool())
+    .await?;
+    let detections: Vec<Detection> = rows
+        .into_iter()
+        .map(|row| Detection {
+            id: row.id,
+            observable_type: row.observable_type,
+            value: row.value,
+        })
+        .collect();
+    Ok(export::export_list(config, &detections, ancestors))
 }
 
 /// A built ruleset's row.
@@ -110,6 +203,8 @@ pub struct RulesetRow {
     /// What SVS reads of each rule with a `uuid` meta, or None for a row built before they were
     /// recorded.
     pub signatures: Option<Vec<RuleSignature>>,
+    /// What the build made of the observables enabled for detection, or None when it exported none.
+    pub detection_export: Option<ExportReport>,
     pub built_at: DateTime<Utc>,
 }
 
@@ -158,16 +253,40 @@ async fn blocking<T: Send + 'static>(
 
 /// Builds the commit `repo.rev` names unless it has a row already, or one built before QA rules
 /// were recorded, which this fills in. Returns the new or filled row, or None when there was
-/// nothing to build.
+/// nothing to build. The detections are exported with ace3's settings (`build_new_with`).
 pub async fn build_new(
     db: &Db,
     bucket: &Bucket,
     repo: &SignatureRepo,
 ) -> Result<Option<RulesetRow>, RulesetError> {
+    build_new_with(db, bucket, repo, Some(&ExportConfig::default())).await
+}
+
+/// `build_new`, exporting the observables enabled for detection as `export` says, or not at all. A
+/// commit's row is also built again when what would be exported isn't what its ruleset holds.
+pub async fn build_new_with(
+    db: &Db,
+    bucket: &Bucket,
+    repo: &SignatureRepo,
+    export: Option<&ExportConfig>,
+) -> Result<Option<RulesetRow>, RulesetError> {
     let commit = {
         let (path, rev) = (repo.repo.clone(), repo.rev.clone());
         blocking(move || ruleset::resolve_commit(&path, &rev)).await?
     };
+    let exported = match export {
+        Some(config) => {
+            let list = detection_export_list(db, config).await?;
+            (!list.is_empty()).then(|| (config.clone(), list))
+        }
+        None => None,
+    };
+    let built_ins = built_ins_with(
+        exported
+            .as_ref()
+            .map(|(config, list)| export::fingerprint(config, list))
+            .as_deref(),
+    );
     let version = ace_yara::YARA_X_VERSION;
     let built = sqlx::query_scalar!(
         "SELECT id FROM yara.rulesets
@@ -175,7 +294,7 @@ pub async fn build_new(
            AND signatures IS NOT NULL AND built_ins = $3",
         commit,
         version,
-        built_ins(),
+        built_ins,
     )
     .fetch_optional(db.pool())
     .await?;
@@ -183,7 +302,7 @@ pub async fn build_new(
         return Ok(None);
     }
     let span = tracing::info_span!("ruleset_build", %commit);
-    build_commit(db, bucket, repo, commit)
+    build_commit(db, bucket, repo, commit, exported, built_ins)
         .instrument(span)
         .await
         .map(Some)
@@ -194,6 +313,8 @@ async fn build_commit(
     bucket: &Bucket,
     repo: &SignatureRepo,
     commit: String,
+    exported: Option<(ExportConfig, ExportList)>,
+    built_ins: String,
 ) -> Result<RulesetRow, RulesetError> {
     let version = ace_yara::YARA_X_VERSION;
     let tree = {
@@ -205,83 +326,122 @@ async fn build_commit(
         dir: repo.dir.display().to_string(),
     })?;
 
-    // the same tree built before gives the same bytes, so its row's build serves this commit
+    // the same tree built before with the same export gives the same rules, so its row's build
+    // serves this commit
     let earlier = sqlx::query!(
         r#"SELECT key, sources_sha256, files, left_out, qa_rules AS "qa_rules!",
-                  signatures AS "signatures!"
+                  signatures AS "signatures!", detection_export
            FROM yara.rulesets
            WHERE tree = $1 AND yara_x_version = $2 AND qa_rules IS NOT NULL
              AND signatures IS NOT NULL AND built_ins = $3
            ORDER BY id DESC LIMIT 1"#,
         tree,
         version,
-        built_ins(),
+        built_ins,
     )
     .fetch_optional(db.pool())
     .await?;
-    let (key, sources_sha256, files, left_out, qa_rules, signatures) = match earlier {
-        Some(row) => {
-            tracing::info!(key = %row.key, "the signature directory is unchanged since an earlier build");
-            (
-                row.key,
-                row.sources_sha256,
-                row.files,
-                row.left_out,
-                row.qa_rules,
-                row.signatures,
-            )
-        }
-        None => {
-            let built = {
-                let (path, commit, dir) = (repo.repo.clone(), commit.clone(), repo.dir.clone());
-                blocking(move || {
-                    ruleset::build_commit_with(
-                        &path,
-                        &commit,
-                        &dir,
-                        &LoadOptions::default(),
-                        BUILT_INS,
-                    )
-                })
-                .await?
-            };
-            let manifest = built.manifest;
-            for file in &manifest.left_out {
-                tracing::error!(
-                    path = %file.path,
-                    commit = %commit,
-                    "a YARA rule file was left out of the ruleset: {}",
-                    file.error
-                );
+    let (key, sources_sha256, files, left_out, qa_rules, signatures, detection_export) =
+        match earlier {
+            Some(row) => {
+                tracing::info!(key = %row.key, "the signature directory is unchanged since an earlier build");
+                (
+                    row.key,
+                    row.sources_sha256,
+                    row.files,
+                    row.left_out,
+                    row.qa_rules,
+                    row.signatures,
+                    row.detection_export,
+                )
             }
-            let put = bucket.put_bytes(RULESETS, &built.bytes, None).await?;
-            if put.object.sha256.to_hex() != manifest.key {
-                return Err(RulesetError::Build(format!(
-                    "the bucket named the ruleset {}, not its key {}",
-                    put.object.sha256, manifest.key
-                )));
+            None => {
+                let (built, report) = {
+                    let (path, commit, dir) = (repo.repo.clone(), commit.clone(), repo.dir.clone());
+                    // the date the templates write, as ace3's: the day the rules were generated
+                    let date = Utc::now().format("%m/%d/%Y").to_string();
+                    blocking(move || {
+                        let generated =
+                            exported.map(|(config, list)| export::generate(&config, &list, &date));
+                        // the namespace is the export's alone, with or without files
+                        let owned = ruleset::Owned {
+                            namespace: export::NAMESPACE.to_owned(),
+                            files: generated
+                                .iter()
+                                .flat_map(|g| &g.files)
+                                .map(|file| (file.name.clone(), file.source.clone()))
+                                .collect(),
+                        };
+                        let built = ruleset::build_commit_owning(
+                            &path,
+                            &commit,
+                            &dir,
+                            &LoadOptions::default(),
+                            BUILT_INS,
+                            &[owned],
+                        )?;
+                        Ok((built, generated.map(|g| g.report)))
+                    })
+                    .await?
+                };
+                let manifest = built.manifest;
+                for file in &manifest.left_out {
+                    tracing::error!(
+                        path = %file.path,
+                        commit = %commit,
+                        "a YARA rule file was left out of the ruleset: {}",
+                        file.error
+                    );
+                }
+                if let Some(report) = &report {
+                    if let Some(error) = &report.error {
+                        tracing::error!("no detection was exported to YARA: {error}");
+                    }
+                    // the error quotes the value, which the row keeps and the log doesn't
+                    for skipped in &report.skipped {
+                        tracing::warn!(
+                            id = skipped.id,
+                            observable_type = %skipped.export_type,
+                            "a detection was left out of the YARA export"
+                        );
+                    }
+                    tracing::info!(
+                        exported = report.exported(),
+                        skipped = report.skipped.len(),
+                        "exported the observables enabled for detection to YARA"
+                    );
+                }
+                let put = bucket.put_bytes(RULESETS, &built.bytes, None).await?;
+                if put.object.sha256.to_hex() != manifest.key {
+                    return Err(RulesetError::Build(format!(
+                        "the bucket named the ruleset {}, not its key {}",
+                        put.object.sha256, manifest.key
+                    )));
+                }
+                let json = |value: serde_json::Result<serde_json::Value>| {
+                    value.map_err(|e| RulesetError::Build(format!("the manifest: {e}")))
+                };
+                (
+                    manifest.key,
+                    manifest.sources_sha256,
+                    json(serde_json::to_value(&manifest.files))?,
+                    json(serde_json::to_value(&manifest.left_out))?,
+                    json(serde_json::to_value(&manifest.qa_rules))?,
+                    json(serde_json::to_value(&manifest.signatures))?,
+                    report
+                        .map(|report| json(serde_json::to_value(&report)))
+                        .transpose()?,
+                )
             }
-            let json = |value: serde_json::Result<serde_json::Value>| {
-                value.map_err(|e| RulesetError::Build(format!("the manifest: {e}")))
-            };
-            (
-                manifest.key,
-                manifest.sources_sha256,
-                json(serde_json::to_value(&manifest.files))?,
-                json(serde_json::to_value(&manifest.left_out))?,
-                json(serde_json::to_value(&manifest.qa_rules))?,
-                json(serde_json::to_value(&manifest.signatures))?,
-            )
-        }
-    };
+        };
     // a core on another node may have built the same commit meanwhile; a row from before QA
     // rules or SVS's signatures were recorded gets them, and keeps the rest; a row built with other
-    // built-in rules than this build's is this build's from here on
+    // built-in rules or another export of the detections than this build's is this build's from here on
     sqlx::query!(
         "INSERT INTO yara.rulesets AS r
              (key, commit, tree, sources_sha256, yara_x_version, files, left_out, qa_rules,
-              signatures, built_ins)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+              signatures, built_ins, detection_export)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
          ON CONFLICT (commit, yara_x_version) DO UPDATE
          SET key = CASE WHEN r.built_ins IS DISTINCT FROM EXCLUDED.built_ins
                         THEN EXCLUDED.key ELSE r.key END,
@@ -297,6 +457,8 @@ async fn build_commit(
              signatures = CASE WHEN r.built_ins IS DISTINCT FROM EXCLUDED.built_ins
                                THEN EXCLUDED.signatures
                                ELSE COALESCE(r.signatures, EXCLUDED.signatures) END,
+             detection_export = CASE WHEN r.built_ins IS DISTINCT FROM EXCLUDED.built_ins
+                                     THEN EXCLUDED.detection_export ELSE r.detection_export END,
              built_at = CASE WHEN r.built_ins IS DISTINCT FROM EXCLUDED.built_ins
                              THEN now() ELSE r.built_at END,
              built_ins = EXCLUDED.built_ins
@@ -311,7 +473,8 @@ async fn build_commit(
         left_out,
         qa_rules,
         signatures,
-        built_ins(),
+        built_ins,
+        detection_export,
     )
     .execute(db.pool())
     .await?;
@@ -340,6 +503,7 @@ struct Record {
     left_out: serde_json::Value,
     qa_rules: Option<serde_json::Value>,
     signatures: Option<serde_json::Value>,
+    detection_export: Option<serde_json::Value>,
     built_at: DateTime<Utc>,
 }
 
@@ -371,6 +535,11 @@ impl Record {
                 .map(serde_json::from_value)
                 .transpose()
                 .map_err(|e| decode("signatures", e.to_string()))?,
+            detection_export: self
+                .detection_export
+                .map(serde_json::from_value)
+                .transpose()
+                .map_err(|e| decode("detection_export", e.to_string()))?,
             built_at: self.built_at,
         })
     }
@@ -381,7 +550,7 @@ pub async fn by_commit(db: &Db, commit: &str) -> Result<Option<RulesetRow>, DbEr
     sqlx::query_as!(
         Record,
         "SELECT id, key, commit, tree, sources_sha256, yara_x_version, files, left_out, qa_rules,
-                signatures, built_at
+                signatures, detection_export, built_at
          FROM yara.rulesets WHERE commit = $1 AND yara_x_version = $2",
         commit,
         ace_yara::YARA_X_VERSION,
@@ -405,7 +574,7 @@ pub async fn current_with<'c>(
     sqlx::query_as!(
         Record,
         "SELECT id, key, commit, tree, sources_sha256, yara_x_version, files, left_out, qa_rules,
-                signatures, built_at
+                signatures, detection_export, built_at
          FROM yara.rulesets WHERE yara_x_version = $1 ORDER BY id DESC LIMIT 1",
         ace_yara::YARA_X_VERSION,
     )
@@ -415,19 +584,20 @@ pub async fn current_with<'c>(
     .transpose()
 }
 
-/// Runs `build_new` every `interval` until `stop` fires. A failed build is logged and tried
+/// Runs `build_new_with` every `interval` until `stop` fires. A failed build is logged and tried
 /// again on the next run.
 pub async fn run_builder(
     db: Db,
     bucket: Bucket,
     repo: SignatureRepo,
+    export: Option<ExportConfig>,
     interval: Duration,
     stop: CancellationToken,
 ) {
     loop {
         tokio::select! {
             () = stop.cancelled() => return,
-            built = build_new(&db, &bucket, &repo) => {
+            built = build_new_with(&db, &bucket, &repo, export.as_ref()) => {
                 if let Err(e) = built {
                     tracing::error!(repo = %repo.repo.display(), "the ruleset build failed: {e}");
                 }

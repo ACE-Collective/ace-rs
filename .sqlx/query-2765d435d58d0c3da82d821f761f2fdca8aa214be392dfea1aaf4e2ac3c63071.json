@@ -1,0 +1,88 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, task, path, identifier, value, emitted_at\n         FROM monitoring.records ORDER BY task, id LIMIT $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "monitoring.records",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "task",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "monitoring.records",
+            "name": "task"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "path",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "monitoring.records",
+            "name": "path"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "identifier",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "monitoring.records",
+            "name": "identifier"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "value",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "monitoring.records",
+            "name": "value"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "emitted_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "monitoring.records",
+            "name": "emitted_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "2765d435d58d0c3da82d821f761f2fdca8aa214be392dfea1aaf4e2ac3c63071"
+}

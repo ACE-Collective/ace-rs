@@ -1,0 +1,74 @@
+{#- Administration's Monitoring page (PLAN.md 7.12): the scheduled tasks, their runs, and what the
+    monitoring checks last found (src/monitoring.rs). ace3 has no such page: its monitors' records and
+    its cron runs' outcomes go to fluent-bit. -#}
+{% extends "base.html" %}
+{% block title %}Monitoring · Administration · ACE{% endblock %}
+{% block content %}
+<section class="admin monitoring">
+  <p><a href="/admin">Administration</a></p>
+  <h1>Monitoring</h1>
+
+  <h2>Scheduled tasks</h2>
+  <table class="keys monitoring-tasks">
+    <thead><tr><th>Task</th><th>Schedule (UTC)</th><th>Due</th><th>Last run</th><th>Ended</th><th>Failures since a success</th><th>Error</th></tr></thead>
+    <tbody>
+      {%- for task in view.tasks %}
+      <tr>
+        <td><a href="{{ task.href }}">{{ task.name }}</a></td>
+        <td><code>{{ task.schedule }}</code></td>
+        <td><span class="nowrap">{{ task.due }}</span>{% if task.running %} <span class="badge">running</span>{% endif %}{% if let Some(overdue) = task.overdue %} <span class="badge">overdue {{ overdue }}</span>{% endif %}</td>
+        <td>{% if task.last_failed %}<span class="badge">{{ task.last_outcome }}</span>{% else %}{{ task.last_outcome }}{% endif %}</td>
+        <td><span class="nowrap">{{ task.last_ended }}</span></td>
+        <td>{{ task.failures }}</td>
+        <td>{{ task.last_error }}</td>
+      </tr>
+      {%- else %}
+      <tr><td colspan="7" class="muted">No task has been scheduled yet.</td></tr>
+      {%- endfor %}
+    </tbody>
+  </table>
+
+  <h2>Runs{% if !view.selected_task.is_empty() %} of {{ view.selected_task }}{% endif %}</h2>
+  {%- if !view.selected_task.is_empty() %}
+  <p><a href="/admin/monitoring">Every task's runs</a></p>
+  {%- endif %}
+  <table class="keys monitoring-runs">
+    <thead><tr><th>Task</th><th>Due</th><th>Started</th><th>Ended</th><th>Outcome</th><th>Node</th><th>Summary</th><th>Error</th></tr></thead>
+    <tbody>
+      {%- for run in view.runs %}
+      <tr>
+        <td>{{ run.task }}</td>
+        <td><span class="nowrap">{{ run.scheduled_for }}</span></td>
+        <td><span class="nowrap">{{ run.started }}</span></td>
+        <td><span class="nowrap">{{ run.ended }}</span></td>
+        <td>{% if run.failed %}<span class="badge">{{ run.outcome }}</span>{% else %}{{ run.outcome }}{% endif %}</td>
+        <td>{{ run.node }}</td>
+        <td><code>{{ run.summary }}</code></td>
+        <td>{{ run.error }}</td>
+      </tr>
+      {%- else %}
+      <tr><td colspan="8" class="muted">No runs.</td></tr>
+      {%- endfor %}
+    </tbody>
+  </table>
+
+  <h2>Monitor records</h2>
+  <p class="muted">What each check found when it last ran. A check's run replaces its records.{% if view.records_left_out > 0 %} {{ view.records_left_out }} more aren't shown.{% endif %}</p>
+  <table class="keys monitoring-records">
+    <thead><tr><th>Check</th><th>Path</th><th>About</th><th>Value</th><th>Emitted</th></tr></thead>
+    <tbody>
+      {%- for record in view.records %}
+      <tr>
+        <td>{{ record.task }}</td>
+        <td><code>{{ record.path }}</code></td>
+        <td>{{ record.identifier }}</td>
+        <td><code>{{ record.value }}</code></td>
+        <td><span class="nowrap">{{ record.emitted }}</span></td>
+      </tr>
+      {%- else %}
+      <tr><td colspan="5" class="muted">No check has run yet.</td></tr>
+      {%- endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

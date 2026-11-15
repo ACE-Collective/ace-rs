@@ -1184,6 +1184,7 @@ async fn bucket_verify_records_an_intact_object_and_fails_on_a_corrupt_one() {
 async fn each_task_acts_as_its_own_component_with_only_its_grant() {
     let fixture = Fixture::new().await;
     let names = [
+        ace_service::MONITORING_REPORT,
         ace_service::BUCKET_GC,
         ace_service::BUCKET_VERIFY,
         ace_service::SIGNATURE_QA_PURGE,
@@ -1208,6 +1209,23 @@ async fn each_task_acts_as_its_own_component_with_only_its_grant() {
         for name in &names {
             let allowed = fixture.service.allowed(&actor, name).await.expect("checks");
             assert_eq!(allowed, *name == holds, "{task} and {name}");
+        }
+    }
+    // each monitoring check holds monitoring:report and nothing else (PLAN.md 7.12)
+    for task in Task::monitors() {
+        let actor = builtin(&task.name).actor;
+        assert_eq!(
+            actor.to_string(),
+            format!("internal:scheduler:{}", task.name)
+        );
+        for name in names.iter().chain([&ace_service::MONITORING_READ]) {
+            let allowed = fixture.service.allowed(&actor, name).await.expect("checks");
+            assert_eq!(
+                allowed,
+                *name == ace_service::MONITORING_REPORT,
+                "{} and {name}",
+                task.name
+            );
         }
     }
     // a task acting as a component without the grant is refused, and its run fails
@@ -1520,6 +1538,15 @@ fn the_overlay_s_scheduler_section_sets_each_task_over_its_defaults() {
             ("svs_coverage_refresh", "*/2 * * * *", 600, true),
             ("svs_coverage_snapshot", "0 5 * * *", 3600, true),
             ("nrd_refresh", "*/30 * * * *", 1500, true),
+            // ace3's monitors (PLAN.md 7.12): every 5 or 30 seconds there, every minute here; its
+            // pools' every 300 seconds; and its hourly cron for the node's read cache
+            ("monitor_workload", "* * * * *", 60, true),
+            ("monitor_delayed_analysis", "* * * * *", 60, true),
+            ("monitor_leases", "* * * * *", 60, true),
+            ("monitor_queue", "* * * * *", 60, true),
+            ("monitor_bucket_pools", "*/5 * * * *", 240, true),
+            ("monitor_scheduler", "* * * * *", 60, true),
+            ("bucket_node_stats", "0 * * * *", 600, true),
         ]
     );
     let actors: Vec<String> = defaults.iter().map(|t| t.actor.to_string()).collect();
@@ -1538,6 +1565,13 @@ fn the_overlay_s_scheduler_section_sets_each_task_over_its_defaults() {
             "internal:scheduler:svs_coverage_refresh",
             "internal:scheduler:svs_coverage_snapshot",
             "internal:scheduler:nrd_refresh",
+            "internal:scheduler:monitor_workload",
+            "internal:scheduler:monitor_delayed_analysis",
+            "internal:scheduler:monitor_leases",
+            "internal:scheduler:monitor_queue",
+            "internal:scheduler:monitor_bucket_pools",
+            "internal:scheduler:monitor_scheduler",
+            "internal:scheduler:bucket_node_stats",
         ]
     );
     // ace3's 05:00 UTC on a Monday
@@ -1558,7 +1592,7 @@ fn the_overlay_s_scheduler_section_sets_each_task_over_its_defaults() {
         "scheduler:\n  bucket_gc:\n    schedule: '*/15 * * * *'\n    timeout_seconds: 600\n  \
          bucket_verify:\n    enabled: false\n  cas_node_stats:\n    enabled: true\n",
     );
-    assert_eq!(set.len(), 12, "the removed task is skipped");
+    assert_eq!(set.len(), 19, "the removed task is skipped");
     assert_eq!(
         (
             set[0].schedule.as_str(),
@@ -1575,6 +1609,50 @@ fn the_overlay_s_scheduler_section_sets_each_task_over_its_defaults() {
         ),
         ("0 5 * * 1", 14400, false)
     );
+
+    // a monitoring check is a task like any other: on by default, and the overlay turns one off and leaves
+    // the rest (ace3's test_enabled_defaults_to_true, test_mixed_enabled_and_disabled and
+    // test_overlay_can_disable_a_default_monitor)
+    let monitor_tasks = Task::monitors();
+    let monitors: Vec<&str> = monitor_tasks.iter().map(|t| t.name.as_str()).collect();
+    assert_eq!(
+        monitors,
+        [
+            "monitor_workload",
+            "monitor_delayed_analysis",
+            "monitor_leases",
+            "monitor_queue",
+            "monitor_bucket_pools",
+            "monitor_scheduler",
+            "bucket_node_stats"
+        ]
+    );
+    for name in &monitors {
+        let task = defaults
+            .iter()
+            .find(|t| t.task.name == *name)
+            .expect("a core task");
+        assert!(task.enabled, "{name}");
+    }
+    let quieter = configured(
+        &Task::builtin(),
+        "scheduler:\n  monitor_leases:\n    enabled: false\n  monitor_queue:\n    schedule: '*/5 * * * *'\n",
+    );
+    let of = |name: &str| {
+        quieter
+            .iter()
+            .find(|t| t.task.name == name)
+            .expect("a core task")
+    };
+    assert!(!of("monitor_leases").enabled);
+    assert_eq!(
+        (
+            of("monitor_queue").schedule.as_str(),
+            of("monitor_queue").enabled
+        ),
+        ("*/5 * * * *", true)
+    );
+    assert!(of("monitor_workload").enabled);
 
     let unknown = ace_sdk::Overlay::from_yaml("scheduler:\n  bucket_gc:\n    every: 60\n")
         .expect_err("refused");
@@ -2059,4 +2137,552 @@ async fn nrd_refresh_verifies_certificates_and_runs_as_its_component() {
         ace_core::nrd::domains(fixture.db()).await.expect("reads"),
         before
     );
+}
+
+/// A root in `mode`, with a pass in progress or not.
+async fn root(db: &Db, mode: &str, in_progress: bool) -> uuid::Uuid {
+    let id = uuid::Uuid::new_v4();
+    sqlx::query(
+        "INSERT INTO analysis.roots (id, analysis_mode, event_time_source, pass, completed_pass)
+         VALUES ($1, $2, 'unset', 1, $3)",
+    )
+    .bind(id)
+    .bind(mode)
+    .bind(if in_progress { 0 } else { 1 })
+    .execute(db.pool())
+    .await
+    .expect("a root");
+    id
+}
+
+/// A task of `module` on a new observable of `root`: `queued` since `since` ago, `delayed` until `since`
+/// from now, or `running` under `owner` with a lease that ends `since` from now (negative: expired).
+async fn task(
+    db: &Db,
+    root: uuid::Uuid,
+    module: &str,
+    state: &str,
+    since: &str,
+    owner: Option<&str>,
+) -> i64 {
+    let observable: i64 = sqlx::query_scalar(
+        "INSERT INTO analysis.observables (root_id, type, value) VALUES ($1, 'fqdn', $2) RETURNING id",
+    )
+    .bind(root)
+    .bind(format!("{}.example", uuid::Uuid::new_v4().simple()))
+    .fetch_one(db.pool())
+    .await
+    .expect("an observable");
+    sqlx::query_scalar(
+        "INSERT INTO queue.tasks (root_id, observable_id, module, state, run_after, lease_owner, lease_expires_at)
+         VALUES ($1, $2, $3, $4::queue.task_state,
+                 CASE $4 WHEN 'queued' THEN now() - $5::interval WHEN 'delayed' THEN now() + $5::interval
+                         ELSE now() END,
+                 $6, CASE WHEN $4 = 'running' THEN now() + $5::interval END)
+         RETURNING id",
+    )
+    .bind(root)
+    .bind(observable)
+    .bind(module)
+    .bind(state)
+    .bind(since)
+    .bind(owner)
+    .fetch_one(db.pool())
+    .await
+    .expect("a task")
+}
+
+/// The records `task` last emitted: each one's path, identifier and value, in the order it emitted them.
+async fn records(db: &Db, task: &str) -> Vec<(String, Option<String>, Value)> {
+    sqlx::query_as(
+        "SELECT path, identifier, value FROM monitoring.records WHERE task = $1 ORDER BY id",
+    )
+    .bind(task)
+    .fetch_all(db.pool())
+    .await
+    .expect("reads the records")
+}
+
+/// Runs one monitoring check through the scheduler, once, and returns its run.
+async fn check(fixture: &Fixture, name: &str) -> scheduler::Run {
+    sqlx::query("DELETE FROM scheduler.runs WHERE task = $1")
+        .bind(name)
+        .execute(fixture.db().pool())
+        .await
+        .expect("forgets its earlier runs");
+    let task = builtin(name);
+    make_due(fixture.db(), &task).await;
+    let run = run_once(fixture, vec![task], name).await;
+    assert_eq!(run.outcome.as_deref(), Some("succeeded"), "{run:?}");
+    run
+}
+
+/// PLAN.md 7.12's Done check: each of ace3's monitoring checks runs from the scheduler, as its own
+/// component, and its records are what ace3's monitor emits of the same state. The cases are ace3's
+/// `tests/saq/monitoring/test_monitors.py`, each named where it's checked; `test_monitoring_service.py`'s
+/// `test_start_single_threaded_executes_each_monitor_once` is every check here run once.
+#[tokio::test]
+async fn the_monitoring_checks_run_from_the_scheduler() {
+    let fixture = Fixture::new().await;
+    let db = fixture.db();
+    let pool = &fixture.pool;
+
+    // with nothing to report: one record with an empty workload, and no record of the others
+    // (TestDistributedWorkloadMonitor.test_execute_emits_empty_workload)
+    let run = check(&fixture, "monitor_workload").await;
+    assert_eq!(run.summary, Some(json!({"records": 1, "left_out": 0})));
+    assert_eq!(
+        records(db, "monitor_workload").await,
+        [(
+            "workload.distributed".to_owned(),
+            None,
+            json!({"workload": []})
+        )]
+    );
+    for name in [
+        "monitor_delayed_analysis",
+        "monitor_leases",
+        "monitor_queue",
+    ] {
+        let run = check(&fixture, name).await;
+        assert_eq!(
+            run.summary,
+            Some(json!({"records": 0, "left_out": 0})),
+            "{name}"
+        );
+        assert!(records(db, name).await.is_empty(), "{name}");
+    }
+
+    // roots being analyzed in two modes, one that's done, and their tasks
+    let first = root(db, "analysis", true).await;
+    let second = root(db, "analysis", true).await;
+    let third = root(db, "correlation", true).await;
+    root(db, "email", false).await;
+    task(db, first, "splunk", "delayed", "1 hour", None).await;
+    task(db, first, "splunk", "delayed", "2 hours", None).await;
+    task(db, first, "rdap_analyzer", "delayed", "1 hour", None).await;
+    task(db, second, "splunk", "delayed", "1 hour", None).await;
+    task(db, second, "file_type", "queued", "10 minutes", None).await;
+    task(db, third, "file_type", "queued", "1 second", None).await;
+    let held = task(
+        db,
+        third,
+        "yara_scanner_v3_4",
+        "running",
+        "5 minutes",
+        Some("parsers/host-a/7"),
+    )
+    .await;
+    // a lease whose worker went away, and an owner with no shape at all
+    let expired = task(
+        db,
+        third,
+        "yara_scanner_v3_4",
+        "running",
+        "-90 seconds",
+        Some("db-readonly"),
+    )
+    .await;
+
+    // TestDistributedWorkloadMonitor.test_execute_counts_workload_per_analysis_mode: a count for each
+    // mode with a root being analyzed, in mode order; the root that's done isn't counted
+    check(&fixture, "monitor_workload").await;
+    assert_eq!(
+        records(db, "monitor_workload").await,
+        [(
+            "workload.distributed".to_owned(),
+            None,
+            json!({"workload": [
+                {"analysis_mode": "analysis", "count": 2},
+                {"analysis_mode": "correlation", "count": 1},
+            ]})
+        )]
+    );
+
+    // TestDistributedDelayedAnalysisMonitor.test_execute_emits_one_record_per_root_module_and_node: one
+    // for each root and module, with its count, the most first.
+    // test_execute_preserves_bare_module_name: the module is the task's key as it is.
+    // test_execute_reports_every_node_not_just_the_local_one: every root's, whoever would run them
+    let run = check(&fixture, "monitor_delayed_analysis").await;
+    assert_eq!(run.summary, Some(json!({"records": 3, "left_out": 0})));
+    let delayed = records(db, "monitor_delayed_analysis").await;
+    let seen: Vec<(String, String, i64)> = delayed
+        .iter()
+        .map(|(path, identifier, value)| {
+            assert_eq!(path, "workload.distributed.delayed_analysis");
+            assert_eq!(
+                identifier.as_deref(),
+                Some(
+                    format!(
+                        "{}:{}",
+                        value["uuid"].as_str().unwrap(),
+                        value["module"].as_str().unwrap()
+                    )
+                    .as_str()
+                )
+            );
+            assert!(value["next_run"].is_string(), "{value}");
+            (
+                value["uuid"].as_str().unwrap().to_owned(),
+                value["module"].as_str().unwrap().to_owned(),
+                value["count"].as_i64().unwrap(),
+            )
+        })
+        .collect();
+    assert_eq!(seen[0], (first.to_string(), "splunk".to_owned(), 2));
+    let mut rest = seen[1..].to_vec();
+    rest.sort();
+    let mut expected = vec![
+        (first.to_string(), "rdap_analyzer".to_owned(), 1),
+        (second.to_string(), "splunk".to_owned(), 1),
+    ];
+    expected.sort();
+    assert_eq!(rest, expected);
+
+    // TestDistributedLocksMonitor.test_execute_emits_correct_data: one record for each lease, with the
+    // root, who holds it and since when. test_locks_attributed_to_the_owning_node and
+    // test_lock_without_a_node_prefix_is_still_reported: the owner is the lease's, as it is, whatever
+    // its shape. test_lock_reported_once_when_node_names_share_a_prefix: one record a lease, by its
+    // task. The expired lease, whose worker went away, comes first and says so
+    let run = check(&fixture, "monitor_leases").await;
+    assert_eq!(run.summary, Some(json!({"records": 2, "left_out": 0})));
+    let leases = records(db, "monitor_leases").await;
+    let (path, identifier, value) = &leases[0];
+    assert_eq!(
+        (path.as_str(), identifier.as_deref()),
+        (
+            "workload.distributed.locks",
+            Some(expired.to_string().as_str())
+        )
+    );
+    assert_eq!(
+        (
+            &value["uuid"],
+            &value["task"],
+            &value["module"],
+            &value["lock_owner"],
+            &value["expired"]
+        ),
+        (
+            &json!(third),
+            &json!(expired),
+            &json!("yara_scanner_v3_4"),
+            &json!("db-readonly"),
+            &json!(true)
+        )
+    );
+    let (_, identifier, value) = &leases[1];
+    assert_eq!(identifier.as_deref(), Some(held.to_string().as_str()));
+    assert_eq!(
+        (&value["lock_owner"], &value["expired"], &value["attempts"]),
+        (&json!("parsers/host-a/7"), &json!(false), &json!(0))
+    );
+    assert!(
+        value["lock_time"].is_string() && value["lease_expires_at"].is_string(),
+        "{value}"
+    );
+
+    // what stands in for TestNodeStatusMonitorQueries: each module once, with all its counts
+    // (test_each_node_reported_exactly_once_with_both_counts), the longest wait first, and an expired
+    // lease told from a live one by the database's clock (test_heartbeat_age_comes_from_the_database_clock,
+    // test_drained_node_is_distinguishable_from_a_crashed_one)
+    let run = check(&fixture, "monitor_queue").await;
+    assert_eq!(run.summary, Some(json!({"records": 4, "left_out": 0})));
+    let queue = records(db, "monitor_queue").await;
+    let modules: Vec<&str> = queue
+        .iter()
+        .map(|(_, id, _)| id.as_deref().unwrap())
+        .collect();
+    assert_eq!(
+        modules[0], "file_type",
+        "the module that has waited longest: {queue:?}"
+    );
+    let of = |module: &str| {
+        let (path, _, value) = queue
+            .iter()
+            .find(|(_, id, _)| id.as_deref() == Some(module))
+            .unwrap_or_else(|| panic!("no record of {module}"));
+        assert_eq!(path, "workload.queue");
+        value.clone()
+    };
+    let file_type = of("file_type");
+    assert_eq!(
+        (
+            &file_type["queued"],
+            &file_type["delayed"],
+            &file_type["running"],
+            &file_type["expired_leases"]
+        ),
+        (&json!(2), &json!(0), &json!(0), &json!(0))
+    );
+    let waited = file_type["oldest_waiting_seconds"].as_i64().unwrap();
+    assert!((600..660).contains(&waited), "{waited}");
+    assert_eq!(
+        of("yara_scanner_v3_4"),
+        json!({"module": "yara_scanner_v3_4", "queued": 0, "delayed": 0, "running": 2,
+               "expired_leases": 1, "oldest_waiting_seconds": 0})
+    );
+    // a delayed task that isn't due yet hasn't waited
+    assert_eq!(
+        of("splunk"),
+        json!({"module": "splunk", "queued": 0, "delayed": 3, "running": 0,
+               "expired_leases": 0, "oldest_waiting_seconds": 0})
+    );
+
+    // a check's run replaces its records: what it no longer finds has none left
+    sqlx::query("DELETE FROM queue.tasks WHERE state = 'running'")
+        .execute(db.pool())
+        .await
+        .expect("the leases end");
+    check(&fixture, "monitor_leases").await;
+    assert!(records(db, "monitor_leases").await.is_empty());
+
+    // TestCASPoolMonitor.test_emits_one_record_per_pool: a record for each configured pool, and for a
+    // pool with rows in the index that isn't configured any more
+    let held_bytes = fixture.unique("held");
+    let overdue_bytes = fixture.unique("overdue");
+    let fresh_bytes = fixture.unique("fresh");
+    fixture
+        .bucket
+        .put_bytes(pool, &held_bytes, Some(&Hold::new("test", "keeps")))
+        .await
+        .expect("puts");
+    fixture
+        .bucket
+        .hold(
+            pool,
+            &sha256_of(&held_bytes),
+            &Hold::new("test", "old").until(Utc::now() - chrono::Duration::hours(1)),
+        )
+        .await
+        .expect("holds");
+    fixture
+        .bucket
+        .put_bytes(pool, &overdue_bytes, None)
+        .await
+        .expect("puts");
+    fixture
+        .bucket
+        .put_bytes(pool, &fresh_bytes, None)
+        .await
+        .expect("puts");
+    // unheld for three hours: past the pool's grace, none, and the two hours GC is given
+    sqlx::query("UPDATE store.objects SET last_held_at = now() - interval '3 hours', verified_at = now() WHERE pool = $1 AND sha256 = $2")
+        .bind(pool)
+        .bind(sha256_of(&overdue_bytes).to_hex())
+        .execute(db.pool())
+        .await
+        .expect("ages it");
+    sqlx::query(
+        "INSERT INTO store.objects (pool, sha256, size, mime_type, state)
+         VALUES ('renamed-away', repeat('a', 64), 7, 'text/plain', 'deleting')",
+    )
+    .execute(db.pool())
+    .await
+    .expect("a row of a pool that isn't configured");
+    let run = check(&fixture, "monitor_bucket_pools").await;
+    assert_eq!(run.summary, Some(json!({"records": 2, "left_out": 0})));
+    let pools = records(db, "monitor_bucket_pools").await;
+    let size = (held_bytes.len() + overdue_bytes.len() + fresh_bytes.len()) as i64;
+    assert_eq!(
+        pools,
+        [
+            (
+                "cas.pool".to_owned(),
+                Some("renamed-away".to_owned()),
+                json!({"pool": "renamed-away", "configured": false, "retention": null, "gc_overdue": null,
+                       "objects_present": 0, "objects_deleting": 1, "size_bytes": 7, "never_verified": 1,
+                       "verified_last_7d": 0, "holds_live": 0, "holds_expired": 0, "objects_held": 0})
+            ),
+            (
+                "cas.pool".to_owned(),
+                Some(pool.clone()),
+                json!({"pool": pool, "configured": true, "retention": "held", "gc_overdue": 1,
+                       "objects_present": 3, "objects_deleting": 0, "size_bytes": size, "never_verified": 2,
+                       "verified_last_7d": 1, "holds_live": 1, "holds_expired": 1, "objects_held": 1})
+            ),
+        ]
+    );
+
+    // ace3's hourly `ace cas node-stats`: this node's read cache, against its cap and its filesystem
+    let run = check(&fixture, "bucket_node_stats").await;
+    assert_eq!(run.summary, Some(json!({"records": 1, "left_out": 0})));
+    let node = records(db, "bucket_node_stats").await;
+    assert_eq!(
+        (node[0].0.as_str(), node[0].1.as_deref()),
+        ("cas.node", Some("test/1"))
+    );
+    let value = &node[0].2;
+    assert_eq!(
+        (
+            &value["node"],
+            &value["kind"],
+            &value["max_bytes"],
+            &value["path"]
+        ),
+        (
+            &json!("test/1"),
+            &json!("read_cache"),
+            &json!(1u64 << 30),
+            &json!(fixture.bucket.store().cache().dir().display().to_string())
+        )
+    );
+    // the three objects put above are in the node's cache
+    assert_eq!(
+        (&value["entries"], &value["bytes"]),
+        (&json!(3), &json!(size))
+    );
+    let (free, total) = (
+        value["fs_free_bytes"].as_u64().unwrap(),
+        value["fs_total_bytes"].as_u64().unwrap(),
+    );
+    assert!(free > 0 && free <= total, "{value}");
+
+    // the scheduler's own runs, which 6.7 left for this step to read: each task that has a row, when
+    // it's due, how its last run ended and how many have failed since one succeeded
+    let mut failing = builtin("bucket_gc");
+    failing.actor = Actor::Internal {
+        id: Component::new("scheduler:nobody").expect("valid"),
+    };
+    make_due(db, &failing).await;
+    run_once(&fixture, vec![failing], "bucket_gc").await;
+    let run = check(&fixture, "monitor_scheduler").await;
+    let tasks = records(db, "monitor_scheduler").await;
+    assert_eq!(
+        run.summary,
+        Some(json!({"records": tasks.len(), "left_out": 0}))
+    );
+    let names: Vec<&str> = tasks
+        .iter()
+        .map(|(_, id, _)| id.as_deref().unwrap())
+        .collect();
+    let mut sorted = names.clone();
+    sorted.sort_unstable();
+    assert_eq!(names, sorted, "by name");
+    let of = |name: &str| {
+        tasks
+            .iter()
+            .find(|(path, id, _)| path == "scheduler.task" && id.as_deref() == Some(name))
+            .unwrap_or_else(|| panic!("no record of {name}"))
+            .2
+            .clone()
+    };
+    let gc = of("bucket_gc");
+    assert_eq!(
+        (
+            &gc["last_outcome"],
+            &gc["failures_since_success"],
+            &gc["running"],
+            &gc["last_node"],
+            &gc["schedule"]
+        ),
+        (
+            &json!("failed"),
+            &json!(1),
+            &json!(false),
+            &json!("test/1"),
+            &json!("0 * * * *")
+        )
+    );
+    assert_eq!(
+        gc["last_error"],
+        "internal:scheduler:nobody doesn't hold bucket:gc"
+    );
+    let workload = of("monitor_workload");
+    assert_eq!(
+        (
+            &workload["last_outcome"],
+            &workload["failures_since_success"],
+            &workload["last_error"]
+        ),
+        (&json!("succeeded"), &json!(0), &Value::Null)
+    );
+    // the check that is reporting is the one running
+    let itself = of("monitor_scheduler");
+    assert_eq!(
+        (&itself["running"], &itself["overdue_seconds"]),
+        (&json!(true), &json!(0))
+    );
+    // a task nothing runs falls behind, and says by how much
+    sqlx::query("UPDATE scheduler.tasks SET due_at = now() - interval '3 hours', run_id = NULL, lease_until = NULL WHERE name = 'bucket_gc'")
+        .execute(db.pool())
+        .await
+        .expect("leaves it unrun");
+    check(&fixture, "monitor_scheduler").await;
+    let behind = records(db, "monitor_scheduler")
+        .await
+        .into_iter()
+        .find(|(_, id, _)| id.as_deref() == Some("bucket_gc"))
+        .expect("its record")
+        .2;
+    let overdue = behind["overdue_seconds"].as_i64().unwrap();
+    assert!((10_800..10_860).contains(&overdue), "{behind}");
+
+    // a check writes no audit row (ace_service's monitoring docs say why)
+    let audit: i64 = sqlx::query_scalar("SELECT count(*) FROM service.audit")
+        .fetch_one(db.pool())
+        .await
+        .expect("counts");
+    assert_eq!(audit, 0);
+
+    // a check acting as a component without the grant is refused before it reads anything: its run
+    // fails, and its records stay as they were (test_threaded_monitor.py's
+    // test_main_loop_logs_error_on_exception: a check that fails is recorded and the next still runs)
+    let before = records(db, "monitor_workload").await;
+    sqlx::query("DELETE FROM scheduler.runs WHERE task = 'monitor_workload'")
+        .execute(db.pool())
+        .await
+        .expect("forgets its earlier runs");
+    let mut refused = builtin("monitor_workload");
+    refused.actor = Actor::Internal {
+        id: Component::new("scheduler:nobody").expect("valid"),
+    };
+    make_due(db, &refused).await;
+    let run = run_once(&fixture, vec![refused], "monitor_workload").await;
+    assert_eq!(run.outcome.as_deref(), Some("failed"));
+    assert_eq!(
+        run.error.as_deref(),
+        Some("internal:scheduler:nobody doesn't hold monitoring:report")
+    );
+    assert_eq!(records(db, "monitor_workload").await, before);
+    let run = check(&fixture, "monitor_workload").await;
+    assert_eq!(run.summary, Some(json!({"records": 1, "left_out": 0})));
+    fixture.clean_up().await;
+}
+
+/// A check that finds more than it emits records for emits the first `MAX_RECORDS` and says how many it
+/// left out, in its run's summary: ace3 emits a record for every row, however many.
+#[tokio::test]
+async fn a_monitoring_check_is_bounded() {
+    let fixture = Fixture::new().await;
+    let db = fixture.db();
+    let over = ace_core::monitoring::MAX_RECORDS + 25;
+    let root = root(db, "analysis", true).await;
+    sqlx::query(
+        "WITH made AS (
+             INSERT INTO analysis.observables (root_id, type, value)
+             SELECT $1, 'fqdn', 'host-' || n || '.example' FROM generate_series(1, $2) n
+             RETURNING id)
+         INSERT INTO queue.tasks (root_id, observable_id, module, state, lease_owner, lease_expires_at)
+         SELECT $1, id, 'file_type', 'running', 'parsers/host-a/7', now() + interval '5 minutes'
+         FROM made",
+    )
+    .bind(root)
+    .bind(over)
+    .execute(db.pool())
+    .await
+    .expect("more leases than a run emits");
+    let run = check(&fixture, "monitor_leases").await;
+    assert_eq!(
+        run.summary,
+        Some(json!({"records": ace_core::monitoring::MAX_RECORDS, "left_out": 25}))
+    );
+    assert_eq!(
+        records(db, "monitor_leases").await.len() as i64,
+        ace_core::monitoring::MAX_RECORDS
+    );
+    // and the queue's record still counts them all
+    check(&fixture, "monitor_queue").await;
+    assert_eq!(records(db, "monitor_queue").await[0].2["running"], over);
+    fixture.clean_up().await;
 }

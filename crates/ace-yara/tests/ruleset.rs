@@ -12,7 +12,8 @@ use std::process::Command;
 use std::time::Duration;
 
 use ace_yara::ruleset::{
-    BuiltIn, Manifest, build, build_commit, build_commit_with, built_ins_sha256, resolve_commit,
+    BuiltIn, Manifest, Owned, build, build_commit, build_commit_owning, build_commit_with,
+    built_ins_sha256, resolve_commit,
 };
 use ace_yara::{LoadOptions, Ruleset, ScanRequest, Scanner};
 use common::fixture;
@@ -409,6 +410,88 @@ fn built_ins_join_the_commit_s_export() {
     assert_eq!(built_ins_sha256(&[OURS]), built_ins_sha256(&[OURS]));
     assert_ne!(built_ins_sha256(&[OURS]), built_ins_sha256(&[changed]));
     assert_ne!(built_ins_sha256(&[OURS]), built_ins_sha256(&[]));
+}
+
+/// A namespace the builder owns holds its files and nothing of the commit's: the export of the
+/// observables enabled for detection (PLAN.md 7.16), where ace3 removes the files it no longer exports.
+#[test]
+fn an_owned_namespace_replaces_the_commit_s() {
+    let temp = tempfile::tempdir().unwrap();
+    let repo = temp.path().join("repo");
+    repository(&repo);
+    let dir = Path::new("signatures");
+    let options = LoadOptions::default();
+    // the repository has rules of its own under the export's name, an index among them
+    std::fs::create_dir_all(repo.join("signatures/observable_export")).unwrap();
+    std::fs::write(
+        repo.join("signatures/observable_export/theirs.yar"),
+        // "url" and "planted" in hex
+        "rule obsd_index { meta: e7 = \"75726c:706c616e746564\" condition: false }\n\
+         rule theirs { strings: $obsd_7 = \"PLANTED\" condition: $obsd_7 }\n",
+    )
+    .unwrap();
+    git(&repo, &["add", "-A"]);
+    git(
+        &repo,
+        &["commit", "-q", "-m", "rules under the export's name"],
+    );
+    let commit = resolve_commit(&repo, "HEAD").unwrap();
+    let kept = build_commit(&repo, &commit, dir, &options).expect("builds");
+    assert_eq!(kept.ruleset.detection(7), Some(("url", "planted")));
+
+    let ours = Owned {
+        namespace: "observable_export".to_owned(),
+        files: vec![(
+            "fqdn.yar".to_owned(),
+            "rule detect_fqdn { strings: $obsd_1 = \"evil.example\" condition: any of them }\n"
+                .to_owned(),
+        )],
+    };
+    let owned = build_commit_owning(
+        &repo,
+        &commit,
+        dir,
+        &options,
+        &[],
+        std::slice::from_ref(&ours),
+    )
+    .expect("builds");
+    let files: Vec<&str> = owned
+        .manifest
+        .files
+        .iter()
+        .filter(|f| f.namespace == "observable_export")
+        .map(|f| f.path.as_str())
+        .collect();
+    assert_eq!(files, ["observable_export/fqdn.yar"]);
+    assert_eq!(owned.ruleset.detection(7), None);
+    assert!(git(&repo, &["status", "--porcelain"]).trim().is_empty());
+
+    // with no files the namespace is gone
+    let empty = Owned {
+        namespace: "observable_export".to_owned(),
+        files: Vec::new(),
+    };
+    let none = build_commit_owning(&repo, &commit, dir, &options, &[], &[empty]).expect("builds");
+    assert!(
+        none.manifest
+            .files
+            .iter()
+            .all(|f| f.namespace != "observable_export")
+    );
+
+    // a name that would leave the namespace is refused
+    for (namespace, file) in [
+        ("../out", "a.yar"),
+        ("observable_export", "../a.yar"),
+        ("", "a.yar"),
+    ] {
+        let bad = Owned {
+            namespace: namespace.to_owned(),
+            files: vec![(file.to_owned(), "rule x { condition: true }".to_owned())],
+        };
+        assert!(build_commit_owning(&repo, &commit, dir, &options, &[], &[bad]).is_err());
+    }
 }
 
 /// Owns every file under `path` by `uid`.
