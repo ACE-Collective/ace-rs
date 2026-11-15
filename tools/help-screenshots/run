@@ -1,0 +1,704 @@
+#!/usr/bin/env python3
+"""Draws the screenshots of the SVS guides (crates/ace-gui/help/svs/images/*.png).
+
+The guides under /help describe ace4's SVS screens, and their screenshots are of ace4's own pages
+showing made-up data. This script makes them again, so run it when a page changes:
+
+    tools/help-screenshots/run
+
+It needs docker compose and python3 on the host, and the dev stack's images (compose.yaml). It takes a
+few minutes once `ace` is built, and builds nothing for release. It:
+
+1. starts the dev stack's `dev`, `postgres` and `bucket`, and the e2e profile's `browser`, the pinned
+   headless Chromium tests/e2e/run drives;
+2. builds `ace` in the dev container (a debug build, `cargo build -p ace --bin ace`) and makes a
+   throwaway database, `ace4_help_shots`, in the stack's Postgres;
+3. runs `ace serve` in the dev container against that database, with site/overlay.yaml, which turns
+   off the scheduled tasks that would compute the fixture's rows again and names a made-up log search;
+4. makes the analysts `alice` and `bob` and the launcher's API key with `ace user`, and seeds the
+   fixtures: fixtures/1-catalog.sql (test hosts, the test catalog, hunts and a ruleset), then the
+   launcher's own calls through the API (a started run, a registered one and a refused registration,
+   which raises its alert), then fixtures/2-runs.sql (earlier runs with their alerts, samples,
+   validations and YARA QA files), then alice's reviews of two runs through the API, and
+   `ace svs coverage refresh` and `snapshot`, which compute coverage and the worklist from them, with
+   fixtures/3-history.sql's earlier snapshots;
+5. signs in as alice in the browser and captures each page of SHOTS at 1280 pixels wide, a whole page
+   or the part of it a guide illustrates;
+6. shrinks each PNG with pngquant and oxipng, run in an Alpine container (which installs them, so
+   this step needs the network), and writes them to crates/ace-gui/help/svs/images/;
+7. stops `ace serve`, drops the database and removes the browser container.
+
+Everything the pages show is made up for the purpose: the hosts are under example.com, the people are
+alice and bob, and the tests, rules, hunts and files are the guides' own examples. Nothing comes from
+a real ACE, a signatures repository or Atomic Red Team.
+
+A new image also needs its entry in `GUIDE_SETS` (crates/ace-gui/src/help.rs) and a guide that shows
+it: ace-gui's tests check that every image a guide names is there and that none is left unused.
+
+Usage: tools/help-screenshots/run [--keep] [--reuse] [--no-optimise] [--out DIR] [NAME ...]
+  --keep         leaves `ace serve`, the database and the browser up
+  --reuse        captures from what an earlier --keep left up, seeding nothing, and leaves it up
+  --no-optimise  writes the PNGs as the browser made them
+  --out DIR      where the PNGs go, in place of crates/ace-gui/help/svs/images
+  NAME ...       only these shots, by file name without `.png`
+"""
+
+import base64
+import json
+import os
+import re
+import shlex
+import socket
+import struct
+import subprocess
+import sys
+import time
+import urllib.request
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent.parent
+HERE = Path(__file__).resolve().parent
+IMAGES = ROOT / "crates" / "ace-gui" / "help" / "svs" / "images"
+COMPOSE = ["docker", "compose", "-f", str(ROOT / "compose.yaml"), "--profile", "e2e"]
+DATABASE = "ace4_help_shots"
+# The GUI as this script reaches it in `dev`. The browser reaches it at the dev container's address on
+# the stack's network (`gui_in_stack`), not by its name: Chromium sends `http://dev` to HTTPS, since
+# `dev` is a top-level domain whose every name is on its HSTS preload list.
+GUI_IN_DEV = "http://127.0.0.1:8000"
+ANALYST = "alice"
+ANALYST_PASSWORD = "help screenshots, not a secret"
+WIDTH = 1280
+# The tallest image: a longer page is cut there, since a guide's picture shows a page's top.
+MAX_HEIGHT = 1500
+# What `ace` in the dev container reads: the throwaway database and this directory's overlay.
+SERVE_ENV = {
+    "ACE4_DATABASE_URL": None,  # filled in from the stack's own
+    "ACE4_WEB_LISTEN": "0.0.0.0:8000",
+    "ACE4_API_LISTEN": "127.0.0.1:8080",
+    "ACE4_ADMIN_TOKEN": "help-screenshots, not a secret",
+    "ACE4_OVERLAY": "/workspace/tools/help-screenshots/site/overlay.yaml",
+    "ACE4_LOG": "info",
+}
+
+# The tests and runs of the fixture, by what the shots call them.
+T_KERBEROAST = "7e570001-0000-4000-8000-000000000001"
+T_ENCODED = "7e570001-0000-4000-8000-000000000003"
+T_NET_USER = "7e570001-0000-4000-8000-000000000004"
+T_CERTUTIL = "7e570001-0000-4000-8000-000000000006"
+S_SAM = "5160a000-0000-4000-8000-000000000004"
+S_TASK = "5160a000-0000-4000-8000-000000000006"
+S_NET_USER = "7a1d0000-5e5f-4c11-9000-000000000005"
+
+
+def run_uuid(n):
+    return f"aaaa{n:04d}-0000-4000-8000-000000000000"
+
+
+def alert_uuid(n):
+    return f"a1e47{n:03d}-0000-4000-8000-000000000000"
+
+
+def log(message):
+    print(f"help-screenshots: {message}", flush=True)
+
+
+def fail(message):
+    raise SystemExit(f"help-screenshots: {message}")
+
+
+def compose(*args, check=True, capture=False, stdin=None):
+    result = subprocess.run(
+        [*COMPOSE, *args], cwd=ROOT, text=True, capture_output=capture, input=stdin,
+    )
+    if check and result.returncode != 0:
+        fail(f"docker compose {' '.join(args)} failed ({result.returncode})\n"
+             f"{(result.stdout or '') + (result.stderr or '') if capture else ''}")
+    return result.stdout if capture else ""
+
+
+def dev(*command, capture=True, stdin=None, check=True, env=None):
+    """A command in the dev container, with `ace`'s environment when asked."""
+    flags = []
+    for name, value in (env or {}).items():
+        flags += ["-e", f"{name}={value}"]
+    return compose("exec", "-T", *flags, "dev", *command, capture=capture, stdin=stdin, check=check)
+
+
+def ace(*args, stdin=None):
+    return dev("target/debug/ace", *args, stdin=stdin, env=SERVE_ENV)
+
+
+def psql(database, *args, stdin=None):
+    return compose(
+        "exec", "-T", "postgres", "sh", "-c",
+        'psql -U "$POSTGRES_USER" -v ON_ERROR_STOP=1 -q -At "$@"', "psql", "-d", database, *args,
+        capture=True, stdin=stdin,
+    )
+
+
+def sql(query):
+    return [line.split("\t") for line in psql(DATABASE, "-F", "\t", "-c", query).splitlines() if line]
+
+
+def seed(name, **variables):
+    flags = []
+    for key, value in variables.items():
+        flags += ["-v", f"{key}={value}"]
+    psql(DATABASE, *flags, "-f", "-", stdin=(HERE / "fixtures" / name).read_text())
+    log(f"seeded {name}")
+
+
+def wait_for(what, check, within=60, every=0.5):
+    deadline = time.monotonic() + within
+    while time.monotonic() < deadline:
+        value = check()
+        if value:
+            return value
+        time.sleep(every)
+    fail(f"timed out after {within}s waiting for {what}")
+
+
+def curl(method, path, *, token=None, cookie=None, json_body=None, form=None, headers=False):
+    """One request to the GUI or the JSON API, from the dev container: (status, body or headers)."""
+    command = ["curl", "-s", "-o", "/dev/stderr" if headers else "-", "-w", "\n%{http_code}", "-X", method]
+    if headers:
+        command = ["curl", "-s", "-D", "-", "-o", "/dev/null", "-w", "\n%{http_code}", "-X", method]
+    if token:
+        command += ["-H", f"authorization: Bearer {token}"]
+    if cookie:
+        # a page's own request: the session cookie, from this site
+        command += ["-H", f"cookie: {cookie}", "-H", f"origin: {GUI_IN_DEV}"]
+    if json_body is not None:
+        command += ["-H", "content-type: application/json", "--data-binary", json.dumps(json_body)]
+    if form is not None:
+        command += ["-H", f"origin: {GUI_IN_DEV}"]
+        for key, value in form.items():
+            command += ["--data-urlencode", f"{key}={value}"]
+    out = dev(*command, f"{GUI_IN_DEV}{path}", check=False)
+    body, _, status = out.rpartition("\n")
+    return int(status or 0), body
+
+
+def expect(status, wanted, what, body=""):
+    if status != wanted:
+        fail(f"{what} answered {status}, not {wanted}: {body[:500]}")
+
+
+# ---- the stack ----
+
+def database_url():
+    """The dev container's own database URL, with the throwaway database's name."""
+    url = dev("sh", "-c", 'printf %s "$ACE4_DATABASE_URL"').strip()
+    if "/" not in url:
+        fail("the dev container has no ACE4_DATABASE_URL")
+    return url.rsplit("/", 1)[0] + "/" + DATABASE
+
+
+def stop_serve():
+    dev("sh", "-c", "pkill -f 'target/debug/ace serve' || true", check=False)
+
+
+def start():
+    compose("up", "-d", "--wait", "dev", "postgres", "bucket", "browser")
+    SERVE_ENV["ACE4_DATABASE_URL"] = database_url()
+    log("building ace in the dev container")
+    dev("cargo", "build", "--locked", "-p", "ace", "--bin", "ace", capture=False)
+    stop_serve()
+    psql("postgres", "-c", f"DROP DATABASE IF EXISTS {DATABASE} WITH (FORCE)")
+    psql("postgres", "-c", f"CREATE DATABASE {DATABASE}")
+    flags = []
+    for name, value in SERVE_ENV.items():
+        flags += ["-e", f"{name}={value}"]
+    compose("exec", "-d", *flags, "dev", "sh", "-c",
+            "exec target/debug/ace serve > /tmp/help-screenshots-serve.log 2>&1")
+    try:
+        wait_for("ace serve to answer", lambda: curl("GET", "/login")[0] == 200, within=120)
+    except SystemExit:
+        print(dev("sh", "-c", "tail -n 40 /tmp/help-screenshots-serve.log", check=False))
+        raise
+    log(f"ace serve runs against the throwaway database {DATABASE}")
+
+
+def stop():
+    stop_serve()
+    psql("postgres", "-c", f"DROP DATABASE IF EXISTS {DATABASE} WITH (FORCE)")
+    compose("rm", "-sf", "browser", capture=True)
+    log(f"stopped ace serve, dropped {DATABASE} and removed the browser")
+
+
+# ---- the fixture ----
+
+def yara_x_version():
+    lock = (ROOT / "Cargo.lock").read_text()
+    found = re.search(r'name = "yara-x"\nversion = "([^"]+)"', lock)
+    if not found:
+        fail("Cargo.lock names no yara-x")
+    return found.group(1)
+
+
+def make_users():
+    ace("user", "create-first", ANALYST, "--password-stdin", stdin=ANALYST_PASSWORD + "\n")
+    # a second analyst, who never signs in: his generated password is dropped
+    ace("user", "create-first", "bob", "--force")
+    out = ace("user", "create-key", "art-launcher", "--grant", "svs:run_register")
+    token = next((line.split(": ", 1)[1] for line in out.splitlines()
+                  if line.startswith("token (shown once): ")), None)
+    if not token:
+        fail(f"`ace user create-key` printed no token:\n{out}")
+    return token
+
+
+def launcher_calls(token):
+    """What the launcher does through the API: a run it started, one it only registered, and a
+    registration ACE refuses because its target isn't a test host, which raises an alert."""
+    batch = "nightly-" + time.strftime("%Y-%m-%d", time.gmtime())
+
+    def register(test, host, user):
+        return curl("POST", "/api/svs/v1/runs", token=token, json_body={
+            "test_guid": test, "targets": [{"hostname": host, "username": user}],
+            "launcher": "art-launcher", "batch_id": batch, "extra": {"pipeline": "lab-nightly"},
+        })
+
+    status, body = register(T_ENCODED, "win10-art-02", "art")
+    expect(status, 201, "registering the run to start", body)
+    started = json.loads(body)["run_id"]
+    status, body = curl("POST", f"/api/svs/v1/runs/{started}/start", token=token)
+    expect(status, 200, "starting the run", body)
+    status, body = curl("POST", f"/api/svs/v1/runs/{started}/executed", token=token, json_body={
+        "exit_code": 0, "output": "Executing test: T1059.001 Run an encoded PowerShell command\n"
+                                  "Done executing test",
+    })
+    expect(status, 200, "reporting the run executed", body)
+    status, body = register(T_CERTUTIL, "win10-art-01", "art")
+    expect(status, 201, "registering a run", body)
+    registered = json.loads(body)["run_id"]
+    status, body = register(T_NET_USER, "fin-ws-042.corp.example.com", "pat")
+    expect(status, 403, "a registration that targets a host that isn't a test host", body)
+    refused = sql("SELECT root_id FROM svs.registration_refusals")
+    if len(refused) != 1 or not refused[0][0]:
+        fail(f"the refused registration raised no alert: {refused}")
+    log(f"the launcher started {started}, registered {registered} and was refused once")
+
+
+def launcher_made():
+    """The launcher's runs and the alert its refusal raised, by what the shots call them."""
+    one = lambda query: sql(query)[0][0]
+    return {
+        "started": one("SELECT uuid FROM svs.runs WHERE state = 'started'"),
+        "registered": one("SELECT uuid FROM svs.runs WHERE state = 'created'"),
+        "refused": one("SELECT root_id FROM svs.registration_refusals"),
+    }
+
+
+def sign_in():
+    """Alice's session cookie, as a browser gets it from the login form."""
+    status, headers = curl("POST", "/login", form={"username": ANALYST, "password": ANALYST_PASSWORD},
+                           headers=True)
+    cookie = re.search(r"(?im)^set-cookie:\s*([^;\r\n]+)", headers)
+    if status != 303 or not cookie:
+        fail(f"signing in answered {status}:\n{headers[:500]}")
+    return cookie.group(1)
+
+
+def reviews(cookie):
+    """Alice reviews last night's SAM run, a hit, and its local account run, a miss: ACE closes the
+    first one's alert as SIMULATED and writes each run's events."""
+    for run in (6, 7):
+        status, body = curl("POST", f"/api/svs/v1/runs/{run_uuid(run)}/review", cookie=cookie,
+                            json_body={})
+        expect(status, 200, f"reviewing run {run}", body)
+    log("alice reviewed two runs")
+
+
+def coverage(cookie):
+    """ACE computes coverage and the worklist from the runs; alice keeps one tag no test confirms and
+    asks for another to be removed; and ACE computes them again and files the day's snapshot."""
+    ace("svs", "coverage", "refresh")
+    for signature, technique, body in (
+        (S_TASK, "T1547.001", {
+            "resolution": "keep",
+            "reason": "On Windows 7 the task's installer also writes a Run key, which no test reaches",
+        }),
+        (S_NET_USER, "T1098", {
+            "resolution": "remove", "reason": "The rule sees an account being made, not changed",
+            "reference": "https://git.example.com/detection/detection_rules/pull/219",
+        }),
+    ):
+        status, body = curl("PUT", f"/api/svs/v1/worklist/{signature}/{technique}/resolution",
+                            cookie=cookie, json_body=body)
+        expect(status, 200, f"resolving {technique} of {signature}", body)
+    out = ace("svs", "coverage", "snapshot")
+    log("coverage: " + " | ".join(line.strip() for line in out.splitlines() if line.strip())[:300])
+    seed("3-history.sql")
+
+
+# ---- the browser ----
+
+class DevTools:
+    """A page in the headless browser, over the DevTools protocol: a WebSocket (RFC 6455) client on a
+    socket, enough for text frames, which is all the protocol uses. tests/e2e/run has the same."""
+
+    def __init__(self, url, timeout=60):
+        match = re.match(r"ws://([^/:]+):(\d+)(/.*)", url)
+        if not match:
+            fail(f"not a DevTools URL: {url}")
+        host, port, path = match.group(1), int(match.group(2)), match.group(3)
+        self.sock = socket.create_connection((host, port), timeout=timeout)
+        key = base64.b64encode(os.urandom(16)).decode()
+        self.sock.sendall(
+            f"GET {path} HTTP/1.1\r\nHost: {host}:{port}\r\nUpgrade: websocket\r\n"
+            f"Connection: Upgrade\r\nSec-WebSocket-Key: {key}\r\nSec-WebSocket-Version: 13\r\n\r\n"
+            .encode()
+        )
+        head = b""
+        while b"\r\n\r\n" not in head:
+            chunk = self.sock.recv(4096)
+            if not chunk:
+                fail("the browser closed the DevTools connection")
+            head += chunk
+        head, self.buffer = head.split(b"\r\n\r\n", 1)
+        if not head.startswith(b"HTTP/1.1 101"):
+            fail(f"the browser refused the DevTools connection: {head[:200]!r}")
+        self.next_id = 0
+        self.events = []
+        self.gui = gui_in_stack()
+
+    def _read(self, n):
+        while len(self.buffer) < n:
+            chunk = self.sock.recv(1 << 20)
+            if not chunk:
+                fail("the browser closed the DevTools connection")
+            self.buffer += chunk
+        data, self.buffer = self.buffer[:n], self.buffer[n:]
+        return data
+
+    def _frame(self):
+        message = b""
+        while True:
+            first, second = self._read(2)
+            length = second & 0x7F
+            if length == 126:
+                length = struct.unpack(">H", self._read(2))[0]
+            elif length == 127:
+                length = struct.unpack(">Q", self._read(8))[0]
+            payload = self._read(length)
+            opcode = first & 0x0F
+            if opcode == 8:
+                fail("the browser closed the DevTools connection")
+            if opcode == 9:
+                self._send(10, payload)
+                continue
+            message += payload
+            if first & 0x80:
+                return message.decode()
+
+    def _send(self, opcode, payload):
+        mask = os.urandom(4)
+        header = bytes([0x80 | opcode])
+        if len(payload) < 126:
+            header += bytes([0x80 | len(payload)])
+        elif len(payload) < 1 << 16:
+            header += bytes([0x80 | 126]) + struct.pack(">H", len(payload))
+        else:
+            header += bytes([0x80 | 127]) + struct.pack(">Q", len(payload))
+        masked = bytes(b ^ mask[i % 4] for i, b in enumerate(payload))
+        self.sock.sendall(header + mask + masked)
+
+    def call(self, method, **params):
+        self.next_id += 1
+        self._send(1, json.dumps({"id": self.next_id, "method": method, "params": params}).encode())
+        while True:
+            message = json.loads(self._frame())
+            if message.get("id") == self.next_id:
+                if "error" in message:
+                    fail(f"DevTools {method} failed: {message['error']}")
+                return message.get("result", {})
+            if "method" in message:
+                self.events.append(message)
+
+    def evaluate(self, expression):
+        result = self.call("Runtime.evaluate", expression=expression, returnByValue=True)
+        if "exceptionDetails" in result:
+            fail(f"the page threw on {expression!r}: {result['exceptionDetails']}")
+        return result["result"].get("value")
+
+    def wait(self, what, expression, within=30):
+        return wait_for(what, lambda: self.evaluate(expression), within=within, every=0.2)
+
+    def open(self, path):
+        """Navigates and waits until the page is drawn. An error page stops the script: a guide's
+        picture is never one."""
+        self.evaluate("window.helpShotOld = true")
+        self.call("Page.navigate", url=f"{self.gui}{path}")
+        self.wait(f"{path} to load", "document.readyState === 'complete' && !window.helpShotOld")
+        if not self.evaluate("document.getElementById('username') !== null"):
+            fail(f"{path} isn't a signed-in page: {self.evaluate('document.title')}")
+        problem = self.evaluate("document.querySelector('section.error, p.error')?.textContent ?? ''")
+        if problem or self.evaluate("document.title").startswith(("Error", "Not found")):
+            fail(f"{path} is an error page: {self.evaluate('document.title')} {problem[:300]}")
+
+    def close(self):
+        self.sock.close()
+
+
+def gui_in_stack():
+    address = dev("hostname", "-i").split()
+    if not address:
+        fail("the dev container has no address")
+    return f"http://{address[0]}:8000"
+
+
+def open_browser():
+    port = compose("port", "browser", "9222", capture=True).strip().rsplit(":", 1)[1]
+    request = urllib.request.Request(f"http://127.0.0.1:{port}/json/new?about:blank", method="PUT")
+
+    def new_tab():
+        try:
+            with urllib.request.urlopen(request, timeout=10) as response:
+                return json.load(response)
+        except OSError:
+            return None
+
+    target = wait_for("the browser to answer", new_tab, within=30)
+    page = DevTools(re.sub(r"^ws://[^/]+", f"ws://127.0.0.1:{port}", target["webSocketDebuggerUrl"]))
+    for domain in ("Page", "Runtime"):
+        page.call(f"{domain}.enable")
+    page.call("Emulation.setDeviceMetricsOverride", width=WIDTH, height=900, deviceScaleFactor=1,
+              mobile=False)
+    page.call("Page.navigate", url=f"{page.gui}/login")
+    page.wait("the login page", "document.readyState === 'complete' && "
+              "document.querySelector('form[action=\"/login\"]') !== null")
+    page.evaluate(
+        "(() => { const f = document.querySelector('form[action=\"/login\"]');"
+        f" f.username.value = {json.dumps(ANALYST)}; f.password.value = {json.dumps(ANALYST_PASSWORD)};"
+        " f.submit(); })()"
+    )
+    page.wait("the login", "location.pathname === '/' && document.readyState === 'complete' && "
+              f"document.getElementById('username')?.textContent === {json.dumps(ANALYST)}")
+    return page
+
+
+# The rectangle of a page's section: from the h3 whose text starts with `heading` down to the element
+# before the next h3, or to the end of its parent.
+SECTION = """
+((heading) => {
+  const first = [...document.querySelectorAll('main h3')].find(h => h.textContent.trim().startsWith(heading));
+  if (!first) return null;
+  let last = first;
+  for (let next = first.nextElementSibling; next && next.tagName !== 'H3'; next = next.nextElementSibling) {
+    if (next.getBoundingClientRect().height > 0) last = next;
+  }
+  const top = first.getBoundingClientRect().top;
+  return {y: top + window.scrollY, height: last.getBoundingClientRect().bottom - top};
+})(%s)
+"""
+
+
+def capture(page, shot, out):
+    """One shot: `path`, an optional `prepare` expression run on the page, and what to cut: the whole
+    page (to `max_height`, MAX_HEIGHT unless the shot says, or down to what `until` matches), `element`
+    (the box around what a selector matches) or `heading` (the section under the h3 that starts with
+    it). `expect` is text the page has to hold, so an empty page is never kept."""
+    page.open(shot["path"])
+    if "prepare" in shot:
+        page.evaluate(shot["prepare"])
+    # what the page shows: its text, and what its fields hold
+    text = page.evaluate(
+        "document.body.innerText + ' ' + [...document.querySelectorAll('textarea, input[type=text]')]"
+        ".map(e => e.value).join(' ')"
+    )
+    for wanted in shot.get("expect", []):
+        if wanted not in text:
+            fail(f"{shot['name']}: {shot['path']} doesn't show {wanted!r}")
+    margin = 6
+    if "element" in shot:
+        # the box around the elements the selector matches
+        box = page.evaluate(
+            f"(() => {{ const all = [...document.querySelectorAll({json.dumps(shot['element'])})]"
+            ".map(e => e.getBoundingClientRect()).filter(r => r.height > 0);"
+            " if (!all.length) return null;"
+            " const top = Math.min(...all.map(r => r.top)), bottom = Math.max(...all.map(r => r.bottom));"
+            " return {y: top + window.scrollY, height: bottom - top}; })()"
+        )
+    elif "heading" in shot:
+        box = page.evaluate(SECTION % json.dumps(shot["heading"]))
+    else:
+        # the whole page, down to the end of what it holds, or to the element `until` matches
+        end = "document.querySelector('main').getBoundingClientRect().bottom + 24"
+        if "until" in shot:
+            end = f"document.querySelector({json.dumps(shot['until'])}).getBoundingClientRect().top"
+        box = {"y": 0, "height": page.evaluate(f"{end} + window.scrollY")}
+        margin = 0
+    if not box or box["height"] <= 0:
+        fail(f"{shot['name']}: {shot['path']} has nothing at {shot.get('element') or shot.get('heading')}")
+    top = max(0, box["y"] - margin)
+    height = min(box["height"] + (margin + 6 if margin else 0), shot.get("max_height", MAX_HEIGHT))
+    data = page.call(
+        "Page.captureScreenshot", format="png", captureBeyondViewport=True,
+        clip={"x": 0, "y": top, "width": WIDTH, "height": height, "scale": 1},
+    )["data"]
+    (out / f"{shot['name']}.png").write_bytes(base64.b64decode(data))
+    log(f"captured {shot['name']}.png ({WIDTH}x{int(height)}) from {shot['path']}")
+
+
+def optimise(out, names):
+    """pngquant to a palette, then oxipng, in an Alpine container that installs both."""
+    files = " ".join(shlex.quote(f"{name}.png") for name in names)
+    script = (
+        "apk add --no-cache pngquant oxipng >/dev/null"
+        f" && cd /images && pngquant --force --skip-if-larger --strip --speed 1 --quality 70-95 --ext .png {files};"
+        f" oxipng -q -o 4 --strip safe {files}"
+    )
+    result = subprocess.run(
+        ["docker", "run", "--rm", "-v", f"{out}:/images", "alpine:3.24.2", "sh", "-c", script],
+        text=True, capture_output=True,
+    )
+    if result.returncode != 0:
+        fail(f"optimising the PNGs failed:\n{result.stdout}{result.stderr}")
+
+
+def shots(made):
+    """Every picture: its file name, the page, and what of it. ace3's guides' pictures decide the list,
+    and the names are ace3's."""
+    reviewed, failing, review, error = run_uuid(6), run_uuid(7), run_uuid(8), run_uuid(9)
+    run = "/svs/runs/"
+    batch = sql("SELECT batch_id FROM svs.runs WHERE uuid = '%s'" % review)[0][0]
+    conflicted = sql(
+        "SELECT sha256, rule_uuid FROM svs.yara_captures WHERE file_path = 'deploy_agent.ps1' LIMIT 1"
+    )[0]
+    validations = "/signatures/validations/7a11da7e-0000-4000-8000-00000000000"
+    return [
+        # the areas
+        {"name": "help-index", "path": "/help", "expect": ["Beginner's guide", "Administrator's guide"]},
+        {"name": "signatures-hub", "path": "/signatures", "expect": ["Samples", "Validations"]},
+        # runs
+        {"name": "runs-list", "path": f"/svs/runs?f=batch%3A{batch}",
+         "expect": ["Request for service tickets", "art-launcher"]},
+        {"name": "runs-needs-attention", "path": "/svs/runs?f=needs_attention%3Atrue",
+         "expect": ["needs attention", "Download a file with certutil"]},
+        {"name": "runs-batches", "path": "/svs/runs/batches", "expect": [batch]},
+        {"name": "runs-actions", "path": "/svs/runs?f=state%3Astarted%2Cended",
+         "prepare": "(() => { document.querySelector('input[type=checkbox][name=run]').checked = true;"
+                    " document.querySelector(\"form[action='/svs/runs/bulk'] input[name=reason]\").value ="
+                    " 'The test printed its output; nothing more will fire'; })()",
+         "element": "table.keys, form[action='/svs/runs/bulk']", "expect": ["End now"]},
+        # a run's page
+        {"name": "run-live", "path": run + made["started"],
+         "expect": ["started", "Run an encoded PowerShell command"]},
+        {"name": "run-needs-review", "path": run + review,
+         "expect": ["Request for service tickets", "CA_PowerShell_Invoke_Kerberoast"]},
+        {"name": "run-review-blockers", "path": run + review, "heading": "Review",
+         "expect": ["A review waits for"]},
+        {"name": "run-result-candidates", "path": run + review, "heading": "Result", "expect": ["candidate"]},
+        {"name": "run-alerts", "path": run + review, "heading": "Alerts", "expect": ["test?", "partial"]},
+        {"name": "run-reviewed", "path": run + reviewed,
+         "expect": ["reviewed", "CA_Registry_SAM_Save", "SIMULATED"]},
+        {"name": "run-history", "path": run + reviewed, "heading": "Result", "expect": ["hit"]},
+        {"name": "run-failing-result", "path": run + failing, "heading": "Result",
+         "expect": ["missing", "PE_Net_User_Add"]},
+        {"name": "run-comments", "path": run + failing, "heading": "Comments", "expect": ["LAB-311"]},
+        {"name": "run-events", "path": run + reviewed, "heading": "Event log",
+         "expect": ["registered", "reviewed", "alerts_closed"]},
+        {"name": "run-error", "path": run + error, "expect": ["error", "HTTP 407", "bob"]},
+        # alerts
+        {"name": "alert-page-test", "path": "/alerts/" + alert_uuid(6), "expect": ["SIMULATED", "svs_test"]},
+        {"name": "alert-test", "path": "/alerts/" + alert_uuid(81), "element": "#svs"},
+        {"name": "alert-context", "path": "/alerts/" + alert_uuid(82), "element": "#svs", "expect": ["Not a test"]},
+        {"name": "alert-partial", "path": "/alerts/" + alert_uuid(83), "element": "#svs"},
+        {"name": "alert-mismatch", "path": "/alerts/" + alert_uuid(900), "element": "#svs",
+         "expect": ["other host"]},
+        {"name": "alert-refused", "path": "/alerts/" + made["refused"],
+         "expect": ["registration refused", "fin-ws-042.corp.example.com"]},
+        # tests
+        {"name": "tests-list", "path": "/svs/tests", "expect": ["Request for service tickets", "failing", "validated"]},
+        {"name": "test-page", "path": "/svs/tests/" + T_NET_USER, "max_height": 2200,
+         "expect": ["PE_Net_User_Add", "failing"]},
+        # coverage and the worklist
+        # the rows something counts toward; the tab opens on every row of the endpoint platforms
+        {"name": "coverage-list",
+         "path": "/svs/coverage?f=platform%3Awindows%2Clinux%2Cmacos"
+                 "&f=state%3Afailing%2Cstale%2Cvalidated%2Cmanual%2Cuntested&f=retired%3Afalse",
+         "expect": ["T1003", "validated", "failing", "manual", "untested"]},
+        {"name": "coverage-technique", "path": "/svs/coverage/T1003", "expect": ["T1003.002", "Save the SAM hive"]},
+        {"name": "worklist", "path": "/svs/worklist",
+         "expect": ["confirmed", "open", "kept", "remove_pending", "undeclared"]},
+        {"name": "worklist-resolve", "path": "/svs/worklist?f=status%3Aopen",
+         "prepare": "(() => { const f = document.querySelector(\"form[action='/svs/worklist/resolve']\");"
+                    " document.querySelector('input[type=checkbox][form=worklist-resolve]').checked = true;"
+                    " f.elements['reason'].value = 'Reading the hive is how the rule finds the save';"
+                    " })()",
+         "element": "form[action='/svs/worklist/resolve'], table.keys", "expect": ["Keep the ticked tags"]},
+        {"name": "worklist-signature", "path": "/svs/worklist/" + S_TASK, "expect": ["CA_Schtasks_Logon_Task"]},
+        # samples and validations
+        {"name": "samples-list", "path": "/signatures/samples", "expect": ["deploy_agent.ps1", "conflicted"]},
+        {"name": "sample-conflicted", "path": f"/signatures/samples/{conflicted[0]}/{conflicted[1]}",
+         "expect": ["conflicted", "deploy_agent.ps1"]},
+        {"name": "validations-list", "path": "/signatures/validations", "expect": ["tune-sam-save", "failed"]},
+        {"name": "validation-regression", "path": validations + "1", "expect": ["regression", "CA_Registry_SAM_Save"]},
+        {"name": "validation-new-fp", "path": validations + "2", "expect": ["new_fp_other_rule"]},
+        # a failed validation has no rows: the picture is of what its page says of the failure
+        {"name": "validation-failed", "path": validations + "3", "until": "main h2",
+         "expect": ["is not in repository detection_rules"]},
+        {"name": "yara-qa", "path": "/signatures/yara-qa",
+         "expect": ["QA_Office_Macro_Shell", "QA_Lnk_Startup_Folder"]},
+        # test hosts
+        {"name": "test-hosts", "path": "/svs/test-hosts", "expect": ["win10-art-03", "ubuntu-art-01"]},
+        {"name": "test-host-add", "path": "/svs/test-hosts", "element": "form[action='/svs/test-hosts']",
+         "prepare": "(() => { const f = document.querySelector(\"form[action='/svs/test-hosts']\");"
+                    " const set = (n, v) => { if (f.elements[n]) f.elements[n].value = v; };"
+                    " set('hostname', 'win11-art-04'); set('fqdn', 'win11-art-04.lab.example.com');"
+                    " set('platform', 'windows'); set('usernames', 'art'); set('ips', '10.20.30.14');"
+                    " set('notes', 'Windows 11 24H2'); })()"},
+    ]
+
+
+def main(argv):
+    reuse = "--reuse" in argv
+    keep = "--keep" in argv or reuse
+    optimised = "--no-optimise" not in argv
+    out = IMAGES
+    if "--out" in argv:
+        out = Path(argv[argv.index("--out") + 1]).resolve()
+    only = [arg for at, arg in enumerate(argv)
+            if not arg.startswith("--") and (at == 0 or argv[at - 1] != "--out")]
+    out.mkdir(parents=True, exist_ok=True)
+    if not reuse:
+        start()
+    try:
+        if not reuse:
+            token = make_users()
+            seed("1-catalog.sql", yara_x=yara_x_version())
+            launcher_calls(token)
+            seed("2-runs.sql")
+            cookie = sign_in()
+            reviews(cookie)
+            coverage(cookie)
+        wanted = [shot for shot in shots(launcher_made()) if not only or shot["name"] in only]
+        unknown = set(only) - {shot["name"] for shot in wanted}
+        if unknown:
+            fail(f"no shot is named {sorted(unknown)}")
+        page = open_browser()
+        try:
+            for shot in wanted:
+                capture(page, shot, out)
+        finally:
+            page.close()
+        names = [shot["name"] for shot in wanted]
+        if optimised:
+            optimise(out, names)
+        total = 0
+        for name in names:
+            size = (out / f"{name}.png").stat().st_size
+            total += size
+            log(f"{name}.png {size / 1024:.0f} KB")
+        log(f"{len(names)} pictures, {total / 1024:.0f} KB in all, in {out}")
+    finally:
+        if keep:
+            log(f"left ace serve, {DATABASE} and the browser up (--keep)")
+        else:
+            stop()
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

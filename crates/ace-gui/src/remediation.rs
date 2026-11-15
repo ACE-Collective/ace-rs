@@ -20,9 +20,9 @@
 //!
 //! What differs, and why: a row's own forms stand for ace3's bulk buttons over ticked rows, and a page for
 //! its history modal, so the pages need no script. Each list has the viewer's quick filters, ace3's
-//! `Not completed` and `Failed` the first time (`crate::saved_filters::quick_filters`); saving and
-//! managing a filter, and inverted chips, are the API's (`/api/filters/v1`) and a share link's `!`, which
-//! the page takes; the form has a field per filter. A remediation's restore asks for no confirm, as
+//! `Not completed` and `Failed` the first time, and the Saved filters section that saves the list's filter
+//! and leads to the screen's manage page (`crate::saved_filters::quick_filters`); inverted chips are a
+//! share link's `!`, which the page takes; the form has a field per filter. A remediation's restore asks for no confirm, as
 //! ace3's doesn't.
 
 use ace_service::filters::{self, FilterScreen, FilterSpec};
@@ -278,8 +278,9 @@ fn notice(done: Option<&str>) -> Option<&'static str> {
 #[template(path = "remediation/list.html")]
 pub struct RemediationsPage {
     pub layout: Layout,
-    /// The viewer's quick filters on this screen (`crate::saved_filters::quick_filters`).
-    pub quick: Vec<crate::saved_filters::QuickLink>,
+    /// The viewer's quick filters on this screen and the form that saves its filter
+    /// (`crate::saved_filters::quick_filters`).
+    pub quick: crate::saved_filters::QuickBar,
     pub view: ListView<RemediationRow>,
 }
 
@@ -386,6 +387,7 @@ pub(crate) async fn remediations(
             &viewer,
             FilterScreen::Remediations,
             "/remediations",
+            &filters::encode(FilterScreen::Remediations, &request.filters).unwrap_or_default(),
         )
         .await,
         layout: viewer.layout,
@@ -753,8 +755,9 @@ fn collection_row(c: FileCollection, can_write: bool) -> CollectionRow {
 #[template(path = "remediation/collections.html")]
 pub struct CollectionsPage {
     pub layout: Layout,
-    /// The viewer's quick filters on this screen (`crate::saved_filters::quick_filters`).
-    pub quick: Vec<crate::saved_filters::QuickLink>,
+    /// The viewer's quick filters on this screen and the form that saves its filter
+    /// (`crate::saved_filters::quick_filters`).
+    pub quick: crate::saved_filters::QuickBar,
     pub view: ListView<CollectionRow>,
     /// Whether the viewer holds `file_collection:create`, for the link to the request form.
     pub can_create: bool,
@@ -826,6 +829,7 @@ pub(crate) async fn collections(
             &viewer,
             FilterScreen::FileCollections,
             "/file-collections",
+            &filters::encode(FilterScreen::FileCollections, &request.filters).unwrap_or_default(),
         )
         .await,
         layout: viewer.layout,

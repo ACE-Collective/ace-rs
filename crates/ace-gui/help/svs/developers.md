@@ -472,6 +472,8 @@ window's alerts get `IGNORE` the same way.
 (`GET /api/svs/v1/runs/events`) and its history on the run page, which lists each event's time, kind,
 states, actor and details, oldest first.
 
+![The event log of a reviewed run: registered, started, attributed, ended, ownership taken, reviewed and alerts closed](images/run-events.png)
+
 **One run per test host** (`host_holders`). A run holds its targets' test hosts from registration until
 it starts, times out or is canceled, and once started, until its claim ends: the observation window, or
 the attribution window when the run holds its host (copied from the test's settings at registration). An
@@ -691,6 +693,8 @@ lock, check the precondition and write the resolution. A refresh writes a resolu
 *remove* when the tag comes back after it was gone, or to move it when an ATT&CK upgrade revoked the
 technique.
 
+![The worklist: confirmed, open, kept, remove_pending and undeclared rows with their resolutions](images/worklist.png)
+
 **Snapshots.** `Service::write_svs_coverage_snapshot` refreshes, then copies the live rows into
 `svs.coverage_snapshots` under the day's date (UTC); a second snapshot the same day replaces the day. The
 scheduler's `svs_coverage_snapshot` runs it daily, and `ace svs coverage snapshot` runs it by hand.
@@ -832,9 +836,15 @@ every value, and a value in a link is percent-encoded.
 
 These guides are served at [/help](/help), readable by any signed-in user.
 
-- A guide is a Markdown file, `crates/ace-gui/help/<set>/<guide>.md`, with its diagrams as SVG files in
-  `crates/ace-gui/help/<set>/images/`. Both are embedded in the binary with `include_str!` and
-  `include_bytes!`, so nothing is read from disk while ACE runs.
+![The Documentation index with the four SVS guides](images/help-index.png)
+
+- A guide is a Markdown file, `crates/ace-gui/help/<set>/<guide>.md`, with its diagrams as SVG files and
+  its screenshots as PNG files in `crates/ace-gui/help/<set>/images/`. All are embedded in the binary
+  with `include_str!` and `include_bytes!`, so nothing is read from disk while ACE runs.
+- The screenshots are of ACE's own pages showing made-up data. `tools/help-screenshots/run` draws them
+  again when a page changes: it seeds a throwaway database from its fixtures, runs `ace serve` in the
+  dev container, and captures each page with the Compose stack's headless browser. Its docstring says
+  how.
 - `crates/ace-gui/src/help.rs` is the registry: `GUIDE_SETS` lists each set with its guides, in order.
 - A guide is rendered with pulldown-cmark. A GitHub alert block (`> [!NOTE]` and its kin) becomes a
   callout. A link `users.md#section` becomes `users#section`. Only an absolute `http` or `https` link
@@ -1039,10 +1049,6 @@ timers run is the overlay's `scheduler:` section.
   was closed when the pass ended, so no hooks task was queued. A later pass over the alert judges it.
 - **Windows fall back to the floor until a hunter has recorded its hunts.** The registration says so in
   `warnings`, but a run registered then keeps its short window.
-- **Saved filters on the SVS screens are read-only in the GUI.** Each screen seeds ace3's default quick
-  filters the first time a person opens it and shows the person's pinned filters as links. Saving,
-  renaming, pinning and deleting one is `/api/filters/v1/saved`; the GUI's Manage page is the alert
-  list's.
 - **The test queue is a constant.** `SVS_QUEUE` is `svs`; it is not a setting, because the marker router
   joins the binary before the overlay is read.
 - **Rule and hunt lag.** As described under *Coverage and the worklist*, coverage sees a rule repository

@@ -1,7 +1,26 @@
-{#- A screen's quick filters (src/saved_filters.rs's quick_filters): the viewer's pinned saved filters,
-    ace3's defaults for the screen the first time, each a link to the screen with its filters. A name and
-    a description are the viewer's own text. -#}
-  {%- if !quick.is_empty() %}
+{#- A screen's saved filters (src/saved_filters.rs's quick_filters and QuickBar): the viewer's pinned
+    saved filters, ace3's defaults for the screen the first time, each a link to the screen with its
+    filters; then the form that saves the page's filter and the link to the screen's manage page, where
+    a filter is renamed, pinned, ordered and deleted. A name and a description are the viewer's own
+    text. -#}
+  {%- if !quick.links.is_empty() %}
   <p class="quick-filters"><span class="label">Quick filters</span>
-    {%- for filter in quick %} <a class="badge" href="{{ filter.href }}" title="{{ filter.description }}">{{ filter.label }}</a>{% endfor %}</p>
+    {%- for filter in quick.links %} <a class="badge" href="{{ filter.href }}" title="{{ filter.description }}">{{ filter.label }}</a>{% endfor %}</p>
+  {%- endif %}
+  {%- if let Some(save) = quick.save %}
+  <details class="section saved">
+    <summary>Saved filters</summary>
+    <p><a href="{{ save.manage }}">Manage…</a> <span class="muted">Rename, pin, order and delete them.</span></p>
+    <form method="post" action="/filters/saved" class="save-filter">
+      <input type="hidden" name="screen" value="{{ save.screen }}">
+      <input type="hidden" name="next" value="{{ save.next }}">
+      {%- for f in save.f %}
+      <input type="hidden" name="f" value="{{ f }}">
+      {%- endfor %}
+      <input type="text" name="name" placeholder="name" aria-label="Name" required maxlength="{{ save.max_name }}">
+      <input type="text" name="description" placeholder="description" aria-label="Description" maxlength="{{ save.max_description }}">
+      <label><input type="checkbox" name="quick"> Quick filter</label>
+      <button type="submit">Save this filter</button>
+    </form>
+  </details>
   {%- endif %}

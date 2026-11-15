@@ -1,11 +1,13 @@
 {#- One alert (PLAN.md 5.8): ace3's analysis/index.html and alert.html, with its Alert Details section and
-    its analysis tree. data-init opens the live stream, whose URL holds only the alert's uuid and the
-    tree's hex version (src/alert.rs). -#}
+    its analysis tree. data-init opens the live stream, whose URL holds only the alert's uuid, the
+    tree's hex version and the uuid of who owned the alert when the page was drawn (src/alert.rs). The
+    stream fills #owner-notice when the alert has another owner, ace3's "Alert Ownership Changed!". -#}
 {% extends "base.html" %}
 {% block title %}{{ title }} · ACE{% endblock %}
 {% block content %}
-<section class="alert" data-init="@get('/alerts/{{ id }}/live?v={{ version }}')">
+<section class="alert" data-init="@get('/alerts/{{ id }}/live?v={{ version }}&amp;o={{ owner }}')">
   <h1>{{ title }}</h1>
+  <p id="owner-notice" hidden></p>
   <p class="alert-links"><a href="/alerts/{{ id }}/graph">Graph</a> <a href="/search?similar={{ id }}" title="Other alerts whose text is like this one's">Similar alerts</a></p>
   {%- if let Some(own) = ownership %}
   {#- ace3's Take Ownership and Assign Ownership (PLAN.md 7.17, src/list.rs's bulk_owner) -#}

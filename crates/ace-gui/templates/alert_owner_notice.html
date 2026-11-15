@@ -1,0 +1,4 @@
+{#- The ownership-changed notice of an open alert page (src/alert.rs): ace3's "Alert Ownership Changed!"
+    dialog (base.html's alert_ownership_changed_modal), which the alert's stream sends alone and Datastar
+    morphs into the page's #owner-notice. The owner's name is a person's text. -#}
+<p id="owner-notice" class="notice owner-changed" role="alert"><strong>Alert Ownership Changed!</strong> <b>{{ owner }}</b> now owns this alert{% if let Some(since) = since %}, since {{ since }}{% endif %}. <a href="/alerts/{{ alert }}">Reload the page</a> to see it as it is now.</p>

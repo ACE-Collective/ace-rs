@@ -188,8 +188,9 @@ pub fn validations_view(
 #[template(path = "signatures/validations.html")]
 pub struct ValidationsPage {
     pub layout: Layout,
-    /// The viewer's quick filters on this screen (`crate::saved_filters::quick_filters`).
-    pub quick: Vec<crate::saved_filters::QuickLink>,
+    /// The viewer's quick filters on this screen and the form that saves its filter
+    /// (`crate::saved_filters::quick_filters`).
+    pub quick: crate::saved_filters::QuickBar,
     pub view: ValidationsView,
 }
 
@@ -557,6 +558,7 @@ pub(crate) async fn validations(
                 &viewer,
                 FilterScreen::SvsValidations,
                 "/signatures/validations",
+                &filters,
             )
             .await,
             layout: viewer.layout,

@@ -323,8 +323,9 @@ pub fn runs_view(
 #[template(path = "svs/runs.html")]
 pub struct RunsPage {
     pub layout: Layout,
-    /// The viewer's quick filters on this screen (`crate::saved_filters::quick_filters`).
-    pub quick: Vec<crate::saved_filters::QuickLink>,
+    /// The viewer's quick filters on this screen and the form that saves its filter
+    /// (`crate::saved_filters::quick_filters`).
+    pub quick: crate::saved_filters::QuickBar,
     pub view: RunsView,
 }
 
@@ -1374,6 +1375,7 @@ pub(crate) async fn runs(
                 &viewer,
                 FilterScreen::SvsRuns,
                 "/svs/runs",
+                &filters,
             )
             .await,
             layout: viewer.layout,

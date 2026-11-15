@@ -1,0 +1,14 @@
+# The site overlay of the stack tools/help-screenshots/run brings up to draw the SVS guides'
+# screenshots. Its data is tools/help-screenshots/seed.sql's made-up fixtures, written straight into
+# the tables, so the tasks that would compute them again from runs, rules and a catalog the stack
+# doesn't have are off: the pages stay as the fixtures say. The log search link is a made-up
+# address, so the run page shows the link the guides describe.
+scheduler:
+  svs_catalog_refresh: {enabled: false}
+  svs_run_timers: {enabled: false}
+  svs_coverage_refresh: {enabled: false}
+  svs_coverage_snapshot: {enabled: false}
+  svs_validations_prune: {enabled: false}
+  yara_qa_prune: {enabled: false}
+svs:
+  log_search_url: "https://logs.example.com/search?q=svs_run%3D{run_uuid}&earliest={earliest}&latest={latest}"

@@ -55,9 +55,27 @@
 //! Ownership (PLAN.md 7.17): the details say who owns the alert and since when, and a viewer with
 //! `alert:write` has ace3's Take Ownership and Assign Ownership as forms that post to `/alerts/owner`
 //! (`crate::list::bulk_owner`) and come back here; taking an alert another analyst owns asks first, on
-//! the page that says who has it. ace3's page also polls the alert's owner and shows "Alert Ownership
-//! Changed!" when someone takes it while it's open (`saq_analysis.js`), which needs a script and isn't
-//! here: the owner is as of when the page was drawn, and a write checks it again under the alert's lock.
+//! the page that says who has it.
+//!
+//! The ownership-changed notice (the owner's decision of 2026-11-15): ace3's page asks the API for its
+//! alert's owner every five seconds and opens "Alert Ownership Changed!", naming who took it, when the
+//! owner isn't the one the page was drawn with (`check_alert_meta` in `saq_analysis.js`). Here the page's
+//! own stream says it, so it costs no request and no connection of its own:
+//! - The stream's URL says who owned the alert when the page was drawn, `o`, a uuid or nothing.
+//! - A change of owner notifies the channel a landing result does (migration 0063's trigger, with the
+//!   root's id and nothing about the owner), so the stream wakes as it does for a result, reads the tree
+//!   again under `alert:read`, and finds the owner in it. It also reads once as it opens, so a change
+//!   between the page's read and the stream isn't missed.
+//! - When the alert has an owner who isn't the one the stream last knew of, it sends
+//!   `OwnerNoticeFragment` as a `datastar-patch-elements` event, which Datastar morphs into the page's
+//!   empty `#owner-notice`: who owns it now and since when, and a link that loads the page again. As in
+//!   ace3, an alert that became nobody's says nothing, and the next owner is said once.
+//! - Who may see it is who may open the stream: `watch_alert` and every read check `alert:read`, and a
+//!   stream whose reader lost it ends without an event. The notification itself holds no name.
+//! - It's bounded as the stream is (`LiveLimits`): no stream, no notice, and the page says who owned
+//!   the alert when it was drawn; a write checks the owner again under the alert's lock either way.
+//! - The owner's name is a person's text and goes through askama's escaper, as the page's does. The
+//!   page has no script of its own for it.
 //!
 //! From ace3, and what differs: the section ids, the tree's shape and the jump links are ace3's. Not here
 //! yet: observable actions (#1032), the pruned
@@ -503,6 +521,37 @@ pub fn modifier_rules(tree: &AlertTree) -> Vec<ModifierRuleView> {
     rules
 }
 
+/// The ownership-changed notice (the module's docs): what the stream sends when the alert has an owner
+/// the open page wasn't drawn with, ace3's "Alert Ownership Changed!" dialog. Datastar morphs it into
+/// the page's `#owner-notice`.
+#[derive(Debug, Template)]
+#[template(path = "alert_owner_notice.html")]
+pub struct OwnerNoticeFragment {
+    pub alert: Uuid,
+    /// What the new owner is called.
+    pub owner: String,
+    /// Since when, in UTC, when the alert says.
+    pub since: Option<String>,
+}
+
+impl OwnerNoticeFragment {
+    /// The notice for an alert as it was just read, or None when nobody owns it, or the owner is the
+    /// one the page already knows of.
+    pub fn of(summary: &ace_service::AlertSummary, known: Option<Uuid>) -> Option<Self> {
+        let owner = summary.owner.as_ref()?;
+        if Some(owner.id.0) == known {
+            return None;
+        }
+        Some(OwnerNoticeFragment {
+            alert: summary.id,
+            owner: owner.name.clone(),
+            since: summary
+                .owned_at
+                .map(|at| at.format("%Y-%m-%d %H:%M:%S UTC").to_string()),
+        })
+    }
+}
+
 /// The tree on its own: what the page includes and what the stream sends.
 #[derive(Debug, Template)]
 #[template(path = "alert_tree.html")]
@@ -552,6 +601,9 @@ pub struct AlertPage {
     pub tree: TreeView,
     /// The tree's version, which the stream starts from.
     pub version: String,
+    /// Who owned the alert when the page was drawn, a uuid, or empty for nobody: what the stream's
+    /// ownership-changed notice starts from.
+    pub owner: String,
     /// The alert's detections with their verdicts (PLAN.md 7.14, `crate::verdicts`).
     pub verdicts: Option<VerdictsView>,
     /// What SVS makes of the alert, with its root's tags (PLAN.md 7.10, `crate::svs_alert`).
@@ -677,6 +729,11 @@ impl AlertPage {
             ignored_count,
             tree: view,
             version,
+            owner: summary
+                .owner
+                .as_ref()
+                .map(|owner| owner.id.0.to_string())
+                .unwrap_or_default(),
             verdicts: None,
             svs: None,
             ownership: None,
@@ -974,6 +1031,11 @@ struct Streaming {
     watch: AlertWatch,
     /// The version the client has.
     version: String,
+    /// Who the client knows the alert's owner to be: the one its page was drawn with, then the one the
+    /// last notice named.
+    owner: Option<Uuid>,
+    /// An event of the last read still to send: the notice, when the tree went first.
+    pending: Option<Event>,
     /// Whether to read the tree before waiting: at the start, since a result may have landed between
     /// the page's read and the watch.
     dirty: bool,
@@ -993,6 +1055,9 @@ impl Streaming {
     /// The next event, or None to end the stream.
     async fn next(mut self) -> Option<(Result<Event, Infallible>, Self)> {
         loop {
+            if let Some(event) = self.pending.take() {
+                return Some((Ok(event), self));
+            }
             let next = if self.dirty {
                 Next::Draw
             } else {
@@ -1055,12 +1120,31 @@ impl Streaming {
                             return None;
                         }
                     };
-                    if version == self.version {
-                        continue;
+                    let mut events = Vec::with_capacity(2);
+                    if version != self.version {
+                        self.version = version;
+                        events.push(patch_elements(&html, Some(&self.version)));
                     }
-                    self.version = version;
-                    let event = patch_elements(&html, &self.version);
-                    return Some((Ok(event), self));
+                    // the alert has an owner the page doesn't know of: ace3's "Alert Ownership Changed!"
+                    if let Some(notice) = OwnerNoticeFragment::of(&tree.alert.summary, self.owner) {
+                        match notice.render() {
+                            Ok(html) => {
+                                self.owner = tree.alert.summary.owner.as_ref().map(|o| o.id.0);
+                                // no id: a reconnect still says which tree the page has
+                                events.push(patch_elements(&html, None));
+                            }
+                            Err(error) => {
+                                tracing::error!("an ownership notice couldn't be drawn: {error}");
+                                return None;
+                            }
+                        }
+                    }
+                    let mut events = events.into_iter();
+                    let Some(first) = events.next() else {
+                        continue;
+                    };
+                    self.pending = events.next();
+                    return Some((Ok(first), self));
                 }
             }
         }
@@ -1069,18 +1153,21 @@ impl Streaming {
 
 /// A `datastar-patch-elements` event that morphs the element of the fragment's id. Each line of the HTML
 /// is a `data: elements` line; a carriage return can't be in one, so it's written as its entity, which
-/// is the same text inside an element or an attribute.
-fn patch_elements(html: &str, version: &str) -> Event {
+/// is the same text inside an element or an attribute. The tree's event has its version as its id; the
+/// ownership notice's has none.
+fn patch_elements(html: &str, version: Option<&str>) -> Event {
     let data = html
         .replace('\r', "&#13;")
         .lines()
         .map(|line| format!("elements {line}"))
         .collect::<Vec<_>>()
         .join("\n");
-    Event::default()
-        .event("datastar-patch-elements")
-        .id(version)
-        .data(data)
+    let event = Event::default().event("datastar-patch-elements");
+    match version {
+        Some(version) => event.id(version),
+        None => event,
+    }
+    .data(data)
 }
 
 /// `GET /alerts/{id}/live`.
@@ -1094,22 +1181,27 @@ pub(crate) async fn live(
         Ok(id) => id,
         Err(_) => return StatusCode::NOT_FOUND.into_response(),
     };
+    let query: Vec<(String, String)> = parts
+        .uri
+        .query()
+        .and_then(|query| serde_urlencoded::from_str(query).ok())
+        .unwrap_or_default();
+    let named = |name: &str| {
+        query
+            .iter()
+            .find(|(key, _)| key == name)
+            .map(|(_, value)| value.clone())
+    };
     // A reconnect says what it last had; the page's own version is in the URL.
     let version = parts
         .headers
         .get("last-event-id")
         .and_then(|value| value.to_str().ok())
         .map(str::to_owned)
-        .or_else(|| {
-            parts.uri.query().and_then(|query| {
-                serde_urlencoded::from_str::<Vec<(String, String)>>(query)
-                    .ok()?
-                    .into_iter()
-                    .find(|(name, _)| name == "v")
-                    .map(|(_, value)| value)
-            })
-        })
+        .or_else(|| named("v"))
         .unwrap_or_default();
+    // who owned the alert when the page was drawn; anything but a uuid is nobody
+    let owner = named("o").and_then(|owner| owner.parse::<Uuid>().ok());
     let Some(admitted) = gui.live.admit(&viewer.actor) else {
         tracing::warn!(actor = %viewer.actor, "an alert stream was refused: too many are open");
         return StatusCode::SERVICE_UNAVAILABLE.into_response();
@@ -1138,6 +1230,8 @@ pub(crate) async fn live(
         actor: viewer.actor,
         watch,
         version,
+        owner,
+        pending: None,
         dirty: true,
         drawn_at: None,
         heartbeat,

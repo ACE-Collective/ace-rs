@@ -158,6 +158,8 @@ grants them.
 live. The SVS area also has a **Guides** link at the end of its tabs, and the Signatures page links to
 the guides too. Anyone who can sign in can read them.
 
+![The Documentation index with the four SVS guides](images/help-index.png)
+
 ### Runs
 
 [SVS: Runs](/svs/runs) lists the test runs, newest first: when each was registered, its test and
@@ -168,11 +170,15 @@ which is the view the tab opens on, *Every run*, and *Batches*, one row per batc
 attention* count also appears next to **SVS** in the navigation bar. The people who run the test
 program and review runs work here.
 
+![The Runs list, filtered to one batch of runs](images/runs-list.png)
+
 Each run has its own page: its facts and times, the result per signature with how each did in
 earlier runs, what a review still waits for, the alerts attributed to it, a link to search your logs
 for the run (when your site configured one), comments and an event log. A reviewed run of the SAM
 registry dump test would show its expected signature as a hit, and its one alert with the SVS status
 `test` and the disposition `SIMULATED`.
+
+![A reviewed run's page](images/run-reviewed.png)
 
 ### Tests
 
@@ -182,15 +188,19 @@ failing or stale), how many runs it has had, its latest run and latest reviewed 
 signatures are expected of it, and how its recent runs fared. It answers "how has this test fared?"
 and deliberately doesn't suggest what to run next.
 
+![The Tests list](images/tests-list.png)
+
 ### Coverage
 
 [SVS: Coverage](/svs/coverage) shows one row per ATT&CK technique and platform: its coverage state,
 its own state without its sub-techniques, the tests that count toward it, and its manual (tag-only)
 and measured signatures, under a line that counts the rows. A parent technique rolls up its
-sub-techniques: T1003 on Windows is validated because sub-techniques under it are, although its own
-state is untested. Managers and detection leads use it for the big picture. *Failing* means a test
+sub-techniques: T1003 on Windows is validated because a sub-technique under it is, although nothing
+counts toward T1003 itself, so its own state is `none`. Managers and detection leads use it for the big picture. *Failing* means a test
 missed an expected signature, not that the technique goes undetected. ACE recomputes coverage every
 two minutes, and the page says when it last did.
+
+![The Coverage list, filtered to the rows something counts toward](images/coverage-list.png)
 
 Next to it, the [Worklist](/svs/worklist) tab lists the technique tags that no test confirms yet, so
 a detection engineer can keep or remove each one. The [User's guide](users.md) covers it.
@@ -200,6 +210,8 @@ a detection engineer can keep or remove each one. The [User's guide](users.md) c
 [Signatures](/signatures) is the hub for YARA-related screens: *Samples*, *Validations* and *Yara QA
 Results*. Opening it needs `signature:read`.
 
+![The Signatures hub](images/signatures-hub.png)
+
 [Samples](/signatures/samples) lists every kept file per rule, with the start of its sha256 and its
 file name, the rule, its label (`TP`, `FP` or `conflicted`, followed by where the label comes from,
 such as `inherited_single`), how many captures it has and when it was last captured. Hovering over a
@@ -207,11 +219,15 @@ label shows the votes behind it. Filter on the label `conflicted` to see the sam
 relabel. Downloads come as zip files protected with the password `infected`, because some samples
 are live malware.
 
+![The Samples list](images/samples-list.png)
+
 [Validations](/signatures/validations) lists the validation reports CI requested, newest first, one
 per rule change, with the repository and branch, the head commit (with a link to its pull request
 when CI sent one), its state, who requested it, and its counts of regressions, new false positives
 and compile errors. A *failed* validation is one ACE couldn't run, for example because it couldn't
 read one of the commits CI named. Detection engineers open a report from here.
+
+![The Validations list](images/validations-list.png)
 
 ## Day-to-day triage
 
@@ -246,6 +262,8 @@ state, and lists any marker that disagrees and why. It also shows the tags ACE g
 `svs_test`, `svs:marker_mismatch`, or `svs:maintenance` for an alert from a test host that is in a
 maintenance window. Maintenance alerts go to the `svs` queue too, and ACE closes them as `IGNORE`.
 The run links open for anyone who holds `svs:run_read`.
+
+![The alert page of a SIMULATED test alert, with its SVS section](images/alert-page-test.png)
 
 ### SIMULATED alerts are frozen
 

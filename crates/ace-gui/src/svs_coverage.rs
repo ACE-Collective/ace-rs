@@ -244,8 +244,9 @@ pub fn tests_view(
 #[template(path = "svs/tests.html")]
 pub struct TestsPage {
     pub layout: Layout,
-    /// The viewer's quick filters on this screen (`crate::saved_filters::quick_filters`).
-    pub quick: Vec<crate::saved_filters::QuickLink>,
+    /// The viewer's quick filters on this screen and the form that saves its filter
+    /// (`crate::saved_filters::quick_filters`).
+    pub quick: crate::saved_filters::QuickBar,
     pub view: TestsView,
 }
 
@@ -567,8 +568,9 @@ pub fn coverage_view(
 #[template(path = "svs/coverage.html")]
 pub struct CoveragePage {
     pub layout: Layout,
-    /// The viewer's quick filters on this screen (`crate::saved_filters::quick_filters`).
-    pub quick: Vec<crate::saved_filters::QuickLink>,
+    /// The viewer's quick filters on this screen and the form that saves its filter
+    /// (`crate::saved_filters::quick_filters`).
+    pub quick: crate::saved_filters::QuickBar,
     pub view: CoverageView,
 }
 
@@ -915,8 +917,9 @@ pub fn worklist_view(
 #[template(path = "svs/worklist.html")]
 pub struct WorklistPage {
     pub layout: Layout,
-    /// The viewer's quick filters on this screen (`crate::saved_filters::quick_filters`).
-    pub quick: Vec<crate::saved_filters::QuickLink>,
+    /// The viewer's quick filters on this screen and the form that saves its filter
+    /// (`crate::saved_filters::quick_filters`).
+    pub quick: crate::saved_filters::QuickBar,
     pub view: WorklistView,
 }
 
@@ -1095,6 +1098,7 @@ pub(crate) async fn tests(
                 &viewer,
                 FilterScreen::SvsTests,
                 "/svs/tests",
+                &filters,
             )
             .await,
             layout: viewer.layout,
@@ -1332,6 +1336,7 @@ pub(crate) async fn coverage(
                 &viewer,
                 FilterScreen::SvsCoverage,
                 "/svs/coverage",
+                &filters,
             )
             .await,
             layout: viewer.layout,
@@ -1445,6 +1450,7 @@ pub(crate) async fn worklist(
                 &viewer,
                 FilterScreen::SvsWorklist,
                 "/svs/worklist",
+                &filters,
             )
             .await,
             layout: viewer.layout,

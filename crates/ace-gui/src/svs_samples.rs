@@ -243,8 +243,9 @@ pub fn samples_view(
 #[template(path = "signatures/samples.html")]
 pub struct SamplesPage {
     pub layout: Layout,
-    /// The viewer's quick filters on this screen (`crate::saved_filters::quick_filters`).
-    pub quick: Vec<crate::saved_filters::QuickLink>,
+    /// The viewer's quick filters on this screen and the form that saves its filter
+    /// (`crate::saved_filters::quick_filters`).
+    pub quick: crate::saved_filters::QuickBar,
     pub view: SamplesView,
 }
 
@@ -515,6 +516,7 @@ pub(crate) async fn samples(
                 &viewer,
                 FilterScreen::SvsSamples,
                 "/signatures/samples",
+                &filters,
             )
             .await,
             layout: viewer.layout,

@@ -328,10 +328,14 @@ Open the [Test hosts](/svs/test-hosts) tab of the SVS area. The tab is shown onl
 lists each host with its FQDN, platform, users, IP addresses, notes and when it last changed. A host's
 name links to its page, which has the form that changes it and the button that removes it.
 
+![The Test hosts tab listing five lab hosts with their FQDN, platform, users and IP addresses](images/test-hosts.png)
+
 ### Adding a test host
 
 1. Fill in the form under **Add a test host** (table below).
 2. Click **Save**.
+
+![The Add a test host form with host name, FQDN, platform, users, IP addresses and notes](images/test-host-add.png)
 
 | Field | Meaning |
 |---|---|
@@ -388,6 +392,8 @@ The alert's type is `svs - registration refused` and its description reads *SVS 
 refused: art-launcher targeted fin-ws-042*. Its detection is on the refused host's observable and names
 the reason ("fin-ws-042 is not a test host"). The alert's details carry the caller, its address and key
 id, the launcher, the reason and the request.
+
+![A refused registration's alert: art-launcher targeted fin-ws-042.corp.example.com, with the host, the user and the caller as its observables](images/alert-refused.png)
 
 To stop a retrying launcher from flooding the queue, refusals are collapsed to one alert per caller and
 host per clock hour. Every refusal, alerted or not, is logged at WARNING as `svs run registration refused`
@@ -527,6 +533,8 @@ A run the launcher reported as failed shows the exit code, what the launcher rep
 printed on its page. It stays in `error` until a person closes it or its attribution window passes;
 asking launchers to call `executed` is what makes this visible.
 
+![A run in error: the launcher reported exit code 1 and an HTTP 407 proxy error](images/run-error.png)
+
 ## Setting up YARA validation in CI
 
 Every stored sample is scanned with the rules at a pull request's base and head commits, and the two
@@ -597,6 +605,8 @@ scan. Add `--json` for the whole result.
 
 A failed validation is one that could not run at all; it says nothing about the rules. Its report shows
 the error.
+
+![A failed validation: the head commit is not in repository detection_rules](images/validation-failed.png)
 
 | Error | Cause and fix |
 |---|---|
@@ -852,6 +862,8 @@ set, *Search the logs for this run* opens your log search with the placeholders 
 The run's **event log**, at the bottom of the run page, is its history, not a debugging tool: one row
 per registration, launcher call, transition, attribution, decision, review and close, with who and when.
 
+![A run's event log: registered and started by art-launcher, attributed by svs, ended by the run timers, reviewed by alice](images/run-events.png)
+
 Rows by `scheduler:svs_run_timers` are the timers, and rows by the launcher's key are its calls. A run
 whose latest transition is `created → started` long after its window should have ended points at the run
 timers.
@@ -879,6 +891,8 @@ timers.
    runs, points at the workers.
 7. **Errors.** `docker compose logs --since 24h ace | grep -E "ERROR|WARN" | grep -i svs`, and in the
    default queue, any alert of type `svs - registration refused`.
+
+![The Runs tab's Needs attention view with an ended run waiting for review and a run in error](images/runs-needs-attention.png)
 
 The same checks through the API, for a monitoring script with an `svs:run_read` key (validations need
 `signature:read`):

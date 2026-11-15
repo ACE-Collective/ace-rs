@@ -10,9 +10,11 @@
 //! list, and nothing is written to look at one. Every control is a link or a form, so the page works
 //! without its script:
 //! - The filter bar is ace3's: each filter as a chip whose values and name are links that remove them, the
-//!   quick filters (the user's pinned saved filters) as links, Reset (`disposition:OPEN` with
-//!   `owner:None,$USER`, ace3's default but for its queue filter: open alerts that are nobody's or the
-//!   viewer's) and Clear.
+//!   quick filters (the user's pinned saved filters) as links, Reset (ace3's default, `_default_filters`:
+//!   `disposition:OPEN`, `owner:None,$USER` and `queue:$USER_QUEUE`, the open alerts that are nobody's or
+//!   the viewer's, in the viewer's default queue) and Clear. ace3 writes the viewer's name and queue into
+//!   the filter; here they're `$USER` and `$USER_QUEUE`, read when the list is, so a copied Reset link
+//!   means the same for whoever opens it.
 //! - ace3's filter modal is a form whose fields fold one filter into the URL's and come back to it
 //!   (`ListQuery::parse`). An unknown filter in a link is left out with a warning, as ace3's link decoder
 //!   does; a malformed one shows the list without filters, saying why, where ace3 redirects to a bare page.
@@ -805,10 +807,11 @@ pub fn list_view(
         here: query.at("/"),
         manage: crate::saved_filters::manage_url(&query.at("/")),
         share: query.with_filters(&query.filters),
-        // ace3's `_default_filters`, but for its queue: open alerts nobody owns, or the viewer does
+        // ace3's `_default_filters`: open alerts nobody owns, or the viewer does, in the viewer's queue
         reset: query.with_filters(&[
             FilterEntry::text("Disposition", false, &["OPEN"]),
             FilterEntry::text("Owner", false, &["None", filters::USER]),
+            FilterEntry::text("Queue", false, &[filters::USER_QUEUE]),
         ]),
         clear: query.with_filters(&[]),
         refresh: query.at("/alerts/list"),

@@ -198,6 +198,8 @@ Each row shows when the run was registered (the link to its page), the test and 
 run's state, its platform, targets, launcher and batch, its result (*Hits*, *Missing*, *Candidates*),
 how many alerts it has, and its owner. Times are UTC.
 
+![The Runs list, filtered to one batch](images/runs-list.png)
+
 The result columns read like this:
 
 - **Hits 1/1**: every expected signature fired.
@@ -225,6 +227,8 @@ when there are none, and `99+` past 99. The number can be a few seconds old. The
 Each such run says *needs attention* beside its state, in every view. Start your day there. *Every
 run*, beside it, drops the filter.
 
+![The Needs attention view: an ended run that waits for review and a run in error](images/runs-needs-attention.png)
+
 ### Filters, batches and bulk actions
 
 The filters are the text fields above the list; each field's placeholder says what it takes. Fill
@@ -233,9 +237,18 @@ or a pasted link opens the same view. Useful ones are *Batch*, *Test Name*, *Tec
 *State*, *Owner*, and *Has Missing*, *Has Candidates*, *Has Context Only* and *Has Late* (`true` or
 `false`).
 
+Above the fields are your *Quick filters*, links that apply a saved filter: the first time you open
+the tab you get *Needs attention* and *Started*. To keep a view of your own, set its filters, open
+*Saved filters* under the quick filters, name it and press *Save this filter*; tick *Quick filter* to
+pin it beside the others. *Manage…* lists your saved filters for the tab, where you rename, pin,
+unpin, reorder and delete them. The Tests, Coverage and Worklist tabs, and the Samples and
+Validations lists, have the same section, each with its own filters.
+
 *Batches* groups the runs the filters match by their `batch_id`: one row per batch, with its runs by
 state, how many need attention, and its hits, missing and candidates. It is the quickest way to see
 how last night's batch went. A batch's name opens its runs.
+
+![The Batches view](images/runs-batches.png)
 
 With `svs:run_manage`, each run has a check box. Tick runs and use the form under the list to act on
 them at once: *Take*, *Cancel*, *End now* or *Close*. *End now*, and *Close* for a run that ended,
@@ -244,6 +257,8 @@ a page says what happened to each run: done, left alone because someone else own
 why, or unknown. For the runs left alone, that page has a button that takes them from their owners
 and does the action again. Review is never a bulk action, because each run's result has to be looked
 at.
+
+![A ticked run and the form under the list, with a reason for End now](images/runs-actions.png)
 
 ## The run page
 
@@ -271,11 +286,18 @@ and the event log each have an export link; the page shows the first 500 result 
 alerts* opens [Samples](/signatures/samples) narrowed to what those alerts captured (the first 64
 alerts' when the run has more).
 
+A started run's page, twenty minutes into its hour's observation window, with one alert attributed so
+far:
+
+![A started run's page](images/run-live.png)
+
 ## Reviewing a run
 
 Reviewing a run signs its result off: you confirm which signatures a test should fire, and ACE
 learns from it. This walk-through uses an example run of *Request for service tickets* (T1558.003,
 Kerberoasting) on `win10-art-03`, which ended and is waiting for a review.
+
+![The run page of an ended run waiting for review](images/run-needs-review.png)
 
 ### Step 1: take ownership
 
@@ -296,11 +318,15 @@ A run can be reviewed when:
 - every candidate is decided;
 - every alert attributed by context alone is kept or marked not a test.
 
+![The Review section, listing two undecided candidates and one context-only alert](images/run-review-blockers.png)
+
 ### Step 3: read the result
 
 The **Result** table has one row per signature: its family (`builtin`, `hunt` or `yara`), its status,
 how many of the run's alerts carry it, its status as last reviewed, and its status in each of the
 test's earlier runs on this platform.
+
+![The Result table with two candidates and their Decide forms](images/run-result-candidates.png)
 
 | Status | Meaning |
 |---|---|
@@ -350,6 +376,8 @@ The **Alerts** section lists every alert attributed to the run, now or before, i
 were first attributed. Each row has the alert's disposition, its SVS status, how the run holds it
 (*marker*, *context* or *no longer held*), and how many of its detections the run holds.
 
+![The Alerts section with test, test? and partial alerts](images/run-alerts.png)
+
 - **test**, held by *marker*: every detection is attributed, at least one by the run's marker.
   Nothing to do.
 - **partial**: some detections are from the run and some aren't. Say one file had the marker and a
@@ -387,8 +415,12 @@ When the Review section says nothing stands in the way, press **Review**. ACE th
 A reviewed run shows its expected signature as a hit with the same under *As reviewed*, and its
 alert closed as `SIMULATED` in the `svs` queue.
 
+![A reviewed run's page](images/run-reviewed.png)
+
 The next run of the same test is judged against your decision, and shows this run's statuses in its
 earlier-run columns.
+
+![The result of a reviewed rerun, with the earlier run's hit in its own column](images/run-history.png)
 
 ### After the review
 
@@ -438,6 +470,8 @@ A run in *error* tells you the launcher reported a failure, or never started the
 takes the run and notes it in a comment. Close it once you know why it failed, or leave it in *Needs
 attention* while someone fixes the cause.
 
+![A run in error, with what the launcher reported and Bob's comment](images/run-error.png)
+
 ## Test alerts on the alert page
 
 Every alert SVS touched shows an **SVS** section at the top of its page, with its status, the test
@@ -450,6 +484,14 @@ list shows the status after the alert's description, as a link to the run.
 | **test?** | Every detection is attributed by its host and time alone | Nothing unless it looks wrong; then *Not a test* |
 | **partial** | Some detections are from a run and some aren't. It stays with analysts | Triage the other detections |
 | **mismatch** | A marker in the alert doesn't agree with its run: another host, outside the window, or a marker no run has. The section lists each such marker, what is wrong with it and the run it belongs to. It stays with analysts, and the mismatch is never withdrawn | Investigate it as a real alert |
+
+![The SVS section of a test alert](images/alert-test.png)
+
+![The SVS section of a test? alert, attributed by context alone](images/alert-context.png)
+
+![The SVS section of a partial alert](images/alert-partial.png)
+
+![The SVS section of a mismatch alert, with the marker and the run it belongs to](images/alert-mismatch.png)
 
 *Disassociate from its test runs* and *Not a test* need `alert:write`. Both take an optional
 reason, which each run's event log keeps. Both remove the alert from every run that holds it, send it back to the queue SVS
@@ -481,6 +523,8 @@ opens on the tests still in the catalog (*Removed* `false`), and its filters are
 *Platform*, *Executor*, *Repository* and *Removed*. Nothing on it suggests what to run next: that is
 your team's call.
 
+![The Tests list](images/tests-list.png)
+
 A test's page has its guid (the `test_guid` a launcher registers), its technique, repository, file
 and commit, its state on each platform, its description, and its entry from the catalog with its
 commands, input arguments and dependencies. Below them are the decisions about it:
@@ -498,11 +542,15 @@ commands, input arguments and dependencies. Below them are the decisions about i
   `svs:admin`).
 - **Its runs**: a link under the test's name opens the Runs list narrowed to this test.
 
+![A failing test's page, with its expectation and the ignore that applies to it](images/test-page.png)
+
 ## Debugging a missing detection
 
 A `missing` signature is the most useful thing a run can tell you: something you expected to
 detect, you didn't. SVS doesn't build debugging tools; it gives you what you need to search your
 own logs.
+
+![A rerun's result: the expected signature is missing, and the earlier run hit it](images/run-failing-result.png)
 
 Work through it in this order:
 
@@ -525,6 +573,8 @@ Work through it in this order:
 Usual causes: the host's logging changed (an agent update or a rebuilt image), the rule is narrower
 than the test's command, the hunt didn't cover the window, or suppression. Write what you found in a
 comment, so the next person doesn't start over.
+
+![A comment explaining a missing signature](images/run-comments.png)
 
 ## Writing or fixing a signature from results
 
@@ -571,6 +621,8 @@ asked for, its repository, branch, head commit (with a link to the pull request)
 errors, and who asked for it. Type `true` in the *Has Regressions* filter, or `failed` in *State*, to
 find the ones to look at.
 
+![The Validations list](images/validations-list.png)
+
 A report replays every stored sample under the change's base commit and its head commit, and sorts
 each sample and rule pair the change affects into a category. The report's *Counts* table lists the
 categories, the most urgent first; a category's name shows its rows, and the *Category* selector
@@ -594,6 +646,10 @@ base `match`, head `miss`, on a TP sample, in `regression`. Or a change that bro
 rule to encoded PowerShell now matches a file that is a false positive for
 `EX_PowerShell_Encoded_Command`: that row is in `new_fp_other_rule`.
 
+![A report with a regression](images/validation-regression.png)
+
+![A report with a new false positive on another rule's sample](images/validation-new-fp.png)
+
 Each row's sample links to the sample's page, where the actions are. With `signature:download`,
 *Download these rows' files* downloads the files of the rows shown. The *CSV* and *NDJSON* links
 above the table export the report's rows, every one of them or those of the categories chosen
@@ -607,12 +663,16 @@ TP or FP, one row per file and rule. The label comes from the verdicts on the de
 so changing an alert's disposition relabels its samples. You don't label samples by hand in the
 normal course of things; your dispositions do it.
 
+![The Samples list](images/samples-list.png)
+
 A label is `tp` or `fp`, with how strongly it is known: **explicit** (someone set a verdict),
 **inherited_single** (from the alert's disposition) or **inherited_multi** (inherited on an alert
 where several signatures fired, so unconfirmed). The strongest strength that has a vote decides. When
 votes of that strength disagree, the sample is **conflicted**, and validations can't use it until
 someone decides. Say the same `deploy_agent.ps1` was graded FP on one alert and TP on another: its
 sample is conflicted.
+
+![A conflicted sample's page](images/sample-conflicted.png)
 
 A sample's page shows its votes, every capture with the alert it came from and that alert's
 detections with their verdicts, and these actions:
@@ -636,6 +696,8 @@ rows per state above the list and what the last refresh did. ACE recomputes cove
 minutes. The Coverage tab opens on the endpoint platforms (Windows, Linux and macOS) without retired
 rows; *Reset* shows everything, and the *State* filter narrows it, for example to `failing`.
 
+![The Coverage list, filtered to the rows something counts toward](images/coverage-list.png)
+
 | State | Means |
 |---|---|
 | failing | A test of the technique missed an expected signature |
@@ -652,6 +714,8 @@ the technique goes undetected.
 A technique's page shows its rows by platform, its sub-techniques, its tests and what each counts
 as, the measured and manual signatures, its removed tests, and its daily snapshots of the last two
 months.
+
+![A technique's page: T1003, validated on Windows through its sub-technique](images/coverage-technique.png)
 
 ## The worklist
 
@@ -670,13 +734,19 @@ appear. Statuses are as of the last coverage refresh.
 | unknown | The tag names an id the ATT&CK release doesn't have, for information |
 | retired | The signature isn't measured any more, or the tag went away undecided |
 
+![The worklist with every status: confirmed, open, kept, remove_pending and undeclared rows](images/worklist.png)
+
 With `svs:run_manage`, tick the rows to decide, fill in *Why*, and press **Keep the ticked tags** or
 **Remove the ticked tags**. Both need the reason; *Reference* optionally takes an `https://` link,
 such as the pull request that removes the tag.
 
+![A ticked row and the form that keeps or removes its tag, with a reason](images/worklist-resolve.png)
+
 A signature's name opens its own page: every row, including retired ones, and the tests that
 measure it. There each row has its own *Keep* and *Remove*, and **Reopen** clears a decision. A row
 someone else changed since you loaded the page is refused; reload and decide again.
+
+![A signature's worklist page](images/worklist-signature.png)
 
 ## YARA QA results
 
@@ -685,6 +755,8 @@ alerts, and ACE keeps the files it matches for review. Use it to see how noisy a
 before it can wake anyone up. [Signatures → Yara QA Results](/signatures/yara-qa) lists the rules in
 QA mode with how often they matched; a rule's name opens its page, with its versions and its stored
 files. When the matches look right, remove the `qa` modifier in a pull request.
+
+![The Yara QA Results page](images/yara-qa.png)
 
 Files are kept per version of the rule, and the version marked *current* is the one loaded now, so
 it shows what the rule as it runs now matched. Files are kept up to a cap per rule, until they have

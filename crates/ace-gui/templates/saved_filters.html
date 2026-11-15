@@ -1,13 +1,18 @@
 {#- ace3's Manage Filters dialog (saved_filters/_modals.html, PLAN.md 5.11's saved_filters area), as a page:
-    each row's pin, order, rename and delete is a link or a form (src/saved_filters.rs). -#}
+    each row's pin, order, rename and delete is a link or a form (src/saved_filters.rs). It's the alert
+    list's, and each other screen's that has quick filters, whose label and words differ. -#}
 {% extends "base.html" %}
 {% block title %}Saved filters · ACE{% endblock %}
 {% block content %}
 <section class="manage-filters">
-  <p><a href="{{ view.back }}">Back to the alert list</a></p>
+  <p><a href="{{ view.back }}">Back to {{ view.screen_label }}</a></p>
   <h1>Saved filters</h1>
   {%- if view.rows.is_empty() %}
+  {%- if view.alerts %}
   <p class="muted">You have no saved filters yet. Build a filter on the alert list, then save it there.</p>
+  {%- else %}
+  <p class="muted">You have no saved filters on {{ view.screen_label }} yet. Set a filter there, then save it under Saved filters.</p>
+  {%- endif %}
   {%- else %}
   <table class="saved-filters">
     <thead>
@@ -52,7 +57,11 @@
       {%- endfor %}
     </tbody>
   </table>
+  {%- if view.alerts %}
   <p class="muted hint">Pinned filters appear as quick filters on the alert list's filter bar, in the order shown here. Tip: use <code>$USER_QUEUE</code> as a Queue value or <code>$USER</code> as an Owner value to make a shared link adapt to whoever opens it.</p>
+  {%- else %}
+  <p class="muted hint">Pinned filters appear as quick filters above the filter form of {{ view.screen_label }}, in the order shown here.</p>
+  {%- endif %}
   {%- endif %}
 </section>
 {% endblock %}

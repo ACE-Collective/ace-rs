@@ -31,7 +31,7 @@
 //!   sorts, bulk disposition and refresh, and taking and assigning ownership (7.17).
 //! - `saved_filters`: the saved filters' forms and their manage page (5.10, and 5.11's saved_filters
 //!   area), ace3's `saved_filters/_modals.html`, where a saved filter is renamed and the quick filters
-//!   reordered.
+//!   reordered, for the alert list and for each other screen that has quick filters.
 //! - `admin`: the administration area under `admin:read` (5.11's admin area), ace3's `admin/hub.html` and
 //!   `admin/manage.html`: users, groups, grants and keys over the `users` service. The base layout links
 //!   to it for whoever holds `admin:read`.

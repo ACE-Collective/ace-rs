@@ -5,8 +5,14 @@
 //! named by its slug, holding one Markdown file per guide and the images those guides use under
 //! `images/`, so a guide also reads correctly where the repository is browsed. The one set is SVS's:
 //! ace3's `app/help/content/svs/` guides (ace3's own documentation, Apache-2.0 as this repository is),
-//! rewritten to say what ace4 does. Its screenshots are of ace3's pages and aren't brought; its five
-//! diagrams are, redrawn where ace4 differs.
+//! rewritten to say what ace4 does. Its five diagrams are brought, redrawn where ace4 differs. Its
+//! screenshots are of ace3's pages and aren't: the guides' screenshots are of ace4's own pages showing
+//! made-up data, where ace4 has the page ace3's guide illustrated, and `tools/help-screenshots/run`
+//! draws them again when a page changes (its docstring says how). ace3's pictures with no page here:
+//! `run-candidates` (a candidate's decisions are in the Result table, which `run-result-candidates`
+//! shows), `run-expected-modal` and `run-close-modal` (ace4 has no dialogs: the reason is a field
+//! beside the buttons) and `run-logs` (a run's page links to the site's log search, and has no Logs
+//! section).
 //!
 //! ace3's views, each `GET` only and for any signed-in user, since a guide describes screens that have
 //! their own permissions and reading about one grants nothing on it:
@@ -109,15 +115,26 @@ impl GuideSet {
 }
 
 const SVG: &str = "image/svg+xml";
+const PNG: &str = "image/png";
 
+/// An SVS guide's image: a diagram (`.svg`) or a screenshot (`.png`), by its file's name.
 macro_rules! svs_image {
     ($name:literal) => {
         GuideImage {
             name: $name,
             bytes: include_bytes!(concat!("../help/svs/images/", $name)),
-            content_type: SVG,
+            content_type: image_type($name),
         }
     };
+}
+
+/// The media type of an image, by its file's extension.
+const fn image_type(name: &str) -> &'static str {
+    match name.as_bytes() {
+        [.., b'.', b's', b'v', b'g'] => SVG,
+        [.., b'.', b'p', b'n', b'g'] => PNG,
+        _ => panic!("a guide's image is an .svg or a .png"),
+    }
 }
 
 /// The guide sets, in the index's order: ace3's `GUIDE_SETS`.
@@ -157,10 +174,49 @@ pub static GUIDE_SETS: &[GuideSet] = &[
         ],
         images: &[
             svs_image!("admin-components.svg"),
+            svs_image!("alert-context.png"),
+            svs_image!("alert-mismatch.png"),
+            svs_image!("alert-page-test.png"),
+            svs_image!("alert-partial.png"),
+            svs_image!("alert-refused.png"),
+            svs_image!("alert-test.png"),
             svs_image!("architecture.svg"),
             svs_image!("attribution.svg"),
+            svs_image!("coverage-list.png"),
+            svs_image!("coverage-technique.png"),
+            svs_image!("help-index.png"),
+            svs_image!("run-alerts.png"),
+            svs_image!("run-comments.png"),
+            svs_image!("run-error.png"),
+            svs_image!("run-events.png"),
+            svs_image!("run-failing-result.png"),
+            svs_image!("run-history.png"),
+            svs_image!("run-live.png"),
+            svs_image!("run-needs-review.png"),
+            svs_image!("run-result-candidates.png"),
+            svs_image!("run-review-blockers.png"),
+            svs_image!("run-reviewed.png"),
             svs_image!("run-states.svg"),
+            svs_image!("runs-actions.png"),
+            svs_image!("runs-batches.png"),
+            svs_image!("runs-list.png"),
+            svs_image!("runs-needs-attention.png"),
+            svs_image!("sample-conflicted.png"),
+            svs_image!("samples-list.png"),
+            svs_image!("signatures-hub.png"),
             svs_image!("svs-loop.svg"),
+            svs_image!("test-host-add.png"),
+            svs_image!("test-hosts.png"),
+            svs_image!("test-page.png"),
+            svs_image!("tests-list.png"),
+            svs_image!("validation-failed.png"),
+            svs_image!("validation-new-fp.png"),
+            svs_image!("validation-regression.png"),
+            svs_image!("validations-list.png"),
+            svs_image!("worklist-resolve.png"),
+            svs_image!("worklist-signature.png"),
+            svs_image!("worklist.png"),
+            svs_image!("yara-qa.png"),
         ],
     },
     GuideSet {
