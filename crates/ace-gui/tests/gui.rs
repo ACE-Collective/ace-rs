@@ -17644,6 +17644,8 @@ fn guide_references(set: &GuideSet, slug: &str) -> GuideReferences {
 
 /// The files of a directory of this crate's `help/`, by name. A directory that isn't there has none: a set
 /// with no images has no `images/`, and one that registered an image without the directory still differs.
+/// A name that starts with a dot isn't a guide or an image: macOS's Finder leaves a `.DS_Store` in a
+/// directory someone opened, which git ignores.
 fn help_files(path: &str) -> BTreeSet<String> {
     let directory = Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("help")
@@ -17657,6 +17659,7 @@ fn help_files(path: &str) -> BTreeSet<String> {
         .map(|entry| entry.expect("an entry"))
         .filter(|entry| entry.path().is_file())
         .map(|entry| entry.file_name().to_string_lossy().into_owned())
+        .filter(|name| !name.starts_with('.'))
         .collect()
 }
 
