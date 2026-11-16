@@ -111,7 +111,6 @@
           "details": {
             "dom_snapshot": false,
             "dom_snapshot_source": null,
-            "error": null,
             "error_type": null,
             "event_count": 0,
             "exit_code": 0,
@@ -166,13 +165,12 @@
       "results": {
         "exif": {
           "details": {
-            "error": null,
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 09:35:17+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 09:35:17+00:00",
-              "File:FileModifyDate": "2026:11:07 04:47:50+00:00",
+              "File:FileAccessDate": "2026:11:16 15:01:36+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 15:01:36+00:00",
+              "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "js_action_null.pdf",
               "File:FilePermissions": 100644,
               "File:FileSize": 416,
@@ -258,7 +256,7 @@
         "pdf": true
       }
     },
-    "file:e475ed7edf9dfd8fd847e61caf77d885cc2f70846df186e6f65354f993561a01": {
+    "file:af73eedc194c7c2d3f354f7a0bf97879c141e07a4cbd854e08de567d63ff6145": {
       "detections": {},
       "directives": {},
       "excluded_analysis": {
@@ -291,63 +289,7 @@
       },
       "tags": {}
     },
-    "file:ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "archive": true
-      },
-      "paths": {
-        "js_action_null.pdf.gs.pdf.txt": {
-          "type=document.pdf.text": true
-        },
-        "js_action_null.pdf.txt": {
-          "type=document.pdf.text": true
-        }
-      },
-      "redirection": "file:f77aa99dac54f6f8c8173b6d1b0eb5f91f9cb1153d9e1bc6082bd757f4ef0d6e",
-      "relationships": {
-        "extracted_from file:9faf161d193fcc38645ed142a627fdb872feab791e1e1a341578a536eb2c3ae8": true,
-        "extracted_from file:f77aa99dac54f6f8c8173b6d1b0eb5f91f9cb1153d9e1bc6082bd757f4ef0d6e": true
-      },
-      "results": {
-        "file_type": {
-          "details": {
-            "is_email_file": false,
-            "is_jar_file": false,
-            "is_lnk_file": false,
-            "is_office_document": false,
-            "is_office_ext": false,
-            "is_ole_file": false,
-            "is_pdf_file": false,
-            "is_pe_file": false,
-            "is_rtf_file": false,
-            "is_x509": false,
-            "is_zip_file": false,
-            "mime": "application/octet-stream",
-            "type": "very short file (no magic)"
-          },
-          "summary": "File Type Analysis: very short file (no magic) (application/octet-stream)",
-          "tags": {}
-        },
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
-    "file:f77aa99dac54f6f8c8173b6d1b0eb5f91f9cb1153d9e1bc6082bd757f4ef0d6e": {
+    "file:b984628b5ac69372af197092be031bfc1961c8cfcf4f1949dd3a21937e198f60": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -428,6 +370,62 @@
       "tags": {
         "pdf": true
       }
+    },
+    "file:ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "archive": true
+      },
+      "paths": {
+        "js_action_null.pdf.gs.pdf.txt": {
+          "type=document.pdf.text": true
+        },
+        "js_action_null.pdf.txt": {
+          "type=document.pdf.text": true
+        }
+      },
+      "redirection": "file:b984628b5ac69372af197092be031bfc1961c8cfcf4f1949dd3a21937e198f60",
+      "relationships": {
+        "extracted_from file:9faf161d193fcc38645ed142a627fdb872feab791e1e1a341578a536eb2c3ae8": true,
+        "extracted_from file:b984628b5ac69372af197092be031bfc1961c8cfcf4f1949dd3a21937e198f60": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "very short file (no magic)"
+          },
+          "summary": "File Type Analysis: very short file (no magic) (application/octet-stream)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
     },
     "md5:2f6dfa7598e25f42f91b9ad284e083e4": {
       "detections": {},

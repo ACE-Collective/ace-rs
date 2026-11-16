@@ -368,7 +368,7 @@
       },
       "tags": {}
     },
-    "file:738de6f840c71a01bf61e07c2ea60f7349eb783d60f00e381d1ddfc62760c33e": {
+    "file:9708dd1729b4d22b9433f11ff3b65b24b648f9d8da10ef9a728d6767ae2ddd06": {
       "detections": {},
       "directives": {},
       "excluded_analysis": {
@@ -482,13 +482,12 @@
       "results": {
         "exif": {
           "details": {
-            "error": null,
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 08:45:56+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 08:45:56+00:00",
-              "File:FileModifyDate": "2026:11:11 08:45:56+00:00",
+              "File:FileAccessDate": "2026:11:16 13:41:28+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 13:41:28+00:00",
+              "File:FileModifyDate": "2026:11:16 13:41:28+00:00",
               "File:FileName": "invoice.docx",
               "File:FilePermissions": 100664,
               "File:FileSize": 17920,
@@ -535,7 +534,6 @@
             "email": false,
             "email_body": null,
             "encryption_info": null,
-            "error": "office2john.py failed: invoice.docx uses un-supported hashing algorithm SHA256, please file a bug! \n",
             "password": null,
             "word_list": []
           },
@@ -1152,7 +1150,6 @@
             "dispatch_state": "DONE",
             "gui_link": null,
             "query": "index=proxy hostname=\"example.com\"",
-            "query_error": null,
             "query_results": [
               {
                 "_time": "2026-10-30T14:02:11.000+00:00",
@@ -1192,7 +1189,6 @@
             "datetime_of_last_update": "2026-08-14 08:01:43+00:00",
             "domain_name": "EXAMPLE.COM",
             "emails": [],
-            "error": null,
             "ip_version": null,
             "lookup_protocol": "rdap",
             "name_servers": [
@@ -1201,6 +1197,7 @@
             ],
             "network_cidr": null,
             "network_name": null,
+            "not_found": null,
             "rdap_attempt_error": null,
             "rdap_data": {
               "copyright_notice": "",

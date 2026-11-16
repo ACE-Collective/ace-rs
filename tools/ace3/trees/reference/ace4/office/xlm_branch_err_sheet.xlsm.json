@@ -21,7 +21,6 @@
               "xl/_rels/workbook.xml.rels",
               "_rels/.rels"
             ],
-            "extraction_error": null,
             "file_count": 5
           },
           "summary": "Archive Analysis: extracted 5 of 5 files: ([Content_Types].xml, xl/workbook.xml, xl/macrosheets/sheet1.xml, xl/_rels/workbook.xml.rels, _rels/.rels)",
@@ -29,13 +28,12 @@
         },
         "exif": {
           "details": {
-            "error": null,
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 09:13:27+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 09:13:27+00:00",
-              "File:FileModifyDate": "2026:11:07 14:35:12+00:00",
+              "File:FileAccessDate": "2026:11:16 14:13:23+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 14:13:23+00:00",
+              "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "xlm_branch_err_sheet.xlsm",
               "File:FilePermissions": 100644,
               "File:FileSize": 2412,
@@ -121,39 +119,6 @@
         "xlm4": true,
         "zip": true
       }
-    },
-    "file:56d51dd5a74c46e713af65e5093d71108fbe375a3116728c03e5abb1533c120e": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "xlm_branch_err_sheet.xlsm.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:568c5dcab0a3bb4f02025fc002e5367e19df5a645ffcd3a789b78115f195a72c": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
     },
     "file:645343b53d6ff392a1da2f5c6ce38bc96303934a0f6de3f2e0300153253f0ba3": {
       "detections": {},
@@ -524,6 +489,39 @@
         "xml_plain_text_analyzer": {
           "details": {
             "xml_plain_text": "xlm_branch_err_sheet.xlsm.extracted/xl/workbook.xml.noxml"
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:9ee876cda57e0b828c03c8bd26d96fb7a7ff526045f5b72ac4fbdba088954251": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "xlm_branch_err_sheet.xlsm.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:568c5dcab0a3bb4f02025fc002e5367e19df5a645ffcd3a789b78115f195a72c": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}

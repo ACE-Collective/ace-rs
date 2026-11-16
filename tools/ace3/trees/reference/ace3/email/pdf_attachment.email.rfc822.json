@@ -125,7 +125,6 @@
             "dispatch_state": "DONE",
             "gui_link": null,
             "query": "index=proxy hostname=\"gmail.com\"",
-            "query_error": null,
             "query_results": [
               {
                 "_time": "2026-10-30T14:02:11.000+00:00",
@@ -165,12 +164,12 @@
             "datetime_of_last_update": null,
             "domain_name": null,
             "emails": null,
-            "error": "rdap: Failed to make a GET request to https://rdap.verisign.com/com/v1/domain/gmail.com: nothing recorded for GET https://rdap.verisign.com/com/v1/domain/gmail.com; whois: no WHOIS in a replay",
             "ip_version": null,
             "lookup_protocol": null,
             "name_servers": null,
             "network_cidr": null,
             "network_name": null,
+            "not_found": null,
             "rdap_attempt_error": "Failed to make a GET request to https://rdap.verisign.com/com/v1/domain/gmail.com: nothing recorded for GET https://rdap.verisign.com/com/v1/domain/gmail.com",
             "rdap_data": null,
             "rdap_raw_json": null,
@@ -273,12 +272,12 @@
             "datetime_of_last_update": null,
             "domain_name": null,
             "emails": null,
-            "error": "rdap: Failed to make a GET request to https://rdap.arin.net/registry/ip/207.211.31.120: nothing recorded for GET https://rdap.arin.net/registry/ip/207.211.31.120; whois: no WHOIS in a replay",
             "ip_version": null,
             "lookup_protocol": null,
             "name_servers": null,
             "network_cidr": null,
             "network_name": null,
+            "not_found": null,
             "rdap_attempt_error": "Failed to make a GET request to https://rdap.arin.net/registry/ip/207.211.31.120: nothing recorded for GET https://rdap.arin.net/registry/ip/207.211.31.120",
             "rdap_data": null,
             "rdap_raw_json": null,
@@ -480,6 +479,39 @@
         "email": true
       }
     },
+    "file:1ed575c05b6ee9b8117187002330cb2bdbc1bbcc0dbc259ad6c69a2af1d98c2f": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "spectre.pdf.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:d1a3c8c49faea6321bd01e706e0957012c18a94e1a187f1a5477c0e82270dc51": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:2e0fe360df9179aea4c2792c019d2d30c6feeffb8073537f0069b68472c207f7": {
       "detections": {},
       "directives": {},
@@ -595,88 +627,6 @@
       },
       "tags": {
         "email": true
-      }
-    },
-    "file:43551db605d674ba65e6ef6bc424bf122f73403c0f8777e38a40f6b039c1b592": {
-      "detections": {},
-      "directives": {
-        "extract_urls": true
-      },
-      "excluded_analysis": {
-        "pdf_analyzer": true
-      },
-      "paths": {
-        "spectre.pdf.gs.pdf": {
-          "type=document.pdf": true,
-          "type=document.pdf.rendered": true
-        }
-      },
-      "redirection": "file:d1a3c8c49faea6321bd01e706e0957012c18a94e1a187f1a5477c0e82270dc51",
-      "relationships": {
-        "extracted_from file:d1a3c8c49faea6321bd01e706e0957012c18a94e1a187f1a5477c0e82270dc51": true
-      },
-      "results": {
-        "file_type": {
-          "details": {
-            "is_email_file": false,
-            "is_jar_file": false,
-            "is_lnk_file": false,
-            "is_office_document": false,
-            "is_office_ext": false,
-            "is_ole_file": false,
-            "is_pdf_file": true,
-            "is_pe_file": false,
-            "is_rtf_file": false,
-            "is_x509": false,
-            "is_zip_file": false,
-            "mime": "application/pdf",
-            "type": "PDF document, version 1.7, 16 page(s)"
-          },
-          "summary": "File Type Analysis: PDF document, version 1.7, 16 page(s) (application/pdf) (pdf document)",
-          "tags": {}
-        },
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "pdftotext": {
-          "details": {
-            "output_path": "e4051a7f94df4c7cb73292494e66f6a8f878174836b49765ef201cb665ceb277",
-            "stderr": "",
-            "stdout": ""
-          },
-          "summary": "PDF Text Analysis",
-          "tags": {}
-        },
-        "qrcode": {
-          "details": {
-            "extracted_text": null,
-            "inverted": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "url_extraction": {
-          "details": {
-            "urls": [],
-            "urls_grouped_by_domain": {}
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {
-        "pdf": true
       }
     },
     "file:694b8f9f32e3c7fb62f5efa622b0f8b88c37893699599c1b4d28e6b39a931782": {
@@ -1340,7 +1290,64 @@
           "details": {
             "candidates": [
               {
-                "anchor_text": null,
+                "anchor_text": "",
+                "carries": [],
+                "highlights": [
+                  [
+                    "spectre.pdf"
+                  ],
+                  []
+                ],
+                "reasons": [
+                  "found in attachment spectre.pdf",
+                  "clickable link in a PDF"
+                ],
+                "score": 40,
+                "sources": [
+                  "attachment"
+                ],
+                "url": "https://bugs.chromium.org/p/chromium/issues/detail?id=508166"
+              },
+              {
+                "anchor_text": "",
+                "carries": [],
+                "highlights": [
+                  [
+                    "spectre.pdf"
+                  ],
+                  []
+                ],
+                "reasons": [
+                  "found in attachment spectre.pdf",
+                  "clickable link in a PDF"
+                ],
+                "score": 40,
+                "sources": [
+                  "attachment"
+                ],
+                "url": "https://www.amd.com/en-us/press-releases/Pages/amd-takes-computing-2016dec13.aspx"
+              },
+              {
+                "anchor_text": "",
+                "carries": [],
+                "highlights": [
+                  [
+                    "spectre.pdf"
+                  ],
+                  []
+                ],
+                "reasons": [
+                  "found in attachment spectre.pdf",
+                  "clickable link in a PDF"
+                ],
+                "score": 40,
+                "sources": [
+                  "attachment"
+                ],
+                "url": "https://www.youtube.com/watch?v=uZRih6APtiQ"
+              },
+              {
+                "anchor_text": "",
                 "carries": [],
                 "highlights": [
                   [
@@ -1359,26 +1366,7 @@
                 "url": "http://cr.yp.to/papers.html#cachetiming"
               },
               {
-                "anchor_text": null,
-                "carries": [],
-                "highlights": [
-                  [
-                    "spectre.pdf"
-                  ],
-                  []
-                ],
-                "reasons": [
-                  "found in attachment spectre.pdf",
-                  "clickable link in a PDF"
-                ],
-                "score": 40,
-                "sources": [
-                  "attachment"
-                ],
-                "url": "http://eprint.iacr.org/2015/905"
-              },
-              {
-                "anchor_text": null,
+                "anchor_text": "",
                 "carries": [],
                 "highlights": [
                   [
@@ -1395,49 +1383,11 @@
                   "attachment"
                 ],
                 "url": "http://eprint.iacr.org/2017/968"
-              },
-              {
-                "anchor_text": null,
-                "carries": [],
-                "highlights": [
-                  [
-                    "spectre.pdf"
-                  ],
-                  []
-                ],
-                "reasons": [
-                  "found in attachment spectre.pdf",
-                  "clickable link in a PDF"
-                ],
-                "score": 40,
-                "sources": [
-                  "attachment"
-                ],
-                "url": "http://www.cs.vu.nl/~giuffrida/papers/anc-ndss-2017.pdf"
-              },
-              {
-                "anchor_text": null,
-                "carries": [],
-                "highlights": [
-                  [
-                    "spectre.pdf"
-                  ],
-                  []
-                ],
-                "reasons": [
-                  "found in attachment spectre.pdf",
-                  "clickable link in a PDF"
-                ],
-                "score": 40,
-                "sources": [
-                  "attachment"
-                ],
-                "url": "http://www.daemonology.net/papers/htt.pdf"
               }
             ],
             "has_inner_email": false,
             "primary": {
-              "anchor_text": null,
+              "anchor_text": "",
               "carries": [],
               "highlights": [
                 [
@@ -1453,11 +1403,11 @@
               "sources": [
                 "attachment"
               ],
-              "url": "http://cr.yp.to/papers.html#cachetiming"
+              "url": "https://bugs.chromium.org/p/chromium/issues/detail?id=508166"
             },
             "subject": "canary #1"
           },
-          "summary": "Lure URL Analysis: http://cr.yp.to/papers.html#cachetiming (found in attachment spectre.pdf; clickable link in a PDF)",
+          "summary": "Lure URL Analysis: https://bugs.chromium.org/p/chromium/issues/detail?id=508166 (found in attachment spectre.pdf; clickable link in a PDF)",
           "tags": {}
         },
         "observable_detection": {
@@ -1590,6 +1540,210 @@
         }
       },
       "tags": {}
+    },
+    "file:8ec431d8ffbafd23efa1ccc47bb58c21dee4a38b7860b43cc527876fe747236b": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {
+        "pdf_analyzer": true
+      },
+      "paths": {
+        "spectre.pdf.gs.pdf": {
+          "type=document.pdf": true,
+          "type=document.pdf.rendered": true
+        }
+      },
+      "redirection": "file:d1a3c8c49faea6321bd01e706e0957012c18a94e1a187f1a5477c0e82270dc51",
+      "relationships": {
+        "extracted_from file:d1a3c8c49faea6321bd01e706e0957012c18a94e1a187f1a5477c0e82270dc51": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": true,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/pdf",
+            "type": "PDF document, version 1.7, 16 page(s)"
+          },
+          "summary": "File Type Analysis: PDF document, version 1.7, 16 page(s) (application/pdf) (pdf document)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "pdf_link_text": {
+          "details": {
+            "links": [
+              {
+                "line": null,
+                "page": 12,
+                "text": null,
+                "url": "https://bugs.chromium.org/p/chromium/issues/detail?id=508166"
+              },
+              {
+                "line": null,
+                "page": 12,
+                "text": null,
+                "url": "https://bugs.chromium.org/p/chromium/issues/detail?id=508166"
+              },
+              {
+                "line": null,
+                "page": 13,
+                "text": null,
+                "url": "https://www.amd.com/en-us/press-releases/Pages/amd-takes-computing-2016dec13.aspx"
+              },
+              {
+                "line": null,
+                "page": 13,
+                "text": null,
+                "url": "https://www.amd.com/en-us/press-releases/Pages/amd-takes-computing-2016dec13.aspx"
+              },
+              {
+                "line": null,
+                "page": 13,
+                "text": null,
+                "url": "https://www.youtube.com/watch?v=uZRih6APtiQ"
+              },
+              {
+                "line": null,
+                "page": 13,
+                "text": null,
+                "url": "https://www.youtube.com/watch?v=uZRih6APtiQ"
+              },
+              {
+                "line": null,
+                "page": 13,
+                "text": null,
+                "url": "http://cr.yp.to/papers.html#cachetiming"
+              },
+              {
+                "line": null,
+                "page": 13,
+                "text": null,
+                "url": "http://cr.yp.to/papers.html#cachetiming"
+              },
+              {
+                "line": null,
+                "page": 13,
+                "text": null,
+                "url": "http://eprint.iacr.org/2017/968"
+              },
+              {
+                "line": null,
+                "page": 13,
+                "text": null,
+                "url": "http://eprint.iacr.org/2017/968"
+              },
+              {
+                "line": null,
+                "page": 13,
+                "text": null,
+                "url": "https://cyber.wtf/2017/07/28/negative-result-reading-kernel-memory-from-user-mode/"
+              },
+              {
+                "line": null,
+                "page": 13,
+                "text": null,
+                "url": "https://cyber.wtf/2017/07/28/negative-result-reading-kernel-memory-from-user-mode/"
+              },
+              {
+                "line": null,
+                "page": 13,
+                "text": null,
+                "url": "http://www.cs.vu.nl/~giuffrida/papers/anc-ndss-2017.pdf"
+              },
+              {
+                "line": null,
+                "page": 13,
+                "text": null,
+                "url": "http://www.cs.vu.nl/~giuffrida/papers/anc-ndss-2017.pdf"
+              },
+              {
+                "line": null,
+                "page": 13,
+                "text": null,
+                "url": "https://users.ece.cmu.edu/~yoonguk/papers/kim-isca14.pdf"
+              },
+              {
+                "line": null,
+                "page": 13,
+                "text": null,
+                "url": "https://users.ece.cmu.edu/~yoonguk/papers/kim-isca14.pdf"
+              },
+              {
+                "line": null,
+                "page": 13,
+                "text": null,
+                "url": "http://www.daemonology.net/papers/htt.pdf"
+              },
+              {
+                "line": null,
+                "page": 13,
+                "text": null,
+                "url": "http://www.daemonology.net/papers/htt.pdf"
+              },
+              {
+                "line": null,
+                "page": 14,
+                "text": null,
+                "url": "http://eprint.iacr.org/2015/905"
+              }
+            ]
+          },
+          "summary": "PDF Link Text Analysis: 19 links, 0 with text",
+          "tags": {}
+        },
+        "pdftotext": {
+          "details": {
+            "output_path": "e4051a7f94df4c7cb73292494e66f6a8f878174836b49765ef201cb665ceb277",
+            "stderr": "",
+            "stdout": ""
+          },
+          "summary": "PDF Text Analysis",
+          "tags": {}
+        },
+        "qrcode": {
+          "details": {
+            "extracted_text": null,
+            "inverted": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {
+        "pdf": true
+      }
     },
     "file:a9824e9a088bd0e3b97aef48b8e1ea8a95389d5661abb030b4f73b1e55e03e9f": {
       "detections": {},
@@ -1729,39 +1883,6 @@
       },
       "tags": {}
     },
-    "file:b284e4ff357802d12d76c3648fe347291c5835c32f3ba4c78b1d81619f519a66": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "spectre.pdf.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:d1a3c8c49faea6321bd01e706e0957012c18a94e1a187f1a5477c0e82270dc51": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:bb09ae7a1d502a5d610a97f4b6a93488f7d21836d9784941623e481037d89cff": {
       "detections": {},
       "directives": {
@@ -1837,14 +1958,13 @@
       "results": {
         "exif": {
           "details": {
-            "error": null,
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "ExifTool:Warning": "FlateDecode Predictor 2 currently not supported",
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 08:42:11+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 08:42:11+00:00",
-              "File:FileModifyDate": "2026:11:11 08:42:11+00:00",
+              "File:FileAccessDate": "2026:11:16 14:52:52+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 14:52:52+00:00",
+              "File:FileModifyDate": "2026:11:16 14:52:52+00:00",
               "File:FileName": "spectre.pdf",
               "File:FilePermissions": 100664,
               "File:FileSize": 131872,
@@ -1898,6 +2018,128 @@
         "pdf_analyzer": {
           "details": {},
           "summary": null,
+          "tags": {}
+        },
+        "pdf_link_text": {
+          "details": {
+            "links": [
+              {
+                "line": null,
+                "page": 12,
+                "text": null,
+                "url": "https://bugs.chromium.org/p/chromium/issues/detail?id=508166"
+              },
+              {
+                "line": null,
+                "page": 12,
+                "text": null,
+                "url": "https://bugs.chromium.org/p/chromium/issues/detail?id=508166"
+              },
+              {
+                "line": null,
+                "page": 13,
+                "text": null,
+                "url": "https://www.amd.com/en-us/press-releases/Pages/amd-takes-computing-2016dec13.aspx"
+              },
+              {
+                "line": null,
+                "page": 13,
+                "text": null,
+                "url": "https://www.amd.com/en-us/press-releases/Pages/amd-takes-computing-2016dec13.aspx"
+              },
+              {
+                "line": null,
+                "page": 13,
+                "text": null,
+                "url": "https://www.youtube.com/watch?v=uZRih6APtiQ"
+              },
+              {
+                "line": null,
+                "page": 13,
+                "text": null,
+                "url": "https://www.youtube.com/watch?v=uZRih6APtiQ"
+              },
+              {
+                "line": null,
+                "page": 13,
+                "text": null,
+                "url": "http://cr.yp.to/papers.html#cachetiming"
+              },
+              {
+                "line": null,
+                "page": 13,
+                "text": null,
+                "url": "http://cr.yp.to/papers.html#cachetiming"
+              },
+              {
+                "line": null,
+                "page": 13,
+                "text": null,
+                "url": "http://eprint.iacr.org/2017/968"
+              },
+              {
+                "line": null,
+                "page": 13,
+                "text": null,
+                "url": "http://eprint.iacr.org/2017/968"
+              },
+              {
+                "line": null,
+                "page": 13,
+                "text": null,
+                "url": "https://cyber.wtf/2017/07/28/negative-result-reading-kernel-memory-from-user-mode/"
+              },
+              {
+                "line": null,
+                "page": 13,
+                "text": null,
+                "url": "https://cyber.wtf/2017/07/28/negative-result-reading-kernel-memory-from-user-mode/"
+              },
+              {
+                "line": null,
+                "page": 13,
+                "text": null,
+                "url": "http://www.cs.vu.nl/~giuffrida/papers/anc-ndss-2017.pdf"
+              },
+              {
+                "line": null,
+                "page": 13,
+                "text": null,
+                "url": "http://www.cs.vu.nl/~giuffrida/papers/anc-ndss-2017.pdf"
+              },
+              {
+                "line": null,
+                "page": 13,
+                "text": null,
+                "url": "https://users.ece.cmu.edu/~yoonguk/papers/kim-isca14.pdf"
+              },
+              {
+                "line": null,
+                "page": 13,
+                "text": null,
+                "url": "https://users.ece.cmu.edu/~yoonguk/papers/kim-isca14.pdf"
+              },
+              {
+                "line": null,
+                "page": 13,
+                "text": null,
+                "url": "http://www.daemonology.net/papers/htt.pdf"
+              },
+              {
+                "line": null,
+                "page": 13,
+                "text": null,
+                "url": "http://www.daemonology.net/papers/htt.pdf"
+              },
+              {
+                "line": null,
+                "page": 14,
+                "text": null,
+                "url": "http://eprint.iacr.org/2015/905"
+              }
+            ]
+          },
+          "summary": "PDF Link Text Analysis: 19 links, 0 with text",
           "tags": {}
         },
         "pdftotext": {
@@ -1954,9 +2196,9 @@
           "type=document.pdf.text": true
         }
       },
-      "redirection": "file:43551db605d674ba65e6ef6bc424bf122f73403c0f8777e38a40f6b039c1b592",
+      "redirection": "file:8ec431d8ffbafd23efa1ccc47bb58c21dee4a38b7860b43cc527876fe747236b",
       "relationships": {
-        "extracted_from file:43551db605d674ba65e6ef6bc424bf122f73403c0f8777e38a40f6b039c1b592": true
+        "extracted_from file:8ec431d8ffbafd23efa1ccc47bb58c21dee4a38b7860b43cc527876fe747236b": true
       },
       "results": {
         "file_type": {
@@ -2026,7 +2268,6 @@
             "dispatch_state": "DONE",
             "gui_link": null,
             "query": "index=proxy hostname=\"bugs.chromium.org\"",
-            "query_error": null,
             "query_results": [
               {
                 "_time": "2026-10-30T14:02:11.000+00:00",
@@ -2066,12 +2307,12 @@
             "datetime_of_last_update": null,
             "domain_name": null,
             "emails": null,
-            "error": "rdap: Failed to make a GET request to https://rdap.publicinterestregistry.org/rdap/domain/chromium.org: nothing recorded for GET https://rdap.publicinterestregistry.org/rdap/domain/chromium.org; whois: no WHOIS in a replay",
             "ip_version": null,
             "lookup_protocol": null,
             "name_servers": null,
             "network_cidr": null,
             "network_name": null,
+            "not_found": null,
             "rdap_attempt_error": "Failed to make a GET request to https://rdap.publicinterestregistry.org/rdap/domain/chromium.org: nothing recorded for GET https://rdap.publicinterestregistry.org/rdap/domain/chromium.org",
             "rdap_data": null,
             "rdap_raw_json": null,
@@ -2125,7 +2366,6 @@
             "dispatch_state": "DONE",
             "gui_link": null,
             "query": "index=proxy hostname=\"company.com\"",
-            "query_error": null,
             "query_results": [
               {
                 "_time": "2026-10-30T14:02:11.000+00:00",
@@ -2165,12 +2405,12 @@
             "datetime_of_last_update": null,
             "domain_name": null,
             "emails": null,
-            "error": "rdap: Failed to make a GET request to https://rdap.verisign.com/com/v1/domain/company.com: nothing recorded for GET https://rdap.verisign.com/com/v1/domain/company.com; whois: no WHOIS in a replay",
             "ip_version": null,
             "lookup_protocol": null,
             "name_servers": null,
             "network_cidr": null,
             "network_name": null,
+            "not_found": null,
             "rdap_attempt_error": "Failed to make a GET request to https://rdap.verisign.com/com/v1/domain/company.com: nothing recorded for GET https://rdap.verisign.com/com/v1/domain/company.com",
             "rdap_data": null,
             "rdap_raw_json": null,
@@ -2226,7 +2466,6 @@
             "dispatch_state": "DONE",
             "gui_link": null,
             "query": "index=proxy hostname=\"cr.yp.to\"",
-            "query_error": null,
             "query_results": [
               {
                 "_time": "2026-10-30T14:02:11.000+00:00",
@@ -2266,12 +2505,12 @@
             "datetime_of_last_update": null,
             "domain_name": null,
             "emails": null,
-            "error": "rdap: Failed to make a GET request to https://rdap.tonicregistry.to/rdap/domain/yp.to: nothing recorded for GET https://rdap.tonicregistry.to/rdap/domain/yp.to; whois: no WHOIS in a replay",
             "ip_version": null,
             "lookup_protocol": null,
             "name_servers": null,
             "network_cidr": null,
             "network_name": null,
+            "not_found": null,
             "rdap_attempt_error": "Failed to make a GET request to https://rdap.tonicregistry.to/rdap/domain/yp.to: nothing recorded for GET https://rdap.tonicregistry.to/rdap/domain/yp.to",
             "rdap_data": null,
             "rdap_raw_json": null,
@@ -2325,7 +2564,6 @@
             "dispatch_state": "DONE",
             "gui_link": null,
             "query": "index=proxy hostname=\"cyber.wtf\"",
-            "query_error": null,
             "query_results": [
               {
                 "_time": "2026-10-30T14:02:11.000+00:00",
@@ -2365,12 +2603,12 @@
             "datetime_of_last_update": null,
             "domain_name": null,
             "emails": null,
-            "error": "rdap: Failed to make a GET request to https://rdap.identitydigital.services/rdap/domain/cyber.wtf: nothing recorded for GET https://rdap.identitydigital.services/rdap/domain/cyber.wtf; whois: no WHOIS in a replay",
             "ip_version": null,
             "lookup_protocol": null,
             "name_servers": null,
             "network_cidr": null,
             "network_name": null,
+            "not_found": null,
             "rdap_attempt_error": "Failed to make a GET request to https://rdap.identitydigital.services/rdap/domain/cyber.wtf: nothing recorded for GET https://rdap.identitydigital.services/rdap/domain/cyber.wtf",
             "rdap_data": null,
             "rdap_raw_json": null,
@@ -2424,7 +2662,6 @@
             "dispatch_state": "DONE",
             "gui_link": null,
             "query": "index=proxy hostname=\"eprint.iacr.org\"",
-            "query_error": null,
             "query_results": [
               {
                 "_time": "2026-10-30T14:02:11.000+00:00",
@@ -2464,12 +2701,12 @@
             "datetime_of_last_update": null,
             "domain_name": null,
             "emails": null,
-            "error": "rdap: Failed to make a GET request to https://rdap.publicinterestregistry.org/rdap/domain/iacr.org: nothing recorded for GET https://rdap.publicinterestregistry.org/rdap/domain/iacr.org; whois: no WHOIS in a replay",
             "ip_version": null,
             "lookup_protocol": null,
             "name_servers": null,
             "network_cidr": null,
             "network_name": null,
+            "not_found": null,
             "rdap_attempt_error": "Failed to make a GET request to https://rdap.publicinterestregistry.org/rdap/domain/iacr.org: nothing recorded for GET https://rdap.publicinterestregistry.org/rdap/domain/iacr.org",
             "rdap_data": null,
             "rdap_raw_json": null,
@@ -2529,7 +2766,6 @@
             "dispatch_state": "DONE",
             "gui_link": null,
             "query": "index=proxy hostname=\"example.com\"",
-            "query_error": null,
             "query_results": [
               {
                 "_time": "2026-10-30T14:02:11.000+00:00",
@@ -2569,7 +2805,6 @@
             "datetime_of_last_update": "2026-08-14 08:01:43+00:00",
             "domain_name": "EXAMPLE.COM",
             "emails": [],
-            "error": null,
             "ip_version": null,
             "lookup_protocol": "rdap",
             "name_servers": [
@@ -2578,6 +2813,7 @@
             ],
             "network_cidr": null,
             "network_name": null,
+            "not_found": null,
             "rdap_attempt_error": null,
             "rdap_data": {
               "copyright_notice": "",
@@ -2755,7 +2991,6 @@
             "dispatch_state": "DONE",
             "gui_link": null,
             "query": "index=proxy hostname=\"gmail.com\"",
-            "query_error": null,
             "query_results": [
               {
                 "_time": "2026-10-30T14:02:11.000+00:00",
@@ -2795,12 +3030,12 @@
             "datetime_of_last_update": null,
             "domain_name": null,
             "emails": null,
-            "error": "rdap: Failed to make a GET request to https://rdap.verisign.com/com/v1/domain/gmail.com: nothing recorded for GET https://rdap.verisign.com/com/v1/domain/gmail.com; whois: no WHOIS in a replay",
             "ip_version": null,
             "lookup_protocol": null,
             "name_servers": null,
             "network_cidr": null,
             "network_name": null,
+            "not_found": null,
             "rdap_attempt_error": "Failed to make a GET request to https://rdap.verisign.com/com/v1/domain/gmail.com: nothing recorded for GET https://rdap.verisign.com/com/v1/domain/gmail.com",
             "rdap_data": null,
             "rdap_raw_json": null,
@@ -2852,7 +3087,6 @@
             "dispatch_state": "DONE",
             "gui_link": null,
             "query": "index=proxy hostname=\"users.ece.cmu.edu\"",
-            "query_error": null,
             "query_results": [
               {
                 "_time": "2026-10-30T14:02:11.000+00:00",
@@ -2892,12 +3126,12 @@
             "datetime_of_last_update": null,
             "domain_name": null,
             "emails": null,
-            "error": "rdap: no RDAP service for TLD: TLD \"edu\" has no known RDAP endpoint and is unsupported. It may be supported by overrides, try using whoisit.bootstrap(overrides=True); whois: no WHOIS in a replay",
             "ip_version": null,
             "lookup_protocol": null,
             "name_servers": null,
             "network_cidr": null,
             "network_name": null,
+            "not_found": null,
             "rdap_attempt_error": "no RDAP service for TLD: TLD \"edu\" has no known RDAP endpoint and is unsupported. It may be supported by overrides, try using whoisit.bootstrap(overrides=True)",
             "rdap_data": null,
             "rdap_raw_json": null,
@@ -2951,7 +3185,6 @@
             "dispatch_state": "DONE",
             "gui_link": null,
             "query": "index=proxy hostname=\"www.amd.com\"",
-            "query_error": null,
             "query_results": [
               {
                 "_time": "2026-10-30T14:02:11.000+00:00",
@@ -2991,12 +3224,12 @@
             "datetime_of_last_update": null,
             "domain_name": null,
             "emails": null,
-            "error": "rdap: Failed to make a GET request to https://rdap.verisign.com/com/v1/domain/amd.com: nothing recorded for GET https://rdap.verisign.com/com/v1/domain/amd.com; whois: no WHOIS in a replay",
             "ip_version": null,
             "lookup_protocol": null,
             "name_servers": null,
             "network_cidr": null,
             "network_name": null,
+            "not_found": null,
             "rdap_attempt_error": "Failed to make a GET request to https://rdap.verisign.com/com/v1/domain/amd.com: nothing recorded for GET https://rdap.verisign.com/com/v1/domain/amd.com",
             "rdap_data": null,
             "rdap_raw_json": null,
@@ -3050,7 +3283,6 @@
             "dispatch_state": "DONE",
             "gui_link": null,
             "query": "index=proxy hostname=\"www.ams.org\"",
-            "query_error": null,
             "query_results": [
               {
                 "_time": "2026-10-30T14:02:11.000+00:00",
@@ -3090,12 +3322,12 @@
             "datetime_of_last_update": null,
             "domain_name": null,
             "emails": null,
-            "error": "rdap: Failed to make a GET request to https://rdap.publicinterestregistry.org/rdap/domain/ams.org: nothing recorded for GET https://rdap.publicinterestregistry.org/rdap/domain/ams.org; whois: no WHOIS in a replay",
             "ip_version": null,
             "lookup_protocol": null,
             "name_servers": null,
             "network_cidr": null,
             "network_name": null,
+            "not_found": null,
             "rdap_attempt_error": "Failed to make a GET request to https://rdap.publicinterestregistry.org/rdap/domain/ams.org: nothing recorded for GET https://rdap.publicinterestregistry.org/rdap/domain/ams.org",
             "rdap_data": null,
             "rdap_raw_json": null,
@@ -3149,7 +3381,6 @@
             "dispatch_state": "DONE",
             "gui_link": null,
             "query": "index=proxy hostname=\"www.cs.vu.nl\"",
-            "query_error": null,
             "query_results": [
               {
                 "_time": "2026-10-30T14:02:11.000+00:00",
@@ -3189,12 +3420,12 @@
             "datetime_of_last_update": null,
             "domain_name": null,
             "emails": null,
-            "error": "rdap: Failed to make a GET request to https://rdap.sidn.nl/domain/vu.nl: nothing recorded for GET https://rdap.sidn.nl/domain/vu.nl; whois: no WHOIS in a replay",
             "ip_version": null,
             "lookup_protocol": null,
             "name_servers": null,
             "network_cidr": null,
             "network_name": null,
+            "not_found": null,
             "rdap_attempt_error": "Failed to make a GET request to https://rdap.sidn.nl/domain/vu.nl: nothing recorded for GET https://rdap.sidn.nl/domain/vu.nl",
             "rdap_data": null,
             "rdap_raw_json": null,
@@ -3248,7 +3479,6 @@
             "dispatch_state": "DONE",
             "gui_link": null,
             "query": "index=proxy hostname=\"www.daemonology.net\"",
-            "query_error": null,
             "query_results": [
               {
                 "_time": "2026-10-30T14:02:11.000+00:00",
@@ -3288,12 +3518,12 @@
             "datetime_of_last_update": null,
             "domain_name": null,
             "emails": null,
-            "error": "rdap: Failed to make a GET request to https://rdap.verisign.com/net/v1/domain/daemonology.net: nothing recorded for GET https://rdap.verisign.com/net/v1/domain/daemonology.net; whois: no WHOIS in a replay",
             "ip_version": null,
             "lookup_protocol": null,
             "name_servers": null,
             "network_cidr": null,
             "network_name": null,
+            "not_found": null,
             "rdap_attempt_error": "Failed to make a GET request to https://rdap.verisign.com/net/v1/domain/daemonology.net: nothing recorded for GET https://rdap.verisign.com/net/v1/domain/daemonology.net",
             "rdap_data": null,
             "rdap_raw_json": null,
@@ -3347,7 +3577,6 @@
             "dispatch_state": "DONE",
             "gui_link": null,
             "query": "index=proxy hostname=\"www.youtube.com\"",
-            "query_error": null,
             "query_results": [
               {
                 "_time": "2026-10-30T14:02:11.000+00:00",
@@ -3387,12 +3616,12 @@
             "datetime_of_last_update": null,
             "domain_name": null,
             "emails": null,
-            "error": "rdap: Failed to make a GET request to https://rdap.verisign.com/com/v1/domain/youtube.com: nothing recorded for GET https://rdap.verisign.com/com/v1/domain/youtube.com; whois: no WHOIS in a replay",
             "ip_version": null,
             "lookup_protocol": null,
             "name_servers": null,
             "network_cidr": null,
             "network_name": null,
+            "not_found": null,
             "rdap_attempt_error": "Failed to make a GET request to https://rdap.verisign.com/com/v1/domain/youtube.com: nothing recorded for GET https://rdap.verisign.com/com/v1/domain/youtube.com",
             "rdap_data": null,
             "rdap_raw_json": null,
@@ -3879,9 +4108,7 @@
     },
     "url:http://cr.yp.to/papers.html#cachetiming": {
       "detections": {},
-      "directives": {
-        "crawl": true
-      },
+      "directives": {},
       "excluded_analysis": {},
       "relationships": {},
       "results": {
@@ -4139,7 +4366,9 @@
     },
     "url:https://bugs.chromium.org/p/chromium/issues/detail?id=508166": {
       "detections": {},
-      "directives": {},
+      "directives": {
+        "crawl": true
+      },
       "excluded_analysis": {},
       "relationships": {},
       "results": {

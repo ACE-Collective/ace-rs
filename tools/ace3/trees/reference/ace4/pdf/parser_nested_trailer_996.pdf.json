@@ -1,39 +1,6 @@
 {
   "form": 1,
   "observables": {
-    "file:380b49d0139a450c7a2c4e08f8b53e2173513a7bf01beaef406ce8ef4af9906c": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "parser_nested_trailer_996.pdf.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:f7e35e49cc79f17dd2a97a00dfdd18ff9564be8954e0f95a721c27447185f977": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:51a2bf4f597d296aaac5d1f9f060907ae44a0b38769951d87554534f0f55e463": {
       "detections": {},
       "directives": {
@@ -94,59 +61,7 @@
       },
       "tags": {}
     },
-    "file:ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "archive": true
-      },
-      "paths": {
-        "parser_nested_trailer_996.pdf.gs.pdf.txt": {
-          "type=document.pdf.text": true
-        }
-      },
-      "redirection": "file:f22aa2e30fbc817bef2786e7a689a517e65fa67a5bbf0b23ad35cbbc9270651e",
-      "relationships": {
-        "extracted_from file:f22aa2e30fbc817bef2786e7a689a517e65fa67a5bbf0b23ad35cbbc9270651e": true
-      },
-      "results": {
-        "file_type": {
-          "details": {
-            "is_email_file": false,
-            "is_jar_file": false,
-            "is_lnk_file": false,
-            "is_office_document": false,
-            "is_office_ext": false,
-            "is_ole_file": false,
-            "is_pdf_file": false,
-            "is_pe_file": false,
-            "is_rtf_file": false,
-            "is_x509": false,
-            "is_zip_file": false,
-            "mime": "application/octet-stream",
-            "type": "very short file (no magic)"
-          },
-          "summary": "File Type Analysis: very short file (no magic) (application/octet-stream)",
-          "tags": {}
-        },
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
-    "file:f22aa2e30fbc817bef2786e7a689a517e65fa67a5bbf0b23ad35cbbc9270651e": {
+    "file:92637c0420a374c1cd7a05b276ecfcec75bdd0f297d8995111709e4ba1519285": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -228,6 +143,91 @@
         "pdf": true
       }
     },
+    "file:9879f73906fe1b06ed64e2c9a46453edeb4dc40238602c478516252162020aa5": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "parser_nested_trailer_996.pdf.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:f7e35e49cc79f17dd2a97a00dfdd18ff9564be8954e0f95a721c27447185f977": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "archive": true
+      },
+      "paths": {
+        "parser_nested_trailer_996.pdf.gs.pdf.txt": {
+          "type=document.pdf.text": true
+        }
+      },
+      "redirection": "file:92637c0420a374c1cd7a05b276ecfcec75bdd0f297d8995111709e4ba1519285",
+      "relationships": {
+        "extracted_from file:92637c0420a374c1cd7a05b276ecfcec75bdd0f297d8995111709e4ba1519285": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "very short file (no magic)"
+          },
+          "summary": "File Type Analysis: very short file (no magic) (application/octet-stream)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:f7e35e49cc79f17dd2a97a00dfdd18ff9564be8954e0f95a721c27447185f977": {
       "detections": {},
       "directives": {},
@@ -242,14 +242,13 @@
       "results": {
         "exif": {
           "details": {
-            "error": null,
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "ExifTool:Warning": "Invalid xref table",
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 09:37:59+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 09:37:59+00:00",
-              "File:FileModifyDate": "2026:11:07 04:47:50+00:00",
+              "File:FileAccessDate": "2026:11:16 15:06:35+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 15:06:35+00:00",
+              "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "parser_nested_trailer_996.pdf",
               "File:FilePermissions": 100644,
               "File:FileSize": 7010,

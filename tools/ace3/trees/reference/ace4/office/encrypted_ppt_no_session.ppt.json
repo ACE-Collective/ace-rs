@@ -66,6 +66,39 @@
       },
       "tags": {}
     },
+    "file:919338a0228f140084067c6890d4c76957c24fab81b2049168651e10711764b4": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "encrypted_ppt_no_session.ppt.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:a0c29a98583606e74bb159e759443eaf8f6874639510f0b4e0b8f8263745511d": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:a0c29a98583606e74bb159e759443eaf8f6874639510f0b4e0b8f8263745511d": {
       "detections": {},
       "directives": {},
@@ -79,13 +112,12 @@
       "results": {
         "exif": {
           "details": {
-            "error": null,
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 08:59:19+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 08:59:19+00:00",
-              "File:FileModifyDate": "2026:11:07 10:46:15+00:00",
+              "File:FileAccessDate": "2026:11:16 13:56:54+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 13:56:54+00:00",
+              "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "encrypted_ppt_no_session.ppt",
               "File:FilePermissions": 100644,
               "File:FileSize": 2560,
@@ -133,7 +165,6 @@
             "email": false,
             "email_body": null,
             "encryption_info": null,
-            "error": "could not crack password",
             "password": null,
             "word_list": [
               "VelvetSweatshop",
@@ -234,39 +265,6 @@
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
-    "file:fcedfaf1ddf1affccc0f3c41794f388842ac56b7a50cf6efb8d2dd9529297091": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "encrypted_ppt_no_session.ppt.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:a0c29a98583606e74bb159e759443eaf8f6874639510f0b4e0b8f8263745511d": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
           },
           "summary": null,
           "tags": {}

@@ -59,6 +59,39 @@
       },
       "tags": {}
     },
+    "file:3b13bf9070970b15b6a2bfb2dbe9ba0f9f4504bec297442fa17b7ccf644fd4be": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "xlm_branch_err_set_cell_formula.xlsm.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:43356df97d8f792a57dc12a90116b938b0980519fcc0f757d201ef21bdcc276d": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:43356df97d8f792a57dc12a90116b938b0980519fcc0f757d201ef21bdcc276d": {
       "detections": {},
       "directives": {},
@@ -79,7 +112,6 @@
               "xl/_rels/workbook.xml.rels",
               "_rels/.rels"
             ],
-            "extraction_error": null,
             "file_count": 5
           },
           "summary": "Archive Analysis: extracted 5 of 5 files: ([Content_Types].xml, xl/workbook.xml, xl/macrosheets/sheet1.xml, xl/_rels/workbook.xml.rels, _rels/.rels)",
@@ -87,13 +119,12 @@
         },
         "exif": {
           "details": {
-            "error": null,
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 09:13:23+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 09:13:23+00:00",
-              "File:FileModifyDate": "2026:11:07 14:35:12+00:00",
+              "File:FileAccessDate": "2026:11:16 14:13:18+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 14:13:18+00:00",
+              "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "xlm_branch_err_set_cell_formula.xlsm",
               "File:FilePermissions": 100644,
               "File:FileSize": 2561,
@@ -614,39 +645,6 @@
         "xml_plain_text_analyzer": {
           "details": {
             "xml_plain_text": "xlm_branch_err_set_cell_formula.xlsm.extracted/xl/macrosheets/sheet1.xml.noxml"
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
-    "file:e7db79dd583de27603595ef05eb6046b07e06bbf0c2479bb18aa8fca2b90bfb4": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "xlm_branch_err_set_cell_formula.xlsm.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:43356df97d8f792a57dc12a90116b938b0980519fcc0f757d201ef21bdcc276d": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
           },
           "summary": null,
           "tags": {}

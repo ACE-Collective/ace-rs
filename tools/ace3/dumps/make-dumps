@@ -1505,6 +1505,7 @@ RUNS = {
     "emailtree": lambda: email_tree_runs(),
     "email_archive": email_archive_runs,
     "pdftotext": lambda: file_runs("pdftotext", [], "pdf"),
+    "pdf_link_text": lambda: pdf_link_text_runs(),
     "exif": exif_runs,
     "qrcode": qrcode_runs,
     "ocr": ocr_runs,
@@ -1767,12 +1768,22 @@ EMAIL_TREE_ENABLE = [
     "xml_binary_analyzer", "xml_plain_text_analyzer", "extracted_ole_analyzer", "hidden_mime", "active_mime",
     "microsoft_script_encoding_analysis", "extracted_rtf_analyzer", "vbscript_analyzer", "nowhitespace_analyzer",
     "zip_encryption_analyzer", "rar_encryption_analyzer", "pdf_encryption_analyzer",
+    # the text under a PDF's links, which the lure module reads as the links' text
+    "pdf_link_text",
 ]
 EMAIL_TREE_CONFIGS = {
     # the lure module's settings file, with fewer candidates, no crawl, a body worth nothing and no
     # noise words
     "lure_settings.yaml": "max_candidates: 2\ncrawl_primary: false\nnoise_keywords:\nweights:\n  body: 0\n",
     "lure.yaml": f"analysis_module_lure_url_analyzer:\n  config_path: {REMOTE}/fixtures/emailtree/lure_settings.yaml\n",
+    # the context settings: a quoted message costs something, one sign-off phrase, no phrase that
+    # refers to an attachment or a different one, shorter sentences, and other weights
+    "lure_context_settings.yaml": "sign_off_phrases:\n  - cheers\n  - best regards\nattachment_reference_keywords:\n"
+    "  - bid documents\nsentence_words: 3\nsentence_end_words: 2\n"
+    "weights:\n  quoted_message: -10\n  signature_block: -5\n  attachment_reference: 7\n  only_link: 3\n",
+    "lure_context.yaml": f"analysis_module_lure_url_analyzer:\n  config_path: {REMOTE}/fixtures/emailtree/lure_context_settings.yaml\n",
+    "lure_no_reference_settings.yaml": "attachment_reference_keywords:\nsign_off_phrases:\n",
+    "lure_no_reference.yaml": f"analysis_module_lure_url_analyzer:\n  config_path: {REMOTE}/fixtures/emailtree/lure_no_reference_settings.yaml\n",
     "link.yaml": "analysis_module_email_conversation_link_analyzer:\n  url_pattern_lure: 'lure-example\\.(net|org)'\n"
     "  url_pattern_bad: '(unclosed'\n",
     "link_nothing.yaml": "analysis_module_email_conversation_link_analyzer:\n  url_pattern_none: 'no-such-host'\n",
@@ -1784,7 +1795,8 @@ EMAIL_TREE_CONFIGS = {
 
 def email_tree_runs():
     """The email-tree modules on each email sample, each run keeping the whole root (run_module.py
-    --tree-view): the lure module, alone and with a settings file; the mailbox module on a mailbox
+    --tree-view): the lure module, alone, with a settings file, with settings for the context of a
+    link, and without pdf_link_text; the mailbox module on a mailbox
     alert and on another; the attachment module with no sender seen before and with the macro email's
     sender seen; and the link module with two patterns, one that doesn't compile, and with one that
     matches nothing."""
@@ -1820,6 +1832,17 @@ def email_tree_runs():
     by_path = {s["path"]: s for s in emails}
     lure_button = by_path["ace4/email/lure_button.email.rfc822"]
     add("lure_url_analyzer", lure_button, ".settings", ["--config", f"{configs}/lure.yaml"], " with a settings file")
+    for name in ("lure_thread", "lure_thread_text", "lure_signature", "lure_not_a_signature", "lure_pdf_link"):
+        sample = by_path[f"ace4/email/{name}.email.rfc822"]
+        add("lure_url_analyzer", sample, ".context", ["--config", f"{configs}/lure_context.yaml"],
+            " with the context settings")
+    for name in ("lure_signature", "lure_pdf_link"):
+        sample = by_path[f"ace4/email/{name}.email.rfc822"]
+        add("lure_url_analyzer", sample, ".no_reference", ["--config", f"{configs}/lure_no_reference.yaml"],
+            " with no sign-off phrases and no attachment phrases")
+    # the PDF's links without pdf_link_text, as in an alert analyzed with it disabled
+    add("lure_url_analyzer", by_path["ace4/email/lure_pdf_link.email.rfc822"], ".no_link_text",
+        label=" without pdf_link_text", enable=[m for m in EMAIL_TREE_ENABLE if m != "pdf_link_text"])
     add("mailbox_email_analyzer", lure_button, ".cli", ["--directive", "original_email"], " as a cli alert",
         enable=["file_type", "email_analyzer"])
     add("email_conversation_attachment_analyzer", by_path["ace4/email/macro_attachment.email.rfc822"], ".known_sender",
@@ -1838,6 +1861,43 @@ def write_email_tree_configs():
     docker("exec", CONTAINER, "mkdir", "-p", f"{REMOTE}/fixtures/emailtree")
     for name, text in EMAIL_TREE_CONFIGS.items():
         put(f"{REMOTE}/fixtures/emailtree/{name}", text.encode())
+    yield
+
+
+# ace3's analysis_module_pdf_link_text with every bound low, so the samples reach each one
+PDF_LINK_TEXT_CONFIGS = {
+    "bounds.yaml": "analysis_module_pdf_link_text:\n  max_links: 3\n  link_text_pages: 1\n  max_page_words: 5\n"
+    "  max_link_band_words: 2\n",
+    "wide.yaml": "analysis_module_pdf_link_text:\n  max_links: 1000\n  link_text_pages: 9\n  max_page_words: 100000\n"
+    "  max_link_band_words: 100000\n",
+}
+
+
+def pdf_link_text_runs():
+    """The link text module on every PDF sample, and on the samples made for it again with its bounds
+    low and with them wide."""
+    runs = file_runs("pdf_link_text", [], "pdf")
+    configs = f"{REMOTE}/fixtures/pdf_link_text"
+    for run in list(runs):
+        if not run["name"].startswith("ace4/pdf/link_text"):
+            continue
+        # the label stays the sample's path, which is how the port's test finds the file
+        for suffix in (".bounds", ".wide"):
+            runs.append({
+                **run,
+                "name": run["name"] + suffix,
+                "args": [*run["args"], "--config", f"{configs}/{suffix[1:]}.yaml"],
+            })
+    for run in runs:
+        run["service"] = write_pdf_link_text_configs
+    return runs
+
+
+@contextlib.contextmanager
+def write_pdf_link_text_configs():
+    docker("exec", CONTAINER, "mkdir", "-p", f"{REMOTE}/fixtures/pdf_link_text")
+    for name, text in PDF_LINK_TEXT_CONFIGS.items():
+        put(f"{REMOTE}/fixtures/pdf_link_text/{name}", text.encode())
     yield
 
 
@@ -1978,6 +2038,7 @@ def run(spec):
         "url_email_pivot_analyzer": "URLEmailPivotAnalysis_v2",
         "message_id_analyzer_v2": "MessageIDAnalysisV2",
         "pdftotext": "PDFTextAnalysis",
+        "pdf_link_text": "PDFLinkTextAnalysis",
         "exif": "ExifAnalysis",
         "qrcode": "QRCodeAnalysis",
         "ocr": "OCRAnalysis",

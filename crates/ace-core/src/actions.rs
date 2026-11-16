@@ -982,7 +982,8 @@ async fn finish(tx: &mut Tx<'_>, id: i64, result: &str, message: &str) -> Result
 }
 
 /// Ends an action whose deadline passed: a check `EXPIRED`, as ace3's `finalize_expired`; a collection
-/// `FAILED`, where ace3 leaves it pending and stops handing it out.
+/// `FAILED`, as ace3's `give_up` does since its `7abf0618` (before that ace3 left it pending and
+/// stopped handing it out).
 async fn expire(tx: &mut Tx<'_>, id: i64, kind: ActionKind) -> Result<(), ActionError> {
     match kind {
         ActionKind::RemediationCheck => {

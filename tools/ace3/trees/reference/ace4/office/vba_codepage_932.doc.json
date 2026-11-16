@@ -1,39 +1,6 @@
 {
   "form": 1,
   "observables": {
-    "file:212a623f2f6a80557792d508a6c055683911b140daca70afdb5e8aa596fa4ac8": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "vba_codepage_932.doc.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:cbe71154dd4a588ba57aa21e8338b03186877f087b77c389735832ffd13d7926": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:28dd658b12c64129abf541d07a2edbadba999ab9dee32df07042ab4f1e94686b": {
       "detections": {},
       "directives": {
@@ -361,13 +328,12 @@
       "results": {
         "exif": {
           "details": {
-            "error": null,
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 09:10:30+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 09:10:30+00:00",
-              "File:FileModifyDate": "2026:11:07 15:11:53+00:00",
+              "File:FileAccessDate": "2026:11:16 14:09:51+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 14:09:51+00:00",
+              "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "vba_codepage_932.doc",
               "File:FilePermissions": 100644,
               "File:FileSize": 3584,
@@ -459,6 +425,39 @@
         "microsoft_office": true,
         "ole": true
       }
+    },
+    "file:eb1adc2c3fa18d53dd4d8a4ee8d9674ce6415af9d71fdf3fed1f3775fad8633e": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "vba_codepage_932.doc.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:cbe71154dd4a588ba57aa21e8338b03186877f087b77c389735832ffd13d7926": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
     },
     "md5:2b2b0a840618f4a6f990cd4b3ca293ea": {
       "detections": {},

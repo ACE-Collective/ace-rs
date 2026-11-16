@@ -1,0 +1,56 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "37a765bf",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "PDFLinkTextAnalysis",
+      "details": {
+        "links": [
+          {
+            "line": null,
+            "page": 2,
+            "text": "On a page poppler lacks",
+            "url": "https://example.com/second-page"
+          }
+        ]
+      },
+      "detections": [],
+      "error": "pdftotext exited with status 99: Command Line Error: Wrong page range given: the first page (2) can not be after the last page (1)., without the text under the links",
+      "module_path": "saq.modules.file_analysis.pdf:PDFLinkTextAnalysis",
+      "observables": [],
+      "summary": "PDF Link Text Analysis: 1 links, 1 with text",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace4/pdf/link_text_page_count.pdf",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "link_text_page_count.pdf",
+      "size": 868,
+      "type": "file",
+      "value": "24be72feae3d402328bc781420480be38470aa03996b94363654aaad277a3e23"
+    }
+  },
+  "module": "pdf_link_text",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "link_text_page_count.pdf",
+    "relationships": [],
+    "size": 868,
+    "tags": [],
+    "type": "file",
+    "value": "24be72feae3d402328bc781420480be38470aa03996b94363654aaad277a3e23",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

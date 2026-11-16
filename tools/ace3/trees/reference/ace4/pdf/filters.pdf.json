@@ -1,6 +1,39 @@
 {
   "form": 1,
   "observables": {
+    "file:13273a2b1eff118a8374fbe206899db8f1e407fd40ec5ec64e4143d9a0188995": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "filters.pdf.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:3805c728dae3cd9c018eae4afc575c609f9b8523c6398a8e5a20c43628e59e4e": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:3805c728dae3cd9c018eae4afc575c609f9b8523c6398a8e5a20c43628e59e4e": {
       "detections": {},
       "directives": {},
@@ -15,13 +48,12 @@
       "results": {
         "exif": {
           "details": {
-            "error": null,
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 09:34:43+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 09:34:43+00:00",
-              "File:FileModifyDate": "2026:11:07 04:47:50+00:00",
+              "File:FileAccessDate": "2026:11:16 15:01:01+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 15:01:01+00:00",
+              "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "filters.pdf",
               "File:FilePermissions": 100644,
               "File:FileSize": 3009,
@@ -107,25 +139,52 @@
         "pdf": true
       }
     },
-    "file:39a6b114a053114129cd7089fe210be43a18749e080f91fbdb398904e467a9d2": {
+    "file:7c84826a93e05d04d7254a8a29a65bd079de58915f417260f5791f72798bc9f1": {
       "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
+      "directives": {
+        "extract_urls": true
       },
+      "excluded_analysis": {},
       "paths": {
-        "filters.pdf.exif/exiftool.out": {
-          "type=metadata.exif": true
+        "filters.pdf.pdfparser": {
+          "type=document.pdf.object": true
         }
       },
+      "redirection": "file:3805c728dae3cd9c018eae4afc575c609f9b8523c6398a8e5a20c43628e59e4e",
       "relationships": {
         "extracted_from file:3805c728dae3cd9c018eae4afc575c609f9b8523c6398a8e5a20c43628e59e4e": true
       },
       "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "data"
+          },
+          "summary": "File Type Analysis: data (application/octet-stream)",
+          "tags": {}
+        },
         "observable_detection": {
           "details": {
             "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
           },
           "summary": null,
           "tags": {}
@@ -140,7 +199,7 @@
       },
       "tags": {}
     },
-    "file:45c8dd9f8edf905234579fc2bd37db7695a2106b9e728258cad5b2ce5914ab15": {
+    "file:c3537ff97dbfa54ab93a0effc5bb467ae17acbf358991c6321ff74c811c72c91": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -222,66 +281,6 @@
         "pdf": true
       }
     },
-    "file:7c84826a93e05d04d7254a8a29a65bd079de58915f417260f5791f72798bc9f1": {
-      "detections": {},
-      "directives": {
-        "extract_urls": true
-      },
-      "excluded_analysis": {},
-      "paths": {
-        "filters.pdf.pdfparser": {
-          "type=document.pdf.object": true
-        }
-      },
-      "redirection": "file:3805c728dae3cd9c018eae4afc575c609f9b8523c6398a8e5a20c43628e59e4e",
-      "relationships": {
-        "extracted_from file:3805c728dae3cd9c018eae4afc575c609f9b8523c6398a8e5a20c43628e59e4e": true
-      },
-      "results": {
-        "file_type": {
-          "details": {
-            "is_email_file": false,
-            "is_jar_file": false,
-            "is_lnk_file": false,
-            "is_office_document": false,
-            "is_office_ext": false,
-            "is_ole_file": false,
-            "is_pdf_file": false,
-            "is_pe_file": false,
-            "is_rtf_file": false,
-            "is_x509": false,
-            "is_zip_file": false,
-            "mime": "application/octet-stream",
-            "type": "data"
-          },
-          "summary": "File Type Analysis: data (application/octet-stream)",
-          "tags": {}
-        },
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "url_extraction": {
-          "details": {
-            "urls": [],
-            "urls_grouped_by_domain": {}
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977": {
       "detections": {},
       "directives": {},
@@ -296,10 +295,10 @@
           "type=document.pdf.text": true
         }
       },
-      "redirection": "file:45c8dd9f8edf905234579fc2bd37db7695a2106b9e728258cad5b2ce5914ab15",
+      "redirection": "file:c3537ff97dbfa54ab93a0effc5bb467ae17acbf358991c6321ff74c811c72c91",
       "relationships": {
         "extracted_from file:3805c728dae3cd9c018eae4afc575c609f9b8523c6398a8e5a20c43628e59e4e": true,
-        "extracted_from file:45c8dd9f8edf905234579fc2bd37db7695a2106b9e728258cad5b2ce5914ab15": true
+        "extracted_from file:c3537ff97dbfa54ab93a0effc5bb467ae17acbf358991c6321ff74c811c72c91": true
       },
       "results": {
         "file_type": {

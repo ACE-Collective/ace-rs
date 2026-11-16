@@ -1,0 +1,36 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "37a765bf",
+  "also_enabled": [],
+  "analyses": [],
+  "input": {
+    "directives": [],
+    "label": "ace4/pdf/duplicate_names.pdf",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "duplicate_names.pdf",
+      "size": 771,
+      "type": "file",
+      "value": "2d036fbaeb0bfcfd60e6cdb54dbdf293e5bb511c0ded41de270f423ea16b504e"
+    }
+  },
+  "module": "pdf_link_text",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "duplicate_names.pdf",
+    "relationships": [],
+    "size": 771,
+    "tags": [],
+    "type": "file",
+    "value": "2d036fbaeb0bfcfd60e6cdb54dbdf293e5bb511c0ded41de270f423ea16b504e",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

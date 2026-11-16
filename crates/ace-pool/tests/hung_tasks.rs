@@ -835,7 +835,7 @@ async fn the_pcap_modules_run_tshark_as_the_task_user() {
     );
 }
 
-/// docs/measurements/sandbox-modules.md and executables.md: crafted files through the sandbox modules,
+/// docs/measurements/sandbox-modules.md, executables.md and pdf-link-text.md: crafted files through the sandbox modules,
 /// contained, as the pool runs them. `ACE4_CRAFTED` names a directory of them, and a file goes to the
 /// module its name starts with, or to batch 10's five when none; each line printed is a module, a
 /// file, how its task ended, how long it took and the result's details.
@@ -865,8 +865,11 @@ async fn crafted_files_through_the_sandbox_modules() {
         ace_sdk::Manifest::parser::<ace_mod_pcap::PcapFiles>(),
         ace_sdk::Manifest::parser::<ace_mod_pcap::PcapDns>(),
         ace_sdk::Manifest::parser::<ace_mod_pcap::PcapTls>(),
+        ace_mod_pdf::links::MANIFEST,
     ];
     modules.extend(["dmg_analyzer", "cve_2021_30657_analyzer"]);
+    // docs/measurements/pdf-link-text.md
+    modules.push("pdf_link_text");
     let pcap_modules = [
         "pcap_analyzer",
         "pcap_http",
@@ -967,7 +970,8 @@ async fn crafted_files_through_the_sandbox_modules() {
             }
             continue;
         }
-        let mine: Vec<&str> = match batch_11.iter().find(|m| name.starts_with(*m)) {
+        let own = batch_11.iter().chain(&["pdf_link_text"]);
+        let mine: Vec<&str> = match own.into_iter().find(|m| name.starts_with(*m)) {
             Some(module) => vec![*module],
             None => batch_10.to_vec(),
         };

@@ -375,6 +375,39 @@
       },
       "tags": {}
     },
+    "file:22bdab75395d1b5f9a2521282fbbb8808fdcd7ee5008a975d49460d90df76349": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "invoice.doc.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:3e3f189ac36ec0c2a480bfa7ac4d80ef8dd2ca8d91b4f4a8697df966afd0784b": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:3e3f189ac36ec0c2a480bfa7ac4d80ef8dd2ca8d91b4f4a8697df966afd0784b": {
       "detections": {},
       "directives": {
@@ -391,13 +424,12 @@
       "results": {
         "exif": {
           "details": {
-            "error": null,
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 08:48:18+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 08:48:18+00:00",
-              "File:FileModifyDate": "2026:11:11 08:48:18+00:00",
+              "File:FileAccessDate": "2026:11:16 13:44:13+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 13:44:13+00:00",
+              "File:FileModifyDate": "2026:11:16 13:44:13+00:00",
               "File:FileName": "invoice.doc",
               "File:FilePermissions": 100664,
               "File:FileSize": 22528,
@@ -489,7 +521,6 @@
             "email": true,
             "email_body": "The password is Wr0ngOne\n\n",
             "encryption_info": null,
-            "error": "could not crack password",
             "password": null,
             "word_list": [
               "VelvetSweatshop",
@@ -964,39 +995,6 @@
         "email": true
       }
     },
-    "file:c14ca209bce8b0392c0cb950108b59692901427cb345db665f2c76b4beb6efd6": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "invoice.doc.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:3e3f189ac36ec0c2a480bfa7ac4d80ef8dd2ca8d91b4f4a8697df966afd0784b": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:f70fe384c672865fff4bb8ab60d73098bc751e8f2aa915b8aff2e2085648b428": {
       "detections": {},
       "directives": {
@@ -1157,7 +1155,6 @@
             "dispatch_state": "DONE",
             "gui_link": null,
             "query": "index=proxy hostname=\"example.com\"",
-            "query_error": null,
             "query_results": [
               {
                 "_time": "2026-10-30T14:02:11.000+00:00",
@@ -1197,7 +1194,6 @@
             "datetime_of_last_update": "2026-08-14 08:01:43+00:00",
             "domain_name": "EXAMPLE.COM",
             "emails": [],
-            "error": null,
             "ip_version": null,
             "lookup_protocol": "rdap",
             "name_servers": [
@@ -1206,6 +1202,7 @@
             ],
             "network_cidr": null,
             "network_name": null,
+            "not_found": null,
             "rdap_attempt_error": null,
             "rdap_data": {
               "copyright_notice": "",

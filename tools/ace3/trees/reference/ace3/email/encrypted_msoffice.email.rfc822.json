@@ -125,7 +125,6 @@
             "dispatch_state": "DONE",
             "gui_link": null,
             "query": "index=proxy hostname=\"tovarioseni9.fun\"",
-            "query_error": null,
             "query_results": [
               {
                 "_time": "2026-10-30T14:02:11.000+00:00",
@@ -165,12 +164,12 @@
             "datetime_of_last_update": null,
             "domain_name": null,
             "emails": null,
-            "error": "rdap: Failed to make a GET request to https://rdap.radix.host/rdap/domain/tovarioseni9.fun: nothing recorded for GET https://rdap.radix.host/rdap/domain/tovarioseni9.fun; whois: no WHOIS in a replay",
             "ip_version": null,
             "lookup_protocol": null,
             "name_servers": null,
             "network_cidr": null,
             "network_name": null,
+            "not_found": null,
             "rdap_attempt_error": "Failed to make a GET request to https://rdap.radix.host/rdap/domain/tovarioseni9.fun: nothing recorded for GET https://rdap.radix.host/rdap/domain/tovarioseni9.fun",
             "rdap_data": null,
             "rdap_raw_json": null,
@@ -307,39 +306,6 @@
       },
       "tags": {}
     },
-    "file:06063556ebd179030860e3e682fcf28f2aff93720ff68dbe6af445ce4c16ba1f": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "info_3805.xls.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:e42f4cd8ff57dc0c9756242193462dcb03b4e7fef955985a2e953a6053324055": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:09ddbe6d159c1fae7299f5d4e1281dad6068331d9f651f45a51265277b80f0ed": {
       "detections": {},
       "directives": {
@@ -397,6 +363,39 @@
       },
       "tags": {}
     },
+    "file:12d62047f06803923d2236f3600b80202a42e1bf976338c77b4c759125e553fd": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "info_3805.xls.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:e42f4cd8ff57dc0c9756242193462dcb03b4e7fef955985a2e953a6053324055": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:18875c0447d54bc222ec7d10817a98d1f56efffa6a3760a5f81d75f2755a4fc7": {
       "detections": {},
       "directives": {
@@ -420,7 +419,6 @@
               "theme/theme/_rels/themeManager.xml.rels",
               "_rels/.rels"
             ],
-            "extraction_error": null,
             "file_count": 5
           },
           "summary": "Archive Analysis: extracted 5 of 5 files: ([Content_Types].xml, theme/theme/theme1.xml, theme/theme/themeManager.xml, theme/theme/_rels/themeManager.xml.rels, _rels/.rels)",
@@ -924,6 +922,39 @@
       },
       "tags": {}
     },
+    "file:4f61b1c457d034599d982450b47598d50919fbd65e81e2ab690f254ed876c7c6": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "info_3805.xls.decrypted.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:ce3af53d22189d65f561fa45ff655a020c9ef96c17c83e748cd773eff8ef96e8": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:5afdbe5aa42339a6936769e916c7094d70eb370458480dcd1e36de8ce99106d6": {
       "detections": {},
       "directives": {
@@ -978,39 +1009,6 @@
             }
           },
           "summary": "URL Extraction Analysis (component.pw)",
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
-    "file:5cd7e710732c9aac1f753ba17b725e30b5341e36f80fe146844a335e1159d05f": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "info_3805.xls.decrypted.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:ce3af53d22189d65f561fa45ff655a020c9ef96c17c83e748cd773eff8ef96e8": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
           "tags": {}
         },
         "user_defined_tagging": {
@@ -1598,13 +1596,12 @@
       "results": {
         "exif": {
           "details": {
-            "error": null,
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 08:40:49+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 08:40:49+00:00",
-              "File:FileModifyDate": "2026:11:11 08:40:49+00:00",
+              "File:FileAccessDate": "2026:11:16 13:35:59+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 13:35:59+00:00",
+              "File:FileModifyDate": "2026:11:16 13:35:59+00:00",
               "File:FileName": "info_3805.xls.decrypted",
               "File:FilePermissions": 100666,
               "File:FileSize": 69125,
@@ -1792,13 +1789,12 @@
       "results": {
         "exif": {
           "details": {
-            "error": null,
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 08:40:42+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 08:40:42+00:00",
-              "File:FileModifyDate": "2026:11:11 08:40:42+00:00",
+              "File:FileAccessDate": "2026:11:16 13:35:58+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 13:35:58+00:00",
+              "File:FileModifyDate": "2026:11:16 13:35:58+00:00",
               "File:FileName": "info_3805.xls",
               "File:FilePermissions": 100664,
               "File:FileSize": 69125,
@@ -1868,7 +1864,6 @@
             "email": true,
             "email_body": "**CAUTION EXTERNAL EMAIL** **DO NOT open attachments or click on links from\nunknown senders or unexpected emails** Given invoice #466457 Password for this\ndocument: 709384 Waiting for your answer, Peachey Wexler This e-mail\ntransmission contains information that is confidential and may be privileged.\nIt is intended only for the addressee(s) named above. If you receive this\ne-mail in error, please do not read, copy or disseminate it in any manner. If\nyou are not the intended recipient, any disclosure, copying, distribution or\nuse of the contents of this information is prohibited. Please reply to the\nmessage immediately by informing the sender that the message was misdirected.\nAfter replying, please erase it from your computer system. Your assistance in\ncorrecting this error is appreciated. **CAUTION EXTERNAL EMAIL** **DO NOT open\nattachments or click on links from unknown senders or unexpected emails**\n\n",
             "encryption_info": null,
-            "error": null,
             "password": "709384",
             "word_list": [
               "VelvetSweatshop",
@@ -2956,7 +2951,6 @@
             "age_created_in_days": null,
             "datetime_created": null,
             "is_nrd": true,
-            "lookup_error": null,
             "lookup_protocol": null
           },
           "summary": "Newly Registered Domain: present in local NRD list",
@@ -2974,7 +2968,6 @@
             "dispatch_state": "DONE",
             "gui_link": null,
             "query": "index=proxy hostname=\"component.pw\"",
-            "query_error": null,
             "query_results": [
               {
                 "_time": "2026-10-30T14:02:11.000+00:00",
@@ -3014,12 +3007,12 @@
             "datetime_of_last_update": null,
             "domain_name": null,
             "emails": null,
-            "error": "rdap: Failed to make a GET request to https://rdap.radix.host/rdap/domain/component.pw: nothing recorded for GET https://rdap.radix.host/rdap/domain/component.pw; whois: no WHOIS in a replay",
             "ip_version": null,
             "lookup_protocol": null,
             "name_servers": null,
             "network_cidr": null,
             "network_name": null,
+            "not_found": null,
             "rdap_attempt_error": "Failed to make a GET request to https://rdap.radix.host/rdap/domain/component.pw: nothing recorded for GET https://rdap.radix.host/rdap/domain/component.pw",
             "rdap_data": null,
             "rdap_raw_json": null,
@@ -3080,7 +3073,6 @@
             "dispatch_state": "DONE",
             "gui_link": null,
             "query": "index=proxy hostname=\"example.com\"",
-            "query_error": null,
             "query_results": [
               {
                 "_time": "2026-10-30T14:02:11.000+00:00",
@@ -3120,7 +3112,6 @@
             "datetime_of_last_update": "2026-08-14 08:01:43+00:00",
             "domain_name": "EXAMPLE.COM",
             "emails": [],
-            "error": null,
             "ip_version": null,
             "lookup_protocol": "rdap",
             "name_servers": [
@@ -3129,6 +3120,7 @@
             ],
             "network_cidr": null,
             "network_name": null,
+            "not_found": null,
             "rdap_attempt_error": null,
             "rdap_data": {
               "copyright_notice": "",
@@ -3306,7 +3298,6 @@
             "dispatch_state": "DONE",
             "gui_link": null,
             "query": "index=proxy hostname=\"tovarioseni9.fun\"",
-            "query_error": null,
             "query_results": [
               {
                 "_time": "2026-10-30T14:02:11.000+00:00",
@@ -3346,12 +3337,12 @@
             "datetime_of_last_update": null,
             "domain_name": null,
             "emails": null,
-            "error": "rdap: Failed to make a GET request to https://rdap.radix.host/rdap/domain/tovarioseni9.fun: nothing recorded for GET https://rdap.radix.host/rdap/domain/tovarioseni9.fun; whois: no WHOIS in a replay",
             "ip_version": null,
             "lookup_protocol": null,
             "name_servers": null,
             "network_cidr": null,
             "network_name": null,
+            "not_found": null,
             "rdap_attempt_error": "Failed to make a GET request to https://rdap.radix.host/rdap/domain/tovarioseni9.fun: nothing recorded for GET https://rdap.radix.host/rdap/domain/tovarioseni9.fun",
             "rdap_data": null,
             "rdap_raw_json": null,
@@ -3403,7 +3394,6 @@
             "dispatch_state": "DONE",
             "gui_link": null,
             "query": "index=proxy hostname=\"user.com\"",
-            "query_error": null,
             "query_results": [
               {
                 "_time": "2026-10-30T14:02:11.000+00:00",
@@ -3443,12 +3433,12 @@
             "datetime_of_last_update": null,
             "domain_name": null,
             "emails": null,
-            "error": "rdap: Failed to make a GET request to https://rdap.verisign.com/com/v1/domain/user.com: nothing recorded for GET https://rdap.verisign.com/com/v1/domain/user.com; whois: no WHOIS in a replay",
             "ip_version": null,
             "lookup_protocol": null,
             "name_servers": null,
             "network_cidr": null,
             "network_name": null,
+            "not_found": null,
             "rdap_attempt_error": "Failed to make a GET request to https://rdap.verisign.com/com/v1/domain/user.com: nothing recorded for GET https://rdap.verisign.com/com/v1/domain/user.com",
             "rdap_data": null,
             "rdap_raw_json": null,
@@ -3760,7 +3750,6 @@
             "age_created_in_days": null,
             "datetime_created": null,
             "is_nrd": true,
-            "lookup_error": null,
             "lookup_protocol": null
           },
           "summary": "Newly Registered Domain: present in local NRD list",
@@ -3818,7 +3807,6 @@
             "age_created_in_days": null,
             "datetime_created": null,
             "is_nrd": true,
-            "lookup_error": null,
             "lookup_protocol": null
           },
           "summary": "Newly Registered Domain: present in local NRD list",

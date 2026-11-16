@@ -1,39 +1,6 @@
 {
   "form": 1,
   "observables": {
-    "file:08734f5140eb96834836af1b9978f4e560d70bfe433ce477e908d72a55758547": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "edge_unclosed.rtf.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:8f9a78539b7e9743551b09459652c16ad52999f7d39163f9e535099792d5e916": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:2c9a39506af738ba1fd7f98318138a8f2d515eb23d9057f374bf4a098a5e931b": {
       "detections": {},
       "directives": {},
@@ -112,6 +79,39 @@
         "rtf": true
       }
     },
+    "file:8114b6cb2672f30c5c62fa0695c95393e89e3567a025d2c8d706c937d3931af4": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "edge_unclosed.rtf.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:8f9a78539b7e9743551b09459652c16ad52999f7d39163f9e535099792d5e916": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:8f9a78539b7e9743551b09459652c16ad52999f7d39163f9e535099792d5e916": {
       "detections": {},
       "directives": {},
@@ -131,14 +131,13 @@
         },
         "exif": {
           "details": {
-            "error": null,
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "ExifTool:Warning": "Unspecified RTF encoding. Will assume Latin",
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 09:39:42+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 09:39:42+00:00",
-              "File:FileModifyDate": "2026:11:07 15:11:53+00:00",
+              "File:FileAccessDate": "2026:11:16 15:08:34+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 15:08:34+00:00",
+              "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "edge_unclosed.rtf",
               "File:FilePermissions": 100644,
               "File:FileSize": 30,

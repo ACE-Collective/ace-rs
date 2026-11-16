@@ -1,6 +1,6 @@
 # Module inventory
 
-PLAN.md 7.1. The 90 `analysis_module_*` sections of `ace3/etc/saq.default.yaml` at ace3 `f72f8946`, with what each module does, where it runs in ace4 and which step ports it. The same 90 sections were there at `141a60a2`, the commit PLAN.md was written against. Each entry comes from the module's code, not just its config: the class, the helpers it calls and the base classes they inherit. It's the plan for the rest of phase 7, so when a step ports a module, change its row.
+PLAN.md 7.1. The 91 `analysis_module_*` sections of `ace3/etc/saq.default.yaml` at ace3 `37a765bf`, with what each module does, where it runs in ace4 and which step ports it. 90 of them were there at `141a60a2`, the commit PLAN.md was written against, and at `f72f8946`, which this inventory followed until 2026-11-16; ace3's `b4badb2c` added the 91st, `pdf_link_text`. Each entry comes from the module's code, not just its config: the class, the helpers it calls and the base classes they inherit. It's the plan for the rest of phase 7, so when a step ports a module, change its row.
 
 `tools/ace3/modules/check` reads the sections at the head of ace3's checkout and fails if this file misses one, names one that's gone, or disagrees with ace3 about a module's class, groups or modes. It also checks that every module has a pool and a step from the lists below, that the ported modules are the ones `crates/ace` registers, that every reader of ACE's data has what serves it (7.2), and that every module starting a process has a decision for each program (7.3). tests/e2e/run runs it.
 
@@ -23,16 +23,16 @@ Versions are those of ace3's image: Python packages from `installer/requirements
 | parser | 53 | 53 |
 | lookup | 16 | 16 |
 | core | 4 | 3 |
-| sandbox | 15 | 15 |
+| sandbox | 16 | 16 |
 | scanner | 2 | 2 |
-| all | 90 | 89 |
+| all | 91 | 90 |
 
 | Step | Modules |
 |---|---|
-| done | 89 |
+| done | 90 |
 | owner | 1 |
 
-No ace3 module goes to 7.8 or 7.9: 7.8's integrations are a site's (below), and remediation and file collection are services, not modules. "done" is the ten modules phases 1 to 4 ported and those 7.4, 7.5, 7.6, 7.7 and 7.10 have ported since. "owner" is a module no step names.
+No ace3 module goes to 7.8 or 7.9: 7.8's integrations are a site's (below), and remediation and file collection are services, not modules. "done" is the ten modules phases 1 to 4 ported, those 7.4, 7.5, 7.6, 7.7 and 7.10 have ported since, and `pdf_link_text`, ported when the inventory followed ace3 to `37a765bf` (its entry). "owner" is a module no step names.
 
 ## 7.5's batches
 
@@ -58,7 +58,7 @@ In order. Batches 10 to 13 run programs in the sandbox runner, which batch 10 bu
 
 Modules that read or write ACE's own data in ace3, or hold its encryption key, and what serves each in ace4, where workers hold neither. The reads, their scope, their bounds and how they refuse are a contract in `crates/ace-core/src/reads.md`, beside the lease API; each module's port step builds what its module calls. None is built in 7.2: the one ported module here then, `yara_scanner_v3_4`, gets its data on the ruleset, and that waits for 7.6, which brings the list it reads. 7.4 built the first, `snort-signature`, then `smtp-counts`, `email-thread-domains` with the first writes, `email_logger`'s, `email-thread`, and `newly-registered`, which serves `nrd_analyzer` though ace3's module reads no database of ACE's (below). 7.6 built `observable-tags`, over migration 0042's `analysis.observable_tags`, and `observable_detection` reads its list on the lease; the `ruleset` half of `yara_scanner_v3_4`, ace3's export of the detections as YARA rules, isn't built yet (PLAN.md 7.6).
 
-`tools/ace3/modules/check` finds these in ace3's code at the commit it checks. From each section's class it follows the class's methods, its bases, the functions they name in ace3's own packages and, through an interface, the methods of the package's classes, until it finds `get_db(`, `get_db_connection(`, `private_transaction(`, `run_private_transaction(` or a Redis connection, or a use of `saq.crypto`. It doesn't follow ace3's framework (`saq.analysis`, `saq.configuration`, `saq.engine` and the module base classes), whose own reads are the engine's. Some reads aren't in the module's own file: they're in helpers such as `saq/brocess.py`, `saq/modules/email/conversation.py`, `saq/email_archive/` and `saq/svs/`. At ace3 `f72f8946` it finds the 14 below. The check fails when this table misses one or lists one it doesn't find, or when a row names nothing to serve it or a read `reads.md` doesn't have.
+`tools/ace3/modules/check` finds these in ace3's code at the commit it checks. From each section's class it follows the class's methods, its bases, the functions they name in ace3's own packages and, through an interface, the methods of the package's classes, until it finds `get_db(`, `get_db_connection(`, `private_transaction(`, `run_private_transaction(` or a Redis connection, or a use of `saq.crypto`. It doesn't follow ace3's framework (`saq.analysis`, `saq.configuration`, `saq.engine` and the module base classes), whose own reads are the engine's. Some reads aren't in the module's own file: they're in helpers such as `saq/brocess.py`, `saq/modules/email/conversation.py`, `saq/email_archive/` and `saq/svs/`. At ace3 `37a765bf` it finds the 14 below. The check fails when this table misses one or lists one it doesn't find, or when a row names nothing to serve it or a read `reads.md` doesn't have.
 
 Served by is one or more of: a read of `reads.md`; `lease`, on the leased task (`Module::LISTS` here); `ruleset`, on the YARA ruleset; `end`, a write that lands with the task's end; and `core`, only for a module on the core's pool, which runs in the core.
 
@@ -90,7 +90,7 @@ PLAN.md 7.3. Every module that starts a process in ace3, each program it starts,
 - **children**: the sandbox runner runs the program and lets it start processes. No module's program needs this; it is there for 6.6.
 - **scanner**: 7.7's scanner pool, which starts an image per file. **none**: the process goes away with nothing in its place.
 
-`tools/ace3/modules/check` finds the modules that start a process in ace3's code, as it finds 7.2's readers: from each section's class through its methods, bases and helpers, to `run_tool`, `run_sandboxed_tool`, `run_sandboxed`, `subprocess`, `Popen`, `os.system` and the like, or `pytesseract`. At ace3 `f72f8946` it finds 30. The modules table below has those and three the scan can't see: two scanners, whose programs ACE's own code doesn't start, and `svs_yara_sample_capture`, whose `git` is behind an interface. The check fails when the scan finds a module the table doesn't have, when a row has no decision, when a row's decisions aren't those of the tools table's rows that name it, or when a decision doesn't fit the module's pool: **runner** needs the sandbox pool (or a module already ported, whose tool comes with batch 10) and **scanner** the scanner pool.
+`tools/ace3/modules/check` finds the modules that start a process in ace3's code, as it finds 7.2's readers: from each section's class through its methods, bases and helpers, to `run_tool`, `run_sandboxed_tool`, `run_sandboxed`, `subprocess`, `Popen`, `os.system` and the like, or `pytesseract`. At ace3 `37a765bf` it finds 31. The modules table below has those and three the scan can't see: two scanners, whose programs ACE's own code doesn't start, and `svs_yara_sample_capture`, whose `git` is behind an interface. The check fails when the scan finds a module the table doesn't have, when a row has no decision, when a row's decisions aren't those of the tools table's rows that name it, or when a decision doesn't fit the module's pool: **runner** needs the sandbox pool (or a module already ported, whose tool comes with batch 10) and **scanner** the scanner pool.
 
 ### Evidence
 
@@ -129,7 +129,7 @@ Batch 10's image (`docker/ace4/Dockerfile`'s `sandbox` target, on `debian:13.7-s
 | tesseract 5.5.0 | `ocr` | none with `OMP_THREAD_LIMIT=1`, ace3's `omp_thread_limit`; 4 OpenMP threads without it on a large screenshot, with the same text | libtesseract in the task through `tesseract` 0.15.2 (last release April 2025) or `tesseract-rs` 0.4.0 (young): the same engine, but pytesseract runs the program on a PNG, so the program matches ace3 with no binding to keep up | **runner**, with `OMP_THREAD_LIMIT=1` | tesseract-ocr, its English and OSD data, libtesseract5 and Leptonica, 24 MB; Apache-2.0 |
 | OpenCV (cv2 5.0 in Python) | `ocr`, `qrcode` | ace3's QR script: 19 threads without `OPENBLAS_NUM_THREADS=1` (numpy's OpenBLAS), none with it and `cv2.setNumThreads(1)` | the `opencv` crate 0.102.0 (MIT, kept up) binds the same library. `imageproc` 0.27 has no non-local-means denoising, and rxing 0.9.4 and rqrr 0.11 find QR codes differently from cv2's `QRCodeDetector`. | **crate**: `opencv` in the task, with `setNumThreads(1)` before containment. ace3 has opencv-python 5.0.0.93 and trixie has OpenCV 4.10, so batch 10 builds 5.0 or shows 4.10 gives the same text and codes. | libopencv's core, imgproc, imgcodecs, photo and objdetect, in the sandbox image only; Apache-2.0 |
 | Ghostscript 10.05.1 | `pdf_analyzer`, `qrcode` | none, for `pdfwrite` and `pngalpha`; under the parser's filter the same pages, and the same PDF but for its ID, dates and invocation line | pdfium-render 0.9.5 needs a PDFium library and renders differently; mupdf 0.8.0 is AGPL; qpdf rewrites a PDF but doesn't interpret it, which is what `.gs.pdf` is for (AES-encrypted PDFs' URLs). 4.9 left this open. | **runner** | libgs10 and its common files, 24 MB; AGPL-3 |
-| pdfinfo, pdftotext (poppler 25.03.0) | `qrcode`, `pdftotext` | none | pdf-extract 0.12.1 (MIT) lays text out differently from pdftotext, and YARA rules match its text; poppler-rs 0.26.0 binds poppler-glib, GPL. libqpdf could count pages but differs from pdfinfo on a damaged file. | **runner** | poppler-utils and libpoppler147, 6 MB; GPL-2 or 3 |
+| pdfinfo, pdftotext (poppler 25.03.0) | `qrcode`, `pdftotext`, `pdf_link_text` | none; `pdftotext -bbox`, which `pdf_link_text` runs, started no thread and no process either (strace in ace3's image on `ace4/pdf/link_text.pdf`, 2026-11-16) | pdf-extract 0.12.1 (MIT) lays text out differently from pdftotext, and YARA rules match its text; poppler-rs 0.26.0 binds poppler-glib, GPL. libqpdf could count pages but differs from pdfinfo on a damaged file. | **runner** | poppler-utils and libpoppler147, 6 MB; GPL-2 or 3 |
 | zbarimg 0.23.93 | `qrcode` | 6 threads (ImageMagick's OpenMP), none with `MAGICK_THREAD_LIMIT=1` and `OMP_THREAD_LIMIT=1`; the same URL plain, under the tool filter, and limited under the parser's | zbar-rust 0.1.1 (LGPL-2.1, little used) binds libzbar; rxing and rqrr are other decoders | **runner** | zbar-tools and libzbar 0.5 MB, ImageMagick 7's libraries 14 MB; LGPL-2.1, ImageMagick's licence |
 | dmg2img 1.6.7 | `dmg_analyzer` | none | dmgwiz 1.1.1 (MIT, about 7,000 downloads) extracts partitions, not dmg2img's whole image, which the module adds as a file for YARA | **runner** | 0.2 MB; GPL-2 |
 | 7z 25.01, on a DMG's image | `dmg_analyzer`, `cve_2021_30657_analyzer` | none, listing and extracting a member of an HFS+ image, and extracting a 64 MB LZMA2 archive under the parser's filter | hfsplus 0.4.0 (MIT, young) reads HFS+; the module keeps 7z's listing lines as they are and parses its columns | **runner** | 7zip 7 MB; LGPL-2.1; with 7zip-rar's RAR codec, 0.2 MB, under the unRAR licence (non-free), which forbids making a RAR compressor from it, nothing ACE does |
@@ -142,7 +142,7 @@ Batch 10's image (`docker/ace4/Dockerfile`'s `sandbox` target, on `debian:13.7-s
 | pdf-parser.py, xlmdeobfuscator, pcodedmp, rtfobj, officeparser3 | `pdf_analyzer`, `xlmdeobfuscator`, `pcodedmp`, `rtfole`, `officeparser3` | Python, gone | ported in 4.9, 4.10 and 4.12; officeparser3 in batch 5, as a port of its own compound file reader in `ace-mod-office` | **crate** | none |
 | jscript.decode.pl | `microsoft_script_encoding_analysis` | none | about 80 lines of Perl, ported in batch 6 (`ace_mod_scripts::mse::decode`), matching the Perl byte for byte (`docs/measurements/scripts.md`) | **crate** | none |
 | git | `yara_scanner_v3_4`, `observable_modifier`, `svs_yara_sample_capture` | not run | the ruleset records its commit (2.26) | **none** | none |
-| version probes (`probe_binary_version`) | `ocr`, `qrcode` | not run | they key ace3's analysis result cache, which ace4 doesn't have (6.7) | **none** | none |
+| version probes (`probe_binary_version`) | `ocr`, `qrcode`, `pdf_link_text` | not run | they key ace3's analysis result cache, which ace4 doesn't have (6.7) | **none** | none |
 | docker, through the scanner managers | `javascript_deobfuscation`, `phishkit_analyzer` | not ACE's | 7.7: the scanner pool, `ace_pool::scanners`, over Docker's API | **scanner** | `ace4-js-deobfuscator` and `ace4-phishkit`, built from ace3's sources by `docker/scanners/build` |
 
 ### Modules that start a process
@@ -173,6 +173,7 @@ Batch 10's image (`docker/ace4/Dockerfile`'s `sandbox` target, on `debian:13.7-s
 | `cve_2021_30657_analyzer` | sandbox | 7z 25.01 via run_sandboxed_tool: `7z x -o<temp> <img> <member>` once per Contents/MacOS member; file via run_tool (plain subprocess.run, unsandboxed): `file -b --mime-type -L <extracted>` | 7z: **runner**; file: **crate** |
 | `exif` | sandbox | exiftool (libimage-exiftool-perl 13.25) via run_sandboxed_tool: `exiftool -j -G -n <file>`, timeout 30 s | exiftool: **runner** |
 | `pdftotext` | sandbox | pdftotext (poppler-utils 25.03.0, /usr/bin/pdftotext) via run_sandboxed_tool: `pdftotext <file> output.txt`, timeout 5 s | pdftotext: **runner** |
+| `pdf_link_text` | sandbox | pdftotext (poppler-utils 25.03.0, /usr/bin/pdftotext) via run_sandboxed_tool: `pdftotext -bbox -f <first> -l <last> <file> -`, timeout 10 s, once per PDF, over the pages with links among the first `link_text_pages`; `pdftotext -v` via probe_binary_version (subprocess.run, cached) for the cache key | pdftotext: **runner**; the version probe: **none** |
 | `yara_scanner_v3_4` | parser | git via subprocess.run `git -C <dir> rev-parse HEAD` (saq/git.py get_commit_hash) when initializing the local scanner, through get_validated_git_repo_dirs | git: **none**; the ruleset records its commit (2.26) |
 | `microsoft_script_encoding_analysis` | parser | perl script bin/jscript.decode.pl (vendored, ~80 lines) via run_tool() = subprocess.run, NOT sandboxed; timeout = time_left() minus margin | jscript.decode.pl: **crate**, the decoder ported |
 | `observable_modifier` | core | git rev-parse HEAD via subprocess.run (saq/git.py:53-70), only when the optional git_dir setting is configured (not set in saq.default.yaml), on each rules reload | git: **none**; its rules come from the overlay, with no commit |
@@ -240,6 +241,7 @@ In the config's order. ace4 is the crate a ported module is in.
 | `extracted_ole_analyzer` | `ExtractedOLEAnalyzer` | `ace-mod-office` | parser | done | file | analysis, binary, cli, correlation, email, file |
 | `file_type` | `FileTypeAnalyzer` | `ace-mod-files` | parser | done | file | analysis, binary, cli, correlation, email, file |
 | `pdf_analyzer` | `PDFAnalyzer` | `ace-mod-pdf` | sandbox | done | file | analysis, binary, cli, correlation, email, file |
+| `pdf_link_text` | `PDFLinkTextAnalyzer` | `ace-mod-pdf` | sandbox | done | correlation | analysis, cli, correlation |
 | `upx` | `UPXAnalyzer` | `ace-mod-sandbox` | sandbox | done | file | analysis, binary, cli, correlation, email, file |
 | `autoit` | `AutoItAnalyzer` | `ace-mod-sandbox` | sandbox | done | file | analysis, binary, cli, correlation, email, file |
 | `lnk_parser` | `LnkParseAnalyzer` | `ace-mod-files` | parser | done | file | analysis, binary, cli, correlation, email, file |
@@ -604,13 +606,13 @@ In the config's order. ace4 is the crate a ported module is in.
 ### lure_url_analyzer
 
 - **Section**: `analysis_module_lure_url_analyzer`, class `LureURLAnalyzer` in `saq/modules/email/lure.py`, enabled by default.
-- **ace4**: ported in `ace-mod-emailtree`. It runs last (`Module::RUNS_LAST`), as ace3's `execute_final_analysis`, once, where ace3 reruns it on each final pass; walks the email's subtree in the tree on the lease (`Module::READS_TREE`); and parses the email's HTML bodies, up to 5 MiB, which the core sends as the tree's files (`Module::READS_TREE_FILES`), on `ace-lxml`'s BeautifulSoup tree. URLs are spelt by `ace-urlfinder` and domains by `ace_sdk::nrd::registrable_domain`, tldextract's bundled snapshot. `crawl` on the primary goes through `ResultEnvelope::others`. The settings are `etc/lure_url.yaml`'s keys, in the site's overlay, with its values as defaults; ace3 reloads the file when analysts edit it. Each candidate has no `observable_uuid`, since ace4's observables have none, and the GUI draws the result as an analysis view rather than ace3's section of the alert page. `crates/ace-mod-emailtree/tests/differences.md` has the rest.
+- **ace4**: ported in `ace-mod-emailtree`. It runs last (`Module::RUNS_LAST`), as ace3's `execute_final_analysis`, once, where ace3 reruns it on each final pass; walks the email's subtree in the tree on the lease (`Module::READS_TREE`); reads the email's bodies, HTML and plain text, up to 5 MiB each, which the core sends as the tree's files (`Module::READS_TREE_FILES`), the HTML on `ace-lxml`'s BeautifulSoup tree; and reads `pdf_link_text`'s details in the tree (`Module::READS_TREE_DETAILS`) for the text under a PDF's links. It follows ace3 `b4badb2c` and `40ee8208`: a link's place in the thread (a signature block, an earlier message the email quotes), the newest message's reference to its attachment, and a PDF's link text and only link. URLs are spelt by `ace-urlfinder` and domains by `ace_sdk::nrd::registrable_domain`, tldextract's bundled snapshot. `crawl` on the primary goes through `ResultEnvelope::others`. The settings are `etc/lure_url.yaml`'s keys, in the site's overlay, with its values as defaults; ace3 reloads the file when analysts edit it. Each candidate has no `observable_uuid`, since ace4's observables have none, and the GUI draws the result as an analysis view rather than ace3's section of the alert page. `crates/ace-mod-emailtree/tests/differences.md` has the rest.
 - **Pool**: parser. Scores URLs already in the tree and parses the email's HTML bodies; no network or database. The core hands it the tree and the bodies when it runs last.
 - **Step**: done.
-- **Does**: For a file with EmailAnalysis, waits until final analysis and then scores every http(s) URL found in the email's body parts, attachments, QR codes, PDF link annotations and unwrapped protected URLs, picks the primary lure URL and adds the crawl directive to it.
+- **Does**: For a file with EmailAnalysis, waits until final analysis and then scores every http(s) URL found in the email's body parts, attachments, QR codes, PDF link annotations and unwrapped protected URLs, by where it is (a clickable link, a button, a signature block, a quoted message, an attachment the message refers to) and what its text says, picks the primary lure URL and adds the crawl directive to it.
 - **Input**: file (only those with EmailAnalysis).
 - **Groups and modes**: groups correlation; modes analysis, cli, correlation.
-- **Depends on**: config: email_analyzer; reads EmailAnalysis, ProtectedURLAnalysis (url protected unwrapping), QRCodeAnalysis, PhishkitAnalysis (skipped), and whatever analyses hang URLs off the email's parts (url_extraction, pdf annotations) by walking the tree in final analysis, no wait_for_analysis; config dependency email_analyzer.
+- **Depends on**: config: email_analyzer; reads EmailAnalysis, ProtectedURLAnalysis (url protected unwrapping), QRCodeAnalysis, PDFLinkTextAnalysis (the text under a PDF's links), PhishkitAnalysis (skipped), and whatever analyses hang URLs off the email's parts (url_extraction, pdf annotations) by walking the tree in final analysis, no wait_for_analysis; config dependency email_analyzer.
 - **Libraries**: beautifulsoup4 4.15.0 + lxml 6.1.3 (parse_document from html_js_extraction, body anchors); urlfinderlib 0.27.1 (URL normalization); tldextract 5.4.0 (default extractor; may fetch the public suffix list from publicsuffix.org over HTTPS on first use and cache it under ~/.cache/python-tldextract, falling back to its bundled snapshot; ace3 does not configure it) via saq.nrd.util.registrable_domain; idna 3.20 (saq.nrd.util normalization); PyYAML 6.0.3 (settings file); pydantic 2.14.1.
 - **Tools**: none.
 - **Writes**: none.
@@ -1365,6 +1367,28 @@ In the config's order. ace4 is the crate a ported module is in.
 - **Reads outside the alert**: bin/pdf-parser.py (config pdfparser_path).
 - **Tags and detections**: Tags the source 'encrypted_pdf_empty_password' and the copy 'decrypted_pdf'. All outputs get DIRECTIVE_EXTRACT_URLS (except the decrypted copy), redirection to the source PDF and R_EXTRACTED_FROM. No detections.
 - **Notes**: Detects PDFs by '%PDF-' in the first 1024 bytes; skips *.pdfparser and *.ocr. pdfparser output is written even if the tool is stopped (pdf.py:243). pdf-parser.py is run OUTSIDE the sandbox on attacker files (pdf.py:245). The gs, uri, form-field and js outputs exclude pdf_analyzer itself. Decrypted copy is saved with stream_decode_level none and deterministic_id so its sha256 is stable (pdf.py:283-293), and excludes pdf_analyzer, pdftotext, exif and qrcode. PDFs needing a user password are left to PDFEncryptionAnalyzer.
+
+### pdf_link_text
+
+- **Section**: `analysis_module_pdf_link_text`, class `PDFLinkTextAnalyzer` in `saq/modules/file_analysis/pdf.py`, enabled by default. Added by ace3 `b4badb2c`, with `40ee8208`'s fixes.
+- **ace4**: ported in `ace-mod-pdf`. libqpdf reads the link annotations in the task (`crate::objects`, as the PDF module's annotation URIs: each link's URL, page, `/Rect`, `/Contents`, its page's `/Rotate` and media box, as pikepdf hands them over; `tools/library-diff/adapters/pikepdf.py` and its Rust side read the same, for `tools/library-diff/run pikepdf`), and `pdftotext -bbox` runs in the sandbox runner. Its bounds are ace3's settings, with ace3's defaults: `max_links`, `link_text_pages`, `max_page_words`, `max_link_band_words`. `pdftotext_path` is the pool's image's and `cache_ttl` is of ace3's analysis result cache, which ace4 doesn't have (6.7). When pdftotext doesn't finish or exits non-zero, ace3 marks the analysis failed (`Analysis.error`) and keeps the links without their text; ace4 has no such mark yet, so it logs the reason and keeps the links the same way. `crates/ace-mod-sandbox/tests/differences.md` has the rest, and `docs/measurements/pdf-link-text.md` crafted files against its limits.
+- **Pool**: sandbox. libqpdf in the task's process, and pdftotext in the sandbox runner.
+- **Step**: done (ported with the inventory's move to ace3 `37a765bf`, 2026-11-16).
+- **Does**: For a PDF with link annotations, records each link's URL and page with the text the PDF shows under it (the words of `pdftotext -bbox` whose centre is inside the link's `/Rect`) and the text of the line it is on, which the lure module reads as the link's text.
+- **Input**: file (a PDF, by `%PDF-` in its first 1024 bytes, not `*.pdfparser`; checked in `custom_requirement`, before the cache lookup).
+- **Groups and modes**: groups correlation; modes analysis, cli, correlation.
+- **Depends on**: none. `pdf_analyzer` excludes it from a PDF's decrypted copy.
+- **Libraries**: pikepdf 10.17.0 (libqpdf 12.4.2).
+- **Tools**: pdftotext (poppler-utils 25.03.0, /usr/bin/pdftotext) via run_sandboxed_tool: `pdftotext -bbox -f <first> -l <last> <file> -`, timeout 10 s; `pdftotext -v` via probe_binary_version for the cache key.
+- **Threads and children**: none: `pdftotext -bbox` started no thread and no process (strace, 2026-11-16).
+- **Writes**: none.
+- **yara_meta**: none.
+- **ACE's data**: none.
+- **Secrets**: none.
+- **Network**: none.
+- **Reads outside the alert**: none.
+- **Tags and detections**: none.
+- **Notes**: Each (URL, page, box) once, at most `max_links` (200) per PDF. Only links with a four-number `/Rect`, on a page that isn't rotated, among the first `link_text_pages` (3) are placed; the rest keep the annotation's `/Contents`. A page of more than `max_page_words` (20,000) words isn't placed, and a link whose lines hold more than `max_link_band_words` (500) words gets no text. No analysis when the PDF has no link, or when pikepdf can't open it or reading a link raises (a `/Rotate` that isn't a number). The summary counts the links and those with text or a line. Results are cached for 30 days in ace3, keyed on the PDF, the settings and pdftotext's version; a failed one isn't cached.
 
 ### upx
 

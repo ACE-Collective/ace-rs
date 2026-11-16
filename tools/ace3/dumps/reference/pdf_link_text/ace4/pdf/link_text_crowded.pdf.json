@@ -1,0 +1,67 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "37a765bf",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "PDFLinkTextAnalysis",
+      "details": {
+        "links": [
+          {
+            "line": null,
+            "page": 1,
+            "text": "Crowded",
+            "url": "https://example.com/crowded"
+          },
+          {
+            "line": null,
+            "page": 2,
+            "text": null,
+            "url": "https://example.com/band"
+          },
+          {
+            "line": "b0 b1 b2 b3 b4 b5 b6 b7 b8 b9 b10 b11 b12 b13 b14 b15 b16 b17 b18 b19 b20 b21 b22 b23 b24 b25 b26 b27 b28 b29 b30 b31 b32 b33 b34 b35 b36 b37 b38 b39 b40 b41 b42 b43 b44 b45 b46 b47 b48 b49 b50 b51 b5",
+            "page": 2,
+            "text": "b0 b1 b2 b3 b4 b5 b6 b7 b40 b41 b42 b43 b44",
+            "url": "https://example.com/one-line"
+          }
+        ]
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.pdf:PDFLinkTextAnalysis",
+      "observables": [],
+      "summary": "PDF Link Text Analysis: 3 links, 2 with text",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace4/pdf/link_text_crowded.pdf",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "link_text_crowded.pdf",
+      "size": 66511,
+      "type": "file",
+      "value": "3afe97028017e40582a1355028fc9a00593ea3e3a75d40b5befa17c746d94cef"
+    }
+  },
+  "module": "pdf_link_text",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "link_text_crowded.pdf",
+    "relationships": [],
+    "size": 66511,
+    "tags": [],
+    "type": "file",
+    "value": "3afe97028017e40582a1355028fc9a00593ea3e3a75d40b5befa17c746d94cef",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

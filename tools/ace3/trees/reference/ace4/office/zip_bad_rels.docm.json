@@ -152,12 +152,11 @@
       "results": {
         "exif": {
           "details": {
-            "error": null,
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files/zip_bad_rels.docm.extracted/word",
-              "File:FileAccessDate": "2026:11:11 09:15:57+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 09:15:56+00:00",
+              "File:FileAccessDate": "2026:11:16 14:16:16+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 14:16:16+00:00",
               "File:FileModifyDate": "2026:01:01 00:00:00+00:00",
               "File:FileName": "vbaProject.bin",
               "File:FilePermissions": 100664,
@@ -444,6 +443,39 @@
       },
       "tags": {}
     },
+    "file:410fd761a7a094314077b4bfbda4a8d2b723706d30c88e299d1b4ce3b5f8d872": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "zip_bad_rels.docm.extracted/word/vbaProject.bin.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:170b804293599496c29d816cfe408adc5a99e767eb930b0c0cf9e7db62436abe": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:5f6215a036890aff7ce33ebbda20fc8beb7ca7d1d1ebd71364750df0ab3ba5f9": {
       "detections": {},
       "directives": {
@@ -563,39 +595,6 @@
       },
       "tags": {}
     },
-    "file:7489b90216bd70b91e053634e7f9a468cb0d7cc3a3d90ce691780826e2033445": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "zip_bad_rels.docm.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:c94cfed2698aa66dd0391b667aa09c44cabe28dacf9de5e13c8641a492e037bb": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:827ef1fb270218d5b261add9b3dd6877a72a3870bef4632df04c9d52b03a1661": {
       "detections": {},
       "directives": {
@@ -661,7 +660,7 @@
       },
       "tags": {}
     },
-    "file:8c97c1a81f9c2300bf7005fcde98649827c761e43730be1f4d7b00fda1007b7d": {
+    "file:a560df7ccad29f65beaf7b90e8d4e2104c2e786dcd3eb4d98d4e2302f9d582bb": {
       "detections": {},
       "directives": {},
       "excluded_analysis": {
@@ -669,12 +668,12 @@
         "file_type": true
       },
       "paths": {
-        "zip_bad_rels.docm.extracted/word/vbaProject.bin.exif/exiftool.out": {
+        "zip_bad_rels.docm.exif/exiftool.out": {
           "type=metadata.exif": true
         }
       },
       "relationships": {
-        "extracted_from file:170b804293599496c29d816cfe408adc5a99e767eb930b0c0cf9e7db62436abe": true
+        "extracted_from file:c94cfed2698aa66dd0391b667aa09c44cabe28dacf9de5e13c8641a492e037bb": true
       },
       "results": {
         "observable_detection": {
@@ -714,7 +713,6 @@
               "word/vbaProject.bin",
               "_rels/.rels"
             ],
-            "extraction_error": null,
             "file_count": 3
           },
           "summary": "Archive Analysis: extracted 3 of 3 files: ([Content_Types].xml, word/vbaProject.bin, _rels/.rels)",
@@ -722,13 +720,12 @@
         },
         "exif": {
           "details": {
-            "error": null,
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 09:15:56+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 09:15:56+00:00",
-              "File:FileModifyDate": "2026:11:07 15:11:53+00:00",
+              "File:FileAccessDate": "2026:11:16 14:16:15+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 14:16:15+00:00",
+              "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "zip_bad_rels.docm",
               "File:FilePermissions": 100644,
               "File:FileSize": 11223,

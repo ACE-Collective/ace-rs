@@ -1,6 +1,6 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "f72f8946",
+  "ace3_commit": "37a765bf",
   "also_enabled": [
     "file_type",
     "email_analyzer",
@@ -44,7 +44,8 @@
     "nowhitespace_analyzer",
     "zip_encryption_analyzer",
     "rar_encryption_analyzer",
-    "pdf_encryption_analyzer"
+    "pdf_encryption_analyzer",
+    "pdf_link_text"
   ],
   "analyses": [
     {
@@ -52,7 +53,7 @@
       "details": {
         "candidates": [
           {
-            "anchor_text": null,
+            "anchor_text": "",
             "carries": [],
             "highlights": [
               [
@@ -60,7 +61,67 @@
               ],
               []
             ],
-            "observable_uuid": "63fa85ee-85ce-4355-bf1c-76ae15e608cb",
+            "observable_uuid": "d8d14d6d-bb21-4be8-a1a8-093c7fc6b9df",
+            "reasons": [
+              "found in attachment spectre.pdf",
+              "clickable link in a PDF"
+            ],
+            "score": 40,
+            "sources": [
+              "attachment"
+            ],
+            "url": "https://bugs.chromium.org/p/chromium/issues/detail?id=508166"
+          },
+          {
+            "anchor_text": "",
+            "carries": [],
+            "highlights": [
+              [
+                "spectre.pdf"
+              ],
+              []
+            ],
+            "observable_uuid": "a6ba67d7-c6ed-4f76-b7b7-0183075e8faf",
+            "reasons": [
+              "found in attachment spectre.pdf",
+              "clickable link in a PDF"
+            ],
+            "score": 40,
+            "sources": [
+              "attachment"
+            ],
+            "url": "https://www.amd.com/en-us/press-releases/Pages/amd-takes-computing-2016dec13.aspx"
+          },
+          {
+            "anchor_text": "",
+            "carries": [],
+            "highlights": [
+              [
+                "spectre.pdf"
+              ],
+              []
+            ],
+            "observable_uuid": "f2fa4e4a-5713-43bb-87a4-909818aa0e7d",
+            "reasons": [
+              "found in attachment spectre.pdf",
+              "clickable link in a PDF"
+            ],
+            "score": 40,
+            "sources": [
+              "attachment"
+            ],
+            "url": "https://www.youtube.com/watch?v=uZRih6APtiQ"
+          },
+          {
+            "anchor_text": "",
+            "carries": [],
+            "highlights": [
+              [
+                "spectre.pdf"
+              ],
+              []
+            ],
+            "observable_uuid": "5c660403-2d0b-4e07-ad8b-944f7fb7b115",
             "reasons": [
               "found in attachment spectre.pdf",
               "clickable link in a PDF"
@@ -72,7 +133,7 @@
             "url": "http://cr.yp.to/papers.html#cachetiming"
           },
           {
-            "anchor_text": null,
+            "anchor_text": "",
             "carries": [],
             "highlights": [
               [
@@ -80,27 +141,7 @@
               ],
               []
             ],
-            "observable_uuid": "cbdd2804-ce5a-4325-9454-864023e62fee",
-            "reasons": [
-              "found in attachment spectre.pdf",
-              "clickable link in a PDF"
-            ],
-            "score": 40,
-            "sources": [
-              "attachment"
-            ],
-            "url": "http://eprint.iacr.org/2015/905"
-          },
-          {
-            "anchor_text": null,
-            "carries": [],
-            "highlights": [
-              [
-                "spectre.pdf"
-              ],
-              []
-            ],
-            "observable_uuid": "8757472e-a454-4f93-ba33-cdf8a17e8759",
+            "observable_uuid": "ef18cd55-9cc6-4094-8151-efed567e1328",
             "reasons": [
               "found in attachment spectre.pdf",
               "clickable link in a PDF"
@@ -110,51 +151,11 @@
               "attachment"
             ],
             "url": "http://eprint.iacr.org/2017/968"
-          },
-          {
-            "anchor_text": null,
-            "carries": [],
-            "highlights": [
-              [
-                "spectre.pdf"
-              ],
-              []
-            ],
-            "observable_uuid": "449e9fcb-1bd3-4eb8-9649-6c513d252a03",
-            "reasons": [
-              "found in attachment spectre.pdf",
-              "clickable link in a PDF"
-            ],
-            "score": 40,
-            "sources": [
-              "attachment"
-            ],
-            "url": "http://www.cs.vu.nl/~giuffrida/papers/anc-ndss-2017.pdf"
-          },
-          {
-            "anchor_text": null,
-            "carries": [],
-            "highlights": [
-              [
-                "spectre.pdf"
-              ],
-              []
-            ],
-            "observable_uuid": "1ac3ce2a-cd3f-467d-9d67-2a6c3f5c2c4b",
-            "reasons": [
-              "found in attachment spectre.pdf",
-              "clickable link in a PDF"
-            ],
-            "score": 40,
-            "sources": [
-              "attachment"
-            ],
-            "url": "http://www.daemonology.net/papers/htt.pdf"
           }
         ],
         "has_inner_email": false,
         "primary": {
-          "anchor_text": null,
+          "anchor_text": "",
           "carries": [],
           "highlights": [
             [
@@ -162,7 +163,7 @@
             ],
             []
           ],
-          "observable_uuid": "63fa85ee-85ce-4355-bf1c-76ae15e608cb",
+          "observable_uuid": "d8d14d6d-bb21-4be8-a1a8-093c7fc6b9df",
           "reasons": [
             "found in attachment spectre.pdf",
             "clickable link in a PDF"
@@ -171,14 +172,14 @@
           "sources": [
             "attachment"
           ],
-          "url": "http://cr.yp.to/papers.html#cachetiming"
+          "url": "https://bugs.chromium.org/p/chromium/issues/detail?id=508166"
         },
         "subject": "canary #1"
       },
       "detections": [],
       "module_path": "saq.modules.email.lure:LureURLAnalysis",
       "observables": [],
-      "summary": "Lure URL Analysis: http://cr.yp.to/papers.html#cachetiming (found in attachment spectre.pdf; clickable link in a PDF)",
+      "summary": "Lure URL Analysis: https://bugs.chromium.org/p/chromium/issues/detail?id=508166 (found in attachment spectre.pdf; clickable link in a PDF)",
       "tags": []
     },
     {
@@ -697,7 +698,7 @@
             "cc": [],
             "compauth_reason": "201",
             "compauth_result": "softpass",
-            "date": "2026-11-10 05:31:21.660899 +0000",
+            "date": "2026-11-16 16:33:07.057089 +0000",
             "dkim_result": "fail",
             "dmarc_result": "fail",
             "env_mail_from": "unixfreak0037@gmail.com",
@@ -1080,80 +1081,17 @@
   "tree_view": {
     "alert_type": "cli_analysis",
     "bodies": {
-      "b1e1cb135a54b1fdf13f1a49176cacad276b8916eb11541a41a5a85cb2655c3f": "PGh0bWw+CjxoZWFkPgo8bWV0YSBodHRwLWVxdWl2PSJDb250ZW50LVR5cGUiIGNvbnRlbnQ9InRleHQvaHRtbDsgY2hhcnNldD11dGYtOCI+CjwvaGVhZD4KPGJvZHk+CjxzcGFuIHN0eWxlPSJmb250LWZhbWlseTpBcmlhbDsgRm9udC1zaXplOjhwdDsgY29sb3I6IzY0MUUxNjsiPioqKlRoaXMgaXMgYW4gPHU+ZXh0ZXJuYWwgZW1haWwgbWVzc2FnZTwvdT4uIENvbmZpcm0gdGhlIHNlbmRlciBiZWZvcmUgb3BlbmluZyBhdHRhY2htZW50cyBvciBjbGlja2luZyBsaW5rcy4gQXZvaWQgY29udGVudCB0aGF0IGxvb2tzIHN1c3BpY2lvdXMuKioqPGZvbnQgc2l6ZT0iLTIiPjwvZm9udD4KPGhyPgo8L3NwYW4+CjxkaXY+CjxkaXYgZGlyPSJsdHIiPjxzcGFuIHN0eWxlPSJjb2xvcjpyZ2IoNTEsNTEsNTEpO2ZvbnQtZmFtaWx5OlZlcmRhbmEsQXJpYWwsc2Fucy1zZXJpZjtmb250LXNpemU6MTAuOHB4O2ZvbnQtc3R5bGU6bm9ybWFsO2ZvbnQtdmFyaWFudC1saWdhdHVyZXM6bm9ybWFsO2ZvbnQtdmFyaWFudC1jYXBzOm5vcm1hbDtmb250LXdlaWdodDo0MDA7bGV0dGVyLXNwYWNpbmc6bm9ybWFsO3RleHQtYWxpZ246c3RhcnQ7dGV4dC1pbmRlbnQ6MHB4O3RleHQtdHJhbnNmb3JtOm5vbmU7d2hpdGUtc3BhY2U6cHJlLXdyYXA7d29yZC1zcGFjaW5nOjBweDtiYWNrZ3JvdW5kLWNvbG9yOnJnYigyMzgsMjM4LDIzOCk7dGV4dC1kZWNvcmF0aW9uLXN0eWxlOmluaXRpYWw7dGV4dC1kZWNvcmF0aW9uLWNvbG9yOmluaXRpYWw7ZmxvYXQ6bm9uZTtkaXNwbGF5OmlubGluZSI+MTUxLjIzNi4yNC40OTwvc3Bhbj48YnIgY2xlYXI9ImFsbCI+CjxkaXY+PGJyPgo8L2Rpdj4KLS0gPGJyPgo8ZGl2IGNsYXNzPSJnbWFpbF9zaWduYXR1cmUiIGRhdGEtc21hcnRtYWlsPSJnbWFpbF9zaWduYXR1cmUiPkpvaG4gVy4gRGF2aXNvbjxicj4KPGEgaHJlZj0ibWFpbHRvOnVuaXhmcmVhazAwMzdAZ21haWwuY29tIiB0YXJnZXQ9Il9ibGFuayI+dW5peGZyZWFrMDAzN0BnbWFpbC5jb208L2E+PC9kaXY+CjwvZGl2Pgo8L2Rpdj4KPC9ib2R5Pgo8L2h0bWw+Cg=="
+      "b1e1cb135a54b1fdf13f1a49176cacad276b8916eb11541a41a5a85cb2655c3f": "PGh0bWw+CjxoZWFkPgo8bWV0YSBodHRwLWVxdWl2PSJDb250ZW50LVR5cGUiIGNvbnRlbnQ9InRleHQvaHRtbDsgY2hhcnNldD11dGYtOCI+CjwvaGVhZD4KPGJvZHk+CjxzcGFuIHN0eWxlPSJmb250LWZhbWlseTpBcmlhbDsgRm9udC1zaXplOjhwdDsgY29sb3I6IzY0MUUxNjsiPioqKlRoaXMgaXMgYW4gPHU+ZXh0ZXJuYWwgZW1haWwgbWVzc2FnZTwvdT4uIENvbmZpcm0gdGhlIHNlbmRlciBiZWZvcmUgb3BlbmluZyBhdHRhY2htZW50cyBvciBjbGlja2luZyBsaW5rcy4gQXZvaWQgY29udGVudCB0aGF0IGxvb2tzIHN1c3BpY2lvdXMuKioqPGZvbnQgc2l6ZT0iLTIiPjwvZm9udD4KPGhyPgo8L3NwYW4+CjxkaXY+CjxkaXYgZGlyPSJsdHIiPjxzcGFuIHN0eWxlPSJjb2xvcjpyZ2IoNTEsNTEsNTEpO2ZvbnQtZmFtaWx5OlZlcmRhbmEsQXJpYWwsc2Fucy1zZXJpZjtmb250LXNpemU6MTAuOHB4O2ZvbnQtc3R5bGU6bm9ybWFsO2ZvbnQtdmFyaWFudC1saWdhdHVyZXM6bm9ybWFsO2ZvbnQtdmFyaWFudC1jYXBzOm5vcm1hbDtmb250LXdlaWdodDo0MDA7bGV0dGVyLXNwYWNpbmc6bm9ybWFsO3RleHQtYWxpZ246c3RhcnQ7dGV4dC1pbmRlbnQ6MHB4O3RleHQtdHJhbnNmb3JtOm5vbmU7d2hpdGUtc3BhY2U6cHJlLXdyYXA7d29yZC1zcGFjaW5nOjBweDtiYWNrZ3JvdW5kLWNvbG9yOnJnYigyMzgsMjM4LDIzOCk7dGV4dC1kZWNvcmF0aW9uLXN0eWxlOmluaXRpYWw7dGV4dC1kZWNvcmF0aW9uLWNvbG9yOmluaXRpYWw7ZmxvYXQ6bm9uZTtkaXNwbGF5OmlubGluZSI+MTUxLjIzNi4yNC40OTwvc3Bhbj48YnIgY2xlYXI9ImFsbCI+CjxkaXY+PGJyPgo8L2Rpdj4KLS0gPGJyPgo8ZGl2IGNsYXNzPSJnbWFpbF9zaWduYXR1cmUiIGRhdGEtc21hcnRtYWlsPSJnbWFpbF9zaWduYXR1cmUiPkpvaG4gVy4gRGF2aXNvbjxicj4KPGEgaHJlZj0ibWFpbHRvOnVuaXhmcmVhazAwMzdAZ21haWwuY29tIiB0YXJnZXQ9Il9ibGFuayI+dW5peGZyZWFrMDAzN0BnbWFpbC5jb208L2E+PC9kaXY+CjwvZGl2Pgo8L2Rpdj4KPC9ib2R5Pgo8L2h0bWw+Cg==",
+      "bb09ae7a1d502a5d610a97f4b6a93488f7d21836d9784941623e481037d89cff": "KioqVGhpcyBpcyBhbiBleHRlcm5hbCBlbWFpbCBtZXNzYWdlLiBDb25maXJtIHRoZSBzZW5kZXIgYmVmb3JlIG9wZW5pbmcgYXR0YWNobWVudHMgb3IgY2xpY2tpbmcgbGlua3MuIEF2b2lkIGNvbnRlbnQgdGhhdCBsb29rcyBzdXNwaWNpb3VzLioqKgpfX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fXwoxNTEuMjM2LjI0LjQ5CgotLQpKb2huIFcuIERhdmlzb24KdW5peGZyZWFrMDAzN0BnbWFpbC5jb208bWFpbHRvOnVuaXhmcmVhazAwMzdAZ21haWwuY29tPgo="
     },
     "observables": [
       {
         "detections": [],
-        "directives": [
-          "extract_urls",
-          "render"
-        ],
-        "paths": [
-          {
-            "path": "spectre.pdf",
-            "yara_meta": [
-              "type=document.pdf",
-              "type=email.attachment"
-            ]
-          }
-        ],
-        "size": 131872,
-        "tags": [
-          "pdf"
-        ],
-        "type": "file",
-        "value": "d1a3c8c49faea6321bd01e706e0957012c18a94e1a187f1a5477c0e82270dc51"
-      },
-      {
-        "detections": [],
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "url",
-        "value": "https://bugs.chromium.org/p/chromium/issues/detail?id=508166"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [
-          "domain_in_url"
-        ],
-        "type": "fqdn",
-        "value": "users.ece.cmu.edu"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "fqdn",
-        "value": "gmail.com"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_subject",
-        "value": "canary #1"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "message_id",
-        "value": "<CANTOGZuWahvYOEr0NwPELF5ASriGNWjfVsWhMSE_ekiSVw1RbA@mail.gmail.com>"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "url",
-        "value": "http://www.daemonology.net/papers/htt.pdf"
+        "type": "uri_path",
+        "value": "/papers/htt.pdf"
       },
       {
         "detections": [],
@@ -1161,45 +1099,7 @@
         "paths": [],
         "tags": [],
         "type": "uri_path",
-        "value": "/papers.html#cachetiming"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [
-          "domain_in_url"
-        ],
-        "type": "fqdn",
-        "value": "www.ams.org"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "fqdn",
-        "value": "company.com"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [
-          "domain_in_url"
-        ],
-        "type": "fqdn",
-        "value": "cyber.wtf"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [
-          "domain_in_url"
-        ],
-        "type": "fqdn",
-        "value": "www.youtube.com"
+        "value": "/watch?v=uZRih6APtiQ"
       },
       {
         "detections": [],
@@ -1221,72 +1121,6 @@
       },
       {
         "detections": [],
-        "directives": [
-          "extract_urls"
-        ],
-        "paths": [
-          {
-            "path": "spectre.pdf.pdfparser",
-            "yara_meta": [
-              "type=document.pdf.object"
-            ]
-          }
-        ],
-        "size": 537966,
-        "tags": [],
-        "type": "file",
-        "value": "a9824e9a088bd0e3b97aef48b8e1ea8a95389d5661abb030b4f73b1e55e03e9f"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "url",
-        "value": "http://www.ams.org"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [
-          "domain_in_url"
-        ],
-        "type": "fqdn",
-        "value": "www.amd.com"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [
-          "domain_in_url"
-        ],
-        "type": "fqdn",
-        "value": "www.daemonology.net"
-      },
-      {
-        "detections": [],
-        "directives": [
-          "extract_urls",
-          "render"
-        ],
-        "paths": [
-          {
-            "path": "email.rfc822.unknown_text_html_000.html",
-            "yara_meta": [
-              "type=document.html",
-              "type=email.attachment"
-            ]
-          }
-        ],
-        "size": 1042,
-        "tags": [],
-        "type": "file",
-        "value": "b1e1cb135a54b1fdf13f1a49176cacad276b8916eb11541a41a5a85cb2655c3f"
-      },
-      {
-        "detections": [],
         "directives": [],
         "paths": [],
         "tags": [],
@@ -1298,8 +1132,8 @@
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "url",
-        "value": "https://www.amd.com/en-us/press-releases/Pages/amd-takes-computing-2016dec13.aspx"
+        "type": "fqdn",
+        "value": "gmail.com"
       },
       {
         "detections": [],
@@ -1307,65 +1141,7 @@
         "paths": [],
         "tags": [],
         "type": "url",
-        "value": "http://www.cs.vu.nl/~giuffrida/papers/anc-ndss-2017.pdf"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "uri_path",
-        "value": "/papers/htt.pdf"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_first_hop_ip",
-        "value": "207.211.31.120"
-      },
-      {
-        "detections": [],
-        "directives": [
-          "crawl"
-        ],
-        "paths": [],
-        "tags": [],
-        "type": "url",
-        "value": "http://cr.yp.to/papers.html#cachetiming"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "url",
-        "value": "https://www.youtube.com/watch?v=uZRih6APtiQ"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "uri_path",
-        "value": "/en-us/press-releases/Pages/amd-takes-computing-2016dec13.aspx"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_first_hop_helo",
-        "value": "us-smtp-1.mimecast.com"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "url",
-        "value": "https://cyber.wtf/2017/07/28/negative-result-reading-kernel-memory-from-user-mode"
+        "value": "http://www.ams.org"
       },
       {
         "detections": [],
@@ -1380,14 +1156,6 @@
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "uri_path",
-        "value": "/~giuffrida/papers/anc-ndss-2017.pdf"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
         "type": "sha256",
         "value": "d1a3c8c49faea6321bd01e706e0957012c18a94e1a187f1a5477c0e82270dc51"
       },
@@ -1396,34 +1164,16 @@
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "uri_path",
-        "value": "/2015/905"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [
-          "domain_in_url"
-        ],
-        "type": "fqdn",
-        "value": "eprint.iacr.org"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "md5",
-        "value": "3c65440ee7889a3040b2815444e92f0f"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
         "type": "url",
-        "value": "http://eprint.iacr.org/2017/968"
+        "value": "http://www.daemonology.net/papers/htt.pdf"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_to",
+        "value": "jwdavison@company.com"
       },
       {
         "detections": [],
@@ -1435,11 +1185,24 @@
       },
       {
         "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_dkim_signing_domain",
-        "value": "gmail.com"
+        "directives": [
+          "extract_urls"
+        ],
+        "paths": [
+          {
+            "path": "spectre.pdf.gs.pdf",
+            "yara_meta": [
+              "type=document.pdf",
+              "type=document.pdf.rendered"
+            ]
+          }
+        ],
+        "size": 154120,
+        "tags": [
+          "pdf"
+        ],
+        "type": "file",
+        "value": "a164f2d6854045da2ffbaa98d2d0b89e0b4b6241c35d0e2e7d3d91dba7c6d450"
       },
       {
         "detections": [],
@@ -1464,6 +1227,16 @@
         "detections": [],
         "directives": [],
         "paths": [],
+        "tags": [
+          "domain_in_url"
+        ],
+        "type": "fqdn",
+        "value": "www.cs.vu.nl"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
         "tags": [],
         "type": "uri_path",
         "value": "/~yoonguk/papers/kim-isca14.pdf"
@@ -1480,9 +1253,38 @@
         "detections": [],
         "directives": [],
         "paths": [],
+        "tags": [
+          "domain_in_url"
+        ],
+        "type": "fqdn",
+        "value": "www.ams.org"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [
+          {
+            "path": "email.rfc822.combined",
+            "yara_meta": [
+              "type=email",
+              "type=email.combined"
+            ]
+          }
+        ],
+        "size": 69479,
+        "tags": [
+          "email"
+        ],
+        "type": "file",
+        "value": "386dc4c2ef2b5f3fc8302e5ccb1d74d64d4c54fcea574d5cf690908d18de387a"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
         "tags": [],
-        "type": "uri_path",
-        "value": "/p/chromium/issues/detail?id=508166"
+        "type": "url",
+        "value": "http://eprint.iacr.org/2015/905"
       },
       {
         "detections": [],
@@ -1490,7 +1292,43 @@
         "paths": [],
         "tags": [],
         "type": "uri_path",
-        "value": "/2017/968"
+        "value": "/~giuffrida/papers/anc-ndss-2017.pdf"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "message_id",
+        "value": "<CANTOGZuWahvYOEr0NwPELF5ASriGNWjfVsWhMSE_ekiSVw1RbA@mail.gmail.com>"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_dkim_signing_domain",
+        "value": "gmail.com"
+      },
+      {
+        "detections": [],
+        "directives": [
+          "extract_urls",
+          "render"
+        ],
+        "paths": [
+          {
+            "path": "email.rfc822.unknown_text_html_000.html",
+            "yara_meta": [
+              "type=document.html",
+              "type=email.attachment"
+            ]
+          }
+        ],
+        "size": 1042,
+        "tags": [],
+        "type": "file",
+        "value": "b1e1cb135a54b1fdf13f1a49176cacad276b8916eb11541a41a5a85cb2655c3f"
       },
       {
         "detections": [],
@@ -1515,11 +1353,33 @@
         "detections": [],
         "directives": [],
         "paths": [],
-        "tags": [
-          "domain_in_url"
-        ],
-        "type": "fqdn",
-        "value": "bugs.chromium.org"
+        "tags": [],
+        "type": "url",
+        "value": "http://cr.yp.to/papers.html#cachetiming"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "uri_path",
+        "value": "/p/chromium/issues/detail?id=508166"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "url",
+        "value": "https://cyber.wtf/2017/07/28/negative-result-reading-kernel-memory-from-user-mode"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_first_hop_ip",
+        "value": "207.211.31.120"
       },
       {
         "detections": [],
@@ -1529,7 +1389,31 @@
           "domain_in_url"
         ],
         "type": "fqdn",
-        "value": "cr.yp.to"
+        "value": "www.amd.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "md5",
+        "value": "3c65440ee7889a3040b2815444e92f0f"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "uri_path",
+        "value": "/en-us/press-releases/Pages/amd-takes-computing-2016dec13.aspx"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "uri_path",
+        "value": "/papers.html#cachetiming"
       },
       {
         "detections": [],
@@ -1543,9 +1427,11 @@
         "detections": [],
         "directives": [],
         "paths": [],
-        "tags": [],
-        "type": "uri_path",
-        "value": "/watch?v=uZRih6APtiQ"
+        "tags": [
+          "domain_in_url"
+        ],
+        "type": "fqdn",
+        "value": "bugs.chromium.org"
       },
       {
         "detections": [],
@@ -1557,11 +1443,121 @@
       },
       {
         "detections": [],
+        "directives": [
+          "extract_urls",
+          "render"
+        ],
+        "paths": [
+          {
+            "path": "spectre.pdf",
+            "yara_meta": [
+              "type=document.pdf",
+              "type=email.attachment"
+            ]
+          }
+        ],
+        "size": 131872,
+        "tags": [
+          "pdf"
+        ],
+        "type": "file",
+        "value": "d1a3c8c49faea6321bd01e706e0957012c18a94e1a187f1a5477c0e82270dc51"
+      },
+      {
+        "detections": [],
+        "directives": [
+          "extract_urls"
+        ],
+        "paths": [
+          {
+            "path": "spectre.pdf.pdfparser",
+            "yara_meta": [
+              "type=document.pdf.object"
+            ]
+          }
+        ],
+        "size": 537965,
+        "tags": [],
+        "type": "file",
+        "value": "5a3877df667148270c645437f58d245358f0ceab5dc8d7345a296fa5a02314f3"
+      },
+      {
+        "detections": [],
         "directives": [],
         "paths": [],
         "tags": [],
         "type": "url",
-        "value": "http://eprint.iacr.org/2015/905"
+        "value": "https://www.amd.com/en-us/press-releases/Pages/amd-takes-computing-2016dec13.aspx"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_conversation",
+        "value": "unixfreak0037@gmail.com|jwdavison@company.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [
+          "domain_in_url"
+        ],
+        "type": "fqdn",
+        "value": "cyber.wtf"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [
+          "domain_in_url"
+        ],
+        "type": "fqdn",
+        "value": "www.youtube.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [
+          "domain_in_url"
+        ],
+        "type": "fqdn",
+        "value": "www.daemonology.net"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "url",
+        "value": "http://www.cs.vu.nl/~giuffrida/papers/anc-ndss-2017.pdf"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_subject",
+        "value": "canary #1"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "uri_path",
+        "value": "/2017/968"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "fqdn",
+        "value": "company.com"
       },
       {
         "detections": [],
@@ -1585,31 +1581,28 @@
       {
         "detections": [],
         "directives": [
-          "extract_urls"
+          "crawl"
         ],
-        "paths": [
-          {
-            "path": "spectre.pdf.gs.pdf",
-            "yara_meta": [
-              "type=document.pdf",
-              "type=document.pdf.rendered"
-            ]
-          }
-        ],
-        "size": 154121,
-        "tags": [
-          "pdf"
-        ],
-        "type": "file",
-        "value": "30d2d65243afec261e3e39addfd20863e4c8eebfd4d4b43e97efaa744355ad2b"
+        "paths": [],
+        "tags": [],
+        "type": "url",
+        "value": "https://bugs.chromium.org/p/chromium/issues/detail?id=508166"
       },
       {
         "detections": [],
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "email_conversation",
-        "value": "unixfreak0037@gmail.com|jwdavison@company.com"
+        "type": "uri_path",
+        "value": "/2015/905"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_first_hop_helo",
+        "value": "us-smtp-1.mimecast.com"
       },
       {
         "detections": [],
@@ -1619,15 +1612,15 @@
           "domain_in_url"
         ],
         "type": "fqdn",
-        "value": "www.cs.vu.nl"
+        "value": "cr.yp.to"
       },
       {
         "detections": [],
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "email_to",
-        "value": "jwdavison@company.com"
+        "type": "url",
+        "value": "http://eprint.iacr.org/2017/968"
       },
       {
         "detections": [],
@@ -1640,181 +1633,33 @@
       {
         "detections": [],
         "directives": [],
-        "paths": [
-          {
-            "path": "email.rfc822.combined",
-            "yara_meta": [
-              "type=email",
-              "type=email.combined"
-            ]
-          }
-        ],
-        "size": 69479,
+        "paths": [],
         "tags": [
-          "email"
+          "domain_in_url"
         ],
-        "type": "file",
-        "value": "386dc4c2ef2b5f3fc8302e5ccb1d74d64d4c54fcea574d5cf690908d18de387a"
+        "type": "fqdn",
+        "value": "eprint.iacr.org"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "url",
+        "value": "https://www.youtube.com/watch?v=uZRih6APtiQ"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [
+          "domain_in_url"
+        ],
+        "type": "fqdn",
+        "value": "users.ece.cmu.edu"
       }
     ],
     "results": [
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": false,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": true,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "application/pdf",
-          "type": "PDF document, version 1.5"
-        },
-        "module": "file_type",
-        "observable": 0,
-        "summary": "File Type Analysis: PDF document, version 1.5 (application/pdf) (pdf document)",
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 45
-          },
-          {
-            "observable": 30
-          }
-        ],
-        "class": "FileHashAnalysis",
-        "details": {
-          "md5": "6967810094670a0978da20db86fbfadc",
-          "sha1": "c79caae4051a84b1d0a95b8ea19d38b11c5b0d7f",
-          "sha256": "d1a3c8c49faea6321bd01e706e0957012c18a94e1a187f1a5477c0e82270dc51"
-        },
-        "module": "file_hash_analyzer",
-        "observable": 0,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 13,
-            "path": "spectre.pdf.pdfparser"
-          },
-          {
-            "observable": 50,
-            "path": "spectre.pdf.gs.pdf"
-          },
-          {
-            "observable": 12,
-            "path": "spectre.pdf.annotation_uris.txt"
-          }
-        ],
-        "class": "PDFAnalysis",
-        "details": {},
-        "module": "pdf_analyzer",
-        "observable": 0,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 14
-          }
-        ],
-        "class": "URLExtractionAnalysis",
-        "details": {
-          "urls": [
-            "http://www.ams.org"
-          ],
-          "urls_grouped_by_domain": {
-            "ams.org": [
-              "http://www.ams.org"
-            ]
-          }
-        },
-        "module": "url_extraction",
-        "observable": 0,
-        "summary": "URL Extraction Analysis (www.ams.org)",
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 43
-          },
-          {
-            "observable": 40
-          }
-        ],
-        "class": "ParseURLAnalysis",
-        "details": {
-          "fragment": "",
-          "netloc": "bugs.chromium.org",
-          "params": null,
-          "path": "/p/chromium/issues/detail",
-          "query": "id=508166",
-          "scheme": "https"
-        },
-        "module": "parse_url",
-        "observable": 1,
-        "summary": "URL Parser: scheme=https, netloc=bugs.chromium.org, path=/p/chromium/issues/detail, query=id=508166, params=(id=508166)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "ProtectedURLAnalysis",
-        "details": {
-          "extracted_url": "https://bugs.chromium.org/p/chromium/issues/detail?id=508166",
-          "protection_type": "unprotected"
-        },
-        "module": "protected_url_analyzer",
-        "observable": 1,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 16
-          },
-          {
-            "observable": 21
-          }
-        ],
-        "class": "ParseURLAnalysis",
-        "details": {
-          "fragment": "",
-          "netloc": "www.daemonology.net",
-          "params": null,
-          "path": "/papers/htt.pdf",
-          "query": "",
-          "scheme": "http"
-        },
-        "module": "parse_url",
-        "observable": 6,
-        "summary": "URL Parser: scheme=http, netloc=www.daemonology.net, path=/papers/htt.pdf",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "ProtectedURLAnalysis",
-        "details": {
-          "extracted_url": "http://www.daemonology.net/papers/htt.pdf",
-          "protection_type": "unprotected"
-        },
-        "module": "protected_url_analyzer",
-        "observable": 6,
-        "summary": null,
-        "tags": []
-      },
       {
         "added": [],
         "class": "FileTypeAnalysis",
@@ -1834,17 +1679,17 @@
           "type": "ASCII text"
         },
         "module": "file_type",
-        "observable": 12,
+        "observable": 2,
         "summary": "File Type Analysis: ASCII text (text/plain)",
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 33
+            "observable": 29
           },
           {
-            "observable": 18
+            "observable": 3
           }
         ],
         "class": "FileHashAnalysis",
@@ -1854,41 +1699,41 @@
           "sha256": "88189998c6e4e12af4dc59be588b299be6778bcb37cb9d784d19ff15a2336d69"
         },
         "module": "file_hash_analyzer",
-        "observable": 12,
+        "observable": 2,
         "summary": null,
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 39
+            "observable": 15
+          },
+          {
+            "observable": 54
+          },
+          {
+            "observable": 42
+          },
+          {
+            "observable": 8
+          },
+          {
+            "observable": 37
+          },
+          {
+            "observable": 26
           },
           {
             "observable": 24
           },
           {
-            "observable": 20
+            "observable": 47
           },
           {
-            "observable": 6
+            "observable": 18
           },
           {
-            "observable": 19
-          },
-          {
-            "observable": 27
-          },
-          {
-            "observable": 23
-          },
-          {
-            "observable": 1
-          },
-          {
-            "observable": 48
-          },
-          {
-            "observable": 34
+            "observable": 51
           }
         ],
         "class": "URLExtractionAnalysis",
@@ -1937,59 +1782,14 @@
           }
         },
         "module": "url_extraction",
-        "observable": 12,
+        "observable": 2,
         "summary": "URL Extraction Analysis (bugs.chromium.org, cr.yp.to, cyber.wtf, eprint.iacr.org, users.ece.cmu.edu, www.amd.com, www.cs.vu.nl, www.daemonology.net, www.youtube.com)",
         "tags": []
       },
       {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": false,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "application/octet-stream",
-          "type": "data"
-        },
-        "module": "file_type",
-        "observable": 13,
-        "summary": "File Type Analysis: data (application/octet-stream)",
-        "tags": []
-      },
-      {
         "added": [
           {
-            "observable": 14
-          }
-        ],
-        "class": "URLExtractionAnalysis",
-        "details": {
-          "urls": [
-            "http://www.ams.org"
-          ],
-          "urls_grouped_by_domain": {
-            "ams.org": [
-              "http://www.ams.org"
-            ]
-          }
-        },
-        "module": "url_extraction",
-        "observable": 13,
-        "summary": "URL Extraction Analysis (www.ams.org)",
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 8
+            "observable": 16
           }
         ],
         "class": "ParseURLAnalysis",
@@ -2002,7 +1802,7 @@
           "scheme": "http"
         },
         "module": "parse_url",
-        "observable": 14,
+        "observable": 5,
         "summary": "URL Parser: scheme=http, netloc=www.ams.org",
         "tags": []
       },
@@ -2014,7 +1814,398 @@
           "protection_type": "unprotected"
         },
         "module": "protected_url_analyzer",
-        "observable": 14,
+        "observable": 5,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 45
+          }
+        ],
+        "class": "EmailAddressFQDNAnalysis",
+        "details": {
+          "domain": "company.com"
+        },
+        "module": "email_address_fqdn_analyzer",
+        "observable": 6,
+        "summary": "Email Address FQDN: company.com",
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 41
+          },
+          {
+            "observable": 0
+          }
+        ],
+        "class": "ParseURLAnalysis",
+        "details": {
+          "fragment": "",
+          "netloc": "www.daemonology.net",
+          "params": null,
+          "path": "/papers/htt.pdf",
+          "query": "",
+          "scheme": "http"
+        },
+        "module": "parse_url",
+        "observable": 8,
+        "summary": "URL Parser: scheme=http, netloc=www.daemonology.net, path=/papers/htt.pdf",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "ProtectedURLAnalysis",
+        "details": {
+          "extracted_url": "http://www.daemonology.net/papers/htt.pdf",
+          "protection_type": "unprotected"
+        },
+        "module": "protected_url_analyzer",
+        "observable": 8,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 45
+          }
+        ],
+        "class": "EmailAddressFQDNAnalysis",
+        "details": {
+          "domain": "company.com"
+        },
+        "module": "email_address_fqdn_analyzer",
+        "observable": 9,
+        "summary": "Email Address FQDN: company.com",
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 4
+          }
+        ],
+        "class": "EmailAddressFQDNAnalysis",
+        "details": {
+          "domain": "gmail.com"
+        },
+        "module": "email_address_fqdn_analyzer",
+        "observable": 10,
+        "summary": "Email Address FQDN: gmail.com",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": false,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": true,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "application/pdf",
+          "type": "PDF document, version 1.7, 16 page(s)"
+        },
+        "module": "file_type",
+        "observable": 11,
+        "summary": "File Type Analysis: PDF document, version 1.7, 16 page(s) (application/pdf) (pdf document)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "PDFLinkTextAnalysis",
+        "details": {
+          "links": [
+            {
+              "line": null,
+              "page": 12,
+              "text": null,
+              "url": "https://bugs.chromium.org/p/chromium/issues/detail?id=508166"
+            },
+            {
+              "line": null,
+              "page": 12,
+              "text": null,
+              "url": "https://bugs.chromium.org/p/chromium/issues/detail?id=508166"
+            },
+            {
+              "line": null,
+              "page": 13,
+              "text": null,
+              "url": "https://www.amd.com/en-us/press-releases/Pages/amd-takes-computing-2016dec13.aspx"
+            },
+            {
+              "line": null,
+              "page": 13,
+              "text": null,
+              "url": "https://www.amd.com/en-us/press-releases/Pages/amd-takes-computing-2016dec13.aspx"
+            },
+            {
+              "line": null,
+              "page": 13,
+              "text": null,
+              "url": "https://www.youtube.com/watch?v=uZRih6APtiQ"
+            },
+            {
+              "line": null,
+              "page": 13,
+              "text": null,
+              "url": "https://www.youtube.com/watch?v=uZRih6APtiQ"
+            },
+            {
+              "line": null,
+              "page": 13,
+              "text": null,
+              "url": "http://cr.yp.to/papers.html#cachetiming"
+            },
+            {
+              "line": null,
+              "page": 13,
+              "text": null,
+              "url": "http://cr.yp.to/papers.html#cachetiming"
+            },
+            {
+              "line": null,
+              "page": 13,
+              "text": null,
+              "url": "http://eprint.iacr.org/2017/968"
+            },
+            {
+              "line": null,
+              "page": 13,
+              "text": null,
+              "url": "http://eprint.iacr.org/2017/968"
+            },
+            {
+              "line": null,
+              "page": 13,
+              "text": null,
+              "url": "https://cyber.wtf/2017/07/28/negative-result-reading-kernel-memory-from-user-mode/"
+            },
+            {
+              "line": null,
+              "page": 13,
+              "text": null,
+              "url": "https://cyber.wtf/2017/07/28/negative-result-reading-kernel-memory-from-user-mode/"
+            },
+            {
+              "line": null,
+              "page": 13,
+              "text": null,
+              "url": "http://www.cs.vu.nl/~giuffrida/papers/anc-ndss-2017.pdf"
+            },
+            {
+              "line": null,
+              "page": 13,
+              "text": null,
+              "url": "http://www.cs.vu.nl/~giuffrida/papers/anc-ndss-2017.pdf"
+            },
+            {
+              "line": null,
+              "page": 13,
+              "text": null,
+              "url": "https://users.ece.cmu.edu/~yoonguk/papers/kim-isca14.pdf"
+            },
+            {
+              "line": null,
+              "page": 13,
+              "text": null,
+              "url": "https://users.ece.cmu.edu/~yoonguk/papers/kim-isca14.pdf"
+            },
+            {
+              "line": null,
+              "page": 13,
+              "text": null,
+              "url": "http://www.daemonology.net/papers/htt.pdf"
+            },
+            {
+              "line": null,
+              "page": 13,
+              "text": null,
+              "url": "http://www.daemonology.net/papers/htt.pdf"
+            },
+            {
+              "line": null,
+              "page": 14,
+              "text": null,
+              "url": "http://eprint.iacr.org/2015/905"
+            }
+          ]
+        },
+        "module": "pdf_link_text",
+        "observable": 11,
+        "summary": "PDF Link Text Analysis: 19 links, 0 with text",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "URLExtractionAnalysis",
+        "details": {
+          "urls": [],
+          "urls_grouped_by_domain": {}
+        },
+        "module": "url_extraction",
+        "observable": 11,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": true,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "message/rfc822",
+          "type": "RFC 822 mail, ASCII text, with very long lines (981)"
+        },
+        "module": "file_type",
+        "observable": 12,
+        "summary": "File Type Analysis: RFC 822 mail, ASCII text, with very long lines (981) (message/rfc822) (email)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "HTMLJavaScriptExtractionAnalysis",
+        "details": {
+          "dom_snapshot_files": [],
+          "duplicate_count": 0,
+          "extracted_files": [],
+          "extracted_uri_paths": [],
+          "extracted_urls": [],
+          "inline_handlers": [],
+          "script_count": 0
+        },
+        "module": "html_js_extraction",
+        "observable": 12,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 55
+          },
+          {
+            "observable": 14
+          }
+        ],
+        "class": "ParseURLAnalysis",
+        "details": {
+          "fragment": "",
+          "netloc": "users.ece.cmu.edu",
+          "params": null,
+          "path": "/~yoonguk/papers/kim-isca14.pdf",
+          "query": "",
+          "scheme": "https"
+        },
+        "module": "parse_url",
+        "observable": 15,
+        "summary": "URL Parser: scheme=https, netloc=users.ece.cmu.edu, path=/~yoonguk/papers/kim-isca14.pdf",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "ProtectedURLAnalysis",
+        "details": {
+          "extracted_url": "https://users.ece.cmu.edu/~yoonguk/papers/kim-isca14.pdf",
+          "protection_type": "unprotected"
+        },
+        "module": "protected_url_analyzer",
+        "observable": 15,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": true,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "message/rfc822",
+          "type": "RFC 822 mail, ASCII text, with very long lines (981)"
+        },
+        "module": "file_type",
+        "observable": 17,
+        "summary": "File Type Analysis: RFC 822 mail, ASCII text, with very long lines (981) (message/rfc822) (email)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "HTMLJavaScriptExtractionAnalysis",
+        "details": {
+          "dom_snapshot_files": [],
+          "duplicate_count": 0,
+          "extracted_files": [],
+          "extracted_uri_paths": [],
+          "extracted_urls": [],
+          "inline_handlers": [],
+          "script_count": 0
+        },
+        "module": "html_js_extraction",
+        "observable": 17,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 53
+          },
+          {
+            "observable": 48
+          }
+        ],
+        "class": "ParseURLAnalysis",
+        "details": {
+          "fragment": "",
+          "netloc": "eprint.iacr.org",
+          "params": null,
+          "path": "/2015/905",
+          "query": "",
+          "scheme": "http"
+        },
+        "module": "parse_url",
+        "observable": 18,
+        "summary": "URL Parser: scheme=http, netloc=eprint.iacr.org, path=/2015/905",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "ProtectedURLAnalysis",
+        "details": {
+          "extracted_url": "http://eprint.iacr.org/2015/905",
+          "protection_type": "unprotected"
+        },
+        "module": "protected_url_analyzer",
+        "observable": 18,
         "summary": null,
         "tags": []
       },
@@ -2037,7 +2228,7 @@
           "type": "HTML document, ASCII text, with very long lines (461)"
         },
         "module": "file_type",
-        "observable": 17,
+        "observable": 22,
         "summary": "File Type Analysis: HTML document, ASCII text, with very long lines (461) (text/html)",
         "tags": []
       },
@@ -2054,7 +2245,7 @@
           "script_count": 0
         },
         "module": "html_js_extraction",
-        "observable": 17,
+        "observable": 22,
         "summary": null,
         "tags": []
       },
@@ -2066,333 +2257,7 @@
           "urls_grouped_by_domain": {}
         },
         "module": "url_extraction",
-        "observable": 17,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 15
-          },
-          {
-            "observable": 25
-          }
-        ],
-        "class": "ParseURLAnalysis",
-        "details": {
-          "fragment": "",
-          "netloc": "www.amd.com",
-          "params": null,
-          "path": "/en-us/press-releases/Pages/amd-takes-computing-2016dec13.aspx",
-          "query": "",
-          "scheme": "https"
-        },
-        "module": "parse_url",
-        "observable": 19,
-        "summary": "URL Parser: scheme=https, netloc=www.amd.com, path=/en-us/press-releases/Pages/amd-takes-computing-2016dec13.aspx",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "ProtectedURLAnalysis",
-        "details": {
-          "extracted_url": "https://www.amd.com/en-us/press-releases/Pages/amd-takes-computing-2016dec13.aspx",
-          "protection_type": "unprotected"
-        },
-        "module": "protected_url_analyzer",
-        "observable": 19,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 52
-          },
-          {
-            "observable": 29
-          }
-        ],
-        "class": "ParseURLAnalysis",
-        "details": {
-          "fragment": "",
-          "netloc": "www.cs.vu.nl",
-          "params": null,
-          "path": "/~giuffrida/papers/anc-ndss-2017.pdf",
-          "query": "",
-          "scheme": "http"
-        },
-        "module": "parse_url",
-        "observable": 20,
-        "summary": "URL Parser: scheme=http, netloc=www.cs.vu.nl, path=/~giuffrida/papers/anc-ndss-2017.pdf",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "ProtectedURLAnalysis",
-        "details": {
-          "extracted_url": "http://www.cs.vu.nl/~giuffrida/papers/anc-ndss-2017.pdf",
-          "protection_type": "unprotected"
-        },
-        "module": "protected_url_analyzer",
-        "observable": 20,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "NetworkIdentifierAnalysis",
-        "details": {
-          "identified_networks": []
-        },
-        "module": "network_identifier",
         "observable": 22,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 44
-          },
-          {
-            "observable": 7
-          }
-        ],
-        "class": "ParseURLAnalysis",
-        "details": {
-          "fragment": "cachetiming",
-          "netloc": "cr.yp.to",
-          "params": null,
-          "path": "/papers.html",
-          "query": "",
-          "scheme": "http"
-        },
-        "module": "parse_url",
-        "observable": 23,
-        "summary": "URL Parser: scheme=http, netloc=cr.yp.to, path=/papers.html, fragment=cachetiming",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "ProtectedURLAnalysis",
-        "details": {
-          "extracted_url": "http://cr.yp.to/papers.html#cachetiming",
-          "protection_type": "unprotected"
-        },
-        "module": "protected_url_analyzer",
-        "observable": 23,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 11
-          },
-          {
-            "observable": 46
-          }
-        ],
-        "class": "ParseURLAnalysis",
-        "details": {
-          "fragment": "",
-          "netloc": "www.youtube.com",
-          "params": null,
-          "path": "/watch",
-          "query": "v=uZRih6APtiQ",
-          "scheme": "https"
-        },
-        "module": "parse_url",
-        "observable": 24,
-        "summary": "URL Parser: scheme=https, netloc=www.youtube.com, path=/watch, query=v=uZRih6APtiQ, params=(v=uZRih6APtiQ)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "ProtectedURLAnalysis",
-        "details": {
-          "extracted_url": "https://www.youtube.com/watch?v=uZRih6APtiQ",
-          "protection_type": "unprotected"
-        },
-        "module": "protected_url_analyzer",
-        "observable": 24,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 10
-          },
-          {
-            "observable": 54
-          }
-        ],
-        "class": "ParseURLAnalysis",
-        "details": {
-          "fragment": "",
-          "netloc": "cyber.wtf",
-          "params": null,
-          "path": "/2017/07/28/negative-result-reading-kernel-memory-from-user-mode",
-          "query": "",
-          "scheme": "https"
-        },
-        "module": "parse_url",
-        "observable": 27,
-        "summary": "URL Parser: scheme=https, netloc=cyber.wtf, path=/2017/07/28/negative-result-reading-kernel-memory-from-user-mode",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "ProtectedURLAnalysis",
-        "details": {
-          "extracted_url": "https://cyber.wtf/2017/07/28/negative-result-reading-kernel-memory-from-user-mode",
-          "protection_type": "unprotected"
-        },
-        "module": "protected_url_analyzer",
-        "observable": 27,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 9
-          }
-        ],
-        "class": "EmailAddressFQDNAnalysis",
-        "details": {
-          "domain": "company.com"
-        },
-        "module": "email_address_fqdn_analyzer",
-        "observable": 28,
-        "summary": "Email Address FQDN: company.com",
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 32
-          },
-          {
-            "observable": 41
-          }
-        ],
-        "class": "ParseURLAnalysis",
-        "details": {
-          "fragment": "",
-          "netloc": "eprint.iacr.org",
-          "params": null,
-          "path": "/2017/968",
-          "query": "",
-          "scheme": "http"
-        },
-        "module": "parse_url",
-        "observable": 34,
-        "summary": "URL Parser: scheme=http, netloc=eprint.iacr.org, path=/2017/968",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "ProtectedURLAnalysis",
-        "details": {
-          "extracted_url": "http://eprint.iacr.org/2017/968",
-          "protection_type": "unprotected"
-        },
-        "module": "protected_url_analyzer",
-        "observable": 34,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 3
-          }
-        ],
-        "class": "EmailAddressFQDNAnalysis",
-        "details": {
-          "domain": "gmail.com"
-        },
-        "module": "email_address_fqdn_analyzer",
-        "observable": 35,
-        "summary": "Email Address FQDN: gmail.com",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": true,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "message/rfc822",
-          "type": "RFC 822 mail, ASCII text, with very long lines (981)"
-        },
-        "module": "file_type",
-        "observable": 37,
-        "summary": "File Type Analysis: RFC 822 mail, ASCII text, with very long lines (981) (message/rfc822) (email)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "HTMLJavaScriptExtractionAnalysis",
-        "details": {
-          "dom_snapshot_files": [],
-          "duplicate_count": 0,
-          "extracted_files": [],
-          "extracted_uri_paths": [],
-          "extracted_urls": [],
-          "inline_handlers": [],
-          "script_count": 0
-        },
-        "module": "html_js_extraction",
-        "observable": 37,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 2
-          },
-          {
-            "observable": 38
-          }
-        ],
-        "class": "ParseURLAnalysis",
-        "details": {
-          "fragment": "",
-          "netloc": "users.ece.cmu.edu",
-          "params": null,
-          "path": "/~yoonguk/papers/kim-isca14.pdf",
-          "query": "",
-          "scheme": "https"
-        },
-        "module": "parse_url",
-        "observable": 39,
-        "summary": "URL Parser: scheme=https, netloc=users.ece.cmu.edu, path=/~yoonguk/papers/kim-isca14.pdf",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "ProtectedURLAnalysis",
-        "details": {
-          "extracted_url": "https://users.ece.cmu.edu/~yoonguk/papers/kim-isca14.pdf",
-          "protection_type": "unprotected"
-        },
-        "module": "protected_url_analyzer",
-        "observable": 39,
         "summary": null,
         "tags": []
       },
@@ -2415,7 +2280,7 @@
           "type": "ASCII text"
         },
         "module": "file_type",
-        "observable": 42,
+        "observable": 23,
         "summary": "File Type Analysis: ASCII text (text/plain)",
         "tags": []
       },
@@ -2427,14 +2292,95 @@
           "urls_grouped_by_domain": {}
         },
         "module": "url_extraction",
-        "observable": 42,
+        "observable": 23,
         "summary": null,
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 3
+            "observable": 50
+          },
+          {
+            "observable": 31
+          }
+        ],
+        "class": "ParseURLAnalysis",
+        "details": {
+          "fragment": "cachetiming",
+          "netloc": "cr.yp.to",
+          "params": null,
+          "path": "/papers.html",
+          "query": "",
+          "scheme": "http"
+        },
+        "module": "parse_url",
+        "observable": 24,
+        "summary": "URL Parser: scheme=http, netloc=cr.yp.to, path=/papers.html, fragment=cachetiming",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "ProtectedURLAnalysis",
+        "details": {
+          "extracted_url": "http://cr.yp.to/papers.html#cachetiming",
+          "protection_type": "unprotected"
+        },
+        "module": "protected_url_analyzer",
+        "observable": 24,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 39
+          },
+          {
+            "observable": 52
+          }
+        ],
+        "class": "ParseURLAnalysis",
+        "details": {
+          "fragment": "",
+          "netloc": "cyber.wtf",
+          "params": null,
+          "path": "/2017/07/28/negative-result-reading-kernel-memory-from-user-mode",
+          "query": "",
+          "scheme": "https"
+        },
+        "module": "parse_url",
+        "observable": 26,
+        "summary": "URL Parser: scheme=https, netloc=cyber.wtf, path=/2017/07/28/negative-result-reading-kernel-memory-from-user-mode",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "ProtectedURLAnalysis",
+        "details": {
+          "extracted_url": "https://cyber.wtf/2017/07/28/negative-result-reading-kernel-memory-from-user-mode",
+          "protection_type": "unprotected"
+        },
+        "module": "protected_url_analyzer",
+        "observable": 26,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "NetworkIdentifierAnalysis",
+        "details": {
+          "identified_networks": []
+        },
+        "module": "network_identifier",
+        "observable": 27,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 4
           }
         ],
         "class": "EmailAddressFQDNAnalysis",
@@ -2442,8 +2388,31 @@
           "domain": "gmail.com"
         },
         "module": "email_address_fqdn_analyzer",
-        "observable": 47,
+        "observable": 34,
         "summary": "Email Address FQDN: gmail.com",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": false,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": true,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "application/pdf",
+          "type": "PDF document, version 1.5"
+        },
+        "module": "file_type",
+        "observable": 35,
+        "summary": "File Type Analysis: PDF document, version 1.5 (application/pdf) (pdf document)",
         "tags": []
       },
       {
@@ -2452,32 +2421,302 @@
             "observable": 32
           },
           {
-            "observable": 31
+            "observable": 7
+          }
+        ],
+        "class": "FileHashAnalysis",
+        "details": {
+          "md5": "6967810094670a0978da20db86fbfadc",
+          "sha1": "c79caae4051a84b1d0a95b8ea19d38b11c5b0d7f",
+          "sha256": "d1a3c8c49faea6321bd01e706e0957012c18a94e1a187f1a5477c0e82270dc51"
+        },
+        "module": "file_hash_analyzer",
+        "observable": 35,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 36,
+            "path": "spectre.pdf.pdfparser"
+          },
+          {
+            "observable": 11,
+            "path": "spectre.pdf.gs.pdf"
+          },
+          {
+            "observable": 2,
+            "path": "spectre.pdf.annotation_uris.txt"
+          }
+        ],
+        "class": "PDFAnalysis",
+        "details": {},
+        "module": "pdf_analyzer",
+        "observable": 35,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "PDFLinkTextAnalysis",
+        "details": {
+          "links": [
+            {
+              "line": null,
+              "page": 12,
+              "text": null,
+              "url": "https://bugs.chromium.org/p/chromium/issues/detail?id=508166"
+            },
+            {
+              "line": null,
+              "page": 12,
+              "text": null,
+              "url": "https://bugs.chromium.org/p/chromium/issues/detail?id=508166"
+            },
+            {
+              "line": null,
+              "page": 13,
+              "text": null,
+              "url": "https://www.amd.com/en-us/press-releases/Pages/amd-takes-computing-2016dec13.aspx"
+            },
+            {
+              "line": null,
+              "page": 13,
+              "text": null,
+              "url": "https://www.amd.com/en-us/press-releases/Pages/amd-takes-computing-2016dec13.aspx"
+            },
+            {
+              "line": null,
+              "page": 13,
+              "text": null,
+              "url": "https://www.youtube.com/watch?v=uZRih6APtiQ"
+            },
+            {
+              "line": null,
+              "page": 13,
+              "text": null,
+              "url": "https://www.youtube.com/watch?v=uZRih6APtiQ"
+            },
+            {
+              "line": null,
+              "page": 13,
+              "text": null,
+              "url": "http://cr.yp.to/papers.html#cachetiming"
+            },
+            {
+              "line": null,
+              "page": 13,
+              "text": null,
+              "url": "http://cr.yp.to/papers.html#cachetiming"
+            },
+            {
+              "line": null,
+              "page": 13,
+              "text": null,
+              "url": "http://eprint.iacr.org/2017/968"
+            },
+            {
+              "line": null,
+              "page": 13,
+              "text": null,
+              "url": "http://eprint.iacr.org/2017/968"
+            },
+            {
+              "line": null,
+              "page": 13,
+              "text": null,
+              "url": "https://cyber.wtf/2017/07/28/negative-result-reading-kernel-memory-from-user-mode/"
+            },
+            {
+              "line": null,
+              "page": 13,
+              "text": null,
+              "url": "https://cyber.wtf/2017/07/28/negative-result-reading-kernel-memory-from-user-mode/"
+            },
+            {
+              "line": null,
+              "page": 13,
+              "text": null,
+              "url": "http://www.cs.vu.nl/~giuffrida/papers/anc-ndss-2017.pdf"
+            },
+            {
+              "line": null,
+              "page": 13,
+              "text": null,
+              "url": "http://www.cs.vu.nl/~giuffrida/papers/anc-ndss-2017.pdf"
+            },
+            {
+              "line": null,
+              "page": 13,
+              "text": null,
+              "url": "https://users.ece.cmu.edu/~yoonguk/papers/kim-isca14.pdf"
+            },
+            {
+              "line": null,
+              "page": 13,
+              "text": null,
+              "url": "https://users.ece.cmu.edu/~yoonguk/papers/kim-isca14.pdf"
+            },
+            {
+              "line": null,
+              "page": 13,
+              "text": null,
+              "url": "http://www.daemonology.net/papers/htt.pdf"
+            },
+            {
+              "line": null,
+              "page": 13,
+              "text": null,
+              "url": "http://www.daemonology.net/papers/htt.pdf"
+            },
+            {
+              "line": null,
+              "page": 14,
+              "text": null,
+              "url": "http://eprint.iacr.org/2015/905"
+            }
+          ]
+        },
+        "module": "pdf_link_text",
+        "observable": 35,
+        "summary": "PDF Link Text Analysis: 19 links, 0 with text",
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 5
+          }
+        ],
+        "class": "URLExtractionAnalysis",
+        "details": {
+          "urls": [
+            "http://www.ams.org"
+          ],
+          "urls_grouped_by_domain": {
+            "ams.org": [
+              "http://www.ams.org"
+            ]
+          }
+        },
+        "module": "url_extraction",
+        "observable": 35,
+        "summary": "URL Extraction Analysis (www.ams.org)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": false,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "application/octet-stream",
+          "type": "data"
+        },
+        "module": "file_type",
+        "observable": 36,
+        "summary": "File Type Analysis: data (application/octet-stream)",
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 5
+          }
+        ],
+        "class": "URLExtractionAnalysis",
+        "details": {
+          "urls": [
+            "http://www.ams.org"
+          ],
+          "urls_grouped_by_domain": {
+            "ams.org": [
+              "http://www.ams.org"
+            ]
+          }
+        },
+        "module": "url_extraction",
+        "observable": 36,
+        "summary": "URL Extraction Analysis (www.ams.org)",
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 28
+          },
+          {
+            "observable": 30
           }
         ],
         "class": "ParseURLAnalysis",
         "details": {
           "fragment": "",
-          "netloc": "eprint.iacr.org",
+          "netloc": "www.amd.com",
           "params": null,
-          "path": "/2015/905",
+          "path": "/en-us/press-releases/Pages/amd-takes-computing-2016dec13.aspx",
           "query": "",
-          "scheme": "http"
+          "scheme": "https"
         },
         "module": "parse_url",
-        "observable": 48,
-        "summary": "URL Parser: scheme=http, netloc=eprint.iacr.org, path=/2015/905",
+        "observable": 37,
+        "summary": "URL Parser: scheme=https, netloc=www.amd.com, path=/en-us/press-releases/Pages/amd-takes-computing-2016dec13.aspx",
         "tags": []
       },
       {
         "added": [],
         "class": "ProtectedURLAnalysis",
         "details": {
-          "extracted_url": "http://eprint.iacr.org/2015/905",
+          "extracted_url": "https://www.amd.com/en-us/press-releases/Pages/amd-takes-computing-2016dec13.aspx",
           "protection_type": "unprotected"
         },
         "module": "protected_url_analyzer",
-        "observable": 48,
+        "observable": 37,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 13
+          },
+          {
+            "observable": 19
+          }
+        ],
+        "class": "ParseURLAnalysis",
+        "details": {
+          "fragment": "",
+          "netloc": "www.cs.vu.nl",
+          "params": null,
+          "path": "/~giuffrida/papers/anc-ndss-2017.pdf",
+          "query": "",
+          "scheme": "http"
+        },
+        "module": "parse_url",
+        "observable": 42,
+        "summary": "URL Parser: scheme=http, netloc=www.cs.vu.nl, path=/~giuffrida/papers/anc-ndss-2017.pdf",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "ProtectedURLAnalysis",
+        "details": {
+          "extracted_url": "http://www.cs.vu.nl/~giuffrida/papers/anc-ndss-2017.pdf",
+          "protection_type": "unprotected"
+        },
+        "module": "protected_url_analyzer",
+        "observable": 42,
         "summary": null,
         "tags": []
       },
@@ -2487,7 +2726,7 @@
         "details": {
           "candidates": [
             {
-              "anchor_text": null,
+              "anchor_text": "",
               "carries": [],
               "highlights": [
                 [
@@ -2495,7 +2734,67 @@
                 ],
                 []
               ],
-              "observable_uuid": "63fa85ee-85ce-4355-bf1c-76ae15e608cb",
+              "observable_uuid": "d8d14d6d-bb21-4be8-a1a8-093c7fc6b9df",
+              "reasons": [
+                "found in attachment spectre.pdf",
+                "clickable link in a PDF"
+              ],
+              "score": 40,
+              "sources": [
+                "attachment"
+              ],
+              "url": "https://bugs.chromium.org/p/chromium/issues/detail?id=508166"
+            },
+            {
+              "anchor_text": "",
+              "carries": [],
+              "highlights": [
+                [
+                  "spectre.pdf"
+                ],
+                []
+              ],
+              "observable_uuid": "a6ba67d7-c6ed-4f76-b7b7-0183075e8faf",
+              "reasons": [
+                "found in attachment spectre.pdf",
+                "clickable link in a PDF"
+              ],
+              "score": 40,
+              "sources": [
+                "attachment"
+              ],
+              "url": "https://www.amd.com/en-us/press-releases/Pages/amd-takes-computing-2016dec13.aspx"
+            },
+            {
+              "anchor_text": "",
+              "carries": [],
+              "highlights": [
+                [
+                  "spectre.pdf"
+                ],
+                []
+              ],
+              "observable_uuid": "f2fa4e4a-5713-43bb-87a4-909818aa0e7d",
+              "reasons": [
+                "found in attachment spectre.pdf",
+                "clickable link in a PDF"
+              ],
+              "score": 40,
+              "sources": [
+                "attachment"
+              ],
+              "url": "https://www.youtube.com/watch?v=uZRih6APtiQ"
+            },
+            {
+              "anchor_text": "",
+              "carries": [],
+              "highlights": [
+                [
+                  "spectre.pdf"
+                ],
+                []
+              ],
+              "observable_uuid": "5c660403-2d0b-4e07-ad8b-944f7fb7b115",
               "reasons": [
                 "found in attachment spectre.pdf",
                 "clickable link in a PDF"
@@ -2507,7 +2806,7 @@
               "url": "http://cr.yp.to/papers.html#cachetiming"
             },
             {
-              "anchor_text": null,
+              "anchor_text": "",
               "carries": [],
               "highlights": [
                 [
@@ -2515,27 +2814,7 @@
                 ],
                 []
               ],
-              "observable_uuid": "cbdd2804-ce5a-4325-9454-864023e62fee",
-              "reasons": [
-                "found in attachment spectre.pdf",
-                "clickable link in a PDF"
-              ],
-              "score": 40,
-              "sources": [
-                "attachment"
-              ],
-              "url": "http://eprint.iacr.org/2015/905"
-            },
-            {
-              "anchor_text": null,
-              "carries": [],
-              "highlights": [
-                [
-                  "spectre.pdf"
-                ],
-                []
-              ],
-              "observable_uuid": "8757472e-a454-4f93-ba33-cdf8a17e8759",
+              "observable_uuid": "ef18cd55-9cc6-4094-8151-efed567e1328",
               "reasons": [
                 "found in attachment spectre.pdf",
                 "clickable link in a PDF"
@@ -2545,51 +2824,11 @@
                 "attachment"
               ],
               "url": "http://eprint.iacr.org/2017/968"
-            },
-            {
-              "anchor_text": null,
-              "carries": [],
-              "highlights": [
-                [
-                  "spectre.pdf"
-                ],
-                []
-              ],
-              "observable_uuid": "449e9fcb-1bd3-4eb8-9649-6c513d252a03",
-              "reasons": [
-                "found in attachment spectre.pdf",
-                "clickable link in a PDF"
-              ],
-              "score": 40,
-              "sources": [
-                "attachment"
-              ],
-              "url": "http://www.cs.vu.nl/~giuffrida/papers/anc-ndss-2017.pdf"
-            },
-            {
-              "anchor_text": null,
-              "carries": [],
-              "highlights": [
-                [
-                  "spectre.pdf"
-                ],
-                []
-              ],
-              "observable_uuid": "1ac3ce2a-cd3f-467d-9d67-2a6c3f5c2c4b",
-              "reasons": [
-                "found in attachment spectre.pdf",
-                "clickable link in a PDF"
-              ],
-              "score": 40,
-              "sources": [
-                "attachment"
-              ],
-              "url": "http://www.daemonology.net/papers/htt.pdf"
             }
           ],
           "has_inner_email": false,
           "primary": {
-            "anchor_text": null,
+            "anchor_text": "",
             "carries": [],
             "highlights": [
               [
@@ -2597,7 +2836,7 @@
               ],
               []
             ],
-            "observable_uuid": "63fa85ee-85ce-4355-bf1c-76ae15e608cb",
+            "observable_uuid": "d8d14d6d-bb21-4be8-a1a8-093c7fc6b9df",
             "reasons": [
               "found in attachment spectre.pdf",
               "clickable link in a PDF"
@@ -2606,65 +2845,65 @@
             "sources": [
               "attachment"
             ],
-            "url": "http://cr.yp.to/papers.html#cachetiming"
+            "url": "https://bugs.chromium.org/p/chromium/issues/detail?id=508166"
           },
           "subject": "canary #1"
         },
         "module": "lure_url_analyzer",
-        "observable": 49,
-        "summary": "Lure URL Analysis: http://cr.yp.to/papers.html#cachetiming (found in attachment spectre.pdf; clickable link in a PDF)",
+        "observable": 46,
+        "summary": "Lure URL Analysis: https://bugs.chromium.org/p/chromium/issues/detail?id=508166 (found in attachment spectre.pdf; clickable link in a PDF)",
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 35
+            "observable": 10
           },
           {
-            "observable": 28
+            "observable": 6
           },
           {
-            "observable": 51
+            "observable": 38
           },
           {
-            "observable": 53
+            "observable": 9
           },
           {
-            "observable": 4
+            "observable": 43
           },
           {
-            "observable": 5
+            "observable": 20
           },
           {
-            "observable": 47
+            "observable": 34
           },
           {
-            "observable": 22
+            "observable": 27
           },
           {
-            "observable": 26
+            "observable": 49
           },
           {
-            "observable": 36
+            "observable": 21
           },
           {
-            "observable": 42,
+            "observable": 23,
             "path": "email.rfc822.unknown_text_plain_000.txt"
           },
           {
-            "observable": 17,
+            "observable": 22,
             "path": "email.rfc822.unknown_text_html_000.html"
           },
           {
-            "observable": 0,
+            "observable": 35,
             "path": "spectre.pdf"
           },
           {
-            "observable": 37,
+            "observable": 12,
             "path": "email.rfc822.headers"
           },
           {
-            "observable": 55,
+            "observable": 17,
             "path": "email.rfc822.combined"
           }
         ],
@@ -3183,7 +3422,7 @@
               "cc": [],
               "compauth_reason": "201",
               "compauth_result": "softpass",
-              "date": "2026-11-10 05:31:21.660899 +0000",
+              "date": "2026-11-16 16:33:07.057089 +0000",
               "dkim_result": "fail",
               "dmarc_result": "fail",
               "env_mail_from": "unixfreak0037@gmail.com",
@@ -3281,7 +3520,7 @@
           "parsing_error": null
         },
         "module": "email_analyzer",
-        "observable": 49,
+        "observable": 46,
         "summary": "Email Analysis: From John Davison <unixfreak0037@gmail.com> To jwdavison@company.com Subject canary #1",
         "tags": []
       },
@@ -3304,7 +3543,7 @@
           "type": "SMTP mail, ASCII text, with very long lines (948)"
         },
         "module": "file_type",
-        "observable": 49,
+        "observable": 46,
         "summary": "File Type Analysis: SMTP mail, ASCII text, with very long lines (948) (message/rfc822) (email)",
         "tags": []
       },
@@ -3321,97 +3560,112 @@
           "script_count": 0
         },
         "module": "html_js_extraction",
-        "observable": 49,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": false,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": true,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "application/pdf",
-          "type": "PDF document, version 1.7, 16 page(s)"
-        },
-        "module": "file_type",
-        "observable": 50,
-        "summary": "File Type Analysis: PDF document, version 1.7, 16 page(s) (application/pdf) (pdf document)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "URLExtractionAnalysis",
-        "details": {
-          "urls": [],
-          "urls_grouped_by_domain": {}
-        },
-        "module": "url_extraction",
-        "observable": 50,
+        "observable": 46,
         "summary": null,
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 9
+            "observable": 33
+          },
+          {
+            "observable": 25
           }
         ],
-        "class": "EmailAddressFQDNAnalysis",
+        "class": "ParseURLAnalysis",
         "details": {
-          "domain": "company.com"
+          "fragment": "",
+          "netloc": "bugs.chromium.org",
+          "params": null,
+          "path": "/p/chromium/issues/detail",
+          "query": "id=508166",
+          "scheme": "https"
         },
-        "module": "email_address_fqdn_analyzer",
-        "observable": 53,
-        "summary": "Email Address FQDN: company.com",
+        "module": "parse_url",
+        "observable": 47,
+        "summary": "URL Parser: scheme=https, netloc=bugs.chromium.org, path=/p/chromium/issues/detail, query=id=508166, params=(id=508166)",
         "tags": []
       },
       {
         "added": [],
-        "class": "FileTypeAnalysis",
+        "class": "ProtectedURLAnalysis",
         "details": {
-          "is_email_file": true,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "message/rfc822",
-          "type": "RFC 822 mail, ASCII text, with very long lines (981)"
+          "extracted_url": "https://bugs.chromium.org/p/chromium/issues/detail?id=508166",
+          "protection_type": "unprotected"
         },
-        "module": "file_type",
-        "observable": 55,
-        "summary": "File Type Analysis: RFC 822 mail, ASCII text, with very long lines (981) (message/rfc822) (email)",
+        "module": "protected_url_analyzer",
+        "observable": 47,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 53
+          },
+          {
+            "observable": 44
+          }
+        ],
+        "class": "ParseURLAnalysis",
+        "details": {
+          "fragment": "",
+          "netloc": "eprint.iacr.org",
+          "params": null,
+          "path": "/2017/968",
+          "query": "",
+          "scheme": "http"
+        },
+        "module": "parse_url",
+        "observable": 51,
+        "summary": "URL Parser: scheme=http, netloc=eprint.iacr.org, path=/2017/968",
         "tags": []
       },
       {
         "added": [],
-        "class": "HTMLJavaScriptExtractionAnalysis",
+        "class": "ProtectedURLAnalysis",
         "details": {
-          "dom_snapshot_files": [],
-          "duplicate_count": 0,
-          "extracted_files": [],
-          "extracted_uri_paths": [],
-          "extracted_urls": [],
-          "inline_handlers": [],
-          "script_count": 0
+          "extracted_url": "http://eprint.iacr.org/2017/968",
+          "protection_type": "unprotected"
         },
-        "module": "html_js_extraction",
-        "observable": 55,
+        "module": "protected_url_analyzer",
+        "observable": 51,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 40
+          },
+          {
+            "observable": 1
+          }
+        ],
+        "class": "ParseURLAnalysis",
+        "details": {
+          "fragment": "",
+          "netloc": "www.youtube.com",
+          "params": null,
+          "path": "/watch",
+          "query": "v=uZRih6APtiQ",
+          "scheme": "https"
+        },
+        "module": "parse_url",
+        "observable": 54,
+        "summary": "URL Parser: scheme=https, netloc=www.youtube.com, path=/watch, query=v=uZRih6APtiQ, params=(v=uZRih6APtiQ)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "ProtectedURLAnalysis",
+        "details": {
+          "extracted_url": "https://www.youtube.com/watch?v=uZRih6APtiQ",
+          "protection_type": "unprotected"
+        },
+        "module": "protected_url_analyzer",
+        "observable": 54,
         "summary": null,
         "tags": []
       }

@@ -213,13 +213,12 @@
       "results": {
         "exif": {
           "details": {
-            "error": null,
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 08:44:25+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 08:44:25+00:00",
-              "File:FileModifyDate": "2026:11:06 19:20:07+00:00",
+              "File:FileAccessDate": "2026:11:16 13:39:46+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 13:39:46+00:00",
+              "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "word2013_macro_stripped.doc",
               "File:FilePermissions": 100644,
               "File:FileSize": 28160,
@@ -682,6 +681,39 @@
       },
       "tags": {}
     },
+    "file:5c42aa2fb7a2e9118e9161967a93f67867957a875a90c3911dae3867ad0dec93": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "word2013_macro_stripped.doc.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:1dff27c2897cd3d48c589166d8f33ae160c3d249c7456c0421aa9a0a6ed1e3c5": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:6c98d4f2b62b4db730884f9bd6d27e5360693eaad02d9cdbaa0e71c4c747450b": {
       "detections": {},
       "directives": {
@@ -819,7 +851,6 @@
               "theme/theme/_rels/themeManager.xml.rels",
               "_rels/.rels"
             ],
-            "extraction_error": null,
             "file_count": 5
           },
           "summary": "Archive Analysis: extracted 5 of 5 files: ([Content_Types].xml, theme/theme/theme1.xml, theme/theme/themeManager.xml, theme/theme/_rels/themeManager.xml.rels, _rels/.rels)",
@@ -938,39 +969,6 @@
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
-    "file:9f3aa67d6a606405ea9023601e21ae4cf5223039af05e9d9d28b18cd3cedfbde": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "word2013_macro_stripped.doc.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:1dff27c2897cd3d48c589166d8f33ae160c3d249c7456c0421aa9a0a6ed1e3c5": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
           },
           "summary": null,
           "tags": {}

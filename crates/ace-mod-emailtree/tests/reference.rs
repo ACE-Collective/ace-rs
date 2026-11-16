@@ -95,10 +95,21 @@ fn ace3_lure(dump: &Dump) -> Value {
     })
 }
 
-/// The settings file `make-dumps` gave the `.settings` run, as the overlay's block.
+/// The settings file `make-dumps` gave a run named for one, as the overlay's block.
 fn lure_settings(dump: &Dump) -> Value {
-    if dump.short_name().ends_with(".settings") {
+    let name = dump.short_name();
+    if name.ends_with(".settings") {
         json!({"max_candidates": 2, "crawl_primary": false, "noise_keywords": null, "weights": {"body": 0}})
+    } else if name.ends_with(".context") {
+        json!({
+            "sign_off_phrases": ["cheers", "best regards"],
+            "attachment_reference_keywords": ["bid documents"],
+            "sentence_words": 3,
+            "sentence_end_words": 2,
+            "weights": {"quoted_message": -10, "signature_block": -5, "attachment_reference": 7, "only_link": 3},
+        })
+    } else if name.ends_with(".no_reference") {
+        json!({"attachment_reference_keywords": null, "sign_off_phrases": null})
     } else {
         Value::Null
     }
@@ -112,7 +123,11 @@ fn the_lure_module_matches_the_reference_dumps_or_lists_each_difference() {
     let mut found = 0;
     for dump in dumps {
         let (observable, email) = email(&dump);
-        let mut tree = dump.tree_view(this(&dump, &observable), &["LureURLAnalysis"]);
+        let mut tree = dump.tree_view_with_details(
+            this(&dump, &observable),
+            &["LureURLAnalysis"],
+            &["pdf_link_text"],
+        );
         // the crawl the module adds is what's compared
         for o in tree.observables.iter_mut() {
             o.directives.retain(|d| d != "crawl");

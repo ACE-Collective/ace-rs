@@ -143,7 +143,7 @@ impl Lookup for RdapAnalyzer {
 /// How an RDAP attempt went.
 enum Attempt {
     Done,
-    /// The registry said the domain doesn't exist; `analysis.error` says so.
+    /// The registry said the domain doesn't exist; `analysis.not_found` says so.
     NotFound,
     /// RDAP couldn't answer, for this reason.
     Failed(String),
@@ -281,8 +281,8 @@ impl RdapAnalyzer {
     ) -> Result<Attempt, ModuleError> {
         let (raw, parsed) = match query(&self.client, &self.bootstrap, target, ip).await? {
             Query::Found { raw, parsed } => (raw, *parsed),
-            Query::NotFound(error) => {
-                analysis.error = Some(error);
+            Query::NotFound(answer) => {
+                analysis.not_found = Some(answer);
                 return Ok(Attempt::NotFound);
             }
             Query::Failed(error) => return Ok(Attempt::Failed(error)),
@@ -457,6 +457,8 @@ fn summary(analysis: &RdapAnalysis) -> Option<String> {
     let mut parts = Vec::new();
     if let Some(error) = &analysis.error {
         parts.push(format!("error: {error}"));
+    } else if let Some(not_found) = &analysis.not_found {
+        parts.push(not_found.clone());
     } else {
         if let Some(cidr) = &analysis.network_cidr {
             match &analysis.network_name {

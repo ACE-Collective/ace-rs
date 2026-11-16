@@ -1,6 +1,39 @@
 {
   "form": 1,
   "observables": {
+    "file:1a54aa4aa9958494c1c425be7676862af2f44c87dda634890c6147f308aea850": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "zip_no_part_name.docm.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:aa870e220274ab9616f844e51f7097f13098b5958d2549d36cb35e704232ee24": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:2216d9fff221a56e50e6fee2cefcc44b91fc4ceb916f94dcb00430d93b413e54": {
       "detections": {},
       "directives": {
@@ -87,7 +120,6 @@
               "[Content_Types].xml",
               "_rels/.rels"
             ],
-            "extraction_error": null,
             "file_count": 2
           },
           "summary": "Archive Analysis: extracted 2 of 2 files: ([Content_Types].xml, _rels/.rels)",
@@ -95,13 +127,12 @@
         },
         "exif": {
           "details": {
-            "error": null,
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 09:16:06+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 09:16:06+00:00",
-              "File:FileModifyDate": "2026:11:07 15:11:53+00:00",
+              "File:FileAccessDate": "2026:11:16 14:16:28+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 14:16:28+00:00",
+              "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "zip_no_part_name.docm",
               "File:FilePermissions": 100644,
               "File:FileSize": 481,
@@ -180,39 +211,6 @@
         "olevba_failed": true,
         "zip": true
       }
-    },
-    "file:d76da4fc5c6248fdee0207e0f022719de30f0385cfd2c9bef332672b75258ff1": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "zip_no_part_name.docm.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:aa870e220274ab9616f844e51f7097f13098b5958d2549d36cb35e704232ee24": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
     },
     "file:d91fa571c7e58d33e48db1a3dcb270c137acf6a9ec1cb6d447f3b8890e1574df": {
       "detections": {},

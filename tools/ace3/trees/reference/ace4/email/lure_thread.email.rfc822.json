@@ -1,0 +1,2313 @@
+{
+  "form": 1,
+  "observables": {
+    "email_address:alice@example.com": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "email_address_fqdn_analyzer": {
+          "details": {
+            "domain": "example.com"
+          },
+          "summary": "Email Address FQDN: example.com",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "email_address:bob@example.com": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "email_address_fqdn_analyzer": {
+          "details": {
+            "domain": "example.com"
+          },
+          "summary": "Email Address FQDN: example.com",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "email_conversation:sam@partner-example.org|pat@corp.example": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "email_conversation_frequency_analyzer": {
+          "details": {
+            "dest_count": null,
+            "source_count": 0
+          },
+          "summary": "Email Conversation Frequency Analysis - first time received",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {
+        "new_sender": true
+      }
+    },
+    "email_from:sam@partner-example.org": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "email_address_fqdn_analyzer": {
+          "details": {
+            "domain": "partner-example.org"
+          },
+          "summary": "Email Address FQDN: partner-example.org",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "email_return_path:sam@partner-example.org": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "email_address_fqdn_analyzer": {
+          "details": {
+            "domain": "partner-example.org"
+          },
+          "summary": "Email Address FQDN: partner-example.org",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "email_subject:RE: Updated remittance details": {
+      "detections": {},
+      "directives": {
+        "exclude_all": true
+      },
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "observable_modifier": {
+          "details": {
+            "matched_rules": [
+              {
+                "actions_applied": {
+                  "ignore": true
+                },
+                "name": "no subject analysis",
+                "uuid": "2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a04"
+              }
+            ]
+          },
+          "summary": "Applied 1 rule(s): no subject analysis",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "email_to:pat@corp.example": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "email_address_fqdn_analyzer": {
+          "details": {
+            "domain": "corp.example"
+          },
+          "summary": "Email Address FQDN: corp.example",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:0856d7dac3697c95433c269e8e2a051542899c63cfaf315476e1679245eb3ce8": {
+      "detections": {
+        "email.rfc822.unknown_text_html_000.html matched yara rule detect_fqdn": [
+          {
+            "namespace": "observable_export",
+            "rule": "detect_fqdn",
+            "rule_uuid": null,
+            "sha256": "0856d7dac3697c95433c269e8e2a051542899c63cfaf315476e1679245eb3ce8"
+          }
+        ]
+      },
+      "directives": {
+        "extract_urls": true,
+        "render": true,
+        "sandbox": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "email.rfc822.unknown_text_html_000.html": {
+          "type=document.html": true,
+          "type=email.attachment": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/html",
+            "type": "HTML document, ASCII text, with very long lines (1050)"
+          },
+          "summary": "File Type Analysis: HTML document, ASCII text, with very long lines (1050) (text/html)",
+          "tags": {}
+        },
+        "html_js_extraction": {
+          "details": {
+            "dom_snapshot_files": [],
+            "duplicate_count": 0,
+            "extracted_files": [],
+            "extracted_uri_paths": [],
+            "extracted_urls": [],
+            "inline_handlers": [],
+            "script_count": 0
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [
+              "https://forms.lure-example.net/remit",
+              "https://portal.partner-example.org/first",
+              "https://www.partner-example.org/about",
+              "https://portal.partner-example.org/older"
+            ],
+            "urls_grouped_by_domain": {
+              "lure-example.net": [
+                "https://forms.lure-example.net/remit"
+              ],
+              "partner-example.org": [
+                "https://portal.partner-example.org/first",
+                "https://www.partner-example.org/about",
+                "https://portal.partner-example.org/older"
+              ]
+            }
+          },
+          "summary": "URL Extraction Analysis (forms.lure-example.net, portal.partner-example.org, www.partner-example.org)",
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "yara_scanner_v3_4": {
+          "details": {
+            "scan_results": [
+              {
+                "context": [
+                  [
+                    313,
+                    "$obsd_1",
+                    "@corp.example&",
+                    "00000000  3c 2f 70 3e 3c 2f 64 69  76 3e 3c 64 69 76 20 69  |</p></div><div i|\n00000010  64 3d 22 78 5f 64 69 76  52 70 6c 79 46 77 64 4d  |d=\"x_divRplyFwdM|\n00000020  73 67 22 3e 3c 62 3e 46  72 6f 6d 3a 3c 2f 62 3e  |sg\"><b>From:</b>|\n00000030  20 50 61 74 20 44 6f 65  20 26 6c 74 3b 70 61 74  | Pat Doe &lt;pat|\n00000040  40 63 6f 72 70 2e 65 78  61 6d 70 6c 65 26 67 74  |@corp.example&gt|\n00000050  3b 3c 62 72 3e 3c 62 3e  53 65 6e 74 3a 3c 2f 62  |;<br><b>Sent:</b|\n00000060  3e 20 54 75 65 73 64 61  79 2c 20 4e 6f 76 65 6d  |> Tuesday, Novem|\n00000070  62 65 72 20 31 30 2c 20  32 30 32 36 20 34 3a 30  |ber 10, 2026 4:0|\n00000080  32 20 50 4d 3c 62 72 3e  3c 62 3e 54 6f 3a        |2 PM<br><b>To:|\n0000008e\n"
+                  ],
+                  [
+                    554,
+                    "$obsd_1",
+                    ".corp.example/",
+                    "00000000  64 69 76 3e 3c 70 3e 53  61 6d 2c 20 69 73 20 74  |div><p>Sam, is t|\n00000010  68 69 73 20 74 68 65 20  72 69 67 68 74 20 66 6f  |his the right fo|\n00000020  72 6d 3f 3c 2f 70 3e 3c  70 3e 3c 61 20 68 72 65  |rm?</p><p><a hre|\n00000030  66 3d 22 68 74 74 70 73  3a 2f 2f 66 6f 72 6d 73  |f=\"https://forms|\n00000040  2e 63 6f 72 70 2e 65 78  61 6d 70 6c 65 2f 76 65  |.corp.example/ve|\n00000050  6e 64 6f 72 22 3e 56 65  6e 64 6f 72 20 66 6f 72  |ndor\">Vendor for|\n00000060  6d 3c 2f 61 3e 3c 2f 70  3e 3c 70 3e 54 68 61 6e  |m</a></p><p>Than|\n00000070  6b 73 2c 3c 2f 70 3e 3c  70 3e 50 61 74 20 44 6f  |ks,</p><p>Pat Do|\n00000080  65 3c 2f 70 3e 3c 70 3e  3c 61 20 68 72 65        |e</p><p><a hre|\n0000008e\n"
+                  ],
+                  [
+                    651,
+                    "$obsd_1",
+                    ".corp.example/",
+                    "00000000  3c 2f 61 3e 3c 2f 70 3e  3c 70 3e 54 68 61 6e 6b  |</a></p><p>Thank|\n00000010  73 2c 3c 2f 70 3e 3c 70  3e 50 61 74 20 44 6f 65  |s,</p><p>Pat Doe|\n00000020  3c 2f 70 3e 3c 70 3e 3c  61 20 68 72 65 66 3d 22  |</p><p><a href=\"|\n00000030  68 74 74 70 73 3a 2f 2f  69 6e 74 72 61 6e 65 74  |https://intranet|\n00000040  2e 63 6f 72 70 2e 65 78  61 6d 70 6c 65 2f 70 61  |.corp.example/pa|\n00000050  74 22 3e 4d 79 20 70 72  6f 66 69 6c 65 3c 2f 61  |t\">My profile</a|\n00000060  3e 3c 2f 70 3e 3c 2f 64  69 76 3e 3c 64 69 76 20  |></p></div><div |\n00000070  63 6c 61 73 73 3d 22 67  6d 61 69 6c 5f 71 75 6f  |class=\"gmail_quo|\n00000080  74 65 20 67 6d 61 69 6c  5f 71 75 6f 74 65        |te gmail_quote|\n0000008e\n"
+                  ]
+                ],
+                "match_context": [
+                  {
+                    "data": "PC9wPjwvZGl2PjxkaXYgaWQ9InhfZGl2UnBseUZ3ZE1zZyI+PGI+RnJvbTo8L2I+IFBhdCBEb2UgJmx0O3BhdEBjb3JwLmV4YW1wbGUmZ3Q7PGJyPjxiPlNlbnQ6PC9iPiBUdWVzZGF5LCBOb3ZlbWJlciAxMCwgMjAyNiA0OjAyIFBNPGJyPjxiPlRvOg==",
+                    "match_length": 14,
+                    "match_offset": 64
+                  },
+                  {
+                    "data": "ZGl2PjxwPlNhbSwgaXMgdGhpcyB0aGUgcmlnaHQgZm9ybT88L3A+PHA+PGEgaHJlZj0iaHR0cHM6Ly9mb3Jtcy5jb3JwLmV4YW1wbGUvdmVuZG9yIj5WZW5kb3IgZm9ybTwvYT48L3A+PHA+VGhhbmtzLDwvcD48cD5QYXQgRG9lPC9wPjxwPjxhIGhyZQ==",
+                    "match_length": 14,
+                    "match_offset": 64
+                  },
+                  {
+                    "data": "PC9hPjwvcD48cD5UaGFua3MsPC9wPjxwPlBhdCBEb2U8L3A+PHA+PGEgaHJlZj0iaHR0cHM6Ly9pbnRyYW5ldC5jb3JwLmV4YW1wbGUvcGF0Ij5NeSBwcm9maWxlPC9hPjwvcD48L2Rpdj48ZGl2IGNsYXNzPSJnbWFpbF9xdW90ZSBnbWFpbF9xdW90ZQ==",
+                    "match_length": 14,
+                    "match_offset": 64
+                  }
+                ],
+                "meta": {
+                  "author": "ACE Automation",
+                  "description": "ACE Observable Export",
+                  "platform": "ACE",
+                  "scope": "['detection']",
+                  "tlp": "amber"
+                },
+                "namespace": "<work>/signatures/observable_export",
+                "rule": "detect_fqdn",
+                "rule_content_hash": "c1d34c6526603e50d782b48a790e9ec52bcfd98b9b132de9bc790fa9b22f7442",
+                "rule_source": {
+                  "file": "fqdn.yar",
+                  "start_line": 1,
+                  "text": "rule detect_fqdn : detect_fqdn\n{\n    meta:\n        author = \"ACE Automation\"\n        description = \"ACE Observable Export\"\n        tlp = \"amber\"\n        date = \"11/16/2026\"\n        scope = \"['detection']\"\n        platform = \"ACE\"\n    strings:\n          $obsd_1 = /(^|[^a-zA-Z0-9_\\-])corp\\.example([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase\n          $obsd_wide_1 = /(^|([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00]))c\\x00o\\x00r\\x00p\\x00\\.\\x00e\\x00x\\x00a\\x00m\\x00p\\x00l\\x00e\\x00(([^a-zA-Z0-9_\\-.]\\x00|[\\x00-\\xff][^\\x00])|\\.\\x00([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00])|(\\.\\x00)?$)/ nocase\n\n    condition:\n        any of ($obsd_*)\n}\n"
+                },
+                "string_patterns": {
+                  "$obsd_1": "/(^|[^a-zA-Z0-9_\\-])corp\\.example([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase"
+                },
+                "strings": [
+                  [
+                    313,
+                    "$obsd_1",
+                    "@corp.example&"
+                  ],
+                  [
+                    554,
+                    "$obsd_1",
+                    ".corp.example/"
+                  ],
+                  [
+                    651,
+                    "$obsd_1",
+                    ".corp.example/"
+                  ]
+                ],
+                "tags": [
+                  "detect_fqdn"
+                ],
+                "target": "<root>/files/email.rfc822.unknown_text_html_000.html"
+              }
+            ]
+          },
+          "summary": "Yara Scan Results: matched yara rules detect_fqdn",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "detect_fqdn": true
+      }
+    },
+    "file:0dd69ffb24f35907574942c72c59d0de97a843ffa9cfa990eede507f9ce335fd": {
+      "detections": {
+        "email.rfc822 matched yara rule detect_fqdn": [
+          {
+            "namespace": "observable_export",
+            "rule": "detect_fqdn",
+            "rule_uuid": null,
+            "sha256": "0dd69ffb24f35907574942c72c59d0de97a843ffa9cfa990eede507f9ce335fd"
+          }
+        ]
+      },
+      "directives": {
+        "sandbox": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "email.rfc822": {
+          "type=email": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "email_analyzer": {
+          "details": {
+            "email": {
+              "authentication_failed": false,
+              "compauth_reason": null,
+              "compauth_result": null,
+              "decoded_subject": "RE: Updated remittance details",
+              "dkim_result": null,
+              "dmarc_result": null,
+              "env_mail_from": null,
+              "env_rcpt_to": [],
+              "from": "Sam Field <sam@partner-example.org>",
+              "from_address": "sam@partner-example.org",
+              "headers": [
+                [
+                  "From",
+                  "Sam Field <sam@partner-example.org>"
+                ],
+                [
+                  "To",
+                  "pat@corp.example"
+                ],
+                [
+                  "Return-Path",
+                  "<sam@partner-example.org>"
+                ],
+                [
+                  "Subject",
+                  "RE: Updated remittance details"
+                ],
+                [
+                  "Date",
+                  "Wed, 11 Nov 2026 09:30:00 +0000"
+                ],
+                [
+                  "Message-ID",
+                  "<lure_thread@partner-example.org>"
+                ],
+                [
+                  "MIME-Version",
+                  "1.0"
+                ],
+                [
+                  "Content-Type",
+                  "multipart/alternative; boundary=\"lure_thread-boundary\""
+                ]
+              ],
+              "internal_org_sender": false,
+              "is_anonymous_direct_send": false,
+              "log_entry": {
+                "attachment_count": 2,
+                "attachment_hashes": [
+                  "c1c97de8022f1e664982378daa9e238e16cb9e15ce3197a72f21572c0640b484",
+                  "0856d7dac3697c95433c269e8e2a051542899c63cfaf315476e1679245eb3ce8"
+                ],
+                "attachment_names": [
+                  "email.rfc822.unknown_text_plain_000.txt",
+                  "email.rfc822.unknown_text_html_000.html"
+                ],
+                "attachment_sizes": [
+                  19,
+                  1051
+                ],
+                "attachment_types": [
+                  "text/plain",
+                  "text/html"
+                ],
+                "authentication_failed": false,
+                "bcc": [],
+                "cc": [],
+                "compauth_reason": null,
+                "compauth_result": null,
+                "dkim_result": null,
+                "dmarc_result": null,
+                "env_mail_from": null,
+                "env_rcpt_to": [],
+                "first_received": null,
+                "headers": [
+                  "From: Sam Field <sam@partner-example.org>",
+                  "To: pat@corp.example",
+                  "Return-Path: <sam@partner-example.org>",
+                  "Subject: RE: Updated remittance details",
+                  "Date: Wed, 11 Nov 2026 09:30:00 +0000",
+                  "Message-ID: <lure_thread@partner-example.org>",
+                  "MIME-Version: 1.0",
+                  "Content-Type: multipart/alternative; boundary=\"lure_thread-boundary\""
+                ],
+                "in_reply_to": null,
+                "internal_org_sender": false,
+                "is_anonymous_direct_send": false,
+                "last_received": null,
+                "mail_from": "Sam Field <sam@partner-example.org>",
+                "mail_from_is_local": false,
+                "mail_to": [
+                  "pat@corp.example"
+                ],
+                "message_directionality": null,
+                "message_id": "<lure_thread@partner-example.org>",
+                "originating_ip": null,
+                "path": [],
+                "refereneces": null,
+                "reply_to": null,
+                "size": 1682,
+                "spf_result": null,
+                "spoofed_internal": false,
+                "subject": "RE: Updated remittance details",
+                "subject_raw": "RE: Updated remittance details",
+                "thread_index": null,
+                "thread_topic": null,
+                "user_agent": null,
+                "x_mailer": null,
+                "x_sender": null
+              },
+              "mail_from_is_local": false,
+              "message-id": "<lure_thread@partner-example.org>",
+              "message_directionality": null,
+              "return_path": "sam@partner-example.org",
+              "spf_result": null,
+              "spoofed_internal": false,
+              "subject": "RE: Updated remittance details",
+              "to": [
+                "pat@corp.example"
+              ],
+              "to_addresses": [
+                "pat@corp.example"
+              ]
+            },
+            "extraction_errors": [],
+            "parsing_error": null
+          },
+          "summary": "Email Analysis: From Sam Field <sam@partner-example.org> To pat@corp.example Subject RE: Updated remittance details",
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": true,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "message/rfc822",
+            "type": "news or mail, ASCII text"
+          },
+          "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
+          "tags": {}
+        },
+        "html_js_extraction": {
+          "details": {
+            "dom_snapshot_files": [],
+            "duplicate_count": 0,
+            "extracted_files": [],
+            "extracted_uri_paths": [],
+            "extracted_urls": [],
+            "inline_handlers": [],
+            "script_count": 0
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "lure_url_analyzer": {
+          "details": {
+            "candidates": [
+              {
+                "anchor_text": "Update remittance details",
+                "carries": [],
+                "highlights": [
+                  [],
+                  [
+                    "Update remittance details"
+                  ],
+                  [],
+                  []
+                ],
+                "reasons": [
+                  "found in the email body",
+                  "clickable link with text 'Update remittance details'",
+                  "call-to-action text (update)",
+                  "the only linked external domain"
+                ],
+                "score": 75,
+                "sources": [
+                  "body"
+                ],
+                "url": "https://forms.lure-example.net/remit"
+              },
+              {
+                "anchor_text": "the first form",
+                "carries": [],
+                "highlights": [
+                  [],
+                  [
+                    "the first form"
+                  ],
+                  [],
+                  []
+                ],
+                "reasons": [
+                  "found in the email body",
+                  "clickable link with text 'the first form'",
+                  "in an earlier message the email quotes",
+                  "same domain as the sender (partner-example.org)"
+                ],
+                "score": 25,
+                "sources": [
+                  "body"
+                ],
+                "url": "https://portal.partner-example.org/first"
+              },
+              {
+                "anchor_text": "an older form",
+                "carries": [],
+                "highlights": [
+                  [],
+                  [
+                    "an older form"
+                  ],
+                  [],
+                  []
+                ],
+                "reasons": [
+                  "found in the email body",
+                  "clickable link with text 'an older form'",
+                  "in an earlier message the email quotes",
+                  "same domain as the sender (partner-example.org)"
+                ],
+                "score": 25,
+                "sources": [
+                  "body"
+                ],
+                "url": "https://portal.partner-example.org/older"
+              },
+              {
+                "anchor_text": "About us",
+                "carries": [],
+                "highlights": [
+                  [],
+                  [
+                    "About us"
+                  ],
+                  [],
+                  []
+                ],
+                "reasons": [
+                  "found in the email body",
+                  "clickable link with text 'About us'",
+                  "in a signature block",
+                  "same domain as the sender (partner-example.org)"
+                ],
+                "score": 0,
+                "sources": [
+                  "body"
+                ],
+                "url": "https://www.partner-example.org/about"
+              }
+            ],
+            "has_inner_email": false,
+            "primary": {
+              "anchor_text": "Update remittance details",
+              "carries": [],
+              "highlights": [
+                [],
+                [
+                  "Update remittance details"
+                ],
+                [],
+                []
+              ],
+              "reasons": [
+                "found in the email body",
+                "clickable link with text 'Update remittance details'",
+                "call-to-action text (update)",
+                "the only linked external domain"
+              ],
+              "score": 75,
+              "sources": [
+                "body"
+              ],
+              "url": "https://forms.lure-example.net/remit"
+            },
+            "subject": "RE: Updated remittance details"
+          },
+          "summary": "Lure URL Analysis: https://forms.lure-example.net/remit (found in the email body; clickable link with text 'Update remittance details'; call-to-action text (update); the only linked external domain)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "yara_scanner_v3_4": {
+          "details": {
+            "scan_results": [
+              {
+                "context": [
+                  [
+                    49,
+                    "$obsd_1",
+                    "@corp.example\n",
+                    "00000000  46 72 6f 6d 3a 20 53 61  6d 20 46 69 65 6c 64 20  |From: Sam Field |\n00000010  3c 73 61 6d 40 70 61 72  74 6e 65 72 2d 65 78 61  |<sam@partner-exa|\n00000020  6d 70 6c 65 2e 6f 72 67  3e 0a 54 6f 3a 20 70 61  |mple.org>.To: pa|\n00000030  74 40 63 6f 72 70 2e 65  78 61 6d 70 6c 65 0a 52  |t@corp.example.R|\n00000040  65 74 75 72 6e 2d 50 61  74 68 3a 20 3c 73 61 6d  |eturn-Path: <sam|\n00000050  40 70 61 72 74 6e 65 72  2d 65 78 61 6d 70 6c 65  |@partner-example|\n00000060  2e 6f 72 67 3e 0a 53 75  62 6a 65 63 74 3a 20 52  |.org>.Subject: R|\n00000070  45 3a 20 55 70 64 61 74  65 64 20 72 65 6d 69 74  |E: Updated remit|\n00000080  74 61 6e 63 65 20 64 65  74 61 69 6c 73 0a        |tance details.|\n0000008e\n"
+                  ],
+                  [
+                    886,
+                    "$obsd_1",
+                    "@corp.example&",
+                    "00000000  3c 2f 64 69 76 3e 3c 64  69 76 20 69 64 3d 33 44  |</div><div id=3D|\n00000010  22 78 5f 64 69 76 52 70  6c 79 46 77 64 4d 73 67  |\"x_divRplyFwdMsg|\n00000020  22 3e 3c 62 3e 46 72 6f  6d 3a 3c 2f 62 3e 20 50  |\"><b>From:</b> P|\n00000030  61 74 20 3d 0a 44 6f 65  20 26 6c 74 3b 70 61 74  |at =.Doe &lt;pat|\n00000040  40 63 6f 72 70 2e 65 78  61 6d 70 6c 65 26 67 74  |@corp.example&gt|\n00000050  3b 3c 62 72 3e 3c 62 3e  53 65 6e 74 3a 3c 2f 62  |;<br><b>Sent:</b|\n00000060  3e 20 54 75 65 73 64 61  79 2c 20 4e 6f 76 65 6d  |> Tuesday, Novem|\n00000070  62 65 72 20 31 30 2c 20  32 30 32 36 20 34 3a 30  |ber 10, 2026 4:0|\n00000080  32 20 3d 0a 50 4d 3c 62  72 3e 3c 62 3e 54        |2 =.PM<br><b>T|\n0000008e\n"
+                  ],
+                  [
+                    1135,
+                    "$obsd_1",
+                    ".corp.example/",
+                    "00000000  3c 70 3e 53 61 6d 2c 20  69 73 20 74 68 69 73 20  |<p>Sam, is this |\n00000010  74 68 65 20 72 69 67 68  74 20 66 6f 72 6d 3f 3c  |the right form?<|\n00000020  2f 70 3e 3c 70 3e 3c 3d  0a 61 20 68 72 65 66 3d  |/p><p><=.a href=|\n00000030  33 44 22 68 74 74 70 73  3a 2f 2f 66 6f 72 6d 73  |3D\"https://forms|\n00000040  2e 63 6f 72 70 2e 65 78  61 6d 70 6c 65 2f 76 65  |.corp.example/ve|\n00000050  6e 64 6f 72 22 3e 56 65  6e 64 6f 72 20 66 6f 72  |ndor\">Vendor for|\n00000060  6d 3c 2f 61 3e 3c 2f 70  3e 3c 70 3e 54 68 61 6e  |m</a></p><p>Than|\n00000070  6b 73 2c 3c 2f 70 3d 0a  3e 3c 70 3e 50 61 74 20  |ks,</p=.><p>Pat |\n00000080  44 6f 65 3c 2f 70 3e 3c  70 3e 3c 61 20 68        |Doe</p><p><a h|\n0000008e\n"
+                  ],
+                  [
+                    1236,
+                    "$obsd_1",
+                    ".corp.example/",
+                    "00000000  3c 2f 70 3e 3c 70 3e 54  68 61 6e 6b 73 2c 3c 2f  |</p><p>Thanks,</|\n00000010  70 3d 0a 3e 3c 70 3e 50  61 74 20 44 6f 65 3c 2f  |p=.><p>Pat Doe</|\n00000020  70 3e 3c 70 3e 3c 61 20  68 72 65 66 3d 33 44 22  |p><p><a href=3D\"|\n00000030  68 74 74 70 73 3a 2f 2f  69 6e 74 72 61 6e 65 74  |https://intranet|\n00000040  2e 63 6f 72 70 2e 65 78  61 6d 70 6c 65 2f 70 61  |.corp.example/pa|\n00000050  74 22 3e 4d 79 20 70 72  6f 66 69 6c 65 3c 2f 61  |t\">My profile</a|\n00000060  3d 0a 3e 3c 2f 70 3e 3c  2f 64 69 76 3e 3c 64 69  |=.></p></div><di|\n00000070  76 20 63 6c 61 73 73 3d  33 44 22 67 6d 61 69 6c  |v class=3D\"gmail|\n00000080  5f 71 75 6f 74 65 20 67  6d 61 69 6c 5f 71        |_quote gmail_q|\n0000008e\n"
+                  ]
+                ],
+                "match_context": [
+                  {
+                    "data": "RnJvbTogU2FtIEZpZWxkIDxzYW1AcGFydG5lci1leGFtcGxlLm9yZz4KVG86IHBhdEBjb3JwLmV4YW1wbGUKUmV0dXJuLVBhdGg6IDxzYW1AcGFydG5lci1leGFtcGxlLm9yZz4KU3ViamVjdDogUkU6IFVwZGF0ZWQgcmVtaXR0YW5jZSBkZXRhaWxzCg==",
+                    "match_length": 14,
+                    "match_offset": 49
+                  },
+                  {
+                    "data": "PC9kaXY+PGRpdiBpZD0zRCJ4X2RpdlJwbHlGd2RNc2ciPjxiPkZyb206PC9iPiBQYXQgPQpEb2UgJmx0O3BhdEBjb3JwLmV4YW1wbGUmZ3Q7PGJyPjxiPlNlbnQ6PC9iPiBUdWVzZGF5LCBOb3ZlbWJlciAxMCwgMjAyNiA0OjAyID0KUE08YnI+PGI+VA==",
+                    "match_length": 14,
+                    "match_offset": 64
+                  },
+                  {
+                    "data": "PHA+U2FtLCBpcyB0aGlzIHRoZSByaWdodCBmb3JtPzwvcD48cD48PQphIGhyZWY9M0QiaHR0cHM6Ly9mb3Jtcy5jb3JwLmV4YW1wbGUvdmVuZG9yIj5WZW5kb3IgZm9ybTwvYT48L3A+PHA+VGhhbmtzLDwvcD0KPjxwPlBhdCBEb2U8L3A+PHA+PGEgaA==",
+                    "match_length": 14,
+                    "match_offset": 64
+                  },
+                  {
+                    "data": "PC9wPjxwPlRoYW5rcyw8L3A9Cj48cD5QYXQgRG9lPC9wPjxwPjxhIGhyZWY9M0QiaHR0cHM6Ly9pbnRyYW5ldC5jb3JwLmV4YW1wbGUvcGF0Ij5NeSBwcm9maWxlPC9hPQo+PC9wPjwvZGl2PjxkaXYgY2xhc3M9M0QiZ21haWxfcXVvdGUgZ21haWxfcQ==",
+                    "match_length": 14,
+                    "match_offset": 64
+                  }
+                ],
+                "meta": {
+                  "author": "ACE Automation",
+                  "description": "ACE Observable Export",
+                  "platform": "ACE",
+                  "scope": "['detection']",
+                  "tlp": "amber"
+                },
+                "namespace": "<work>/signatures/observable_export",
+                "rule": "detect_fqdn",
+                "rule_content_hash": "c1d34c6526603e50d782b48a790e9ec52bcfd98b9b132de9bc790fa9b22f7442",
+                "rule_source": {
+                  "file": "fqdn.yar",
+                  "start_line": 1,
+                  "text": "rule detect_fqdn : detect_fqdn\n{\n    meta:\n        author = \"ACE Automation\"\n        description = \"ACE Observable Export\"\n        tlp = \"amber\"\n        date = \"11/16/2026\"\n        scope = \"['detection']\"\n        platform = \"ACE\"\n    strings:\n          $obsd_1 = /(^|[^a-zA-Z0-9_\\-])corp\\.example([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase\n          $obsd_wide_1 = /(^|([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00]))c\\x00o\\x00r\\x00p\\x00\\.\\x00e\\x00x\\x00a\\x00m\\x00p\\x00l\\x00e\\x00(([^a-zA-Z0-9_\\-.]\\x00|[\\x00-\\xff][^\\x00])|\\.\\x00([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00])|(\\.\\x00)?$)/ nocase\n\n    condition:\n        any of ($obsd_*)\n}\n"
+                },
+                "string_patterns": {
+                  "$obsd_1": "/(^|[^a-zA-Z0-9_\\-])corp\\.example([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase"
+                },
+                "strings": [
+                  [
+                    49,
+                    "$obsd_1",
+                    "@corp.example\n"
+                  ],
+                  [
+                    886,
+                    "$obsd_1",
+                    "@corp.example&"
+                  ],
+                  [
+                    1135,
+                    "$obsd_1",
+                    ".corp.example/"
+                  ],
+                  [
+                    1236,
+                    "$obsd_1",
+                    ".corp.example/"
+                  ]
+                ],
+                "tags": [
+                  "detect_fqdn"
+                ],
+                "target": "<root>/files/email.rfc822"
+              }
+            ]
+          },
+          "summary": "Yara Scan Results: matched yara rules detect_fqdn",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "detect_fqdn": true,
+        "email": true
+      }
+    },
+    "file:c1c97de8022f1e664982378daa9e238e16cb9e15ce3197a72f21572c0640b484": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true,
+        "preview": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "email.rfc822.unknown_text_plain_000.txt": {
+          "type=email.attachment": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text"
+          },
+          "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:d25feafd5479a0901808dd193759ec5ab64f357b6e5c324f8706f1ffe74993f8": {
+      "detections": {
+        "email.rfc822.combined matched yara rule detect_fqdn": [
+          {
+            "namespace": "observable_export",
+            "rule": "detect_fqdn",
+            "rule_uuid": null,
+            "sha256": "d25feafd5479a0901808dd193759ec5ab64f357b6e5c324f8706f1ffe74993f8"
+          }
+        ]
+      },
+      "directives": {
+        "sandbox": true
+      },
+      "excluded_analysis": {
+        "email_analyzer": true
+      },
+      "paths": {
+        "email.rfc822.combined": {
+          "type=email": true,
+          "type=email.combined": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": true,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "message/rfc822",
+            "type": "news or mail, ASCII text, with very long lines (1050)"
+          },
+          "summary": "File Type Analysis: news or mail, ASCII text, with very long lines (1050) (message/rfc822) (email)",
+          "tags": {}
+        },
+        "html_js_extraction": {
+          "details": {
+            "dom_snapshot_files": [],
+            "duplicate_count": 0,
+            "extracted_files": [],
+            "extracted_uri_paths": [],
+            "extracted_urls": [],
+            "inline_handlers": [],
+            "script_count": 0
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "yara_scanner_v3_4": {
+          "details": {
+            "scan_results": [
+              {
+                "context": [
+                  [
+                    49,
+                    "$obsd_1",
+                    "@corp.example\n",
+                    "00000000  46 72 6f 6d 3a 20 53 61  6d 20 46 69 65 6c 64 20  |From: Sam Field |\n00000010  3c 73 61 6d 40 70 61 72  74 6e 65 72 2d 65 78 61  |<sam@partner-exa|\n00000020  6d 70 6c 65 2e 6f 72 67  3e 0a 54 6f 3a 20 70 61  |mple.org>.To: pa|\n00000030  74 40 63 6f 72 70 2e 65  78 61 6d 70 6c 65 0a 52  |t@corp.example.R|\n00000040  65 74 75 72 6e 2d 50 61  74 68 3a 20 3c 73 61 6d  |eturn-Path: <sam|\n00000050  40 70 61 72 74 6e 65 72  2d 65 78 61 6d 70 6c 65  |@partner-example|\n00000060  2e 6f 72 67 3e 0a 53 75  62 6a 65 63 74 3a 20 52  |.org>.Subject: R|\n00000070  45 3a 20 55 70 64 61 74  65 64 20 72 65 6d 69 74  |E: Updated remit|\n00000080  74 61 6e 63 65 20 64 65  74 61 69 6c 73 0a        |tance details.|\n0000008e\n"
+                  ],
+                  [
+                    648,
+                    "$obsd_1",
+                    "@corp.example&",
+                    "00000000  3c 2f 70 3e 3c 2f 64 69  76 3e 3c 64 69 76 20 69  |</p></div><div i|\n00000010  64 3d 22 78 5f 64 69 76  52 70 6c 79 46 77 64 4d  |d=\"x_divRplyFwdM|\n00000020  73 67 22 3e 3c 62 3e 46  72 6f 6d 3a 3c 2f 62 3e  |sg\"><b>From:</b>|\n00000030  20 50 61 74 20 44 6f 65  20 26 6c 74 3b 70 61 74  | Pat Doe &lt;pat|\n00000040  40 63 6f 72 70 2e 65 78  61 6d 70 6c 65 26 67 74  |@corp.example&gt|\n00000050  3b 3c 62 72 3e 3c 62 3e  53 65 6e 74 3a 3c 2f 62  |;<br><b>Sent:</b|\n00000060  3e 20 54 75 65 73 64 61  79 2c 20 4e 6f 76 65 6d  |> Tuesday, Novem|\n00000070  62 65 72 20 31 30 2c 20  32 30 32 36 20 34 3a 30  |ber 10, 2026 4:0|\n00000080  32 20 50 4d 3c 62 72 3e  3c 62 3e 54 6f 3a        |2 PM<br><b>To:|\n0000008e\n"
+                  ],
+                  [
+                    889,
+                    "$obsd_1",
+                    ".corp.example/",
+                    "00000000  64 69 76 3e 3c 70 3e 53  61 6d 2c 20 69 73 20 74  |div><p>Sam, is t|\n00000010  68 69 73 20 74 68 65 20  72 69 67 68 74 20 66 6f  |his the right fo|\n00000020  72 6d 3f 3c 2f 70 3e 3c  70 3e 3c 61 20 68 72 65  |rm?</p><p><a hre|\n00000030  66 3d 22 68 74 74 70 73  3a 2f 2f 66 6f 72 6d 73  |f=\"https://forms|\n00000040  2e 63 6f 72 70 2e 65 78  61 6d 70 6c 65 2f 76 65  |.corp.example/ve|\n00000050  6e 64 6f 72 22 3e 56 65  6e 64 6f 72 20 66 6f 72  |ndor\">Vendor for|\n00000060  6d 3c 2f 61 3e 3c 2f 70  3e 3c 70 3e 54 68 61 6e  |m</a></p><p>Than|\n00000070  6b 73 2c 3c 2f 70 3e 3c  70 3e 50 61 74 20 44 6f  |ks,</p><p>Pat Do|\n00000080  65 3c 2f 70 3e 3c 70 3e  3c 61 20 68 72 65        |e</p><p><a hre|\n0000008e\n"
+                  ],
+                  [
+                    986,
+                    "$obsd_1",
+                    ".corp.example/",
+                    "00000000  3c 2f 61 3e 3c 2f 70 3e  3c 70 3e 54 68 61 6e 6b  |</a></p><p>Thank|\n00000010  73 2c 3c 2f 70 3e 3c 70  3e 50 61 74 20 44 6f 65  |s,</p><p>Pat Doe|\n00000020  3c 2f 70 3e 3c 70 3e 3c  61 20 68 72 65 66 3d 22  |</p><p><a href=\"|\n00000030  68 74 74 70 73 3a 2f 2f  69 6e 74 72 61 6e 65 74  |https://intranet|\n00000040  2e 63 6f 72 70 2e 65 78  61 6d 70 6c 65 2f 70 61  |.corp.example/pa|\n00000050  74 22 3e 4d 79 20 70 72  6f 66 69 6c 65 3c 2f 61  |t\">My profile</a|\n00000060  3e 3c 2f 70 3e 3c 2f 64  69 76 3e 3c 64 69 76 20  |></p></div><div |\n00000070  63 6c 61 73 73 3d 22 67  6d 61 69 6c 5f 71 75 6f  |class=\"gmail_quo|\n00000080  74 65 20 67 6d 61 69 6c  5f 71 75 6f 74 65        |te gmail_quote|\n0000008e\n"
+                  ]
+                ],
+                "match_context": [
+                  {
+                    "data": "RnJvbTogU2FtIEZpZWxkIDxzYW1AcGFydG5lci1leGFtcGxlLm9yZz4KVG86IHBhdEBjb3JwLmV4YW1wbGUKUmV0dXJuLVBhdGg6IDxzYW1AcGFydG5lci1leGFtcGxlLm9yZz4KU3ViamVjdDogUkU6IFVwZGF0ZWQgcmVtaXR0YW5jZSBkZXRhaWxzCg==",
+                    "match_length": 14,
+                    "match_offset": 49
+                  },
+                  {
+                    "data": "PC9wPjwvZGl2PjxkaXYgaWQ9InhfZGl2UnBseUZ3ZE1zZyI+PGI+RnJvbTo8L2I+IFBhdCBEb2UgJmx0O3BhdEBjb3JwLmV4YW1wbGUmZ3Q7PGJyPjxiPlNlbnQ6PC9iPiBUdWVzZGF5LCBOb3ZlbWJlciAxMCwgMjAyNiA0OjAyIFBNPGJyPjxiPlRvOg==",
+                    "match_length": 14,
+                    "match_offset": 64
+                  },
+                  {
+                    "data": "ZGl2PjxwPlNhbSwgaXMgdGhpcyB0aGUgcmlnaHQgZm9ybT88L3A+PHA+PGEgaHJlZj0iaHR0cHM6Ly9mb3Jtcy5jb3JwLmV4YW1wbGUvdmVuZG9yIj5WZW5kb3IgZm9ybTwvYT48L3A+PHA+VGhhbmtzLDwvcD48cD5QYXQgRG9lPC9wPjxwPjxhIGhyZQ==",
+                    "match_length": 14,
+                    "match_offset": 64
+                  },
+                  {
+                    "data": "PC9hPjwvcD48cD5UaGFua3MsPC9wPjxwPlBhdCBEb2U8L3A+PHA+PGEgaHJlZj0iaHR0cHM6Ly9pbnRyYW5ldC5jb3JwLmV4YW1wbGUvcGF0Ij5NeSBwcm9maWxlPC9hPjwvcD48L2Rpdj48ZGl2IGNsYXNzPSJnbWFpbF9xdW90ZSBnbWFpbF9xdW90ZQ==",
+                    "match_length": 14,
+                    "match_offset": 64
+                  }
+                ],
+                "meta": {
+                  "author": "ACE Automation",
+                  "description": "ACE Observable Export",
+                  "platform": "ACE",
+                  "scope": "['detection']",
+                  "tlp": "amber"
+                },
+                "namespace": "<work>/signatures/observable_export",
+                "rule": "detect_fqdn",
+                "rule_content_hash": "c1d34c6526603e50d782b48a790e9ec52bcfd98b9b132de9bc790fa9b22f7442",
+                "rule_source": {
+                  "file": "fqdn.yar",
+                  "start_line": 1,
+                  "text": "rule detect_fqdn : detect_fqdn\n{\n    meta:\n        author = \"ACE Automation\"\n        description = \"ACE Observable Export\"\n        tlp = \"amber\"\n        date = \"11/16/2026\"\n        scope = \"['detection']\"\n        platform = \"ACE\"\n    strings:\n          $obsd_1 = /(^|[^a-zA-Z0-9_\\-])corp\\.example([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase\n          $obsd_wide_1 = /(^|([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00]))c\\x00o\\x00r\\x00p\\x00\\.\\x00e\\x00x\\x00a\\x00m\\x00p\\x00l\\x00e\\x00(([^a-zA-Z0-9_\\-.]\\x00|[\\x00-\\xff][^\\x00])|\\.\\x00([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00])|(\\.\\x00)?$)/ nocase\n\n    condition:\n        any of ($obsd_*)\n}\n"
+                },
+                "string_patterns": {
+                  "$obsd_1": "/(^|[^a-zA-Z0-9_\\-])corp\\.example([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase"
+                },
+                "strings": [
+                  [
+                    49,
+                    "$obsd_1",
+                    "@corp.example\n"
+                  ],
+                  [
+                    648,
+                    "$obsd_1",
+                    "@corp.example&"
+                  ],
+                  [
+                    889,
+                    "$obsd_1",
+                    ".corp.example/"
+                  ],
+                  [
+                    986,
+                    "$obsd_1",
+                    ".corp.example/"
+                  ]
+                ],
+                "tags": [
+                  "detect_fqdn"
+                ],
+                "target": "<root>/files/email.rfc822.combined"
+              }
+            ]
+          },
+          "summary": "Yara Scan Results: matched yara rules detect_fqdn",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "detect_fqdn": true,
+        "email": true
+      }
+    },
+    "file:ebe0884642bb805b0bfa6f8489fb018f6b4ee7f70ae36e0b17a027277d141e7d": {
+      "detections": {
+        "email.rfc822.headers matched yara rule detect_fqdn": [
+          {
+            "namespace": "observable_export",
+            "rule": "detect_fqdn",
+            "rule_uuid": null,
+            "sha256": "ebe0884642bb805b0bfa6f8489fb018f6b4ee7f70ae36e0b17a027277d141e7d"
+          }
+        ]
+      },
+      "directives": {
+        "sandbox": true
+      },
+      "excluded_analysis": {
+        "email_analyzer": true
+      },
+      "paths": {
+        "email.rfc822.headers": {
+          "type=email": true,
+          "type=email.headers": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": true,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "message/rfc822",
+            "type": "news or mail, ASCII text"
+          },
+          "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
+          "tags": {}
+        },
+        "html_js_extraction": {
+          "details": {
+            "dom_snapshot_files": [],
+            "duplicate_count": 0,
+            "extracted_files": [],
+            "extracted_uri_paths": [],
+            "extracted_urls": [],
+            "inline_handlers": [],
+            "script_count": 0
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "yara_scanner_v3_4": {
+          "details": {
+            "scan_results": [
+              {
+                "context": [
+                  [
+                    49,
+                    "$obsd_1",
+                    "@corp.example\n",
+                    "00000000  46 72 6f 6d 3a 20 53 61  6d 20 46 69 65 6c 64 20  |From: Sam Field |\n00000010  3c 73 61 6d 40 70 61 72  74 6e 65 72 2d 65 78 61  |<sam@partner-exa|\n00000020  6d 70 6c 65 2e 6f 72 67  3e 0a 54 6f 3a 20 70 61  |mple.org>.To: pa|\n00000030  74 40 63 6f 72 70 2e 65  78 61 6d 70 6c 65 0a 52  |t@corp.example.R|\n00000040  65 74 75 72 6e 2d 50 61  74 68 3a 20 3c 73 61 6d  |eturn-Path: <sam|\n00000050  40 70 61 72 74 6e 65 72  2d 65 78 61 6d 70 6c 65  |@partner-example|\n00000060  2e 6f 72 67 3e 0a 53 75  62 6a 65 63 74 3a 20 52  |.org>.Subject: R|\n00000070  45 3a 20 55 70 64 61 74  65 64 20 72 65 6d 69 74  |E: Updated remit|\n00000080  74 61 6e 63 65 20 64 65  74 61 69 6c 73 0a        |tance details.|\n0000008e\n"
+                  ]
+                ],
+                "match_context": [
+                  {
+                    "data": "RnJvbTogU2FtIEZpZWxkIDxzYW1AcGFydG5lci1leGFtcGxlLm9yZz4KVG86IHBhdEBjb3JwLmV4YW1wbGUKUmV0dXJuLVBhdGg6IDxzYW1AcGFydG5lci1leGFtcGxlLm9yZz4KU3ViamVjdDogUkU6IFVwZGF0ZWQgcmVtaXR0YW5jZSBkZXRhaWxzCg==",
+                    "match_length": 14,
+                    "match_offset": 49
+                  }
+                ],
+                "meta": {
+                  "author": "ACE Automation",
+                  "description": "ACE Observable Export",
+                  "platform": "ACE",
+                  "scope": "['detection']",
+                  "tlp": "amber"
+                },
+                "namespace": "<work>/signatures/observable_export",
+                "rule": "detect_fqdn",
+                "rule_content_hash": "c1d34c6526603e50d782b48a790e9ec52bcfd98b9b132de9bc790fa9b22f7442",
+                "rule_source": {
+                  "file": "fqdn.yar",
+                  "start_line": 1,
+                  "text": "rule detect_fqdn : detect_fqdn\n{\n    meta:\n        author = \"ACE Automation\"\n        description = \"ACE Observable Export\"\n        tlp = \"amber\"\n        date = \"11/16/2026\"\n        scope = \"['detection']\"\n        platform = \"ACE\"\n    strings:\n          $obsd_1 = /(^|[^a-zA-Z0-9_\\-])corp\\.example([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase\n          $obsd_wide_1 = /(^|([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00]))c\\x00o\\x00r\\x00p\\x00\\.\\x00e\\x00x\\x00a\\x00m\\x00p\\x00l\\x00e\\x00(([^a-zA-Z0-9_\\-.]\\x00|[\\x00-\\xff][^\\x00])|\\.\\x00([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00])|(\\.\\x00)?$)/ nocase\n\n    condition:\n        any of ($obsd_*)\n}\n"
+                },
+                "string_patterns": {
+                  "$obsd_1": "/(^|[^a-zA-Z0-9_\\-])corp\\.example([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase"
+                },
+                "strings": [
+                  [
+                    49,
+                    "$obsd_1",
+                    "@corp.example\n"
+                  ]
+                ],
+                "tags": [
+                  "detect_fqdn"
+                ],
+                "target": "<root>/files/email.rfc822.headers"
+              }
+            ]
+          },
+          "summary": "Yara Scan Results: matched yara rules detect_fqdn",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "detect_fqdn": true,
+        "email": true
+      }
+    },
+    "fqdn:corp.example": {
+      "detections": {
+        "Observable fqdn:corp.example is enabled for detection": [
+          null
+        ]
+      },
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "fqdn_analyzer": {
+          "details": {
+            "aliaslist": [],
+            "all_resolutions": [],
+            "ip_address": null,
+            "mx": null,
+            "resolution_count": null,
+            "status": "nxdomain",
+            "wildcard_dns": null
+          },
+          "summary": "DNS Analysis: does not exist (nxdomain)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": true
+          },
+          "summary": "Observable Detection Analysis: enabled for detection",
+          "tags": {}
+        },
+        "proxy_domain_splunk": {
+          "details": {
+            "dispatch_state": "DONE",
+            "gui_link": null,
+            "query": "index=proxy hostname=\"corp.example\"",
+            "query_results": [
+              {
+                "_time": "2026-10-30T14:02:11.000+00:00",
+                "dest_ip": "198.51.100.20",
+                "full_url": "https://www.example.com/login",
+                "src_ip": "192.0.2.10",
+                "src_translated_ip": "198.51.100.7",
+                "user": "alice@example.com"
+              },
+              {
+                "_time": "2026-10-30T14:05:42.000+00:00",
+                "dest_ip": "198.51.100.20",
+                "full_url": "http://www.example.com/",
+                "src_ip": "192.0.2.11",
+                "src_translated_ip": "198.51.100.7",
+                "user": "bob@example.com"
+              },
+              {
+                "_time": "2026-10-30T14:09:03.000+00:00",
+                "dest_ip": "198.51.100.21",
+                "full_url": "https://www.example.com/static/app.js",
+                "src_ip": "192.0.2.12"
+              }
+            ],
+            "query_summary": "Proxy correlation",
+            "question": "Was this domain seen in proxy logs?"
+          },
+          "summary": "Proxy correlation: (3 results)",
+          "tags": {}
+        },
+        "rdap_analyzer": {
+          "details": {
+            "assignment_type": null,
+            "country": null,
+            "datetime_created": null,
+            "datetime_expiration": null,
+            "datetime_of_last_update": null,
+            "domain_name": null,
+            "emails": null,
+            "ip_version": null,
+            "lookup_protocol": null,
+            "name_servers": null,
+            "network_cidr": null,
+            "network_name": null,
+            "not_found": null,
+            "rdap_attempt_error": "no RDAP service for TLD: TLD \"example\" has no known RDAP endpoint and is unsupported. It may be supported by overrides, try using whoisit.bootstrap(overrides=True)",
+            "rdap_data": null,
+            "rdap_raw_json": null,
+            "rdap_service_url": null,
+            "registrar": null,
+            "whois_data": null,
+            "whois_raw_text": null
+          },
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {
+        "detect_fqdn": true
+      }
+    },
+    "fqdn:example.com": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "fqdn_analyzer": {
+          "details": {
+            "aliaslist": [],
+            "all_resolutions": [
+              "192.0.2.10",
+              "192.0.2.2"
+            ],
+            "ip_address": "192.0.2.10",
+            "mx": [
+              "backup.example.com",
+              "mail.example.com"
+            ],
+            "resolution_count": 2,
+            "status": "ok",
+            "wildcard_dns": false
+          },
+          "summary": "DNS Analysis: ip addresses (192.0.2.10, 192.0.2.2) mx (backup.example.com, mail.example.com)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "proxy_domain_splunk": {
+          "details": {
+            "dispatch_state": "DONE",
+            "gui_link": null,
+            "query": "index=proxy hostname=\"example.com\"",
+            "query_results": [
+              {
+                "_time": "2026-10-30T14:02:11.000+00:00",
+                "dest_ip": "198.51.100.20",
+                "full_url": "https://www.example.com/login",
+                "src_ip": "192.0.2.10",
+                "src_translated_ip": "198.51.100.7",
+                "user": "alice@example.com"
+              },
+              {
+                "_time": "2026-10-30T14:05:42.000+00:00",
+                "dest_ip": "198.51.100.20",
+                "full_url": "http://www.example.com/",
+                "src_ip": "192.0.2.11",
+                "src_translated_ip": "198.51.100.7",
+                "user": "bob@example.com"
+              },
+              {
+                "_time": "2026-10-30T14:09:03.000+00:00",
+                "dest_ip": "198.51.100.21",
+                "full_url": "https://www.example.com/static/app.js",
+                "src_ip": "192.0.2.12"
+              }
+            ],
+            "query_summary": "Proxy correlation",
+            "question": "Was this domain seen in proxy logs?"
+          },
+          "summary": "Proxy correlation: (3 results)",
+          "tags": {}
+        },
+        "rdap_analyzer": {
+          "details": {
+            "assignment_type": null,
+            "country": null,
+            "datetime_created": "1995-08-14 04:00:00+00:00",
+            "datetime_expiration": "2027-08-13 04:00:00+00:00",
+            "datetime_of_last_update": "2026-08-14 08:01:43+00:00",
+            "domain_name": "EXAMPLE.COM",
+            "emails": [],
+            "ip_version": null,
+            "lookup_protocol": "rdap",
+            "name_servers": [
+              "ELLIOTT.NS.CLOUDFLARE.COM",
+              "HERA.NS.CLOUDFLARE.COM"
+            ],
+            "network_cidr": null,
+            "network_name": null,
+            "not_found": null,
+            "rdap_attempt_error": null,
+            "rdap_data": {
+              "copyright_notice": "",
+              "description": [],
+              "dnssec": true,
+              "dnssec_ds_data": [
+                {
+                  "algorithm": 13,
+                  "digest": "C988EC423E3880EB8DD8A46FE06CA230EE23F35B578D64E78B29C3E1C83D245A",
+                  "digest_type": 2,
+                  "key_tag": 2371
+                }
+              ],
+              "dnssec_key_data": [],
+              "entities": {
+                "abuse": [
+                  {
+                    "name": "",
+                    "parent_handle": "376",
+                    "parent_name": "RESERVED-Internet Assigned Numbers Authority",
+                    "type": "entity"
+                  }
+                ],
+                "registrar": [
+                  {
+                    "handle": "376",
+                    "name": "RESERVED-Internet Assigned Numbers Authority",
+                    "public_ids": [
+                      {
+                        "identifier": "376",
+                        "type": "IANA Registrar ID"
+                      }
+                    ],
+                    "type": "entity"
+                  }
+                ]
+              },
+              "events": [
+                {
+                  "action": "registration",
+                  "actor": "",
+                  "date": "1995-08-14T04:00:00.000000+0000"
+                },
+                {
+                  "action": "expiration",
+                  "actor": "",
+                  "date": "2027-08-13T04:00:00.000000+0000"
+                },
+                {
+                  "action": "last changed",
+                  "actor": "",
+                  "date": "2026-08-14T08:01:43.000000+0000"
+                },
+                {
+                  "action": "last update of rdap database",
+                  "actor": "",
+                  "date": "2026-11-02T15:28:17.000000+0000"
+                }
+              ],
+              "expiration_date": "2027-08-13T04:00:00.000000+0000",
+              "handle": "2336799_DOMAIN_COM-VRSN",
+              "last_changed_date": "2026-08-14T08:01:43.000000+0000",
+              "links": [
+                {
+                  "href": "https://rdap.verisign.com/com/v1/domain/example.com",
+                  "rel": "self",
+                  "type": "application/rdap+json"
+                }
+              ],
+              "name": "EXAMPLE.COM",
+              "nameserver_ips": {
+                "ELLIOTT.NS.CLOUDFLARE.COM": [],
+                "HERA.NS.CLOUDFLARE.COM": []
+              },
+              "nameservers": [
+                "ELLIOTT.NS.CLOUDFLARE.COM",
+                "HERA.NS.CLOUDFLARE.COM"
+              ],
+              "notices": [
+                {
+                  "description": [
+                    "Service subject to Terms of Use."
+                  ],
+                  "links": [
+                    "https://www.verisign.com/domain-names/registration-data-access-protocol/terms-service/index.xhtml"
+                  ],
+                  "title": "Terms of Service",
+                  "type": ""
+                },
+                {
+                  "description": [
+                    "For more information on domain status codes, please visit https://icann.org/epp"
+                  ],
+                  "links": [
+                    "https://icann.org/epp"
+                  ],
+                  "title": "Status Codes",
+                  "type": ""
+                },
+                {
+                  "description": [
+                    "URL of the ICANN RDDS Inaccuracy Complaint Form: https://icann.org/wicf"
+                  ],
+                  "links": [
+                    "https://icann.org/wicf"
+                  ],
+                  "title": "RDDS Inaccuracy Complaint Form",
+                  "type": ""
+                }
+              ],
+              "parent_handle": "",
+              "public_ids": [],
+              "redacted": [],
+              "registrar_url": "",
+              "registration_date": "1995-08-14T04:00:00.000000+0000",
+              "remarks": [],
+              "rir": "",
+              "status": [
+                "client delete prohibited",
+                "client transfer prohibited",
+                "client update prohibited"
+              ],
+              "terms_of_service_url": "https://www.verisign.com/domain-names/registration-data-access-protocol/terms-service/index.xhtml",
+              "type": "domain",
+              "unicode_name": "",
+              "url": "https://rdap.verisign.com/com/v1/domain/example.com",
+              "whois_server": ""
+            },
+            "rdap_raw_json": "{\"objectClassName\":\"domain\",\"handle\":\"2336799_DOMAIN_COM-VRSN\",\"ldhName\":\"EXAMPLE.COM\",\"links\":[{\"value\":\"https://rdap.verisign.com/com/v1/domain/example.com\",\"rel\":\"self\",\"href\":\"https://rdap.verisign.com/com/v1/domain/example.com\",\"type\":\"application/rdap+json\"}],\"status\":[\"client delete prohibited\",\"client transfer prohibited\",\"client update prohibited\"],\"entities\":[{\"objectClassName\":\"entity\",\"handle\":\"376\",\"roles\":[\"registrar\"],\"publicIds\":[{\"type\":\"IANA Registrar ID\",\"identifier\":\"376\"}],\"vcardArray\":[\"vcard\",[[\"version\",{},\"text\",\"4.0\"],[\"fn\",{},\"text\",\"RESERVED-Internet Assigned Numbers Authority\"]]],\"entities\":[{\"objectClassName\":\"entity\",\"roles\":[\"abuse\"],\"vcardArray\":[\"vcard\",[[\"version\",{},\"text\",\"4.0\"],[\"fn\",{},\"text\",\"\"],[\"tel\",{\"type\":\"voice\"},\"uri\",\"\"],[\"email\",{},\"text\",\"\"]]]}]}],\"events\":[{\"eventAction\":\"registration\",\"eventDate\":\"1995-08-14T04:00:00Z\"},{\"eventAction\":\"expiration\",\"eventDate\":\"2027-08-13T04:00:00Z\"},{\"eventAction\":\"last changed\",\"eventDate\":\"2026-08-14T08:01:43Z\"},{\"eventAction\":\"last update of RDAP database\",\"eventDate\":\"2026-11-02T15:28:17Z\"}],\"secureDNS\":{\"delegationSigned\":true,\"dsData\":[{\"keyTag\":2371,\"algorithm\":13,\"digestType\":2,\"digest\":\"C988EC423E3880EB8DD8A46FE06CA230EE23F35B578D64E78B29C3E1C83D245A\"}]},\"nameservers\":[{\"objectClassName\":\"nameserver\",\"ldhName\":\"ELLIOTT.NS.CLOUDFLARE.COM\"},{\"objectClassName\":\"nameserver\",\"ldhName\":\"HERA.NS.CLOUDFLARE.COM\"}],\"rdapConformance\":[\"rdap_level_0\",\"icann_rdap_technical_implementation_guide_1\",\"icann_rdap_response_profile_1\"],\"notices\":[{\"title\":\"Terms of Service\",\"description\":[\"Service subject to Terms of Use.\"],\"links\":[{\"href\":\"https://www.verisign.com/domain-names/registration-data-access-protocol/terms-service/index.xhtml\",\"type\":\"text/html\",\"value\":\"https://rdap.verisign.com/com/v1/domain/example.com\",\"rel\":\"terms-of-service\"}]},{\"title\":\"Status Codes\",\"description\":[\"For more information on domain status codes, please visit https://icann.org/epp\"],\"links\":[{\"href\":\"https://icann.org/epp\",\"type\":\"text/html\",\"value\":\"https://rdap.verisign.com/com/v1/domain/example.com\",\"rel\":\"glossary\"}]},{\"title\":\"RDDS Inaccuracy Complaint Form\",\"description\":[\"URL of the ICANN RDDS Inaccuracy Complaint Form: https://icann.org/wicf\"],\"links\":[{\"href\":\"https://icann.org/wicf\",\"type\":\"text/html\",\"value\":\"https://rdap.verisign.com/com/v1/domain/example.com\",\"rel\":\"help\"}]}]}",
+            "rdap_service_url": "https://rdap.verisign.com/com/v1/domain/example.com",
+            "registrar": "RESERVED-Internet Assigned Numbers Authority",
+            "whois_data": null,
+            "whois_raw_text": null
+          },
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "fqdn:forms.lure-example.net": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "fqdn_analyzer": {
+          "details": {
+            "aliaslist": [],
+            "all_resolutions": [],
+            "ip_address": null,
+            "mx": null,
+            "resolution_count": null,
+            "status": "nxdomain",
+            "wildcard_dns": null
+          },
+          "summary": "DNS Analysis: does not exist (nxdomain)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "proxy_domain_splunk": {
+          "details": {
+            "dispatch_state": "DONE",
+            "gui_link": null,
+            "query": "index=proxy hostname=\"forms.lure-example.net\"",
+            "query_results": [
+              {
+                "_time": "2026-10-30T14:02:11.000+00:00",
+                "dest_ip": "198.51.100.20",
+                "full_url": "https://www.example.com/login",
+                "src_ip": "192.0.2.10",
+                "src_translated_ip": "198.51.100.7",
+                "user": "alice@example.com"
+              },
+              {
+                "_time": "2026-10-30T14:05:42.000+00:00",
+                "dest_ip": "198.51.100.20",
+                "full_url": "http://www.example.com/",
+                "src_ip": "192.0.2.11",
+                "src_translated_ip": "198.51.100.7",
+                "user": "bob@example.com"
+              },
+              {
+                "_time": "2026-10-30T14:09:03.000+00:00",
+                "dest_ip": "198.51.100.21",
+                "full_url": "https://www.example.com/static/app.js",
+                "src_ip": "192.0.2.12"
+              }
+            ],
+            "query_summary": "Proxy correlation",
+            "question": "Was this domain seen in proxy logs?"
+          },
+          "summary": "Proxy correlation: (3 results)",
+          "tags": {}
+        },
+        "rdap_analyzer": {
+          "details": {
+            "assignment_type": null,
+            "country": null,
+            "datetime_created": null,
+            "datetime_expiration": null,
+            "datetime_of_last_update": null,
+            "domain_name": null,
+            "emails": null,
+            "ip_version": null,
+            "lookup_protocol": null,
+            "name_servers": null,
+            "network_cidr": null,
+            "network_name": null,
+            "not_found": null,
+            "rdap_attempt_error": "Failed to make a GET request to https://rdap.verisign.com/net/v1/domain/lure-example.net: nothing recorded for GET https://rdap.verisign.com/net/v1/domain/lure-example.net",
+            "rdap_data": null,
+            "rdap_raw_json": null,
+            "rdap_service_url": null,
+            "registrar": null,
+            "whois_data": null,
+            "whois_raw_text": null
+          },
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {
+        "domain_in_url": true
+      }
+    },
+    "fqdn:partner-example.org": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "fqdn_analyzer": {
+          "details": {
+            "aliaslist": [],
+            "all_resolutions": [],
+            "ip_address": null,
+            "mx": null,
+            "resolution_count": null,
+            "status": "nxdomain",
+            "wildcard_dns": null
+          },
+          "summary": "DNS Analysis: does not exist (nxdomain)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "proxy_domain_splunk": {
+          "details": {
+            "dispatch_state": "DONE",
+            "gui_link": null,
+            "query": "index=proxy hostname=\"partner-example.org\"",
+            "query_results": [
+              {
+                "_time": "2026-10-30T14:02:11.000+00:00",
+                "dest_ip": "198.51.100.20",
+                "full_url": "https://www.example.com/login",
+                "src_ip": "192.0.2.10",
+                "src_translated_ip": "198.51.100.7",
+                "user": "alice@example.com"
+              },
+              {
+                "_time": "2026-10-30T14:05:42.000+00:00",
+                "dest_ip": "198.51.100.20",
+                "full_url": "http://www.example.com/",
+                "src_ip": "192.0.2.11",
+                "src_translated_ip": "198.51.100.7",
+                "user": "bob@example.com"
+              },
+              {
+                "_time": "2026-10-30T14:09:03.000+00:00",
+                "dest_ip": "198.51.100.21",
+                "full_url": "https://www.example.com/static/app.js",
+                "src_ip": "192.0.2.12"
+              }
+            ],
+            "query_summary": "Proxy correlation",
+            "question": "Was this domain seen in proxy logs?"
+          },
+          "summary": "Proxy correlation: (3 results)",
+          "tags": {}
+        },
+        "rdap_analyzer": {
+          "details": {
+            "assignment_type": null,
+            "country": null,
+            "datetime_created": null,
+            "datetime_expiration": null,
+            "datetime_of_last_update": null,
+            "domain_name": null,
+            "emails": null,
+            "ip_version": null,
+            "lookup_protocol": null,
+            "name_servers": null,
+            "network_cidr": null,
+            "network_name": null,
+            "not_found": null,
+            "rdap_attempt_error": "Failed to make a GET request to https://rdap.publicinterestregistry.org/rdap/domain/partner-example.org: nothing recorded for GET https://rdap.publicinterestregistry.org/rdap/domain/partner-example.org",
+            "rdap_data": null,
+            "rdap_raw_json": null,
+            "rdap_service_url": null,
+            "registrar": null,
+            "whois_data": null,
+            "whois_raw_text": null
+          },
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "fqdn:portal.partner-example.org": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "fqdn_analyzer": {
+          "details": {
+            "aliaslist": [],
+            "all_resolutions": [],
+            "ip_address": null,
+            "mx": null,
+            "resolution_count": null,
+            "status": "nxdomain",
+            "wildcard_dns": null
+          },
+          "summary": "DNS Analysis: does not exist (nxdomain)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "proxy_domain_splunk": {
+          "details": {
+            "dispatch_state": "DONE",
+            "gui_link": null,
+            "query": "index=proxy hostname=\"portal.partner-example.org\"",
+            "query_results": [
+              {
+                "_time": "2026-10-30T14:02:11.000+00:00",
+                "dest_ip": "198.51.100.20",
+                "full_url": "https://www.example.com/login",
+                "src_ip": "192.0.2.10",
+                "src_translated_ip": "198.51.100.7",
+                "user": "alice@example.com"
+              },
+              {
+                "_time": "2026-10-30T14:05:42.000+00:00",
+                "dest_ip": "198.51.100.20",
+                "full_url": "http://www.example.com/",
+                "src_ip": "192.0.2.11",
+                "src_translated_ip": "198.51.100.7",
+                "user": "bob@example.com"
+              },
+              {
+                "_time": "2026-10-30T14:09:03.000+00:00",
+                "dest_ip": "198.51.100.21",
+                "full_url": "https://www.example.com/static/app.js",
+                "src_ip": "192.0.2.12"
+              }
+            ],
+            "query_summary": "Proxy correlation",
+            "question": "Was this domain seen in proxy logs?"
+          },
+          "summary": "Proxy correlation: (3 results)",
+          "tags": {}
+        },
+        "rdap_analyzer": {
+          "details": {
+            "assignment_type": null,
+            "country": null,
+            "datetime_created": null,
+            "datetime_expiration": null,
+            "datetime_of_last_update": null,
+            "domain_name": null,
+            "emails": null,
+            "ip_version": null,
+            "lookup_protocol": null,
+            "name_servers": null,
+            "network_cidr": null,
+            "network_name": null,
+            "not_found": null,
+            "rdap_attempt_error": "Failed to make a GET request to https://rdap.publicinterestregistry.org/rdap/domain/partner-example.org: nothing recorded for GET https://rdap.publicinterestregistry.org/rdap/domain/partner-example.org",
+            "rdap_data": null,
+            "rdap_raw_json": null,
+            "rdap_service_url": null,
+            "registrar": null,
+            "whois_data": null,
+            "whois_raw_text": null
+          },
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {
+        "domain_in_url": true
+      }
+    },
+    "fqdn:www.partner-example.org": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "fqdn_analyzer": {
+          "details": {
+            "aliaslist": [],
+            "all_resolutions": [],
+            "ip_address": null,
+            "mx": null,
+            "resolution_count": null,
+            "status": "nxdomain",
+            "wildcard_dns": null
+          },
+          "summary": "DNS Analysis: does not exist (nxdomain)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "proxy_domain_splunk": {
+          "details": {
+            "dispatch_state": "DONE",
+            "gui_link": null,
+            "query": "index=proxy hostname=\"www.partner-example.org\"",
+            "query_results": [
+              {
+                "_time": "2026-10-30T14:02:11.000+00:00",
+                "dest_ip": "198.51.100.20",
+                "full_url": "https://www.example.com/login",
+                "src_ip": "192.0.2.10",
+                "src_translated_ip": "198.51.100.7",
+                "user": "alice@example.com"
+              },
+              {
+                "_time": "2026-10-30T14:05:42.000+00:00",
+                "dest_ip": "198.51.100.20",
+                "full_url": "http://www.example.com/",
+                "src_ip": "192.0.2.11",
+                "src_translated_ip": "198.51.100.7",
+                "user": "bob@example.com"
+              },
+              {
+                "_time": "2026-10-30T14:09:03.000+00:00",
+                "dest_ip": "198.51.100.21",
+                "full_url": "https://www.example.com/static/app.js",
+                "src_ip": "192.0.2.12"
+              }
+            ],
+            "query_summary": "Proxy correlation",
+            "question": "Was this domain seen in proxy logs?"
+          },
+          "summary": "Proxy correlation: (3 results)",
+          "tags": {}
+        },
+        "rdap_analyzer": {
+          "details": {
+            "assignment_type": null,
+            "country": null,
+            "datetime_created": null,
+            "datetime_expiration": null,
+            "datetime_of_last_update": null,
+            "domain_name": null,
+            "emails": null,
+            "ip_version": null,
+            "lookup_protocol": null,
+            "name_servers": null,
+            "network_cidr": null,
+            "network_name": null,
+            "not_found": null,
+            "rdap_attempt_error": "Failed to make a GET request to https://rdap.publicinterestregistry.org/rdap/domain/partner-example.org: nothing recorded for GET https://rdap.publicinterestregistry.org/rdap/domain/partner-example.org",
+            "rdap_data": null,
+            "rdap_raw_json": null,
+            "rdap_service_url": null,
+            "registrar": null,
+            "whois_data": null,
+            "whois_raw_text": null
+          },
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {
+        "domain_in_url": true
+      }
+    },
+    "ip:192.0.2.10": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "network_identifier": {
+          "details": {
+            "identified_networks": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "message_id:<lure_thread@partner-example.org>": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "message_id_analyzer_v2": true
+      },
+      "relationships": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "signature_id:2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a04": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "uri_path:/about": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "uri_path:/first": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "uri_path:/older": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "uri_path:/remit": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "url:https://forms.lure-example.net/remit": {
+      "detections": {},
+      "directives": {
+        "crawl": true
+      },
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "parse_url": {
+          "details": {
+            "fragment": "",
+            "netloc": "forms.lure-example.net",
+            "params": null,
+            "path": "/remit",
+            "query": "",
+            "scheme": "https"
+          },
+          "summary": "URL Parser: scheme=https, netloc=forms.lure-example.net, path=/remit",
+          "tags": {}
+        },
+        "protected_url_analyzer": {
+          "details": {
+            "extracted_url": "https://forms.lure-example.net/remit",
+            "protection_type": "unprotected"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "url:https://portal.partner-example.org/first": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "parse_url": {
+          "details": {
+            "fragment": "",
+            "netloc": "portal.partner-example.org",
+            "params": null,
+            "path": "/first",
+            "query": "",
+            "scheme": "https"
+          },
+          "summary": "URL Parser: scheme=https, netloc=portal.partner-example.org, path=/first",
+          "tags": {}
+        },
+        "protected_url_analyzer": {
+          "details": {
+            "extracted_url": "https://portal.partner-example.org/first",
+            "protection_type": "unprotected"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "url:https://portal.partner-example.org/older": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "parse_url": {
+          "details": {
+            "fragment": "",
+            "netloc": "portal.partner-example.org",
+            "params": null,
+            "path": "/older",
+            "query": "",
+            "scheme": "https"
+          },
+          "summary": "URL Parser: scheme=https, netloc=portal.partner-example.org, path=/older",
+          "tags": {}
+        },
+        "protected_url_analyzer": {
+          "details": {
+            "extracted_url": "https://portal.partner-example.org/older",
+            "protection_type": "unprotected"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "url:https://www.partner-example.org/about": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "parse_url": {
+          "details": {
+            "fragment": "",
+            "netloc": "www.partner-example.org",
+            "params": null,
+            "path": "/about",
+            "query": "",
+            "scheme": "https"
+          },
+          "summary": "URL Parser: scheme=https, netloc=www.partner-example.org, path=/about",
+          "tags": {}
+        },
+        "protected_url_analyzer": {
+          "details": {
+            "extracted_url": "https://www.partner-example.org/about",
+            "protection_type": "unprotected"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "yara_rule:detect_fqdn": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "yara_string:detect_fqdn:$obsd_1": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    }
+  }
+}

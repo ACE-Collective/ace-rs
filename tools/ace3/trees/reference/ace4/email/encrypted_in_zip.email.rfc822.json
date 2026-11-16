@@ -260,12 +260,11 @@
       "results": {
         "exif": {
           "details": {
-            "error": null,
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files/invoice.zip.extracted",
-              "File:FileAccessDate": "2026:11:11 08:46:45+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 08:46:45+00:00",
+              "File:FileAccessDate": "2026:11:16 13:42:26+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 13:42:26+00:00",
               "File:FileModifyDate": "2020:01:01 00:00:00+00:00",
               "File:FileName": "invoice.docm",
               "File:FilePermissions": 100664,
@@ -313,7 +312,6 @@
             "email": true,
             "email_body": "The password is Secr3tPw\n\n",
             "encryption_info": null,
-            "error": null,
             "password": "Secr3tPw",
             "word_list": [
               "VelvetSweatshop",
@@ -396,6 +394,39 @@
         "microsoft_office": true,
         "ole": true
       }
+    },
+    "file:0e286ac2da05218e1067514254c6eab8932a634d8a69f77ef625ba7b52f00819": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "invoice.zip.extracted/invoice.docm.decrypted.extracted/word/vbaProject.bin.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:170b804293599496c29d816cfe408adc5a99e767eb930b0c0cf9e7db62436abe": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
     },
     "file:12a0a7e9f539918733631abe055783d2ce6558701e30a19320340539195c917f": {
       "detections": {},
@@ -622,12 +653,11 @@
         },
         "exif": {
           "details": {
-            "error": null,
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files/invoice.zip.extracted/invoice.docm.decrypted.extracted/word",
-              "File:FileAccessDate": "2026:11:11 08:46:48+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 08:46:47+00:00",
+              "File:FileAccessDate": "2026:11:16 13:42:29+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 13:42:29+00:00",
               "File:FileModifyDate": "1980:01:01 00:00:00+00:00",
               "File:FileName": "vbaProject.bin",
               "File:FilePermissions": 100664,
@@ -1098,39 +1128,6 @@
       },
       "tags": {}
     },
-    "file:35f166ad4d78c48454e55cc2517170cac940303f5780063aa5ca21d3261b9543": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "invoice.zip.extracted/invoice.docm.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:0587627f0391dcbb29925b0c90a7640f7286b4dca8240d81d61756c8f648acf4": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:43751adf9ac51068433257aa7d11179871d2d1fa1c6dfeff928e1e45527b8dcb": {
       "detections": {},
       "directives": {
@@ -1150,7 +1147,6 @@
             "extracted_files": [
               "invoice.docm"
             ],
-            "extraction_error": null,
             "file_count": 1
           },
           "summary": "Archive Analysis: extracted 1 of 1 files: (invoice.docm)",
@@ -1265,7 +1261,6 @@
               "word/_rels/document.xml.rels",
               "_rels/.rels"
             ],
-            "extraction_error": null,
             "file_count": 19
           },
           "summary": "Archive Analysis: extracted 19 of 19 files: ([Content_Types].xml, docProps/core.xml, docProps/app.xml, customXml/itemProps1.xml, customXml/item1.xml, word/stylesWithEffects.xml, word/fontTable.xml, word/styles.xml, word/webSettings.xml, word/vbaData.xml, word/settings.xml, word/document.xml, word/theme/theme1.xml, customXml/_rels/item1.xml.rels, word/vbaProject.bin, word/media/image1.png, word/_rels/vbaProject.bin.rels, word/_rels/document.xml.rels, _rels/.rels)",
@@ -1278,13 +1273,12 @@
         },
         "exif": {
           "details": {
-            "error": null,
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files/invoice.zip.extracted",
-              "File:FileAccessDate": "2026:11:11 08:46:46+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 08:46:46+00:00",
-              "File:FileModifyDate": "2026:11:11 08:46:46+00:00",
+              "File:FileAccessDate": "2026:11:16 13:42:28+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 13:42:28+00:00",
+              "File:FileModifyDate": "2026:11:16 13:42:28+00:00",
               "File:FileName": "invoice.docm.decrypted",
               "File:FilePermissions": 100666,
               "File:FileSize": 73622,
@@ -1463,39 +1457,6 @@
         "xml_plain_text_analyzer": {
           "details": {
             "xml_plain_text": null
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
-    "file:56b3a7df1af7be4b648a0c1ecff96fa384fc1630981619a3d851d9c5c3a52051": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "invoice.zip.extracted/invoice.docm.decrypted.extracted/word/vbaProject.bin.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:170b804293599496c29d816cfe408adc5a99e767eb930b0c0cf9e7db62436abe": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
           },
           "summary": null,
           "tags": {}
@@ -1878,6 +1839,39 @@
         "xml_plain_text_analyzer": {
           "details": {
             "xml_plain_text": null
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:79eb9751b5cfce5678ebed957f038642c059f6b2a5ba299a6ffc88f4f5924c80": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "invoice.zip.extracted/invoice.docm.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:0587627f0391dcbb29925b0c90a7640f7286b4dca8240d81d61756c8f648acf4": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}
@@ -3015,39 +3009,6 @@
       },
       "tags": {}
     },
-    "file:e9e5031222cf6e8b261d0be4de9f49f8b826fc254936ecd797619e9d31b33a33": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "invoice.zip.extracted/invoice.docm.decrypted.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:45cca7fd63944ca6b6ea4e4669078cf3520b3896956c183c9bfd0fb3d0bfaf4f": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:ec55cb31ea208e140a89273705526998ca43f2b941cb2661777ef5600a2e7a44": {
       "detections": {},
       "directives": {},
@@ -3302,6 +3263,39 @@
         "email": true
       }
     },
+    "file:f8a35c6fb024d532d918ff82709557e0a6ef6f9722f1c76574a7108a4118a17c": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "invoice.zip.extracted/invoice.docm.decrypted.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:45cca7fd63944ca6b6ea4e4669078cf3520b3896956c183c9bfd0fb3d0bfaf4f": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:fa3dd0df675472dd0c5d9fbc52513e3ca6b9014148d1e76b9c07aaeb907cd821": {
       "detections": {},
       "directives": {
@@ -3452,7 +3446,6 @@
             "dispatch_state": "DONE",
             "gui_link": null,
             "query": "index=proxy hostname=\"example.com\"",
-            "query_error": null,
             "query_results": [
               {
                 "_time": "2026-10-30T14:02:11.000+00:00",
@@ -3492,7 +3485,6 @@
             "datetime_of_last_update": "2026-08-14 08:01:43+00:00",
             "domain_name": "EXAMPLE.COM",
             "emails": [],
-            "error": null,
             "ip_version": null,
             "lookup_protocol": "rdap",
             "name_servers": [
@@ -3501,6 +3493,7 @@
             ],
             "network_cidr": null,
             "network_name": null,
+            "not_found": null,
             "rdap_attempt_error": null,
             "rdap_data": {
               "copyright_notice": "",

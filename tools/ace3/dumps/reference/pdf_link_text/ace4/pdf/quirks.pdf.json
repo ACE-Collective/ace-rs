@@ -1,0 +1,36 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "37a765bf",
+  "also_enabled": [],
+  "analyses": [],
+  "input": {
+    "directives": [],
+    "label": "ace4/pdf/quirks.pdf",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "quirks.pdf",
+      "size": 1136,
+      "type": "file",
+      "value": "01940d8e00316615efbbc86cc54902f0afb11fee57536db4f908c1c0fbda3aa4"
+    }
+  },
+  "module": "pdf_link_text",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "quirks.pdf",
+    "relationships": [],
+    "size": 1136,
+    "tags": [],
+    "type": "file",
+    "value": "01940d8e00316615efbbc86cc54902f0afb11fee57536db4f908c1c0fbda3aa4",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

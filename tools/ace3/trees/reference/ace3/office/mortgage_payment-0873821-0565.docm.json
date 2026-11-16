@@ -217,12 +217,11 @@
       "results": {
         "exif": {
           "details": {
-            "error": null,
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files/mortgage_payment-0873821-0565.docm.extracted/word",
-              "File:FileAccessDate": "2026:11:11 08:44:08+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 08:44:07+00:00",
+              "File:FileAccessDate": "2026:11:16 13:39:26+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 13:39:26+00:00",
               "File:FileModifyDate": "1980:01:01 00:00:00+00:00",
               "File:FileName": "vbaProject.bin",
               "File:FilePermissions": 100664,
@@ -729,7 +728,6 @@
               "word/_rels/document.xml.rels",
               "_rels/.rels"
             ],
-            "extraction_error": null,
             "file_count": 19
           },
           "summary": "Archive Analysis: extracted 19 of 19 files: ([Content_Types].xml, docProps/core.xml, docProps/app.xml, customXml/itemProps1.xml, customXml/item1.xml, word/stylesWithEffects.xml, word/fontTable.xml, word/styles.xml, word/webSettings.xml, word/vbaData.xml, word/settings.xml, word/document.xml, word/theme/theme1.xml, customXml/_rels/item1.xml.rels, word/vbaProject.bin, word/media/image1.png, word/_rels/vbaProject.bin.rels, word/_rels/document.xml.rels, _rels/.rels)",
@@ -737,13 +735,12 @@
         },
         "exif": {
           "details": {
-            "error": null,
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 08:44:06+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 08:44:06+00:00",
-              "File:FileModifyDate": "2026:11:06 19:20:07+00:00",
+              "File:FileAccessDate": "2026:11:16 13:39:25+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 13:39:25+00:00",
+              "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "mortgage_payment-0873821-0565.docm",
               "File:FilePermissions": 100644,
               "File:FileSize": 73622,
@@ -1187,7 +1184,40 @@
       },
       "tags": {}
     },
-    "file:749663030882cbae0aa6d49acb7a0e7ea57945a7bd70237ad0e6dc3b469624d8": {
+    "file:7690b663c12b6ce89cd0119475152ab102bdd081c62f0b84f82f78b43cec88ea": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "mortgage_payment-0873821-0565.docm.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:45cca7fd63944ca6b6ea4e4669078cf3520b3896956c183c9bfd0fb3d0bfaf4f": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:769e6185c02475ff21ecfe67b13cbd508aed7456601ea078c80abc7ee4ca47e5": {
       "detections": {},
       "directives": {},
       "excluded_analysis": {
@@ -1401,39 +1431,6 @@
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
-    "file:8bfd76ba11791101d4bd5d977845efd2c325a4a8b5c740782b9887bfb9c4395b": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "mortgage_payment-0873821-0565.docm.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:45cca7fd63944ca6b6ea4e4669078cf3520b3896956c183c9bfd0fb3d0bfaf4f": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
           },
           "summary": null,
           "tags": {}

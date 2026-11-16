@@ -1,39 +1,6 @@
 {
   "form": 1,
   "observables": {
-    "file:0a562a7fb811d08c9bf08c9bb42ddb25b915c6b4126179365ec658e4de0aaf6f": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "edge_objects.rtf.rtfobj/edge_objects.rtf_object_0000047E.doc.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:b5c6d9e6193925ff9fe61706dcedca703f5b983e3ae9a0170c9b1f4e72bb9c7a": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:17295f282c71aae4068ef27c0251e468cefbfe45955fd8b5f9310c9958299334": {
       "detections": {},
       "directives": {},
@@ -314,13 +281,12 @@
       "results": {
         "exif": {
           "details": {
-            "error": null,
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files/edge_objects.rtf.rtfobj",
-              "File:FileAccessDate": "2026:11:11 09:39:12+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 09:39:12+00:00",
-              "File:FileModifyDate": "2026:11:11 09:39:12+00:00",
+              "File:FileAccessDate": "2026:11:16 15:07:59+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 15:07:59+00:00",
+              "File:FileModifyDate": "2026:11:16 15:07:59+00:00",
               "File:FileName": "edge_objects.rtf_object_000018EF.bin",
               "File:FilePermissions": 100666,
               "File:FileSize": 2560,
@@ -604,6 +570,39 @@
         "extracted_rtf": true
       }
     },
+    "file:36be17e6d69463dbefe430cdeef120bcdab95043c6d148c8e450600d88d944b5": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "edge_objects.rtf.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:82604257d8761eea937b4f4bd0af298cff24b76a80d483dcc8f45abd236ad3c8": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:3e23e8160039594a33894f6564e1b1348bbd7a0088d42c4acb73eeaed59c009d": {
       "detections": {},
       "directives": {
@@ -753,7 +752,6 @@
             "extracted_files": [
               "a.txt"
             ],
-            "extraction_error": null,
             "file_count": 1
           },
           "summary": "Archive Analysis: extracted 1 of 1 files: (a.txt)",
@@ -940,39 +938,6 @@
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
-    "file:73934a5e7c10ec262cfb3a9f8ca374467fa0ff5aea1af10b4fa12ec3b07d30e6": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "edge_objects.rtf.rtfobj/edge_objects.rtf_object_000018EF.bin.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:2435de8f3a91f59c8529adb3784b3f1cad0b3f6a5f9b28a4c21fa1fba1cfe89d": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
           },
           "summary": null,
           "tags": {}
@@ -1364,13 +1329,12 @@
         },
         "exif": {
           "details": {
-            "error": null,
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 09:39:11+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 09:39:11+00:00",
-              "File:FileModifyDate": "2026:11:07 15:11:53+00:00",
+              "File:FileAccessDate": "2026:11:16 15:07:59+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 15:07:59+00:00",
+              "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "edge_objects.rtf",
               "File:FilePermissions": 100644,
               "File:FileSize": 12588,
@@ -1751,13 +1715,12 @@
       "results": {
         "exif": {
           "details": {
-            "error": null,
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files/edge_objects.rtf.rtfobj",
-              "File:FileAccessDate": "2026:11:11 09:39:12+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 09:39:12+00:00",
-              "File:FileModifyDate": "2026:11:11 09:39:12+00:00",
+              "File:FileAccessDate": "2026:11:16 15:07:59+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 15:07:59+00:00",
+              "File:FileModifyDate": "2026:11:16 15:07:59+00:00",
               "File:FileName": "edge_objects.rtf_object_0000047E.doc",
               "File:FilePermissions": 100666,
               "File:FileSize": 2560,
@@ -1908,39 +1871,6 @@
       "tags": {
         "extracted_rtf": true
       }
-    },
-    "file:bd08aef6bbef7adf99d0edb21167cf7e273429a74573ddaa12ea599699211ee3": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "edge_objects.rtf.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:82604257d8761eea937b4f4bd0af298cff24b76a80d483dcc8f45abd236ad3c8": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
     },
     "file:c386b2466b57dce9af51c86398a717b0c7e362177a9a944d22d39335364db23e": {
       "detections": {},
@@ -2197,6 +2127,39 @@
         "extracted_rtf": true
       }
     },
+    "file:eea20fea830b6f5dcf877d328f057a5c727b5c99bc0b34944618564acd20c8fa": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "edge_objects.rtf.rtfobj/edge_objects.rtf_object_000018EF.bin.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:2435de8f3a91f59c8529adb3784b3f1cad0b3f6a5f9b28a4c21fa1fba1cfe89d": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:f6ec312f2b758eaffd109c48a179b8532f4aea06983f17e7dc653278e4df44a6": {
       "detections": {},
       "directives": {},
@@ -2394,6 +2357,39 @@
       "tags": {
         "extracted_rtf": true
       }
+    },
+    "file:ffc19ba63a8b1f3b46eecb617b1dac4fd52f2575429e7a4ec981e3112c3cc64e": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "edge_objects.rtf.rtfobj/edge_objects.rtf_object_0000047E.doc.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:b5c6d9e6193925ff9fe61706dcedca703f5b983e3ae9a0170c9b1f4e72bb9c7a": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
     },
     "md5:17c0961397db9cf240a2c94c04e7fef5": {
       "detections": {},

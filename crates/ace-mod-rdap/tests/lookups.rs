@@ -27,7 +27,7 @@ fn harness(replay: &HttpReplay) -> Harness<RdapAnalyzer> {
 }
 
 #[tokio::test]
-async fn a_domain_the_registry_doesnt_know_is_an_error_without_a_fallback() {
+async fn a_domain_the_registry_doesnt_know_is_an_answer_without_a_fallback() {
     let replay = replay().await;
     let harness = harness(&replay);
     // the replay answers 404 for anything it has no recording of
@@ -38,16 +38,18 @@ async fn a_domain_the_registry_doesnt_know_is_an_error_without_a_fallback() {
     let Outcome::Done(result) = outcome else {
         panic!("expected a result");
     };
-    let error = result.details.error.as_deref().expect("an error");
+    // ace3's `not_found`, an answer rather than an error since its 2b9fcd2c
+    let answer = result.details.not_found.as_deref().expect("an answer");
     assert!(
-        error.starts_with("rdap: domain not found: RDAP GET request to "),
-        "{error}"
+        answer.starts_with("rdap: domain not found: RDAP GET request to "),
+        "{answer}"
     );
     assert!(
-        error
+        answer
             .ends_with("no-such-domain-here.com returned a 404 error, the resource does not exist"),
-        "{error}"
+        "{answer}"
     );
+    assert_eq!(result.details.error, None);
     assert_eq!(result.details.lookup_protocol, None);
     assert_eq!(result.details.rdap_attempt_error, None);
     assert_eq!(
@@ -58,7 +60,7 @@ async fn a_domain_the_registry_doesnt_know_is_an_error_without_a_fallback() {
         result
             .summary
             .expect("a summary")
-            .starts_with("RDAP Analysis: error: rdap: domain not found")
+            .starts_with("RDAP Analysis: rdap: domain not found")
     );
 }
 
@@ -88,6 +90,7 @@ async fn a_tld_without_rdap_records_the_rdap_error() {
         result.details.error.as_deref(),
         Some(format!("rdap: {attempt}").as_str())
     );
+    assert_eq!(result.details.not_found, None);
     assert_eq!(replay.requested(), ["https://data.iana.org/rdap/dns.json"]);
 }
 

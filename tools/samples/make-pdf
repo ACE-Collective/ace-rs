@@ -450,6 +450,187 @@ def broken():
     }
 
 
+FONT = b"/Resources<</Font<</F1<</Type/Font/Subtype/Type1/BaseFont/Helvetica>>>>>>"
+
+
+def text_stream(lines, size=12):
+    """A content stream that draws each (x, y, text) in Helvetica, y from the bottom of the page."""
+    return b"".join(b"BT /F1 %d Tf %d %d Td (%s) Tj ET\n" % (size, x, y, text) for x, y, text in lines)
+
+
+def text_link(uri, rect, extra=b""):
+    return b"<</Type/Annot/Subtype/Link/Rect" + rect + extra + b"/A<</S/URI/URI(" + uri + b")>>>>"
+
+
+def pages(specs, tree=b"", extra=None):
+    """A file of pages, each (page dictionary entries, content stream bytes), under one /Pages with
+    `tree`'s entries, which the pages inherit. `extra` is more objects, by number, past the pages'."""
+    kids = b" ".join(b"%d 0 R" % (3 + 2 * i) for i in range(len(specs)))
+    objects = {
+        1: b"<</Type/Catalog/Pages 2 0 R>>",
+        2: b"<</Type/Pages/Kids[" + kids + b"]/Count %d" % len(specs) + tree + b">>",
+    }
+    for i, (entries, content) in enumerate(specs):
+        objects[3 + 2 * i] = b"<</Type/Page/Parent 2 0 R" + FONT + entries + b"/Contents %d 0 R>>" % (4 + 2 * i)
+        objects[4 + 2 * i] = stream(content)
+    objects.update(extra or {})
+    return pdf(objects)
+
+
+LETTER = b"/MediaBox[0 0 612 792]"
+INVOICE = [(72, 700, b"Your invoice is ready."), (72, 680, b"View invoice online"), (72, 640, b"Questions? Contact billing")]
+
+
+def link_text_samples():
+    """PDFs for ace3's PDFLinkTextAnalyzer (pdf_link_text), which places the words of `pdftotext -bbox`
+    under each link annotation's /Rect: the text under a link, a link beside its line's text, one over
+    nothing, /Contents, pages past the third and rotated ones, media boxes that are inherited, away from
+    the origin or unreadable, boxes that aren't four numbers, repeated annotations, more links than are
+    recorded, a page of too many words, a box over too many lines, and what ends the read."""
+    # poppler 25.03.0 gives a page about 50,000 characters of text, spaces among them, so only words of
+    # one letter reach max_page_words: these 30,000 come out as about 25,100
+    crowded = b"BT /F1 2 Tf 2 TL 10 780 Td\n" + b"".join(
+        b"(" + b" ".join(b"abcdefghij"[(line + i) % 10 : (line + i) % 10 + 1] for i in range(100)) + b") Tj T*\n"
+        for line in range(300)
+    ) + b"ET\n"
+    band = b"BT /F1 4 Tf 5 TL 20 700 Td\n" + b"".join(
+        b"(" + b" ".join(b"b%d" % (line * 40 + i) for i in range(40)) + b") Tj T*\n" for line in range(15)
+    ) + b"ET\n"
+    return {
+        # the words under the box, a box beside its line's words, a box over nothing with /Contents and
+        # without, one annotation twice, and one URL under a second box
+        "link_text.pdf": pages([(
+            LETTER + b"/Annots["
+            + text_link(b"https://example.com/invoice", b"[70 676 180 692]")
+            + text_link(b"https://example.com/beside", b"[400 676 500 692]")
+            + text_link(b"https://example.com/contents", b"[400 300 500 316]", b"/Contents(  Pay now  )")
+            + text_link(b"https://example.com/nothing", b"[400 200 500 216]")
+            + text_link(b"https://example.com/invoice", b"[70 676 180 692]")
+            + text_link(b"https://example.com/invoice", b"[70 636 130 652]", b"/Contents(kept when words are found?)")
+            + b"7 0 R 7 0 R]",
+            text_stream(INVOICE),
+        )], extra={7: text_link(b"https://example.com/indirect", b"[130 636 250 652]")}),
+        # one link, under words that ask for a click: the email samples attach it
+        "link_text_single.pdf": pages([(
+            LETTER + b"/Annots[" + text_link(b"https://docs.lure-example.net/bid/4471", b"[70 676 200 692]") + b"]",
+            text_stream([(72, 700, b"Bid documents for project 4471"), (72, 680, b"Review bid documents")]),
+        )]),
+        # five pages: the box turned around on a page whose media box is inherited and away from the
+        # origin, a rotated page, the third page, the fourth, which gets /Contents only, and a /Rotate
+        # of a whole turn and a half degree, which is none
+        "link_text_pages.pdf": pages(
+            [
+                (b"/Annots[" + text_link(b"https://example.com/p1", b"[280 792 170 776]") + b"]",
+                 text_stream([(172, 780, b"Open page one")])),
+                (b"/Rotate 90/Annots[" + text_link(b"https://example.com/p2", b"[170 776 280 792]", b"/Contents(Rotated)") + b"]",
+                 text_stream([(172, 780, b"Open page two")])),
+                (b"/Rotate 360.5/Annots[" + text_link(b"https://example.com/p3", b"[170 776 280 792]") + b"]",
+                 text_stream([(172, 780, b"Open page three")])),
+                (b"/Annots[" + text_link(b"https://example.com/p4", b"[170 776 280 792]", b"/Contents(Page four)")
+                 + text_link(b"https://example.com/p4-bare", b"[170 776 280 792]") + b"]",
+                 text_stream([(172, 780, b"Open page four")])),
+                (b"/Rotate -90.5/Annots[" + text_link(b"https://example.com/p5", b"[170 776 280 792]") + b"]",
+                 text_stream([(172, 780, b"Open page five")])),
+            ],
+            tree=b"/MediaBox[100 100 712 892]",
+        ),
+        # only a link past the third page: pdftotext isn't run
+        "link_text_late_page.pdf": pages([
+            (LETTER, text_stream(INVOICE)), (LETTER, text_stream(INVOICE)), (LETTER, text_stream(INVOICE)),
+            (LETTER + b"/Annots[" + text_link(b"https://example.com/late", b"[70 676 180 692]") + b"]", text_stream(INVOICE)),
+        ]),
+        # boxes that aren't four numbers keep their links without text; a boolean is a number to Python
+        "link_text_rects.pdf": pages([(
+            LETTER + b"/Annots["
+            + text_link(b"https://example.com/string-item", b"[(70) 676 180 692]", b"/Contents(a string in the box)")
+            + text_link(b"https://example.com/three", b"[70 676 180]")
+            + text_link(b"https://example.com/five", b"[70 676 180 692 1]")
+            + text_link(b"https://example.com/null-item", b"[null 676 180 692]")
+            + text_link(b"https://example.com/name", b"/Box")
+            + text_link(b"https://example.com/dictionary", b"<</A 70>>")
+            + text_link(b"https://example.com/integer", b" 70")
+            + b"<</Type/Annot/Subtype/Link/A<</S/URI/URI(https://example.com/none)>>>>"
+            + text_link(b"https://example.com/boolean", b"[true 676 180 692]")
+            + text_link(b"https://example.com/reals", b"[70. 676.5 +180 692.25]")
+            + text_link(b"https://example.com/indirect-item", b"[8 0 R 676 180 692]")
+            + b"]",
+            text_stream(INVOICE),
+        )], extra={8: b"70"}),
+        # /Contents that isn't a string, as pikepdf's str() writes it
+        "link_text_contents.pdf": pages([(
+            LETTER + b"/Annots["
+            + text_link(b"https://example.com/name", b"[400 300 500 316]", b"/Contents/Name")
+            + text_link(b"https://example.com/integer", b"[400 280 500 296]", b"/Contents 0")
+            + text_link(b"https://example.com/real", b"[400 260 500 276]", b"/Contents 1.50")
+            + text_link(b"https://example.com/boolean", b"[400 240 500 256]", b"/Contents false")
+            + text_link(b"https://example.com/array", b"[400 220 500 236]", b"/Contents[(a)(b)]")
+            + text_link(b"https://example.com/empty", b"[400 200 500 216]", b"/Contents( )")
+            + text_link(b"https://example.com/utf16", b"[400 180 500 196]", b"/Contents<FEFF004F00700065006E00A0>")
+            + text_link(b"https://example.com/long", b"[400 160 500 176]", b"/Contents(" + b"long " * 60 + b")")
+            + text_link(b" https://example.com/spaced ", b"[400 140 500 156]", b"/Contents(spaces around the URL)")
+            + b"]",
+            text_stream(INVOICE),
+        )]),
+        # media boxes pikepdf can't read are US Letter; one written from its far corner is kept
+        "link_text_mediabox.pdf": pages([
+            (b"/MediaBox[0 0 612]/Annots[" + text_link(b"https://example.com/three-numbers", b"[70 676 180 692]") + b"]",
+             text_stream(INVOICE)),
+            (b"/MediaBox/None/Annots[" + text_link(b"https://example.com/name", b"[70 676 180 692]") + b"]",
+             text_stream(INVOICE)),
+            (b"/MediaBox[612 792 0 0]/Annots[" + text_link(b"https://example.com/turned", b"[70 676 180 692]") + b"]",
+             text_stream(INVOICE)),
+        ]),
+        # 250 links on one line, each its own box, of which 200 are recorded, and one annotation 300
+        # times. They share ten URLs: url_extraction adds 12 of a file's URLs, by an order ace3 takes
+        # from Python's string hashing, so more than 12 would be 12 others on each side
+        "link_text_many.pdf": pages([(
+            LETTER + b"/Annots["
+            + b"".join(text_link(b"https://example.com/many/%d" % (i % 10), b"[%d 676 %d 692]" % (70 + i, 71 + i)) for i in range(250))
+            + b"5 0 R " * 300 + b"]",
+            text_stream(INVOICE),
+        )], extra={5: text_link(b"https://example.com/many/0", b"[70 676 71 692]")}),
+        # about 25,100 words on the first page, which isn't placed, and a box over 600 words on the second
+        "link_text_crowded.pdf": pages([
+            (LETTER + b"/Annots[" + text_link(b"https://example.com/crowded", b"[10 770 200 790]", b"/Contents(Crowded)") + b"]",
+             crowded),
+            (LETTER + b"/Annots[" + text_link(b"https://example.com/band", b"[20 620 590 705]")
+             + text_link(b"https://example.com/one-line", b"[20 698 60 704]") + b"]",
+             band),
+        ]),
+        # what ends ace3's read of the links, so there is no analysis: a /Rotate that isn't a number
+        "link_text_rotate_name.pdf": pages([(
+            LETTER + b"/Rotate/Quarter/Annots[" + text_link(b"https://example.com/rotate", b"[70 676 180 692]") + b"]",
+            text_stream(INVOICE),
+        )]),
+        # an integer past 64 bits in a box
+        "link_text_huge_integer.pdf": pages([(
+            LETTER + b"/Annots[" + text_link(b"https://example.com/huge", b"[99999999999999999999999999 676 180 692]") + b"]",
+            text_stream(INVOICE),
+        )]),
+        # a real of 400 digits is an infinite float, and the box it is in matches nothing
+        "link_text_huge_real.pdf": pages([(
+            LETTER + b"/Annots[" + text_link(b"https://example.com/huge", b"[" + b"9" * 400 + b".5 676 180 692]")
+            + text_link(b"https://example.com/placed", b"[70 676 180 692]") + b"]",
+            text_stream(INVOICE),
+        )]),
+        # libqpdf counts the page tree's kids and poppler trusts /Count, so the link is on a page
+        # pdftotext says the file doesn't have, and it exits 99
+        "link_text_page_count.pdf": pdf({
+            1: b"<</Type/Catalog/Pages 2 0 R>>",
+            2: b"<</Type/Pages/Kids[5 0 R 3 0 R]/Count 1>>",
+            3: b"<</Type/Page/Parent 2 0 R" + LETTER + FONT + b"/Contents 4 0 R/Annots["
+               + text_link(b"https://example.com/second-page", b"[70 676 180 692]", b"/Contents(On a page poppler lacks)") + b"]>>",
+            4: stream(text_stream(INVOICE)),
+            5: b"<</Type/Page/Parent 2 0 R" + LETTER + b">>",
+        }),
+        # a page with nothing to place
+        "link_text_no_text.pdf": pages([(
+            LETTER + b"/Annots[" + text_link(b"https://example.com/image-only", b"[70 676 180 692]", b"/Contents(Scanned page)") + b"]",
+            b"q 100 0 0 100 72 600 cm Q\n",
+        )]),
+    }
+
+
 def make(directory):
     samples = {
         "uris.pdf": URIS,
@@ -459,6 +640,7 @@ def make(directory):
         **encrypted_samples(),
         **type_confusions(),
         **broken(),
+        **link_text_samples(),
     }
     directory.mkdir(parents=True, exist_ok=True)
     for name, data in samples.items():

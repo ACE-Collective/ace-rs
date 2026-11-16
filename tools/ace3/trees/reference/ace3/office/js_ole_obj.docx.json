@@ -155,12 +155,11 @@
       "results": {
         "exif": {
           "details": {
-            "error": null,
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files/js_ole_obj.docx.extracted/word/embeddings",
-              "File:FileAccessDate": "2026:11:11 08:44:00+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 08:43:58+00:00",
+              "File:FileAccessDate": "2026:11:16 13:39:18+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 13:39:13+00:00",
               "File:FileModifyDate": "1980:01:01 00:00:00+00:00",
               "File:FileName": "oleObject1.bin",
               "File:FilePermissions": 100664,
@@ -353,6 +352,39 @@
       },
       "tags": {}
     },
+    "file:1d975575ba6273a21f4cf27e95c04106be041203869234e715d0bc3b620fa2af": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "js_ole_obj.docx.extracted/word/embeddings/oleObject1.bin.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:0e10f65a582c636090bbfad35c75710ac052fd7fdbbbc942e0790c5225f8c312": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:2518715f750fe99813f8baa4686b482f6199a828bfef49f7c63e392605d3d6f6": {
       "detections": {},
       "directives": {
@@ -476,39 +508,6 @@
         "xml_plain_text_analyzer": {
           "details": {
             "xml_plain_text": null
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
-    "file:277a550209afa4796d17f55fea1bfa3de540c02f6c3f4181fee701291f31f7c1": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "js_ole_obj.docx.extracted/word/embeddings/oleObject2.bin.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:7fb4d8857922a72e50815fd32af023baef9b11eed1794b35c7392c3884113ea1": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
           },
           "summary": null,
           "tags": {}
@@ -704,39 +703,6 @@
         "xml_plain_text_analyzer": {
           "details": {
             "xml_plain_text": "js_ole_obj.docx.extracted/word/glossary/document.xml.noxml"
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
-    "file:331c2998382ed2a09c8e2dc082afea7b353683dcf18de70cec528080b6da2dd7": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "js_ole_obj.docx.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:6955bbde3060e80da7cb2dc86cc8e363ee34003e6eb596fd067027de5da867cc": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
           },
           "summary": null,
           "tags": {}
@@ -1277,7 +1243,6 @@
               "word/_rels/document.xml.rels",
               "_rels/.rels"
             ],
-            "extraction_error": null,
             "file_count": 38
           },
           "summary": "Archive Analysis: extracted 38 of 38 files: ([Content_Types].xml, docProps/core.xml, docProps/app.xml, customXml/itemProps3.xml, customXml/item3.xml, customXml/item1.xml, customXml/itemProps1.xml, customXml/item2.xml, customXml/itemProps2.xml, word/fontTable.xml, word/webSettings.xml, word/styles.xml, word/numbering.xml, word/settings.xml, word/endnotes.xml, word/footnotes.xml, word/footer1.xml, word/header1.xml, word/document.xml, word/glossary/webSettings.xml + 18 more)",
@@ -1285,13 +1250,12 @@
         },
         "exif": {
           "details": {
-            "error": null,
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 08:43:57+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 08:43:57+00:00",
-              "File:FileModifyDate": "2026:11:06 19:20:07+00:00",
+              "File:FileAccessDate": "2026:11:16 13:39:11+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 13:39:11+00:00",
+              "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "js_ole_obj.docx",
               "File:FilePermissions": 100644,
               "File:FileSize": 61807,
@@ -1603,39 +1567,6 @@
       },
       "tags": {}
     },
-    "file:7262212f8213c187497fafb3e0b4e8f22951a822ec6caad71ec9f10b08ce6598": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "js_ole_obj.docx.extracted/word/embeddings/oleObject1.bin.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:0e10f65a582c636090bbfad35c75710ac052fd7fdbbbc942e0790c5225f8c312": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:751eebbbc0f8df28338688db6981e8ed1ad53a360352e38860529469355149fc": {
       "detections": {},
       "directives": {},
@@ -1695,12 +1626,11 @@
       "results": {
         "exif": {
           "details": {
-            "error": null,
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files/js_ole_obj.docx.extracted/word/embeddings",
-              "File:FileAccessDate": "2026:11:11 08:44:00+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 08:43:58+00:00",
+              "File:FileAccessDate": "2026:11:16 13:39:18+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 13:39:13+00:00",
               "File:FileModifyDate": "1980:01:01 00:00:00+00:00",
               "File:FileName": "oleObject2.bin",
               "File:FilePermissions": 100664,
@@ -2205,6 +2135,39 @@
       },
       "tags": {}
     },
+    "file:99286bd69003671cff16372d569f460e70ed4a792668ed3ccdb81fcce1852b18": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "js_ole_obj.docx.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:6955bbde3060e80da7cb2dc86cc8e363ee34003e6eb596fd067027de5da867cc": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:a0ae50d66431e911004f40681093300e8709a5827622efbc6f8ca15fc762d8aa": {
       "detections": {},
       "directives": {
@@ -2612,7 +2575,6 @@
             "extracted_files": [
               "Font Update v.3627.3"
             ],
-            "extraction_error": null,
             "file_count": 1
           },
           "summary": "Archive Analysis: extracted 1 of 1 files: (Font Update v.3627.3)",
@@ -3148,6 +3110,39 @@
         "xml_plain_text_analyzer": {
           "details": {
             "xml_plain_text": null
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:e2e3f97d03eabcd6fd53927109b6bc1362f22509ed3720d0882258302b97ecd8": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "js_ole_obj.docx.extracted/word/embeddings/oleObject2.bin.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:7fb4d8857922a72e50815fd32af023baef9b11eed1794b35c7392c3884113ea1": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}

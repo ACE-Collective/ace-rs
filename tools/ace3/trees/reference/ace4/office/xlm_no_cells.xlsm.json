@@ -66,39 +66,6 @@
       },
       "tags": {}
     },
-    "file:26997b109557b213537153a3b7edcafab9d0625662d6626a9e853165f9b33f5f": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "xlm_no_cells.xlsm.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:6d2eb4c7844ae7b87953cdd026d43fc4ec11ad6df0ba6a77d0c54f036472b556": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:6a3cf5192354f71615ac51034b3e97c20eda99643fcaf5bbe6d41ad59bd12167": {
       "detections": {},
       "directives": {},
@@ -164,7 +131,6 @@
               "xl/_rels/workbook.xml.rels",
               "_rels/.rels"
             ],
-            "extraction_error": null,
             "file_count": 5
           },
           "summary": "Archive Analysis: extracted 5 of 5 files: ([Content_Types].xml, xl/workbook.xml, xl/macrosheets/sheet1.xml, xl/_rels/workbook.xml.rels, _rels/.rels)",
@@ -172,13 +138,12 @@
         },
         "exif": {
           "details": {
-            "error": null,
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 09:15:09+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 09:15:09+00:00",
-              "File:FileModifyDate": "2026:11:07 14:35:12+00:00",
+              "File:FileAccessDate": "2026:11:16 14:15:22+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 14:15:22+00:00",
+              "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "xlm_no_cells.xlsm",
               "File:FilePermissions": 100644,
               "File:FileSize": 2309,
@@ -698,6 +663,39 @@
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:f88ebe0d48fae8067718758db6dc1798805133d25dfdc8570c10223e432550d6": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "xlm_no_cells.xlsm.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:6d2eb4c7844ae7b87953cdd026d43fc4ec11ad6df0ba6a77d0c54f036472b556": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
           },
           "summary": null,
           "tags": {}

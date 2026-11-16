@@ -79,13 +79,16 @@ impl Objects<'_> {
     /// Casts an object to Python.
     fn py(&self, object: Handle) -> Result<Py, Raised> {
         let document = self.document;
-        Ok(match document.kind(object)? {
+        let value = match document.kind(object)? {
             Kind::Null => Py::None,
             Kind::Bool => Py::Bool(document.bool_value(object)?),
             Kind::Integer => Py::Int(document.int_value(object)?),
             Kind::Real => Py::Decimal(document.real_value(object)?),
-            _ => Py::Object(object),
-        })
+            _ => return Ok(Py::Object(object)),
+        };
+        // Python holds the value itself, so the handle is given back: libqpdf keeps one until then
+        document.release(object);
+        Ok(value)
     }
 
     /// `value.get(key)`: an object that isn't a dictionary or stream gives None, and Python's own
@@ -429,28 +432,140 @@ impl Objects<'_> {
         Ok(())
     }
 
-    /// What the annotations hold: `action.get('/URI')` of each annotation with an action, kept when
-    /// it's true in Python.
-    pub fn annotation_uris(&self) -> Result<Vec<Py>, Raised> {
+    /// Gives back the handle of a value that is one of pikepdf's objects, which nothing may use
+    /// after.
+    pub fn release(&self, value: &Py) {
+        if let Py::Object(object) = value {
+            self.document.release(*object);
+        }
+    }
+
+    /// ace3's `iter_uri_annotations`: each annotation whose action opens a URI, with its page, numbered
+    /// from 1: `action.get('/URI')` of each annotation with an action, kept when it's true in Python.
+    /// `each` returns false to stop. What it is handed is good only until it returns: an array of
+    /// annotations is read one at a time and each one's handles are given back, since a PDF can repeat
+    /// one annotation without limit.
+    pub fn each_uri_annotation(
+        &self,
+        mut each: impl FnMut(&UriAnnotation) -> Result<bool, Raised>,
+    ) -> Result<(), Raised> {
         let document = self.document;
-        let mut uris = Vec::new();
-        for page in 0..document.page_count()? {
-            let page = Py::Object(document.page(page)?);
+        for index in 0..document.page_count()? {
+            let page = Py::Object(document.page(index)?);
             let annots = self.get(&page, "/Annots")?;
             if !self.truthy(&annots)? {
+                self.release(&annots);
+                self.release(&page);
                 continue;
             }
-            for annot in self.items(&annots)? {
+            let array = match &annots {
+                Py::Object(object) if document.kind(*object)? == Kind::Array => Some(*object),
+                _ => None,
+            };
+            // what isn't an array iterates as Python has it: a dictionary's keys, which have no
+            // `.get`, or an error
+            let rest = match array {
+                Some(_) => Vec::new(),
+                None => self.items(&annots)?,
+            };
+            let count = match array {
+                Some(object) => document.array_len(object)?,
+                None => rest.len() as i32,
+            };
+            for i in 0..count {
+                let annot = match array {
+                    Some(object) => self.py(document.array_item(object, i)?)?,
+                    None => rest[i as usize].clone(),
+                };
                 let action = self.get(&annot, "/A")?;
-                if self.truthy(&action)? {
-                    let uri = self.get(&action, "/URI")?;
-                    if self.truthy(&uri)? {
-                        uris.push(uri);
-                    }
+                let uri = if self.truthy(&action)? {
+                    self.get(&action, "/URI")?
+                } else {
+                    Py::None
+                };
+                let go_on = if self.truthy(&uri)? {
+                    each(&UriAnnotation {
+                        page_number: index + 1,
+                        page: page.clone(),
+                        annot: annot.clone(),
+                        uri: uri.clone(),
+                    })?
+                } else {
+                    true
+                };
+                self.release(&uri);
+                self.release(&action);
+                self.release(&annot);
+                if !go_on {
+                    return Ok(());
                 }
             }
+            self.release(&annots);
+            self.release(&page);
         }
+        Ok(())
+    }
+
+    /// What the annotations hold: what `read` makes of the URI of each of `each_uri_annotation`'s,
+    /// such as its text.
+    pub fn annotation_uris<T>(
+        &self,
+        mut read: impl FnMut(&Py) -> Result<T, Raised>,
+    ) -> Result<Vec<T>, Raised> {
+        let mut uris = Vec::new();
+        self.each_uri_annotation(|found| {
+            uris.push(read(&found.uri)?);
+            Ok(true)
+        })?;
         Ok(uris)
+    }
+
+    /// `float(value)` of an item of a PDF array as pikepdf hands it over.
+    pub fn float(&self, value: &Py) -> Result<f64, Raised> {
+        match value {
+            Py::Bool(value) => Ok(if *value { 1.0 } else { 0.0 }),
+            Py::Int(value) => Ok(*value as f64),
+            Py::Decimal(text) => decimal_float(text),
+            Py::Str(text) => Err(Raised::new(
+                "ValueError",
+                format!("could not convert string to float: '{text}'"),
+            )),
+            Py::Object(_) => Err(Raised::new("TypeError", "Object is not numeric")),
+            other => Err(Raised::new(
+                "TypeError",
+                format!(
+                    "float() argument must be a string or a real number, not '{}'",
+                    other.type_name()
+                ),
+            )),
+        }
+    }
+
+    /// `page.mediabox` as floats: the page's `/MediaBox`, its own or the one libqpdf pushed down to
+    /// it when the file was opened, when that is an array of four numbers, and US Letter otherwise,
+    /// which is what pikepdf gives a page with none it can read.
+    pub fn mediabox(&self, page: &Py) -> Result<[f64; 4], Raised> {
+        const LETTER: [f64; 4] = [0.0, 0.0, 612.0, 792.0];
+        let document = self.document;
+        let Py::Object(page) = page else {
+            return Ok(LETTER);
+        };
+        let Some(found) = document.key(*page, "/MediaBox")? else {
+            return Ok(LETTER);
+        };
+        if document.kind(found)? != Kind::Array || document.array_len(found)? != 4 {
+            return Ok(LETTER);
+        }
+        let mut bounds = [0.0; 4];
+        for (i, bound) in bounds.iter_mut().enumerate() {
+            let item = document.array_item(found, i as i32)?;
+            *bound = match document.kind(item)? {
+                Kind::Integer => document.int_value(item)? as f64,
+                Kind::Real => decimal_float(&document.real_value(item)?)?,
+                _ => return Ok(LETTER),
+            };
+        }
+        Ok(bounds)
     }
 
     /// `pdf.Root.get('/AcroForm')`'s `/Fields`, or nothing to look through.
@@ -671,6 +786,41 @@ impl Objects<'_> {
         }
         Ok(count)
     }
+}
+
+/// One annotation whose action opens a URI, as ace3's `iter_uri_annotations` yields it.
+#[derive(Debug, Clone)]
+pub struct UriAnnotation {
+    /// The page's number, from 1.
+    pub page_number: i32,
+    pub page: Py,
+    pub annot: Py,
+    pub uri: Py,
+}
+
+/// `float(Decimal(text))` of a real as the file wrote it.
+fn decimal_float(text: &[u8]) -> Result<f64, Raised> {
+    String::from_utf8_lossy(text).parse::<f64>().map_err(|_| {
+        Raised::new(
+            "decimal.InvalidOperation",
+            "[<class 'decimal.ConversionSyntax'>]",
+        )
+    })
+}
+
+/// `int(Decimal(text)) % 360 != 0`, for a real of any length: Python's int cuts the fraction off,
+/// and no multiple of 360 depends on the sign.
+pub fn decimal_turns_the_page(text: &[u8]) -> bool {
+    let text = String::from_utf8_lossy(text);
+    let whole = text.trim_start_matches(['+', '-']);
+    let whole = whole.split('.').next().unwrap_or_default();
+    whole
+        .bytes()
+        .filter(u8::is_ascii_digit)
+        .fold(0u32, |rest, digit| {
+            (rest * 10 + u32::from(digit - b'0')) % 360
+        })
+        != 0
 }
 
 /// `str(Decimal(text))`.

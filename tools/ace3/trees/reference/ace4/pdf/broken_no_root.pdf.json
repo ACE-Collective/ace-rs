@@ -15,14 +15,13 @@
       "results": {
         "exif": {
           "details": {
-            "error": null,
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "ExifTool:Warning": "Invalid xref table",
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 09:31:04+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 09:31:04+00:00",
-              "File:FileModifyDate": "2026:11:07 04:47:50+00:00",
+              "File:FileAccessDate": "2026:11:16 14:57:01+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 14:57:01+00:00",
+              "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "broken_no_root.pdf",
               "File:FilePermissions": 100644,
               "File:FileSize": 53,
@@ -159,7 +158,40 @@
       },
       "tags": {}
     },
-    "file:bde3b71804eb2af947972a08df0736e1b6a7190f79d498a8fe8238c711e490f4": {
+    "file:689540319a1c4da46b98d71321ccd330e721a1212d15e4013d69333ed7e4a44d": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "broken_no_root.pdf.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:17f3d2e616df8f89774a0f65751c3145fc466483c33b2708b076d2ab6dcca6cf": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:86e2805188381493dd1cea29e1e67f47a05e3d21a4e4bea0e2e1bf92c20de199": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -252,9 +284,9 @@
           "type=document.pdf.text": true
         }
       },
-      "redirection": "file:bde3b71804eb2af947972a08df0736e1b6a7190f79d498a8fe8238c711e490f4",
+      "redirection": "file:86e2805188381493dd1cea29e1e67f47a05e3d21a4e4bea0e2e1bf92c20de199",
       "relationships": {
-        "extracted_from file:bde3b71804eb2af947972a08df0736e1b6a7190f79d498a8fe8238c711e490f4": true
+        "extracted_from file:86e2805188381493dd1cea29e1e67f47a05e3d21a4e4bea0e2e1bf92c20de199": true
       },
       "results": {
         "file_type": {
@@ -276,39 +308,6 @@
           "summary": "File Type Analysis: very short file (no magic) (application/octet-stream)",
           "tags": {}
         },
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
-    "file:f168cefc22bd0c1c0c9a19e844b3fc46910340013a95b1240042426736436687": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "broken_no_root.pdf.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:17f3d2e616df8f89774a0f65751c3145fc466483c33b2708b076d2ab6dcca6cf": true
-      },
-      "results": {
         "observable_detection": {
           "details": {
             "for_detection": false

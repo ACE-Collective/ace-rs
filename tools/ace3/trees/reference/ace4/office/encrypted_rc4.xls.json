@@ -1,39 +1,6 @@
 {
   "form": 1,
   "observables": {
-    "file:152dba168bb64fda19ec097658a17aa793c74d78bd4dc03d2846818036d3434c": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "encrypted_rc4.xls.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:8ff8e52eb1b97ac21b0b4348d81f143f6f25d0ea817d7748b7f8ddae27637857": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:30812268cfefcc8320d3b990169f35de93d7fc7dd749a0b25b9993c0d1347776": {
       "detections": {},
       "directives": {
@@ -164,6 +131,39 @@
       },
       "tags": {}
     },
+    "file:4fca297273288d21eec578eef1864b574d429cfba7430fc6b47fad7250b0dc81": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "encrypted_rc4.xls.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:8ff8e52eb1b97ac21b0b4348d81f143f6f25d0ea817d7748b7f8ddae27637857": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:7a75bfc74e9bae899d38cb18102e56509c65c15c0aed4549a1acd7fab5f0fc83": {
       "detections": {},
       "directives": {
@@ -238,13 +238,12 @@
       "results": {
         "exif": {
           "details": {
-            "error": null,
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 08:59:26+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 08:59:26+00:00",
-              "File:FileModifyDate": "2026:11:07 10:46:15+00:00",
+              "File:FileAccessDate": "2026:11:16 13:57:09+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 13:57:09+00:00",
+              "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "encrypted_rc4.xls",
               "File:FilePermissions": 100644,
               "File:FileSize": 69125,
@@ -314,7 +313,6 @@
             "email": false,
             "email_body": null,
             "encryption_info": null,
-            "error": "could not crack password",
             "password": null,
             "word_list": [
               "VelvetSweatshop",

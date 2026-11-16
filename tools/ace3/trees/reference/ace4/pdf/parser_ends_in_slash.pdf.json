@@ -1,67 +1,7 @@
 {
   "form": 1,
   "observables": {
-    "file:51a2bf4f597d296aaac5d1f9f060907ae44a0b38769951d87554534f0f55e463": {
-      "detections": {},
-      "directives": {
-        "extract_urls": true
-      },
-      "excluded_analysis": {},
-      "paths": {
-        "parser_ends_in_slash.pdf.pdfparser": {
-          "type=document.pdf.object": true
-        }
-      },
-      "redirection": "file:f91c2b18203152a2a84ce55c678650d48bab16856b5b2690fcf3cbc955826ae4",
-      "relationships": {
-        "extracted_from file:f91c2b18203152a2a84ce55c678650d48bab16856b5b2690fcf3cbc955826ae4": true
-      },
-      "results": {
-        "file_type": {
-          "details": {
-            "is_email_file": false,
-            "is_jar_file": false,
-            "is_lnk_file": false,
-            "is_office_document": false,
-            "is_office_ext": false,
-            "is_ole_file": false,
-            "is_pdf_file": false,
-            "is_pe_file": false,
-            "is_rtf_file": false,
-            "is_x509": false,
-            "is_zip_file": false,
-            "mime": "application/pdf",
-            "type": "PDF document, version 1.7, ASCII text"
-          },
-          "summary": "File Type Analysis: PDF document, version 1.7, ASCII text (application/pdf)",
-          "tags": {}
-        },
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "url_extraction": {
-          "details": {
-            "urls": [],
-            "urls_grouped_by_domain": {}
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
-    "file:7e9ab0afd4c6842abe0952ececdd333fa889e4af8dcb0f295bf8f53eb85f31c6": {
+    "file:067361fe593d4211513df8aa6558856270201b948dc73d003fbdd7af00187649": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -143,7 +83,67 @@
         "pdf": true
       }
     },
-    "file:868a2583b3502190a0b1eb788c97d3a2826e09906426a1647ef99aed2c2786d7": {
+    "file:51a2bf4f597d296aaac5d1f9f060907ae44a0b38769951d87554534f0f55e463": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "parser_ends_in_slash.pdf.pdfparser": {
+          "type=document.pdf.object": true
+        }
+      },
+      "redirection": "file:f91c2b18203152a2a84ce55c678650d48bab16856b5b2690fcf3cbc955826ae4",
+      "relationships": {
+        "extracted_from file:f91c2b18203152a2a84ce55c678650d48bab16856b5b2690fcf3cbc955826ae4": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/pdf",
+            "type": "PDF document, version 1.7, ASCII text"
+          },
+          "summary": "File Type Analysis: PDF document, version 1.7, ASCII text (application/pdf)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:9d8f46e1bbbaa5d22bd7e8975d29dbfee383f1b5eddf6fb71d6fbeab03422bcf": {
       "detections": {},
       "directives": {},
       "excluded_analysis": {
@@ -187,9 +187,9 @@
           "type=document.pdf.text": true
         }
       },
-      "redirection": "file:7e9ab0afd4c6842abe0952ececdd333fa889e4af8dcb0f295bf8f53eb85f31c6",
+      "redirection": "file:067361fe593d4211513df8aa6558856270201b948dc73d003fbdd7af00187649",
       "relationships": {
-        "extracted_from file:7e9ab0afd4c6842abe0952ececdd333fa889e4af8dcb0f295bf8f53eb85f31c6": true
+        "extracted_from file:067361fe593d4211513df8aa6558856270201b948dc73d003fbdd7af00187649": true
       },
       "results": {
         "file_type": {
@@ -242,14 +242,13 @@
       "results": {
         "exif": {
           "details": {
-            "error": null,
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "ExifTool:Warning": "Invalid xref table",
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 09:36:21+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 09:36:21+00:00",
-              "File:FileModifyDate": "2026:11:07 04:47:50+00:00",
+              "File:FileAccessDate": "2026:11:16 15:04:39+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 15:04:39+00:00",
+              "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "parser_ends_in_slash.pdf",
               "File:FilePermissions": 100644,
               "File:FileSize": 10,

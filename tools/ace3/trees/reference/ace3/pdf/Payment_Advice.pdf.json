@@ -61,6 +61,102 @@
       },
       "tags": {}
     },
+    "file:0d4f355de168f3f681bc673c3f3f117042f320b8fc377332c9770a8f3c1778c6": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {
+        "pdf_analyzer": true
+      },
+      "paths": {
+        "Payment_Advice.pdf.gs.pdf": {
+          "type=document.pdf": true,
+          "type=document.pdf.rendered": true
+        }
+      },
+      "redirection": "file:fa13c652534f9207beec811a50948860f5b3194aeae686fcdecac645fae65d15",
+      "relationships": {
+        "extracted_from file:fa13c652534f9207beec811a50948860f5b3194aeae686fcdecac645fae65d15": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": true,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/pdf",
+            "type": "PDF document, version 1.7, 1 page(s)"
+          },
+          "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "pdf_link_text": {
+          "details": {
+            "links": [
+              {
+                "line": null,
+                "page": 1,
+                "text": null,
+                "url": "http://www.williamtoms.com/wp-includes/354387473a/autodomain/autodomain/autodomain/autofil/"
+              }
+            ]
+          },
+          "summary": "PDF Link Text Analysis: 1 links, 0 with text",
+          "tags": {}
+        },
+        "pdftotext": {
+          "details": {
+            "output_path": "ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977",
+            "stderr": "",
+            "stdout": ""
+          },
+          "summary": "PDF Text Analysis",
+          "tags": {}
+        },
+        "qrcode": {
+          "details": {
+            "extracted_text": null,
+            "inverted": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {
+        "pdf": true
+      }
+    },
     "file:34b87382f46ecef6f616dae7a57b7d09175a59d500a4fc61638ddb6993fbe0cb": {
       "detections": {},
       "directives": {
@@ -127,89 +223,7 @@
       },
       "tags": {}
     },
-    "file:356911741448ab5464812d856100b0563b17319a6ffc65168e6f39851ed89293": {
-      "detections": {},
-      "directives": {
-        "extract_urls": true
-      },
-      "excluded_analysis": {
-        "pdf_analyzer": true
-      },
-      "paths": {
-        "Payment_Advice.pdf.gs.pdf": {
-          "type=document.pdf": true,
-          "type=document.pdf.rendered": true
-        }
-      },
-      "redirection": "file:fa13c652534f9207beec811a50948860f5b3194aeae686fcdecac645fae65d15",
-      "relationships": {
-        "extracted_from file:fa13c652534f9207beec811a50948860f5b3194aeae686fcdecac645fae65d15": true
-      },
-      "results": {
-        "file_type": {
-          "details": {
-            "is_email_file": false,
-            "is_jar_file": false,
-            "is_lnk_file": false,
-            "is_office_document": false,
-            "is_office_ext": false,
-            "is_ole_file": false,
-            "is_pdf_file": true,
-            "is_pe_file": false,
-            "is_rtf_file": false,
-            "is_x509": false,
-            "is_zip_file": false,
-            "mime": "application/pdf",
-            "type": "PDF document, version 1.7, 1 page(s)"
-          },
-          "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
-          "tags": {}
-        },
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "pdftotext": {
-          "details": {
-            "output_path": "ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977",
-            "stderr": "",
-            "stdout": ""
-          },
-          "summary": "PDF Text Analysis",
-          "tags": {}
-        },
-        "qrcode": {
-          "details": {
-            "extracted_text": null,
-            "inverted": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "url_extraction": {
-          "details": {
-            "urls": [],
-            "urls_grouped_by_domain": {}
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {
-        "pdf": true
-      }
-    },
-    "file:5dcd3baa1aab16c33d085665cb35f987f23338a56848fe4d23110c0c8282478a": {
+    "file:ebeb6c2842aada04b9ca9f99f07bbd1b5eeb8fd5837029f022a091a6787c142b": {
       "detections": {},
       "directives": {},
       "excluded_analysis": {
@@ -256,9 +270,9 @@
           "type=document.pdf.text": true
         }
       },
-      "redirection": "file:356911741448ab5464812d856100b0563b17319a6ffc65168e6f39851ed89293",
+      "redirection": "file:0d4f355de168f3f681bc673c3f3f117042f320b8fc377332c9770a8f3c1778c6",
       "relationships": {
-        "extracted_from file:356911741448ab5464812d856100b0563b17319a6ffc65168e6f39851ed89293": true,
+        "extracted_from file:0d4f355de168f3f681bc673c3f3f117042f320b8fc377332c9770a8f3c1778c6": true,
         "extracted_from file:fa13c652534f9207beec811a50948860f5b3194aeae686fcdecac645fae65d15": true
       },
       "results": {
@@ -389,13 +403,12 @@
       "results": {
         "exif": {
           "details": {
-            "error": null,
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 08:45:22+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 08:45:22+00:00",
-              "File:FileModifyDate": "2026:11:06 19:20:07+00:00",
+              "File:FileAccessDate": "2026:11:16 14:53:38+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 14:53:38+00:00",
+              "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "Payment_Advice.pdf",
               "File:FilePermissions": 100644,
               "File:FileSize": 29664,
@@ -464,6 +477,20 @@
           "summary": null,
           "tags": {}
         },
+        "pdf_link_text": {
+          "details": {
+            "links": [
+              {
+                "line": null,
+                "page": 1,
+                "text": null,
+                "url": "http://www.williamtoms.com/wp-includes/354387473a/autodomain/autodomain/autodomain/autofil/"
+              }
+            ]
+          },
+          "summary": "PDF Link Text Analysis: 1 links, 0 with text",
+          "tags": {}
+        },
         "pdftotext": {
           "details": {
             "output_path": "ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977",
@@ -530,7 +557,6 @@
             "dispatch_state": "DONE",
             "gui_link": null,
             "query": "index=proxy hostname=\"example.com\"",
-            "query_error": null,
             "query_results": [
               {
                 "_time": "2026-10-30T14:02:11.000+00:00",
@@ -570,7 +596,6 @@
             "datetime_of_last_update": "2026-08-14 08:01:43+00:00",
             "domain_name": "EXAMPLE.COM",
             "emails": [],
-            "error": null,
             "ip_version": null,
             "lookup_protocol": "rdap",
             "name_servers": [
@@ -579,6 +604,7 @@
             ],
             "network_cidr": null,
             "network_name": null,
+            "not_found": null,
             "rdap_attempt_error": null,
             "rdap_data": {
               "copyright_notice": "",
@@ -756,7 +782,6 @@
             "dispatch_state": "DONE",
             "gui_link": null,
             "query": "index=proxy hostname=\"www.williamtoms.com\"",
-            "query_error": null,
             "query_results": [
               {
                 "_time": "2026-10-30T14:02:11.000+00:00",
@@ -796,12 +821,12 @@
             "datetime_of_last_update": null,
             "domain_name": null,
             "emails": null,
-            "error": "rdap: Failed to make a GET request to https://rdap.verisign.com/com/v1/domain/williamtoms.com: nothing recorded for GET https://rdap.verisign.com/com/v1/domain/williamtoms.com; whois: no WHOIS in a replay",
             "ip_version": null,
             "lookup_protocol": null,
             "name_servers": null,
             "network_cidr": null,
             "network_name": null,
+            "not_found": null,
             "rdap_attempt_error": "Failed to make a GET request to https://rdap.verisign.com/com/v1/domain/williamtoms.com: nothing recorded for GET https://rdap.verisign.com/com/v1/domain/williamtoms.com",
             "rdap_data": null,
             "rdap_raw_json": null,

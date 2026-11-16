@@ -61,39 +61,6 @@
       },
       "tags": {}
     },
-    "file:082e93c24070bede4ca0f7fe8773e09287792721ff6707b59a572769efa7a4fb": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "annot_items.pdf.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:b71791bc02c38045cdee798d3a15a85f06a9360cce488d066ad8d9eba9b06e70": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:09c81a30b47686cf010de63f60c4d02e0a93b4f2810342e75634c0c14b5b2675": {
       "detections": {},
       "directives": {
@@ -160,7 +127,40 @@
       },
       "tags": {}
     },
-    "file:508b26ce3988b2ffbb0b026d969b07db31ff26726eb7563ee93f6defffa6bbc1": {
+    "file:4fd6399ac29bfd16f9649b47feb90b9eae71045b4fdb29450a048bfe327e573f": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "annot_items.pdf.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:b71791bc02c38045cdee798d3a15a85f06a9360cce488d066ad8d9eba9b06e70": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:a9efb50a8560b197a9b3af82fcfc44f66f17669fedc6f0ba73227243976df848": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -203,6 +203,20 @@
             "for_detection": false
           },
           "summary": null,
+          "tags": {}
+        },
+        "pdf_link_text": {
+          "details": {
+            "links": [
+              {
+                "line": null,
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/lost"
+              }
+            ]
+          },
+          "summary": "PDF Link Text Analysis: 1 links, 0 with text",
           "tags": {}
         },
         "pdftotext": {
@@ -256,13 +270,12 @@
       "results": {
         "exif": {
           "details": {
-            "error": null,
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 09:30:07+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 09:30:07+00:00",
-              "File:FileModifyDate": "2026:11:07 04:47:50+00:00",
+              "File:FileAccessDate": "2026:11:16 14:55:56+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 14:55:56+00:00",
+              "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "annot_items.pdf",
               "File:FilePermissions": 100644,
               "File:FileSize": 413,
@@ -362,9 +375,9 @@
           "type=document.pdf.text": true
         }
       },
-      "redirection": "file:508b26ce3988b2ffbb0b026d969b07db31ff26726eb7563ee93f6defffa6bbc1",
+      "redirection": "file:a9efb50a8560b197a9b3af82fcfc44f66f17669fedc6f0ba73227243976df848",
       "relationships": {
-        "extracted_from file:508b26ce3988b2ffbb0b026d969b07db31ff26726eb7563ee93f6defffa6bbc1": true,
+        "extracted_from file:a9efb50a8560b197a9b3af82fcfc44f66f17669fedc6f0ba73227243976df848": true,
         "extracted_from file:b71791bc02c38045cdee798d3a15a85f06a9360cce488d066ad8d9eba9b06e70": true
       },
       "results": {
@@ -441,7 +454,6 @@
             "dispatch_state": "DONE",
             "gui_link": null,
             "query": "index=proxy hostname=\"example.com\"",
-            "query_error": null,
             "query_results": [
               {
                 "_time": "2026-10-30T14:02:11.000+00:00",
@@ -481,7 +493,6 @@
             "datetime_of_last_update": "2026-08-14 08:01:43+00:00",
             "domain_name": "EXAMPLE.COM",
             "emails": [],
-            "error": null,
             "ip_version": null,
             "lookup_protocol": "rdap",
             "name_servers": [
@@ -490,6 +501,7 @@
             ],
             "network_cidr": null,
             "network_name": null,
+            "not_found": null,
             "rdap_attempt_error": null,
             "rdap_data": {
               "copyright_notice": "",

@@ -144,13 +144,12 @@
       "results": {
         "exif": {
           "details": {
-            "error": null,
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 08:58:49+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 08:58:49+00:00",
-              "File:FileModifyDate": "2026:11:07 10:46:15+00:00",
+              "File:FileAccessDate": "2026:11:16 13:56:16+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 13:56:16+00:00",
+              "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "encrypted_cryptoapi.doc",
               "File:FilePermissions": 100644,
               "File:FileSize": 22528,
@@ -242,7 +241,6 @@
             "email": false,
             "email_body": null,
             "encryption_info": null,
-            "error": "could not crack password",
             "password": null,
             "word_list": [
               "VelvetSweatshop",
@@ -360,6 +358,39 @@
       },
       "tags": {}
     },
+    "file:4b81e2e2832daaaa880385cdaf3cc8fa0024faeb1b4106d2e9385c4a4ea88ae4": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "encrypted_cryptoapi.doc.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:2933e69bd26f61b99ba7b81487bee95fa954ef7ad19996e5bfbc0f57e635624d": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:64619721b790fe1ccd85cef73e84ada0ce1e5085dc225ed648a380843b7bd7aa": {
       "detections": {},
       "directives": {
@@ -411,39 +442,6 @@
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
-    "file:74e380f6e42e0c4a3cd27214ace36e7e72ab7c1b1cfc067173f629420c4e4358": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "encrypted_cryptoapi.doc.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:2933e69bd26f61b99ba7b81487bee95fa954ef7ad19996e5bfbc0f57e635624d": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
           },
           "summary": null,
           "tags": {}

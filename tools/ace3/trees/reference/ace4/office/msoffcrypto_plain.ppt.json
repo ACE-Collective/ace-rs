@@ -136,13 +136,12 @@
       "results": {
         "exif": {
           "details": {
-            "error": null,
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 09:00:37+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 09:00:37+00:00",
-              "File:FileModifyDate": "2026:11:07 10:46:11+00:00",
+              "File:FileAccessDate": "2026:11:16 13:58:47+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 13:58:47+00:00",
+              "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "msoffcrypto_plain.ppt",
               "File:FilePermissions": 100644,
               "File:FileSize": 43008,
@@ -393,39 +392,6 @@
       },
       "tags": {}
     },
-    "file:558cf40958bacd52a0cbacfadeec3f3d3a151cb33c093aec1e74582832d1c234": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "msoffcrypto_plain.ppt.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:18555251635eaab62a1fce9886026156d375615bd96f5639df7dc005e2488347": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:9a47488a3595fdd17a5b508f2f230d60f1207a086e44eefdb1f10cf9b2a0c2d0": {
       "detections": {},
       "directives": {
@@ -447,7 +413,6 @@
               "[Content_Types].xml",
               "_rels/.rels"
             ],
-            "extraction_error": null,
             "file_count": 3
           },
           "summary": "Archive Analysis: extracted 3 of 3 files: (tableStyles.xml, [Content_Types].xml, _rels/.rels)",
@@ -623,6 +588,39 @@
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:f92dd2a07f7d3efef0ec883c26d5eeb1b16335b1acb9a96ad3df0bf3e972700c": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "msoffcrypto_plain.ppt.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:18555251635eaab62a1fce9886026156d375615bd96f5639df7dc005e2488347": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
           },
           "summary": null,
           "tags": {}

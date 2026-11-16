@@ -1,67 +1,6 @@
 {
   "form": 1,
   "observables": {
-    "file:0a9c94014845a4a0e47986a2c74248a26bcd6eab491dea43529756eeabbe2894": {
-      "detections": {},
-      "directives": {
-        "extract_urls": true
-      },
-      "excluded_analysis": {
-        "javascript_deobfuscation": true
-      },
-      "paths": {
-        "deobfuscated-data_urls.html_embed_1.js": {
-          "type=script.javascript": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:6e11c72f7cf6bc383152dd16ddd5903aba6bb1c99d6b6639a4bb0b838185fa92": true
-      },
-      "results": {
-        "file_type": {
-          "details": {
-            "is_email_file": false,
-            "is_jar_file": false,
-            "is_lnk_file": false,
-            "is_office_document": false,
-            "is_office_ext": false,
-            "is_ole_file": false,
-            "is_pdf_file": false,
-            "is_pe_file": false,
-            "is_rtf_file": false,
-            "is_x509": false,
-            "is_zip_file": false,
-            "mime": "text/plain",
-            "type": "ASCII text"
-          },
-          "summary": "File Type Analysis: ASCII text (text/plain)",
-          "tags": {}
-        },
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "url_extraction": {
-          "details": {
-            "urls": [],
-            "urls_grouped_by_domain": {}
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:0fb6c17f32d3d3c1b0b7052cab081e79710456c4ef647dece4688f71d816bbce": {
       "detections": {},
       "directives": {},
@@ -307,7 +246,6 @@
           "details": {
             "dom_snapshot": false,
             "dom_snapshot_source": null,
-            "error": null,
             "error_type": null,
             "event_count": 1,
             "exit_code": 0,
@@ -464,6 +402,67 @@
         "observable_detection": {
           "details": {
             "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:dc39d4eb2ffe41b7eaa07fb29769e3395ec08c554faf4e3000076c42359cae84": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {
+        "javascript_deobfuscation": true
+      },
+      "paths": {
+        "deobfuscated-data_urls.html_embed_1.js": {
+          "type=script.javascript": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:6e11c72f7cf6bc383152dd16ddd5903aba6bb1c99d6b6639a4bb0b838185fa92": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text"
+          },
+          "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
           },
           "summary": null,
           "tags": {}

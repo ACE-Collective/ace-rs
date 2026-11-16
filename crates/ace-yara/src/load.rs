@@ -8,7 +8,7 @@
 //! - The files that are left then compile together. If they don't, nothing loads, as in ace3,
 //!   where the yara service keeps its previous generation.
 //!
-//! Four deliberate differences:
+//! Three deliberate differences:
 //!
 //! - A rule file, and every file it includes, is a regular file inside the signature directory,
 //!   reached through no symbolic link, and yara-x opens no file: `crate::include` reads them and puts
@@ -20,8 +20,10 @@
 //!   file compiles alone, and a file with one that doesn't is left out like a file YARA
 //!   rejects. ace3 compiles them with Python's `re` at scan time, where a bad pattern fails
 //!   the scan, and only when the directives before it let the match through.
-//! - ace3 reads a rule file before its `try`, so a file that isn't UTF-8 fails the whole load
-//!   there. Here it is one more file that is left out.
+//!
+//! A file that isn't UTF-8 is one more file that is left out. yara_scanner_v2 3.0.0 read a rule file
+//! before its `try`, so such a file failed the whole load there; from 3.1.0, which ace3 takes since
+//! its `851c8ca1`, it drops the file with its rules as this does.
 
 use std::collections::{BTreeSet, HashMap};
 use std::fmt;

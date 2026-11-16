@@ -1,0 +1,36 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "37a765bf",
+  "also_enabled": [],
+  "analyses": [],
+  "input": {
+    "directives": [],
+    "label": "ace4/pdf/parser_truncated_flate.pdf",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "parser_truncated_flate.pdf",
+      "size": 425,
+      "type": "file",
+      "value": "2662f17c706fc9d7f8e5aa2bf43785adf2cf3f99212d6d6ca88d090c5818d6cf"
+    }
+  },
+  "module": "pdf_link_text",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "parser_truncated_flate.pdf",
+    "relationships": [],
+    "size": 425,
+    "tags": [],
+    "type": "file",
+    "value": "2662f17c706fc9d7f8e5aa2bf43785adf2cf3f99212d6d6ca88d090c5818d6cf",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

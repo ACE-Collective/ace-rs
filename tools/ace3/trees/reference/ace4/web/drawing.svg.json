@@ -110,7 +110,6 @@
           "details": {
             "dom_snapshot": true,
             "dom_snapshot_source": null,
-            "error": null,
             "error_type": null,
             "event_count": 3,
             "exit_code": 0,
@@ -144,73 +143,6 @@
       "tags": {
         "js": true
       }
-    },
-    "file:5105a0df71951c2f6891e90e3bcdc12c12cc20851e1b7f67e4f6b685abe8696e": {
-      "detections": {},
-      "directives": {
-        "extract_urls": true
-      },
-      "excluded_analysis": {
-        "javascript_deobfuscation": true
-      },
-      "paths": {
-        "deobfuscated-drawing_js_inline_0_0ae9e5b7.js": {
-          "type=script.javascript": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:0ae9e5b7530c31f1edffd692b67f3b9a6191d5a4abce619485f37c94ec2f86b6": true
-      },
-      "results": {
-        "file_type": {
-          "details": {
-            "is_email_file": false,
-            "is_jar_file": false,
-            "is_lnk_file": false,
-            "is_office_document": false,
-            "is_office_ext": false,
-            "is_ole_file": false,
-            "is_pdf_file": false,
-            "is_pe_file": false,
-            "is_rtf_file": false,
-            "is_x509": false,
-            "is_zip_file": false,
-            "mime": "text/plain",
-            "type": "ASCII text"
-          },
-          "summary": "File Type Analysis: ASCII text (text/plain)",
-          "tags": {}
-        },
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "url_extraction": {
-          "details": {
-            "urls": [
-              "https://evil.example.com/svg"
-            ],
-            "urls_grouped_by_domain": {
-              "example.com": [
-                "https://evil.example.com/svg"
-              ]
-            }
-          },
-          "summary": "URL Extraction Analysis (evil.example.com)",
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
     },
     "file:9c9e609f574140b24f1667a6c30dca7b96a7b595ac2493da44b0c9276d7611cd": {
       "detections": {},
@@ -280,6 +212,73 @@
       },
       "tags": {}
     },
+    "file:f650a5459a67fbeb3b82edb9cada41c45c8981458322919fd4a5f02a6d9e3a40": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {
+        "javascript_deobfuscation": true
+      },
+      "paths": {
+        "deobfuscated-drawing_js_inline_0_0ae9e5b7.js": {
+          "type=script.javascript": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:0ae9e5b7530c31f1edffd692b67f3b9a6191d5a4abce619485f37c94ec2f86b6": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text"
+          },
+          "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [
+              "https://evil.example.com/svg"
+            ],
+            "urls_grouped_by_domain": {
+              "example.com": [
+                "https://evil.example.com/svg"
+              ]
+            }
+          },
+          "summary": "URL Extraction Analysis (evil.example.com)",
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "fqdn:cdn.example.org": {
       "detections": {},
       "directives": {},
@@ -313,7 +312,6 @@
             "dispatch_state": "DONE",
             "gui_link": null,
             "query": "index=proxy hostname=\"cdn.example.org\"",
-            "query_error": null,
             "query_results": [
               {
                 "_time": "2026-10-30T14:02:11.000+00:00",
@@ -353,12 +351,12 @@
             "datetime_of_last_update": null,
             "domain_name": null,
             "emails": null,
-            "error": "rdap: Failed to make a GET request to https://rdap.publicinterestregistry.org/rdap/domain/example.org: nothing recorded for GET https://rdap.publicinterestregistry.org/rdap/domain/example.org; whois: no WHOIS in a replay",
             "ip_version": null,
             "lookup_protocol": null,
             "name_servers": null,
             "network_cidr": null,
             "network_name": null,
+            "not_found": null,
             "rdap_attempt_error": "Failed to make a GET request to https://rdap.publicinterestregistry.org/rdap/domain/example.org: nothing recorded for GET https://rdap.publicinterestregistry.org/rdap/domain/example.org",
             "rdap_data": null,
             "rdap_raw_json": null,
@@ -412,7 +410,6 @@
             "dispatch_state": "DONE",
             "gui_link": null,
             "query": "index=proxy hostname=\"evil.example.com\"",
-            "query_error": null,
             "query_results": [
               {
                 "_time": "2026-10-30T14:02:11.000+00:00",
@@ -452,7 +449,6 @@
             "datetime_of_last_update": "2026-08-14 08:01:43+00:00",
             "domain_name": "EXAMPLE.COM",
             "emails": [],
-            "error": null,
             "ip_version": null,
             "lookup_protocol": "rdap",
             "name_servers": [
@@ -461,6 +457,7 @@
             ],
             "network_cidr": null,
             "network_name": null,
+            "not_found": null,
             "rdap_attempt_error": null,
             "rdap_data": {
               "copyright_notice": "",
@@ -646,7 +643,6 @@
             "dispatch_state": "DONE",
             "gui_link": null,
             "query": "index=proxy hostname=\"example.com\"",
-            "query_error": null,
             "query_results": [
               {
                 "_time": "2026-10-30T14:02:11.000+00:00",
@@ -686,7 +682,6 @@
             "datetime_of_last_update": "2026-08-14 08:01:43+00:00",
             "domain_name": "EXAMPLE.COM",
             "emails": [],
-            "error": null,
             "ip_version": null,
             "lookup_protocol": "rdap",
             "name_servers": [
@@ -695,6 +690,7 @@
             ],
             "network_cidr": null,
             "network_name": null,
+            "not_found": null,
             "rdap_attempt_error": null,
             "rdap_data": {
               "copyright_notice": "",

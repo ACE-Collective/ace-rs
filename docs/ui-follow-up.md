@@ -94,6 +94,11 @@ The pass styled these through the shared foundation but nobody viewed them:
 - [ ] **A `scheduler.runs` page** beyond what `/admin/monitoring` shows.
 - [ ] **Dialogs.** ace4 has none. A reason is a field beside the buttons, and a confirmation is a page.
   Check which of ace3's dialogs analysts miss.
+- [ ] **Three things ace3 gained between `f72f8946` and `37a765bf`** (2026-11-16), each the owner's to
+  want or not: a Sepia theme (`e477e14f`); selecting a range of alerts on the list by shift+click or by
+  dragging over the checkboxes (`5fb36276`); and an `error` badge on a failed analysis, with its
+  message on the analysis page and failed modules listed under their observable (`2b9fcd2c`), which
+  needs ace3's `Analysis.error` ported first.
 
 ## How to look at a change
 

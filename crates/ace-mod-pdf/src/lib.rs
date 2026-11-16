@@ -20,9 +20,12 @@
 //!   (PLAN.md 7.3, 7.5 batch 10), so the module is on the sandbox pool. Its bytes differ from run to
 //!   run, as ace3's do: Ghostscript writes the time and an `/ID` from it.
 
+pub mod links;
 pub mod objects;
 pub mod pdfparser;
 pub mod qpdf;
+
+pub use links::PdfLinkTextAnalyzer;
 
 use std::fs::File;
 use std::io::Read;
@@ -50,7 +53,7 @@ const EXTRACT_URLS: &str = "extract_urls";
 const GS_TIMEOUT: Duration = Duration::from_secs(10);
 /// ace3's modules that mustn't read the decrypted copy, by their names in `saq.default.yaml`, as
 /// well as this one.
-const NOT_ON_THE_COPY: &[&str] = &["pdftotext", "exif", "qrcode"];
+const NOT_ON_THE_COPY: &[&str] = &["pdftotext", "pdf_link_text", "exif", "qrcode"];
 /// A file name's limit, which ace3 meets on its filesystem. Past it a write raises, and ace3 catches
 /// that as it would anything else in the same block.
 const NAME_MAX: usize = 255;
@@ -393,11 +396,7 @@ fn read_document(
 }
 
 fn annotation_text(objects: &Objects<'_>) -> Result<Option<String>, qpdf::Raised> {
-    let uris = objects.annotation_uris()?;
-    let mut lines = Vec::with_capacity(uris.len());
-    for uri in &uris {
-        lines.push(objects.text(uri)?);
-    }
+    let lines = objects.annotation_uris(|uri| objects.text(uri))?;
     Ok((!lines.is_empty()).then(|| lines.join("\n")))
 }
 
@@ -808,7 +807,13 @@ mod tests {
                 assert!(copy.directives.is_empty());
                 assert_eq!(
                     copy.exclude_modules,
-                    ["pdf_analyzer", "pdftotext", "exif", "qrcode"]
+                    [
+                        "pdf_analyzer",
+                        "pdftotext",
+                        "pdf_link_text",
+                        "exif",
+                        "qrcode"
+                    ]
                 );
                 let dump = &result.files[2];
                 assert_eq!(

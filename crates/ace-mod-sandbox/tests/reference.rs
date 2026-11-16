@@ -10,6 +10,7 @@
 
 use std::path::{Path, PathBuf};
 
+use ace_mod_pdf::PdfLinkTextAnalyzer;
 use ace_mod_sandbox::qrcode::QRCODE_FILTER;
 use ace_mod_sandbox::{
     AutoItAnalyzer, Cve202130657Analyzer, De4dotAnalyzer, DmgAnalyzer, ExifAnalyzer, IlspyAnalyzer,
@@ -48,13 +49,24 @@ fn compare<M: Parser>(
     class: &str,
     view: Option<(&str, &str)>,
 ) -> Vec<(String, Vec<Difference>)> {
+    compare_with::<M>(module, class, view, |_| serde_json::Value::Null)
+}
+
+/// As `compare`, each dump's module with the settings `settings` gives for it, as the overlay's
+/// block.
+fn compare_with<M: Parser>(
+    module: &str,
+    class: &str,
+    view: Option<(&str, &str)>,
+    settings: fn(&Dump) -> serde_json::Value,
+) -> Vec<(String, Vec<Difference>)> {
     let mut compared = Vec::new();
     for dump in Dump::all(module).expect("the dumps read") {
         if !local_file(&dump).exists() {
             // a git-ignored sample this checkout doesn't have
             continue;
         }
-        let mut harness = Harness::<M>::new().expect("harness");
+        let mut harness = Harness::<M>::with_settings(settings(&dump)).expect("harness");
         if let Some(file_type) = dump.file_type() {
             harness = harness.dependency_result("file_type", file_type.clone());
         }
@@ -152,6 +164,22 @@ fn compare_cve(view: (&str, &str)) -> Vec<(String, Vec<Difference>)> {
     compared
 }
 
+/// The config `make-dumps` gave a pdf_link_text run named for one (`PDF_LINK_TEXT_CONFIGS`), as the
+/// overlay's block.
+fn pdf_link_text_settings(dump: &Dump) -> serde_json::Value {
+    let name = dump.short_name();
+    if name.ends_with(".bounds") {
+        serde_json::json!({"max_links": 3, "link_text_pages": 1, "max_page_words": 5, "max_link_band_words": 2})
+    } else if name.ends_with(".wide") {
+        serde_json::json!({
+            "max_links": 1000, "link_text_pages": 9, "max_page_words": 100_000,
+            "max_link_band_words": 100_000,
+        })
+    } else {
+        serde_json::Value::Null
+    }
+}
+
 #[test]
 fn matches_the_reference_dumps_or_lists_each_difference() {
     let listed = ListedDifferences::load(
@@ -164,6 +192,14 @@ fn matches_the_reference_dumps_or_lists_each_difference() {
         "PDFTextAnalysis",
         Some((qr, "pdftotext_qr_code_pdf")),
     );
+    // ace3's pdf_link_text (b4badb2c), which runs pdftotext too; its crate has no test binary of
+    // its own
+    compared.extend(compare_with::<PdfLinkTextAnalyzer>(
+        "pdf_link_text",
+        "PDFLinkTextAnalysis",
+        Some(("ace4/pdf/link_text.pdf", "pdf_link_text_links")),
+        pdf_link_text_settings,
+    ));
     // its view's fixture is written by hand: ExifTool's dates are the run's
     compared.extend(compare::<ExifAnalyzer>("exif", "ExifAnalysis", None));
     compared.extend(compare::<QrCodeAnalyzer>(

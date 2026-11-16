@@ -71,13 +71,12 @@
       "results": {
         "exif": {
           "details": {
-            "error": null,
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 09:00:41+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 09:00:41+00:00",
-              "File:FileModifyDate": "2026:11:07 10:46:11+00:00",
+              "File:FileAccessDate": "2026:11:16 13:58:51+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 13:58:51+00:00",
+              "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "msoffcrypto_plain.xls",
               "File:FilePermissions": 100644,
               "File:FileSize": 25600,
@@ -177,39 +176,6 @@
         "ole": true,
         "zip": true
       }
-    },
-    "file:1cc02381f0f357f77360a006fb1b182b577e3f79301bf8b40f8fced8a44c3a92": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "msoffcrypto_plain.xls.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:0d57ed3cb8f9e09b0986a7d8d76407de6cb2dce84a2f30048eab9103225437f5": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
     },
     "file:2983db3781942d11b9497551888ee8774f861ff9cbc5c64ddb79eaa0698f87bd": {
       "detections": {},
@@ -478,7 +444,6 @@
               "theme/theme/_rels/themeManager.xml.rels",
               "_rels/.rels"
             ],
-            "extraction_error": null,
             "file_count": 5
           },
           "summary": "Archive Analysis: extracted 5 of 5 files: ([Content_Types].xml, theme/theme/theme1.xml, theme/theme/themeManager.xml, theme/theme/_rels/themeManager.xml.rels, _rels/.rels)",
@@ -646,6 +611,39 @@
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:e252012b437650610eb2279af2aaf77fb41e406c4a6406173e06bc6c0276f2ed": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "msoffcrypto_plain.xls.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:0d57ed3cb8f9e09b0986a7d8d76407de6cb2dce84a2f30048eab9103225437f5": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
           },
           "summary": null,
           "tags": {}

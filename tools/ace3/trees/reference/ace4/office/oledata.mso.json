@@ -128,6 +128,39 @@
         "suspect_ole_attachment": true
       }
     },
+    "file:26361cb2ed1a8ec9a8ef666b8699d522ddc4f2c92d0b6e6b8dcd24c3316ac850": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "oledata.mso.activemime.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:eecb200c85b4d29b859fe3d4415c4c410e5d498d141c371928b797ab04309476": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:36dfb3f7b0fb4ceeb7548920ec3dfdb256d2200727a9abcc3da173c7b5a18275": {
       "detections": {},
       "directives": {
@@ -772,39 +805,6 @@
         "macro": true
       }
     },
-    "file:e68b51ed22bea02f4ad49fd5233d90b9d71c2d349efed8d07c62e64ac97251a5": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "oledata.mso.activemime.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:eecb200c85b4d29b859fe3d4415c4c410e5d498d141c371928b797ab04309476": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:e771da88ff76c35e9e6e841ad684356e5d33663a10924729875a70ff9de9b462": {
       "detections": {},
       "directives": {},
@@ -885,14 +885,13 @@
       "results": {
         "exif": {
           "details": {
-            "error": null,
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "ExifTool:Warning": "Error extracting value for ModifyDate",
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 09:09:59+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 09:09:59+00:00",
-              "File:FileModifyDate": "2026:11:11 09:09:59+00:00",
+              "File:FileAccessDate": "2026:11:16 14:09:10+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 14:09:10+00:00",
+              "File:FileModifyDate": "2026:11:16 14:09:10+00:00",
               "File:FileName": "oledata.mso.activemime",
               "File:FilePermissions": 100666,
               "File:FileSize": 5147,

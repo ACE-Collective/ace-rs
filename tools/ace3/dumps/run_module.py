@@ -957,6 +957,7 @@ TREE_MODULES = {
     "URLEmailPivotAnalysis_v2": "url_email_pivot_analyzer",
     "MessageIDAnalysisV2": "message_id_analyzer_v2",
     "PDFTextAnalysis": "pdftotext",
+    "PDFLinkTextAnalysis": "pdf_link_text",
     "ExifAnalysis": "exif",
     "QRCodeAnalysis": "qrcode",
     "OCRAnalysis": "ocr",
@@ -1022,6 +1023,7 @@ TREE_EXCLUDED = {
     "PCodeAnalyzer": "pcodedmp",
     "PDFAnalyzer": "pdf_analyzer",
     "PDFTextAnalyzer": "pdftotext",
+    "PDFLinkTextAnalyzer": "pdf_link_text",
     "ExifAnalyzer": "exif",
     "QRCodeAnalyzer": "qrcode",
     "OCRAnalyzer": "ocr",
@@ -1153,17 +1155,42 @@ def tree_time(time):
     return text + "Z"
 
 
+# The Python the ports say ace3 runs, where a tool prints its interpreter's version: pdf-parser.py's
+# first line and rtfobj's banner. ace3's image is built from python:3.14-trixie, whose patch version
+# is whatever the tag held when the image was built (3.14.10 on the machine the ports were made
+# against, 3.14.9 on the next), so it says nothing about ace3's code. The trees put ace3's side as
+# the ports write it, and any other byte that differs still shows.
+PORT_PYTHON = "3.14.10"
+
+
+def port_python_dump(data):
+    """A pdf-parser.py dump with the Python its first line names put as the port writes it."""
+    import re
+
+    return re.sub(
+        rb"\AThis program has not been tested with this version of Python \(\d+\.\d+\.\d+\)\n",
+        b"This program has not been tested with this version of Python (" + PORT_PYTHON.encode() + b")\n",
+        data,
+    )
+
+
 def rtfole_in_alert_paths(result, files_dir):
     """rtfobj's report names the file and its objects by the paths ace3 gave it, on its node, and
     ace3 lists the objects in its filesystem's order. The port writes paths in the alert and sorts
-    them. So those two things, and nothing else in these fields, are put the same here, and any
-    other difference in the report shows."""
+    them. Its banner names the Python it ran on (PORT_PYTHON). So those three things, and nothing
+    else in these fields, are put the same here, and any other difference in the report shows."""
+    import re
+
     from saq.util.strings import format_item_list_for_summary
 
     details = result["details"]
     for field in ("stdout", "stderr"):
         if isinstance(details[field], str):
             details[field] = details[field].replace(files_dir + "/", "")
+    if isinstance(details["stdout"], str):
+        details["stdout"] = re.sub(
+            r"\A(rtfobj \S+ on Python )\d+\.\d+\.\d+ ", r"\g<1>" + PORT_PYTHON + " ", details["stdout"]
+        )
     details["extracted_files"] = sorted(path.replace(files_dir + "/", "") for path in details["extracted_files"])
     if details["extracted_files"]:
         result["summary"] = (
@@ -1173,13 +1200,12 @@ def rtfole_in_alert_paths(result, files_dir):
 
 def msoffice_in_alert_paths(result, files_dir):
     """The candidates from the body come out of a set, in an order that changes from run to run, and
-    office2john.py names the file by the path it was given, on the node. The port sorts them and
-    writes the path in the alert. Those two things are put the same here."""
+    office2john.py names the file by the path it was given, on the node, which reaches the summary.
+    The port sorts them and writes the path in the alert. Those two things are put the same here.
+    ace3 kept office2john.py's failure in the details too until 2b9fcd2c moved it to Analysis.error,
+    which the form doesn't hold."""
     details = result["details"]
     details["word_list"] = details["word_list"][:2] + sorted(details["word_list"][2:])
-    for field in ("error",):
-        if isinstance(details[field], str):
-            details[field] = details[field].replace(files_dir + "/", "")
     if isinstance(result["summary"], str):
         result["summary"] = result["summary"].replace(files_dir + "/", "")
 
@@ -1349,8 +1375,8 @@ def tree_form(root):
     return form
 
 
-# a body the lure module reads, which ace3 doesn't read past this
-TREE_VIEW_BODY_MARKER = ".unknown_text_html"
+# the bodies the lure module reads, HTML and plain text, which ace3 doesn't read past this
+TREE_VIEW_BODY_MARKERS = (".unknown_text_html", ".unknown_text_plain")
 TREE_VIEW_BODY_MAX = 5 * 1024 * 1024
 
 
@@ -1361,7 +1387,7 @@ def tree_view(root):
     path, so a file's analyses are those of each of its observables; ace4 analyzes a file once, so of
     two analyses by one class of one file only the first is kept. Each result keeps its class, its
     module as the trees name it, its summary and its details, for a test to compare with, and the
-    HTML bodies the lure module reads are kept as base64, by sha256."""
+    bodies the lure module reads, HTML and plain text, are kept as base64, by sha256."""
     import base64
 
     observables, index, results, bodies = [], {}, [], {}
@@ -1392,7 +1418,8 @@ def tree_view(root):
             entry["size"] = observable.size
             if not any(p["path"] == observable.file_path for p in entry["paths"]):
                 entry["paths"].append({"path": observable.file_path, "yara_meta": sorted(observable.yara_meta_tags)})
-            if TREE_VIEW_BODY_MARKER in (observable.file_name or "") and observable.size <= TREE_VIEW_BODY_MAX:
+            name = observable.file_name or ""
+            if any(m in name for m in TREE_VIEW_BODY_MARKERS) and observable.size <= TREE_VIEW_BODY_MAX:
                 with open(observable.full_path, "rb") as fp:
                     bodies[observable.value] = base64.b64encode(fp.read()).decode()
         return index[key]
@@ -1539,7 +1566,9 @@ def deterministic_id_copy(copy_path, source_path, password):
 def deterministic_id_renames(root):
     """Value to the value it has when pdf_encryption_analyzer's copies have the port's /ID
     (deterministic_id_copy): each copy's sha256, md5 and sha1, and those of the files made from a
-    copy that hold its second /ID, such as pdf_analyzer's dump of it, with that /ID swapped too."""
+    copy that hold its second /ID, such as pdf_analyzer's dump of it, with that /ID swapped too.
+    And each of pdf-parser.py's dumps, by what it is with the port's Python in its first line
+    (port_python_dump)."""
     import io
     import re
 
@@ -1577,8 +1606,18 @@ def deterministic_id_renames(root):
                 swapped = data
                 for old, new in ((old_id, new_id), (old_id.lower(), new_id.lower()), (old_id.upper(), new_id.upper())):
                     swapped = swapped.replace(old, new)
+                if other.file_path.endswith(".pdfparser"):
+                    swapped = port_python_dump(swapped)
                 if swapped != data:
                     rename_bytes(data, swapped)
+    # pdf-parser.py's dumps, whose first line names the Python it ran on (PORT_PYTHON)
+    for other in root.all_observables:
+        if other.type != "file" or not other.file_path.endswith(".pdfparser") or other.value in renames:
+            continue
+        with open(other.full_path, "rb") as fp:
+            data = fp.read()
+        if port_python_dump(data) != data:
+            rename_bytes(data, port_python_dump(data))
     return renames
 
 
@@ -1600,7 +1639,12 @@ def dump_analysis(analysis):
         {"header": d.header, "content": d.content, "format": d.format}
         for d in getattr(analysis, "summary_details", None) or []
     ]
-    return ({"summary_details": summary_details} if summary_details else {}) | {
+    # ace3's Analysis.error (2b9fcd2c), kept only when the module failed, so dumps made before it, and
+    # of modules that didn't fail, stay as they were
+    error = getattr(analysis, "error", None)
+    return ({"summary_details": summary_details} if summary_details else {}) | (
+        {"error": error} if error else {}
+    ) | {
         "module_path": analysis.module_path,
         "class": type(analysis).__name__,
         "summary": analysis.summary,

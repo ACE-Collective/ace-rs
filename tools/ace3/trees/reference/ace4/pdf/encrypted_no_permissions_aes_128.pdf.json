@@ -145,13 +145,12 @@
       "results": {
         "exif": {
           "details": {
-            "error": null,
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 09:32:50+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 09:32:50+00:00",
-              "File:FileModifyDate": "2026:11:07 04:47:50+00:00",
+              "File:FileAccessDate": "2026:11:16 14:58:59+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 14:58:59+00:00",
+              "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "encrypted_no_permissions_aes_128.pdf",
               "File:FilePermissions": 100644,
               "File:FileSize": 2220,
@@ -229,6 +228,20 @@
             }
           },
           "summary": "PDF Analysis: encrypted (aes 128-bit, R4, P -3392), opens with an empty user password",
+          "tags": {}
+        },
+        "pdf_link_text": {
+          "details": {
+            "links": [
+              {
+                "line": null,
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/encrypted-annotation"
+              }
+            ]
+          },
+          "summary": "PDF Link Text Analysis: 1 links, 0 with text",
           "tags": {}
         },
         "pdftotext": {
@@ -311,7 +324,6 @@
           "details": {
             "dom_snapshot": false,
             "dom_snapshot_source": null,
-            "error": null,
             "error_type": null,
             "event_count": 0,
             "exit_code": 0,
@@ -512,88 +524,6 @@
       },
       "tags": {}
     },
-    "file:61ade4cbd32081c6bfa4cb07975ed548e62f3c88f07aee569f968f6bf7194599": {
-      "detections": {},
-      "directives": {
-        "extract_urls": true
-      },
-      "excluded_analysis": {
-        "pdf_analyzer": true
-      },
-      "paths": {
-        "encrypted_no_permissions_aes_128.pdf.gs.pdf": {
-          "type=document.pdf": true,
-          "type=document.pdf.rendered": true
-        }
-      },
-      "redirection": "file:0b3c2c1590e9e5135f412902408d888a604cb7b2237191113e1a6791bf068094",
-      "relationships": {
-        "extracted_from file:0b3c2c1590e9e5135f412902408d888a604cb7b2237191113e1a6791bf068094": true
-      },
-      "results": {
-        "file_type": {
-          "details": {
-            "is_email_file": false,
-            "is_jar_file": false,
-            "is_lnk_file": false,
-            "is_office_document": false,
-            "is_office_ext": false,
-            "is_ole_file": false,
-            "is_pdf_file": true,
-            "is_pe_file": false,
-            "is_rtf_file": false,
-            "is_x509": false,
-            "is_zip_file": false,
-            "mime": "application/pdf",
-            "type": "PDF document, version 1.7, 1 page(s)"
-          },
-          "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
-          "tags": {}
-        },
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "pdftotext": {
-          "details": {
-            "output_path": "a62e2fd14228e52df1262da33959d78073459ba41543704cb44bb5c0a12867a5",
-            "stderr": "",
-            "stdout": ""
-          },
-          "summary": "PDF Text Analysis",
-          "tags": {}
-        },
-        "qrcode": {
-          "details": {
-            "extracted_text": null,
-            "inverted": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "url_extraction": {
-          "details": {
-            "urls": [],
-            "urls_grouped_by_domain": {}
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {
-        "pdf": true
-      }
-    },
     "file:778680bd6222c6efb604412bcfc74402e3b85d8f4f7d15cdc9f1605f9d8b18ec": {
       "detections": {},
       "directives": {
@@ -644,7 +574,6 @@
           "details": {
             "dom_snapshot": false,
             "dom_snapshot_source": null,
-            "error": null,
             "error_type": null,
             "event_count": 0,
             "exit_code": 0,
@@ -691,39 +620,6 @@
         "js": true
       }
     },
-    "file:8d524abbb1990b29732cffb8a9a4b540bff4c8f201213a8616fc3ac9e226260d": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "encrypted_no_permissions_aes_128.pdf.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:0b3c2c1590e9e5135f412902408d888a604cb7b2237191113e1a6791bf068094": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:a62e2fd14228e52df1262da33959d78073459ba41543704cb44bb5c0a12867a5": {
       "detections": {},
       "directives": {},
@@ -735,9 +631,9 @@
           "type=document.pdf.text": true
         }
       },
-      "redirection": "file:61ade4cbd32081c6bfa4cb07975ed548e62f3c88f07aee569f968f6bf7194599",
+      "redirection": "file:dfe0c86e60a28a2e8cc686f6bcab1bca34aaf4e578f7dec6cef5512653920697",
       "relationships": {
-        "extracted_from file:61ade4cbd32081c6bfa4cb07975ed548e62f3c88f07aee569f968f6bf7194599": true
+        "extracted_from file:dfe0c86e60a28a2e8cc686f6bcab1bca34aaf4e578f7dec6cef5512653920697": true
       },
       "results": {
         "file_type": {
@@ -782,6 +678,7 @@
       "excluded_analysis": {
         "exif": true,
         "pdf_analyzer": true,
+        "pdf_link_text": true,
         "pdftotext": true,
         "qrcode": true
       },
@@ -903,6 +800,135 @@
       },
       "tags": {}
     },
+    "file:dfe0c86e60a28a2e8cc686f6bcab1bca34aaf4e578f7dec6cef5512653920697": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {
+        "pdf_analyzer": true
+      },
+      "paths": {
+        "encrypted_no_permissions_aes_128.pdf.gs.pdf": {
+          "type=document.pdf": true,
+          "type=document.pdf.rendered": true
+        }
+      },
+      "redirection": "file:0b3c2c1590e9e5135f412902408d888a604cb7b2237191113e1a6791bf068094",
+      "relationships": {
+        "extracted_from file:0b3c2c1590e9e5135f412902408d888a604cb7b2237191113e1a6791bf068094": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": true,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/pdf",
+            "type": "PDF document, version 1.7, 1 page(s)"
+          },
+          "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "pdf_link_text": {
+          "details": {
+            "links": [
+              {
+                "line": null,
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/encrypted-annotation"
+              }
+            ]
+          },
+          "summary": "PDF Link Text Analysis: 1 links, 0 with text",
+          "tags": {}
+        },
+        "pdftotext": {
+          "details": {
+            "output_path": "a62e2fd14228e52df1262da33959d78073459ba41543704cb44bb5c0a12867a5",
+            "stderr": "",
+            "stdout": ""
+          },
+          "summary": "PDF Text Analysis",
+          "tags": {}
+        },
+        "qrcode": {
+          "details": {
+            "extracted_text": null,
+            "inverted": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {
+        "pdf": true
+      }
+    },
+    "file:ea46b7cc5cc014afd3fa8afe2a224517a2035a4892a300fd27579facd8064a9d": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "encrypted_no_permissions_aes_128.pdf.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:0b3c2c1590e9e5135f412902408d888a604cb7b2237191113e1a6791bf068094": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977": {
       "detections": {},
       "directives": {},
@@ -992,7 +1018,6 @@
             "dispatch_state": "DONE",
             "gui_link": null,
             "query": "index=proxy hostname=\"example.com\"",
-            "query_error": null,
             "query_results": [
               {
                 "_time": "2026-10-30T14:02:11.000+00:00",
@@ -1032,7 +1057,6 @@
             "datetime_of_last_update": "2026-08-14 08:01:43+00:00",
             "domain_name": "EXAMPLE.COM",
             "emails": [],
-            "error": null,
             "ip_version": null,
             "lookup_protocol": "rdap",
             "name_servers": [
@@ -1041,6 +1065,7 @@
             ],
             "network_cidr": null,
             "network_name": null,
+            "not_found": null,
             "rdap_attempt_error": null,
             "rdap_data": {
               "copyright_notice": "",

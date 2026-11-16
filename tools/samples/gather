@@ -814,6 +814,177 @@ def make_encrypted_binary(directory, email_directory, html_directory):
     return records
 
 
+def make_lure_context_emails(directory, pdf_directory):
+    """Emails for the context lure_url_analyzer scores a URL by since ace3 b4badb2c: a signature block
+    below a sign-off, an earlier message the email quotes (Outlook's reply header, a Gmail quote, a
+    cited blockquote, a reply header written as text, `On ... wrote:`, `>` lines), an attachment the
+    newest message refers to, and the text a PDF shows under its links (pdf_link_text). The PDFs are
+    tools/samples/make-pdf's. Every byte is fixed."""
+    made = []
+
+    def message(name, subject, sender="Sam Field <sam@partner-example.org>", to="pat@corp.example"):
+        m = email.message.EmailMessage()
+        m["From"] = sender
+        m["To"] = to
+        m["Return-Path"] = "<sam@partner-example.org>"
+        m["Subject"] = subject
+        m["Date"] = "Wed, 11 Nov 2026 09:30:00 +0000"
+        m["Message-ID"] = f"<{name}@partner-example.org>"
+        return m
+
+    def write(name, m):
+        for i, part in enumerate(m.walk()):
+            if part.is_multipart():
+                part.set_boundary(f"{name}-boundary" + (f"-{i}" if i else ""))
+        path = directory / f"{name}.email.rfc822"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(m.as_bytes())
+        made.append(path)
+
+    def attach_pdf(m, source, filename):
+        m.add_attachment((pdf_directory / source).read_bytes(), maintype="application", subtype="pdf", filename=filename)
+
+    # a signature block in each body: the link above the sign-off is the message's, those below it the
+    # signature's; the plain text body has a line of URLs only below its sign-off
+    m = message("lure_signature", "Invoice 2291 is ready")
+    m.set_content(
+        "Hi Pat,\n\nYour invoice is ready: https://billing.lure-example.net/invoice/2291\n\n"
+        "Thanks, Sam\nSam Field\nhttps://www.partner-example.org/about\nhttps://social.partner-example.org/sam\n"
+    )
+    m.add_alternative(
+        "<html><body><p>Hi Pat,</p><p>Your invoice is ready.</p>"
+        '<p><a href="https://billing.lure-example.net/invoice/2291">View invoice</a></p>'
+        "<p>Regards,</p>"
+        "<p><b>Sam Field</b><br>Accounts, Partner Example<br>"
+        '<a href="https://www.partner-example.org/about">partner-example.org</a><br>'
+        '<a href="https://social.partner-example.org/sam"><img src="https://www.partner-example.org/in.png"></a></p>'
+        "</body></html>",
+        subtype="html",
+    )
+    write("lure_signature", m)
+
+    # what looks like a sign-off and isn't: the first line of the message, one a sentence follows, a
+    # phrase that goes on as a sentence, and one above a lone button when the message ends there
+    m = message("lure_not_a_signature", "Thank you for your payment")
+    m.set_content("Thank you!\n\nBest-in-class pricing starts here: https://offers.lure-example.net/pricing\n")
+    m.add_alternative(
+        "<html><body><h2>Thank you!</h2>"
+        "<p>Thanks, please review the attached invoice.</p>"
+        '<p><a href="https://pay.lure-example.net/review">Review invoice</a></p>'
+        "<p>Thanks for the bid</p>"
+        "<p>Sincerely,</p>"
+        "<p>Your payment was received and your receipt is ready to download from the portal today.</p>"
+        '<p><a href="https://pay.lure-example.net/receipt">Download receipt</a></p>'
+        "<p>Thank you!</p>"
+        '<div><a href="https://pay.lure-example.net/portal" style="padding: 10px">Open the portal</a></div>'
+        "</body></html>",
+        subtype="html",
+    )
+    write("lure_not_a_signature", m)
+
+    # a sign-off decided by a linked logo, which has no text, and "Thanks - Sam"
+    m = message("lure_signature_logo", "Shared file")
+    m.set_content("A file was shared with you.\n")
+    m.add_alternative(
+        "<html><body><p>A file was shared with you.</p>"
+        '<p><a class="button" href="https://files.lure-example.net/s/8812">Open shared file</a></p>'
+        "<p>Thanks - Sam</p>"
+        '<p><a href="https://www.partner-example.org/"><img src="https://www.partner-example.org/logo.png"></a></p>'
+        '<p><a href="https://www.partner-example.org/contact">Contact us</a></p>'
+        "</body></html>",
+        subtype="html",
+    )
+    write("lure_signature_logo", m)
+
+    # a thread in HTML: the newest message, Outlook's reply header, an earlier message with its own
+    # sign-off and signature, then a Gmail quote and a cited blockquote
+    m = message("lure_thread", "RE: Updated remittance details")
+    m.set_content("See the HTML part.\n")
+    m.add_alternative(
+        "<html><body><div><p>Pat, the details changed. Use the new form.</p>"
+        '<p><a href="https://forms.lure-example.net/remit">Update remittance details</a></p>'
+        "<p>Best regards,</p><p>Sam Field</p>"
+        '<p><a href="https://www.partner-example.org/about">About us</a></p></div>'
+        '<div id="x_divRplyFwdMsg"><b>From:</b> Pat Doe &lt;pat@corp.example&gt;<br><b>Sent:</b> Tuesday, November 10, 2026 4:02 PM<br>'
+        "<b>To:</b> Sam Field &lt;sam@partner-example.org&gt;<br><b>Subject:</b> Updated remittance details</div>"
+        "<div><p>Sam, is this the right form?</p>"
+        '<p><a href="https://forms.corp.example/vendor">Vendor form</a></p>'
+        "<p>Thanks,</p><p>Pat Doe</p>"
+        '<p><a href="https://intranet.corp.example/pat">My profile</a></p></div>'
+        '<div class="gmail_quote gmail_quote_container"><div class="gmail_attr">On Mon, Nov 9, 2026 at 9:14 AM Sam Field wrote:</div>'
+        '<p>Here is <a href="https://portal.partner-example.org/first">the first form</a>.</p></div>'
+        '<blockquote type="CITE"><p>Earlier still: <a href="https://portal.partner-example.org/older">an older form</a></p></blockquote>'
+        "</body></html>",
+        subtype="html",
+    )
+    write("lure_thread", m)
+
+    # a reply header written as text in an HTML body, a lone From: line above a button, which starts
+    # nothing, and a header whose fields come too late
+    m = message("lure_thread_header", "FW: Voicemail from 555-0100")
+    m.set_content("See the HTML part.\n")
+    m.add_alternative(
+        "<html><body><p>You have a new voicemail.</p><p>From: 555-0100</p>"
+        '<p><a href="https://voice.lure-example.net/play?id=3">Play voicemail</a></p>'
+        "<p>Duration: 0:41</p><p>Line 2</p><p>Line 3</p><p>Line 4</p><p>Line 5</p><p>Line 6</p><p>Line 7</p><p>Line 8</p>"
+        "<p>Sent: too late to count</p><p>To: nobody</p>"
+        '<p><a href="https://voice.lure-example.net/settings">Voicemail settings</a></p>'
+        "<table><tr><td>From:</td><td>Voice Desk</td></tr><tr><td>Date:</td><td>Monday</td></tr>"
+        "<tr><td>Subject:</td><td>Voicemail</td></tr></table>"
+        '<p><a href="https://voice.partner-example.org/original">Original notice</a></p>'
+        "</body></html>",
+        subtype="html",
+    )
+    write("lure_thread_header", m)
+
+    # a thread in plain text only: a URL in the newest message, one in its signature, `On ... wrote:`
+    # with lines quoted by ">", an original message marker, and a forwarded message's header
+    m = message("lure_thread_text", "Re: Contract draft")
+    m.set_content(
+        "Pat,\n\nThe signed draft is here: https://sign.lure-example.net/d/5521.\n"
+        "Reference copy <https://docs.lure-example.net/ref/5521>\n\n"
+        "Cheers,\nSam\nhttps://www.partner-example.org/sam\n\n"
+        "On Tue, Nov 10, 2026 at 3:11 PM Pat Doe <pat@corp.example> wrote:\n"
+        "> Where is the draft?\n> https://wiki.corp.example/contracts\n"
+        "Inline answer below the quote: https://sign.lure-example.net/help\n\n"
+        "-----Original Message-----\nThe first request: https://portal.partner-example.org/request\n\n"
+        "Begin forwarded message:\n\nFrom: Legal <legal@corp.example>\nDate: Mon, 9 Nov 2026\nSubject: Contract draft\n\n"
+        "Template: https://legal.corp.example/template\n"
+    )
+    write("lure_thread_text", m)
+
+    # a PDF with one link under words that ask for a click, which the newest message refers to
+    m = message("lure_pdf_link", "Bid documents for project 4471")
+    m.set_content("Hello Pat,\n\nPlease find attached the bid documents for project 4471. Review them before Friday.\n\nRegards,\nSam\n")
+    attach_pdf(m, "link_text_single.pdf", "Bid_4471.pdf")
+    write("lure_pdf_link", m)
+
+    # a PDF with several links, in an email whose only mention of attachments is its banner and its
+    # notice; the body's own link is the lure
+    m = message("lure_pdf_banner", "Statement")
+    m.set_content("See the HTML part.\n")
+    m.add_alternative(
+        "<html><body><p>CAUTION: This email is from an external sender. Do not open attachments you do not expect.</p>"
+        "<p>Your statement is online.</p>"
+        '<p><a href="https://statements.lure-example.net/view">View statement</a></p>'
+        "<p>This message and any attachments are confidential.</p></body></html>",
+        subtype="html",
+    )
+    attach_pdf(m, "link_text.pdf", "statement.pdf")
+    write("lure_pdf_banner", m)
+
+    # a PDF with one link and a PDF whose links pdf_link_text can't read, in an email that refers to
+    # its attachment only in the message it quotes
+    m = message("lure_pdf_quoted_reference", "RE: Signed copy")
+    m.set_content(
+        "Thanks, got it.\n\nOn Tue, Nov 10, 2026 Sam Field wrote:\n> The signed copy is attached.\n"
+    )
+    attach_pdf(m, "link_text_single.pdf", "signed.pdf")
+    attach_pdf(m, "link_text_rotate_name.pdf", "rotated.pdf")
+    write("lure_pdf_quoted_reference", m)
+    return made
+
+
 def pdf_libraries_image():
     """The Dockerfile's pdf-libraries stage, which has pikepdf, as an image id."""
     return subprocess.run(
@@ -923,6 +1094,10 @@ def main():
         samples.append(
             entry(SAMPLES / "ace4" / "pdf" / name, ["pdf", "pdf/made"], "made by tools/samples/gather: tools/samples/make-pdf")
         )
+
+    # after the PDFs, which these attach
+    for path in make_lure_context_emails(SAMPLES / "ace4" / "email", SAMPLES / "ace4" / "pdf"):
+        samples.append(entry(path, ["email"], "made by tools/samples/gather: Python email"))
 
     covered = {kind for sample in samples for kind in sample["kinds"]}
     missing = [kind for kind in REQUIRED_KINDS if kind not in covered]

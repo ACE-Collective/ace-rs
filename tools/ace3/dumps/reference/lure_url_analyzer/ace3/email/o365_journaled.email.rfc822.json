@@ -1,6 +1,6 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "f72f8946",
+  "ace3_commit": "37a765bf",
   "also_enabled": [
     "file_type",
     "email_analyzer",
@@ -44,7 +44,8 @@
     "nowhitespace_analyzer",
     "zip_encryption_analyzer",
     "rar_encryption_analyzer",
-    "pdf_encryption_analyzer"
+    "pdf_encryption_analyzer",
+    "pdf_link_text"
   ],
   "analyses": [
     {
@@ -62,7 +63,7 @@
               [],
               []
             ],
-            "observable_uuid": "56a6aadd-52fb-4743-b9e5-928212485c67",
+            "observable_uuid": "673e6d3c-6ef6-48b4-a2be-0275ba24bb89",
             "reasons": [
               "found in the email body",
               "clickable link with text 'http://www.universalgreentech.co.uk/pdf/En_us/ACCOUNT/Invoice-07-17-18/?rcpt=&email=lulu.zingzing@co'",
@@ -83,7 +84,7 @@
               [],
               []
             ],
-            "observable_uuid": "f1090572-ff77-42bc-ace3-1ae61f14496d",
+            "observable_uuid": "b7a0432b-74ea-45bf-8f4f-d44fe2ef4f57",
             "reasons": [
               "found in the email body",
               "not a clickable link in the body",
@@ -108,7 +109,7 @@
             [],
             []
           ],
-          "observable_uuid": "56a6aadd-52fb-4743-b9e5-928212485c67",
+          "observable_uuid": "673e6d3c-6ef6-48b4-a2be-0275ba24bb89",
           "reasons": [
             "found in the email body",
             "clickable link with text 'http://www.universalgreentech.co.uk/pdf/En_us/ACCOUNT/Invoice-07-17-18/?rcpt=&email=lulu.zingzing@co'",
@@ -654,7 +655,7 @@
             "cc": [],
             "compauth_reason": "300",
             "compauth_result": "none",
-            "date": "2026-11-10 05:30:57.542278 +0000",
+            "date": "2026-11-16 16:32:23.794299 +0000",
             "dkim_result": "none",
             "dmarc_result": "none",
             "env_mail_from": "ap@someothercompany.com",
@@ -1023,8 +1024,58 @@
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "message_id",
-        "value": "<13268020124593518925.93733CB7019D1C46@company.com>"
+        "type": "uri_path",
+        "value": "/pdf/En_us/ACCOUNT/Invoice-07-17-18/?rcpt=&email=lulu.zingzing@company.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_from",
+        "value": "ap@someothercompany.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_subject",
+        "value": "INVOICE PDL-06-38776"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [
+          {
+            "path": "email.rfc822",
+            "yara_meta": [
+              "type=email"
+            ]
+          }
+        ],
+        "size": 22712,
+        "tags": [
+          "email"
+        ],
+        "type": "file",
+        "value": "c09769d5f85a2ad6ec1e1cc8196b0c413fa45708faa54fdbc2644f31ed16a99d"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_conversation",
+        "value": "ap@someothercompany.com|random.person@whatever.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_return_path",
+        "value": "ap@someothercompany.com"
       },
       {
         "detections": [],
@@ -1036,23 +1087,61 @@
       },
       {
         "detections": [],
-        "directives": [
-          "extract_urls",
-          "render"
-        ],
-        "paths": [
-          {
-            "path": "email.rfc822.unknown_text_html_000.html",
-            "yara_meta": [
-              "type=document.html",
-              "type=email.attachment"
-            ]
-          }
-        ],
-        "size": 742,
+        "directives": [],
+        "paths": [],
         "tags": [],
-        "type": "file",
-        "value": "3f24e117b8b7030113feba19238f67e2fe2dd02c748f0c7ad0e0a1a2972eb11f"
+        "type": "email_conversation",
+        "value": "ap@someothercompany.com|lulu.zingzing@company.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_to",
+        "value": "random.person@whatever.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "fqdn",
+        "value": "whatever.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_first_hop_ip",
+        "value": "207.211.31.81"
+      },
+      {
+        "detections": [],
+        "directives": [
+          "crawl"
+        ],
+        "paths": [],
+        "tags": [],
+        "type": "url",
+        "value": "http://www.universalgreentech.co.uk/pdf/En_us/ACCOUNT/Invoice-07-17-18"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "uri_path",
+        "value": "/pdf/En_us/ACCOUNT/Invoice-07-17-18"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_envelope_rcpt_to",
+        "value": "lulu.zingzing@company.com"
       },
       {
         "detections": [],
@@ -1078,110 +1167,8 @@
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "email_from",
+        "type": "email_x_sender_id",
         "value": "ap@someothercompany.com"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_first_hop_ip",
-        "value": "207.211.31.81"
-      },
-      {
-        "detections": [],
-        "directives": [
-          "crawl"
-        ],
-        "paths": [],
-        "tags": [],
-        "type": "url",
-        "value": "http://www.universalgreentech.co.uk/pdf/En_us/ACCOUNT/Invoice-07-17-18"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_conversation",
-        "value": "ap@someothercompany.com|random.person@whatever.com"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [
-          "domain_in_url"
-        ],
-        "type": "fqdn",
-        "value": "www.universalgreentech.co.uk"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "uri_path",
-        "value": "/pdf/En_us/ACCOUNT/Invoice-07-17-18"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_to",
-        "value": "random.person@whatever.com"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "uri_path",
-        "value": "/pdf/En_us/ACCOUNT/Invoice-07-17-18/?rcpt=&email=lulu.zingzing@company.com"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [
-          {
-            "path": "email.rfc822",
-            "yara_meta": [
-              "type=email"
-            ]
-          }
-        ],
-        "size": 22712,
-        "tags": [
-          "email"
-        ],
-        "type": "file",
-        "value": "c09769d5f85a2ad6ec1e1cc8196b0c413fa45708faa54fdbc2644f31ed16a99d"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_return_path",
-        "value": "ap@someothercompany.com"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_subject",
-        "value": "INVOICE PDL-06-38776"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "fqdn",
-        "value": "whatever.com"
       },
       {
         "detections": [],
@@ -1208,31 +1195,35 @@
         "paths": [],
         "tags": [],
         "type": "fqdn",
+        "value": "company.com"
+      },
+      {
+        "detections": [],
+        "directives": [
+          "extract_urls",
+          "render"
+        ],
+        "paths": [
+          {
+            "path": "email.rfc822.unknown_text_html_000.html",
+            "yara_meta": [
+              "type=document.html",
+              "type=email.attachment"
+            ]
+          }
+        ],
+        "size": 742,
+        "tags": [],
+        "type": "file",
+        "value": "3f24e117b8b7030113feba19238f67e2fe2dd02c748f0c7ad0e0a1a2972eb11f"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "fqdn",
         "value": "someothercompany.com"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_envelope_rcpt_to",
-        "value": "lulu.zingzing@company.com"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_conversation",
-        "value": "ap@someothercompany.com|lulu.zingzing@company.com"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_x_sender_id",
-        "value": "ap@someothercompany.com"
       },
       {
         "detections": [],
@@ -1247,130 +1238,33 @@
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "email_x_auth_id",
-        "value": "ap@someothercompany.com"
+        "type": "message_id",
+        "value": "<13268020124593518925.93733CB7019D1C46@company.com>"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [
+          "domain_in_url"
+        ],
+        "type": "fqdn",
+        "value": "www.universalgreentech.co.uk"
       },
       {
         "detections": [],
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "fqdn",
-        "value": "company.com"
+        "type": "email_x_auth_id",
+        "value": "ap@someothercompany.com"
       }
     ],
     "results": [
       {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": false,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "text/html",
-          "type": "HTML document, ASCII text"
-        },
-        "module": "file_type",
-        "observable": 2,
-        "summary": "File Type Analysis: HTML document, ASCII text (text/html)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "HTMLJavaScriptExtractionAnalysis",
-        "details": {
-          "dom_snapshot_files": [],
-          "duplicate_count": 0,
-          "extracted_files": [],
-          "extracted_uri_paths": [],
-          "extracted_urls": [],
-          "inline_handlers": [],
-          "script_count": 0
-        },
-        "module": "html_js_extraction",
-        "observable": 2,
-        "summary": null,
-        "tags": []
-      },
-      {
         "added": [
           {
-            "observable": 6
-          },
-          {
-            "observable": 21
-          }
-        ],
-        "class": "URLExtractionAnalysis",
-        "details": {
-          "urls": [
-            "http://www.universalgreentech.co.uk/pdf/En_us/ACCOUNT/Invoice-07-17-18",
-            "http://www.universalgreentech.co.uk/pdf/En_us/ACCOUNT/Invoice-07-17-18/?rcpt=&email=lulu.zingzing@company.com"
-          ],
-          "urls_grouped_by_domain": {
-            "universalgreentech.co.uk": [
-              "http://www.universalgreentech.co.uk/pdf/En_us/ACCOUNT/Invoice-07-17-18",
-              "http://www.universalgreentech.co.uk/pdf/En_us/ACCOUNT/Invoice-07-17-18/?rcpt=&email=lulu.zingzing@company.com"
-            ]
-          }
-        },
-        "module": "url_extraction",
-        "observable": 2,
-        "summary": "URL Extraction Analysis (www.universalgreentech.co.uk)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": true,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "message/rfc822",
-          "type": "RFC 822 mail, ASCII text, with very long lines (1998)"
-        },
-        "module": "file_type",
-        "observable": 3,
-        "summary": "File Type Analysis: RFC 822 mail, ASCII text, with very long lines (1998) (message/rfc822) (email)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "HTMLJavaScriptExtractionAnalysis",
-        "details": {
-          "dom_snapshot_files": [],
-          "duplicate_count": 0,
-          "extracted_files": [],
-          "extracted_uri_paths": [],
-          "extracted_urls": [],
-          "inline_handlers": [],
-          "script_count": 0
-        },
-        "module": "html_js_extraction",
-        "observable": 3,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 17
+            "observable": 19
           }
         ],
         "class": "EmailAddressFQDNAnalysis",
@@ -1378,69 +1272,8 @@
           "domain": "someothercompany.com"
         },
         "module": "email_address_fqdn_analyzer",
-        "observable": 4,
+        "observable": 1,
         "summary": "Email Address FQDN: someothercompany.com",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "NetworkIdentifierAnalysis",
-        "details": {
-          "identified_networks": []
-        },
-        "module": "network_identifier",
-        "observable": 5,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 8
-          },
-          {
-            "observable": 9
-          }
-        ],
-        "class": "ParseURLAnalysis",
-        "details": {
-          "fragment": "",
-          "netloc": "www.universalgreentech.co.uk",
-          "params": null,
-          "path": "/pdf/En_us/ACCOUNT/Invoice-07-17-18",
-          "query": "",
-          "scheme": "http"
-        },
-        "module": "parse_url",
-        "observable": 6,
-        "summary": "URL Parser: scheme=http, netloc=www.universalgreentech.co.uk, path=/pdf/En_us/ACCOUNT/Invoice-07-17-18",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "ProtectedURLAnalysis",
-        "details": {
-          "extracted_url": "http://www.universalgreentech.co.uk/pdf/En_us/ACCOUNT/Invoice-07-17-18",
-          "protection_type": "unprotected"
-        },
-        "module": "protected_url_analyzer",
-        "observable": 6,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 15
-          }
-        ],
-        "class": "EmailAddressFQDNAnalysis",
-        "details": {
-          "domain": "whatever.com"
-        },
-        "module": "email_address_fqdn_analyzer",
-        "observable": 10,
-        "summary": "Email Address FQDN: whatever.com",
         "tags": []
       },
       {
@@ -1459,7 +1292,7 @@
                 [],
                 []
               ],
-              "observable_uuid": "56a6aadd-52fb-4743-b9e5-928212485c67",
+              "observable_uuid": "673e6d3c-6ef6-48b4-a2be-0275ba24bb89",
               "reasons": [
                 "found in the email body",
                 "clickable link with text 'http://www.universalgreentech.co.uk/pdf/En_us/ACCOUNT/Invoice-07-17-18/?rcpt=&email=lulu.zingzing@co'",
@@ -1480,7 +1313,7 @@
                 [],
                 []
               ],
-              "observable_uuid": "f1090572-ff77-42bc-ace3-1ae61f14496d",
+              "observable_uuid": "b7a0432b-74ea-45bf-8f4f-d44fe2ef4f57",
               "reasons": [
                 "found in the email body",
                 "not a clickable link in the body",
@@ -1505,7 +1338,7 @@
               [],
               []
             ],
-            "observable_uuid": "56a6aadd-52fb-4743-b9e5-928212485c67",
+            "observable_uuid": "673e6d3c-6ef6-48b4-a2be-0275ba24bb89",
             "reasons": [
               "found in the email body",
               "clickable link with text 'http://www.universalgreentech.co.uk/pdf/En_us/ACCOUNT/Invoice-07-17-18/?rcpt=&email=lulu.zingzing@co'",
@@ -1521,54 +1354,54 @@
           "subject": "INVOICE PDL-06-38776"
         },
         "module": "lure_url_analyzer",
-        "observable": 12,
+        "observable": 3,
         "summary": "Lure URL Analysis: http://www.universalgreentech.co.uk/pdf/En_us/ACCOUNT/Invoice-07-17-18 (found in the email body; clickable link with text 'http://www.universalgreentech.co.uk/pdf/En_us/ACCOUNT/Invoice-07-17-18/?rcpt=&email=lulu.zingzing@co'; call-to-action text (invoice); the only linked external domain)",
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 4
-          },
-          {
-            "observable": 18
-          },
-          {
-            "observable": 19
-          },
-          {
-            "observable": 10
-          },
-          {
-            "observable": 7
-          },
-          {
-            "observable": 14
-          },
-          {
-            "observable": 0
-          },
-          {
-            "observable": 20
-          },
-          {
-            "observable": 22
+            "observable": 1
           },
           {
             "observable": 13
           },
           {
+            "observable": 7
+          },
+          {
+            "observable": 8
+          },
+          {
+            "observable": 4
+          },
+          {
+            "observable": 2
+          },
+          {
+            "observable": 21
+          },
+          {
+            "observable": 15
+          },
+          {
+            "observable": 23
+          },
+          {
             "observable": 5
           },
           {
-            "observable": 1
+            "observable": 10
           },
           {
-            "observable": 2,
+            "observable": 6
+          },
+          {
+            "observable": 18,
             "path": "email.rfc822.unknown_text_html_000.html"
           },
           {
-            "observable": 3,
+            "observable": 14,
             "path": "email.rfc822.headers"
           },
           {
@@ -2100,7 +1933,7 @@
               "cc": [],
               "compauth_reason": "300",
               "compauth_result": "none",
-              "date": "2026-11-10 05:30:57.542278 +0000",
+              "date": "2026-11-16 16:32:23.794299 +0000",
               "dkim_result": "none",
               "dmarc_result": "none",
               "env_mail_from": "ap@someothercompany.com",
@@ -2200,7 +2033,7 @@
           "parsing_error": null
         },
         "module": "email_analyzer",
-        "observable": 12,
+        "observable": 3,
         "summary": "Email Analysis: From Bobbie Fruitypie <ap@someothercompany.com> To lulu.zingzing@company.com Subject INVOICE PDL-06-38776",
         "tags": []
       },
@@ -2223,7 +2056,7 @@
           "type": "SMTP mail, ASCII text, with very long lines (818)"
         },
         "module": "file_type",
-        "observable": 12,
+        "observable": 3,
         "summary": "File Type Analysis: SMTP mail, ASCII text, with very long lines (818) (message/rfc822) (email)",
         "tags": []
       },
@@ -2240,7 +2073,83 @@
           "script_count": 0
         },
         "module": "html_js_extraction",
-        "observable": 12,
+        "observable": 3,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 19
+          }
+        ],
+        "class": "EmailAddressFQDNAnalysis",
+        "details": {
+          "domain": "someothercompany.com"
+        },
+        "module": "email_address_fqdn_analyzer",
+        "observable": 5,
+        "summary": "Email Address FQDN: someothercompany.com",
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 9
+          }
+        ],
+        "class": "EmailAddressFQDNAnalysis",
+        "details": {
+          "domain": "whatever.com"
+        },
+        "module": "email_address_fqdn_analyzer",
+        "observable": 8,
+        "summary": "Email Address FQDN: whatever.com",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "NetworkIdentifierAnalysis",
+        "details": {
+          "identified_networks": []
+        },
+        "module": "network_identifier",
+        "observable": 10,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 22
+          },
+          {
+            "observable": 12
+          }
+        ],
+        "class": "ParseURLAnalysis",
+        "details": {
+          "fragment": "",
+          "netloc": "www.universalgreentech.co.uk",
+          "params": null,
+          "path": "/pdf/En_us/ACCOUNT/Invoice-07-17-18",
+          "query": "",
+          "scheme": "http"
+        },
+        "module": "parse_url",
+        "observable": 11,
+        "summary": "URL Parser: scheme=http, netloc=www.universalgreentech.co.uk, path=/pdf/En_us/ACCOUNT/Invoice-07-17-18",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "ProtectedURLAnalysis",
+        "details": {
+          "extracted_url": "http://www.universalgreentech.co.uk/pdf/En_us/ACCOUNT/Invoice-07-17-18",
+          "protection_type": "unprotected"
+        },
+        "module": "protected_url_analyzer",
+        "observable": 11,
         "summary": null,
         "tags": []
       },
@@ -2252,10 +2161,65 @@
         ],
         "class": "EmailAddressFQDNAnalysis",
         "details": {
-          "domain": "someothercompany.com"
+          "domain": "company.com"
         },
         "module": "email_address_fqdn_analyzer",
         "observable": 13,
+        "summary": "Email Address FQDN: company.com",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": true,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "message/rfc822",
+          "type": "RFC 822 mail, ASCII text, with very long lines (1998)"
+        },
+        "module": "file_type",
+        "observable": 14,
+        "summary": "File Type Analysis: RFC 822 mail, ASCII text, with very long lines (1998) (message/rfc822) (email)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "HTMLJavaScriptExtractionAnalysis",
+        "details": {
+          "dom_snapshot_files": [],
+          "duplicate_count": 0,
+          "extracted_files": [],
+          "extracted_uri_paths": [],
+          "extracted_urls": [],
+          "inline_handlers": [],
+          "script_count": 0
+        },
+        "module": "html_js_extraction",
+        "observable": 14,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 19
+          }
+        ],
+        "class": "EmailAddressFQDNAnalysis",
+        "details": {
+          "domain": "someothercompany.com"
+        },
+        "module": "email_address_fqdn_analyzer",
+        "observable": 15,
         "summary": "Email Address FQDN: someothercompany.com",
         "tags": []
       },
@@ -2300,42 +2264,79 @@
         "tags": []
       },
       {
-        "added": [
-          {
-            "observable": 23
-          }
-        ],
-        "class": "EmailAddressFQDNAnalysis",
+        "added": [],
+        "class": "FileTypeAnalysis",
         "details": {
-          "domain": "company.com"
+          "is_email_file": false,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "text/html",
+          "type": "HTML document, ASCII text"
         },
-        "module": "email_address_fqdn_analyzer",
+        "module": "file_type",
         "observable": 18,
-        "summary": "Email Address FQDN: company.com",
+        "summary": "File Type Analysis: HTML document, ASCII text (text/html)",
         "tags": []
       },
       {
-        "added": [
-          {
-            "observable": 17
-          }
-        ],
-        "class": "EmailAddressFQDNAnalysis",
+        "added": [],
+        "class": "HTMLJavaScriptExtractionAnalysis",
         "details": {
-          "domain": "someothercompany.com"
+          "dom_snapshot_files": [],
+          "duplicate_count": 0,
+          "extracted_files": [],
+          "extracted_uri_paths": [],
+          "extracted_urls": [],
+          "inline_handlers": [],
+          "script_count": 0
         },
-        "module": "email_address_fqdn_analyzer",
-        "observable": 20,
-        "summary": "Email Address FQDN: someothercompany.com",
+        "module": "html_js_extraction",
+        "observable": 18,
+        "summary": null,
         "tags": []
       },
       {
         "added": [
-          {
-            "observable": 8
-          },
           {
             "observable": 11
+          },
+          {
+            "observable": 20
+          }
+        ],
+        "class": "URLExtractionAnalysis",
+        "details": {
+          "urls": [
+            "http://www.universalgreentech.co.uk/pdf/En_us/ACCOUNT/Invoice-07-17-18",
+            "http://www.universalgreentech.co.uk/pdf/En_us/ACCOUNT/Invoice-07-17-18/?rcpt=&email=lulu.zingzing@company.com"
+          ],
+          "urls_grouped_by_domain": {
+            "universalgreentech.co.uk": [
+              "http://www.universalgreentech.co.uk/pdf/En_us/ACCOUNT/Invoice-07-17-18",
+              "http://www.universalgreentech.co.uk/pdf/En_us/ACCOUNT/Invoice-07-17-18/?rcpt=&email=lulu.zingzing@company.com"
+            ]
+          }
+        },
+        "module": "url_extraction",
+        "observable": 18,
+        "summary": "URL Extraction Analysis (www.universalgreentech.co.uk)",
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 22
+          },
+          {
+            "observable": 0
           }
         ],
         "class": "ParseURLAnalysis",
@@ -2348,7 +2349,7 @@
           "scheme": "http"
         },
         "module": "parse_url",
-        "observable": 21,
+        "observable": 20,
         "summary": "URL Parser: scheme=http, netloc=www.universalgreentech.co.uk, path=/pdf/En_us/ACCOUNT/Invoice-07-17-18/, query=rcpt=&email=lulu.zingzing@company.com, params=(rcpt=, email=lulu.zingzing@company.com)",
         "tags": []
       },
@@ -2360,14 +2361,14 @@
           "protection_type": "unprotected"
         },
         "module": "protected_url_analyzer",
-        "observable": 21,
+        "observable": 20,
         "summary": null,
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 17
+            "observable": 19
           }
         ],
         "class": "EmailAddressFQDNAnalysis",
@@ -2375,7 +2376,7 @@
           "domain": "someothercompany.com"
         },
         "module": "email_address_fqdn_analyzer",
-        "observable": 22,
+        "observable": 23,
         "summary": "Email Address FQDN: someothercompany.com",
         "tags": []
       }

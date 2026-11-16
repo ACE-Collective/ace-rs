@@ -1,6 +1,39 @@
 {
   "form": 1,
   "observables": {
+    "file:03ae680e16dd2dfef617d1d133fceef97e04047f1e389d67ac7c44e7a5ddef1e": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "vba_powerpoint.ppt.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:8dcf7a426180ccef025629b4e523a8a49fe25c4ccb1486578eaab4a5ef72b2bd": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:2f42b5d33619d0c3b33d9bf636ee54ab1165385b64d3b9e2b3cfa4cfb6721d79": {
       "detections": {},
       "directives": {
@@ -135,13 +168,12 @@
       "results": {
         "exif": {
           "details": {
-            "error": null,
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 09:11:24+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 09:11:24+00:00",
-              "File:FileModifyDate": "2026:11:07 15:11:53+00:00",
+              "File:FileAccessDate": "2026:11:16 14:10:59+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 14:10:59+00:00",
+              "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "vba_powerpoint.ppt",
               "File:FilePermissions": 100644,
               "File:FileSize": 13312,
@@ -294,39 +326,6 @@
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
-    "file:d61d1b6235a1631e14dd284535b1d4f0b97716a2ace866581271bb52667d08f5": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "vba_powerpoint.ppt.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:8dcf7a426180ccef025629b4e523a8a49fe25c4ccb1486578eaab4a5ef72b2bd": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
           },
           "summary": null,
           "tags": {}

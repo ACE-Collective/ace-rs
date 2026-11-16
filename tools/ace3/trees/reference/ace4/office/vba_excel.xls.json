@@ -136,6 +136,39 @@
         "macro": true
       }
     },
+    "file:180beafa29eae1386fbdb8277212da7ec306130697c096ede3d083925301389f": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "vba_excel.xls.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:b3cc32f1f58086b8c0ffd7a164e8c39d6631e26c9971495bdc7ae670e0142432": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:1df37560acb55f64e9774ea539c37f41ac19f8632352a1a649fdf74582d3a322": {
       "detections": {},
       "directives": {
@@ -400,13 +433,12 @@
       "results": {
         "exif": {
           "details": {
-            "error": null,
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 09:10:36+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 09:10:36+00:00",
-              "File:FileModifyDate": "2026:11:07 15:11:53+00:00",
+              "File:FileAccessDate": "2026:11:16 14:09:59+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 14:09:59+00:00",
+              "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "vba_excel.xls",
               "File:FilePermissions": 100644,
               "File:FileSize": 28160,
@@ -511,39 +543,6 @@
         "ole": true,
         "olevba": true
       }
-    },
-    "file:cc0bad3737a78937f31e7d1eda8fb6b29cad41168203c1268b3e762fbaa37e4a": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "vba_excel.xls.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:b3cc32f1f58086b8c0ffd7a164e8c39d6631e26c9971495bdc7ae670e0142432": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
     },
     "file:ce49436dec0282ca0c2acb2966441b42d2620cd614f363ac0b43420dfdd687ed": {
       "detections": {},

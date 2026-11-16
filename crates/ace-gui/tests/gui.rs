@@ -3238,6 +3238,7 @@ fn each_module_s_view_draws_its_fixture() {
         "url_pivot_shared",
         "message_id_archived_2",
         "pdftotext_qr_code_pdf",
+        "pdf_link_text_links",
         "exif_doc_docx",
         "qrcode_qr_code_pdf",
         "ocr_text_plain",
@@ -3656,6 +3657,14 @@ fn each_module_s_view_draws_its_fixture() {
                 &html,
                 &[
                     "<tr><th>output_path</th><td>5ae85ff95b5a1314ed5c8432f8320c91847d4bc6ee64f0c8269a6a7145759a81</td></tr>",
+                ],
+            ),
+            "pdf_link_text_links" => contains_all(
+                &html,
+                &[
+                    "<tr><th>link</th><td>page 1: https://example.com/invoice; text: View invoice online; line: View invoice online</td></tr>",
+                    "<tr><th>link</th><td>page 1: https://example.com/contents; text: Pay now</td></tr>",
+                    "<tr><th>link</th><td>page 1: https://example.com/nothing</td></tr>",
                 ],
             ),
             // a tag's value is escaped, as anything from the file is

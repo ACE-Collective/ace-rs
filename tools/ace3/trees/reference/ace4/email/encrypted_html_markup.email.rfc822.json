@@ -835,39 +835,6 @@
         "email": true
       }
     },
-    "file:65c6f97780bc59a6440444c4d50b3a3313f67957d761649ad7f25b0d9a4bcc4e": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "invoice.docx.decrypted.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:6a65fb99c4c7ecb88273b7f1d49b00640de95cb682cb1a63df0c08764f0ef24d": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:6a65fb99c4c7ecb88273b7f1d49b00640de95cb682cb1a63df0c08764f0ef24d": {
       "detections": {
         "Was able to decrypt based on contents of email.": [
@@ -899,7 +866,6 @@
               "word/_rels/document.xml.rels",
               "_rels/.rels"
             ],
-            "extraction_error": null,
             "file_count": 12
           },
           "summary": "Archive Analysis: extracted 12 of 12 files: ([Content_Types].xml, docProps/app.xml, docProps/custom.xml, docProps/core.xml, word/styles.xml, word/webSettings.xml, word/fontTable.xml, word/settings.xml, word/document.xml, word/theme/theme1.xml, word/_rels/document.xml.rels, _rels/.rels)",
@@ -907,13 +873,12 @@
         },
         "exif": {
           "details": {
-            "error": null,
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 08:46:28+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 08:46:28+00:00",
-              "File:FileModifyDate": "2026:11:11 08:46:28+00:00",
+              "File:FileAccessDate": "2026:11:16 13:42:08+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 13:42:08+00:00",
+              "File:FileModifyDate": "2026:11:16 13:42:08+00:00",
               "File:FileName": "invoice.docx.decrypted",
               "File:FilePermissions": 100666,
               "File:FileSize": 12529,
@@ -1155,6 +1120,39 @@
       },
       "tags": {}
     },
+    "file:74b4183c9c8616b0b2139b8b2beb302f8e63b9d0e78a5a6e9c132f65bda10487": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "invoice.docx.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:7a11e1342e44371796a4cdaa5906d4c67c84eb7303ab1b63dc38fd2333e1fee7": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:7a11e1342e44371796a4cdaa5906d4c67c84eb7303ab1b63dc38fd2333e1fee7": {
       "detections": {},
       "directives": {
@@ -1171,13 +1169,12 @@
       "results": {
         "exif": {
           "details": {
-            "error": null,
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 08:46:27+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 08:46:27+00:00",
-              "File:FileModifyDate": "2026:11:11 08:46:27+00:00",
+              "File:FileAccessDate": "2026:11:16 13:42:06+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 13:42:06+00:00",
+              "File:FileModifyDate": "2026:11:16 13:42:06+00:00",
               "File:FileName": "invoice.docx",
               "File:FilePermissions": 100664,
               "File:FileSize": 17920,
@@ -1224,7 +1221,6 @@
             "email": true,
             "email_body": "## Your & document\n\n  2. Open it\n  3. Use [the **password**](http://x.test/help): `Secr3tPw`\n\na| b  \n---|---\n\n",
             "encryption_info": null,
-            "error": null,
             "password": "Secr3tPw",
             "word_list": [
               "VelvetSweatshop",
@@ -1737,6 +1733,39 @@
         "email": true
       }
     },
+    "file:931e2bae7e16a4dbe195d6fff7a0e78c7a44b529438ebe26642ca535bb548111": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "invoice.docx.decrypted.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:6a65fb99c4c7ecb88273b7f1d49b00640de95cb682cb1a63df0c08764f0ef24d": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:990349482cd707ba3093d6fff5bb72167a38f0831e58789a92c25cdeb01f7f93": {
       "detections": {},
       "directives": {
@@ -2199,39 +2228,6 @@
       },
       "tags": {}
     },
-    "file:c8d792541ff87769f76e79c80b9a1c4f90fe7aecc828b6ffa20907106aa03b2c": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "invoice.docx.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:7a11e1342e44371796a4cdaa5906d4c67c84eb7303ab1b63dc38fd2333e1fee7": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:ccb0a81ffb69bd4d7c6f43220e251f1ff02781f9c759e47e2a93e6cda58ca7f6": {
       "detections": {},
       "directives": {
@@ -2619,7 +2615,6 @@
             "dispatch_state": "DONE",
             "gui_link": null,
             "query": "index=proxy hostname=\"example.com\"",
-            "query_error": null,
             "query_results": [
               {
                 "_time": "2026-10-30T14:02:11.000+00:00",
@@ -2659,7 +2654,6 @@
             "datetime_of_last_update": "2026-08-14 08:01:43+00:00",
             "domain_name": "EXAMPLE.COM",
             "emails": [],
-            "error": null,
             "ip_version": null,
             "lookup_protocol": "rdap",
             "name_servers": [
@@ -2668,6 +2662,7 @@
             ],
             "network_cidr": null,
             "network_name": null,
+            "not_found": null,
             "rdap_attempt_error": null,
             "rdap_data": {
               "copyright_notice": "",

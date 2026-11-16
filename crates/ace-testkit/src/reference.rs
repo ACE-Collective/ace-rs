@@ -133,6 +133,17 @@ impl Dump {
     /// in `leave_out`, such as the module's own, and each result's type its ace4 name where a module
     /// that walks the tree reads it (`ace3_analysis_type`).
     pub fn tree_view(&self, this: usize, leave_out: &[&str]) -> ace_sdk::tree::TreeView {
+        self.tree_view_with_details(this, leave_out, &[])
+    }
+
+    /// As `tree_view`, with the details of the results of the modules in `details_of`, as the core
+    /// sends a module the details it declares it reads (`Module::READS_TREE_DETAILS`).
+    pub fn tree_view_with_details(
+        &self,
+        this: usize,
+        leave_out: &[&str],
+        details_of: &[&str],
+    ) -> ace_sdk::tree::TreeView {
         use ace_sdk::tree::{TreeAddition, TreeObservable, TreePath, TreeResult, TreeView};
         let view = &self.value["tree_view"];
         let observables = view["observables"]
@@ -184,7 +195,9 @@ impl Dump {
                         path: a["path"].as_str().map(str::to_owned),
                     })
                     .collect(),
-                details: None,
+                details: details_of
+                    .contains(&r["module"].as_str().unwrap_or_default())
+                    .then(|| r["details"].clone()),
             })
             .collect();
         TreeView {
@@ -198,7 +211,7 @@ impl Dump {
         }
     }
 
-    /// The HTML bodies the dump kept with its root, by sha256.
+    /// The bodies the dump kept with its root, HTML and plain text, by sha256.
     pub fn tree_bodies(&self) -> Vec<(String, Vec<u8>)> {
         use base64::Engine;
         self.value["tree_view"]["bodies"]
@@ -295,6 +308,7 @@ pub fn ace3_analysis_type(class: &str) -> String {
         "ProtectedURLAnalysis" => "protected_url_analysis",
         "EmailConversationFrequencyAnalysis" => "email_conversation_frequency_analysis",
         "LureURLAnalysis" => "lure_url_analysis",
+        "PDFLinkTextAnalysis" => "pdf_link_text_analysis",
         "MailboxEmailAnalysis" => "mailbox_email_analysis",
         "EmailConversationAttachmentAnalysis" => "email_conversation_attachment_analysis",
         "EmailConversationLinkAnalysis" => "email_conversation_link_analysis",
@@ -386,6 +400,7 @@ fn ace3_module_name(excluded: &str) -> String {
         "FileTypeAnalyzer" => "file_type",
         "PDFAnalyzer" => "pdf_analyzer",
         "PDFTextAnalyzer" => "pdftotext",
+        "PDFLinkTextAnalyzer" => "pdf_link_text",
         "ExifAnalyzer" => "exif",
         "QRCodeAnalyzer" => "qrcode",
         "AutoItAnalyzer" => "autoit",

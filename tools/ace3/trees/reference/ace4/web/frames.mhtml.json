@@ -61,129 +61,7 @@
       },
       "tags": {}
     },
-    "file:005eb00b68e468d606421a998c1eb806a0b4609c155e40a7494cdd57c93536c9": {
-      "detections": {},
-      "directives": {
-        "extract_urls": true
-      },
-      "excluded_analysis": {
-        "javascript_deobfuscation": true
-      },
-      "paths": {
-        "frames.mhtml.mime/deobfuscated-extracted-1_js_inline_1_ae7cb0eb.js": {
-          "type=script.javascript": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:ae7cb0eb3bf6a78b5522729b54198d13025d0e2cff909bcc52271fa1128f996f": true
-      },
-      "results": {
-        "file_type": {
-          "details": {
-            "is_email_file": false,
-            "is_jar_file": false,
-            "is_lnk_file": false,
-            "is_office_document": false,
-            "is_office_ext": false,
-            "is_ole_file": false,
-            "is_pdf_file": false,
-            "is_pe_file": false,
-            "is_rtf_file": false,
-            "is_x509": false,
-            "is_zip_file": false,
-            "mime": "text/plain",
-            "type": "ASCII text"
-          },
-          "summary": "File Type Analysis: ASCII text (text/plain)",
-          "tags": {}
-        },
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "url_extraction": {
-          "details": {
-            "urls": [],
-            "urls_grouped_by_domain": {}
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
-    "file:008d206f982da1313ffe663f003a83f9621a721245723ead62f22d45a7aa1ddb": {
-      "detections": {},
-      "directives": {
-        "extract_urls": true
-      },
-      "excluded_analysis": {
-        "javascript_deobfuscation": true
-      },
-      "paths": {
-        "deobfuscated-frames_js_inline_1_ae7cb0eb.js": {
-          "type=script.javascript": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:ae7cb0eb3bf6a78b5522729b54198d13025d0e2cff909bcc52271fa1128f996f": true
-      },
-      "results": {
-        "file_type": {
-          "details": {
-            "is_email_file": false,
-            "is_jar_file": false,
-            "is_lnk_file": false,
-            "is_office_document": false,
-            "is_office_ext": false,
-            "is_ole_file": false,
-            "is_pdf_file": false,
-            "is_pe_file": false,
-            "is_rtf_file": false,
-            "is_x509": false,
-            "is_zip_file": false,
-            "mime": "text/plain",
-            "type": "ASCII text"
-          },
-          "summary": "File Type Analysis: ASCII text (text/plain)",
-          "tags": {}
-        },
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "url_extraction": {
-          "details": {
-            "urls": [],
-            "urls_grouped_by_domain": {}
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
-    "file:03e96fb69f25763711388b90c5b8d8a930175062f46e8d07e3dd8c6ac4a223c2": {
+    "file:1b0353b759e1559fbfc94cdef28004fa5d42db874146b7fb99102bea4fd05bac": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -244,7 +122,7 @@
       },
       "tags": {}
     },
-    "file:278f50a59d62409bca735bb035f99a23367ef05299ce607a820b7db69bf574b9": {
+    "file:3d13d6c33f17d5de4e218b93c0a7aa7d3686044e59c884701ee5334cf88ba943": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -253,7 +131,7 @@
         "javascript_deobfuscation": true
       },
       "paths": {
-        "frames.mhtml.mime/deobfuscated-extracted-0_js_inline_0_dc5cb263.js": {
+        "frames.mhtml.extracted/deobfuscated-file_1_js_inline_0_dc5cb263.js": {
           "type=script.javascript": true
         }
       },
@@ -487,7 +365,7 @@
       },
       "tags": {}
     },
-    "file:9bd5b9c8d942a25fdfb1563451ea992c1a4e4f3073e009ef34645bac9449a587": {
+    "file:79f39d599b83f90773af9df584afb8a2b572e967e86bf93fe2272f0e9eab66bf": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -496,7 +374,7 @@
         "javascript_deobfuscation": true
       },
       "paths": {
-        "deobfuscated-frames_js_inline_0_dc5cb263.js": {
+        "frames.mhtml.extracted/deobfuscated-file_0_js_inline_0_dc5cb263.js": {
           "type=script.javascript": true
         }
       },
@@ -548,7 +426,7 @@
       },
       "tags": {}
     },
-    "file:aa8b7dd9613670f27ed3341160e4f009551867ec91c7a5a5e8d17bec4d2f0ba0": {
+    "file:80ac4bdab9f751959683d629b051af1227fe807ba9881ce7ac52628a94f99fb0": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -557,7 +435,7 @@
         "javascript_deobfuscation": true
       },
       "paths": {
-        "frames.mhtml.extracted/deobfuscated-file_0_js_inline_0_dc5cb263.js": {
+        "deobfuscated-frames_js_inline_0_dc5cb263.js": {
           "type=script.javascript": true
         }
       },
@@ -668,7 +546,6 @@
           "details": {
             "dom_snapshot": true,
             "dom_snapshot_source": null,
-            "error": null,
             "error_type": null,
             "event_count": 1,
             "exit_code": 0,
@@ -703,7 +580,68 @@
         "js": true
       }
     },
-    "file:b11b16421ec929747eea9029f3bc2ac98581af176577e0dd1dee74fe72b0cd66": {
+    "file:c196f0ab82d49735b8d7396dc92f39bce24b6c21bc9219e24ddc2f5659af73bf": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {
+        "javascript_deobfuscation": true
+      },
+      "paths": {
+        "frames.mhtml.mime/deobfuscated-extracted-1_js_inline_1_ae7cb0eb.js": {
+          "type=script.javascript": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:ae7cb0eb3bf6a78b5522729b54198d13025d0e2cff909bcc52271fa1128f996f": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text"
+          },
+          "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:c3ce081ab10cffc95d4442be6c1cd6cfb53e36d4c037844ecff41473095c9d91": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -713,6 +651,67 @@
       },
       "paths": {
         "frames.mhtml.mime/deobfuscated-extracted-1_js_inline_0_dc5cb263.js": {
+          "type=script.javascript": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:dc5cb263277fc03ab4a13f415396924c69adc86a8638e3bebdf7d4eac4f79b79": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text"
+          },
+          "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:d2be032ea5af39f35203b8f96286444d8f899d85480bf876aeeb6318f264fa94": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {
+        "javascript_deobfuscation": true
+      },
+      "paths": {
+        "frames.mhtml.mime/deobfuscated-extracted-0_js_inline_0_dc5cb263.js": {
           "type=script.javascript": true
         }
       },
@@ -834,7 +833,6 @@
           "details": {
             "dom_snapshot": true,
             "dom_snapshot_source": null,
-            "error": null,
             "error_type": null,
             "event_count": 1,
             "exit_code": 0,
@@ -954,7 +952,7 @@
       },
       "tags": {}
     },
-    "file:ff9e8d4a519b37a60ef90df268b18902fca469e0d29c262bde12c906a55b64cc": {
+    "file:fa93df606a6bde672081ddb5c486ecf6d18eda70b7f627f2fcc099c30ba75315": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -963,12 +961,12 @@
         "javascript_deobfuscation": true
       },
       "paths": {
-        "frames.mhtml.extracted/deobfuscated-file_1_js_inline_0_dc5cb263.js": {
+        "deobfuscated-frames_js_inline_1_ae7cb0eb.js": {
           "type=script.javascript": true
         }
       },
       "relationships": {
-        "extracted_from file:dc5cb263277fc03ab4a13f415396924c69adc86a8638e3bebdf7d4eac4f79b79": true
+        "extracted_from file:ae7cb0eb3bf6a78b5522729b54198d13025d0e2cff909bcc52271fa1128f996f": true
       },
       "results": {
         "file_type": {
@@ -1046,7 +1044,6 @@
             "dispatch_state": "DONE",
             "gui_link": null,
             "query": "index=proxy hostname=\"cdn.example.com\"",
-            "query_error": null,
             "query_results": [
               {
                 "_time": "2026-10-30T14:02:11.000+00:00",
@@ -1086,7 +1083,6 @@
             "datetime_of_last_update": "2026-08-14 08:01:43+00:00",
             "domain_name": "EXAMPLE.COM",
             "emails": [],
-            "error": null,
             "ip_version": null,
             "lookup_protocol": "rdap",
             "name_servers": [
@@ -1095,6 +1091,7 @@
             ],
             "network_cidr": null,
             "network_name": null,
+            "not_found": null,
             "rdap_attempt_error": null,
             "rdap_data": {
               "copyright_notice": "",
@@ -1280,7 +1277,6 @@
             "dispatch_state": "DONE",
             "gui_link": null,
             "query": "index=proxy hostname=\"example.com\"",
-            "query_error": null,
             "query_results": [
               {
                 "_time": "2026-10-30T14:02:11.000+00:00",
@@ -1320,7 +1316,6 @@
             "datetime_of_last_update": "2026-08-14 08:01:43+00:00",
             "domain_name": "EXAMPLE.COM",
             "emails": [],
-            "error": null,
             "ip_version": null,
             "lookup_protocol": "rdap",
             "name_servers": [
@@ -1329,6 +1324,7 @@
             ],
             "network_cidr": null,
             "network_name": null,
+            "not_found": null,
             "rdap_attempt_error": null,
             "rdap_data": {
               "copyright_notice": "",

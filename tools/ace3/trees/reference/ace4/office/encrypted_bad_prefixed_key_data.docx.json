@@ -79,13 +79,12 @@
       "results": {
         "exif": {
           "details": {
-            "error": null,
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 08:58:17+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 08:58:17+00:00",
-              "File:FileModifyDate": "2026:11:07 10:46:15+00:00",
+              "File:FileAccessDate": "2026:11:16 13:55:37+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 13:55:37+00:00",
+              "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "encrypted_bad_prefixed_key_data.docx",
               "File:FilePermissions": 100644,
               "File:FileSize": 9216,
@@ -169,39 +168,6 @@
         "microsoft_office": true,
         "ole": true
       }
-    },
-    "file:7c19fa12779ff7e4cdb0ff4a4b7dab156f3365e067de61f5c9e77034a07ea3f4": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "encrypted_bad_prefixed_key_data.docx.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:18b458f901e0a51db334db3b0eb4e004ee847ddd294d9aae638d9fd18c58b15d": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
     },
     "file:990349482cd707ba3093d6fff5bb72167a38f0831e58789a92c25cdeb01f7f93": {
       "detections": {},
@@ -449,6 +415,39 @@
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:eea686d5a9ba5979f711ffe1146e0577fa68d1497729e3156dbc439a0075eebb": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "encrypted_bad_prefixed_key_data.docx.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:18b458f901e0a51db334db3b0eb4e004ee847ddd294d9aae638d9fd18c58b15d": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
           },
           "summary": null,
           "tags": {}

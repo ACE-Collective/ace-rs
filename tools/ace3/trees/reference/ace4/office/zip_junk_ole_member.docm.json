@@ -133,39 +133,6 @@
       },
       "tags": {}
     },
-    "file:2b8cfd5026cc730fb463461d8ea38c4e2d07cce458b711cda96129c558de4256": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "zip_junk_ole_member.docm.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:d8289946067ea027b9d49334a5fa2a519a5a61e456760954ba8af236f7af1153": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:a51b129d94cbc0c953907adaa3aab3e4a44b85515d6374925ae7c934d5006236": {
       "detections": {},
       "directives": {},
@@ -180,7 +147,6 @@
       "results": {
         "exif": {
           "details": {
-            "error": "Error reading FAT from sector 0",
             "exifdata": {}
           },
           "summary": "Exiftool Analysis: ⚠ Error reading FAT from sector 0",
@@ -264,7 +230,6 @@
               "word/vbaProject.bin",
               "_rels/.rels"
             ],
-            "extraction_error": null,
             "file_count": 4
           },
           "summary": "Archive Analysis: extracted 4 of 4 files: ([Content_Types].xml, word/document.xml, word/vbaProject.bin, _rels/.rels)",
@@ -272,13 +237,12 @@
         },
         "exif": {
           "details": {
-            "error": null,
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 09:16:03+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 09:16:03+00:00",
-              "File:FileModifyDate": "2026:11:07 15:11:53+00:00",
+              "File:FileAccessDate": "2026:11:16 14:16:24+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 14:16:24+00:00",
+              "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "zip_junk_ole_member.docm",
               "File:FilePermissions": 100644,
               "File:FileSize": 914,
@@ -416,6 +380,39 @@
         "xml_plain_text_analyzer": {
           "details": {
             "xml_plain_text": null
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:e4e36fd4070ae203916796479004c5a7ca48409cfa9a0aed4f862f82cf0a23e1": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "zip_junk_ole_member.docm.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:d8289946067ea027b9d49334a5fa2a519a5a61e456760954ba8af236f7af1153": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}

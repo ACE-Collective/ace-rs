@@ -15,14 +15,13 @@
       "results": {
         "exif": {
           "details": {
-            "error": null,
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "ExifTool:Warning": "Invalid xref table",
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 09:37:08+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 09:37:08+00:00",
-              "File:FileModifyDate": "2026:11:07 04:47:50+00:00",
+              "File:FileAccessDate": "2026:11:16 15:05:34+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 15:05:34+00:00",
+              "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "parser_nested_992.pdf",
               "File:FilePermissions": 100644,
               "File:FileSize": 6977,
@@ -159,7 +158,7 @@
       },
       "tags": {}
     },
-    "file:64bba2fa870448f3e8a416502596cbf712b1517be217551362507c2bc2fb928f": {
+    "file:74bc8902aaaf85d386e50d768e748a28759706829957d44d380059d4716fb440": {
       "detections": {},
       "directives": {},
       "excluded_analysis": {
@@ -192,59 +191,7 @@
       },
       "tags": {}
     },
-    "file:ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "archive": true
-      },
-      "paths": {
-        "parser_nested_992.pdf.gs.pdf.txt": {
-          "type=document.pdf.text": true
-        }
-      },
-      "redirection": "file:f820fcd2b7a6690f77f9905089102829610946997c40a73e1ab8555682605619",
-      "relationships": {
-        "extracted_from file:f820fcd2b7a6690f77f9905089102829610946997c40a73e1ab8555682605619": true
-      },
-      "results": {
-        "file_type": {
-          "details": {
-            "is_email_file": false,
-            "is_jar_file": false,
-            "is_lnk_file": false,
-            "is_office_document": false,
-            "is_office_ext": false,
-            "is_ole_file": false,
-            "is_pdf_file": false,
-            "is_pe_file": false,
-            "is_rtf_file": false,
-            "is_x509": false,
-            "is_zip_file": false,
-            "mime": "application/octet-stream",
-            "type": "very short file (no magic)"
-          },
-          "summary": "File Type Analysis: very short file (no magic) (application/octet-stream)",
-          "tags": {}
-        },
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
-    "file:f820fcd2b7a6690f77f9905089102829610946997c40a73e1ab8555682605619": {
+    "file:e798fb363a06e8f743386362cfd6c0fcea1537e576c2b9934b3fef6ebf05d4b5": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -325,6 +272,58 @@
       "tags": {
         "pdf": true
       }
+    },
+    "file:ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "archive": true
+      },
+      "paths": {
+        "parser_nested_992.pdf.gs.pdf.txt": {
+          "type=document.pdf.text": true
+        }
+      },
+      "redirection": "file:e798fb363a06e8f743386362cfd6c0fcea1537e576c2b9934b3fef6ebf05d4b5",
+      "relationships": {
+        "extracted_from file:e798fb363a06e8f743386362cfd6c0fcea1537e576c2b9934b3fef6ebf05d4b5": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "very short file (no magic)"
+          },
+          "summary": "File Type Analysis: very short file (no magic) (application/octet-stream)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
     },
     "md5:b0e62d549c581dbddfe8322dd4fcf25c": {
       "detections": {},

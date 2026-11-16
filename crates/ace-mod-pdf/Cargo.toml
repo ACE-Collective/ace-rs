@@ -1,7 +1,7 @@
 [package]
 name = "ace-mod-pdf"
 version = "0.1.0"
-description = "The PDF module: libqpdf for what pikepdf reads, and a port of pdf-parser.py"
+description = "The PDF modules: libqpdf for what pikepdf reads, a port of pdf-parser.py, and the text under a PDF's links"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
@@ -16,12 +16,16 @@ name = "pdf-parser"
 path = "src/bin/pdf-parser.rs"
 
 [dependencies]
+# Python's html.unescape and str methods, for pdftotext's words as ace3's link text module reads them
+ace-pycompat = { path = "../ace-pycompat" }
 ace-results = { path = "../ace-results" }
 ace-sdk = { path = "../ace-sdk" }
 flate2 = "1.1.10"
 libc = "0.2"
 # The qpdf crate's binding of libqpdf, built from the source it vendors (vendor/README.md).
 qpdf-sys = { version = "=0.3.7", features = ["vendored"] }
+# ace3's pattern for the words of `pdftotext -bbox`
+regex = "1.13.1"
 schemars = "1.2.3"
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.154"

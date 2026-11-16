@@ -78,7 +78,7 @@ use ace_results::types::pcap::{
     PcapTlsDecryptionAnalysis, TlsKeylogAnalysis,
 };
 use ace_results::types::pcode::PCodeAnalysis;
-use ace_results::types::pdf::PdfAnalysis;
+use ace_results::types::pdf::{PdfAnalysis, PdfLinkTextAnalysis};
 use ace_results::types::rdap::RdapAnalysis;
 use ace_results::types::rtf::RtfOleObjectAnalysis;
 use ace_results::types::sandbox::{ExifAnalysis, OcrAnalysis, PdfTextAnalysis, QrCodeAnalysis};
@@ -269,6 +269,7 @@ impl Views {
             .with(ViewEntry::of::<UrlEmailPivotAnalysis>())
             .with(ViewEntry::of::<MessageIdAnalysis>())
             .with(ViewEntry::of::<PdfTextAnalysis>())
+            .with(ViewEntry::of::<PdfLinkTextAnalysis>())
             .with(ViewEntry::of::<ExifAnalysis>())
             .with(ViewEntry::of::<QrCodeAnalysis>())
             .with(ViewEntry::of::<OcrAnalysis>())
@@ -814,6 +815,7 @@ impl RdapView<'_> {
             field("error", a.error.as_ref()),
             field("lookup_protocol", a.lookup_protocol.as_ref()),
             field("rdap_attempt_error", a.rdap_attempt_error.as_ref()),
+            field("not_found", a.not_found.as_ref()),
             field("domain_name", a.domain_name.as_ref()),
             field("registrar", a.registrar.as_ref()),
             field("datetime_created", a.datetime_created.as_ref()),
@@ -1867,6 +1869,25 @@ impl AnalysisView for PdfTextAnalysis {
             field("stdout", self.stdout.as_ref().filter(|s| !s.is_empty())),
             field("stderr", self.stderr.as_ref().filter(|s| !s.is_empty())),
         ])
+    }
+}
+
+/// `pdf_link_text_analysis`: each link of the PDF, with its page, the text under it and its line's.
+impl AnalysisView for PdfLinkTextAnalysis {
+    type View<'a> = FieldsView;
+    fn view(&self) -> FieldsView {
+        fields_view(self.links.iter().map(|link| {
+            let mut value = format!("page {}: {}", link.page, link.url);
+            for (name, text) in [("text", &link.text), ("line", &link.line)] {
+                if let Some(text) = text {
+                    value.push_str(&format!("; {name}: {text}"));
+                }
+            }
+            Some(Field {
+                name: "link",
+                value,
+            })
+        }))
     }
 }
 

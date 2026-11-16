@@ -9,12 +9,13 @@
 | `*` | `/details/rdap_data` | whoisit's parse of the response, which ace3 stores beside the response itself. Nothing in ace3 reads it but its tests: the summary, the template and the other fields come from the fields the module extracts, which match. ace4 keeps the response in `rdap_raw_json` and doesn't store a second copy in whoisit's shape. |
 | `*` | `/details/whois_data` | The WHOIS fallback isn't ported, so there are no WHOIS fields. ace3 sets them only when RDAP fails and WHOIS answers; both dumps have them null. |
 | `*` | `/details/whois_raw_text` | The same. |
+| `*` | `/details/not_found` | ace3 added the key after these dumps were made (`2b9fcd2c`, where a registry's "domain not found" stopped being an error): its details now hold `not_found`, null unless the registry said the domain doesn't exist. The port writes it, null on both lookups, and the dumps, made at `844e3584`, have no such key. The dumps aren't remade: `tools/ace3/trees/make-trees` replays their recording to every sample, and a new one would move every tree's lookup. `tests/lookups.rs` checks the answer for a domain the registry doesn't know, and the trees compare the key on every sample. |
 
 ## Behaviour the dumps don't exercise
 
 These depart from ace3:
 
-- When RDAP can't answer (no RDAP server for the TLD, an error status, a response that doesn't parse), ace3 asks WHOIS through python-whois. ace4 records `rdap: <error>` in `error` and the RDAP error in `rdap_attempt_error`, with `lookup_protocol` null.
+- When RDAP can't answer (no RDAP server for the TLD, an error status, a response that doesn't parse), ace3 asks WHOIS through python-whois. ace4 records `rdap: <error>` in `error` and the RDAP error in `rdap_attempt_error`, with `lookup_protocol` null. Since `2b9fcd2c` ace3 keeps that failure in `Analysis.error`, outside the details, where ace4 has no such mark yet, so `error` is in ace4's details only.
 - A server that can't be reached, or answers 429, 502, 503 or 504, fails the task as unavailable, so it runs again later (PLAN.md 1.20). ace3 records `rdap client error: ...` and tries WHOIS.
 - whoisit picks one of a TLD's RDAP servers at random; ace4 takes the first HTTPS one, as icann-rdap-common's `get_preferred_url` does.
 - When a response has no `self` link, ace3 names the registry instead (`rir`, from the bootstrap data); ace4 leaves `rdap_service_url` empty.

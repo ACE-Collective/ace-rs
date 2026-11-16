@@ -196,39 +196,6 @@
       },
       "tags": {}
     },
-    "file:38ccb9103ce76d8aa0d686d7acffdb0d049baa1b7fec7cf14d4428398fe2c1eb": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "encrypted_velvet.docx.decrypted.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:6a65fb99c4c7ecb88273b7f1d49b00640de95cb682cb1a63df0c08764f0ef24d": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:403729e14f6244be4640ab42a7c91833e90d6be8f2efa2223aeeac8fb20a23d2": {
       "detections": {},
       "directives": {
@@ -294,6 +261,72 @@
       },
       "tags": {}
     },
+    "file:4b8f0177077479a27d654c9a9a7eb9f34f844fca367f421e48112526b4a99781": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "encrypted_velvet.docx.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:cf8e19f41bc41f7a5de92c96b15f30e8b9ad9a6effb87d936d1d864059db09c7": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:50ff568093f4f25e6dedc69c5fb74ab048fa0f3194b1959b6624e4dc3aa3febc": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "encrypted_velvet.docx.decrypted.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:6a65fb99c4c7ecb88273b7f1d49b00640de95cb682cb1a63df0c08764f0ef24d": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:6a65fb99c4c7ecb88273b7f1d49b00640de95cb682cb1a63df0c08764f0ef24d": {
       "detections": {
         "Was able to decrypt based on contents of email.": [
@@ -325,7 +358,6 @@
               "word/_rels/document.xml.rels",
               "_rels/.rels"
             ],
-            "extraction_error": null,
             "file_count": 12
           },
           "summary": "Archive Analysis: extracted 12 of 12 files: ([Content_Types].xml, docProps/app.xml, docProps/custom.xml, docProps/core.xml, word/styles.xml, word/webSettings.xml, word/fontTable.xml, word/settings.xml, word/document.xml, word/theme/theme1.xml, word/_rels/document.xml.rels, _rels/.rels)",
@@ -333,13 +365,12 @@
         },
         "exif": {
           "details": {
-            "error": null,
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 08:59:38+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 08:59:38+00:00",
-              "File:FileModifyDate": "2026:11:11 08:59:38+00:00",
+              "File:FileAccessDate": "2026:11:16 13:57:33+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 13:57:33+00:00",
+              "File:FileModifyDate": "2026:11:16 13:57:33+00:00",
               "File:FileName": "encrypted_velvet.docx.decrypted",
               "File:FilePermissions": 100666,
               "File:FileSize": 12529,
@@ -574,39 +605,6 @@
         "xml_plain_text_analyzer": {
           "details": {
             "xml_plain_text": null
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
-    "file:7b2e4c62c02193253f94756d5369f7249450047c44effdd485136c69f1ec1d17": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "encrypted_velvet.docx.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:cf8e19f41bc41f7a5de92c96b15f30e8b9ad9a6effb87d936d1d864059db09c7": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
           },
           "summary": null,
           "tags": {}
@@ -1264,13 +1262,12 @@
       "results": {
         "exif": {
           "details": {
-            "error": null,
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 08:59:37+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 08:59:37+00:00",
-              "File:FileModifyDate": "2026:11:07 01:34:09+00:00",
+              "File:FileAccessDate": "2026:11:16 13:57:31+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 13:57:31+00:00",
+              "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "encrypted_velvet.docx",
               "File:FilePermissions": 100644,
               "File:FileSize": 17920,
@@ -1317,7 +1314,6 @@
             "email": false,
             "email_body": null,
             "encryption_info": null,
-            "error": null,
             "password": "VelvetSweatshop",
             "word_list": [
               "VelvetSweatshop",

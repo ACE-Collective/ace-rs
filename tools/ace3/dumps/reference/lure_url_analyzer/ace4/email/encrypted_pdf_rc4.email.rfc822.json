@@ -1,6 +1,6 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "f72f8946",
+  "ace3_commit": "37a765bf",
   "also_enabled": [
     "file_type",
     "email_analyzer",
@@ -44,7 +44,8 @@
     "nowhitespace_analyzer",
     "zip_encryption_analyzer",
     "rar_encryption_analyzer",
-    "pdf_encryption_analyzer"
+    "pdf_encryption_analyzer",
+    "pdf_link_text"
   ],
   "analyses": [
     {
@@ -60,7 +61,7 @@
               ],
               []
             ],
-            "observable_uuid": "d2d214d6-1993-49f6-b5a8-391b40027abd",
+            "observable_uuid": "cbb26744-ca81-44d1-a209-9825663df08a",
             "reasons": [
               "found in attachment statement.pdf",
               "same domain as the sender (example.com)"
@@ -80,7 +81,7 @@
               ],
               []
             ],
-            "observable_uuid": "f214d76e-38e7-4d55-86ff-aa504f43deb3",
+            "observable_uuid": "a6128b52-f94d-4b12-b133-8c9423413e51",
             "reasons": [
               "found in attachment statement.pdf",
               "same domain as the sender (example.com)"
@@ -100,7 +101,7 @@
               ],
               []
             ],
-            "observable_uuid": "ae11dcab-466d-4dd2-9cfb-a7d2cf2a200e",
+            "observable_uuid": "0eda8e21-f157-46f9-bdb1-085e1ab650c0",
             "reasons": [
               "found in attachment statement.pdf",
               "same domain as the sender (example.com)"
@@ -191,7 +192,7 @@
             "cc": [],
             "compauth_reason": null,
             "compauth_result": null,
-            "date": "2026-11-10 05:34:48.858538 +0000",
+            "date": "2026-11-16 16:38:03.361256 +0000",
             "dkim_result": null,
             "dmarc_result": null,
             "env_mail_from": null,
@@ -467,8 +468,26 @@
   },
   "tree_view": {
     "alert_type": "cli_analysis",
-    "bodies": {},
+    "bodies": {
+      "73fcbccc58d56e41de2edc241f76d48c1a1a119292f135eeb421d7e34fcd1de2": "WW91ciBjb2RlOiBSYzRVc2VyMQo="
+    },
     "observables": [
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "sha256",
+        "value": "63c8241c938e5e5c90928b8c2351ed612ac0ef33b0b4e7169dbc396a3cf6857e"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "uri_path",
+        "value": "/indirect"
+      },
       {
         "detections": [],
         "directives": [
@@ -486,6 +505,101 @@
         "tags": [],
         "type": "file",
         "value": "d3e7969df5ac81f949537f944eadb83de41e4679b1589b60604f01940d9aacfa"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "url",
+        "value": "https://example.com/stream"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "sha256",
+        "value": "d3e7969df5ac81f949537f944eadb83de41e4679b1589b60604f01940d9aacfa"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [
+          {
+            "path": "email.rfc822",
+            "yara_meta": [
+              "type=email"
+            ]
+          }
+        ],
+        "size": 3093,
+        "tags": [
+          "email"
+        ],
+        "type": "file",
+        "value": "dd8a79ffb3c5e80e8459bfc6845aeb3cf38a368755a11eaff6e0adf12e6c8f91"
+      },
+      {
+        "detections": [],
+        "directives": [
+          "extract_urls"
+        ],
+        "paths": [
+          {
+            "path": "statement.pdf.decrypted.js_number.js",
+            "yara_meta": [
+              "type=script.javascript"
+            ]
+          }
+        ],
+        "size": 2,
+        "tags": [],
+        "type": "file",
+        "value": "6b51d431df5d7f141cbececcf79edf3dd861c3b4069f0b11661a3eefacbba918"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [
+          {
+            "path": "email.rfc822.headers",
+            "yara_meta": [
+              "type=email",
+              "type=email.headers"
+            ]
+          }
+        ],
+        "size": 242,
+        "tags": [
+          "email"
+        ],
+        "type": "file",
+        "value": "bf6ae192db9c730f1908297ac361f2d9864b5d42a36aa1003c8e2cc352ca4428"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "md5",
+        "value": "7717140309326e597b05ca2961400f71"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "sha256",
+        "value": "fe3e48dc2aeba7cc7ed48d026ec9609f33edb072c2fa98a2087640597f8dceff"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "sha256",
+        "value": "40530737c17eefb7bac474f715ad6ee3d80a2a3cfc0b8677359705d8c15d9746"
       },
       {
         "detections": [],
@@ -514,15 +628,23 @@
           "pdf"
         ],
         "type": "file",
-        "value": "241b74288316e01652d9ccee0b6f0640b9c445dc1749c2eef5f55dd8927f6895"
+        "value": "d192a9e0c018b00e1d15e6c8a6c6f8f78b767bcab2c7572bb07dc5f8980047b7"
       },
       {
         "detections": [],
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "email_conversation",
-        "value": "sender@example.com|recipient@example.com"
+        "type": "sha256",
+        "value": "b015f7f27e357ad72d9cfb563f485b95ceb3dc604232f254e58aadfdde546e19"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "sha256",
+        "value": "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb"
       },
       {
         "detections": [],
@@ -530,7 +652,223 @@
         "paths": [],
         "tags": [],
         "type": "md5",
-        "value": "2fcefb001b4b391f5f55df4abf2106a4"
+        "value": "f0bb714a8386c986d4cad35590eeb71e"
+      },
+      {
+        "detections": [],
+        "directives": [
+          "extract_urls"
+        ],
+        "paths": [
+          {
+            "path": "statement.pdf.decrypted.js_not_utf8.js",
+            "yara_meta": [
+              "type=script.javascript"
+            ]
+          }
+        ],
+        "size": 22,
+        "tags": [],
+        "type": "file",
+        "value": "e117e65fc6d5186e4bc4ebdfc983a239c649237701294789a35a43cec135fbb5"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "sha256",
+        "value": "6b51d431df5d7f141cbececcf79edf3dd861c3b4069f0b11661a3eefacbba918"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "md5",
+        "value": "107cb6d3066acd6729baeba16ad16df6"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [
+          "domain_in_url"
+        ],
+        "type": "fqdn",
+        "value": "example.com"
+      },
+      {
+        "detections": [],
+        "directives": [
+          "extract_urls"
+        ],
+        "paths": [
+          {
+            "path": "statement.pdf.decrypted.js_literal.js",
+            "yara_meta": [
+              "type=script.javascript"
+            ]
+          }
+        ],
+        "size": 44,
+        "tags": [],
+        "type": "file",
+        "value": "40530737c17eefb7bac474f715ad6ee3d80a2a3cfc0b8677359705d8c15d9746"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "md5",
+        "value": "ddb69ad6bb06d3622b74987ae9e33b7e"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_subject",
+        "value": "the attached file"
+      },
+      {
+        "detections": [],
+        "directives": [
+          "extract_urls"
+        ],
+        "paths": [
+          {
+            "path": "statement.pdf.decrypted.gs.pdf",
+            "yara_meta": [
+              "type=document.pdf",
+              "type=document.pdf.rendered"
+            ]
+          }
+        ],
+        "size": 2470,
+        "tags": [
+          "pdf"
+        ],
+        "type": "file",
+        "value": "fe3e48dc2aeba7cc7ed48d026ec9609f33edb072c2fa98a2087640597f8dceff"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "sha256",
+        "value": "e117e65fc6d5186e4bc4ebdfc983a239c649237701294789a35a43cec135fbb5"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [
+          {
+            "path": "email.rfc822.combined",
+            "yara_meta": [
+              "type=email",
+              "type=email.combined"
+            ]
+          }
+        ],
+        "size": 266,
+        "tags": [
+          "email"
+        ],
+        "type": "file",
+        "value": "b393790a881b4f84a4312d9ad516ff9e59c6f0cd4eb1ca66b75ba19421536ddc"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "url",
+        "value": "https://example.com/literal"
+      },
+      {
+        "detections": [
+          "Was able to decrypt based on contents of email."
+        ],
+        "directives": [],
+        "paths": [
+          {
+            "path": "statement.pdf.decrypted",
+            "yara_meta": [
+              "type=document.pdf"
+            ]
+          }
+        ],
+        "size": 1411,
+        "tags": [
+          "decrypted_pdf",
+          "pdf"
+        ],
+        "type": "file",
+        "value": "b015f7f27e357ad72d9cfb563f485b95ceb3dc604232f254e58aadfdde546e19"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "md5",
+        "value": "0cc175b9c0f1b6a831c399e269772661"
+      },
+      {
+        "detections": [],
+        "directives": [
+          "extract_urls"
+        ],
+        "paths": [
+          {
+            "path": "statement.pdf.decrypted.pdfparser",
+            "yara_meta": [
+              "type=document.pdf.object"
+            ]
+          }
+        ],
+        "size": 2953,
+        "tags": [],
+        "type": "file",
+        "value": "1ad6cf4c10e34dfa2d561957c32793ce713cc2638fcbc799f3afdba7af7552bb"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "md5",
+        "value": "c20ad4d76fe97759aa27a0c99bff6710"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "md5",
+        "value": "44b2c10d5e9c2413e6abcf0d31b97b2d"
+      },
+      {
+        "detections": [],
+        "directives": [
+          "extract_urls",
+          "preview"
+        ],
+        "paths": [
+          {
+            "path": "email.rfc822.unknown_text_plain_000.txt",
+            "yara_meta": [
+              "type=email.attachment"
+            ]
+          }
+        ],
+        "size": 20,
+        "tags": [],
+        "type": "file",
+        "value": "73fcbccc58d56e41de2edc241f76d48c1a1a119292f135eeb421d7e34fcd1de2"
       },
       {
         "detections": [],
@@ -560,144 +898,8 @@
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "sha256",
-        "value": "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "sha256",
-        "value": "6b51d431df5d7f141cbececcf79edf3dd861c3b4069f0b11661a3eefacbba918"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_subject",
-        "value": "the attached file"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "sha256",
-        "value": "63c8241c938e5e5c90928b8c2351ed612ac0ef33b0b4e7169dbc396a3cf6857e"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "sha256",
-        "value": "bdbfcd63c4c8c7309aff7b491e2c9134acfab38ee18b1f331febe37b0b225cd4"
-      },
-      {
-        "detections": [],
-        "directives": [
-          "extract_urls"
-        ],
-        "paths": [
-          {
-            "path": "statement.pdf.decrypted.gs.pdf",
-            "yara_meta": [
-              "type=document.pdf",
-              "type=document.pdf.rendered"
-            ]
-          }
-        ],
-        "size": 2470,
-        "tags": [
-          "pdf"
-        ],
-        "type": "file",
-        "value": "4e652f8ab1eee96daf596f597aa5ee9e6b72fe3141f541d4e86bb53a8dc9d939"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_to",
-        "value": "recipient@example.com"
-      },
-      {
-        "detections": [],
-        "directives": [
-          "extract_urls",
-          "preview"
-        ],
-        "paths": [
-          {
-            "path": "email.rfc822.unknown_text_plain_000.txt",
-            "yara_meta": [
-              "type=email.attachment"
-            ]
-          }
-        ],
-        "size": 20,
-        "tags": [],
-        "type": "file",
-        "value": "73fcbccc58d56e41de2edc241f76d48c1a1a119292f135eeb421d7e34fcd1de2"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "md5",
-        "value": "6ad561acad553d0ea80f7f47c9a7c8ef"
-      },
-      {
-        "detections": [
-          "Was able to decrypt based on contents of email."
-        ],
-        "directives": [],
-        "paths": [
-          {
-            "path": "statement.pdf.decrypted",
-            "yara_meta": [
-              "type=document.pdf"
-            ]
-          }
-        ],
-        "size": 1411,
-        "tags": [
-          "decrypted_pdf",
-          "pdf"
-        ],
-        "type": "file",
-        "value": "bdbfcd63c4c8c7309aff7b491e2c9134acfab38ee18b1f331febe37b0b225cd4"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [
-          {
-            "path": "email.rfc822.headers",
-            "yara_meta": [
-              "type=email",
-              "type=email.headers"
-            ]
-          }
-        ],
-        "size": 242,
-        "tags": [
-          "email"
-        ],
-        "type": "file",
-        "value": "bf6ae192db9c730f1908297ac361f2d9864b5d42a36aa1003c8e2cc352ca4428"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "md5",
-        "value": "f0bb714a8386c986d4cad35590eeb71e"
+        "type": "url",
+        "value": "https://example.com/indirect"
       },
       {
         "detections": [],
@@ -709,159 +911,11 @@
       },
       {
         "detections": [],
-        "directives": [
-          "extract_urls"
-        ],
-        "paths": [
-          {
-            "path": "statement.pdf.decrypted.js_literal.js",
-            "yara_meta": [
-              "type=script.javascript"
-            ]
-          }
-        ],
-        "size": 44,
-        "tags": [],
-        "type": "file",
-        "value": "40530737c17eefb7bac474f715ad6ee3d80a2a3cfc0b8677359705d8c15d9746"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "md5",
-        "value": "7717140309326e597b05ca2961400f71"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "uri_path",
-        "value": "/stream"
-      },
-      {
-        "detections": [],
-        "directives": [
-          "extract_urls"
-        ],
-        "paths": [
-          {
-            "path": "statement.pdf.decrypted.js_utf16.js",
-            "yara_meta": [
-              "type=script.javascript"
-            ]
-          }
-        ],
-        "size": 1,
-        "tags": [],
-        "type": "file",
-        "value": "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb"
-      },
-      {
-        "detections": [],
-        "directives": [
-          "extract_urls"
-        ],
-        "paths": [
-          {
-            "path": "statement.pdf.decrypted.js_not_utf8.js",
-            "yara_meta": [
-              "type=script.javascript"
-            ]
-          }
-        ],
-        "size": 22,
-        "tags": [],
-        "type": "file",
-        "value": "e117e65fc6d5186e4bc4ebdfc983a239c649237701294789a35a43cec135fbb5"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "md5",
-        "value": "c20ad4d76fe97759aa27a0c99bff6710"
-      },
-      {
-        "detections": [],
-        "directives": [
-          "extract_urls"
-        ],
-        "paths": [
-          {
-            "path": "statement.pdf.decrypted.js_number.js",
-            "yara_meta": [
-              "type=script.javascript"
-            ]
-          }
-        ],
-        "size": 2,
-        "tags": [],
-        "type": "file",
-        "value": "6b51d431df5d7f141cbececcf79edf3dd861c3b4069f0b11661a3eefacbba918"
-      },
-      {
-        "detections": [],
         "directives": [],
         "paths": [],
         "tags": [],
         "type": "uri_path",
         "value": "/literal"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "url",
-        "value": "https://example.com/stream"
-      },
-      {
-        "detections": [],
-        "directives": [
-          "extract_urls"
-        ],
-        "paths": [
-          {
-            "path": "statement.pdf.pdfparser",
-            "yara_meta": [
-              "type=document.pdf.object"
-            ]
-          }
-        ],
-        "size": 3874,
-        "tags": [],
-        "type": "file",
-        "value": "7ed4051fac3b0bd1fe27b61d572919992fda1e1da22137019ee47e9b32bd2563"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "message_id",
-        "value": "<encrypted_pdf_rc4@example.com>"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [
-          {
-            "path": "email.rfc822",
-            "yara_meta": [
-              "type=email"
-            ]
-          }
-        ],
-        "size": 3093,
-        "tags": [
-          "email"
-        ],
-        "type": "file",
-        "value": "dd8a79ffb3c5e80e8459bfc6845aeb3cf38a368755a11eaff6e0adf12e6c8f91"
       },
       {
         "detections": [],
@@ -886,111 +940,16 @@
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "uri_path",
-        "value": "/indirect"
+        "type": "message_id",
+        "value": "<encrypted_pdf_rc4@example.com>"
       },
       {
         "detections": [],
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "sha256",
-        "value": "e117e65fc6d5186e4bc4ebdfc983a239c649237701294789a35a43cec135fbb5"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "md5",
-        "value": "bbc59ff7d65a59dfb741b4014df70743"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "url",
-        "value": "https://example.com/indirect"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [
-          "domain_in_url"
-        ],
-        "type": "fqdn",
-        "value": "example.com"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [
-          {
-            "path": "email.rfc822.combined",
-            "yara_meta": [
-              "type=email",
-              "type=email.combined"
-            ]
-          }
-        ],
-        "size": 266,
-        "tags": [
-          "email"
-        ],
-        "type": "file",
-        "value": "b393790a881b4f84a4312d9ad516ff9e59c6f0cd4eb1ca66b75ba19421536ddc"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "sha256",
-        "value": "4e652f8ab1eee96daf596f597aa5ee9e6b72fe3141f541d4e86bb53a8dc9d939"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "sha256",
-        "value": "40530737c17eefb7bac474f715ad6ee3d80a2a3cfc0b8677359705d8c15d9746"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "md5",
-        "value": "107cb6d3066acd6729baeba16ad16df6"
-      },
-      {
-        "detections": [],
-        "directives": [
-          "extract_urls"
-        ],
-        "paths": [
-          {
-            "path": "statement.pdf.decrypted.pdfparser",
-            "yara_meta": [
-              "type=document.pdf.object"
-            ]
-          }
-        ],
-        "size": 2954,
-        "tags": [],
-        "type": "file",
-        "value": "debe64e60594466e5b37d433f79bbc61c938f7c10c75c7eddc5c4167304b44c7"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "sha256",
-        "value": "d3e7969df5ac81f949537f944eadb83de41e4679b1589b60604f01940d9aacfa"
+        "type": "email_conversation",
+        "value": "sender@example.com|recipient@example.com"
       },
       {
         "detections": [],
@@ -1005,8 +964,26 @@
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "url",
-        "value": "https://example.com/literal"
+        "type": "uri_path",
+        "value": "/stream"
+      },
+      {
+        "detections": [],
+        "directives": [
+          "extract_urls"
+        ],
+        "paths": [
+          {
+            "path": "statement.pdf.pdfparser",
+            "yara_meta": [
+              "type=document.pdf.object"
+            ]
+          }
+        ],
+        "size": 3873,
+        "tags": [],
+        "type": "file",
+        "value": "0072d198ff88464e1cdf1dee87275bb0228ac9a41beff007608753c3bbe12a39"
       },
       {
         "detections": [],
@@ -1014,7 +991,33 @@
         "paths": [],
         "tags": [],
         "type": "md5",
-        "value": "0cc175b9c0f1b6a831c399e269772661"
+        "value": "2fcefb001b4b391f5f55df4abf2106a4"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_to",
+        "value": "recipient@example.com"
+      },
+      {
+        "detections": [],
+        "directives": [
+          "extract_urls"
+        ],
+        "paths": [
+          {
+            "path": "statement.pdf.decrypted.js_utf16.js",
+            "yara_meta": [
+              "type=script.javascript"
+            ]
+          }
+        ],
+        "size": 1,
+        "tags": [],
+        "type": "file",
+        "value": "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb"
       }
     ],
     "results": [
@@ -1037,17 +1040,17 @@
           "type": "ASCII text"
         },
         "module": "file_type",
-        "observable": 0,
+        "observable": 2,
         "summary": "File Type Analysis: ASCII text (text/plain)",
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 18
+            "observable": 35
           },
           {
-            "observable": 42
+            "observable": 4
           }
         ],
         "class": "FileHashAnalysis",
@@ -1057,14 +1060,14 @@
           "sha256": "d3e7969df5ac81f949537f944eadb83de41e4679b1589b60604f01940d9aacfa"
         },
         "module": "file_hash_analyzer",
-        "observable": 0,
+        "observable": 2,
         "summary": null,
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 27
+            "observable": 3
           }
         ],
         "class": "URLExtractionAnalysis",
@@ -1079,625 +1082,17 @@
           }
         },
         "module": "url_extraction",
-        "observable": 0,
+        "observable": 2,
         "summary": "URL Extraction Analysis (example.com)",
         "tags": []
       },
       {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": false,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": true,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "application/pdf",
-          "type": "PDF document, version 1.7, 1 page(s)"
-        },
-        "module": "file_type",
-        "observable": 2,
-        "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "URLExtractionAnalysis",
-        "details": {
-          "urls": [],
-          "urls_grouped_by_domain": {}
-        },
-        "module": "url_extraction",
-        "observable": 2,
-        "summary": null,
-        "tags": []
-      },
-      {
         "added": [
           {
-            "observable": 15,
-            "path": "statement.pdf.decrypted"
-          }
-        ],
-        "class": "PDFEncryptionAnalysis",
-        "details": {
-          "email": true,
-          "email_body": "Your code: Rc4User1\n\n",
-          "error": null,
-          "password": "Rc4User1",
-          "word_list": [
-            "code",
-            "c4User1",
-            "code:",
-            "4User1",
-            "c4Use",
-            "4User",
-            "Rc4Use",
-            "ode:",
-            "User1",
-            "ser1",
-            "Rc4User1",
-            "4Use",
-            "Rc4User",
-            "c4Us",
-            "c4User",
-            "User",
-            "Rc4U",
-            "Your",
-            "Rc4Us"
-          ]
-        },
-        "module": "pdf_encryption_analyzer",
-        "observable": 5,
-        "summary": "PDF Encryption Analysis: password Rc4User1",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": false,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": true,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "application/pdf",
-          "type": "PDF document, version 1.7, 1 page(s)"
-        },
-        "module": "file_type",
-        "observable": 5,
-        "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 40
+            "observable": 19
           },
           {
-            "observable": 9
-          }
-        ],
-        "class": "FileHashAnalysis",
-        "details": {
-          "md5": "107cb6d3066acd6729baeba16ad16df6",
-          "sha1": "9c37c24e1e711d96a91a317eeab70c9b149a055f",
-          "sha256": "63c8241c938e5e5c90928b8c2351ed612ac0ef33b0b4e7169dbc396a3cf6857e"
-        },
-        "module": "file_hash_analyzer",
-        "observable": 5,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 28,
-            "path": "statement.pdf.pdfparser"
-          },
-          {
-            "observable": 2,
-            "path": "statement.pdf.gs.pdf"
-          }
-        ],
-        "class": "PDFAnalysis",
-        "details": {},
-        "module": "pdf_analyzer",
-        "observable": 5,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "URLExtractionAnalysis",
-        "details": {
-          "urls": [],
-          "urls_grouped_by_domain": {}
-        },
-        "module": "url_extraction",
-        "observable": 5,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": false,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": true,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "application/pdf",
-          "type": "PDF document, version 1.7, 1 page(s)"
-        },
-        "module": "file_type",
-        "observable": 11,
-        "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 34
-          },
-          {
-            "observable": 38
-          }
-        ],
-        "class": "FileHashAnalysis",
-        "details": {
-          "md5": "bbc59ff7d65a59dfb741b4014df70743",
-          "sha1": "28824313a7add169559438522659edf7d573bcbd",
-          "sha256": "4e652f8ab1eee96daf596f597aa5ee9e6b72fe3141f541d4e86bb53a8dc9d939"
-        },
-        "module": "file_hash_analyzer",
-        "observable": 11,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "URLExtractionAnalysis",
-        "details": {
-          "urls": [],
-          "urls_grouped_by_domain": {}
-        },
-        "module": "url_extraction",
-        "observable": 11,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 36
-          }
-        ],
-        "class": "EmailAddressFQDNAnalysis",
-        "details": {
-          "domain": "example.com"
-        },
-        "module": "email_address_fqdn_analyzer",
-        "observable": 12,
-        "summary": "Email Address FQDN: example.com",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": false,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "text/plain",
-          "type": "ASCII text"
-        },
-        "module": "file_type",
-        "observable": 13,
-        "summary": "File Type Analysis: ASCII text (text/plain)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "URLExtractionAnalysis",
-        "details": {
-          "urls": [],
-          "urls_grouped_by_domain": {}
-        },
-        "module": "url_extraction",
-        "observable": 13,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": false,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": true,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "application/pdf",
-          "type": "PDF document, version 1.7, 1 page(s)"
-        },
-        "module": "file_type",
-        "observable": 15,
-        "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 14
-          },
-          {
-            "observable": 10
-          }
-        ],
-        "class": "FileHashAnalysis",
-        "details": {
-          "md5": "6ad561acad553d0ea80f7f47c9a7c8ef",
-          "sha1": "62fa3521037db93b4e6d1571c212f13022153983",
-          "sha256": "bdbfcd63c4c8c7309aff7b491e2c9134acfab38ee18b1f331febe37b0b225cd4"
-        },
-        "module": "file_hash_analyzer",
-        "observable": 15,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 41,
-            "path": "statement.pdf.decrypted.pdfparser"
-          },
-          {
-            "observable": 11,
-            "path": "statement.pdf.decrypted.gs.pdf"
-          },
-          {
-            "observable": 19,
-            "path": "statement.pdf.decrypted.js_literal.js"
-          },
-          {
-            "observable": 0,
-            "path": "statement.pdf.decrypted.js_name_with__spaces_.js"
-          },
-          {
-            "observable": 31,
-            "path": "statement.pdf.decrypted.js_u.js"
-          },
-          {
-            "observable": 22,
-            "path": "statement.pdf.decrypted.js_utf16.js"
-          },
-          {
-            "observable": 23,
-            "path": "statement.pdf.decrypted.js_not_utf8.js"
-          },
-          {
-            "observable": 25,
-            "path": "statement.pdf.decrypted.js_number.js"
-          }
-        ],
-        "class": "PDFAnalysis",
-        "details": {},
-        "module": "pdf_analyzer",
-        "observable": 15,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": true,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "message/rfc822",
-          "type": "news or mail, ASCII text"
-        },
-        "module": "file_type",
-        "observable": 16,
-        "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "HTMLJavaScriptExtractionAnalysis",
-        "details": {
-          "dom_snapshot_files": [],
-          "duplicate_count": 0,
-          "extracted_files": [],
-          "extracted_uri_paths": [],
-          "extracted_urls": [],
-          "inline_handlers": [],
-          "script_count": 0
-        },
-        "module": "html_js_extraction",
-        "observable": 16,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": false,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "text/plain",
-          "type": "ASCII text, with no line terminators"
-        },
-        "module": "file_type",
-        "observable": 19,
-        "summary": "File Type Analysis: ASCII text, with no line terminators (text/plain)",
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 4
-          },
-          {
-            "observable": 39
-          }
-        ],
-        "class": "FileHashAnalysis",
-        "details": {
-          "md5": "2fcefb001b4b391f5f55df4abf2106a4",
-          "sha1": "e6a1264184778398edf31196b666f058c66d8b9a",
-          "sha256": "40530737c17eefb7bac474f715ad6ee3d80a2a3cfc0b8677359705d8c15d9746"
-        },
-        "module": "file_hash_analyzer",
-        "observable": 19,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 44
-          }
-        ],
-        "class": "URLExtractionAnalysis",
-        "details": {
-          "urls": [
-            "https://example.com/literal"
-          ],
-          "urls_grouped_by_domain": {
-            "example.com": [
-              "https://example.com/literal"
-            ]
-          }
-        },
-        "module": "url_extraction",
-        "observable": 19,
-        "summary": "URL Extraction Analysis (example.com)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": false,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "application/octet-stream",
-          "type": "very short file (no magic)"
-        },
-        "module": "file_type",
-        "observable": 22,
-        "summary": "File Type Analysis: very short file (no magic) (application/octet-stream)",
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 45
-          },
-          {
-            "observable": 6
-          }
-        ],
-        "class": "FileHashAnalysis",
-        "details": {
-          "md5": "0cc175b9c0f1b6a831c399e269772661",
-          "sha1": "86f7e437faa5a7fce15d1ddcb9eaeaea377667b8",
-          "sha256": "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb"
-        },
-        "module": "file_hash_analyzer",
-        "observable": 22,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "URLExtractionAnalysis",
-        "details": {
-          "urls": [],
-          "urls_grouped_by_domain": {}
-        },
-        "module": "url_extraction",
-        "observable": 22,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": false,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "text/plain",
-          "type": "Unicode text, UTF-8 text, with no line terminators"
-        },
-        "module": "file_type",
-        "observable": 23,
-        "summary": "File Type Analysis: Unicode text, UTF-8 text, with no line terminators (text/plain)",
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 17
-          },
-          {
-            "observable": 33
-          }
-        ],
-        "class": "FileHashAnalysis",
-        "details": {
-          "md5": "f0bb714a8386c986d4cad35590eeb71e",
-          "sha1": "a483f9d4743da3bae0e81588f53c29c9c048a316",
-          "sha256": "e117e65fc6d5186e4bc4ebdfc983a239c649237701294789a35a43cec135fbb5"
-        },
-        "module": "file_hash_analyzer",
-        "observable": 23,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "URLExtractionAnalysis",
-        "details": {
-          "urls": [],
-          "urls_grouped_by_domain": {}
-        },
-        "module": "url_extraction",
-        "observable": 23,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": false,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "text/plain",
-          "type": "ASCII text, with no line terminators"
-        },
-        "module": "file_type",
-        "observable": 25,
-        "summary": "File Type Analysis: ASCII text, with no line terminators (text/plain)",
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 24
-          },
-          {
-            "observable": 7
-          }
-        ],
-        "class": "FileHashAnalysis",
-        "details": {
-          "md5": "c20ad4d76fe97759aa27a0c99bff6710",
-          "sha1": "7b52009b64fd0a2a49e6d8a939753077792b0554",
-          "sha256": "6b51d431df5d7f141cbececcf79edf3dd861c3b4069f0b11661a3eefacbba918"
-        },
-        "module": "file_hash_analyzer",
-        "observable": 25,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "URLExtractionAnalysis",
-        "details": {
-          "urls": [],
-          "urls_grouped_by_domain": {}
-        },
-        "module": "url_extraction",
-        "observable": 25,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 36
-          },
-          {
-            "observable": 21
+            "observable": 41
           }
         ],
         "class": "ParseURLAnalysis",
@@ -1710,7 +1105,7 @@
           "scheme": "https"
         },
         "module": "parse_url",
-        "observable": 27,
+        "observable": 3,
         "summary": "URL Parser: scheme=https, netloc=example.com, path=/stream",
         "tags": []
       },
@@ -1722,42 +1117,7 @@
           "protection_type": "unprotected"
         },
         "module": "protected_url_analyzer",
-        "observable": 27,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": false,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "application/pdf",
-          "type": "PDF document, version 1.7, Unicode text, UTF-8 text, with very long lines (743)"
-        },
-        "module": "file_type",
-        "observable": 28,
-        "summary": "File Type Analysis: PDF document, version 1.7, Unicode text, UTF-8 text, with very long lines (743) (application/pdf)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "URLExtractionAnalysis",
-        "details": {
-          "urls": [],
-          "urls_grouped_by_domain": {}
-        },
-        "module": "url_extraction",
-        "observable": 28,
+        "observable": 3,
         "summary": null,
         "tags": []
       },
@@ -1775,7 +1135,7 @@
                 ],
                 []
               ],
-              "observable_uuid": "d2d214d6-1993-49f6-b5a8-391b40027abd",
+              "observable_uuid": "cbb26744-ca81-44d1-a209-9825663df08a",
               "reasons": [
                 "found in attachment statement.pdf",
                 "same domain as the sender (example.com)"
@@ -1795,7 +1155,7 @@
                 ],
                 []
               ],
-              "observable_uuid": "f214d76e-38e7-4d55-86ff-aa504f43deb3",
+              "observable_uuid": "a6128b52-f94d-4b12-b133-8c9423413e51",
               "reasons": [
                 "found in attachment statement.pdf",
                 "same domain as the sender (example.com)"
@@ -1815,7 +1175,7 @@
                 ],
                 []
               ],
-              "observable_uuid": "ae11dcab-466d-4dd2-9cfb-a7d2cf2a200e",
+              "observable_uuid": "0eda8e21-f157-46f9-bdb1-085e1ab650c0",
               "reasons": [
                 "found in attachment statement.pdf",
                 "same domain as the sender (example.com)"
@@ -1832,41 +1192,41 @@
           "subject": "the attached file"
         },
         "module": "lure_url_analyzer",
-        "observable": 30,
+        "observable": 5,
         "summary": "Lure URL Analysis: no lure URL identified",
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 43
+            "observable": 40
           },
           {
-            "observable": 12
+            "observable": 44
           },
           {
-            "observable": 3
+            "observable": 39
           },
           {
-            "observable": 8
+            "observable": 22
           },
           {
-            "observable": 29
+            "observable": 38
           },
           {
-            "observable": 13,
+            "observable": 32,
             "path": "email.rfc822.unknown_text_plain_000.txt"
           },
           {
-            "observable": 5,
+            "observable": 33,
             "path": "statement.pdf"
           },
           {
-            "observable": 16,
+            "observable": 7,
             "path": "email.rfc822.headers"
           },
           {
-            "observable": 37,
+            "observable": 25,
             "path": "email.rfc822.combined"
           }
         ],
@@ -1938,7 +1298,7 @@
               "cc": [],
               "compauth_reason": null,
               "compauth_result": null,
-              "date": "2026-11-10 05:34:48.858538 +0000",
+              "date": "2026-11-16 16:38:03.361256 +0000",
               "dkim_result": null,
               "dmarc_result": null,
               "env_mail_from": null,
@@ -1996,7 +1356,7 @@
           "parsing_error": null
         },
         "module": "email_analyzer",
-        "observable": 30,
+        "observable": 5,
         "summary": "Email Analysis: From sender@example.com To recipient@example.com Subject the attached file",
         "tags": []
       },
@@ -2019,7 +1379,7 @@
           "type": "news or mail, ASCII text"
         },
         "module": "file_type",
-        "observable": 30,
+        "observable": 5,
         "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
         "tags": []
       },
@@ -2036,7 +1396,7 @@
           "script_count": 0
         },
         "module": "html_js_extraction",
-        "observable": 30,
+        "observable": 5,
         "summary": null,
         "tags": []
       },
@@ -2059,84 +1419,39 @@
           "type": "ASCII text, with no line terminators"
         },
         "module": "file_type",
-        "observable": 31,
+        "observable": 6,
         "summary": "File Type Analysis: ASCII text, with no line terminators (text/plain)",
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 20
+            "observable": 30
           },
           {
-            "observable": 1
+            "observable": 17
           }
         ],
         "class": "FileHashAnalysis",
         "details": {
-          "md5": "7717140309326e597b05ca2961400f71",
-          "sha1": "22d4cf1103246b2127038ace3812a681b2af0953",
-          "sha256": "a5e7d4b018ce0b277186b327a79a4c5bb01b62c2931a61e20c2bbeec3a06ec50"
+          "md5": "c20ad4d76fe97759aa27a0c99bff6710",
+          "sha1": "7b52009b64fd0a2a49e6d8a939753077792b0554",
+          "sha256": "6b51d431df5d7f141cbececcf79edf3dd861c3b4069f0b11661a3eefacbba918"
         },
         "module": "file_hash_analyzer",
-        "observable": 31,
+        "observable": 6,
         "summary": null,
         "tags": []
       },
       {
-        "added": [
-          {
-            "observable": 35
-          }
-        ],
+        "added": [],
         "class": "URLExtractionAnalysis",
         "details": {
-          "urls": [
-            "https://example.com/indirect"
-          ],
-          "urls_grouped_by_domain": {
-            "example.com": [
-              "https://example.com/indirect"
-            ]
-          }
+          "urls": [],
+          "urls_grouped_by_domain": {}
         },
         "module": "url_extraction",
-        "observable": 31,
-        "summary": "URL Extraction Analysis (example.com)",
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 36
-          },
-          {
-            "observable": 32
-          }
-        ],
-        "class": "ParseURLAnalysis",
-        "details": {
-          "fragment": "",
-          "netloc": "example.com",
-          "params": null,
-          "path": "/indirect",
-          "query": "",
-          "scheme": "https"
-        },
-        "module": "parse_url",
-        "observable": 35,
-        "summary": "URL Parser: scheme=https, netloc=example.com, path=/indirect",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "ProtectedURLAnalysis",
-        "details": {
-          "extracted_url": "https://example.com/indirect",
-          "protection_type": "unprotected"
-        },
-        "module": "protected_url_analyzer",
-        "observable": 35,
+        "observable": 6,
         "summary": null,
         "tags": []
       },
@@ -2159,7 +1474,7 @@
           "type": "news or mail, ASCII text"
         },
         "module": "file_type",
-        "observable": 37,
+        "observable": 7,
         "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
         "tags": []
       },
@@ -2176,7 +1491,377 @@
           "script_count": 0
         },
         "module": "html_js_extraction",
-        "observable": 37,
+        "observable": 7,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": false,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": true,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "application/pdf",
+          "type": "PDF document, version 1.7, 1 page(s)"
+        },
+        "module": "file_type",
+        "observable": 12,
+        "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "URLExtractionAnalysis",
+        "details": {
+          "urls": [],
+          "urls_grouped_by_domain": {}
+        },
+        "module": "url_extraction",
+        "observable": 12,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": false,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "text/plain",
+          "type": "Unicode text, UTF-8 text, with no line terminators"
+        },
+        "module": "file_type",
+        "observable": 16,
+        "summary": "File Type Analysis: Unicode text, UTF-8 text, with no line terminators (text/plain)",
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 15
+          },
+          {
+            "observable": 24
+          }
+        ],
+        "class": "FileHashAnalysis",
+        "details": {
+          "md5": "f0bb714a8386c986d4cad35590eeb71e",
+          "sha1": "a483f9d4743da3bae0e81588f53c29c9c048a316",
+          "sha256": "e117e65fc6d5186e4bc4ebdfc983a239c649237701294789a35a43cec135fbb5"
+        },
+        "module": "file_hash_analyzer",
+        "observable": 16,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "URLExtractionAnalysis",
+        "details": {
+          "urls": [],
+          "urls_grouped_by_domain": {}
+        },
+        "module": "url_extraction",
+        "observable": 16,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": false,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "text/plain",
+          "type": "ASCII text, with no line terminators"
+        },
+        "module": "file_type",
+        "observable": 20,
+        "summary": "File Type Analysis: ASCII text, with no line terminators (text/plain)",
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 43
+          },
+          {
+            "observable": 10
+          }
+        ],
+        "class": "FileHashAnalysis",
+        "details": {
+          "md5": "2fcefb001b4b391f5f55df4abf2106a4",
+          "sha1": "e6a1264184778398edf31196b666f058c66d8b9a",
+          "sha256": "40530737c17eefb7bac474f715ad6ee3d80a2a3cfc0b8677359705d8c15d9746"
+        },
+        "module": "file_hash_analyzer",
+        "observable": 20,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 26
+          }
+        ],
+        "class": "URLExtractionAnalysis",
+        "details": {
+          "urls": [
+            "https://example.com/literal"
+          ],
+          "urls_grouped_by_domain": {
+            "example.com": [
+              "https://example.com/literal"
+            ]
+          }
+        },
+        "module": "url_extraction",
+        "observable": 20,
+        "summary": "URL Extraction Analysis (example.com)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": false,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": true,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "application/pdf",
+          "type": "PDF document, version 1.7, 1 page(s)"
+        },
+        "module": "file_type",
+        "observable": 23,
+        "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 21
+          },
+          {
+            "observable": 9
+          }
+        ],
+        "class": "FileHashAnalysis",
+        "details": {
+          "md5": "ddb69ad6bb06d3622b74987ae9e33b7e",
+          "sha1": "7ac50d0fbab4a12ac9084477b40dd920ea694af3",
+          "sha256": "fe3e48dc2aeba7cc7ed48d026ec9609f33edb072c2fa98a2087640597f8dceff"
+        },
+        "module": "file_hash_analyzer",
+        "observable": 23,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "URLExtractionAnalysis",
+        "details": {
+          "urls": [],
+          "urls_grouped_by_domain": {}
+        },
+        "module": "url_extraction",
+        "observable": 23,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": true,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "message/rfc822",
+          "type": "news or mail, ASCII text"
+        },
+        "module": "file_type",
+        "observable": 25,
+        "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "HTMLJavaScriptExtractionAnalysis",
+        "details": {
+          "dom_snapshot_files": [],
+          "duplicate_count": 0,
+          "extracted_files": [],
+          "extracted_uri_paths": [],
+          "extracted_urls": [],
+          "inline_handlers": [],
+          "script_count": 0
+        },
+        "module": "html_js_extraction",
+        "observable": 25,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 19
+          },
+          {
+            "observable": 36
+          }
+        ],
+        "class": "ParseURLAnalysis",
+        "details": {
+          "fragment": "",
+          "netloc": "example.com",
+          "params": null,
+          "path": "/literal",
+          "query": "",
+          "scheme": "https"
+        },
+        "module": "parse_url",
+        "observable": 26,
+        "summary": "URL Parser: scheme=https, netloc=example.com, path=/literal",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "ProtectedURLAnalysis",
+        "details": {
+          "extracted_url": "https://example.com/literal",
+          "protection_type": "unprotected"
+        },
+        "module": "protected_url_analyzer",
+        "observable": 26,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": false,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": true,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "application/pdf",
+          "type": "PDF document, version 1.7, 1 page(s)"
+        },
+        "module": "file_type",
+        "observable": 27,
+        "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 31
+          },
+          {
+            "observable": 13
+          }
+        ],
+        "class": "FileHashAnalysis",
+        "details": {
+          "md5": "44b2c10d5e9c2413e6abcf0d31b97b2d",
+          "sha1": "1d0721f8f1067aa45bb886d40b95a39642a2ecf8",
+          "sha256": "b015f7f27e357ad72d9cfb563f485b95ceb3dc604232f254e58aadfdde546e19"
+        },
+        "module": "file_hash_analyzer",
+        "observable": 27,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 29,
+            "path": "statement.pdf.decrypted.pdfparser"
+          },
+          {
+            "observable": 23,
+            "path": "statement.pdf.decrypted.gs.pdf"
+          },
+          {
+            "observable": 20,
+            "path": "statement.pdf.decrypted.js_literal.js"
+          },
+          {
+            "observable": 2,
+            "path": "statement.pdf.decrypted.js_name_with__spaces_.js"
+          },
+          {
+            "observable": 37,
+            "path": "statement.pdf.decrypted.js_u.js"
+          },
+          {
+            "observable": 45,
+            "path": "statement.pdf.decrypted.js_utf16.js"
+          },
+          {
+            "observable": 16,
+            "path": "statement.pdf.decrypted.js_not_utf8.js"
+          },
+          {
+            "observable": 6,
+            "path": "statement.pdf.decrypted.js_number.js"
+          }
+        ],
+        "class": "PDFAnalysis",
+        "details": {},
+        "module": "pdf_analyzer",
+        "observable": 27,
         "summary": null,
         "tags": []
       },
@@ -2199,20 +1884,20 @@
           "type": "data"
         },
         "module": "file_type",
-        "observable": 41,
+        "observable": 29,
         "summary": "File Type Analysis: data (application/octet-stream)",
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 35
+            "observable": 34
           },
           {
-            "observable": 44
+            "observable": 26
           },
           {
-            "observable": 27
+            "observable": 3
           }
         ],
         "class": "URLExtractionAnalysis",
@@ -2231,32 +1916,164 @@
           }
         },
         "module": "url_extraction",
-        "observable": 41,
+        "observable": 29,
         "summary": "URL Extraction Analysis (example.com)",
         "tags": []
       },
       {
-        "added": [
-          {
-            "observable": 36
-          }
-        ],
-        "class": "EmailAddressFQDNAnalysis",
+        "added": [],
+        "class": "FileTypeAnalysis",
         "details": {
-          "domain": "example.com"
+          "is_email_file": false,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "text/plain",
+          "type": "ASCII text"
         },
-        "module": "email_address_fqdn_analyzer",
-        "observable": 43,
-        "summary": "Email Address FQDN: example.com",
+        "module": "file_type",
+        "observable": 32,
+        "summary": "File Type Analysis: ASCII text (text/plain)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "URLExtractionAnalysis",
+        "details": {
+          "urls": [],
+          "urls_grouped_by_domain": {}
+        },
+        "module": "url_extraction",
+        "observable": 32,
+        "summary": null,
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 36
+            "observable": 27,
+            "path": "statement.pdf.decrypted"
+          }
+        ],
+        "class": "PDFEncryptionAnalysis",
+        "details": {
+          "email": true,
+          "email_body": "Your code: Rc4User1\n\n",
+          "password": "Rc4User1",
+          "word_list": [
+            "code",
+            "c4User1",
+            "code:",
+            "4User1",
+            "c4Use",
+            "4User",
+            "Rc4Use",
+            "ode:",
+            "User1",
+            "ser1",
+            "Rc4User1",
+            "4Use",
+            "Rc4User",
+            "c4Us",
+            "c4User",
+            "User",
+            "Rc4U",
+            "Your",
+            "Rc4Us"
+          ]
+        },
+        "module": "pdf_encryption_analyzer",
+        "observable": 33,
+        "summary": "PDF Encryption Analysis: password Rc4User1",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": false,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": true,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "application/pdf",
+          "type": "PDF document, version 1.7, 1 page(s)"
+        },
+        "module": "file_type",
+        "observable": 33,
+        "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 18
           },
           {
-            "observable": 26
+            "observable": 0
+          }
+        ],
+        "class": "FileHashAnalysis",
+        "details": {
+          "md5": "107cb6d3066acd6729baeba16ad16df6",
+          "sha1": "9c37c24e1e711d96a91a317eeab70c9b149a055f",
+          "sha256": "63c8241c938e5e5c90928b8c2351ed612ac0ef33b0b4e7169dbc396a3cf6857e"
+        },
+        "module": "file_hash_analyzer",
+        "observable": 33,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 42,
+            "path": "statement.pdf.pdfparser"
+          },
+          {
+            "observable": 12,
+            "path": "statement.pdf.gs.pdf"
+          }
+        ],
+        "class": "PDFAnalysis",
+        "details": {},
+        "module": "pdf_analyzer",
+        "observable": 33,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "URLExtractionAnalysis",
+        "details": {
+          "urls": [],
+          "urls_grouped_by_domain": {}
+        },
+        "module": "url_extraction",
+        "observable": 33,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 19
+          },
+          {
+            "observable": 1
           }
         ],
         "class": "ParseURLAnalysis",
@@ -2264,24 +2081,209 @@
           "fragment": "",
           "netloc": "example.com",
           "params": null,
-          "path": "/literal",
+          "path": "/indirect",
           "query": "",
           "scheme": "https"
         },
         "module": "parse_url",
-        "observable": 44,
-        "summary": "URL Parser: scheme=https, netloc=example.com, path=/literal",
+        "observable": 34,
+        "summary": "URL Parser: scheme=https, netloc=example.com, path=/indirect",
         "tags": []
       },
       {
         "added": [],
         "class": "ProtectedURLAnalysis",
         "details": {
-          "extracted_url": "https://example.com/literal",
+          "extracted_url": "https://example.com/indirect",
           "protection_type": "unprotected"
         },
         "module": "protected_url_analyzer",
+        "observable": 34,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": false,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "text/plain",
+          "type": "ASCII text, with no line terminators"
+        },
+        "module": "file_type",
+        "observable": 37,
+        "summary": "File Type Analysis: ASCII text, with no line terminators (text/plain)",
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 8
+          },
+          {
+            "observable": 11
+          }
+        ],
+        "class": "FileHashAnalysis",
+        "details": {
+          "md5": "7717140309326e597b05ca2961400f71",
+          "sha1": "22d4cf1103246b2127038ace3812a681b2af0953",
+          "sha256": "a5e7d4b018ce0b277186b327a79a4c5bb01b62c2931a61e20c2bbeec3a06ec50"
+        },
+        "module": "file_hash_analyzer",
+        "observable": 37,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 34
+          }
+        ],
+        "class": "URLExtractionAnalysis",
+        "details": {
+          "urls": [
+            "https://example.com/indirect"
+          ],
+          "urls_grouped_by_domain": {
+            "example.com": [
+              "https://example.com/indirect"
+            ]
+          }
+        },
+        "module": "url_extraction",
+        "observable": 37,
+        "summary": "URL Extraction Analysis (example.com)",
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 19
+          }
+        ],
+        "class": "EmailAddressFQDNAnalysis",
+        "details": {
+          "domain": "example.com"
+        },
+        "module": "email_address_fqdn_analyzer",
+        "observable": 40,
+        "summary": "Email Address FQDN: example.com",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": false,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "application/pdf",
+          "type": "PDF document, version 1.7, Unicode text, UTF-8 text, with very long lines (743)"
+        },
+        "module": "file_type",
+        "observable": 42,
+        "summary": "File Type Analysis: PDF document, version 1.7, Unicode text, UTF-8 text, with very long lines (743) (application/pdf)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "URLExtractionAnalysis",
+        "details": {
+          "urls": [],
+          "urls_grouped_by_domain": {}
+        },
+        "module": "url_extraction",
+        "observable": 42,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 19
+          }
+        ],
+        "class": "EmailAddressFQDNAnalysis",
+        "details": {
+          "domain": "example.com"
+        },
+        "module": "email_address_fqdn_analyzer",
         "observable": 44,
+        "summary": "Email Address FQDN: example.com",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": false,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "application/octet-stream",
+          "type": "very short file (no magic)"
+        },
+        "module": "file_type",
+        "observable": 45,
+        "summary": "File Type Analysis: very short file (no magic) (application/octet-stream)",
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 28
+          },
+          {
+            "observable": 14
+          }
+        ],
+        "class": "FileHashAnalysis",
+        "details": {
+          "md5": "0cc175b9c0f1b6a831c399e269772661",
+          "sha1": "86f7e437faa5a7fce15d1ddcb9eaeaea377667b8",
+          "sha256": "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb"
+        },
+        "module": "file_hash_analyzer",
+        "observable": 45,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "URLExtractionAnalysis",
+        "details": {
+          "urls": [],
+          "urls_grouped_by_domain": {}
+        },
+        "module": "url_extraction",
+        "observable": 45,
         "summary": null,
         "tags": []
       }

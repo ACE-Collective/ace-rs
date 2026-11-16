@@ -1,6 +1,8 @@
 """pikepdf, as ace3's PDFAnalyzer calls it (ace3/saq/modules/file_analysis/pdf.py): what it reads of an
 encrypted file, the annotation URIs, the form fields and the JavaScript. Each has its own try there, so
-each has its own `raised` here. Strings come as text and as their bytes, because str() is what ace3
+each has its own `raised` here. `links` is what ace3's PDFLinkTextAnalyzer reads in the same file
+(`read_links`, with its default `max_links`): each link annotation's URL, page, box, whether its page
+is rotated, its page's media box and its /Contents, under one try, as there. Strings come as text and as their bytes, because str() is what ace3
 keeps and the bytes are what a port on libqpdf reads first. A PDF that needs a password raises at
 open, which is the whole output's `error`.
 
@@ -9,6 +11,7 @@ port has to read them to drop them.
 """
 
 import io
+import struct
 
 import pikepdf
 
@@ -91,6 +94,54 @@ def javascript(pdf):
     return scripts
 
 
+MAX_LINKS = 200
+LINK_TEXT_MAX_LEN = 200
+
+
+def bits(value):
+    """A float as its 64 bits, which say an infinity, a NaN and a negative zero as they are."""
+    return struct.pack(">d", value).hex()
+
+
+def annotation_rect(annot):
+    try:
+        rect = [float(value) for value in annot.get("/Rect")]
+    except (TypeError, ValueError):
+        return None
+    return rect if len(rect) == 4 else None
+
+
+def links(pdf):
+    found, seen, truncated = [], set(), False
+    for number, page in enumerate(pdf.pages, start=1):
+        for annot in page.get("/Annots") or []:
+            action = annot.get("/A")
+            uri = action.get("/URI") if action else None
+            if not uri:
+                continue
+            uri = str(uri)
+            rect = annotation_rect(annot)
+            key = (uri, number, tuple(rect) if rect else None)
+            if key in seen:
+                continue
+            if len(found) >= MAX_LINKS:
+                truncated = True
+                continue
+            seen.add(key)
+            contents = annot.get("/Contents")
+            found.append(
+                {
+                    "url": uri,
+                    "page": number,
+                    "rect": [bits(value) for value in rect] if rect else None,
+                    "rotated": bool(int(page.get("/Rotate", 0)) % 360),
+                    "mediabox": [bits(float(value)) for value in page.mediabox],
+                    "contents": None if contents is None else (str(contents).strip()[:LINK_TEXT_MAX_LEN] or None),
+                }
+            )
+    return {"links": found, "truncated": truncated}
+
+
 def run(path):
     output = {}
     with pikepdf.open(path) as pdf:
@@ -100,6 +151,7 @@ def run(path):
             ("annotation_uris", annotation_uris),
             ("form_fields", form_fields),
             ("javascript", javascript),
+            ("links", links),
         ]
         if pdf.is_encrypted:
             parts = [("encryption", encryption_of), ("decrypted", decrypted_copy), *parts]

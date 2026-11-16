@@ -59,6 +59,39 @@
       },
       "tags": {}
     },
+    "file:380d3014ad492fa69976467f2ce099b2d033cc53c3d43f0efbef8945dddc9a35": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "xlm_branch_err_zero.xlsm.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:97334e91a299e452e634cb222ac887042f11f4eb0c79ba836c4c69030670b95d": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:4c0c19e888c0aa4c9d57535509bcb8b2af069e111e69f89a20def79dec2da590": {
       "detections": {},
       "directives": {
@@ -533,7 +566,6 @@
               "xl/_rels/workbook.xml.rels",
               "_rels/.rels"
             ],
-            "extraction_error": null,
             "file_count": 5
           },
           "summary": "Archive Analysis: extracted 5 of 5 files: ([Content_Types].xml, xl/workbook.xml, xl/macrosheets/sheet1.xml, xl/_rels/workbook.xml.rels, _rels/.rels)",
@@ -541,13 +573,12 @@
         },
         "exif": {
           "details": {
-            "error": null,
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 09:13:45+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 09:13:45+00:00",
-              "File:FileModifyDate": "2026:11:07 14:35:12+00:00",
+              "File:FileAccessDate": "2026:11:16 14:13:45+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 14:13:45+00:00",
+              "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "xlm_branch_err_zero.xlsm",
               "File:FilePermissions": 100644,
               "File:FileSize": 2408,
@@ -662,39 +693,6 @@
           "summary": "File Type Analysis: ASCII text (text/plain)",
           "tags": {}
         },
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
-    "file:fac255d86b965bab70b496e8e0d08c727df0ca0484f58073d1d74e2ee03a294d": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "xlm_branch_err_zero.xlsm.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:97334e91a299e452e634cb222ac887042f11f4eb0c79ba836c4c69030670b95d": true
-      },
-      "results": {
         "observable_detection": {
           "details": {
             "for_detection": false

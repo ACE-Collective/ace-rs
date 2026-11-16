@@ -1,0 +1,2874 @@
+{
+  "form": 1,
+  "observables": {
+    "email_address:alice@example.com": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "email_address_fqdn_analyzer": {
+          "details": {
+            "domain": "example.com"
+          },
+          "summary": "Email Address FQDN: example.com",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "email_address:bob@example.com": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "email_address_fqdn_analyzer": {
+          "details": {
+            "domain": "example.com"
+          },
+          "summary": "Email Address FQDN: example.com",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "email_conversation:sam@partner-example.org|pat@corp.example": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "email_conversation_frequency_analyzer": {
+          "details": {
+            "dest_count": null,
+            "source_count": 0
+          },
+          "summary": "Email Conversation Frequency Analysis - first time received",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {
+        "new_sender": true
+      }
+    },
+    "email_from:sam@partner-example.org": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "email_address_fqdn_analyzer": {
+          "details": {
+            "domain": "partner-example.org"
+          },
+          "summary": "Email Address FQDN: partner-example.org",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "email_return_path:sam@partner-example.org": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "email_address_fqdn_analyzer": {
+          "details": {
+            "domain": "partner-example.org"
+          },
+          "summary": "Email Address FQDN: partner-example.org",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "email_subject:RE: Signed copy": {
+      "detections": {},
+      "directives": {
+        "exclude_all": true
+      },
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "observable_modifier": {
+          "details": {
+            "matched_rules": [
+              {
+                "actions_applied": {
+                  "ignore": true
+                },
+                "name": "no subject analysis",
+                "uuid": "2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a04"
+              }
+            ]
+          },
+          "summary": "Applied 1 rule(s): no subject analysis",
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "email_to:pat@corp.example": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "email_address_fqdn_analyzer": {
+          "details": {
+            "domain": "corp.example"
+          },
+          "summary": "Email Address FQDN: corp.example",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:0750bd9139c501bc760d89fc0f55e91649a94229107094ff02d0c77004945a77": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "signed.pdf.pdfparser": {
+          "type=document.pdf.object": true
+        }
+      },
+      "redirection": "file:6a1d3505f33e73d1536fd9acfe2b1103f5d73b7ee1a7b3f81bb7643aa71171a6",
+      "relationships": {
+        "extracted_from file:6a1d3505f33e73d1536fd9acfe2b1103f5d73b7ee1a7b3f81bb7643aa71171a6": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/pdf",
+            "type": "PDF document, version 1.7, 1 page(s), Unicode text, UTF-8 text"
+          },
+          "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s), Unicode text, UTF-8 text (application/pdf)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [
+              "https://docs.lure-example.net/bid/4471"
+            ],
+            "urls_grouped_by_domain": {
+              "lure-example.net": [
+                "https://docs.lure-example.net/bid/4471"
+              ]
+            }
+          },
+          "summary": "URL Extraction Analysis (docs.lure-example.net)",
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:18a10b7e04567660630b0ad80eb06d578f4a306e40513dc9d37f8ea57d7a0d6a": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true,
+        "render": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "rotated.pdf": {
+          "type=document.pdf": true,
+          "type=email.attachment": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "exif": {
+          "details": {
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:16 16:21:50+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 16:21:50+00:00",
+              "File:FileModifyDate": "2026:11:16 16:21:50+00:00",
+              "File:FileName": "rotated.pdf",
+              "File:FilePermissions": 100664,
+              "File:FileSize": 753,
+              "File:FileType": "PDF",
+              "File:FileTypeExtension": "PDF",
+              "File:MIMEType": "application/pdf",
+              "PDF:Linearized": false,
+              "PDF:PDFVersion": 1.7,
+              "PDF:PageCount": 1,
+              "SourceFile": "<root>/files/rotated.pdf"
+            },
+            "output_dir": "<root>/files/rotated.pdf.exif"
+          },
+          "summary": "Exiftool Analysis: PDFVersion=1.7, Linearized=False, PageCount=1",
+          "tags": {}
+        },
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "7bf43653a9fca8128a4a6fe0e1bc5fff",
+            "sha1": "cb3f9532149c1638e3e3969349e01e9b378b21cd",
+            "sha256": "18a10b7e04567660630b0ad80eb06d578f4a306e40513dc9d37f8ea57d7a0d6a"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": true,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/pdf",
+            "type": "PDF document, version 1.7, 1 page(s)"
+          },
+          "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "pdf_analyzer": {
+          "details": {},
+          "summary": null,
+          "tags": {}
+        },
+        "pdftotext": {
+          "details": {
+            "output_path": "56cd57a723173ac6639d8a2a7a308775976dc01d8f16824fc2bae009c56ec14c",
+            "stderr": "",
+            "stdout": ""
+          },
+          "summary": "PDF Text Analysis",
+          "tags": {}
+        },
+        "qrcode": {
+          "details": {
+            "extracted_text": null,
+            "inverted": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [
+              "https://example.com/rotate"
+            ],
+            "urls_grouped_by_domain": {
+              "example.com": [
+                "https://example.com/rotate"
+              ]
+            }
+          },
+          "summary": "URL Extraction Analysis (example.com)",
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {
+        "pdf": true
+      }
+    },
+    "file:1e6a0d1e9985823eb9f1c0fb3598285b82a5d3f4774fa339f93433efc766cd38": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "archive": true
+      },
+      "paths": {
+        "signed.pdf.gs.pdf.txt": {
+          "type=document.pdf.text": true
+        },
+        "signed.pdf.txt": {
+          "type=document.pdf.text": true
+        }
+      },
+      "redirection": "file:b67108498be7e108b069cffb6829d6c27734f8e19c28d18098347bf5633a3b47",
+      "relationships": {
+        "extracted_from file:6a1d3505f33e73d1536fd9acfe2b1103f5d73b7ee1a7b3f81bb7643aa71171a6": true,
+        "extracted_from file:b67108498be7e108b069cffb6829d6c27734f8e19c28d18098347bf5633a3b47": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text"
+          },
+          "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:275b8bd9d5a05539d05f4d746a53adb6665e4388a959aa93a961a570cd6be336": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true,
+        "preview": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "email.rfc822.unknown_text_plain_000.txt": {
+          "type=email.attachment": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text"
+          },
+          "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:56cd57a723173ac6639d8a2a7a308775976dc01d8f16824fc2bae009c56ec14c": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "archive": true
+      },
+      "paths": {
+        "rotated.pdf.gs.pdf.txt": {
+          "type=document.pdf.text": true
+        },
+        "rotated.pdf.txt": {
+          "type=document.pdf.text": true
+        }
+      },
+      "redirection": "file:8f6249ee5366834732f6d90345d2c1ade36acf008b91666ca4bfeed3d8e093ae",
+      "relationships": {
+        "extracted_from file:18a10b7e04567660630b0ad80eb06d578f4a306e40513dc9d37f8ea57d7a0d6a": true,
+        "extracted_from file:8f6249ee5366834732f6d90345d2c1ade36acf008b91666ca4bfeed3d8e093ae": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text"
+          },
+          "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:6a1d3505f33e73d1536fd9acfe2b1103f5d73b7ee1a7b3f81bb7643aa71171a6": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true,
+        "render": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "signed.pdf": {
+          "type=document.pdf": true,
+          "type=email.attachment": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "exif": {
+          "details": {
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:16 16:21:50+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 16:21:50+00:00",
+              "File:FileModifyDate": "2026:11:16 16:21:50+00:00",
+              "File:FileName": "signed.pdf",
+              "File:FilePermissions": 100664,
+              "File:FileSize": 701,
+              "File:FileType": "PDF",
+              "File:FileTypeExtension": "PDF",
+              "File:MIMEType": "application/pdf",
+              "PDF:Linearized": false,
+              "PDF:PDFVersion": 1.7,
+              "PDF:PageCount": 1,
+              "SourceFile": "<root>/files/signed.pdf"
+            },
+            "output_dir": "<root>/files/signed.pdf.exif"
+          },
+          "summary": "Exiftool Analysis: PDFVersion=1.7, Linearized=False, PageCount=1",
+          "tags": {}
+        },
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "89340cbb55dfb8b04ea6a2aa6d4ce3fe",
+            "sha1": "f2ca8ecefab67978ca8afcce9d6a12679d16101b",
+            "sha256": "6a1d3505f33e73d1536fd9acfe2b1103f5d73b7ee1a7b3f81bb7643aa71171a6"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": true,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/pdf",
+            "type": "PDF document, version 1.7, 1 page(s)"
+          },
+          "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "pdf_analyzer": {
+          "details": {},
+          "summary": null,
+          "tags": {}
+        },
+        "pdf_link_text": {
+          "details": {
+            "links": [
+              {
+                "line": "Review bid documents",
+                "page": 1,
+                "text": "Review bid documents",
+                "url": "https://docs.lure-example.net/bid/4471"
+              }
+            ]
+          },
+          "summary": "PDF Link Text Analysis: 1 links, 1 with text",
+          "tags": {}
+        },
+        "pdftotext": {
+          "details": {
+            "output_path": "1e6a0d1e9985823eb9f1c0fb3598285b82a5d3f4774fa339f93433efc766cd38",
+            "stderr": "",
+            "stdout": ""
+          },
+          "summary": "PDF Text Analysis",
+          "tags": {}
+        },
+        "qrcode": {
+          "details": {
+            "extracted_text": null,
+            "inverted": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [
+              "https://docs.lure-example.net/bid/4471"
+            ],
+            "urls_grouped_by_domain": {
+              "lure-example.net": [
+                "https://docs.lure-example.net/bid/4471"
+              ]
+            }
+          },
+          "summary": "URL Extraction Analysis (docs.lure-example.net)",
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {
+        "pdf": true
+      }
+    },
+    "file:7ae225d502403c4028e0fe8ae98db39c2320a98ba41caf9e3dc594cbefa2b248": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "rotated.pdf.pdfparser": {
+          "type=document.pdf.object": true
+        }
+      },
+      "redirection": "file:18a10b7e04567660630b0ad80eb06d578f4a306e40513dc9d37f8ea57d7a0d6a",
+      "relationships": {
+        "extracted_from file:18a10b7e04567660630b0ad80eb06d578f4a306e40513dc9d37f8ea57d7a0d6a": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/pdf",
+            "type": "PDF document, version 1.7, 1 page(s), Unicode text, UTF-8 text"
+          },
+          "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s), Unicode text, UTF-8 text (application/pdf)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [
+              "https://example.com/rotate"
+            ],
+            "urls_grouped_by_domain": {
+              "example.com": [
+                "https://example.com/rotate"
+              ]
+            }
+          },
+          "summary": "URL Extraction Analysis (example.com)",
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:8f6249ee5366834732f6d90345d2c1ade36acf008b91666ca4bfeed3d8e093ae": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {
+        "pdf_analyzer": true
+      },
+      "paths": {
+        "rotated.pdf.gs.pdf": {
+          "type=document.pdf": true,
+          "type=document.pdf.rendered": true
+        }
+      },
+      "redirection": "file:18a10b7e04567660630b0ad80eb06d578f4a306e40513dc9d37f8ea57d7a0d6a",
+      "relationships": {
+        "extracted_from file:18a10b7e04567660630b0ad80eb06d578f4a306e40513dc9d37f8ea57d7a0d6a": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": true,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/pdf",
+            "type": "PDF document, version 1.7, 1 page(s)"
+          },
+          "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "pdf_link_text": {
+          "details": {
+            "links": [
+              {
+                "line": "View invoice online",
+                "page": 1,
+                "text": "View invoice online",
+                "url": "https://example.com/rotate"
+              }
+            ]
+          },
+          "summary": "PDF Link Text Analysis: 1 links, 1 with text",
+          "tags": {}
+        },
+        "pdftotext": {
+          "details": {
+            "output_path": "56cd57a723173ac6639d8a2a7a308775976dc01d8f16824fc2bae009c56ec14c",
+            "stderr": "",
+            "stdout": ""
+          },
+          "summary": "PDF Text Analysis",
+          "tags": {}
+        },
+        "qrcode": {
+          "details": {
+            "extracted_text": null,
+            "inverted": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {
+        "pdf": true
+      }
+    },
+    "file:8f658f099b5bcb5c7ab57cf37c0767909ab7100643d5a8faa0b18c27ce89d179": {
+      "detections": {
+        "email.rfc822.combined matched yara rule detect_fqdn": [
+          {
+            "namespace": "observable_export",
+            "rule": "detect_fqdn",
+            "rule_uuid": null,
+            "sha256": "8f658f099b5bcb5c7ab57cf37c0767909ab7100643d5a8faa0b18c27ce89d179"
+          }
+        ]
+      },
+      "directives": {
+        "sandbox": true
+      },
+      "excluded_analysis": {
+        "email_analyzer": true
+      },
+      "paths": {
+        "email.rfc822.combined": {
+          "type=email": true,
+          "type=email.combined": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": true,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "message/rfc822",
+            "type": "news or mail, ASCII text"
+          },
+          "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
+          "tags": {}
+        },
+        "html_js_extraction": {
+          "details": {
+            "dom_snapshot_files": [],
+            "duplicate_count": 0,
+            "extracted_files": [],
+            "extracted_uri_paths": [],
+            "extracted_urls": [],
+            "inline_handlers": [],
+            "script_count": 0
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "yara_scanner_v3_4": {
+          "details": {
+            "scan_results": [
+              {
+                "context": [
+                  [
+                    49,
+                    "$obsd_1",
+                    "@corp.example\n",
+                    "00000000  46 72 6f 6d 3a 20 53 61  6d 20 46 69 65 6c 64 20  |From: Sam Field |\n00000010  3c 73 61 6d 40 70 61 72  74 6e 65 72 2d 65 78 61  |<sam@partner-exa|\n00000020  6d 70 6c 65 2e 6f 72 67  3e 0a 54 6f 3a 20 70 61  |mple.org>.To: pa|\n00000030  74 40 63 6f 72 70 2e 65  78 61 6d 70 6c 65 0a 52  |t@corp.example.R|\n00000040  65 74 75 72 6e 2d 50 61  74 68 3a 20 3c 73 61 6d  |eturn-Path: <sam|\n00000050  40 70 61 72 74 6e 65 72  2d 65 78 61 6d 70 6c 65  |@partner-example|\n00000060  2e 6f 72 67 3e 0a 53 75  62 6a 65 63 74 3a 20 52  |.org>.Subject: R|\n00000070  45 3a 20 53 69 67 6e 65  64 20 63 6f 70 79 0a 44  |E: Signed copy.D|\n00000080  61 74 65 3a 20 57 65 64  2c 20 31 31 20 4e        |ate: Wed, 11 N|\n0000008e\n"
+                  ]
+                ],
+                "match_context": [
+                  {
+                    "data": "RnJvbTogU2FtIEZpZWxkIDxzYW1AcGFydG5lci1leGFtcGxlLm9yZz4KVG86IHBhdEBjb3JwLmV4YW1wbGUKUmV0dXJuLVBhdGg6IDxzYW1AcGFydG5lci1leGFtcGxlLm9yZz4KU3ViamVjdDogUkU6IFNpZ25lZCBjb3B5CkRhdGU6IFdlZCwgMTEgTg==",
+                    "match_length": 14,
+                    "match_offset": 49
+                  }
+                ],
+                "meta": {
+                  "author": "ACE Automation",
+                  "description": "ACE Observable Export",
+                  "platform": "ACE",
+                  "scope": "['detection']",
+                  "tlp": "amber"
+                },
+                "namespace": "<work>/signatures/observable_export",
+                "rule": "detect_fqdn",
+                "rule_content_hash": "c1d34c6526603e50d782b48a790e9ec52bcfd98b9b132de9bc790fa9b22f7442",
+                "rule_source": {
+                  "file": "fqdn.yar",
+                  "start_line": 1,
+                  "text": "rule detect_fqdn : detect_fqdn\n{\n    meta:\n        author = \"ACE Automation\"\n        description = \"ACE Observable Export\"\n        tlp = \"amber\"\n        date = \"11/16/2026\"\n        scope = \"['detection']\"\n        platform = \"ACE\"\n    strings:\n          $obsd_1 = /(^|[^a-zA-Z0-9_\\-])corp\\.example([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase\n          $obsd_wide_1 = /(^|([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00]))c\\x00o\\x00r\\x00p\\x00\\.\\x00e\\x00x\\x00a\\x00m\\x00p\\x00l\\x00e\\x00(([^a-zA-Z0-9_\\-.]\\x00|[\\x00-\\xff][^\\x00])|\\.\\x00([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00])|(\\.\\x00)?$)/ nocase\n\n    condition:\n        any of ($obsd_*)\n}\n"
+                },
+                "string_patterns": {
+                  "$obsd_1": "/(^|[^a-zA-Z0-9_\\-])corp\\.example([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase"
+                },
+                "strings": [
+                  [
+                    49,
+                    "$obsd_1",
+                    "@corp.example\n"
+                  ]
+                ],
+                "tags": [
+                  "detect_fqdn"
+                ],
+                "target": "<root>/files/email.rfc822.combined"
+              }
+            ]
+          },
+          "summary": "Yara Scan Results: matched yara rules detect_fqdn",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "detect_fqdn": true,
+        "email": true
+      }
+    },
+    "file:984c7a4cc145dbaf0008908d5b80ab4f2fa659df2009dc8d2bda7969ecfa28a7": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "signed.pdf.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:6a1d3505f33e73d1536fd9acfe2b1103f5d73b7ee1a7b3f81bb7643aa71171a6": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:aba87ada65a0a36bb5eeb996ac1a92fc165eed71968f8905492d3943821981d7": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {
+        "pdf_analyzer": true
+      },
+      "paths": {
+        "rotated.pdf.annotation_uris.txt": {
+          "type=document.pdf.annotation_uris": true
+        }
+      },
+      "redirection": "file:18a10b7e04567660630b0ad80eb06d578f4a306e40513dc9d37f8ea57d7a0d6a",
+      "relationships": {
+        "extracted_from file:18a10b7e04567660630b0ad80eb06d578f4a306e40513dc9d37f8ea57d7a0d6a": true
+      },
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "f19849bfb279805357f420d6a8d4fe52",
+            "sha1": "4173c47881d4a4198f3130772effb958502574ad",
+            "sha256": "aba87ada65a0a36bb5eeb996ac1a92fc165eed71968f8905492d3943821981d7"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text, with no line terminators"
+          },
+          "summary": "File Type Analysis: ASCII text, with no line terminators (text/plain)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [
+              "https://example.com/rotate"
+            ],
+            "urls_grouped_by_domain": {
+              "example.com": [
+                "https://example.com/rotate"
+              ]
+            }
+          },
+          "summary": "URL Extraction Analysis (example.com)",
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:b67108498be7e108b069cffb6829d6c27734f8e19c28d18098347bf5633a3b47": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {
+        "pdf_analyzer": true
+      },
+      "paths": {
+        "signed.pdf.gs.pdf": {
+          "type=document.pdf": true,
+          "type=document.pdf.rendered": true
+        }
+      },
+      "redirection": "file:6a1d3505f33e73d1536fd9acfe2b1103f5d73b7ee1a7b3f81bb7643aa71171a6",
+      "relationships": {
+        "extracted_from file:6a1d3505f33e73d1536fd9acfe2b1103f5d73b7ee1a7b3f81bb7643aa71171a6": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": true,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/pdf",
+            "type": "PDF document, version 1.7, 1 page(s)"
+          },
+          "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "pdf_link_text": {
+          "details": {
+            "links": [
+              {
+                "line": "Review bid documents",
+                "page": 1,
+                "text": "Review bid documents",
+                "url": "https://docs.lure-example.net/bid/4471"
+              }
+            ]
+          },
+          "summary": "PDF Link Text Analysis: 1 links, 1 with text",
+          "tags": {}
+        },
+        "pdftotext": {
+          "details": {
+            "output_path": "1e6a0d1e9985823eb9f1c0fb3598285b82a5d3f4774fa339f93433efc766cd38",
+            "stderr": "",
+            "stdout": ""
+          },
+          "summary": "PDF Text Analysis",
+          "tags": {}
+        },
+        "qrcode": {
+          "details": {
+            "extracted_text": null,
+            "inverted": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {
+        "pdf": true
+      }
+    },
+    "file:c810db3fbf18bd3887bf87c325e8a7f6235730505035c620a3ca196f953c6d56": {
+      "detections": {
+        "email.rfc822.headers matched yara rule detect_fqdn": [
+          {
+            "namespace": "observable_export",
+            "rule": "detect_fqdn",
+            "rule_uuid": null,
+            "sha256": "c810db3fbf18bd3887bf87c325e8a7f6235730505035c620a3ca196f953c6d56"
+          }
+        ]
+      },
+      "directives": {
+        "sandbox": true
+      },
+      "excluded_analysis": {
+        "email_analyzer": true
+      },
+      "paths": {
+        "email.rfc822.headers": {
+          "type=email": true,
+          "type=email.headers": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": true,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "message/rfc822",
+            "type": "news or mail, ASCII text"
+          },
+          "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
+          "tags": {}
+        },
+        "html_js_extraction": {
+          "details": {
+            "dom_snapshot_files": [],
+            "duplicate_count": 0,
+            "extracted_files": [],
+            "extracted_uri_paths": [],
+            "extracted_urls": [],
+            "inline_handlers": [],
+            "script_count": 0
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "yara_scanner_v3_4": {
+          "details": {
+            "scan_results": [
+              {
+                "context": [
+                  [
+                    49,
+                    "$obsd_1",
+                    "@corp.example\n",
+                    "00000000  46 72 6f 6d 3a 20 53 61  6d 20 46 69 65 6c 64 20  |From: Sam Field |\n00000010  3c 73 61 6d 40 70 61 72  74 6e 65 72 2d 65 78 61  |<sam@partner-exa|\n00000020  6d 70 6c 65 2e 6f 72 67  3e 0a 54 6f 3a 20 70 61  |mple.org>.To: pa|\n00000030  74 40 63 6f 72 70 2e 65  78 61 6d 70 6c 65 0a 52  |t@corp.example.R|\n00000040  65 74 75 72 6e 2d 50 61  74 68 3a 20 3c 73 61 6d  |eturn-Path: <sam|\n00000050  40 70 61 72 74 6e 65 72  2d 65 78 61 6d 70 6c 65  |@partner-example|\n00000060  2e 6f 72 67 3e 0a 53 75  62 6a 65 63 74 3a 20 52  |.org>.Subject: R|\n00000070  45 3a 20 53 69 67 6e 65  64 20 63 6f 70 79 0a 44  |E: Signed copy.D|\n00000080  61 74 65 3a 20 57 65 64  2c 20 31 31 20 4e        |ate: Wed, 11 N|\n0000008e\n"
+                  ]
+                ],
+                "match_context": [
+                  {
+                    "data": "RnJvbTogU2FtIEZpZWxkIDxzYW1AcGFydG5lci1leGFtcGxlLm9yZz4KVG86IHBhdEBjb3JwLmV4YW1wbGUKUmV0dXJuLVBhdGg6IDxzYW1AcGFydG5lci1leGFtcGxlLm9yZz4KU3ViamVjdDogUkU6IFNpZ25lZCBjb3B5CkRhdGU6IFdlZCwgMTEgTg==",
+                    "match_length": 14,
+                    "match_offset": 49
+                  }
+                ],
+                "meta": {
+                  "author": "ACE Automation",
+                  "description": "ACE Observable Export",
+                  "platform": "ACE",
+                  "scope": "['detection']",
+                  "tlp": "amber"
+                },
+                "namespace": "<work>/signatures/observable_export",
+                "rule": "detect_fqdn",
+                "rule_content_hash": "c1d34c6526603e50d782b48a790e9ec52bcfd98b9b132de9bc790fa9b22f7442",
+                "rule_source": {
+                  "file": "fqdn.yar",
+                  "start_line": 1,
+                  "text": "rule detect_fqdn : detect_fqdn\n{\n    meta:\n        author = \"ACE Automation\"\n        description = \"ACE Observable Export\"\n        tlp = \"amber\"\n        date = \"11/16/2026\"\n        scope = \"['detection']\"\n        platform = \"ACE\"\n    strings:\n          $obsd_1 = /(^|[^a-zA-Z0-9_\\-])corp\\.example([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase\n          $obsd_wide_1 = /(^|([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00]))c\\x00o\\x00r\\x00p\\x00\\.\\x00e\\x00x\\x00a\\x00m\\x00p\\x00l\\x00e\\x00(([^a-zA-Z0-9_\\-.]\\x00|[\\x00-\\xff][^\\x00])|\\.\\x00([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00])|(\\.\\x00)?$)/ nocase\n\n    condition:\n        any of ($obsd_*)\n}\n"
+                },
+                "string_patterns": {
+                  "$obsd_1": "/(^|[^a-zA-Z0-9_\\-])corp\\.example([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase"
+                },
+                "strings": [
+                  [
+                    49,
+                    "$obsd_1",
+                    "@corp.example\n"
+                  ]
+                ],
+                "tags": [
+                  "detect_fqdn"
+                ],
+                "target": "<root>/files/email.rfc822.headers"
+              }
+            ]
+          },
+          "summary": "Yara Scan Results: matched yara rules detect_fqdn",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "detect_fqdn": true,
+        "email": true
+      }
+    },
+    "file:ecba5dd85f0a3674a082eebd331b2f2f23170df06337905e34e55f3158cc4fae": {
+      "detections": {
+        "email.rfc822 matched yara rule detect_fqdn": [
+          {
+            "namespace": "observable_export",
+            "rule": "detect_fqdn",
+            "rule_uuid": null,
+            "sha256": "ecba5dd85f0a3674a082eebd331b2f2f23170df06337905e34e55f3158cc4fae"
+          }
+        ]
+      },
+      "directives": {
+        "sandbox": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "email.rfc822": {
+          "type=email": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "email_analyzer": {
+          "details": {
+            "email": {
+              "authentication_failed": false,
+              "compauth_reason": null,
+              "compauth_result": null,
+              "decoded_subject": "RE: Signed copy",
+              "dkim_result": null,
+              "dmarc_result": null,
+              "env_mail_from": null,
+              "env_rcpt_to": [],
+              "from": "Sam Field <sam@partner-example.org>",
+              "from_address": "sam@partner-example.org",
+              "headers": [
+                [
+                  "From",
+                  "Sam Field <sam@partner-example.org>"
+                ],
+                [
+                  "To",
+                  "pat@corp.example"
+                ],
+                [
+                  "Return-Path",
+                  "<sam@partner-example.org>"
+                ],
+                [
+                  "Subject",
+                  "RE: Signed copy"
+                ],
+                [
+                  "Date",
+                  "Wed, 11 Nov 2026 09:30:00 +0000"
+                ],
+                [
+                  "Message-ID",
+                  "<lure_pdf_quoted_reference@partner-example.org>"
+                ],
+                [
+                  "MIME-Version",
+                  "1.0"
+                ],
+                [
+                  "Content-Type",
+                  "multipart/mixed; boundary=\"lure_pdf_quoted_reference-boundary\""
+                ]
+              ],
+              "internal_org_sender": false,
+              "is_anonymous_direct_send": false,
+              "log_entry": {
+                "attachment_count": 3,
+                "attachment_hashes": [
+                  "275b8bd9d5a05539d05f4d746a53adb6665e4388a959aa93a961a570cd6be336",
+                  "6a1d3505f33e73d1536fd9acfe2b1103f5d73b7ee1a7b3f81bb7643aa71171a6",
+                  "18a10b7e04567660630b0ad80eb06d578f4a306e40513dc9d37f8ea57d7a0d6a"
+                ],
+                "attachment_names": [
+                  "email.rfc822.unknown_text_plain_000.txt",
+                  "signed.pdf",
+                  "rotated.pdf"
+                ],
+                "attachment_sizes": [
+                  86,
+                  701,
+                  753
+                ],
+                "attachment_types": [
+                  "text/plain",
+                  "application/pdf",
+                  "application/pdf"
+                ],
+                "authentication_failed": false,
+                "bcc": [],
+                "cc": [],
+                "compauth_reason": null,
+                "compauth_result": null,
+                "dkim_result": null,
+                "dmarc_result": null,
+                "env_mail_from": null,
+                "env_rcpt_to": [],
+                "first_received": null,
+                "headers": [
+                  "From: Sam Field <sam@partner-example.org>",
+                  "To: pat@corp.example",
+                  "Return-Path: <sam@partner-example.org>",
+                  "Subject: RE: Signed copy",
+                  "Date: Wed, 11 Nov 2026 09:30:00 +0000",
+                  "Message-ID: <lure_pdf_quoted_reference@partner-example.org>",
+                  "MIME-Version: 1.0",
+                  "Content-Type: multipart/mixed; boundary=\"lure_pdf_quoted_reference-boundary\""
+                ],
+                "in_reply_to": null,
+                "internal_org_sender": false,
+                "is_anonymous_direct_send": false,
+                "last_received": null,
+                "mail_from": "Sam Field <sam@partner-example.org>",
+                "mail_from_is_local": false,
+                "mail_to": [
+                  "pat@corp.example"
+                ],
+                "message_directionality": null,
+                "message_id": "<lure_pdf_quoted_reference@partner-example.org>",
+                "originating_ip": null,
+                "path": [],
+                "refereneces": null,
+                "reply_to": null,
+                "size": 2879,
+                "spf_result": null,
+                "spoofed_internal": false,
+                "subject": "RE: Signed copy",
+                "subject_raw": "RE: Signed copy",
+                "thread_index": null,
+                "thread_topic": null,
+                "user_agent": null,
+                "x_mailer": null,
+                "x_sender": null
+              },
+              "mail_from_is_local": false,
+              "message-id": "<lure_pdf_quoted_reference@partner-example.org>",
+              "message_directionality": null,
+              "return_path": "sam@partner-example.org",
+              "spf_result": null,
+              "spoofed_internal": false,
+              "subject": "RE: Signed copy",
+              "to": [
+                "pat@corp.example"
+              ],
+              "to_addresses": [
+                "pat@corp.example"
+              ]
+            },
+            "extraction_errors": [],
+            "parsing_error": null
+          },
+          "summary": "Email Analysis: From Sam Field <sam@partner-example.org> To pat@corp.example Subject RE: Signed copy",
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": true,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "message/rfc822",
+            "type": "news or mail, ASCII text"
+          },
+          "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
+          "tags": {}
+        },
+        "html_js_extraction": {
+          "details": {
+            "dom_snapshot_files": [],
+            "duplicate_count": 0,
+            "extracted_files": [],
+            "extracted_uri_paths": [],
+            "extracted_urls": [],
+            "inline_handlers": [],
+            "script_count": 0
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "lure_url_analyzer": {
+          "details": {
+            "candidates": [
+              {
+                "anchor_text": "Review bid documents",
+                "carries": [],
+                "highlights": [
+                  [
+                    "signed.pdf"
+                  ],
+                  [
+                    "Review bid documents"
+                  ],
+                  [],
+                  [
+                    "signed.pdf.gs.pdf"
+                  ]
+                ],
+                "reasons": [
+                  "found in attachment signed.pdf",
+                  "clickable link in a PDF with text 'Review bid documents'",
+                  "call-to-action text (view)",
+                  "the only link in signed.pdf.gs.pdf"
+                ],
+                "score": 70,
+                "sources": [
+                  "attachment"
+                ],
+                "url": "https://docs.lure-example.net/bid/4471"
+              },
+              {
+                "anchor_text": "View invoice online",
+                "carries": [],
+                "highlights": [
+                  [
+                    "rotated.pdf"
+                  ],
+                  [
+                    "View invoice online"
+                  ],
+                  [],
+                  [
+                    "rotated.pdf.gs.pdf"
+                  ]
+                ],
+                "reasons": [
+                  "found in attachment rotated.pdf",
+                  "clickable link in a PDF with text 'View invoice online'",
+                  "call-to-action text (view)",
+                  "the only link in rotated.pdf.gs.pdf"
+                ],
+                "score": 70,
+                "sources": [
+                  "attachment"
+                ],
+                "url": "https://example.com/rotate"
+              }
+            ],
+            "has_inner_email": false,
+            "primary": {
+              "anchor_text": "Review bid documents",
+              "carries": [],
+              "highlights": [
+                [
+                  "signed.pdf"
+                ],
+                [
+                  "Review bid documents"
+                ],
+                [],
+                [
+                  "signed.pdf.gs.pdf"
+                ]
+              ],
+              "reasons": [
+                "found in attachment signed.pdf",
+                "clickable link in a PDF with text 'Review bid documents'",
+                "call-to-action text (view)",
+                "the only link in signed.pdf.gs.pdf"
+              ],
+              "score": 70,
+              "sources": [
+                "attachment"
+              ],
+              "url": "https://docs.lure-example.net/bid/4471"
+            },
+            "subject": "RE: Signed copy"
+          },
+          "summary": "Lure URL Analysis: https://docs.lure-example.net/bid/4471 (found in attachment signed.pdf; clickable link in a PDF with text 'Review bid documents'; call-to-action text (view); the only link in signed.pdf.gs.pdf)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "yara_scanner_v3_4": {
+          "details": {
+            "scan_results": [
+              {
+                "context": [
+                  [
+                    49,
+                    "$obsd_1",
+                    "@corp.example\n",
+                    "00000000  46 72 6f 6d 3a 20 53 61  6d 20 46 69 65 6c 64 20  |From: Sam Field |\n00000010  3c 73 61 6d 40 70 61 72  74 6e 65 72 2d 65 78 61  |<sam@partner-exa|\n00000020  6d 70 6c 65 2e 6f 72 67  3e 0a 54 6f 3a 20 70 61  |mple.org>.To: pa|\n00000030  74 40 63 6f 72 70 2e 65  78 61 6d 70 6c 65 0a 52  |t@corp.example.R|\n00000040  65 74 75 72 6e 2d 50 61  74 68 3a 20 3c 73 61 6d  |eturn-Path: <sam|\n00000050  40 70 61 72 74 6e 65 72  2d 65 78 61 6d 70 6c 65  |@partner-example|\n00000060  2e 6f 72 67 3e 0a 53 75  62 6a 65 63 74 3a 20 52  |.org>.Subject: R|\n00000070  45 3a 20 53 69 67 6e 65  64 20 63 6f 70 79 0a 44  |E: Signed copy.D|\n00000080  61 74 65 3a 20 57 65 64  2c 20 31 31 20 4e        |ate: Wed, 11 N|\n0000008e\n"
+                  ]
+                ],
+                "match_context": [
+                  {
+                    "data": "RnJvbTogU2FtIEZpZWxkIDxzYW1AcGFydG5lci1leGFtcGxlLm9yZz4KVG86IHBhdEBjb3JwLmV4YW1wbGUKUmV0dXJuLVBhdGg6IDxzYW1AcGFydG5lci1leGFtcGxlLm9yZz4KU3ViamVjdDogUkU6IFNpZ25lZCBjb3B5CkRhdGU6IFdlZCwgMTEgTg==",
+                    "match_length": 14,
+                    "match_offset": 49
+                  }
+                ],
+                "meta": {
+                  "author": "ACE Automation",
+                  "description": "ACE Observable Export",
+                  "platform": "ACE",
+                  "scope": "['detection']",
+                  "tlp": "amber"
+                },
+                "namespace": "<work>/signatures/observable_export",
+                "rule": "detect_fqdn",
+                "rule_content_hash": "c1d34c6526603e50d782b48a790e9ec52bcfd98b9b132de9bc790fa9b22f7442",
+                "rule_source": {
+                  "file": "fqdn.yar",
+                  "start_line": 1,
+                  "text": "rule detect_fqdn : detect_fqdn\n{\n    meta:\n        author = \"ACE Automation\"\n        description = \"ACE Observable Export\"\n        tlp = \"amber\"\n        date = \"11/16/2026\"\n        scope = \"['detection']\"\n        platform = \"ACE\"\n    strings:\n          $obsd_1 = /(^|[^a-zA-Z0-9_\\-])corp\\.example([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase\n          $obsd_wide_1 = /(^|([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00]))c\\x00o\\x00r\\x00p\\x00\\.\\x00e\\x00x\\x00a\\x00m\\x00p\\x00l\\x00e\\x00(([^a-zA-Z0-9_\\-.]\\x00|[\\x00-\\xff][^\\x00])|\\.\\x00([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00])|(\\.\\x00)?$)/ nocase\n\n    condition:\n        any of ($obsd_*)\n}\n"
+                },
+                "string_patterns": {
+                  "$obsd_1": "/(^|[^a-zA-Z0-9_\\-])corp\\.example([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase"
+                },
+                "strings": [
+                  [
+                    49,
+                    "$obsd_1",
+                    "@corp.example\n"
+                  ]
+                ],
+                "tags": [
+                  "detect_fqdn"
+                ],
+                "target": "<root>/files/email.rfc822"
+              }
+            ]
+          },
+          "summary": "Yara Scan Results: matched yara rules detect_fqdn",
+          "tags": {}
+        }
+      },
+      "tags": {
+        "detect_fqdn": true,
+        "email": true
+      }
+    },
+    "file:fab5a2a0aad388bbafb5c0fdce9f9808e8e3ce766a47e035da68b4619c3ed102": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {
+        "pdf_analyzer": true
+      },
+      "paths": {
+        "signed.pdf.annotation_uris.txt": {
+          "type=document.pdf.annotation_uris": true
+        }
+      },
+      "redirection": "file:6a1d3505f33e73d1536fd9acfe2b1103f5d73b7ee1a7b3f81bb7643aa71171a6",
+      "relationships": {
+        "extracted_from file:6a1d3505f33e73d1536fd9acfe2b1103f5d73b7ee1a7b3f81bb7643aa71171a6": true
+      },
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "13ad1849798d2a11eccde63d785e8424",
+            "sha1": "5f8787e14cc6de2027691aad939266eee8547c35",
+            "sha256": "fab5a2a0aad388bbafb5c0fdce9f9808e8e3ce766a47e035da68b4619c3ed102"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text, with no line terminators"
+          },
+          "summary": "File Type Analysis: ASCII text, with no line terminators (text/plain)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [
+              "https://docs.lure-example.net/bid/4471"
+            ],
+            "urls_grouped_by_domain": {
+              "lure-example.net": [
+                "https://docs.lure-example.net/bid/4471"
+              ]
+            }
+          },
+          "summary": "URL Extraction Analysis (docs.lure-example.net)",
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:fb48c4442f93400040ce9802194c4c6d8afaf2f82812e6fffcc6232674b21a1f": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "rotated.pdf.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:18a10b7e04567660630b0ad80eb06d578f4a306e40513dc9d37f8ea57d7a0d6a": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "fqdn:corp.example": {
+      "detections": {
+        "Observable fqdn:corp.example is enabled for detection": [
+          null
+        ]
+      },
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "fqdn_analyzer": {
+          "details": {
+            "aliaslist": [],
+            "all_resolutions": [],
+            "ip_address": null,
+            "mx": null,
+            "resolution_count": null,
+            "status": "nxdomain",
+            "wildcard_dns": null
+          },
+          "summary": "DNS Analysis: does not exist (nxdomain)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": true
+          },
+          "summary": "Observable Detection Analysis: enabled for detection",
+          "tags": {}
+        },
+        "proxy_domain_splunk": {
+          "details": {
+            "dispatch_state": "DONE",
+            "gui_link": null,
+            "query": "index=proxy hostname=\"corp.example\"",
+            "query_results": [
+              {
+                "_time": "2026-10-30T14:02:11.000+00:00",
+                "dest_ip": "198.51.100.20",
+                "full_url": "https://www.example.com/login",
+                "src_ip": "192.0.2.10",
+                "src_translated_ip": "198.51.100.7",
+                "user": "alice@example.com"
+              },
+              {
+                "_time": "2026-10-30T14:05:42.000+00:00",
+                "dest_ip": "198.51.100.20",
+                "full_url": "http://www.example.com/",
+                "src_ip": "192.0.2.11",
+                "src_translated_ip": "198.51.100.7",
+                "user": "bob@example.com"
+              },
+              {
+                "_time": "2026-10-30T14:09:03.000+00:00",
+                "dest_ip": "198.51.100.21",
+                "full_url": "https://www.example.com/static/app.js",
+                "src_ip": "192.0.2.12"
+              }
+            ],
+            "query_summary": "Proxy correlation",
+            "question": "Was this domain seen in proxy logs?"
+          },
+          "summary": "Proxy correlation: (3 results)",
+          "tags": {}
+        },
+        "rdap_analyzer": {
+          "details": {
+            "assignment_type": null,
+            "country": null,
+            "datetime_created": null,
+            "datetime_expiration": null,
+            "datetime_of_last_update": null,
+            "domain_name": null,
+            "emails": null,
+            "ip_version": null,
+            "lookup_protocol": null,
+            "name_servers": null,
+            "network_cidr": null,
+            "network_name": null,
+            "not_found": null,
+            "rdap_attempt_error": "no RDAP service for TLD: TLD \"example\" has no known RDAP endpoint and is unsupported. It may be supported by overrides, try using whoisit.bootstrap(overrides=True)",
+            "rdap_data": null,
+            "rdap_raw_json": null,
+            "rdap_service_url": null,
+            "registrar": null,
+            "whois_data": null,
+            "whois_raw_text": null
+          },
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {
+        "detect_fqdn": true
+      }
+    },
+    "fqdn:docs.lure-example.net": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "fqdn_analyzer": {
+          "details": {
+            "aliaslist": [],
+            "all_resolutions": [],
+            "ip_address": null,
+            "mx": null,
+            "resolution_count": null,
+            "status": "nxdomain",
+            "wildcard_dns": null
+          },
+          "summary": "DNS Analysis: does not exist (nxdomain)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "proxy_domain_splunk": {
+          "details": {
+            "dispatch_state": "DONE",
+            "gui_link": null,
+            "query": "index=proxy hostname=\"docs.lure-example.net\"",
+            "query_results": [
+              {
+                "_time": "2026-10-30T14:02:11.000+00:00",
+                "dest_ip": "198.51.100.20",
+                "full_url": "https://www.example.com/login",
+                "src_ip": "192.0.2.10",
+                "src_translated_ip": "198.51.100.7",
+                "user": "alice@example.com"
+              },
+              {
+                "_time": "2026-10-30T14:05:42.000+00:00",
+                "dest_ip": "198.51.100.20",
+                "full_url": "http://www.example.com/",
+                "src_ip": "192.0.2.11",
+                "src_translated_ip": "198.51.100.7",
+                "user": "bob@example.com"
+              },
+              {
+                "_time": "2026-10-30T14:09:03.000+00:00",
+                "dest_ip": "198.51.100.21",
+                "full_url": "https://www.example.com/static/app.js",
+                "src_ip": "192.0.2.12"
+              }
+            ],
+            "query_summary": "Proxy correlation",
+            "question": "Was this domain seen in proxy logs?"
+          },
+          "summary": "Proxy correlation: (3 results)",
+          "tags": {}
+        },
+        "rdap_analyzer": {
+          "details": {
+            "assignment_type": null,
+            "country": null,
+            "datetime_created": null,
+            "datetime_expiration": null,
+            "datetime_of_last_update": null,
+            "domain_name": null,
+            "emails": null,
+            "ip_version": null,
+            "lookup_protocol": null,
+            "name_servers": null,
+            "network_cidr": null,
+            "network_name": null,
+            "not_found": null,
+            "rdap_attempt_error": "Failed to make a GET request to https://rdap.verisign.com/net/v1/domain/lure-example.net: nothing recorded for GET https://rdap.verisign.com/net/v1/domain/lure-example.net",
+            "rdap_data": null,
+            "rdap_raw_json": null,
+            "rdap_service_url": null,
+            "registrar": null,
+            "whois_data": null,
+            "whois_raw_text": null
+          },
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {
+        "domain_in_url": true
+      }
+    },
+    "fqdn:example.com": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "fqdn_analyzer": {
+          "details": {
+            "aliaslist": [],
+            "all_resolutions": [
+              "192.0.2.10",
+              "192.0.2.2"
+            ],
+            "ip_address": "192.0.2.10",
+            "mx": [
+              "backup.example.com",
+              "mail.example.com"
+            ],
+            "resolution_count": 2,
+            "status": "ok",
+            "wildcard_dns": false
+          },
+          "summary": "DNS Analysis: ip addresses (192.0.2.10, 192.0.2.2) mx (backup.example.com, mail.example.com)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "proxy_domain_splunk": {
+          "details": {
+            "dispatch_state": "DONE",
+            "gui_link": null,
+            "query": "index=proxy hostname=\"example.com\"",
+            "query_results": [
+              {
+                "_time": "2026-10-30T14:02:11.000+00:00",
+                "dest_ip": "198.51.100.20",
+                "full_url": "https://www.example.com/login",
+                "src_ip": "192.0.2.10",
+                "src_translated_ip": "198.51.100.7",
+                "user": "alice@example.com"
+              },
+              {
+                "_time": "2026-10-30T14:05:42.000+00:00",
+                "dest_ip": "198.51.100.20",
+                "full_url": "http://www.example.com/",
+                "src_ip": "192.0.2.11",
+                "src_translated_ip": "198.51.100.7",
+                "user": "bob@example.com"
+              },
+              {
+                "_time": "2026-10-30T14:09:03.000+00:00",
+                "dest_ip": "198.51.100.21",
+                "full_url": "https://www.example.com/static/app.js",
+                "src_ip": "192.0.2.12"
+              }
+            ],
+            "query_summary": "Proxy correlation",
+            "question": "Was this domain seen in proxy logs?"
+          },
+          "summary": "Proxy correlation: (3 results)",
+          "tags": {}
+        },
+        "rdap_analyzer": {
+          "details": {
+            "assignment_type": null,
+            "country": null,
+            "datetime_created": "1995-08-14 04:00:00+00:00",
+            "datetime_expiration": "2027-08-13 04:00:00+00:00",
+            "datetime_of_last_update": "2026-08-14 08:01:43+00:00",
+            "domain_name": "EXAMPLE.COM",
+            "emails": [],
+            "ip_version": null,
+            "lookup_protocol": "rdap",
+            "name_servers": [
+              "ELLIOTT.NS.CLOUDFLARE.COM",
+              "HERA.NS.CLOUDFLARE.COM"
+            ],
+            "network_cidr": null,
+            "network_name": null,
+            "not_found": null,
+            "rdap_attempt_error": null,
+            "rdap_data": {
+              "copyright_notice": "",
+              "description": [],
+              "dnssec": true,
+              "dnssec_ds_data": [
+                {
+                  "algorithm": 13,
+                  "digest": "C988EC423E3880EB8DD8A46FE06CA230EE23F35B578D64E78B29C3E1C83D245A",
+                  "digest_type": 2,
+                  "key_tag": 2371
+                }
+              ],
+              "dnssec_key_data": [],
+              "entities": {
+                "abuse": [
+                  {
+                    "name": "",
+                    "parent_handle": "376",
+                    "parent_name": "RESERVED-Internet Assigned Numbers Authority",
+                    "type": "entity"
+                  }
+                ],
+                "registrar": [
+                  {
+                    "handle": "376",
+                    "name": "RESERVED-Internet Assigned Numbers Authority",
+                    "public_ids": [
+                      {
+                        "identifier": "376",
+                        "type": "IANA Registrar ID"
+                      }
+                    ],
+                    "type": "entity"
+                  }
+                ]
+              },
+              "events": [
+                {
+                  "action": "registration",
+                  "actor": "",
+                  "date": "1995-08-14T04:00:00.000000+0000"
+                },
+                {
+                  "action": "expiration",
+                  "actor": "",
+                  "date": "2027-08-13T04:00:00.000000+0000"
+                },
+                {
+                  "action": "last changed",
+                  "actor": "",
+                  "date": "2026-08-14T08:01:43.000000+0000"
+                },
+                {
+                  "action": "last update of rdap database",
+                  "actor": "",
+                  "date": "2026-11-02T15:28:17.000000+0000"
+                }
+              ],
+              "expiration_date": "2027-08-13T04:00:00.000000+0000",
+              "handle": "2336799_DOMAIN_COM-VRSN",
+              "last_changed_date": "2026-08-14T08:01:43.000000+0000",
+              "links": [
+                {
+                  "href": "https://rdap.verisign.com/com/v1/domain/example.com",
+                  "rel": "self",
+                  "type": "application/rdap+json"
+                }
+              ],
+              "name": "EXAMPLE.COM",
+              "nameserver_ips": {
+                "ELLIOTT.NS.CLOUDFLARE.COM": [],
+                "HERA.NS.CLOUDFLARE.COM": []
+              },
+              "nameservers": [
+                "ELLIOTT.NS.CLOUDFLARE.COM",
+                "HERA.NS.CLOUDFLARE.COM"
+              ],
+              "notices": [
+                {
+                  "description": [
+                    "Service subject to Terms of Use."
+                  ],
+                  "links": [
+                    "https://www.verisign.com/domain-names/registration-data-access-protocol/terms-service/index.xhtml"
+                  ],
+                  "title": "Terms of Service",
+                  "type": ""
+                },
+                {
+                  "description": [
+                    "For more information on domain status codes, please visit https://icann.org/epp"
+                  ],
+                  "links": [
+                    "https://icann.org/epp"
+                  ],
+                  "title": "Status Codes",
+                  "type": ""
+                },
+                {
+                  "description": [
+                    "URL of the ICANN RDDS Inaccuracy Complaint Form: https://icann.org/wicf"
+                  ],
+                  "links": [
+                    "https://icann.org/wicf"
+                  ],
+                  "title": "RDDS Inaccuracy Complaint Form",
+                  "type": ""
+                }
+              ],
+              "parent_handle": "",
+              "public_ids": [],
+              "redacted": [],
+              "registrar_url": "",
+              "registration_date": "1995-08-14T04:00:00.000000+0000",
+              "remarks": [],
+              "rir": "",
+              "status": [
+                "client delete prohibited",
+                "client transfer prohibited",
+                "client update prohibited"
+              ],
+              "terms_of_service_url": "https://www.verisign.com/domain-names/registration-data-access-protocol/terms-service/index.xhtml",
+              "type": "domain",
+              "unicode_name": "",
+              "url": "https://rdap.verisign.com/com/v1/domain/example.com",
+              "whois_server": ""
+            },
+            "rdap_raw_json": "{\"objectClassName\":\"domain\",\"handle\":\"2336799_DOMAIN_COM-VRSN\",\"ldhName\":\"EXAMPLE.COM\",\"links\":[{\"value\":\"https://rdap.verisign.com/com/v1/domain/example.com\",\"rel\":\"self\",\"href\":\"https://rdap.verisign.com/com/v1/domain/example.com\",\"type\":\"application/rdap+json\"}],\"status\":[\"client delete prohibited\",\"client transfer prohibited\",\"client update prohibited\"],\"entities\":[{\"objectClassName\":\"entity\",\"handle\":\"376\",\"roles\":[\"registrar\"],\"publicIds\":[{\"type\":\"IANA Registrar ID\",\"identifier\":\"376\"}],\"vcardArray\":[\"vcard\",[[\"version\",{},\"text\",\"4.0\"],[\"fn\",{},\"text\",\"RESERVED-Internet Assigned Numbers Authority\"]]],\"entities\":[{\"objectClassName\":\"entity\",\"roles\":[\"abuse\"],\"vcardArray\":[\"vcard\",[[\"version\",{},\"text\",\"4.0\"],[\"fn\",{},\"text\",\"\"],[\"tel\",{\"type\":\"voice\"},\"uri\",\"\"],[\"email\",{},\"text\",\"\"]]]}]}],\"events\":[{\"eventAction\":\"registration\",\"eventDate\":\"1995-08-14T04:00:00Z\"},{\"eventAction\":\"expiration\",\"eventDate\":\"2027-08-13T04:00:00Z\"},{\"eventAction\":\"last changed\",\"eventDate\":\"2026-08-14T08:01:43Z\"},{\"eventAction\":\"last update of RDAP database\",\"eventDate\":\"2026-11-02T15:28:17Z\"}],\"secureDNS\":{\"delegationSigned\":true,\"dsData\":[{\"keyTag\":2371,\"algorithm\":13,\"digestType\":2,\"digest\":\"C988EC423E3880EB8DD8A46FE06CA230EE23F35B578D64E78B29C3E1C83D245A\"}]},\"nameservers\":[{\"objectClassName\":\"nameserver\",\"ldhName\":\"ELLIOTT.NS.CLOUDFLARE.COM\"},{\"objectClassName\":\"nameserver\",\"ldhName\":\"HERA.NS.CLOUDFLARE.COM\"}],\"rdapConformance\":[\"rdap_level_0\",\"icann_rdap_technical_implementation_guide_1\",\"icann_rdap_response_profile_1\"],\"notices\":[{\"title\":\"Terms of Service\",\"description\":[\"Service subject to Terms of Use.\"],\"links\":[{\"href\":\"https://www.verisign.com/domain-names/registration-data-access-protocol/terms-service/index.xhtml\",\"type\":\"text/html\",\"value\":\"https://rdap.verisign.com/com/v1/domain/example.com\",\"rel\":\"terms-of-service\"}]},{\"title\":\"Status Codes\",\"description\":[\"For more information on domain status codes, please visit https://icann.org/epp\"],\"links\":[{\"href\":\"https://icann.org/epp\",\"type\":\"text/html\",\"value\":\"https://rdap.verisign.com/com/v1/domain/example.com\",\"rel\":\"glossary\"}]},{\"title\":\"RDDS Inaccuracy Complaint Form\",\"description\":[\"URL of the ICANN RDDS Inaccuracy Complaint Form: https://icann.org/wicf\"],\"links\":[{\"href\":\"https://icann.org/wicf\",\"type\":\"text/html\",\"value\":\"https://rdap.verisign.com/com/v1/domain/example.com\",\"rel\":\"help\"}]}]}",
+            "rdap_service_url": "https://rdap.verisign.com/com/v1/domain/example.com",
+            "registrar": "RESERVED-Internet Assigned Numbers Authority",
+            "whois_data": null,
+            "whois_raw_text": null
+          },
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {
+        "domain_in_url": true
+      }
+    },
+    "fqdn:partner-example.org": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "fqdn_analyzer": {
+          "details": {
+            "aliaslist": [],
+            "all_resolutions": [],
+            "ip_address": null,
+            "mx": null,
+            "resolution_count": null,
+            "status": "nxdomain",
+            "wildcard_dns": null
+          },
+          "summary": "DNS Analysis: does not exist (nxdomain)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "proxy_domain_splunk": {
+          "details": {
+            "dispatch_state": "DONE",
+            "gui_link": null,
+            "query": "index=proxy hostname=\"partner-example.org\"",
+            "query_results": [
+              {
+                "_time": "2026-10-30T14:02:11.000+00:00",
+                "dest_ip": "198.51.100.20",
+                "full_url": "https://www.example.com/login",
+                "src_ip": "192.0.2.10",
+                "src_translated_ip": "198.51.100.7",
+                "user": "alice@example.com"
+              },
+              {
+                "_time": "2026-10-30T14:05:42.000+00:00",
+                "dest_ip": "198.51.100.20",
+                "full_url": "http://www.example.com/",
+                "src_ip": "192.0.2.11",
+                "src_translated_ip": "198.51.100.7",
+                "user": "bob@example.com"
+              },
+              {
+                "_time": "2026-10-30T14:09:03.000+00:00",
+                "dest_ip": "198.51.100.21",
+                "full_url": "https://www.example.com/static/app.js",
+                "src_ip": "192.0.2.12"
+              }
+            ],
+            "query_summary": "Proxy correlation",
+            "question": "Was this domain seen in proxy logs?"
+          },
+          "summary": "Proxy correlation: (3 results)",
+          "tags": {}
+        },
+        "rdap_analyzer": {
+          "details": {
+            "assignment_type": null,
+            "country": null,
+            "datetime_created": null,
+            "datetime_expiration": null,
+            "datetime_of_last_update": null,
+            "domain_name": null,
+            "emails": null,
+            "ip_version": null,
+            "lookup_protocol": null,
+            "name_servers": null,
+            "network_cidr": null,
+            "network_name": null,
+            "not_found": null,
+            "rdap_attempt_error": "Failed to make a GET request to https://rdap.publicinterestregistry.org/rdap/domain/partner-example.org: nothing recorded for GET https://rdap.publicinterestregistry.org/rdap/domain/partner-example.org",
+            "rdap_data": null,
+            "rdap_raw_json": null,
+            "rdap_service_url": null,
+            "registrar": null,
+            "whois_data": null,
+            "whois_raw_text": null
+          },
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "ip:192.0.2.10": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "network_identifier": {
+          "details": {
+            "identified_networks": []
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "md5:13ad1849798d2a11eccde63d785e8424": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:fab5a2a0aad388bbafb5c0fdce9f9808e8e3ce766a47e035da68b4619c3ed102": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "observable_modifier": {
+          "details": {
+            "matched_rules": [
+              {
+                "actions_applied": {
+                  "ignore": true
+                },
+                "name": "hashes out from under the hash module",
+                "uuid": "2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03"
+              }
+            ]
+          },
+          "summary": "Applied 1 rule(s): hashes out from under the hash module",
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "md5:7bf43653a9fca8128a4a6fe0e1bc5fff": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:18a10b7e04567660630b0ad80eb06d578f4a306e40513dc9d37f8ea57d7a0d6a": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "observable_modifier": {
+          "details": {
+            "matched_rules": [
+              {
+                "actions_applied": {
+                  "ignore": true
+                },
+                "name": "hashes out from under the hash module",
+                "uuid": "2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03"
+              }
+            ]
+          },
+          "summary": "Applied 1 rule(s): hashes out from under the hash module",
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "md5:89340cbb55dfb8b04ea6a2aa6d4ce3fe": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:6a1d3505f33e73d1536fd9acfe2b1103f5d73b7ee1a7b3f81bb7643aa71171a6": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "observable_modifier": {
+          "details": {
+            "matched_rules": [
+              {
+                "actions_applied": {
+                  "ignore": true
+                },
+                "name": "hashes out from under the hash module",
+                "uuid": "2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03"
+              }
+            ]
+          },
+          "summary": "Applied 1 rule(s): hashes out from under the hash module",
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "md5:f19849bfb279805357f420d6a8d4fe52": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:aba87ada65a0a36bb5eeb996ac1a92fc165eed71968f8905492d3943821981d7": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "observable_modifier": {
+          "details": {
+            "matched_rules": [
+              {
+                "actions_applied": {
+                  "ignore": true
+                },
+                "name": "hashes out from under the hash module",
+                "uuid": "2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03"
+              }
+            ]
+          },
+          "summary": "Applied 1 rule(s): hashes out from under the hash module",
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "message_id:<lure_pdf_quoted_reference@partner-example.org>": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "message_id_analyzer_v2": true
+      },
+      "relationships": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "sha256:18a10b7e04567660630b0ad80eb06d578f4a306e40513dc9d37f8ea57d7a0d6a": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:18a10b7e04567660630b0ad80eb06d578f4a306e40513dc9d37f8ea57d7a0d6a": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "sha256:6a1d3505f33e73d1536fd9acfe2b1103f5d73b7ee1a7b3f81bb7643aa71171a6": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:6a1d3505f33e73d1536fd9acfe2b1103f5d73b7ee1a7b3f81bb7643aa71171a6": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "sha256:aba87ada65a0a36bb5eeb996ac1a92fc165eed71968f8905492d3943821981d7": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:aba87ada65a0a36bb5eeb996ac1a92fc165eed71968f8905492d3943821981d7": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "sha256:fab5a2a0aad388bbafb5c0fdce9f9808e8e3ce766a47e035da68b4619c3ed102": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:fab5a2a0aad388bbafb5c0fdce9f9808e8e3ce766a47e035da68b4619c3ed102": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "signature_id:2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a03": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "signature_id:2f0c8a9e-6b0d-4c55-9a51-0e1d2c3b4a04": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "uri_path:/bid/4471": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "uri_path:/rotate": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "url:https://docs.lure-example.net/bid/4471": {
+      "detections": {},
+      "directives": {
+        "crawl": true
+      },
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "parse_url": {
+          "details": {
+            "fragment": "",
+            "netloc": "docs.lure-example.net",
+            "params": null,
+            "path": "/bid/4471",
+            "query": "",
+            "scheme": "https"
+          },
+          "summary": "URL Parser: scheme=https, netloc=docs.lure-example.net, path=/bid/4471",
+          "tags": {}
+        },
+        "protected_url_analyzer": {
+          "details": {
+            "extracted_url": "https://docs.lure-example.net/bid/4471",
+            "protection_type": "unprotected"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "url:https://example.com/rotate": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "parse_url": {
+          "details": {
+            "fragment": "",
+            "netloc": "example.com",
+            "params": null,
+            "path": "/rotate",
+            "query": "",
+            "scheme": "https"
+          },
+          "summary": "URL Parser: scheme=https, netloc=example.com, path=/rotate",
+          "tags": {}
+        },
+        "protected_url_analyzer": {
+          "details": {
+            "extracted_url": "https://example.com/rotate",
+            "protection_type": "unprotected"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "yara_rule:detect_fqdn": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "yara_string:detect_fqdn:$obsd_1": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    }
+  }
+}

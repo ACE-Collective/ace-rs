@@ -1,6 +1,67 @@
 {
   "form": 1,
   "observables": {
+    "file:0dd52c786b018af8173fcd2b0ff89e8b292db6e88f3c4a277808672774de249c": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {
+        "javascript_deobfuscation": true
+      },
+      "paths": {
+        "deobfuscated-loader.jse.decrypted.js": {
+          "type=script.javascript": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:84767c86e9200707b01ff0d0b362082d2ac8acd1978a4c2400161f18407eb2eb": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text"
+          },
+          "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:66ccdba967f40399699b6cb35209fd8bcfff1aaa100151a4491d58f20eeb520d": {
       "detections": {},
       "directives": {
@@ -113,7 +174,6 @@
           "details": {
             "dom_snapshot": false,
             "dom_snapshot_source": null,
-            "error": "evalmachine.<anonymous>:1\nvar shell = new ActiveXObject(\"WScript.Shell\");\n            ^\n\nReferenceError: ActiveXObject is not defined\n    at evalmachine.<anonymous>:1:13\n    at Script.runInContext (node:vm:150:12)\n    at file:///opt/app/harness.js:914:12",
             "error_type": "runtime",
             "event_count": 0,
             "exit_code": 0,
@@ -147,67 +207,6 @@
       "tags": {
         "js": true
       }
-    },
-    "file:8b834203ae453e03fd517cfcad7a5abf9f425403aaf5ec29938ff5bf64f2aac3": {
-      "detections": {},
-      "directives": {
-        "extract_urls": true
-      },
-      "excluded_analysis": {
-        "javascript_deobfuscation": true
-      },
-      "paths": {
-        "deobfuscated-loader.jse.decrypted.js": {
-          "type=script.javascript": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:84767c86e9200707b01ff0d0b362082d2ac8acd1978a4c2400161f18407eb2eb": true
-      },
-      "results": {
-        "file_type": {
-          "details": {
-            "is_email_file": false,
-            "is_jar_file": false,
-            "is_lnk_file": false,
-            "is_office_document": false,
-            "is_office_ext": false,
-            "is_ole_file": false,
-            "is_pdf_file": false,
-            "is_pe_file": false,
-            "is_rtf_file": false,
-            "is_x509": false,
-            "is_zip_file": false,
-            "mime": "text/plain",
-            "type": "ASCII text"
-          },
-          "summary": "File Type Analysis: ASCII text (text/plain)",
-          "tags": {}
-        },
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "url_extraction": {
-          "details": {
-            "urls": [],
-            "urls_grouped_by_domain": {}
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
     },
     "md5:0ef593b8423a8ab40c18525a2fd95d3a": {
       "detections": {},

@@ -104,6 +104,39 @@
       },
       "tags": {}
     },
+    "file:288bfe9d7e8ff55584afd8bfd48bd0f355abfdabd9f88af401b1c8743717170f": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "xlm_branch_err_arabic.xlsm.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:ea1dfa266002f44272886724ea426f2e48e965749925951d22043f302a9c79f2": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:3985a7d8828ad3fc0cad2d1e4913cc6bbedffdcd571904330c770a03a31691a8": {
       "detections": {},
       "directives": {
@@ -162,39 +195,6 @@
         "xml_plain_text_analyzer": {
           "details": {
             "xml_plain_text": "xlm_branch_err_arabic.xlsm.extracted/xl/macrosheets/sheet1.xml.noxml"
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
-    "file:3d76ea0f15e5e3e5dfcb2a35a9fa2592a9a9780e6f739e444fce021ca2c16a9c": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "xlm_branch_err_arabic.xlsm.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:ea1dfa266002f44272886724ea426f2e48e965749925951d22043f302a9c79f2": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
           },
           "summary": null,
           "tags": {}
@@ -553,7 +553,6 @@
               "xl/_rels/workbook.xml.rels",
               "_rels/.rels"
             ],
-            "extraction_error": null,
             "file_count": 5
           },
           "summary": "Archive Analysis: extracted 5 of 5 files: ([Content_Types].xml, xl/workbook.xml, xl/macrosheets/sheet1.xml, xl/_rels/workbook.xml.rels, _rels/.rels)",
@@ -561,13 +560,12 @@
         },
         "exif": {
           "details": {
-            "error": null,
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 09:12:30+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 09:12:30+00:00",
-              "File:FileModifyDate": "2026:11:07 14:35:12+00:00",
+              "File:FileAccessDate": "2026:11:16 14:12:15+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 14:12:15+00:00",
+              "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "xlm_branch_err_arabic.xlsm",
               "File:FilePermissions": 100644,
               "File:FileSize": 2411,

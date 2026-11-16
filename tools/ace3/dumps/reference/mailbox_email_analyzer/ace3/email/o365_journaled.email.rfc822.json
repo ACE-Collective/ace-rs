@@ -1,6 +1,6 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "f72f8946",
+  "ace3_commit": "37a765bf",
   "also_enabled": [
     "file_type",
     "email_analyzer"
@@ -540,7 +540,7 @@
             "cc": [],
             "compauth_reason": "300",
             "compauth_result": "none",
-            "date": "2026-11-10 05:31:00.166422 +0000",
+            "date": "2026-11-16 16:32:30.006850 +0000",
             "dkim_result": "none",
             "dmarc_result": "none",
             "env_mail_from": "ap@someothercompany.com",
@@ -1406,7 +1406,7 @@
           "cc": [],
           "compauth_reason": "300",
           "compauth_result": "none",
-          "date": "2026-11-10 05:31:00.166422 +0000",
+          "date": "2026-11-16 16:32:30.006850 +0000",
           "dkim_result": "none",
           "dmarc_result": "none",
           "env_mail_from": "ap@someothercompany.com",
@@ -1514,6 +1514,78 @@
     "observables": [
       {
         "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_conversation",
+        "value": "ap@someothercompany.com|lulu.zingzing@company.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_from",
+        "value": "ap@someothercompany.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_first_hop_helo",
+        "value": "us-smtp-1.mimecast.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_return_path",
+        "value": "ap@someothercompany.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_conversation",
+        "value": "ap@someothercompany.com|random.person@whatever.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_x_auth_id",
+        "value": "ap@someothercompany.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_envelope_rcpt_to",
+        "value": "lulu.zingzing@company.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_to",
+        "value": "random.person@whatever.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_subject",
+        "value": "INVOICE PDL-06-38776"
+      },
+      {
+        "detections": [],
         "directives": [
           "extract_urls",
           "render"
@@ -1537,53 +1609,16 @@
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "email_subject",
-        "value": "INVOICE PDL-06-38776"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [
-          {
-            "path": "email.rfc822.combined",
-            "yara_meta": [
-              "type=email",
-              "type=email.combined"
-            ]
-          }
-        ],
-        "size": 19739,
-        "tags": [
-          "email"
-        ],
-        "type": "file",
-        "value": "fdc30e4971262a455403dd49b60eb6b5e86357703a47e792e825c1c12d7cb998"
-      },
-      {
-        "detections": [],
-        "directives": [
-          "tracked"
-        ],
-        "paths": [],
-        "tags": [],
-        "type": "message_id",
-        "value": "<13268020124593518925.93733CB7019D1C46@company.com>"
+        "type": "email_first_hop_ip",
+        "value": "207.211.31.81"
       },
       {
         "detections": [],
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "email_envelope_rcpt_to",
-        "value": "lulu.zingzing@company.com"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_conversation",
-        "value": "ap@someothercompany.com|random.person@whatever.com"
+        "type": "email_x_sender_id",
+        "value": "ap@someothercompany.com"
       },
       {
         "detections": [],
@@ -1607,10 +1642,21 @@
       {
         "detections": [],
         "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_from",
-        "value": "ap@someothercompany.com"
+        "paths": [
+          {
+            "path": "email.rfc822.combined",
+            "yara_meta": [
+              "type=email",
+              "type=email.combined"
+            ]
+          }
+        ],
+        "size": 19739,
+        "tags": [
+          "email"
+        ],
+        "type": "file",
+        "value": "fdc30e4971262a455403dd49b60eb6b5e86357703a47e792e825c1c12d7cb998"
       },
       {
         "detections": [],
@@ -1634,59 +1680,13 @@
       },
       {
         "detections": [],
-        "directives": [],
+        "directives": [
+          "tracked"
+        ],
         "paths": [],
         "tags": [],
-        "type": "email_first_hop_ip",
-        "value": "207.211.31.81"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_to",
-        "value": "random.person@whatever.com"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_conversation",
-        "value": "ap@someothercompany.com|lulu.zingzing@company.com"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_first_hop_helo",
-        "value": "us-smtp-1.mimecast.com"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_x_auth_id",
-        "value": "ap@someothercompany.com"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_x_sender_id",
-        "value": "ap@someothercompany.com"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_return_path",
-        "value": "ap@someothercompany.com"
+        "type": "message_id",
+        "value": "<13268020124593518925.93733CB7019D1C46@company.com>"
       }
     ],
     "results": [
@@ -1709,7 +1709,7 @@
           "type": "HTML document, ASCII text"
         },
         "module": "file_type",
-        "observable": 0,
+        "observable": 9,
         "summary": "File Type Analysis: HTML document, ASCII text (text/html)",
         "tags": []
       },
@@ -1732,7 +1732,7 @@
           "type": "RFC 822 mail, ASCII text, with very long lines (1998)"
         },
         "module": "file_type",
-        "observable": 2,
+        "observable": 12,
         "summary": "File Type Analysis: RFC 822 mail, ASCII text, with very long lines (1998) (message/rfc822) (email)",
         "tags": []
       },
@@ -1755,7 +1755,7 @@
           "type": "RFC 822 mail, ASCII text, with very long lines (1998)"
         },
         "module": "file_type",
-        "observable": 6,
+        "observable": 13,
         "summary": "File Type Analysis: RFC 822 mail, ASCII text, with very long lines (1998) (message/rfc822) (email)",
         "tags": []
       },
@@ -1764,12 +1764,21 @@
         "class": "MailboxEmailAnalysis",
         "details": {},
         "module": "mailbox_email_analyzer",
-        "observable": 8,
+        "observable": 14,
         "summary": null,
         "tags": []
       },
       {
         "added": [
+          {
+            "observable": 1
+          },
+          {
+            "observable": 6
+          },
+          {
+            "observable": 0
+          },
           {
             "observable": 7
           },
@@ -1777,45 +1786,36 @@
             "observable": 4
           },
           {
-            "observable": 11
-          },
-          {
-            "observable": 10
-          },
-          {
-            "observable": 5
-          },
-          {
-            "observable": 1
-          },
-          {
-            "observable": 3
-          },
-          {
-            "observable": 14
-          },
-          {
-            "observable": 13
+            "observable": 8
           },
           {
             "observable": 15
           },
           {
-            "observable": 9
+            "observable": 11
           },
           {
-            "observable": 12
+            "observable": 5
           },
           {
-            "observable": 0,
+            "observable": 3
+          },
+          {
+            "observable": 10
+          },
+          {
+            "observable": 2
+          },
+          {
+            "observable": 9,
             "path": "email.rfc822.unknown_text_html_000.html"
           },
           {
-            "observable": 6,
+            "observable": 12,
             "path": "email.rfc822.headers"
           },
           {
-            "observable": 2,
+            "observable": 13,
             "path": "email.rfc822.combined"
           }
         ],
@@ -2343,7 +2343,7 @@
               "cc": [],
               "compauth_reason": "300",
               "compauth_result": "none",
-              "date": "2026-11-10 05:31:00.166422 +0000",
+              "date": "2026-11-16 16:32:30.006850 +0000",
               "dkim_result": "none",
               "dmarc_result": "none",
               "env_mail_from": "ap@someothercompany.com",
@@ -2443,7 +2443,7 @@
           "parsing_error": null
         },
         "module": "email_analyzer",
-        "observable": 8,
+        "observable": 14,
         "summary": "Email Analysis: From Bobbie Fruitypie <ap@someothercompany.com> To lulu.zingzing@company.com Subject INVOICE PDL-06-38776",
         "tags": []
       },
@@ -2466,7 +2466,7 @@
           "type": "SMTP mail, ASCII text, with very long lines (818)"
         },
         "module": "file_type",
-        "observable": 8,
+        "observable": 14,
         "summary": "File Type Analysis: SMTP mail, ASCII text, with very long lines (818) (message/rfc822) (email)",
         "tags": []
       }

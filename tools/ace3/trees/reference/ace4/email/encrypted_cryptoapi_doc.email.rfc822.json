@@ -304,39 +304,6 @@
       },
       "tags": {}
     },
-    "file:0e0845f9a74a7c360abbdfa0780c40bda2fd30eaf6322dab963ebebc4e0504e6": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "invoice.doc.decrypted.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:da1442cfb424fde5250f03e617414980e0c294fc27938e9a6dda57776bd8fa61": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:17a196ee56a4691a39416757a87948677c1b9a238add433fa236a0ba696e7b46": {
       "detections": {},
       "directives": {},
@@ -401,6 +368,39 @@
       "tags": {
         "email": true
       }
+    },
+    "file:180b86d799e710b7699bb4ba4e61e678519fd2bea8d1d7fbacaa2b525d6fc550": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "invoice.doc.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:2933e69bd26f61b99ba7b81487bee95fa954ef7ad19996e5bfbc0f57e635624d": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
     },
     "file:20bc7d114382458144dfc7e3681ea806337d40786f166c60864eeac4fc5ba11d": {
       "detections": {},
@@ -543,13 +543,12 @@
       "results": {
         "exif": {
           "details": {
-            "error": null,
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 08:46:07+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 08:46:07+00:00",
-              "File:FileModifyDate": "2026:11:11 08:46:07+00:00",
+              "File:FileAccessDate": "2026:11:16 13:41:41+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 13:41:41+00:00",
+              "File:FileModifyDate": "2026:11:16 13:41:41+00:00",
               "File:FileName": "invoice.doc",
               "File:FilePermissions": 100664,
               "File:FileSize": 22528,
@@ -641,7 +640,6 @@
             "email": true,
             "email_body": "The password is CryptoAp1\n\n",
             "encryption_info": null,
-            "error": null,
             "password": "CryptoAp1",
             "word_list": [
               "VelvetSweatshop",
@@ -1104,6 +1102,39 @@
       },
       "tags": {}
     },
+    "file:96848dba233dae34bf19a22e410dc36b8b8385189b643e3c74da32c9f9f948aa": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "invoice.doc.decrypted.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:da1442cfb424fde5250f03e617414980e0c294fc27938e9a6dda57776bd8fa61": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:b5ac3f69b457fdf1d14d5af4ce7e37a480a2cfb9a091774832c14b3832d6a6d2": {
       "detections": {},
       "directives": {
@@ -1127,7 +1158,6 @@
               "theme/theme/_rels/themeManager.xml.rels",
               "_rels/.rels"
             ],
-            "extraction_error": null,
             "file_count": 5
           },
           "summary": "Archive Analysis: extracted 5 of 5 files: ([Content_Types].xml, theme/theme/theme1.xml, theme/theme/themeManager.xml, theme/theme/_rels/themeManager.xml.rels, _rels/.rels)",
@@ -1269,13 +1299,12 @@
       "results": {
         "exif": {
           "details": {
-            "error": null,
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 08:46:08+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 08:46:08+00:00",
-              "File:FileModifyDate": "2026:11:11 08:46:08+00:00",
+              "File:FileAccessDate": "2026:11:16 13:41:42+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 13:41:42+00:00",
+              "File:FileModifyDate": "2026:11:16 13:41:42+00:00",
               "File:FileName": "invoice.doc.decrypted",
               "File:FilePermissions": 100666,
               "File:FileSize": 22528,
@@ -1471,39 +1500,6 @@
       "tags": {
         "email": true
       }
-    },
-    "file:e1849723347d78b445dc580cc2b54f4674314722919198d2a71c8061a86bf428": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "invoice.doc.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:2933e69bd26f61b99ba7b81487bee95fa954ef7ad19996e5bfbc0f57e635624d": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
     },
     "file:eebd080c8748bc2d19a0273ac2f84bb8222e8b1e9fef26f08933053cb9e94218": {
       "detections": {},
@@ -1798,7 +1794,6 @@
             "dispatch_state": "DONE",
             "gui_link": null,
             "query": "index=proxy hostname=\"example.com\"",
-            "query_error": null,
             "query_results": [
               {
                 "_time": "2026-10-30T14:02:11.000+00:00",
@@ -1838,7 +1833,6 @@
             "datetime_of_last_update": "2026-08-14 08:01:43+00:00",
             "domain_name": "EXAMPLE.COM",
             "emails": [],
-            "error": null,
             "ip_version": null,
             "lookup_protocol": "rdap",
             "name_servers": [
@@ -1847,6 +1841,7 @@
             ],
             "network_cidr": null,
             "network_name": null,
+            "not_found": null,
             "rdap_attempt_error": null,
             "rdap_data": {
               "copyright_notice": "",

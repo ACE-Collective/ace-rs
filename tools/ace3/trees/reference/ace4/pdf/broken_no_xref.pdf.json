@@ -61,7 +61,7 @@
       },
       "tags": {}
     },
-    "file:193fe02b205d1fbf7c66fce0cd0abe6d92c561c2373c020f2ee5be0143e499c7": {
+    "file:3d7d7d44269b48834179faa3d17f52eea1ad89f21be684f172119053677727de": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -142,39 +142,6 @@
       "tags": {
         "pdf": true
       }
-    },
-    "file:2b7beeb78bc4fdadd710485ebbf79799920b2c2594b34eed71088c41b206fec9": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "broken_no_xref.pdf.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:708f0eab73a3b2cccd362f333b41128f17a9452f6f187440594865d51e67680c": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
     },
     "file:683e0dd767d19349dd2561903e10ee9a7a6d6b659ed11d6b4b6b3e6b2be12be5": {
       "detections": {},
@@ -260,14 +227,13 @@
       "results": {
         "exif": {
           "details": {
-            "error": null,
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "ExifTool:Warning": "Invalid xref table",
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 09:31:08+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 09:31:08+00:00",
-              "File:FileModifyDate": "2026:11:07 04:47:50+00:00",
+              "File:FileAccessDate": "2026:11:16 14:57:06+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 14:57:06+00:00",
+              "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "broken_no_xref.pdf",
               "File:FilePermissions": 100644,
               "File:FileSize": 1014,
@@ -344,6 +310,39 @@
         "pdf": true
       }
     },
+    "file:bab6e0d8e577593a7e57f6c156c728bf431d4875cad05d18a9207fce1ad46d8f": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "broken_no_xref.pdf.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:708f0eab73a3b2cccd362f333b41128f17a9452f6f187440594865d51e67680c": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977": {
       "detections": {},
       "directives": {},
@@ -355,9 +354,9 @@
           "type=document.pdf.text": true
         }
       },
-      "redirection": "file:193fe02b205d1fbf7c66fce0cd0abe6d92c561c2373c020f2ee5be0143e499c7",
+      "redirection": "file:3d7d7d44269b48834179faa3d17f52eea1ad89f21be684f172119053677727de",
       "relationships": {
-        "extracted_from file:193fe02b205d1fbf7c66fce0cd0abe6d92c561c2373c020f2ee5be0143e499c7": true
+        "extracted_from file:3d7d7d44269b48834179faa3d17f52eea1ad89f21be684f172119053677727de": true
       },
       "results": {
         "file_type": {
@@ -433,7 +432,6 @@
             "dispatch_state": "DONE",
             "gui_link": null,
             "query": "index=proxy hostname=\"example.com\"",
-            "query_error": null,
             "query_results": [
               {
                 "_time": "2026-10-30T14:02:11.000+00:00",
@@ -473,7 +471,6 @@
             "datetime_of_last_update": "2026-08-14 08:01:43+00:00",
             "domain_name": "EXAMPLE.COM",
             "emails": [],
-            "error": null,
             "ip_version": null,
             "lookup_protocol": "rdap",
             "name_servers": [
@@ -482,6 +479,7 @@
             ],
             "network_cidr": null,
             "network_name": null,
+            "not_found": null,
             "rdap_attempt_error": null,
             "rdap_data": {
               "copyright_notice": "",

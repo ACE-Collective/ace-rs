@@ -1,7 +1,7 @@
 {
   "form": 1,
   "observables": {
-    "file:730822f06b2d8f908fd999f41954b32deb3c343d4dbfe5ac619bc9bd8de263df": {
+    "file:22feb99486181c0c51d417ff68bc8f68352fa9d3b885604ce5d717873e0d1f84": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -44,6 +44,20 @@
             "for_detection": false
           },
           "summary": null,
+          "tags": {}
+        },
+        "pdf_link_text": {
+          "details": {
+            "links": [
+              {
+                "line": null,
+                "page": 1,
+                "text": null,
+                "url": "pikepdf.Array([ \"a\", \"/b\", 1, None, Decimal('1.5000'), True ])"
+              }
+            ]
+          },
+          "summary": "PDF Link Text Analysis: 1 links, 0 with text",
           "tags": {}
         },
         "pdftotext": {
@@ -168,13 +182,12 @@
       "results": {
         "exif": {
           "details": {
-            "error": null,
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 09:38:26+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 09:38:26+00:00",
-              "File:FileModifyDate": "2026:11:07 04:47:50+00:00",
+              "File:FileAccessDate": "2026:11:16 15:07:06+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 15:07:06+00:00",
+              "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "uri_array.pdf",
               "File:FilePermissions": 100644,
               "File:FileSize": 407,
@@ -231,6 +244,20 @@
           "summary": null,
           "tags": {}
         },
+        "pdf_link_text": {
+          "details": {
+            "links": [
+              {
+                "line": null,
+                "page": 1,
+                "text": null,
+                "url": "pikepdf.Array([ \"a\", \"/b\", 1, None, Decimal('1.5'), True ])"
+              }
+            ]
+          },
+          "summary": "PDF Link Text Analysis: 1 links, 0 with text",
+          "tags": {}
+        },
         "pdftotext": {
           "details": {
             "output_path": "ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977",
@@ -260,7 +287,7 @@
         "pdf": true
       }
     },
-    "file:c9ea749b63badf83e93edcc31e6452ead3374a4de3a9f7351a752985f21ce13e": {
+    "file:e1debe7d529cd97feb9cf9f8a03766d9928b24be8cb77f8f62ad6020eb88b457": {
       "detections": {},
       "directives": {},
       "excluded_analysis": {
@@ -367,9 +394,9 @@
           "type=document.pdf.text": true
         }
       },
-      "redirection": "file:730822f06b2d8f908fd999f41954b32deb3c343d4dbfe5ac619bc9bd8de263df",
+      "redirection": "file:22feb99486181c0c51d417ff68bc8f68352fa9d3b885604ce5d717873e0d1f84",
       "relationships": {
-        "extracted_from file:730822f06b2d8f908fd999f41954b32deb3c343d4dbfe5ac619bc9bd8de263df": true,
+        "extracted_from file:22feb99486181c0c51d417ff68bc8f68352fa9d3b885604ce5d717873e0d1f84": true,
         "extracted_from file:b7e0ea2ab9a29fbf6060877a204f10a5ea37a3dd2f6da9f5244fe3650be112cb": true
       },
       "results": {

@@ -315,39 +315,6 @@
       },
       "tags": {}
     },
-    "file:2256938648e654a42df57e996cd0ef8e23aefd706bc3ca387c8da4c54fcba6f8": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "718148a5712c1fec7b50acc89eee2aa0.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:5b677d297fb862c2d223973697479ee53a91d03073b14556f421b3d74f136b9d": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:2983db3781942d11b9497551888ee8774f861ff9cbc5c64ddb79eaa0698f87bd": {
       "detections": {},
       "directives": {
@@ -406,6 +373,39 @@
         "xml_plain_text_analyzer": {
           "details": {
             "xml_plain_text": null
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:2d39e19acaa871c2ea6aa254baac392801b498e8a2597eb354cd209549967620": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "718148a5712c1fec7b50acc89eee2aa0.mime/extracted-12.activemime.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:d82f411152bcc9fdb41523528e5139cf3367650871462debbc17f2ac654d0b06": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}
@@ -522,97 +522,6 @@
       },
       "tags": {
         "macro": true
-      }
-    },
-    "file:3eb6584b37a652caf03574ccb8e6caafec19d7790b3fb3722cf0a6533d390b50": {
-      "detections": {},
-      "directives": {
-        "extract_urls": true
-      },
-      "excluded_analysis": {
-        "pdf_analyzer": true
-      },
-      "paths": {
-        "718148a5712c1fec7b50acc89eee2aa0.gs.pdf": {
-          "type=document.pdf": true,
-          "type=document.pdf.rendered": true
-        }
-      },
-      "redirection": "file:5b677d297fb862c2d223973697479ee53a91d03073b14556f421b3d74f136b9d",
-      "relationships": {
-        "extracted_from file:5b677d297fb862c2d223973697479ee53a91d03073b14556f421b3d74f136b9d": true
-      },
-      "results": {
-        "file_hash_analyzer": {
-          "details": {
-            "md5": "f5de6ef88515716ff277b025047ab561",
-            "sha1": "17b6f3e046212c5c7b5db45eaa2ab28caa73e1f7",
-            "sha256": "3eb6584b37a652caf03574ccb8e6caafec19d7790b3fb3722cf0a6533d390b50"
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "file_type": {
-          "details": {
-            "is_email_file": false,
-            "is_jar_file": false,
-            "is_lnk_file": false,
-            "is_office_document": false,
-            "is_office_ext": false,
-            "is_ole_file": false,
-            "is_pdf_file": true,
-            "is_pe_file": false,
-            "is_rtf_file": false,
-            "is_x509": false,
-            "is_zip_file": false,
-            "mime": "application/pdf",
-            "type": "PDF document, version 1.7, 1 page(s)"
-          },
-          "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
-          "tags": {}
-        },
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "pdftotext": {
-          "details": {
-            "output_path": "ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977",
-            "stderr": "",
-            "stdout": ""
-          },
-          "summary": "PDF Text Analysis",
-          "tags": {}
-        },
-        "qrcode": {
-          "details": {
-            "extracted_text": null,
-            "inverted": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "url_extraction": {
-          "details": {
-            "urls": [],
-            "urls_grouped_by_domain": {}
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {
-        "pdf": true
       }
     },
     "file:3f538c5957ff1a38e0f609f5eea01d01855e3a29890dfa7c714c30ab8adaa082": {
@@ -808,14 +717,13 @@
       "results": {
         "exif": {
           "details": {
-            "error": null,
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "ExifTool:Warning": "Invalid xref table",
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 08:44:54+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 08:44:54+00:00",
-              "File:FileModifyDate": "2026:11:06 19:20:07+00:00",
+              "File:FileAccessDate": "2026:11:16 14:53:09+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 14:53:09+00:00",
+              "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "718148a5712c1fec7b50acc89eee2aa0",
               "File:FilePermissions": 100644,
               "File:FileSize": 283542,
@@ -922,39 +830,6 @@
         "pdf": true
       }
     },
-    "file:5f32fb77af5bc91bf97f4f7f46d520a28341217449d3435784e171f274185c4e": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "718148a5712c1fec7b50acc89eee2aa0.mime/extracted-1.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:65a1e83a2c052e128fa1e4bc2d0365b8bb2533945c14a10ae532aec371134a3d": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:65a1e83a2c052e128fa1e4bc2d0365b8bb2533945c14a10ae532aec371134a3d": {
       "detections": {},
       "directives": {},
@@ -975,7 +850,6 @@
               "theme/theme/_rels/themeManager.xml.rels",
               "_rels/.rels"
             ],
-            "extraction_error": null,
             "file_count": 5
           },
           "summary": "Archive Analysis: extracted 5 of 5 files: ([Content_Types].xml, theme/theme/theme1.xml, theme/theme/themeManager.xml, theme/theme/_rels/themeManager.xml.rels, _rels/.rels)",
@@ -983,13 +857,12 @@
         },
         "exif": {
           "details": {
-            "error": null,
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files/718148a5712c1fec7b50acc89eee2aa0.mime",
-              "File:FileAccessDate": "2026:11:11 08:44:55+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 08:44:55+00:00",
-              "File:FileModifyDate": "2026:11:11 08:44:55+00:00",
+              "File:FileAccessDate": "2026:11:16 14:53:10+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 14:53:10+00:00",
+              "File:FileModifyDate": "2026:11:16 14:53:10+00:00",
               "File:FileName": "extracted-1",
               "File:FilePermissions": 100666,
               "File:FileSize": 3339,
@@ -1432,6 +1305,39 @@
       },
       "tags": {}
     },
+    "file:8affd85fe4bbf2c1d54f2c4b088a20f2b1a4d3c58e5240fb5cdbd674687a6a51": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "718148a5712c1fec7b50acc89eee2aa0.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:5b677d297fb862c2d223973697479ee53a91d03073b14556f421b3d74f136b9d": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:8cd579f33b6bee18e2af4651192e21f802cc740eed38af9053ec690dcabf8efd": {
       "detections": {},
       "directives": {},
@@ -1489,25 +1395,81 @@
       },
       "tags": {}
     },
-    "file:995c5b400346563e48b3881d2d3cc3015f4b4faa21db9aed1556f05c1fe730e5": {
+    "file:907b1ad67a358e1822ed0a2decf839dba2c92109f6da35cd3b5f36596f740db9": {
       "detections": {},
-      "directives": {},
+      "directives": {
+        "extract_urls": true
+      },
       "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
+        "pdf_analyzer": true
       },
       "paths": {
-        "718148a5712c1fec7b50acc89eee2aa0.mime/extracted-12.activemime.exif/exiftool.out": {
-          "type=metadata.exif": true
+        "718148a5712c1fec7b50acc89eee2aa0.gs.pdf": {
+          "type=document.pdf": true,
+          "type=document.pdf.rendered": true
         }
       },
+      "redirection": "file:5b677d297fb862c2d223973697479ee53a91d03073b14556f421b3d74f136b9d",
       "relationships": {
-        "extracted_from file:d82f411152bcc9fdb41523528e5139cf3367650871462debbc17f2ac654d0b06": true
+        "extracted_from file:5b677d297fb862c2d223973697479ee53a91d03073b14556f421b3d74f136b9d": true
       },
       "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "f3f66917e4ab60137eb496658fa92530",
+            "sha1": "56c146faf7300c11352224f4d80e3a6f95bc3a0e",
+            "sha256": "907b1ad67a358e1822ed0a2decf839dba2c92109f6da35cd3b5f36596f740db9"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": true,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/pdf",
+            "type": "PDF document, version 1.7, 1 page(s)"
+          },
+          "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
+          "tags": {}
+        },
         "observable_detection": {
           "details": {
             "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "pdftotext": {
+          "details": {
+            "output_path": "ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977",
+            "stderr": "",
+            "stdout": ""
+          },
+          "summary": "PDF Text Analysis",
+          "tags": {}
+        },
+        "qrcode": {
+          "details": {
+            "extracted_text": null,
+            "inverted": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
           },
           "summary": null,
           "tags": {}
@@ -1520,7 +1482,9 @@
           "tags": {}
         }
       },
-      "tags": {}
+      "tags": {
+        "pdf": true
+      }
     },
     "file:be8d780401ec0b5ae04d6b5a00d8d5998e0d3bd6598d03e645427c7feb288eaf": {
       "detections": {},
@@ -1715,6 +1679,39 @@
       },
       "tags": {}
     },
+    "file:d28299ca3784c80d48808426d1f0a2f170a97a9096a44b43dfb4b02fadf3b6ba": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "718148a5712c1fec7b50acc89eee2aa0.mime/extracted-1.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:65a1e83a2c052e128fa1e4bc2d0365b8bb2533945c14a10ae532aec371134a3d": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:d2d8276ca63e307268dbf1bef2fbf45ba4c65c27494555a7742761c22984f1af": {
       "detections": {},
       "directives": {
@@ -1854,13 +1851,12 @@
       "results": {
         "exif": {
           "details": {
-            "error": null,
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files/718148a5712c1fec7b50acc89eee2aa0.mime",
-              "File:FileAccessDate": "2026:11:11 08:44:59+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 08:44:59+00:00",
-              "File:FileModifyDate": "2026:11:11 08:44:59+00:00",
+              "File:FileAccessDate": "2026:11:16 14:53:14+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 14:53:14+00:00",
+              "File:FileModifyDate": "2026:11:16 14:53:14+00:00",
               "File:FileName": "extracted-12.activemime",
               "File:FilePermissions": 100666,
               "File:FileSize": 9728,
@@ -2102,9 +2098,9 @@
           "type=document.pdf.text": true
         }
       },
-      "redirection": "file:3eb6584b37a652caf03574ccb8e6caafec19d7790b3fb3722cf0a6533d390b50",
+      "redirection": "file:907b1ad67a358e1822ed0a2decf839dba2c92109f6da35cd3b5f36596f740db9",
       "relationships": {
-        "extracted_from file:3eb6584b37a652caf03574ccb8e6caafec19d7790b3fb3722cf0a6533d390b50": true
+        "extracted_from file:907b1ad67a358e1822ed0a2decf839dba2c92109f6da35cd3b5f36596f740db9": true
       },
       "results": {
         "file_type": {
@@ -2308,7 +2304,6 @@
             "dispatch_state": "DONE",
             "gui_link": null,
             "query": "index=proxy hostname=\"example.com\"",
-            "query_error": null,
             "query_results": [
               {
                 "_time": "2026-10-30T14:02:11.000+00:00",
@@ -2348,7 +2343,6 @@
             "datetime_of_last_update": "2026-08-14 08:01:43+00:00",
             "domain_name": "EXAMPLE.COM",
             "emails": [],
-            "error": null,
             "ip_version": null,
             "lookup_protocol": "rdap",
             "name_servers": [
@@ -2357,6 +2351,7 @@
             ],
             "network_cidr": null,
             "network_name": null,
+            "not_found": null,
             "rdap_attempt_error": null,
             "rdap_data": {
               "copyright_notice": "",
@@ -2534,7 +2529,6 @@
             "dispatch_state": "DONE",
             "gui_link": null,
             "query": "index=proxy hostname=\"microsoft.com\"",
-            "query_error": null,
             "query_results": [
               {
                 "_time": "2026-10-30T14:02:11.000+00:00",
@@ -2574,12 +2568,12 @@
             "datetime_of_last_update": null,
             "domain_name": null,
             "emails": null,
-            "error": "rdap: Failed to make a GET request to https://rdap.verisign.com/com/v1/domain/microsoft.com: nothing recorded for GET https://rdap.verisign.com/com/v1/domain/microsoft.com; whois: no WHOIS in a replay",
             "ip_version": null,
             "lookup_protocol": null,
             "name_servers": null,
             "network_cidr": null,
             "network_name": null,
+            "not_found": null,
             "rdap_attempt_error": "Failed to make a GET request to https://rdap.verisign.com/com/v1/domain/microsoft.com: nothing recorded for GET https://rdap.verisign.com/com/v1/domain/microsoft.com",
             "rdap_data": null,
             "rdap_raw_json": null,
@@ -2633,7 +2627,6 @@
             "dispatch_state": "DONE",
             "gui_link": null,
             "query": "index=proxy hostname=\"web365metrics.com\"",
-            "query_error": null,
             "query_results": [
               {
                 "_time": "2026-10-30T14:02:11.000+00:00",
@@ -2673,12 +2666,12 @@
             "datetime_of_last_update": null,
             "domain_name": null,
             "emails": null,
-            "error": "rdap: Failed to make a GET request to https://rdap.verisign.com/com/v1/domain/web365metrics.com: nothing recorded for GET https://rdap.verisign.com/com/v1/domain/web365metrics.com; whois: no WHOIS in a replay",
             "ip_version": null,
             "lookup_protocol": null,
             "name_servers": null,
             "network_cidr": null,
             "network_name": null,
+            "not_found": null,
             "rdap_attempt_error": "Failed to make a GET request to https://rdap.verisign.com/com/v1/domain/web365metrics.com: nothing recorded for GET https://rdap.verisign.com/com/v1/domain/web365metrics.com",
             "rdap_data": null,
             "rdap_raw_json": null,
@@ -2971,12 +2964,12 @@
       },
       "tags": {}
     },
-    "md5:f5de6ef88515716ff277b025047ab561": {
+    "md5:f3f66917e4ab60137eb496658fa92530": {
       "detections": {},
       "directives": {},
       "excluded_analysis": {},
       "relationships": {
-        "is_hash_of file:3eb6584b37a652caf03574ccb8e6caafec19d7790b3fb3722cf0a6533d390b50": true
+        "is_hash_of file:907b1ad67a358e1822ed0a2decf839dba2c92109f6da35cd3b5f36596f740db9": true
       },
       "results": {
         "observable_detection": {
@@ -3036,31 +3029,6 @@
       },
       "tags": {}
     },
-    "sha256:3eb6584b37a652caf03574ccb8e6caafec19d7790b3fb3722cf0a6533d390b50": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {},
-      "relationships": {
-        "is_hash_of file:3eb6584b37a652caf03574ccb8e6caafec19d7790b3fb3722cf0a6533d390b50": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "sha256:5b677d297fb862c2d223973697479ee53a91d03073b14556f421b3d74f136b9d": {
       "detections": {},
       "directives": {},
@@ -3092,6 +3060,31 @@
       "excluded_analysis": {},
       "relationships": {
         "is_hash_of file:65a1e83a2c052e128fa1e4bc2d0365b8bb2533945c14a10ae532aec371134a3d": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "sha256:907b1ad67a358e1822ed0a2decf839dba2c92109f6da35cd3b5f36596f740db9": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {
+        "is_hash_of file:907b1ad67a358e1822ed0a2decf839dba2c92109f6da35cd3b5f36596f740db9": true
       },
       "results": {
         "observable_detection": {

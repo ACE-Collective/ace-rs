@@ -210,39 +210,6 @@
       },
       "tags": {}
     },
-    "file:0169d891f8f248b2b0edc5c1cc04e8ff004440dc8cde76ffb2feb90db429dadf": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "receipt.doc.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:a363fb24edce3162326238d0152b99845d0dd0be53191183aad2ceba2d168a2a": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:057e3d39cd6e6b882c9cebfb56920db712f49cd628b35bf58e1fd544c0bea20b": {
       "detections": {},
       "directives": {
@@ -294,6 +261,39 @@
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:096af546304009630f37b369e0cb626c8f290b8b7417aa62a74bd76fb65d3b6d": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "receipt.doc.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:a363fb24edce3162326238d0152b99845d0dd0be53191183aad2ceba2d168a2a": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
           },
           "summary": null,
           "tags": {}
@@ -388,7 +388,6 @@
               "theme/theme/_rels/themeManager.xml.rels",
               "_rels/.rels"
             ],
-            "extraction_error": null,
             "file_count": 5
           },
           "summary": "Archive Analysis: extracted 5 of 5 files: ([Content_Types].xml, theme/theme/theme1.xml, theme/theme/themeManager.xml, theme/theme/_rels/themeManager.xml.rels, _rels/.rels)",
@@ -1229,12 +1228,16 @@
                 "highlights": [
                   [
                     "receipt.doc"
+                  ],
+                  [
+                    "The document is attached."
                   ]
                 ],
                 "reasons": [
-                  "found in attachment receipt.doc"
+                  "found in attachment receipt.doc",
+                  "the email refers to its attachment: 'The document is attached.'"
                 ],
-                "score": 15,
+                "score": 35,
                 "sources": [
                   "attachment"
                 ],
@@ -1246,12 +1249,16 @@
                 "highlights": [
                   [
                     "receipt.doc"
+                  ],
+                  [
+                    "The document is attached."
                   ]
                 ],
                 "reasons": [
-                  "found in attachment receipt.doc"
+                  "found in attachment receipt.doc",
+                  "the email refers to its attachment: 'The document is attached.'"
                 ],
-                "score": 15,
+                "score": 35,
                 "sources": [
                   "attachment"
                 ],
@@ -1263,12 +1270,16 @@
                 "highlights": [
                   [
                     "receipt.doc"
+                  ],
+                  [
+                    "The document is attached."
                   ]
                 ],
                 "reasons": [
-                  "found in attachment receipt.doc"
+                  "found in attachment receipt.doc",
+                  "the email refers to its attachment: 'The document is attached.'"
                 ],
-                "score": 15,
+                "score": 35,
                 "sources": [
                   "attachment"
                 ],
@@ -1282,12 +1293,16 @@
               "highlights": [
                 [
                   "receipt.doc"
+                ],
+                [
+                  "The document is attached."
                 ]
               ],
               "reasons": [
-                "found in attachment receipt.doc"
+                "found in attachment receipt.doc",
+                "the email refers to its attachment: 'The document is attached.'"
               ],
-              "score": 15,
+              "score": 35,
               "sources": [
                 "attachment"
               ],
@@ -1295,7 +1310,7 @@
             },
             "subject": "the attached file"
           },
-          "summary": "Lure URL Analysis: https://lMm.RE/nJg/fTP~P~P~P~P~P~PWLpfNDlYZohEZHJYUY^EZ3mQvFXj/i32WLLvMDgDEJZLmzUoQDEDEOs (found in attachment receipt.doc)",
+          "summary": "Lure URL Analysis: https://lMm.RE/nJg/fTP~P~P~P~P~P~PWLpfNDlYZohEZHJYUY^EZ3mQvFXj/i32WLLvMDgDEJZLmzUoQDEDEOs (found in attachment receipt.doc; the email refers to its attachment: 'The document is attached.')",
           "tags": {}
         },
         "observable_detection": {
@@ -1351,11 +1366,11 @@
                 },
                 "namespace": "<work>/signatures/observable_export",
                 "rule": "detect_fqdn",
-                "rule_content_hash": "ccb16da16578f5311ba0f4e3b8abf90cbdfcd67d540be95131fe7ab048bad5b4",
+                "rule_content_hash": "c1d34c6526603e50d782b48a790e9ec52bcfd98b9b132de9bc790fa9b22f7442",
                 "rule_source": {
                   "file": "fqdn.yar",
                   "start_line": 1,
-                  "text": "rule detect_fqdn : detect_fqdn\n{\n    meta:\n        author = \"ACE Automation\"\n        description = \"ACE Observable Export\"\n        tlp = \"amber\"\n        date = \"11/15/2026\"\n        scope = \"['detection']\"\n        platform = \"ACE\"\n    strings:\n          $obsd_1 = /(^|[^a-zA-Z0-9_\\-])corp\\.example([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase\n          $obsd_wide_1 = /(^|([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00]))c\\x00o\\x00r\\x00p\\x00\\.\\x00e\\x00x\\x00a\\x00m\\x00p\\x00l\\x00e\\x00(([^a-zA-Z0-9_\\-.]\\x00|[\\x00-\\xff][^\\x00])|\\.\\x00([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00])|(\\.\\x00)?$)/ nocase\n\n    condition:\n        any of ($obsd_*)\n}\n"
+                  "text": "rule detect_fqdn : detect_fqdn\n{\n    meta:\n        author = \"ACE Automation\"\n        description = \"ACE Observable Export\"\n        tlp = \"amber\"\n        date = \"11/16/2026\"\n        scope = \"['detection']\"\n        platform = \"ACE\"\n    strings:\n          $obsd_1 = /(^|[^a-zA-Z0-9_\\-])corp\\.example([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase\n          $obsd_wide_1 = /(^|([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00]))c\\x00o\\x00r\\x00p\\x00\\.\\x00e\\x00x\\x00a\\x00m\\x00p\\x00l\\x00e\\x00(([^a-zA-Z0-9_\\-.]\\x00|[\\x00-\\xff][^\\x00])|\\.\\x00([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00])|(\\.\\x00)?$)/ nocase\n\n    condition:\n        any of ($obsd_*)\n}\n"
                 },
                 "string_patterns": {
                   "$obsd_1": "/(^|[^a-zA-Z0-9_\\-])corp\\.example([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase"
@@ -1625,11 +1640,11 @@
                 },
                 "namespace": "<work>/signatures/observable_export",
                 "rule": "detect_fqdn",
-                "rule_content_hash": "ccb16da16578f5311ba0f4e3b8abf90cbdfcd67d540be95131fe7ab048bad5b4",
+                "rule_content_hash": "c1d34c6526603e50d782b48a790e9ec52bcfd98b9b132de9bc790fa9b22f7442",
                 "rule_source": {
                   "file": "fqdn.yar",
                   "start_line": 1,
-                  "text": "rule detect_fqdn : detect_fqdn\n{\n    meta:\n        author = \"ACE Automation\"\n        description = \"ACE Observable Export\"\n        tlp = \"amber\"\n        date = \"11/15/2026\"\n        scope = \"['detection']\"\n        platform = \"ACE\"\n    strings:\n          $obsd_1 = /(^|[^a-zA-Z0-9_\\-])corp\\.example([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase\n          $obsd_wide_1 = /(^|([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00]))c\\x00o\\x00r\\x00p\\x00\\.\\x00e\\x00x\\x00a\\x00m\\x00p\\x00l\\x00e\\x00(([^a-zA-Z0-9_\\-.]\\x00|[\\x00-\\xff][^\\x00])|\\.\\x00([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00])|(\\.\\x00)?$)/ nocase\n\n    condition:\n        any of ($obsd_*)\n}\n"
+                  "text": "rule detect_fqdn : detect_fqdn\n{\n    meta:\n        author = \"ACE Automation\"\n        description = \"ACE Observable Export\"\n        tlp = \"amber\"\n        date = \"11/16/2026\"\n        scope = \"['detection']\"\n        platform = \"ACE\"\n    strings:\n          $obsd_1 = /(^|[^a-zA-Z0-9_\\-])corp\\.example([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase\n          $obsd_wide_1 = /(^|([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00]))c\\x00o\\x00r\\x00p\\x00\\.\\x00e\\x00x\\x00a\\x00m\\x00p\\x00l\\x00e\\x00(([^a-zA-Z0-9_\\-.]\\x00|[\\x00-\\xff][^\\x00])|\\.\\x00([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00])|(\\.\\x00)?$)/ nocase\n\n    condition:\n        any of ($obsd_*)\n}\n"
                 },
                 "string_patterns": {
                   "$obsd_1": "/(^|[^a-zA-Z0-9_\\-])corp\\.example([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase"
@@ -2419,11 +2434,11 @@
                 },
                 "namespace": "<work>/signatures/observable_export",
                 "rule": "detect_fqdn",
-                "rule_content_hash": "ccb16da16578f5311ba0f4e3b8abf90cbdfcd67d540be95131fe7ab048bad5b4",
+                "rule_content_hash": "c1d34c6526603e50d782b48a790e9ec52bcfd98b9b132de9bc790fa9b22f7442",
                 "rule_source": {
                   "file": "fqdn.yar",
                   "start_line": 1,
-                  "text": "rule detect_fqdn : detect_fqdn\n{\n    meta:\n        author = \"ACE Automation\"\n        description = \"ACE Observable Export\"\n        tlp = \"amber\"\n        date = \"11/15/2026\"\n        scope = \"['detection']\"\n        platform = \"ACE\"\n    strings:\n          $obsd_1 = /(^|[^a-zA-Z0-9_\\-])corp\\.example([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase\n          $obsd_wide_1 = /(^|([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00]))c\\x00o\\x00r\\x00p\\x00\\.\\x00e\\x00x\\x00a\\x00m\\x00p\\x00l\\x00e\\x00(([^a-zA-Z0-9_\\-.]\\x00|[\\x00-\\xff][^\\x00])|\\.\\x00([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00])|(\\.\\x00)?$)/ nocase\n\n    condition:\n        any of ($obsd_*)\n}\n"
+                  "text": "rule detect_fqdn : detect_fqdn\n{\n    meta:\n        author = \"ACE Automation\"\n        description = \"ACE Observable Export\"\n        tlp = \"amber\"\n        date = \"11/16/2026\"\n        scope = \"['detection']\"\n        platform = \"ACE\"\n    strings:\n          $obsd_1 = /(^|[^a-zA-Z0-9_\\-])corp\\.example([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase\n          $obsd_wide_1 = /(^|([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00]))c\\x00o\\x00r\\x00p\\x00\\.\\x00e\\x00x\\x00a\\x00m\\x00p\\x00l\\x00e\\x00(([^a-zA-Z0-9_\\-.]\\x00|[\\x00-\\xff][^\\x00])|\\.\\x00([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00])|(\\.\\x00)?$)/ nocase\n\n    condition:\n        any of ($obsd_*)\n}\n"
                 },
                 "string_patterns": {
                   "$obsd_1": "/(^|[^a-zA-Z0-9_\\-])corp\\.example([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase"
@@ -2549,13 +2564,12 @@
         },
         "exif": {
           "details": {
-            "error": null,
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:15 10:48:34+00:00",
-              "File:FileInodeChangeDate": "2026:11:15 10:48:34+00:00",
-              "File:FileModifyDate": "2026:11:15 10:48:34+00:00",
+              "File:FileAccessDate": "2026:11:16 13:45:44+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 13:45:44+00:00",
+              "File:FileModifyDate": "2026:11:16 13:45:44+00:00",
               "File:FileName": "receipt.doc",
               "File:FilePermissions": 100664,
               "File:FileSize": 219648,
@@ -4070,7 +4084,6 @@
             "dispatch_state": "DONE",
             "gui_link": null,
             "query": "index=proxy hostname=\"corp.example\"",
-            "query_error": null,
             "query_results": [
               {
                 "_time": "2026-10-30T14:02:11.000+00:00",
@@ -4110,12 +4123,12 @@
             "datetime_of_last_update": null,
             "domain_name": null,
             "emails": null,
-            "error": "rdap: no RDAP service for TLD: TLD \"example\" has no known RDAP endpoint and is unsupported. It may be supported by overrides, try using whoisit.bootstrap(overrides=True); whois: no WHOIS in a replay",
             "ip_version": null,
             "lookup_protocol": null,
             "name_servers": null,
             "network_cidr": null,
             "network_name": null,
+            "not_found": null,
             "rdap_attempt_error": "no RDAP service for TLD: TLD \"example\" has no known RDAP endpoint and is unsupported. It may be supported by overrides, try using whoisit.bootstrap(overrides=True)",
             "rdap_data": null,
             "rdap_raw_json": null,
@@ -4175,7 +4188,6 @@
             "dispatch_state": "DONE",
             "gui_link": null,
             "query": "index=proxy hostname=\"example.com\"",
-            "query_error": null,
             "query_results": [
               {
                 "_time": "2026-10-30T14:02:11.000+00:00",
@@ -4215,7 +4227,6 @@
             "datetime_of_last_update": "2026-08-14 08:01:43+00:00",
             "domain_name": "EXAMPLE.COM",
             "emails": [],
-            "error": null,
             "ip_version": null,
             "lookup_protocol": "rdap",
             "name_servers": [
@@ -4224,6 +4235,7 @@
             ],
             "network_cidr": null,
             "network_name": null,
+            "not_found": null,
             "rdap_attempt_error": null,
             "rdap_data": {
               "copyright_notice": "",
@@ -4401,7 +4413,6 @@
             "dispatch_state": "DONE",
             "gui_link": null,
             "query": "index=proxy hostname=\"lmm.re\"",
-            "query_error": null,
             "query_results": [
               {
                 "_time": "2026-10-30T14:02:11.000+00:00",
@@ -4441,12 +4452,12 @@
             "datetime_of_last_update": null,
             "domain_name": null,
             "emails": null,
-            "error": "rdap: Failed to make a GET request to https://rdap.nic.re/domain/lmm.re: nothing recorded for GET https://rdap.nic.re/domain/lmm.re; whois: no WHOIS in a replay",
             "ip_version": null,
             "lookup_protocol": null,
             "name_servers": null,
             "network_cidr": null,
             "network_name": null,
+            "not_found": null,
             "rdap_attempt_error": "Failed to make a GET request to https://rdap.nic.re/domain/lmm.re: nothing recorded for GET https://rdap.nic.re/domain/lmm.re",
             "rdap_data": null,
             "rdap_raw_json": null,
@@ -4500,7 +4511,6 @@
             "dispatch_state": "DONE",
             "gui_link": null,
             "query": "index=proxy hostname=\"mailer.corp.example\"",
-            "query_error": null,
             "query_results": [
               {
                 "_time": "2026-10-30T14:02:11.000+00:00",
@@ -4540,12 +4550,12 @@
             "datetime_of_last_update": null,
             "domain_name": null,
             "emails": null,
-            "error": "rdap: no RDAP service for TLD: TLD \"example\" has no known RDAP endpoint and is unsupported. It may be supported by overrides, try using whoisit.bootstrap(overrides=True); whois: no WHOIS in a replay",
             "ip_version": null,
             "lookup_protocol": null,
             "name_servers": null,
             "network_cidr": null,
             "network_name": null,
+            "not_found": null,
             "rdap_attempt_error": "no RDAP service for TLD: TLD \"example\" has no known RDAP endpoint and is unsupported. It may be supported by overrides, try using whoisit.bootstrap(overrides=True)",
             "rdap_data": null,
             "rdap_raw_json": null,
@@ -4597,7 +4607,6 @@
             "dispatch_state": "DONE",
             "gui_link": null,
             "query": "index=proxy hostname=\"v9wq.km\"",
-            "query_error": null,
             "query_results": [
               {
                 "_time": "2026-10-30T14:02:11.000+00:00",
@@ -4637,12 +4646,12 @@
             "datetime_of_last_update": null,
             "domain_name": null,
             "emails": null,
-            "error": "rdap: no RDAP service for TLD: TLD \"km\" has no known RDAP endpoint and is unsupported. It may be supported by overrides, try using whoisit.bootstrap(overrides=True); whois: no WHOIS in a replay",
             "ip_version": null,
             "lookup_protocol": null,
             "name_servers": null,
             "network_cidr": null,
             "network_name": null,
+            "not_found": null,
             "rdap_attempt_error": "no RDAP service for TLD: TLD \"km\" has no known RDAP endpoint and is unsupported. It may be supported by overrides, try using whoisit.bootstrap(overrides=True)",
             "rdap_data": null,
             "rdap_raw_json": null,

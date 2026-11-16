@@ -1,7 +1,85 @@
 {
   "form": 1,
   "observables": {
-    "file:00128099a0eb8f9a2f0245f4c07f22ca258adf63f5510b2b61bdd48d93591032": {
+    "file:4bcb59f7ca66c88ab96a6dbb2069a2822d920d4fef4c176690d99db49ecba517": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "dropper.js": {
+          "type=email.attachment": true,
+          "type=script.javascript": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "fdc7f4ee86fe9b7eafff4890e51a528f",
+            "sha1": "a91ce9082c1330fe297342dff32bbe665e608a01",
+            "sha256": "4bcb59f7ca66c88ab96a6dbb2069a2822d920d4fef4c176690d99db49ecba517"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text"
+          },
+          "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        },
+        "javascript_deobfuscation": {
+          "details": {
+            "dom_snapshot": false,
+            "dom_snapshot_source": null,
+            "error_type": "runtime",
+            "event_count": 0,
+            "exit_code": 0,
+            "extracted_files": [
+              "deobfuscated-dropper.js"
+            ],
+            "secondary_script_count": 0,
+            "stderr": "",
+            "stdout": "{\"status\":\"error_during_run\",\"event_count\":0,\"secondary_script_count\":0,\"error\":\"evalmachine.<anonymous>:1\\nvar s = new ActiveXObject(\\\"WScript.Shell\\\");\\n        ^\\n\\nReferenceError: ActiveXObject is not defined\\n    at evalmachine.<anonymous>:1:9\\n    at Script.runInContext (node:vm:150:12)\\n    at file:///opt/app/harness.js:914:12\",\"error_type\":\"runtime\",\"webcrack_status\":\"applied (cosmetic only)\",\"webcrack_error\":null,\"blob_files\":[],\"dom_snapshot\":false}",
+            "webcrack_error": null,
+            "webcrack_status": "applied (cosmetic only)"
+          },
+          "summary": "JavaScript Deobfuscation: failed: evalmachine.<anonymous>:1\nvar s = new ActiveXObject(\"WScript.Shell\");\n        ^\n\nReferenceError: ActiveXObject is not defined\n    at evalmachine.<anonymous>:1:9\n    at Script.runInContext (node:vm:150:12)\n    at file:///opt/app/harness.js:914:12",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {
+        "js": true
+      }
+    },
+    "file:833f28f1f8210483c2d184329632facf5bbdcfe05d4c770e7c37d29a8defc826": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -61,85 +139,6 @@
         }
       },
       "tags": {}
-    },
-    "file:4bcb59f7ca66c88ab96a6dbb2069a2822d920d4fef4c176690d99db49ecba517": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {},
-      "paths": {
-        "dropper.js": {
-          "type=email.attachment": true,
-          "type=script.javascript": true
-        }
-      },
-      "relationships": {},
-      "results": {
-        "file_hash_analyzer": {
-          "details": {
-            "md5": "fdc7f4ee86fe9b7eafff4890e51a528f",
-            "sha1": "a91ce9082c1330fe297342dff32bbe665e608a01",
-            "sha256": "4bcb59f7ca66c88ab96a6dbb2069a2822d920d4fef4c176690d99db49ecba517"
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "file_type": {
-          "details": {
-            "is_email_file": false,
-            "is_jar_file": false,
-            "is_lnk_file": false,
-            "is_office_document": false,
-            "is_office_ext": false,
-            "is_ole_file": false,
-            "is_pdf_file": false,
-            "is_pe_file": false,
-            "is_rtf_file": false,
-            "is_x509": false,
-            "is_zip_file": false,
-            "mime": "text/plain",
-            "type": "ASCII text"
-          },
-          "summary": "File Type Analysis: ASCII text (text/plain)",
-          "tags": {}
-        },
-        "javascript_deobfuscation": {
-          "details": {
-            "dom_snapshot": false,
-            "dom_snapshot_source": null,
-            "error": "evalmachine.<anonymous>:1\nvar s = new ActiveXObject(\"WScript.Shell\");\n        ^\n\nReferenceError: ActiveXObject is not defined\n    at evalmachine.<anonymous>:1:9\n    at Script.runInContext (node:vm:150:12)\n    at file:///opt/app/harness.js:914:12",
-            "error_type": "runtime",
-            "event_count": 0,
-            "exit_code": 0,
-            "extracted_files": [
-              "deobfuscated-dropper.js"
-            ],
-            "secondary_script_count": 0,
-            "stderr": "",
-            "stdout": "{\"status\":\"error_during_run\",\"event_count\":0,\"secondary_script_count\":0,\"error\":\"evalmachine.<anonymous>:1\\nvar s = new ActiveXObject(\\\"WScript.Shell\\\");\\n        ^\\n\\nReferenceError: ActiveXObject is not defined\\n    at evalmachine.<anonymous>:1:9\\n    at Script.runInContext (node:vm:150:12)\\n    at file:///opt/app/harness.js:914:12\",\"error_type\":\"runtime\",\"webcrack_status\":\"applied (cosmetic only)\",\"webcrack_error\":null,\"blob_files\":[],\"dom_snapshot\":false}",
-            "webcrack_error": null,
-            "webcrack_status": "applied (cosmetic only)"
-          },
-          "summary": "JavaScript Deobfuscation: failed: evalmachine.<anonymous>:1\nvar s = new ActiveXObject(\"WScript.Shell\");\n        ^\n\nReferenceError: ActiveXObject is not defined\n    at evalmachine.<anonymous>:1:9\n    at Script.runInContext (node:vm:150:12)\n    at file:///opt/app/harness.js:914:12",
-          "tags": {}
-        },
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {
-        "js": true
-      }
     },
     "md5:fdc7f4ee86fe9b7eafff4890e51a528f": {
       "detections": {},

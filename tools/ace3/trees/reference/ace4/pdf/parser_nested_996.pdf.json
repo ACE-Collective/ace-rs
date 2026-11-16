@@ -1,7 +1,40 @@
 {
   "form": 1,
   "observables": {
-    "file:6dcba105bdc0d409af8d297edbb8c7c4fdf9b31bab6fdf39d59223e19ac8f64b": {
+    "file:04e5cacea42ffeaf2398d9147c9ac7d07801f338fcf52d45ba69bc908f8cfc52": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "parser_nested_996.pdf.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:cf8ad610c8459c522337bece57d2bffa15499e1cc04ef6b1995f7e9e566c3461": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:2ca653de5a3e548ff9f1e6451fbf882ba0e31e093a9c5705ab2da551f0aca84e": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -157,14 +190,13 @@
       "results": {
         "exif": {
           "details": {
-            "error": null,
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "ExifTool:Warning": "Invalid xref table",
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 09:37:22+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 09:37:22+00:00",
-              "File:FileModifyDate": "2026:11:07 04:47:50+00:00",
+              "File:FileAccessDate": "2026:11:16 15:05:51+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 15:05:51+00:00",
+              "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "parser_nested_996.pdf",
               "File:FilePermissions": 100644,
               "File:FileSize": 7005,
@@ -252,9 +284,9 @@
           "type=document.pdf.text": true
         }
       },
-      "redirection": "file:6dcba105bdc0d409af8d297edbb8c7c4fdf9b31bab6fdf39d59223e19ac8f64b",
+      "redirection": "file:2ca653de5a3e548ff9f1e6451fbf882ba0e31e093a9c5705ab2da551f0aca84e",
       "relationships": {
-        "extracted_from file:6dcba105bdc0d409af8d297edbb8c7c4fdf9b31bab6fdf39d59223e19ac8f64b": true
+        "extracted_from file:2ca653de5a3e548ff9f1e6451fbf882ba0e31e093a9c5705ab2da551f0aca84e": true
       },
       "results": {
         "file_type": {
@@ -276,39 +308,6 @@
           "summary": "File Type Analysis: very short file (no magic) (application/octet-stream)",
           "tags": {}
         },
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
-    "file:fe13d23c8b1fc7e66e04e0ced245db6e94dc527ce5aa25414d96d1c42861a8a3": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "parser_nested_996.pdf.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:cf8ad610c8459c522337bece57d2bffa15499e1cc04ef6b1995f7e9e566c3461": true
-      },
-      "results": {
         "observable_detection": {
           "details": {
             "for_detection": false

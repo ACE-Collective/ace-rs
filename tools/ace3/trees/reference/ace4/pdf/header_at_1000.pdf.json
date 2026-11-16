@@ -133,7 +133,7 @@
       },
       "tags": {}
     },
-    "file:2698b10478ca4989cfe72af1b2e7bcfd721d205edcce8988724b772b40afe332": {
+    "file:358967cbd3ef4a64ae3785003fe17ee3efd502a74cbdf863b508826bbbe22fe5": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -215,7 +215,7 @@
         "pdf": true
       }
     },
-    "file:4146e2745c2edac940e0d123e369c64324c6ce55858905d802465ae59c7d8e76": {
+    "file:43f33cef68f2b1eefaf5b0a273918f373bdef07b4154ab561826d816621506f6": {
       "detections": {},
       "directives": {},
       "excluded_analysis": {
@@ -347,13 +347,12 @@
       "results": {
         "exif": {
           "details": {
-            "error": null,
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 09:34:53+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 09:34:53+00:00",
-              "File:FileModifyDate": "2026:11:07 04:47:50+00:00",
+              "File:FileAccessDate": "2026:11:16 15:01:12+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 15:01:12+00:00",
+              "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "header_at_1000.pdf",
               "File:FilePermissions": 100644,
               "File:FileSize": 2176,
@@ -411,6 +410,56 @@
           "summary": null,
           "tags": {}
         },
+        "pdf_link_text": {
+          "details": {
+            "links": [
+              {
+                "line": null,
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/literal"
+              },
+              {
+                "line": null,
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/hex"
+              },
+              {
+                "line": null,
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/ü"
+              },
+              {
+                "line": null,
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/•bullet"
+              },
+              {
+                "line": null,
+                "page": 1,
+                "text": null,
+                "url": "/https:"
+              },
+              {
+                "line": null,
+                "page": 1,
+                "text": null,
+                "url": "12"
+              },
+              {
+                "line": null,
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/indirect"
+              }
+            ]
+          },
+          "summary": "PDF Link Text Analysis: 7 links, 0 with text",
+          "tags": {}
+        },
         "pdftotext": {
           "details": {
             "output_path": "ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977",
@@ -446,9 +495,9 @@
           "type=document.pdf.text": true
         }
       },
-      "redirection": "file:2698b10478ca4989cfe72af1b2e7bcfd721d205edcce8988724b772b40afe332",
+      "redirection": "file:358967cbd3ef4a64ae3785003fe17ee3efd502a74cbdf863b508826bbbe22fe5",
       "relationships": {
-        "extracted_from file:2698b10478ca4989cfe72af1b2e7bcfd721d205edcce8988724b772b40afe332": true,
+        "extracted_from file:358967cbd3ef4a64ae3785003fe17ee3efd502a74cbdf863b508826bbbe22fe5": true,
         "extracted_from file:c775e87edfb8f58488614b35c659ee403e1c56786b45067eb8a985d93e0b5a60": true
       },
       "results": {
@@ -525,7 +574,6 @@
             "dispatch_state": "DONE",
             "gui_link": null,
             "query": "index=proxy hostname=\"example.com\"",
-            "query_error": null,
             "query_results": [
               {
                 "_time": "2026-10-30T14:02:11.000+00:00",
@@ -565,7 +613,6 @@
             "datetime_of_last_update": "2026-08-14 08:01:43+00:00",
             "domain_name": "EXAMPLE.COM",
             "emails": [],
-            "error": null,
             "ip_version": null,
             "lookup_protocol": "rdap",
             "name_servers": [
@@ -574,6 +621,7 @@
             ],
             "network_cidr": null,
             "network_name": null,
+            "not_found": null,
             "rdap_attempt_error": null,
             "rdap_data": {
               "copyright_notice": "",

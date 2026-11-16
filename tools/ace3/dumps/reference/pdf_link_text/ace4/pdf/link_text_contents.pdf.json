@@ -1,0 +1,103 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "37a765bf",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "PDFLinkTextAnalysis",
+      "details": {
+        "links": [
+          {
+            "line": null,
+            "page": 1,
+            "text": "/Name",
+            "url": "https://example.com/name"
+          },
+          {
+            "line": null,
+            "page": 1,
+            "text": "0",
+            "url": "https://example.com/integer"
+          },
+          {
+            "line": null,
+            "page": 1,
+            "text": "1.50",
+            "url": "https://example.com/real"
+          },
+          {
+            "line": null,
+            "page": 1,
+            "text": "False",
+            "url": "https://example.com/boolean"
+          },
+          {
+            "line": null,
+            "page": 1,
+            "text": "pikepdf.Array([ \"a\", \"b\" ])",
+            "url": "https://example.com/array"
+          },
+          {
+            "line": null,
+            "page": 1,
+            "text": null,
+            "url": "https://example.com/empty"
+          },
+          {
+            "line": null,
+            "page": 1,
+            "text": "Open",
+            "url": "https://example.com/utf16"
+          },
+          {
+            "line": null,
+            "page": 1,
+            "text": "long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long ",
+            "url": "https://example.com/long"
+          },
+          {
+            "line": null,
+            "page": 1,
+            "text": "spaces around the URL",
+            "url": " https://example.com/spaced "
+          }
+        ]
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.pdf:PDFLinkTextAnalysis",
+      "observables": [],
+      "summary": "PDF Link Text Analysis: 9 links, 8 with text",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace4/pdf/link_text_contents.pdf",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "link_text_contents.pdf",
+      "size": 1948,
+      "type": "file",
+      "value": "fe47ec9106299ae802ffb7960dfc40ad7b4eb5d9df9f840c7466690dc48cb5a8"
+    }
+  },
+  "module": "pdf_link_text",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "link_text_contents.pdf",
+    "relationships": [],
+    "size": 1948,
+    "tags": [],
+    "type": "file",
+    "value": "fe47ec9106299ae802ffb7960dfc40ad7b4eb5d9df9f840c7466690dc48cb5a8",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

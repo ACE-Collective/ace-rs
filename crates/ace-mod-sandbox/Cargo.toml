@@ -29,6 +29,8 @@ spellbook = "0.4.2"
 tracing = "0.1.44"
 
 [dev-dependencies]
+# pdf_link_text, the PDF crate's module that runs a tool, joins this crate's reference test
+ace-mod-pdf = { path = "../ace-mod-pdf" }
 ace-testkit = { path = "../ace-testkit" }
 tempfile = "3.27.0"
 serde_json = "1.0.154"

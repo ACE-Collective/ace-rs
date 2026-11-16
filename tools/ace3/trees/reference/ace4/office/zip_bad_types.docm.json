@@ -152,12 +152,11 @@
       "results": {
         "exif": {
           "details": {
-            "error": null,
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files/zip_bad_types.docm.extracted/word",
-              "File:FileAccessDate": "2026:11:11 09:16:00+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 09:16:00+00:00",
+              "File:FileAccessDate": "2026:11:16 14:16:21+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 14:16:20+00:00",
               "File:FileModifyDate": "2026:01:01 00:00:00+00:00",
               "File:FileName": "vbaProject.bin",
               "File:FilePermissions": 100664,
@@ -408,7 +407,6 @@
               "word/vbaProject.bin",
               "_rels/.rels"
             ],
-            "extraction_error": null,
             "file_count": 3
           },
           "summary": "Archive Analysis: extracted 3 of 3 files: ([Content_Types].xml, word/vbaProject.bin, _rels/.rels)",
@@ -416,13 +414,12 @@
         },
         "exif": {
           "details": {
-            "error": null,
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 09:15:59+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 09:15:59+00:00",
-              "File:FileModifyDate": "2026:11:07 15:11:53+00:00",
+              "File:FileAccessDate": "2026:11:16 14:16:19+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 14:16:19+00:00",
+              "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "zip_bad_types.docm",
               "File:FilePermissions": 100644,
               "File:FileSize": 11164,
@@ -686,7 +683,7 @@
       },
       "tags": {}
     },
-    "file:a2a73942e02674df1b8e2d5353541cfd8761367902c1e41bdd46f0ffa1471a5e": {
+    "file:883eedd664694830c33d6778ca7a653d2d8f8a309c0ec6709ed7e4bf917e68aa": {
       "detections": {},
       "directives": {},
       "excluded_analysis": {
@@ -694,12 +691,12 @@
         "file_type": true
       },
       "paths": {
-        "zip_bad_types.docm.exif/exiftool.out": {
+        "zip_bad_types.docm.extracted/word/vbaProject.bin.exif/exiftool.out": {
           "type=metadata.exif": true
         }
       },
       "relationships": {
-        "extracted_from file:537160beef312d6a731b54d143fd5af4bfad45f5309622a6faa9685484285ac0": true
+        "extracted_from file:170b804293599496c29d816cfe408adc5a99e767eb930b0c0cf9e7db62436abe": true
       },
       "results": {
         "observable_detection": {
@@ -719,7 +716,7 @@
       },
       "tags": {}
     },
-    "file:c918940fe13ec7d0df4ecbe428d4164b6be00494bc433dc12110299fa1e1a9a7": {
+    "file:baa4bcf7a6d5bb4757df01428bd204a81e9f920350a917d7a054dc56ca1ee2a0": {
       "detections": {},
       "directives": {},
       "excluded_analysis": {
@@ -727,12 +724,12 @@
         "file_type": true
       },
       "paths": {
-        "zip_bad_types.docm.extracted/word/vbaProject.bin.exif/exiftool.out": {
+        "zip_bad_types.docm.exif/exiftool.out": {
           "type=metadata.exif": true
         }
       },
       "relationships": {
-        "extracted_from file:170b804293599496c29d816cfe408adc5a99e767eb930b0c0cf9e7db62436abe": true
+        "extracted_from file:537160beef312d6a731b54d143fd5af4bfad45f5309622a6faa9685484285ac0": true
       },
       "results": {
         "observable_detection": {

@@ -110,7 +110,6 @@
           "details": {
             "dom_snapshot": true,
             "dom_snapshot_source": null,
-            "error": "evalmachine.<anonymous>:1\nstartTheKitNow();\n^\n\nReferenceError: startTheKitNow is not defined\n    at evalmachine.<anonymous>:1:1\n    at Script.runInContext (node:vm:150:12)\n    at file:///opt/app/harness.js:914:12",
             "error_type": "runtime",
             "event_count": 0,
             "exit_code": 0,
@@ -145,7 +144,7 @@
         "js": true
       }
     },
-    "file:0ac5765c77c9fa2fa892044d624337e1db6402dead076a901de982ec3e24a471": {
+    "file:09b272813e0b0b2d557b8d0295153ec3654168622f8c2f5816e1486f71bdef01": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -154,12 +153,79 @@
         "javascript_deobfuscation": true
       },
       "paths": {
-        "deobfuscated-scripts_js_inline_2_49db13ae.js": {
+        "deobfuscated-scripts_js_event_onerror_2_3e98d68f.js": {
           "type=script.javascript": true
         }
       },
       "relationships": {
-        "extracted_from file:49db13aefad48c0d8a569c59ff5cc0d51038afbecb4738df6269420a974170de": true
+        "extracted_from file:3e98d68fb8aba62096acae4f784c316b095b1c33d5f2dbf5eac2edd37210abab": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text"
+          },
+          "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [
+              "https://track.example.com/p"
+            ],
+            "urls_grouped_by_domain": {
+              "example.com": [
+                "https://track.example.com/p"
+              ]
+            }
+          },
+          "summary": "URL Extraction Analysis (track.example.com)",
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:0bdb17a6b8ddc3f91e98e5c7147738d6918f6fa91def7216200c8d49c80ff6a8": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {
+        "javascript_deobfuscation": true
+      },
+      "paths": {
+        "deobfuscated-scripts_js_event_onclick_1_cd32f3aa.js": {
+          "type=script.javascript": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:cd32f3aa2a2385872d6e82fa2c34399e7e3c50f0fbf72663711851205c36812b": true
       },
       "results": {
         "file_type": {
@@ -300,6 +366,67 @@
       },
       "tags": {}
     },
+    "file:3a2e73dcfb96c8c8e007fe493640a41af27c207691aac083b64f9b6346e88ce7": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {
+        "javascript_deobfuscation": true
+      },
+      "paths": {
+        "deobfuscated-scripts_js_event_onload_0_08cd18e2.js": {
+          "type=script.javascript": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:08cd18e251cc4e0c44f325f38076ae8568a0421f451b7e1dd54acb1634dd8410": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text"
+          },
+          "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:3e98d68fb8aba62096acae4f784c316b095b1c33d5f2dbf5eac2edd37210abab": {
       "detections": {},
       "directives": {},
@@ -349,7 +476,6 @@
           "details": {
             "dom_snapshot": true,
             "dom_snapshot_source": null,
-            "error": null,
             "error_type": null,
             "event_count": 3,
             "exit_code": 0,
@@ -433,7 +559,6 @@
           "details": {
             "dom_snapshot": true,
             "dom_snapshot_source": null,
-            "error": null,
             "error_type": null,
             "event_count": 1,
             "exit_code": 0,
@@ -468,7 +593,232 @@
         "js": true
       }
     },
-    "file:76a234cce51540a9529035d0113d69fd291bcdcfbc757fb8a821a684ec64e20b": {
+    "file:7fadeacbfc5c8330e0c84f89385c19ef6711b6de48e036103f4767316af12be3": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "html_js_extraction": true
+      },
+      "paths": {
+        "scripts_js_inline_3_7fadeacb.js": {
+          "type=document.html": true,
+          "type=email.attachment": true,
+          "type=script.javascript": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:2035a8f88ae48690b8b88a2f2a4287ab4c4187990a35387eb1e1bf7093962f7b": true
+      },
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "a723a1d463dbcafd5f9c3cee5c54189e",
+            "sha1": "aba3125ca0f43f193af014ade643a8d4025b52f0",
+            "sha256": "7fadeacbfc5c8330e0c84f89385c19ef6711b6de48e036103f4767316af12be3"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text"
+          },
+          "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        },
+        "javascript_deobfuscation": {
+          "details": {
+            "dom_snapshot": true,
+            "dom_snapshot_source": null,
+            "error_type": null,
+            "event_count": 0,
+            "exit_code": 0,
+            "extracted_files": [],
+            "secondary_script_count": 0,
+            "stderr": "",
+            "stdout": "{\"status\":\"ok\",\"event_count\":0,\"secondary_script_count\":0,\"error\":null,\"error_type\":null,\"webcrack_status\":\"applied (cosmetic only)\",\"webcrack_error\":null,\"blob_files\":[],\"dom_snapshot\":true}",
+            "webcrack_error": null,
+            "webcrack_status": "applied (cosmetic only)"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {
+        "js": true
+      }
+    },
+    "file:a31bfe5218c19f2fe76fbdac4fc1bd7341cce5c2ee8624f73540764d48d0eabc": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "html_js_extraction": true
+      },
+      "paths": {
+        "scripts_js_inline_1_a31bfe52.js": {
+          "type=document.html": true,
+          "type=email.attachment": true,
+          "type=script.javascript": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:2035a8f88ae48690b8b88a2f2a4287ab4c4187990a35387eb1e1bf7093962f7b": true
+      },
+      "results": {
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "3ec81a419e7ce350916b766ab44b89f3",
+            "sha1": "627987d9ed1f7429fb4b7254ba6546edbf70798e",
+            "sha256": "a31bfe5218c19f2fe76fbdac4fc1bd7341cce5c2ee8624f73540764d48d0eabc"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text, with no line terminators"
+          },
+          "summary": "File Type Analysis: ASCII text, with no line terminators (text/plain)",
+          "tags": {}
+        },
+        "javascript_deobfuscation": {
+          "details": {
+            "dom_snapshot": true,
+            "dom_snapshot_source": null,
+            "error_type": null,
+            "event_count": 1,
+            "exit_code": 0,
+            "extracted_files": [
+              "deobfuscated-scripts_js_inline_1_a31bfe52.js"
+            ],
+            "secondary_script_count": 0,
+            "stderr": "",
+            "stdout": "{\"status\":\"ok\",\"event_count\":1,\"secondary_script_count\":0,\"error\":null,\"error_type\":null,\"webcrack_status\":\"applied (cosmetic only)\",\"webcrack_error\":null,\"blob_files\":[],\"dom_snapshot\":true}",
+            "webcrack_error": null,
+            "webcrack_status": "applied (cosmetic only)"
+          },
+          "summary": "JavaScript Deobfuscation: extracted deobfuscated-scripts_js_inline_1_a31bfe52.js (1 events, 0 secondary scripts)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {
+        "js": true
+      }
+    },
+    "file:b4e1cf2c949f2efa5e3a4959cb7f3c4a19f7f6cbfaed98441b9e5873b234cd14": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {
+        "javascript_deobfuscation": true
+      },
+      "paths": {
+        "deobfuscated-scripts_js_inline_2_49db13ae.js": {
+          "type=script.javascript": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:49db13aefad48c0d8a569c59ff5cc0d51038afbecb4738df6269420a974170de": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text"
+          },
+          "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:b993a9dec23b35bc837134e75ac958f2ac94461cd212b367fff9b5ed96762aea": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -535,239 +885,6 @@
       },
       "tags": {}
     },
-    "file:7fadeacbfc5c8330e0c84f89385c19ef6711b6de48e036103f4767316af12be3": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "html_js_extraction": true
-      },
-      "paths": {
-        "scripts_js_inline_3_7fadeacb.js": {
-          "type=document.html": true,
-          "type=email.attachment": true,
-          "type=script.javascript": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:2035a8f88ae48690b8b88a2f2a4287ab4c4187990a35387eb1e1bf7093962f7b": true
-      },
-      "results": {
-        "file_hash_analyzer": {
-          "details": {
-            "md5": "a723a1d463dbcafd5f9c3cee5c54189e",
-            "sha1": "aba3125ca0f43f193af014ade643a8d4025b52f0",
-            "sha256": "7fadeacbfc5c8330e0c84f89385c19ef6711b6de48e036103f4767316af12be3"
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "file_type": {
-          "details": {
-            "is_email_file": false,
-            "is_jar_file": false,
-            "is_lnk_file": false,
-            "is_office_document": false,
-            "is_office_ext": false,
-            "is_ole_file": false,
-            "is_pdf_file": false,
-            "is_pe_file": false,
-            "is_rtf_file": false,
-            "is_x509": false,
-            "is_zip_file": false,
-            "mime": "text/plain",
-            "type": "ASCII text"
-          },
-          "summary": "File Type Analysis: ASCII text (text/plain)",
-          "tags": {}
-        },
-        "javascript_deobfuscation": {
-          "details": {
-            "dom_snapshot": true,
-            "dom_snapshot_source": null,
-            "error": null,
-            "error_type": null,
-            "event_count": 0,
-            "exit_code": 0,
-            "extracted_files": [],
-            "secondary_script_count": 0,
-            "stderr": "",
-            "stdout": "{\"status\":\"ok\",\"event_count\":0,\"secondary_script_count\":0,\"error\":null,\"error_type\":null,\"webcrack_status\":\"applied (cosmetic only)\",\"webcrack_error\":null,\"blob_files\":[],\"dom_snapshot\":true}",
-            "webcrack_error": null,
-            "webcrack_status": "applied (cosmetic only)"
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {
-        "js": true
-      }
-    },
-    "file:9bf988b7a55a1240bf8cbe0b0205d695a3bec476b203537b60c58d14fd468859": {
-      "detections": {},
-      "directives": {
-        "extract_urls": true
-      },
-      "excluded_analysis": {
-        "javascript_deobfuscation": true
-      },
-      "paths": {
-        "deobfuscated-scripts_js_event_onerror_2_3e98d68f.js": {
-          "type=script.javascript": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:3e98d68fb8aba62096acae4f784c316b095b1c33d5f2dbf5eac2edd37210abab": true
-      },
-      "results": {
-        "file_type": {
-          "details": {
-            "is_email_file": false,
-            "is_jar_file": false,
-            "is_lnk_file": false,
-            "is_office_document": false,
-            "is_office_ext": false,
-            "is_ole_file": false,
-            "is_pdf_file": false,
-            "is_pe_file": false,
-            "is_rtf_file": false,
-            "is_x509": false,
-            "is_zip_file": false,
-            "mime": "text/plain",
-            "type": "ASCII text"
-          },
-          "summary": "File Type Analysis: ASCII text (text/plain)",
-          "tags": {}
-        },
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "url_extraction": {
-          "details": {
-            "urls": [
-              "https://track.example.com/p"
-            ],
-            "urls_grouped_by_domain": {
-              "example.com": [
-                "https://track.example.com/p"
-              ]
-            }
-          },
-          "summary": "URL Extraction Analysis (track.example.com)",
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
-    "file:a31bfe5218c19f2fe76fbdac4fc1bd7341cce5c2ee8624f73540764d48d0eabc": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "html_js_extraction": true
-      },
-      "paths": {
-        "scripts_js_inline_1_a31bfe52.js": {
-          "type=document.html": true,
-          "type=email.attachment": true,
-          "type=script.javascript": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:2035a8f88ae48690b8b88a2f2a4287ab4c4187990a35387eb1e1bf7093962f7b": true
-      },
-      "results": {
-        "file_hash_analyzer": {
-          "details": {
-            "md5": "3ec81a419e7ce350916b766ab44b89f3",
-            "sha1": "627987d9ed1f7429fb4b7254ba6546edbf70798e",
-            "sha256": "a31bfe5218c19f2fe76fbdac4fc1bd7341cce5c2ee8624f73540764d48d0eabc"
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "file_type": {
-          "details": {
-            "is_email_file": false,
-            "is_jar_file": false,
-            "is_lnk_file": false,
-            "is_office_document": false,
-            "is_office_ext": false,
-            "is_ole_file": false,
-            "is_pdf_file": false,
-            "is_pe_file": false,
-            "is_rtf_file": false,
-            "is_x509": false,
-            "is_zip_file": false,
-            "mime": "text/plain",
-            "type": "ASCII text, with no line terminators"
-          },
-          "summary": "File Type Analysis: ASCII text, with no line terminators (text/plain)",
-          "tags": {}
-        },
-        "javascript_deobfuscation": {
-          "details": {
-            "dom_snapshot": true,
-            "dom_snapshot_source": null,
-            "error": null,
-            "error_type": null,
-            "event_count": 1,
-            "exit_code": 0,
-            "extracted_files": [
-              "deobfuscated-scripts_js_inline_1_a31bfe52.js"
-            ],
-            "secondary_script_count": 0,
-            "stderr": "",
-            "stdout": "{\"status\":\"ok\",\"event_count\":1,\"secondary_script_count\":0,\"error\":null,\"error_type\":null,\"webcrack_status\":\"applied (cosmetic only)\",\"webcrack_error\":null,\"blob_files\":[],\"dom_snapshot\":true}",
-            "webcrack_error": null,
-            "webcrack_status": "applied (cosmetic only)"
-          },
-          "summary": "JavaScript Deobfuscation: extracted deobfuscated-scripts_js_inline_1_a31bfe52.js (1 events, 0 secondary scripts)",
-          "tags": {}
-        },
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {
-        "js": true
-      }
-    },
     "file:cd32f3aa2a2385872d6e82fa2c34399e7e3c50f0fbf72663711851205c36812b": {
       "detections": {},
       "directives": {},
@@ -817,7 +934,6 @@
           "details": {
             "dom_snapshot": true,
             "dom_snapshot_source": null,
-            "error": "evalmachine.<anonymous>:2\nreturn false;\n^^^^^^\n\nSyntaxError: Illegal return statement\n    at new Script (node:vm:118:7)\n    at file:///opt/app/harness.js:907:12",
             "error_type": "compile",
             "event_count": 0,
             "exit_code": 0,
@@ -852,7 +968,7 @@
         "js": true
       }
     },
-    "file:d4a1080300019f883f6cc078226725ace11f3701483578982eeacbda87d5fe17": {
+    "file:e03ce967f693ed7e2d48e3619fb896febad55dfb55a384c878fbf5324b7d2568": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -861,73 +977,12 @@
         "javascript_deobfuscation": true
       },
       "paths": {
-        "deobfuscated-scripts_js_event_onclick_1_cd32f3aa.js": {
+        "deobfuscated-scripts_js_inline_1_a31bfe52.js": {
           "type=script.javascript": true
         }
       },
       "relationships": {
-        "extracted_from file:cd32f3aa2a2385872d6e82fa2c34399e7e3c50f0fbf72663711851205c36812b": true
-      },
-      "results": {
-        "file_type": {
-          "details": {
-            "is_email_file": false,
-            "is_jar_file": false,
-            "is_lnk_file": false,
-            "is_office_document": false,
-            "is_office_ext": false,
-            "is_ole_file": false,
-            "is_pdf_file": false,
-            "is_pe_file": false,
-            "is_rtf_file": false,
-            "is_x509": false,
-            "is_zip_file": false,
-            "mime": "text/plain",
-            "type": "ASCII text"
-          },
-          "summary": "File Type Analysis: ASCII text (text/plain)",
-          "tags": {}
-        },
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "url_extraction": {
-          "details": {
-            "urls": [],
-            "urls_grouped_by_domain": {}
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
-    "file:e049e2dbf1d9ae0de062d98001635a3663e519b475d423e9fe15331a8fd3fb09": {
-      "detections": {},
-      "directives": {
-        "extract_urls": true
-      },
-      "excluded_analysis": {
-        "javascript_deobfuscation": true
-      },
-      "paths": {
-        "deobfuscated-scripts_js_event_onload_0_08cd18e2.js": {
-          "type=script.javascript": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:08cd18e251cc4e0c44f325f38076ae8568a0421f451b7e1dd54acb1634dd8410": true
+        "extracted_from file:a31bfe5218c19f2fe76fbdac4fc1bd7341cce5c2ee8624f73540764d48d0eabc": true
       },
       "results": {
         "file_type": {
@@ -1023,7 +1078,6 @@
           "details": {
             "dom_snapshot": true,
             "dom_snapshot_source": null,
-            "error": null,
             "error_type": null,
             "event_count": 3,
             "exit_code": 0,
@@ -1058,67 +1112,6 @@
         "js": true
       }
     },
-    "file:f5319e073432cb7794805891001569f1bdd7e20527b24d6151a6f54670791366": {
-      "detections": {},
-      "directives": {
-        "extract_urls": true
-      },
-      "excluded_analysis": {
-        "javascript_deobfuscation": true
-      },
-      "paths": {
-        "deobfuscated-scripts_js_inline_1_a31bfe52.js": {
-          "type=script.javascript": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:a31bfe5218c19f2fe76fbdac4fc1bd7341cce5c2ee8624f73540764d48d0eabc": true
-      },
-      "results": {
-        "file_type": {
-          "details": {
-            "is_email_file": false,
-            "is_jar_file": false,
-            "is_lnk_file": false,
-            "is_office_document": false,
-            "is_office_ext": false,
-            "is_ole_file": false,
-            "is_pdf_file": false,
-            "is_pe_file": false,
-            "is_rtf_file": false,
-            "is_x509": false,
-            "is_zip_file": false,
-            "mime": "text/plain",
-            "type": "ASCII text"
-          },
-          "summary": "File Type Analysis: ASCII text (text/plain)",
-          "tags": {}
-        },
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "url_extraction": {
-          "details": {
-            "urls": [],
-            "urls_grouped_by_domain": {}
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "fqdn:cdn.example.com": {
       "detections": {},
       "directives": {},
@@ -1150,7 +1143,6 @@
             "dispatch_state": "DONE",
             "gui_link": null,
             "query": "index=proxy hostname=\"cdn.example.com\"",
-            "query_error": null,
             "query_results": [
               {
                 "_time": "2026-10-30T14:02:11.000+00:00",
@@ -1190,7 +1182,6 @@
             "datetime_of_last_update": "2026-08-14 08:01:43+00:00",
             "domain_name": "EXAMPLE.COM",
             "emails": [],
-            "error": null,
             "ip_version": null,
             "lookup_protocol": "rdap",
             "name_servers": [
@@ -1199,6 +1190,7 @@
             ],
             "network_cidr": null,
             "network_name": null,
+            "not_found": null,
             "rdap_attempt_error": null,
             "rdap_data": {
               "copyright_notice": "",
@@ -1378,7 +1370,6 @@
             "dispatch_state": "DONE",
             "gui_link": null,
             "query": "index=proxy hostname=\"evil.example.com\"",
-            "query_error": null,
             "query_results": [
               {
                 "_time": "2026-10-30T14:02:11.000+00:00",
@@ -1418,7 +1409,6 @@
             "datetime_of_last_update": "2026-08-14 08:01:43+00:00",
             "domain_name": "EXAMPLE.COM",
             "emails": [],
-            "error": null,
             "ip_version": null,
             "lookup_protocol": "rdap",
             "name_servers": [
@@ -1427,6 +1417,7 @@
             ],
             "network_cidr": null,
             "network_name": null,
+            "not_found": null,
             "rdap_attempt_error": null,
             "rdap_data": {
               "copyright_notice": "",
@@ -1612,7 +1603,6 @@
             "dispatch_state": "DONE",
             "gui_link": null,
             "query": "index=proxy hostname=\"example.com\"",
-            "query_error": null,
             "query_results": [
               {
                 "_time": "2026-10-30T14:02:11.000+00:00",
@@ -1652,7 +1642,6 @@
             "datetime_of_last_update": "2026-08-14 08:01:43+00:00",
             "domain_name": "EXAMPLE.COM",
             "emails": [],
-            "error": null,
             "ip_version": null,
             "lookup_protocol": "rdap",
             "name_servers": [
@@ -1661,6 +1650,7 @@
             ],
             "network_cidr": null,
             "network_name": null,
+            "not_found": null,
             "rdap_attempt_error": null,
             "rdap_data": {
               "copyright_notice": "",
@@ -1838,7 +1828,6 @@
             "dispatch_state": "DONE",
             "gui_link": null,
             "query": "index=proxy hostname=\"track.example.com\"",
-            "query_error": null,
             "query_results": [
               {
                 "_time": "2026-10-30T14:02:11.000+00:00",
@@ -1878,7 +1867,6 @@
             "datetime_of_last_update": "2026-08-14 08:01:43+00:00",
             "domain_name": "EXAMPLE.COM",
             "emails": [],
-            "error": null,
             "ip_version": null,
             "lookup_protocol": "rdap",
             "name_servers": [
@@ -1887,6 +1875,7 @@
             ],
             "network_cidr": null,
             "network_name": null,
+            "not_found": null,
             "rdap_attempt_error": null,
             "rdap_data": {
               "copyright_notice": "",

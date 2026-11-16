@@ -196,13 +196,12 @@
       "results": {
         "exif": {
           "details": {
-            "error": null,
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 08:47:23+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 08:47:23+00:00",
-              "File:FileModifyDate": "2026:11:11 08:47:23+00:00",
+              "File:FileAccessDate": "2026:11:16 13:43:09+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 13:43:09+00:00",
+              "File:FileModifyDate": "2026:11:16 13:43:09+00:00",
               "File:FileName": "invoice.docx",
               "File:FilePermissions": 100664,
               "File:FileSize": 10240,
@@ -249,7 +248,6 @@
             "email": true,
             "email_body": "The password is Secr3tPw\n\n",
             "encryption_info": null,
-            "error": null,
             "password": "Secr3tPw",
             "word_list": [
               "VelvetSweatshop",
@@ -286,7 +284,7 @@
               "word"
             ]
           },
-          "summary": "MSOffice Encryption Analysis: password Secr3tPw",
+          "summary": "MSOffice Encryption Analysis: decryption failed: The file could not be decrypted with this password",
           "tags": {}
         },
         "observable_detection": {
@@ -731,6 +729,39 @@
       },
       "tags": {}
     },
+    "file:c342b27befbddd893069a21320d0a6fb85fdbc08b6dfae52e152bb94114f25ff": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "invoice.docx.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:07976a449bfc5f9679812800d40f5f0afecb30afcedfb6c3e039728efcb22e80": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:cd6d35e22658d136fe0610564c1dc9a56979b3ba23395b7fcb45d206668ebf12": {
       "detections": {},
       "directives": {
@@ -985,39 +1016,6 @@
         "email": true
       }
     },
-    "file:dc54c244d3c5a2feb6153109380bf4c550a0593a183530e895c9ff6a2934421a": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "invoice.docx.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:07976a449bfc5f9679812800d40f5f0afecb30afcedfb6c3e039728efcb22e80": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:e81d2d7f4d8b4aa96a9d1ac9aad489caa06f24c3de2b66471479daf34672ce3a": {
       "detections": {},
       "directives": {
@@ -1185,7 +1183,6 @@
             "dispatch_state": "DONE",
             "gui_link": null,
             "query": "index=proxy hostname=\"example.com\"",
-            "query_error": null,
             "query_results": [
               {
                 "_time": "2026-10-30T14:02:11.000+00:00",
@@ -1225,7 +1222,6 @@
             "datetime_of_last_update": "2026-08-14 08:01:43+00:00",
             "domain_name": "EXAMPLE.COM",
             "emails": [],
-            "error": null,
             "ip_version": null,
             "lookup_protocol": "rdap",
             "name_servers": [
@@ -1234,6 +1230,7 @@
             ],
             "network_cidr": null,
             "network_name": null,
+            "not_found": null,
             "rdap_attempt_error": null,
             "rdap_data": {
               "copyright_notice": "",

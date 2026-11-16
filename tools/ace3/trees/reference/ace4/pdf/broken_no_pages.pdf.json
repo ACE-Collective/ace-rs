@@ -15,13 +15,12 @@
       "results": {
         "exif": {
           "details": {
-            "error": null,
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 09:31:01+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 09:31:01+00:00",
-              "File:FileModifyDate": "2026:11:07 04:47:50+00:00",
+              "File:FileAccessDate": "2026:11:16 14:56:57+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 14:56:57+00:00",
+              "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "broken_no_pages.pdf",
               "File:FilePermissions": 100644,
               "File:FileSize": 147,
@@ -98,39 +97,6 @@
         "pdf": true
       }
     },
-    "file:6c01a3e8de0841e32abaecaeb1df7859e64d8931489bab6e7b130601dee0efe8": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "broken_no_pages.pdf.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:2129c62f1d72a64373b1fbfe7bad7e3e27588ef188793b42b1c5feff6f3660a7": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:a8e4843f5f907b3ce7b9dcb123d969231a0ed3f3eae67d78ab9a4f84b265765e": {
       "detections": {},
       "directives": {
@@ -191,59 +157,7 @@
       },
       "tags": {}
     },
-    "file:ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "archive": true
-      },
-      "paths": {
-        "broken_no_pages.pdf.gs.pdf.txt": {
-          "type=document.pdf.text": true
-        }
-      },
-      "redirection": "file:fe75d05bcbbce22b37281e0bfbf6e8938d9bfd7dff7a1ace065f8ae394697ba1",
-      "relationships": {
-        "extracted_from file:fe75d05bcbbce22b37281e0bfbf6e8938d9bfd7dff7a1ace065f8ae394697ba1": true
-      },
-      "results": {
-        "file_type": {
-          "details": {
-            "is_email_file": false,
-            "is_jar_file": false,
-            "is_lnk_file": false,
-            "is_office_document": false,
-            "is_office_ext": false,
-            "is_ole_file": false,
-            "is_pdf_file": false,
-            "is_pe_file": false,
-            "is_rtf_file": false,
-            "is_x509": false,
-            "is_zip_file": false,
-            "mime": "application/octet-stream",
-            "type": "very short file (no magic)"
-          },
-          "summary": "File Type Analysis: very short file (no magic) (application/octet-stream)",
-          "tags": {}
-        },
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
-    "file:fe75d05bcbbce22b37281e0bfbf6e8938d9bfd7dff7a1ace065f8ae394697ba1": {
+    "file:a9f09448df16264d32dac6a51d8bf145054d73a3c63cc8a9d20680af77a00543": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -324,6 +238,91 @@
       "tags": {
         "pdf": true
       }
+    },
+    "file:d688c96faae33e3d8a3af8c750a28f979fa58018694c6b855532b4813165e416": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "broken_no_pages.pdf.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:2129c62f1d72a64373b1fbfe7bad7e3e27588ef188793b42b1c5feff6f3660a7": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "archive": true
+      },
+      "paths": {
+        "broken_no_pages.pdf.gs.pdf.txt": {
+          "type=document.pdf.text": true
+        }
+      },
+      "redirection": "file:a9f09448df16264d32dac6a51d8bf145054d73a3c63cc8a9d20680af77a00543",
+      "relationships": {
+        "extracted_from file:a9f09448df16264d32dac6a51d8bf145054d73a3c63cc8a9d20680af77a00543": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/octet-stream",
+            "type": "very short file (no magic)"
+          },
+          "summary": "File Type Analysis: very short file (no magic) (application/octet-stream)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
     },
     "md5:89317cce2e452d2b6eff5a05075c22df": {
       "detections": {},

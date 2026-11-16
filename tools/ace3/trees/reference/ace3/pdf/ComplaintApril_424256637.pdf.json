@@ -67,6 +67,7 @@
       "excluded_analysis": {
         "exif": true,
         "pdf_analyzer": true,
+        "pdf_link_text": true,
         "pdftotext": true,
         "qrcode": true
       },
@@ -128,7 +129,7 @@
         "pdf": true
       }
     },
-    "file:4fc73a4d2faaa1d78e54da5dd5125a3c90b9a38899412a6389ca325dbd879416": {
+    "file:6957f1b828e195dccde8f67117c1a2fdd33de24a0179b01cdcdf6c6fb91cb5ab": {
       "detections": {},
       "directives": {},
       "excluded_analysis": {
@@ -161,7 +162,7 @@
       },
       "tags": {}
     },
-    "file:6d9992243bc579b6f370135db45bf5533ed699f393bbce8df9bc2813babce3e5": {
+    "file:7fb864426e80aa76853a19dbe3bcf644372cfdd992be7bbf37ff58d82fc50384": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -204,6 +205,26 @@
             "for_detection": false
           },
           "summary": null,
+          "tags": {}
+        },
+        "pdf_link_text": {
+          "details": {
+            "links": [
+              {
+                "line": "Keep your software up to date. trademarks are the property of their respective owners.",
+                "page": 1,
+                "text": "up to date.",
+                "url": "https://www.adobe.com"
+              },
+              {
+                "line": "the world gets work OPEN",
+                "page": 1,
+                "text": "OPEN",
+                "url": "http://12tkj5.my.id/blog/642ec2b466aed.zip"
+              }
+            ]
+          },
+          "summary": "PDF Link Text Analysis: 2 links, 2 with text",
           "tags": {}
         },
         "pdftotext": {
@@ -408,9 +429,9 @@
           "type=document.pdf.text": true
         }
       },
-      "redirection": "file:6d9992243bc579b6f370135db45bf5533ed699f393bbce8df9bc2813babce3e5",
+      "redirection": "file:7fb864426e80aa76853a19dbe3bcf644372cfdd992be7bbf37ff58d82fc50384",
       "relationships": {
-        "extracted_from file:6d9992243bc579b6f370135db45bf5533ed699f393bbce8df9bc2813babce3e5": true,
+        "extracted_from file:7fb864426e80aa76853a19dbe3bcf644372cfdd992be7bbf37ff58d82fc50384": true,
         "extracted_from file:f68ba01d524f39a2832632eeb77772feb30440d2dbbf92fc83de39494cff4076": true
       },
       "results": {
@@ -524,14 +545,13 @@
       "results": {
         "exif": {
           "details": {
-            "error": null,
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "ExifTool:Warning": "[minor] Decryption is very slow for encryption V5.6 or higher",
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 08:45:08+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 08:45:08+00:00",
-              "File:FileModifyDate": "2026:11:06 19:20:07+00:00",
+              "File:FileAccessDate": "2026:11:16 14:53:24+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 14:53:24+00:00",
+              "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "ComplaintApril_424256637.pdf",
               "File:FilePermissions": 100644,
               "File:FileSize": 92914,
@@ -624,6 +644,26 @@
           "summary": "PDF Analysis: encrypted (aesv3 256-bit, R6, P -1052), opens with an empty user password",
           "tags": {}
         },
+        "pdf_link_text": {
+          "details": {
+            "links": [
+              {
+                "line": "Keep your software up to date. trademarks are the property of their respective owners.",
+                "page": 1,
+                "text": "up to date.",
+                "url": "https://www.adobe.com"
+              },
+              {
+                "line": "the world gets work OPEN",
+                "page": 1,
+                "text": "OPEN",
+                "url": "http://12tkj5.my.id/blog/642ec2b466aed.zip"
+              }
+            ]
+          },
+          "summary": "PDF Link Text Analysis: 2 links, 2 with text",
+          "tags": {}
+        },
         "pdftotext": {
           "details": {
             "output_path": "9e2edecc508b0c464ba6b6532134756b915fee713bdd0efd18f98ffbb2fb3238",
@@ -685,7 +725,6 @@
             "dispatch_state": "DONE",
             "gui_link": null,
             "query": "index=proxy hostname=\"12tkj5.my.id\"",
-            "query_error": null,
             "query_results": [
               {
                 "_time": "2026-10-30T14:02:11.000+00:00",
@@ -725,12 +764,12 @@
             "datetime_of_last_update": null,
             "domain_name": null,
             "emails": null,
-            "error": "rdap: Failed to make a GET request to https://rdap.pandi.id/rdap/domain/12tkj5.my.id: nothing recorded for GET https://rdap.pandi.id/rdap/domain/12tkj5.my.id; whois: no WHOIS in a replay",
             "ip_version": null,
             "lookup_protocol": null,
             "name_servers": null,
             "network_cidr": null,
             "network_name": null,
+            "not_found": null,
             "rdap_attempt_error": "Failed to make a GET request to https://rdap.pandi.id/rdap/domain/12tkj5.my.id: nothing recorded for GET https://rdap.pandi.id/rdap/domain/12tkj5.my.id",
             "rdap_data": null,
             "rdap_raw_json": null,
@@ -790,7 +829,6 @@
             "dispatch_state": "DONE",
             "gui_link": null,
             "query": "index=proxy hostname=\"example.com\"",
-            "query_error": null,
             "query_results": [
               {
                 "_time": "2026-10-30T14:02:11.000+00:00",
@@ -830,7 +868,6 @@
             "datetime_of_last_update": "2026-08-14 08:01:43+00:00",
             "domain_name": "EXAMPLE.COM",
             "emails": [],
-            "error": null,
             "ip_version": null,
             "lookup_protocol": "rdap",
             "name_servers": [
@@ -839,6 +876,7 @@
             ],
             "network_cidr": null,
             "network_name": null,
+            "not_found": null,
             "rdap_attempt_error": null,
             "rdap_data": {
               "copyright_notice": "",
@@ -1016,7 +1054,6 @@
             "dispatch_state": "DONE",
             "gui_link": null,
             "query": "index=proxy hostname=\"www.adobe.com\"",
-            "query_error": null,
             "query_results": [
               {
                 "_time": "2026-10-30T14:02:11.000+00:00",
@@ -1056,12 +1093,12 @@
             "datetime_of_last_update": null,
             "domain_name": null,
             "emails": null,
-            "error": "rdap: Failed to make a GET request to https://rdap.verisign.com/com/v1/domain/adobe.com: nothing recorded for GET https://rdap.verisign.com/com/v1/domain/adobe.com; whois: no WHOIS in a replay",
             "ip_version": null,
             "lookup_protocol": null,
             "name_servers": null,
             "network_cidr": null,
             "network_name": null,
+            "not_found": null,
             "rdap_attempt_error": "Failed to make a GET request to https://rdap.verisign.com/com/v1/domain/adobe.com: nothing recorded for GET https://rdap.verisign.com/com/v1/domain/adobe.com",
             "rdap_data": null,
             "rdap_raw_json": null,

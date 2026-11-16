@@ -321,7 +321,6 @@
               "theme/theme/_rels/themeManager.xml.rels",
               "_rels/.rels"
             ],
-            "extraction_error": null,
             "file_count": 5
           },
           "summary": "Archive Analysis: extracted 5 of 5 files: ([Content_Types].xml, theme/theme/theme1.xml, theme/theme/themeManager.xml, theme/theme/_rels/themeManager.xml.rels, _rels/.rels)",
@@ -446,6 +445,39 @@
       },
       "tags": {}
     },
+    "file:1e7bd32ef252ee5f49a1d2a9eed7f68c71e34115ecfdfdd30b295ac45f86f497": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "invoice.xls.decrypted.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:ce3af53d22189d65f561fa45ff655a020c9ef96c17c83e748cd773eff8ef96e8": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:2983db3781942d11b9497551888ee8774f861ff9cbc5c64ddb79eaa0698f87bd": {
       "detections": {},
       "directives": {
@@ -556,6 +588,39 @@
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:3c1beac39a9a745d3abc500ce02595dba53e01186e51ce0f0d48ff28c74f127e": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "invoice.xls.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:8ff8e52eb1b97ac21b0b4348d81f143f6f25d0ea817d7748b7f8ddae27637857": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
           },
           "summary": null,
           "tags": {}
@@ -1067,39 +1132,6 @@
       },
       "tags": {}
     },
-    "file:74b132d00694a2e7041a001e2f2334597a7dba8498303eccbb51ed5bb80591dc": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "invoice.xls.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:8ff8e52eb1b97ac21b0b4348d81f143f6f25d0ea817d7748b7f8ddae27637857": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:7ebaae588c3d7716a9980259211675b12793cc02c80b287da7a07e89bcc17428": {
       "detections": {},
       "directives": {
@@ -1240,13 +1272,12 @@
       "results": {
         "exif": {
           "details": {
-            "error": null,
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 08:48:25+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 08:48:25+00:00",
-              "File:FileModifyDate": "2026:11:11 08:48:25+00:00",
+              "File:FileAccessDate": "2026:11:16 13:44:20+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 13:44:20+00:00",
+              "File:FileModifyDate": "2026:11:16 13:44:20+00:00",
               "File:FileName": "invoice.xls",
               "File:FilePermissions": 100664,
               "File:FileSize": 69125,
@@ -1316,7 +1347,6 @@
             "email": true,
             "email_body": "The password is R4Binary1\n\n",
             "encryption_info": null,
-            "error": null,
             "password": "R4Binary1",
             "word_list": [
               "VelvetSweatshop",
@@ -1420,39 +1450,6 @@
         "xlm4:no_cells": true
       }
     },
-    "file:90d85b8cf33c202546db8e0cc2739ee5f267026c4ee3c28d06c922119c845231": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "invoice.xls.decrypted.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:ce3af53d22189d65f561fa45ff655a020c9ef96c17c83e748cd773eff8ef96e8": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:9e8aa70fc70328cddc2bfdc99c1cf431d2d7cf474876852665f76b14a87e2fb4": {
       "detections": {},
       "directives": {},
@@ -1538,13 +1535,12 @@
       "results": {
         "exif": {
           "details": {
-            "error": null,
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 08:48:26+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 08:48:26+00:00",
-              "File:FileModifyDate": "2026:11:11 08:48:26+00:00",
+              "File:FileAccessDate": "2026:11:16 13:44:20+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 13:44:20+00:00",
+              "File:FileModifyDate": "2026:11:16 13:44:20+00:00",
               "File:FileName": "invoice.xls.decrypted",
               "File:FilePermissions": 100666,
               "File:FileSize": 69125,
@@ -1805,7 +1801,6 @@
             "age_created_in_days": null,
             "datetime_created": null,
             "is_nrd": true,
-            "lookup_error": null,
             "lookup_protocol": null
           },
           "summary": "Newly Registered Domain: present in local NRD list",
@@ -1823,7 +1818,6 @@
             "dispatch_state": "DONE",
             "gui_link": null,
             "query": "index=proxy hostname=\"component.pw\"",
-            "query_error": null,
             "query_results": [
               {
                 "_time": "2026-10-30T14:02:11.000+00:00",
@@ -1863,12 +1857,12 @@
             "datetime_of_last_update": null,
             "domain_name": null,
             "emails": null,
-            "error": "rdap: Failed to make a GET request to https://rdap.radix.host/rdap/domain/component.pw: nothing recorded for GET https://rdap.radix.host/rdap/domain/component.pw; whois: no WHOIS in a replay",
             "ip_version": null,
             "lookup_protocol": null,
             "name_servers": null,
             "network_cidr": null,
             "network_name": null,
+            "not_found": null,
             "rdap_attempt_error": "Failed to make a GET request to https://rdap.radix.host/rdap/domain/component.pw: nothing recorded for GET https://rdap.radix.host/rdap/domain/component.pw",
             "rdap_data": null,
             "rdap_raw_json": null,
@@ -1929,7 +1923,6 @@
             "dispatch_state": "DONE",
             "gui_link": null,
             "query": "index=proxy hostname=\"example.com\"",
-            "query_error": null,
             "query_results": [
               {
                 "_time": "2026-10-30T14:02:11.000+00:00",
@@ -1969,7 +1962,6 @@
             "datetime_of_last_update": "2026-08-14 08:01:43+00:00",
             "domain_name": "EXAMPLE.COM",
             "emails": [],
-            "error": null,
             "ip_version": null,
             "lookup_protocol": "rdap",
             "name_servers": [
@@ -1978,6 +1970,7 @@
             ],
             "network_cidr": null,
             "network_name": null,
+            "not_found": null,
             "rdap_attempt_error": null,
             "rdap_data": {
               "copyright_notice": "",
@@ -2414,7 +2407,6 @@
             "age_created_in_days": null,
             "datetime_created": null,
             "is_nrd": true,
-            "lookup_error": null,
             "lookup_protocol": null
           },
           "summary": "Newly Registered Domain: present in local NRD list",
@@ -2472,7 +2464,6 @@
             "age_created_in_days": null,
             "datetime_created": null,
             "is_nrd": true,
-            "lookup_error": null,
             "lookup_protocol": null
           },
           "summary": "Newly Registered Domain: present in local NRD list",

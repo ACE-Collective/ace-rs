@@ -545,12 +545,14 @@ dependencies = [
 name = "ace-mod-pdf"
 version = "0.1.0"
 dependencies = [
+ "ace-pycompat",
  "ace-results",
  "ace-sdk",
  "ace-testkit",
  "flate2",
  "libc",
  "qpdf-sys",
+ "regex",
  "schemars 1.2.3",
  "serde",
  "serde_json",
@@ -582,6 +584,7 @@ name = "ace-mod-sandbox"
 version = "0.1.0"
 dependencies = [
  "ace-mod-files",
+ "ace-mod-pdf",
  "ace-pycompat",
  "ace-results",
  "ace-sdk",

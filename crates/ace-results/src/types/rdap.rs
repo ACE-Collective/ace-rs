@@ -15,12 +15,16 @@ use crate::envelope::AnalysisType;
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct RdapAnalysis {
-    /// Why the lookup failed, such as `rdap: domain not found: ...`.
+    /// Why the lookup failed, when RDAP couldn't answer. ace3 keeps this in `Analysis.error`
+    /// since its 2b9fcd2c, outside the details; ace4 has no such mark yet.
     pub error: Option<String>,
     /// `rdap` when the lookup succeeded.
     pub lookup_protocol: Option<String>,
     /// Why RDAP couldn't answer, when it couldn't. ace3 then tries WHOIS.
     pub rdap_attempt_error: Option<String>,
+    /// The registry's own answer that the domain doesn't exist, such as `rdap: domain not found:
+    /// ...`. An answer, not an error.
+    pub not_found: Option<String>,
     /// Whole days from registration to the lookup.
     pub age_created_in_days: Option<String>,
     /// Whole days from the last change to the lookup.

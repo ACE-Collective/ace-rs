@@ -310,39 +310,6 @@
       },
       "tags": {}
     },
-    "file:5ac7943dda63bb6fb9db2296529e3809219312f987b5bf19407478ae86e12088": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "encrypted_xor.doc.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:bcedd34c04ce0ddfcf20cd56b183fd07ffafdb6cbca6f5737412ce8fc129167d": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:6c98d4f2b62b4db730884f9bd6d27e5360693eaad02d9cdbaa0e71c4c747450b": {
       "detections": {},
       "directives": {
@@ -470,13 +437,12 @@
       "results": {
         "exif": {
           "details": {
-            "error": null,
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 08:59:42+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 08:59:42+00:00",
-              "File:FileModifyDate": "2026:11:07 01:34:09+00:00",
+              "File:FileAccessDate": "2026:11:16 13:57:38+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 13:57:38+00:00",
+              "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "encrypted_xor.doc",
               "File:FilePermissions": 100644,
               "File:FileSize": 22528,
@@ -569,7 +535,6 @@
             "email": false,
             "email_body": null,
             "encryption_info": null,
-            "error": "office2john.py failed: encrypted_xor.doc : XOR obfuscation detected, Password Verifier : b'78563412'\n",
             "password": null,
             "word_list": []
           },
@@ -619,6 +584,39 @@
         "ole": true,
         "zip": true
       }
+    },
+    "file:c35990aa80f0a82b8e92d86d4ff8cb5aea0f214f8f9bde52674bae61bb5b0737": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "encrypted_xor.doc.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:bcedd34c04ce0ddfcf20cd56b183fd07ffafdb6cbca6f5737412ce8fc129167d": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
     },
     "file:d2d8276ca63e307268dbf1bef2fbf45ba4c65c27494555a7742761c22984f1af": {
       "detections": {},
@@ -700,7 +698,6 @@
               "theme/theme/_rels/themeManager.xml.rels",
               "_rels/.rels"
             ],
-            "extraction_error": null,
             "file_count": 5
           },
           "summary": "Archive Analysis: extracted 5 of 5 files: ([Content_Types].xml, theme/theme/theme1.xml, theme/theme/themeManager.xml, theme/theme/_rels/themeManager.xml.rels, _rels/.rels)",

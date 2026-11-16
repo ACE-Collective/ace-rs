@@ -15,14 +15,13 @@
       "results": {
         "exif": {
           "details": {
-            "error": null,
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "ExifTool:Warning": "Invalid xref table",
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 09:37:42+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 09:37:42+00:00",
-              "File:FileModifyDate": "2026:11:07 04:47:50+00:00",
+              "File:FileAccessDate": "2026:11:16 15:06:14+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 15:06:14+00:00",
+              "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "parser_nested_trailer_497.pdf",
               "File:FilePermissions": 100644,
               "File:FileSize": 3517,
@@ -99,67 +98,7 @@
         "pdf": true
       }
     },
-    "file:68b00359d51f3b108fe664a230035d2bac7b67ecc7bf038be893f93541f56354": {
-      "detections": {},
-      "directives": {
-        "extract_urls": true
-      },
-      "excluded_analysis": {},
-      "paths": {
-        "parser_nested_trailer_497.pdf.pdfparser": {
-          "type=document.pdf.object": true
-        }
-      },
-      "redirection": "file:1c439ae2ddcb21c3b3ef94b3b6ce2c478b5c5168d3883456d9ab01bc6a6b2a92",
-      "relationships": {
-        "extracted_from file:1c439ae2ddcb21c3b3ef94b3b6ce2c478b5c5168d3883456d9ab01bc6a6b2a92": true
-      },
-      "results": {
-        "file_type": {
-          "details": {
-            "is_email_file": false,
-            "is_jar_file": false,
-            "is_lnk_file": false,
-            "is_office_document": false,
-            "is_office_ext": false,
-            "is_ole_file": false,
-            "is_pdf_file": false,
-            "is_pe_file": false,
-            "is_rtf_file": false,
-            "is_x509": false,
-            "is_zip_file": false,
-            "mime": "application/pdf",
-            "type": "PDF document, version 1.7, ASCII text, with very long lines (508)"
-          },
-          "summary": "File Type Analysis: PDF document, version 1.7, ASCII text, with very long lines (508) (application/pdf)",
-          "tags": {}
-        },
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "url_extraction": {
-          "details": {
-            "urls": [],
-            "urls_grouped_by_domain": {}
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
-    "file:892aef6dce99524d55b42bedf887da87cb62961e9d87c98e30fe52c9c7d10cf5": {
+    "file:3d9269982981815d5600231ad7bb67786a8f3cfdc333a702235f623dd87f89b9": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -241,7 +180,67 @@
         "pdf": true
       }
     },
-    "file:ad6312a9dd2f63030c945dc3eae148ea88696e444b8ab21d862a6b96f7c5fc1f": {
+    "file:68b00359d51f3b108fe664a230035d2bac7b67ecc7bf038be893f93541f56354": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {},
+      "paths": {
+        "parser_nested_trailer_497.pdf.pdfparser": {
+          "type=document.pdf.object": true
+        }
+      },
+      "redirection": "file:1c439ae2ddcb21c3b3ef94b3b6ce2c478b5c5168d3883456d9ab01bc6a6b2a92",
+      "relationships": {
+        "extracted_from file:1c439ae2ddcb21c3b3ef94b3b6ce2c478b5c5168d3883456d9ab01bc6a6b2a92": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/pdf",
+            "type": "PDF document, version 1.7, ASCII text, with very long lines (508)"
+          },
+          "summary": "File Type Analysis: PDF document, version 1.7, ASCII text, with very long lines (508) (application/pdf)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:6e436460182f7f1f9f676eefb091cbd4400983fc103a93883e3eb41c4fee5c60": {
       "detections": {},
       "directives": {},
       "excluded_analysis": {
@@ -285,9 +284,9 @@
           "type=document.pdf.text": true
         }
       },
-      "redirection": "file:892aef6dce99524d55b42bedf887da87cb62961e9d87c98e30fe52c9c7d10cf5",
+      "redirection": "file:3d9269982981815d5600231ad7bb67786a8f3cfdc333a702235f623dd87f89b9",
       "relationships": {
-        "extracted_from file:892aef6dce99524d55b42bedf887da87cb62961e9d87c98e30fe52c9c7d10cf5": true
+        "extracted_from file:3d9269982981815d5600231ad7bb67786a8f3cfdc333a702235f623dd87f89b9": true
       },
       "results": {
         "file_type": {

@@ -1,6 +1,6 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "f72f8946",
+  "ace3_commit": "37a765bf",
   "also_enabled": [
     "file_type",
     "email_analyzer"
@@ -94,7 +94,7 @@
             "cc": [],
             "compauth_reason": null,
             "compauth_result": null,
-            "date": "2026-11-10 05:30:55.290044 +0000",
+            "date": "2026-11-16 16:32:19.894926 +0000",
             "dkim_result": null,
             "dmarc_result": null,
             "env_mail_from": "sender@example.com",
@@ -444,7 +444,7 @@
           "cc": [],
           "compauth_reason": null,
           "compauth_result": null,
-          "date": "2026-11-10 05:30:55.290044 +0000",
+          "date": "2026-11-16 16:32:19.894926 +0000",
           "dkim_result": null,
           "dmarc_result": null,
           "env_mail_from": "sender@example.com",
@@ -509,16 +509,10 @@
   },
   "tree_view": {
     "alert_type": "mailbox",
-    "bodies": {},
+    "bodies": {
+      "fd193b769914c8d0d9266619285422662b1e9736d4b61adcc930e697c7f171eb": "VGhpcyBpcyBhIHRlc3QgZW1haWwgd2l0aCBhIG5lc3RlZCBQREYgYXR0YWNobWVudCBlbWJlZGRlZCBpbiBhbiBpbm5lciBtZXNzYWdlL3JmYzgyMiBwYXJ0Lgo="
+    },
     "observables": [
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_from",
-        "value": "sender@example.com"
-      },
       {
         "detections": [],
         "directives": [],
@@ -537,101 +531,6 @@
         ],
         "type": "file",
         "value": "c2378c509dcebe6930ad74abc7632ad233e9d0a82096806337cd8a339b84d87a"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_envelope_rcpt_to",
-        "value": "recipient@example.com"
-      },
-      {
-        "detections": [],
-        "directives": [
-          "original_email"
-        ],
-        "paths": [
-          {
-            "path": "email.rfc822",
-            "yara_meta": [
-              "type=email"
-            ]
-          }
-        ],
-        "size": 2773,
-        "tags": [
-          "email"
-        ],
-        "type": "file",
-        "value": "058d47db0c96560355d331739f267395cb73fb4377aa22bb92cdfe77ff62592b"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_subject",
-        "value": "Test Email with Nested PDF"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [
-          {
-            "path": "email.rfc822.headers",
-            "yara_meta": [
-              "type=email",
-              "type=email.headers"
-            ]
-          }
-        ],
-        "size": 478,
-        "tags": [
-          "email"
-        ],
-        "type": "file",
-        "value": "2054d2e176e0dd3a00f29d7fb068d6adc9fffe952041737dedf24515c35645b5"
-      },
-      {
-        "detections": [],
-        "directives": [
-          "extract_urls",
-          "render"
-        ],
-        "paths": [
-          {
-            "path": "test_document.pdf",
-            "yara_meta": [
-              "type=document.pdf",
-              "type=email.attachment"
-            ]
-          }
-        ],
-        "size": 329,
-        "tags": [
-          "pdf"
-        ],
-        "type": "file",
-        "value": "cc3a2ee99435eee790e38745c99a9cdf4428a8ff45e32f52fd6ba98ca4e9840b"
-      },
-      {
-        "detections": [],
-        "directives": [
-          "tracked"
-        ],
-        "paths": [],
-        "tags": [],
-        "type": "message_id",
-        "value": "<target-message-id-5678@example.com>"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_conversation",
-        "value": "sender@example.com|recipient@example.com"
       },
       {
         "detections": [],
@@ -659,6 +558,109 @@
         "tags": [],
         "type": "file",
         "value": "fd193b769914c8d0d9266619285422662b1e9736d4b61adcc930e697c7f171eb"
+      },
+      {
+        "detections": [],
+        "directives": [
+          "extract_urls",
+          "render"
+        ],
+        "paths": [
+          {
+            "path": "test_document.pdf",
+            "yara_meta": [
+              "type=document.pdf",
+              "type=email.attachment"
+            ]
+          }
+        ],
+        "size": 329,
+        "tags": [
+          "pdf"
+        ],
+        "type": "file",
+        "value": "cc3a2ee99435eee790e38745c99a9cdf4428a8ff45e32f52fd6ba98ca4e9840b"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_envelope_rcpt_to",
+        "value": "recipient@example.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_conversation",
+        "value": "sender@example.com|recipient@example.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_from",
+        "value": "sender@example.com"
+      },
+      {
+        "detections": [],
+        "directives": [
+          "tracked"
+        ],
+        "paths": [],
+        "tags": [],
+        "type": "message_id",
+        "value": "<target-message-id-5678@example.com>"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [
+          {
+            "path": "email.rfc822.headers",
+            "yara_meta": [
+              "type=email",
+              "type=email.headers"
+            ]
+          }
+        ],
+        "size": 478,
+        "tags": [
+          "email"
+        ],
+        "type": "file",
+        "value": "2054d2e176e0dd3a00f29d7fb068d6adc9fffe952041737dedf24515c35645b5"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_subject",
+        "value": "Test Email with Nested PDF"
+      },
+      {
+        "detections": [],
+        "directives": [
+          "original_email"
+        ],
+        "paths": [
+          {
+            "path": "email.rfc822",
+            "yara_meta": [
+              "type=email"
+            ]
+          }
+        ],
+        "size": 2773,
+        "tags": [
+          "email"
+        ],
+        "type": "file",
+        "value": "058d47db0c96560355d331739f267395cb73fb4377aa22bb92cdfe77ff62592b"
       }
     ],
     "results": [
@@ -681,7 +683,76 @@
           "type": "RFC 822 mail, ASCII text"
         },
         "module": "file_type",
-        "observable": 1,
+        "observable": 0,
+        "summary": "File Type Analysis: RFC 822 mail, ASCII text (message/rfc822) (email)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": false,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "text/plain",
+          "type": "ASCII text"
+        },
+        "module": "file_type",
+        "observable": 2,
+        "summary": "File Type Analysis: ASCII text (text/plain)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": false,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": true,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "application/pdf",
+          "type": "PDF document, version 1.4, 1 page(s)"
+        },
+        "module": "file_type",
+        "observable": 3,
+        "summary": "File Type Analysis: PDF document, version 1.4, 1 page(s) (application/pdf) (pdf document)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": true,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "message/rfc822",
+          "type": "RFC 822 mail, ASCII text"
+        },
+        "module": "file_type",
+        "observable": 8,
         "summary": "File Type Analysis: RFC 822 mail, ASCII text (message/rfc822) (email)",
         "tags": []
       },
@@ -690,44 +761,44 @@
         "class": "MailboxEmailAnalysis",
         "details": {},
         "module": "mailbox_email_analyzer",
-        "observable": 3,
+        "observable": 10,
         "summary": null,
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 0
-          },
-          {
-            "observable": 2
-          },
-          {
-            "observable": 8
-          },
-          {
-            "observable": 9
+            "observable": 6
           },
           {
             "observable": 4
           },
           {
+            "observable": 5
+          },
+          {
+            "observable": 1
+          },
+          {
+            "observable": 9
+          },
+          {
             "observable": 7
           },
           {
-            "observable": 10,
+            "observable": 2,
             "path": "email.rfc822.unknown_text_plain_000.txt"
           },
           {
-            "observable": 6,
+            "observable": 3,
             "path": "test_document.pdf"
           },
           {
-            "observable": 5,
+            "observable": 8,
             "path": "email.rfc822.headers"
           },
           {
-            "observable": 1,
+            "observable": 0,
             "path": "email.rfc822.combined"
           }
         ],
@@ -809,7 +880,7 @@
               "cc": [],
               "compauth_reason": null,
               "compauth_result": null,
-              "date": "2026-11-10 05:30:55.290044 +0000",
+              "date": "2026-11-16 16:32:19.894926 +0000",
               "dkim_result": null,
               "dmarc_result": null,
               "env_mail_from": "sender@example.com",
@@ -872,7 +943,7 @@
           "parsing_error": null
         },
         "module": "email_analyzer",
-        "observable": 3,
+        "observable": 10,
         "summary": "Email Analysis: From Test Sender <sender@example.com> To recipient@example.com Subject Test Email with Nested PDF",
         "tags": []
       },
@@ -895,77 +966,8 @@
           "type": "SMTP mail, ASCII text"
         },
         "module": "file_type",
-        "observable": 3,
-        "summary": "File Type Analysis: SMTP mail, ASCII text (message/rfc822) (email)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": true,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "message/rfc822",
-          "type": "RFC 822 mail, ASCII text"
-        },
-        "module": "file_type",
-        "observable": 5,
-        "summary": "File Type Analysis: RFC 822 mail, ASCII text (message/rfc822) (email)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": false,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": true,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "application/pdf",
-          "type": "PDF document, version 1.4, 1 page(s)"
-        },
-        "module": "file_type",
-        "observable": 6,
-        "summary": "File Type Analysis: PDF document, version 1.4, 1 page(s) (application/pdf) (pdf document)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": false,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "text/plain",
-          "type": "ASCII text"
-        },
-        "module": "file_type",
         "observable": 10,
-        "summary": "File Type Analysis: ASCII text (text/plain)",
+        "summary": "File Type Analysis: SMTP mail, ASCII text (message/rfc822) (email)",
         "tags": []
       }
     ],

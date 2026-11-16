@@ -1,39 +1,6 @@
 {
   "form": 1,
   "observables": {
-    "file:1cc8ae8a077411f3e31a90a7667500ee612f32db52fe60af6cd8560758f01af2": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "parser_bad_object_number.pdf.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:f4be9b5e5e1d9c4aacf342947c427462727a6ff7a284ca67f8ec5b429548aad9": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:51a2bf4f597d296aaac5d1f9f060907ae44a0b38769951d87554534f0f55e463": {
       "detections": {},
       "directives": {
@@ -94,7 +61,7 @@
       },
       "tags": {}
     },
-    "file:6349e6c78cab79a3b98c7309c8a4a91d4da5265bc538c277f9217c0b6d48879c": {
+    "file:79dca3fabd319a37930bf8ccfa13e364e4d5d26757acf204fd7d906fb5b97502": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -176,6 +143,39 @@
         "pdf": true
       }
     },
+    "file:e91caf27c50abf9073631d13920e386dad19ed8310dabc3e4c590d71197d3698": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "parser_bad_object_number.pdf.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:f4be9b5e5e1d9c4aacf342947c427462727a6ff7a284ca67f8ec5b429548aad9": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977": {
       "detections": {},
       "directives": {},
@@ -187,9 +187,9 @@
           "type=document.pdf.text": true
         }
       },
-      "redirection": "file:6349e6c78cab79a3b98c7309c8a4a91d4da5265bc538c277f9217c0b6d48879c",
+      "redirection": "file:79dca3fabd319a37930bf8ccfa13e364e4d5d26757acf204fd7d906fb5b97502",
       "relationships": {
-        "extracted_from file:6349e6c78cab79a3b98c7309c8a4a91d4da5265bc538c277f9217c0b6d48879c": true
+        "extracted_from file:79dca3fabd319a37930bf8ccfa13e364e4d5d26757acf204fd7d906fb5b97502": true
       },
       "results": {
         "file_type": {
@@ -242,14 +242,13 @@
       "results": {
         "exif": {
           "details": {
-            "error": null,
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "ExifTool:Warning": "Invalid xref table",
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 09:36:11+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 09:36:11+00:00",
-              "File:FileModifyDate": "2026:11:07 04:47:50+00:00",
+              "File:FileAccessDate": "2026:11:16 15:04:27+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 15:04:27+00:00",
+              "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "parser_bad_object_number.pdf",
               "File:FilePermissions": 100644,
               "File:FileSize": 30,

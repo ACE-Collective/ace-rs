@@ -1,0 +1,35 @@
+From: Sam Field <sam@partner-example.org>
+To: pat@corp.example
+Return-Path: <sam@partner-example.org>
+Subject: Invoice 2291 is ready
+Date: Wed, 11 Nov 2026 09:30:00 +0000
+Message-ID: <lure_signature@partner-example.org>
+MIME-Version: 1.0
+Content-Type: multipart/alternative; boundary="lure_signature-boundary"
+
+--lure_signature-boundary
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+Hi Pat,
+
+Your invoice is ready: https://billing.lure-example.net/invoice/2291
+
+Thanks, Sam
+Sam Field
+https://www.partner-example.org/about
+https://social.partner-example.org/sam
+
+--lure_signature-boundary
+Content-Type: text/html; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+
+<html><body><p>Hi Pat,</p><p>Your invoice is ready.</p><p><a href=3D"https://=
+billing.lure-example.net/invoice/2291">View invoice</a></p><p>Regards,</p><p>=
+<b>Sam Field</b><br>Accounts, Partner Example<br><a href=3D"https://www.partn=
+er-example.org/about">partner-example.org</a><br><a href=3D"https://social.pa=
+rtner-example.org/sam"><img src=3D"https://www.partner-example.org/in.png"></=
+a></p></body></html>
+
+--lure_signature-boundary--

@@ -149,13 +149,12 @@
         },
         "exif": {
           "details": {
-            "error": null,
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files/objects.rtf.rtfobj",
-              "File:FileAccessDate": "2026:11:11 09:39:58+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 09:39:58+00:00",
-              "File:FileModifyDate": "2026:11:11 09:39:58+00:00",
+              "File:FileAccessDate": "2026:11:16 15:08:53+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 15:08:53+00:00",
+              "File:FileModifyDate": "2026:11:16 15:08:53+00:00",
               "File:FileName": "objects.rtf_inner.rtf",
               "File:FilePermissions": 100666,
               "File:FileSize": 284,
@@ -241,39 +240,6 @@
         "microsoft_office": true,
         "rtf": true
       }
-    },
-    "file:0489d4483907b50d88fff5fe7a2e7a76de9bcd1f3e1b8c567ebea70f2e5f686f": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "objects.rtf.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:0d652dc8b0cc3ecb9d3111ea218e2f1f78fbe553fac50594a1aafc80e81a000b": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
     },
     "file:057e3d39cd6e6b882c9cebfb56920db712f49cd628b35bf58e1fd544c0bea20b": {
       "detections": {},
@@ -416,13 +382,12 @@
         },
         "exif": {
           "details": {
-            "error": null,
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 09:39:57+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 09:39:57+00:00",
-              "File:FileModifyDate": "2026:11:07 00:31:29+00:00",
+              "File:FileAccessDate": "2026:11:16 15:08:53+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 15:08:53+00:00",
+              "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "objects.rtf",
               "File:FilePermissions": 100644,
               "File:FileSize": 443613,
@@ -610,7 +575,6 @@
               "theme/theme/_rels/themeManager.xml.rels",
               "_rels/.rels"
             ],
-            "extraction_error": null,
             "file_count": 5
           },
           "summary": "Archive Analysis: extracted 5 of 5 files: ([Content_Types].xml, theme/theme/theme1.xml, theme/theme/themeManager.xml, theme/theme/_rels/themeManager.xml.rels, _rels/.rels)",
@@ -1560,7 +1524,6 @@
             "extracted_files": [
               "inner.txt"
             ],
-            "extraction_error": null,
             "file_count": 1
           },
           "summary": "Archive Analysis: extracted 1 of 1 files: (inner.txt)",
@@ -2023,39 +1986,6 @@
       },
       "tags": {}
     },
-    "file:547fe1061ce5522190e02484326332194dcc89214437065a4cba9d4623583b28": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "objects.rtf.rtfobj/objects.rtf_object_00000C9B.doc.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:a363fb24edce3162326238d0152b99845d0dd0be53191183aad2ceba2d168a2a": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:55a90819fa459f842e1c3ba64150010d7e3bc413edd40641c1a35cc90df5325f": {
       "detections": {},
       "directives": {
@@ -2186,39 +2116,6 @@
       "tags": {
         "extracted_rtf": true
       }
-    },
-    "file:59d4c94b6f5361e82b47452621d742ec5a0bf2f790498286f83dff2ea9ed09c8": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "objects.rtf.rtfobj/objects.rtf_inner.rtf.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:03ba05db6317fd6bd7227583402ca28e41454fb99641e279bf19404d5dd00ba7": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
     },
     "file:69e4cc0b317c045026ae6d76e5150aaf7b870d1d70c45aceef1c6b5732c641ec": {
       "detections": {},
@@ -3848,13 +3745,12 @@
       "results": {
         "exif": {
           "details": {
-            "error": null,
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files/objects.rtf.rtfobj",
-              "File:FileAccessDate": "2026:11:11 09:39:58+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 09:39:58+00:00",
-              "File:FileModifyDate": "2026:11:11 09:39:58+00:00",
+              "File:FileAccessDate": "2026:11:16 15:08:53+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 15:08:53+00:00",
+              "File:FileModifyDate": "2026:11:16 15:08:53+00:00",
               "File:FileName": "objects.rtf_object_00000C9B.doc",
               "File:FilePermissions": 100666,
               "File:FileSize": 219648,
@@ -6001,6 +5897,39 @@
         "extracted_rtf": true
       }
     },
+    "file:f12435b5a973279a008885527c2a2577d558bf9c14f2fe66e235f56ecfba0b4c": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "objects.rtf.rtfobj/objects.rtf_inner.rtf.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:03ba05db6317fd6bd7227583402ca28e41454fb99641e279bf19404d5dd00ba7": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:f3a156151f2407e1d07c8f2eaac7d5076dd7ece449e28278a00d758e605bf5ba": {
       "detections": {},
       "directives": {
@@ -6052,6 +5981,72 @@
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:f58e73bab89bbec31d9393f22a2ac7ca1701d20af148e68bb2308a1d4c6e6e91": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "objects.rtf.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:0d652dc8b0cc3ecb9d3111ea218e2f1f78fbe553fac50594a1aafc80e81a000b": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:f5f5194eac82e14a4ae36966b2287ed437d9b325896a94f311c906848c729441": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "objects.rtf.rtfobj/objects.rtf_object_00000C9B.doc.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:a363fb24edce3162326238d0152b99845d0dd0be53191183aad2ceba2d168a2a": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
           },
           "summary": null,
           "tags": {}
@@ -6216,7 +6211,6 @@
             "dispatch_state": "DONE",
             "gui_link": null,
             "query": "index=proxy hostname=\"example.com\"",
-            "query_error": null,
             "query_results": [
               {
                 "_time": "2026-10-30T14:02:11.000+00:00",
@@ -6256,7 +6250,6 @@
             "datetime_of_last_update": "2026-08-14 08:01:43+00:00",
             "domain_name": "EXAMPLE.COM",
             "emails": [],
-            "error": null,
             "ip_version": null,
             "lookup_protocol": "rdap",
             "name_servers": [
@@ -6265,6 +6258,7 @@
             ],
             "network_cidr": null,
             "network_name": null,
+            "not_found": null,
             "rdap_attempt_error": null,
             "rdap_data": {
               "copyright_notice": "",
@@ -6442,7 +6436,6 @@
             "dispatch_state": "DONE",
             "gui_link": null,
             "query": "index=proxy hostname=\"lmm.re\"",
-            "query_error": null,
             "query_results": [
               {
                 "_time": "2026-10-30T14:02:11.000+00:00",
@@ -6482,12 +6475,12 @@
             "datetime_of_last_update": null,
             "domain_name": null,
             "emails": null,
-            "error": "rdap: Failed to make a GET request to https://rdap.nic.re/domain/lmm.re: nothing recorded for GET https://rdap.nic.re/domain/lmm.re; whois: no WHOIS in a replay",
             "ip_version": null,
             "lookup_protocol": null,
             "name_servers": null,
             "network_cidr": null,
             "network_name": null,
+            "not_found": null,
             "rdap_attempt_error": "Failed to make a GET request to https://rdap.nic.re/domain/lmm.re: nothing recorded for GET https://rdap.nic.re/domain/lmm.re",
             "rdap_data": null,
             "rdap_raw_json": null,
@@ -6541,7 +6534,6 @@
             "dispatch_state": "DONE",
             "gui_link": null,
             "query": "index=proxy hostname=\"v9wq.km\"",
-            "query_error": null,
             "query_results": [
               {
                 "_time": "2026-10-30T14:02:11.000+00:00",
@@ -6581,12 +6573,12 @@
             "datetime_of_last_update": null,
             "domain_name": null,
             "emails": null,
-            "error": "rdap: no RDAP service for TLD: TLD \"km\" has no known RDAP endpoint and is unsupported. It may be supported by overrides, try using whoisit.bootstrap(overrides=True); whois: no WHOIS in a replay",
             "ip_version": null,
             "lookup_protocol": null,
             "name_servers": null,
             "network_cidr": null,
             "network_name": null,
+            "not_found": null,
             "rdap_attempt_error": "no RDAP service for TLD: TLD \"km\" has no known RDAP endpoint and is unsupported. It may be supported by overrides, try using whoisit.bootstrap(overrides=True)",
             "rdap_data": null,
             "rdap_raw_json": null,

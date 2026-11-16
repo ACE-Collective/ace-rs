@@ -313,6 +313,14 @@ impl Document {
         Ok(item)
     }
 
+    /// Gives a handle back. libqpdf keeps every handle it hands out until the document closes, so
+    /// a loop over a file's own count of things releases what each turn made, or a few MB of
+    /// repeated references become gigabytes of handles.
+    pub fn release(&self, object: Handle) {
+        // SAFETY: the handle came from this document, and nothing uses it after.
+        unsafe { sys::qpdf_oh_release(self.data, object) }
+    }
+
     /// (object id, generation); (0, 0) for a direct object.
     pub fn id(&self, object: Handle) -> (i32, i32) {
         // SAFETY: handles come from this document.

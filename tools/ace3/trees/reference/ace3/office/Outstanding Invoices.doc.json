@@ -728,39 +728,6 @@
         "macro": true
       }
     },
-    "file:5f470b318348ab624a59490e2518f09daefc8c42b7e2b980edba40e9978ed3f3": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "Outstanding Invoices.doc.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:e3b01e57c810dfdefc08e93b5131438d31ef4108834cfc11a6f6fd9b44a1f0ab": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:66ed0c9c5c4aed21c8801aae9a63030f8fae187f9c8128a59caf46a1b7acc385": {
       "detections": {},
       "directives": {
@@ -1327,6 +1294,39 @@
       },
       "tags": {}
     },
+    "file:b42e189ed865609f8bec8905c84aeb698d70d5e810f80f2082266ea86163d260": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "Outstanding Invoices.doc.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:e3b01e57c810dfdefc08e93b5131438d31ef4108834cfc11a6f6fd9b44a1f0ab": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:cef01d512075fb1274241545fbca65f6d927ab201d8be74fffd7c0957c753fa5": {
       "detections": {},
       "directives": {
@@ -1469,13 +1469,12 @@
       "results": {
         "exif": {
           "details": {
-            "error": null,
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 08:43:20+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 08:43:20+00:00",
-              "File:FileModifyDate": "2026:11:06 19:20:07+00:00",
+              "File:FileAccessDate": "2026:11:16 13:38:28+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 13:38:28+00:00",
+              "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "Outstanding Invoices.doc",
               "File:FilePermissions": 100644,
               "File:FileSize": 139776,
@@ -1796,7 +1795,6 @@
               "theme/theme/_rels/themeManager.xml.rels",
               "_rels/.rels"
             ],
-            "extraction_error": null,
             "file_count": 5
           },
           "summary": "Archive Analysis: extracted 5 of 5 files: ([Content_Types].xml, theme/theme/theme1.xml, theme/theme/themeManager.xml, theme/theme/_rels/themeManager.xml.rels, _rels/.rels)",

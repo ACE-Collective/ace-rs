@@ -1,6 +1,39 @@
 {
   "form": 1,
   "observables": {
+    "file:03fdec14c0d6a20b43ed373f040906df3abfd367edbc407cbbe77a1701399a26": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "encrypted_bad_kind.xls.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:2327b48641a7d1d1deb4198f2521692a727f9815ed4d8300706d964a0d512b1b": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:09ddbe6d159c1fae7299f5d4e1281dad6068331d9f651f45a51265277b80f0ed": {
       "detections": {},
       "directives": {
@@ -128,13 +161,12 @@
       "results": {
         "exif": {
           "details": {
-            "error": null,
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 08:58:07+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 08:58:07+00:00",
-              "File:FileModifyDate": "2026:11:07 10:46:15+00:00",
+              "File:FileAccessDate": "2026:11:16 13:55:24+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 13:55:24+00:00",
+              "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "encrypted_bad_kind.xls",
               "File:FilePermissions": 100644,
               "File:FileSize": 69125,
@@ -577,7 +609,6 @@
               "theme/theme/_rels/themeManager.xml.rels",
               "_rels/.rels"
             ],
-            "extraction_error": null,
             "file_count": 5
           },
           "summary": "Archive Analysis: extracted 5 of 5 files: ([Content_Types].xml, theme/theme/theme1.xml, theme/theme/themeManager.xml, theme/theme/_rels/themeManager.xml.rels, _rels/.rels)",
@@ -644,39 +675,6 @@
       "tags": {
         "zip": true
       }
-    },
-    "file:cffc80a0772d6ceeb792f544915498e35e907c1b32525d42c793bd8e376b5561": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "encrypted_bad_kind.xls.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:2327b48641a7d1d1deb4198f2521692a727f9815ed4d8300706d964a0d512b1b": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
     },
     "file:d2d8276ca63e307268dbf1bef2fbf45ba4c65c27494555a7742761c22984f1af": {
       "detections": {},

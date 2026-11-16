@@ -61,40 +61,7 @@
       },
       "tags": {}
     },
-    "file:550e15828d97add0cf9568adc81cff77bf858dd953a8189252ea9fcbeb1d687e": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "javascript_kids.pdf.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:b6ba798dc40cd67531cc0fc2df808e0215168a1ec02685917e6a076bc4db5d67": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
-    "file:55d811b5d3ee21e7ac79272587fdfeffc2839abe145f72ad7049b318fd3c9967": {
+    "file:88fd15cb9bbbeab6c5bab15513e80b65028d7b6afb6a7bf902ad91171b230864": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -176,6 +143,39 @@
         "pdf": true
       }
     },
+    "file:93732e1c9dd948c50256341618baee2bff960ecffede19cf58e3ddf4be0a29a0": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "javascript_kids.pdf.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:b6ba798dc40cd67531cc0fc2df808e0215168a1ec02685917e6a076bc4db5d67": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:b6ba798dc40cd67531cc0fc2df808e0215168a1ec02685917e6a076bc4db5d67": {
       "detections": {},
       "directives": {},
@@ -190,13 +190,12 @@
       "results": {
         "exif": {
           "details": {
-            "error": null,
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 09:35:10+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 09:35:10+00:00",
-              "File:FileModifyDate": "2026:11:07 04:47:50+00:00",
+              "File:FileAccessDate": "2026:11:16 15:01:28+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 15:01:28+00:00",
+              "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "javascript_kids.pdf",
               "File:FilePermissions": 100644,
               "File:FileSize": 462,
@@ -296,9 +295,9 @@
           "type=document.pdf.text": true
         }
       },
-      "redirection": "file:55d811b5d3ee21e7ac79272587fdfeffc2839abe145f72ad7049b318fd3c9967",
+      "redirection": "file:88fd15cb9bbbeab6c5bab15513e80b65028d7b6afb6a7bf902ad91171b230864",
       "relationships": {
-        "extracted_from file:55d811b5d3ee21e7ac79272587fdfeffc2839abe145f72ad7049b318fd3c9967": true,
+        "extracted_from file:88fd15cb9bbbeab6c5bab15513e80b65028d7b6afb6a7bf902ad91171b230864": true,
         "extracted_from file:b6ba798dc40cd67531cc0fc2df808e0215168a1ec02685917e6a076bc4db5d67": true
       },
       "results": {

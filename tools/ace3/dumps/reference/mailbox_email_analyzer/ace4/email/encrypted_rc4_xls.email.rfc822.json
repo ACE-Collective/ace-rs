@@ -1,6 +1,6 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "f72f8946",
+  "ace3_commit": "37a765bf",
   "also_enabled": [
     "file_type",
     "email_analyzer"
@@ -84,7 +84,7 @@
             "cc": [],
             "compauth_reason": null,
             "compauth_result": null,
-            "date": "2026-11-10 05:35:59.076440 +0000",
+            "date": "2026-11-16 16:40:04.676120 +0000",
             "dkim_result": null,
             "dmarc_result": null,
             "env_mail_from": null,
@@ -408,7 +408,7 @@
           "cc": [],
           "compauth_reason": null,
           "compauth_result": null,
-          "date": "2026-11-10 05:35:59.076440 +0000",
+          "date": "2026-11-16 16:40:04.676120 +0000",
           "dkim_result": null,
           "dmarc_result": null,
           "env_mail_from": null,
@@ -468,92 +468,10 @@
   },
   "tree_view": {
     "alert_type": "mailbox",
-    "bodies": {},
+    "bodies": {
+      "582a64370a82c0d0c4e9268abc9cd06b55ed292ad212e84f9cb0a6c7e5db1591": "VGhlIHBhc3N3b3JkIGlzIFI0QmluYXJ5MQo="
+    },
     "observables": [
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_conversation",
-        "value": "sender@example.com|recipient@example.com"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_from",
-        "value": "sender@example.com"
-      },
-      {
-        "detections": [],
-        "directives": [
-          "original_email"
-        ],
-        "paths": [
-          {
-            "path": "email.rfc822",
-            "yara_meta": [
-              "type=email"
-            ]
-          }
-        ],
-        "size": 94022,
-        "tags": [
-          "email"
-        ],
-        "type": "file",
-        "value": "530447bfc5b037d358c144717a5d35f9922c9f59985ae75b3c8dbcd4178603f1"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [
-          {
-            "path": "email.rfc822.headers",
-            "yara_meta": [
-              "type=email",
-              "type=email.headers"
-            ]
-          }
-        ],
-        "size": 269,
-        "tags": [
-          "email"
-        ],
-        "type": "file",
-        "value": "3f0c3d7d43ab701f24904b0d054e9189f8bdfee397849538ab95f69c06ed68ac"
-      },
-      {
-        "detections": [],
-        "directives": [
-          "tracked"
-        ],
-        "paths": [],
-        "tags": [],
-        "type": "message_id",
-        "value": "<encrypted_rc4_xls.email.rfc822@example.com>"
-      },
-      {
-        "detections": [],
-        "directives": [
-          "extract_urls",
-          "preview"
-        ],
-        "paths": [
-          {
-            "path": "email.rfc822.unknown_text_plain_000.txt",
-            "yara_meta": [
-              "type=email.attachment"
-            ]
-          }
-        ],
-        "size": 26,
-        "tags": [],
-        "type": "file",
-        "value": "582a64370a82c0d0c4e9268abc9cd06b55ed292ad212e84f9cb0a6c7e5db1591"
-      },
       {
         "detections": [],
         "directives": [],
@@ -575,11 +493,22 @@
       },
       {
         "detections": [],
-        "directives": [],
-        "paths": [],
+        "directives": [
+          "extract_urls",
+          "preview"
+        ],
+        "paths": [
+          {
+            "path": "email.rfc822.unknown_text_plain_000.txt",
+            "yara_meta": [
+              "type=email.attachment"
+            ]
+          }
+        ],
+        "size": 26,
         "tags": [],
-        "type": "email_subject",
-        "value": "the attached file"
+        "type": "file",
+        "value": "582a64370a82c0d0c4e9268abc9cd06b55ed292ad212e84f9cb0a6c7e5db1591"
       },
       {
         "detections": [],
@@ -606,45 +535,210 @@
       {
         "detections": [],
         "directives": [],
+        "paths": [
+          {
+            "path": "email.rfc822.headers",
+            "yara_meta": [
+              "type=email",
+              "type=email.headers"
+            ]
+          }
+        ],
+        "size": 269,
+        "tags": [
+          "email"
+        ],
+        "type": "file",
+        "value": "3f0c3d7d43ab701f24904b0d054e9189f8bdfee397849538ab95f69c06ed68ac"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_from",
+        "value": "sender@example.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
         "paths": [],
         "tags": [],
         "type": "email_to",
         "value": "recipient@example.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_subject",
+        "value": "the attached file"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_conversation",
+        "value": "sender@example.com|recipient@example.com"
+      },
+      {
+        "detections": [],
+        "directives": [
+          "original_email"
+        ],
+        "paths": [
+          {
+            "path": "email.rfc822",
+            "yara_meta": [
+              "type=email"
+            ]
+          }
+        ],
+        "size": 94022,
+        "tags": [
+          "email"
+        ],
+        "type": "file",
+        "value": "530447bfc5b037d358c144717a5d35f9922c9f59985ae75b3c8dbcd4178603f1"
+      },
+      {
+        "detections": [],
+        "directives": [
+          "tracked"
+        ],
+        "paths": [],
+        "tags": [],
+        "type": "message_id",
+        "value": "<encrypted_rc4_xls.email.rfc822@example.com>"
       }
     ],
     "results": [
       {
         "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": true,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "message/rfc822",
+          "type": "news or mail, ASCII text"
+        },
+        "module": "file_type",
+        "observable": 0,
+        "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": false,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "text/plain",
+          "type": "ASCII text"
+        },
+        "module": "file_type",
+        "observable": 1,
+        "summary": "File Type Analysis: ASCII text (text/plain)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": false,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": true,
+          "is_office_ext": true,
+          "is_ole_file": true,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "application/vnd.ms-excel",
+          "type": "Composite Document File V2 Document, Little Endian, Os: Windows, Version 10.0, Code page: 1252, Name of Creating Application: Microsoft Excel, Create Time/Date: Fri Jun  5 18:17:20 2015, Last Saved Time/Date: Mon Sep  7 15:00:28 2020, Security: 1"
+        },
+        "module": "file_type",
+        "observable": 2,
+        "summary": "File Type Analysis: Composite Document File V2 Document, Little Endian, Os: Windows, Version 10.0, Code page: 1252, Name of Creating Application: Microsoft Excel, Create Time/Date: Fri Jun  5 18:17:20 2015, Last Saved Time/Date: Mon Sep  7 15:00:28 2020, Security: 1 (application/vnd.ms-excel) (ms office document) (ole compound file)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": true,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "message/rfc822",
+          "type": "news or mail, ASCII text"
+        },
+        "module": "file_type",
+        "observable": 3,
+        "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
+        "tags": []
+      },
+      {
+        "added": [],
         "class": "MailboxEmailAnalysis",
         "details": {},
         "module": "mailbox_email_analyzer",
-        "observable": 2,
+        "observable": 8,
         "summary": null,
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 1
+            "observable": 4
           },
           {
-            "observable": 9
-          },
-          {
-            "observable": 0
+            "observable": 5
           },
           {
             "observable": 7
           },
           {
-            "observable": 4
+            "observable": 6
           },
           {
-            "observable": 5,
+            "observable": 9
+          },
+          {
+            "observable": 1,
             "path": "email.rfc822.unknown_text_plain_000.txt"
           },
           {
-            "observable": 8,
+            "observable": 2,
             "path": "invoice.xls"
           },
           {
@@ -652,7 +746,7 @@
             "path": "email.rfc822.headers"
           },
           {
-            "observable": 6,
+            "observable": 0,
             "path": "email.rfc822.combined"
           }
         ],
@@ -724,7 +818,7 @@
               "cc": [],
               "compauth_reason": null,
               "compauth_result": null,
-              "date": "2026-11-10 05:35:59.076440 +0000",
+              "date": "2026-11-16 16:40:04.676120 +0000",
               "dkim_result": null,
               "dmarc_result": null,
               "env_mail_from": null,
@@ -782,7 +876,7 @@
           "parsing_error": null
         },
         "module": "email_analyzer",
-        "observable": 2,
+        "observable": 8,
         "summary": "Email Analysis: From sender@example.com To recipient@example.com Subject the attached file",
         "tags": []
       },
@@ -805,100 +899,8 @@
           "type": "news or mail, ASCII text"
         },
         "module": "file_type",
-        "observable": 2,
-        "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": true,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "message/rfc822",
-          "type": "news or mail, ASCII text"
-        },
-        "module": "file_type",
-        "observable": 3,
-        "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": false,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "text/plain",
-          "type": "ASCII text"
-        },
-        "module": "file_type",
-        "observable": 5,
-        "summary": "File Type Analysis: ASCII text (text/plain)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": true,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "message/rfc822",
-          "type": "news or mail, ASCII text"
-        },
-        "module": "file_type",
-        "observable": 6,
-        "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": false,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": true,
-          "is_office_ext": true,
-          "is_ole_file": true,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "application/vnd.ms-excel",
-          "type": "Composite Document File V2 Document, Little Endian, Os: Windows, Version 10.0, Code page: 1252, Name of Creating Application: Microsoft Excel, Create Time/Date: Fri Jun  5 18:17:20 2015, Last Saved Time/Date: Mon Sep  7 15:00:28 2020, Security: 1"
-        },
-        "module": "file_type",
         "observable": 8,
-        "summary": "File Type Analysis: Composite Document File V2 Document, Little Endian, Os: Windows, Version 10.0, Code page: 1252, Name of Creating Application: Microsoft Excel, Create Time/Date: Fri Jun  5 18:17:20 2015, Last Saved Time/Date: Mon Sep  7 15:00:28 2020, Security: 1 (application/vnd.ms-excel) (ms office document) (ole compound file)",
+        "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
         "tags": []
       }
     ],

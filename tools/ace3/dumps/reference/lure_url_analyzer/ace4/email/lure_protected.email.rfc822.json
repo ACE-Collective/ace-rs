@@ -1,6 +1,6 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "f72f8946",
+  "ace3_commit": "37a765bf",
   "also_enabled": [
     "file_type",
     "email_analyzer",
@@ -44,7 +44,8 @@
     "nowhitespace_analyzer",
     "zip_encryption_analyzer",
     "rar_encryption_analyzer",
-    "pdf_encryption_analyzer"
+    "pdf_encryption_analyzer",
+    "pdf_link_text"
   ],
   "analyses": [
     {
@@ -63,7 +64,7 @@
               [],
               []
             ],
-            "observable_uuid": "6a8e5712-2b7e-4e26-bb13-8f483eaf03ef",
+            "observable_uuid": "257b5418-4468-4ef8-9d54-82e323d66eb6",
             "reasons": [
               "found in the email body",
               "clickable link with text 'Review payroll'",
@@ -91,7 +92,7 @@
             [],
             []
           ],
-          "observable_uuid": "6a8e5712-2b7e-4e26-bb13-8f483eaf03ef",
+          "observable_uuid": "257b5418-4468-4ef8-9d54-82e323d66eb6",
           "reasons": [
             "found in the email body",
             "clickable link with text 'Review payroll'",
@@ -186,7 +187,7 @@
             "cc": [],
             "compauth_reason": null,
             "compauth_result": null,
-            "date": "2026-11-10 05:37:11.229984 +0000",
+            "date": "2026-11-16 16:42:41.349461 +0000",
             "dkim_result": null,
             "dmarc_result": null,
             "env_mail_from": null,
@@ -471,62 +472,37 @@
   "tree_view": {
     "alert_type": "cli_analysis",
     "bodies": {
+      "4b5899ef982cc50e322ba810020194c2bb6b851a7d27dedbf372f0e7f34867cf": "UmV2aWV3IHRoZSB1cGRhdGUuCg==",
       "a296e82bc652b81222b8aedf601a3cb977d0e679bd2030fd4a9152983915ba9e": "PGh0bWw+PGJvZHk+PHA+UGxlYXNlIHJldmlldyB5b3VyIHBheXJvbGwgZGV0YWlscy48L3A+PHA+PGEgaHJlZj0iaHR0cHM6Ly9uYW0wMi5zYWZlbGlua3MucHJvdGVjdGlvbi5vdXRsb29rLmNvbS8/dXJsPWh0dHBzJTNBJTJGJTJGcGF5cm9sbC11cGRhdGUubHVyZS1leGFtcGxlLm5ldCUyRmxvZ2luJmFtcDtkYXRhPTA1JTdDMDEmYW1wO3Jlc2VydmVkPTAiPlJldmlldyBwYXlyb2xsPC9hPjwvcD48cD48YSBocmVmPSJodHRwczovL2NvcnAuZXhhbXBsZS9oZWxwIj5IZWxwPC9hPjwvcD48L2JvZHk+PC9odG1sPgo="
     },
     "observables": [
+      {
+        "detections": [],
+        "directives": [
+          "extract_urls",
+          "render"
+        ],
+        "paths": [
+          {
+            "path": "email.rfc822.unknown_text_html_000.html",
+            "yara_meta": [
+              "type=document.html",
+              "type=email.attachment"
+            ]
+          }
+        ],
+        "size": 293,
+        "tags": [],
+        "type": "file",
+        "value": "a296e82bc652b81222b8aedf601a3cb977d0e679bd2030fd4a9152983915ba9e"
+      },
       {
         "detections": [],
         "directives": [],
         "paths": [],
         "tags": [],
         "type": "uri_path",
-        "value": "/login"
-      },
-      {
-        "detections": [],
-        "directives": [
-          "extract_urls",
-          "preview"
-        ],
-        "paths": [
-          {
-            "path": "email.rfc822.unknown_text_plain_000.txt",
-            "yara_meta": [
-              "type=email.attachment"
-            ]
-          }
-        ],
-        "size": 19,
-        "tags": [],
-        "type": "file",
-        "value": "4b5899ef982cc50e322ba810020194c2bb6b851a7d27dedbf372f0e7f34867cf"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_conversation",
-        "value": "it@corp.example|pat@corp.example"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [
-          {
-            "path": "email.rfc822.combined",
-            "yara_meta": [
-              "type=email",
-              "type=email.combined"
-            ]
-          }
-        ],
-        "size": 606,
-        "tags": [
-          "email"
-        ],
-        "type": "file",
-        "value": "e315ec0ff47eb71d15af21963db676e098511e7cb58ce9b09483d47fc40a961d"
+        "value": "/?url=https%3A%2F%2Fpayroll-update.lure-example.net%2Flogin&data=05%7C01&reserved=0"
       },
       {
         "detections": [],
@@ -536,7 +512,17 @@
           "domain_in_url"
         ],
         "type": "fqdn",
-        "value": "payroll-update.lure-example.net"
+        "value": "nam02.safelinks.protection.outlook.com"
+      },
+      {
+        "detections": [],
+        "directives": [
+          "crawl"
+        ],
+        "paths": [],
+        "tags": [],
+        "type": "url",
+        "value": "https://payroll-update.lure-example.net/login"
       },
       {
         "detections": [],
@@ -561,8 +547,8 @@
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "email_subject",
-        "value": "Payroll update"
+        "type": "email_to",
+        "value": "pat@corp.example"
       },
       {
         "detections": [],
@@ -576,19 +562,45 @@
         "detections": [],
         "directives": [],
         "paths": [],
+        "tags": [],
+        "type": "email_conversation",
+        "value": "it@corp.example|pat@corp.example"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
         "tags": [
-          "domain_in_url"
+          "protected_url"
         ],
-        "type": "fqdn",
-        "value": "nam02.safelinks.protection.outlook.com"
+        "type": "url",
+        "value": "https://nam02.safelinks.protection.outlook.com/?url=https%3A%2F%2Fpayroll-update.lure-example.net%2Flogin&data=05%7C01&reserved=0"
       },
       {
         "detections": [],
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "email_to",
-        "value": "pat@corp.example"
+        "type": "fqdn",
+        "value": "corp.example"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [
+          "domain_in_url"
+        ],
+        "type": "fqdn",
+        "value": "payroll-update.lure-example.net"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_return_path",
+        "value": "bounce@mailer.corp.example"
       },
       {
         "detections": [],
@@ -600,21 +612,11 @@
       },
       {
         "detections": [],
-        "directives": [
-          "crawl"
-        ],
-        "paths": [],
-        "tags": [],
-        "type": "url",
-        "value": "https://payroll-update.lure-example.net/login"
-      },
-      {
-        "detections": [],
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "message_id",
-        "value": "<lure_protected@corp.example>"
+        "type": "email_subject",
+        "value": "Payroll update"
       },
       {
         "detections": [],
@@ -640,54 +642,54 @@
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "email_return_path",
-        "value": "bounce@mailer.corp.example"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
         "type": "uri_path",
-        "value": "/?url=https%3A%2F%2Fpayroll-update.lure-example.net%2Flogin&data=05%7C01&reserved=0"
+        "value": "/login"
       },
       {
         "detections": [],
         "directives": [],
-        "paths": [],
-        "tags": [
-          "protected_url"
+        "paths": [
+          {
+            "path": "email.rfc822.combined",
+            "yara_meta": [
+              "type=email",
+              "type=email.combined"
+            ]
+          }
         ],
-        "type": "url",
-        "value": "https://nam02.safelinks.protection.outlook.com/?url=https%3A%2F%2Fpayroll-update.lure-example.net%2Flogin&data=05%7C01&reserved=0"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "fqdn",
-        "value": "corp.example"
+        "size": 606,
+        "tags": [
+          "email"
+        ],
+        "type": "file",
+        "value": "e315ec0ff47eb71d15af21963db676e098511e7cb58ce9b09483d47fc40a961d"
       },
       {
         "detections": [],
         "directives": [
           "extract_urls",
-          "render"
+          "preview"
         ],
         "paths": [
           {
-            "path": "email.rfc822.unknown_text_html_000.html",
+            "path": "email.rfc822.unknown_text_plain_000.txt",
             "yara_meta": [
-              "type=document.html",
               "type=email.attachment"
             ]
           }
         ],
-        "size": 293,
+        "size": 19,
         "tags": [],
         "type": "file",
-        "value": "a296e82bc652b81222b8aedf601a3cb977d0e679bd2030fd4a9152983915ba9e"
+        "value": "4b5899ef982cc50e322ba810020194c2bb6b851a7d27dedbf372f0e7f34867cf"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "message_id",
+        "value": "<lure_protected@corp.example>"
       }
     ],
     "results": [
@@ -706,47 +708,12 @@
           "is_rtf_file": false,
           "is_x509": false,
           "is_zip_file": false,
-          "mime": "text/plain",
-          "type": "ASCII text"
+          "mime": "text/html",
+          "type": "HTML document, ASCII text"
         },
         "module": "file_type",
-        "observable": 1,
-        "summary": "File Type Analysis: ASCII text (text/plain)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "URLExtractionAnalysis",
-        "details": {
-          "urls": [],
-          "urls_grouped_by_domain": {}
-        },
-        "module": "url_extraction",
-        "observable": 1,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": true,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "message/rfc822",
-          "type": "news or mail, ASCII text"
-        },
-        "module": "file_type",
-        "observable": 3,
-        "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
+        "observable": 0,
+        "summary": "File Type Analysis: HTML document, ASCII text (text/html)",
         "tags": []
       },
       {
@@ -762,6 +729,70 @@
           "script_count": 0
         },
         "module": "html_js_extraction",
+        "observable": 0,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 8
+          },
+          {
+            "observable": 3
+          }
+        ],
+        "class": "URLExtractionAnalysis",
+        "details": {
+          "urls": [
+            "https://nam02.safelinks.protection.outlook.com/?url=https%3A%2F%2Fpayroll-update.lure-example.net%2Flogin&data=05%7C01&reserved=0",
+            "https://payroll-update.lure-example.net/login"
+          ],
+          "urls_grouped_by_domain": {
+            "lure-example.net": [
+              "https://payroll-update.lure-example.net/login"
+            ],
+            "outlook.com": [
+              "https://nam02.safelinks.protection.outlook.com/?url=https%3A%2F%2Fpayroll-update.lure-example.net%2Flogin&data=05%7C01&reserved=0"
+            ]
+          }
+        },
+        "module": "url_extraction",
+        "observable": 0,
+        "summary": "URL Extraction Analysis (nam02.safelinks.protection.outlook.com, payroll-update.lure-example.net)",
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 10
+          },
+          {
+            "observable": 15
+          }
+        ],
+        "class": "ParseURLAnalysis",
+        "details": {
+          "fragment": "",
+          "netloc": "payroll-update.lure-example.net",
+          "params": null,
+          "path": "/login",
+          "query": "",
+          "scheme": "https"
+        },
+        "module": "parse_url",
+        "observable": 3,
+        "summary": "URL Parser: scheme=https, netloc=payroll-update.lure-example.net, path=/login",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "ProtectedURLAnalysis",
+        "details": {
+          "extracted_url": "https://payroll-update.lure-example.net/login",
+          "protection_type": "unprotected"
+        },
+        "module": "protected_url_analyzer",
         "observable": 3,
         "summary": null,
         "tags": []
@@ -783,7 +814,7 @@
                 [],
                 []
               ],
-              "observable_uuid": "6a8e5712-2b7e-4e26-bb13-8f483eaf03ef",
+              "observable_uuid": "257b5418-4468-4ef8-9d54-82e323d66eb6",
               "reasons": [
                 "found in the email body",
                 "clickable link with text 'Review payroll'",
@@ -811,7 +842,7 @@
               [],
               []
             ],
-            "observable_uuid": "6a8e5712-2b7e-4e26-bb13-8f483eaf03ef",
+            "observable_uuid": "257b5418-4468-4ef8-9d54-82e323d66eb6",
             "reasons": [
               "found in the email body",
               "clickable link with text 'Review payroll'",
@@ -828,44 +859,44 @@
           "subject": "Payroll update"
         },
         "module": "lure_url_analyzer",
-        "observable": 5,
+        "observable": 4,
         "summary": "Lure URL Analysis: https://payroll-update.lure-example.net/login (found in the email body; clickable link with text 'Review payroll'; call-to-action text (view); unwrapped from nam02.safelinks.protection.outlook.com/?url=https%3A%2F%2Fpayroll-u...t%2Flogin&data=05%7C01&reserved=0; the only linked external domain)",
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 7
-          },
-          {
-            "observable": 9
-          },
-          {
-            "observable": 2
-          },
-          {
             "observable": 6
           },
           {
-            "observable": 12
+            "observable": 5
           },
           {
-            "observable": 14
+            "observable": 7
           },
           {
-            "observable": 1,
+            "observable": 13
+          },
+          {
+            "observable": 18
+          },
+          {
+            "observable": 11
+          },
+          {
+            "observable": 17,
             "path": "email.rfc822.unknown_text_plain_000.txt"
           },
           {
-            "observable": 18,
+            "observable": 0,
             "path": "email.rfc822.unknown_text_html_000.html"
           },
           {
-            "observable": 13,
+            "observable": 14,
             "path": "email.rfc822.headers"
           },
           {
-            "observable": 3,
+            "observable": 16,
             "path": "email.rfc822.combined"
           }
         ],
@@ -941,7 +972,7 @@
               "cc": [],
               "compauth_reason": null,
               "compauth_result": null,
-              "date": "2026-11-10 05:37:11.229984 +0000",
+              "date": "2026-11-16 16:42:41.349461 +0000",
               "dkim_result": null,
               "dmarc_result": null,
               "env_mail_from": null,
@@ -1001,7 +1032,7 @@
           "parsing_error": null
         },
         "module": "email_analyzer",
-        "observable": 5,
+        "observable": 4,
         "summary": "Email Analysis: From IT Desk <it@corp.example> To pat@corp.example Subject Payroll update",
         "tags": []
       },
@@ -1024,7 +1055,7 @@
           "type": "news or mail, ASCII text"
         },
         "module": "file_type",
-        "observable": 5,
+        "observable": 4,
         "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
         "tags": []
       },
@@ -1041,14 +1072,14 @@
           "script_count": 0
         },
         "module": "html_js_extraction",
-        "observable": 5,
+        "observable": 4,
         "summary": null,
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 17
+            "observable": 9
           }
         ],
         "class": "EmailAddressFQDNAnalysis",
@@ -1056,14 +1087,14 @@
           "domain": "corp.example"
         },
         "module": "email_address_fqdn_analyzer",
-        "observable": 7,
+        "observable": 5,
         "summary": "Email Address FQDN: corp.example",
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 17
+            "observable": 9
           }
         ],
         "class": "EmailAddressFQDNAnalysis",
@@ -1071,42 +1102,101 @@
           "domain": "corp.example"
         },
         "module": "email_address_fqdn_analyzer",
-        "observable": 9,
+        "observable": 6,
         "summary": "Email Address FQDN: corp.example",
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 4
+            "observable": 2
           },
           {
-            "observable": 0
+            "observable": 1
           }
         ],
         "class": "ParseURLAnalysis",
         "details": {
           "fragment": "",
-          "netloc": "payroll-update.lure-example.net",
+          "netloc": "nam02.safelinks.protection.outlook.com",
           "params": null,
-          "path": "/login",
-          "query": "",
+          "path": "/",
+          "query": "url=https%3A%2F%2Fpayroll-update.lure-example.net%2Flogin&data=05%7C01&reserved=0",
           "scheme": "https"
         },
         "module": "parse_url",
+        "observable": 8,
+        "summary": "URL Parser: scheme=https, netloc=nam02.safelinks.protection.outlook.com, path=/, query=url=https%3A%2F%2Fpayroll-update.lure-example.net%2Flogin&data=05%7C01&reserved=0, params=(url=https://payroll-update.lure-example.net/login, data=05|01, reserved=0)",
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 3
+          }
+        ],
+        "class": "ProtectedURLAnalysis",
+        "details": {
+          "extracted_url": "https://payroll-update.lure-example.net/login",
+          "protection_type": "safelinks_outlook"
+        },
+        "module": "protected_url_analyzer",
+        "observable": 8,
+        "summary": "Protected URL Analysis: detected type safelinks_outlook extracted url https://payroll-update.lure-example.net/login",
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 12
+          }
+        ],
+        "class": "EmailAddressFQDNAnalysis",
+        "details": {
+          "domain": "mailer.corp.example"
+        },
+        "module": "email_address_fqdn_analyzer",
         "observable": 11,
-        "summary": "URL Parser: scheme=https, netloc=payroll-update.lure-example.net, path=/login",
+        "summary": "Email Address FQDN: mailer.corp.example",
         "tags": []
       },
       {
         "added": [],
-        "class": "ProtectedURLAnalysis",
+        "class": "FileTypeAnalysis",
         "details": {
-          "extracted_url": "https://payroll-update.lure-example.net/login",
-          "protection_type": "unprotected"
+          "is_email_file": true,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "message/rfc822",
+          "type": "news or mail, ASCII text"
         },
-        "module": "protected_url_analyzer",
-        "observable": 11,
+        "module": "file_type",
+        "observable": 14,
+        "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "HTMLJavaScriptExtractionAnalysis",
+        "details": {
+          "dom_snapshot_files": [],
+          "duplicate_count": 0,
+          "extracted_files": [],
+          "extracted_uri_paths": [],
+          "extracted_urls": [],
+          "inline_handlers": [],
+          "script_count": 0
+        },
+        "module": "html_js_extraction",
+        "observable": 14,
         "summary": null,
         "tags": []
       },
@@ -1129,7 +1219,7 @@
           "type": "news or mail, ASCII text"
         },
         "module": "file_type",
-        "observable": 13,
+        "observable": 16,
         "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
         "tags": []
       },
@@ -1146,62 +1236,8 @@
           "script_count": 0
         },
         "module": "html_js_extraction",
-        "observable": 13,
+        "observable": 16,
         "summary": null,
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 10
-          }
-        ],
-        "class": "EmailAddressFQDNAnalysis",
-        "details": {
-          "domain": "mailer.corp.example"
-        },
-        "module": "email_address_fqdn_analyzer",
-        "observable": 14,
-        "summary": "Email Address FQDN: mailer.corp.example",
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 8
-          },
-          {
-            "observable": 15
-          }
-        ],
-        "class": "ParseURLAnalysis",
-        "details": {
-          "fragment": "",
-          "netloc": "nam02.safelinks.protection.outlook.com",
-          "params": null,
-          "path": "/",
-          "query": "url=https%3A%2F%2Fpayroll-update.lure-example.net%2Flogin&data=05%7C01&reserved=0",
-          "scheme": "https"
-        },
-        "module": "parse_url",
-        "observable": 16,
-        "summary": "URL Parser: scheme=https, netloc=nam02.safelinks.protection.outlook.com, path=/, query=url=https%3A%2F%2Fpayroll-update.lure-example.net%2Flogin&data=05%7C01&reserved=0, params=(url=https://payroll-update.lure-example.net/login, data=05|01, reserved=0)",
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 11
-          }
-        ],
-        "class": "ProtectedURLAnalysis",
-        "details": {
-          "extracted_url": "https://payroll-update.lure-example.net/login",
-          "protection_type": "safelinks_outlook"
-        },
-        "module": "protected_url_analyzer",
-        "observable": 16,
-        "summary": "Protected URL Analysis: detected type safelinks_outlook extracted url https://payroll-update.lure-example.net/login",
         "tags": []
       },
       {
@@ -1219,58 +1255,24 @@
           "is_rtf_file": false,
           "is_x509": false,
           "is_zip_file": false,
-          "mime": "text/html",
-          "type": "HTML document, ASCII text"
+          "mime": "text/plain",
+          "type": "ASCII text"
         },
         "module": "file_type",
-        "observable": 18,
-        "summary": "File Type Analysis: HTML document, ASCII text (text/html)",
+        "observable": 17,
+        "summary": "File Type Analysis: ASCII text (text/plain)",
         "tags": []
       },
       {
         "added": [],
-        "class": "HTMLJavaScriptExtractionAnalysis",
-        "details": {
-          "dom_snapshot_files": [],
-          "duplicate_count": 0,
-          "extracted_files": [],
-          "extracted_uri_paths": [],
-          "extracted_urls": [],
-          "inline_handlers": [],
-          "script_count": 0
-        },
-        "module": "html_js_extraction",
-        "observable": 18,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 16
-          },
-          {
-            "observable": 11
-          }
-        ],
         "class": "URLExtractionAnalysis",
         "details": {
-          "urls": [
-            "https://nam02.safelinks.protection.outlook.com/?url=https%3A%2F%2Fpayroll-update.lure-example.net%2Flogin&data=05%7C01&reserved=0",
-            "https://payroll-update.lure-example.net/login"
-          ],
-          "urls_grouped_by_domain": {
-            "lure-example.net": [
-              "https://payroll-update.lure-example.net/login"
-            ],
-            "outlook.com": [
-              "https://nam02.safelinks.protection.outlook.com/?url=https%3A%2F%2Fpayroll-update.lure-example.net%2Flogin&data=05%7C01&reserved=0"
-            ]
-          }
+          "urls": [],
+          "urls_grouped_by_domain": {}
         },
         "module": "url_extraction",
-        "observable": 18,
-        "summary": "URL Extraction Analysis (nam02.safelinks.protection.outlook.com, payroll-update.lure-example.net)",
+        "observable": 17,
+        "summary": null,
         "tags": []
       }
     ],

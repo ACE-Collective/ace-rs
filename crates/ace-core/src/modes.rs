@@ -89,6 +89,7 @@ impl Modes {
                         "message_id_analyzer_v2",
                         "network_identifier",
                         "parse_url",
+                        "pdf_link_text",
                         "phishkit_analyzer",
                         "rdap_analyzer",
                         "snort_signature_analysis_v1",

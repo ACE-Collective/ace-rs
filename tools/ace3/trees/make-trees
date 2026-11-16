@@ -74,7 +74,7 @@ ENABLE = [
     "zip_encryption_analyzer", "rar_encryption_analyzer", "pdf_encryption_analyzer", "lure_url_analyzer",
     "mailbox_email_analyzer", "email_conversation_attachment_analyzer", "email_conversation_link_analyzer",
     "email_archiver", "encrypted_archive_analyzer", "url_email_pivot_analyzer", "message_id_analyzer_v2",
-    "pdftotext", "exif", "qrcode", "ocr", "java_class_decompiler", "upx", "autoit", "de4dot", "ilspy",
+    "pdftotext", "pdf_link_text", "exif", "qrcode", "ocr", "java_class_decompiler", "upx", "autoit", "de4dot", "ilspy",
     "dmg_analyzer", "cve_2021_30657_analyzer", "pcap_analyzer", "pcap_dns", "pcap_tls", "pcap_http", "pcap_files",
     "pcap_tls_decryption", "tls_keylog", "user_defined_tagging", "observable_detection", "site_tagger",
     "javascript_deobfuscation", "observable_modifier", "configuration_defined_tagging",
@@ -243,6 +243,14 @@ def save_dns_recording(recorded):
     }, indent=2) + "\n")
 
 
+def ace3_commit():
+    """The commit ace3's checkout is at in the container, and git's complaint when it can't say."""
+    result = docker("exec", CONTAINER, "git", "-C", "/opt/ace", "rev-parse", "--short=8", "HEAD", check=False)
+    if result.returncode != 0:
+        return None, result.stderr.decode(errors="replace").strip() or f"git exited {result.returncode}"
+    return result.stdout.decode().strip(), None
+
+
 def main():
     manifest = json.loads((REPO / "samples" / "manifest.json").read_text())
     wanted = sys.argv[1:]
@@ -250,6 +258,10 @@ def main():
     missing = set(wanted) - {s["path"] for s in samples}
     if missing:
         raise SystemExit(f"not in the manifest: {sorted(missing)}")
+    # read before the samples run, so a checkout that can't say its commit costs no run
+    commit, error = ace3_commit()
+    if commit is None:
+        raise SystemExit(f"can't read ace3's commit: {error}")
     dumps.copy_in(["splunk"])
     copy_tree(HERE / "signatures", f"{REMOTE}/signatures")
     copy_tree(RDAP_RECORDING, f"{REMOTE}/rdap")
@@ -282,10 +294,18 @@ def main():
     finally:
         stop_fake()
     save_dns_recording(docker("exec", CONTAINER, "cat", f"{FAKE}/dns/dns.json", check=False).stdout)
-    commit = docker(
-        "exec", CONTAINER, "git", "-C", "/opt/ace", "rev-parse", "--short=8", "HEAD"
-    ).stdout.decode().strip()
+    # the trees are of one commit only if the checkout stayed where it was
+    after, error = ace3_commit()
+    if after is not None and after != commit:
+        raise SystemExit(f"ace3's checkout moved from {commit} to {after} while the trees were made; make them again")
     (OUT / "index.json").write_text(json.dumps({"ace3_commit": commit}, indent=2) + "\n")
+    if after is None:
+        # seen twice on 2026-11-16, each time at the end of a run of over an hour and never in a
+        # short one, with git's exit 128; the same command by hand right after answered
+        raise SystemExit(
+            f"the trees were made at {commit}, but ace3's commit couldn't be read again at the end "
+            f"({error}): check that its checkout didn't move"
+        )
     return 0
 
 

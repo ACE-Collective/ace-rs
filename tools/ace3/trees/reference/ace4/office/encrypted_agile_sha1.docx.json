@@ -66,6 +66,39 @@
       },
       "tags": {}
     },
+    "file:2156e3b3292243b6e7d6c958cffd97e3883abb3a52d4a586cb825f46cde09a74": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "encrypted_agile_sha1.docx.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:3c32d3d78324204d11407d30c736a71564c75a9d4582aa6215cac2379ee44cbd": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:3c32d3d78324204d11407d30c736a71564c75a9d4582aa6215cac2379ee44cbd": {
       "detections": {},
       "directives": {},
@@ -79,13 +112,12 @@
       "results": {
         "exif": {
           "details": {
-            "error": null,
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 08:57:47+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 08:57:47+00:00",
-              "File:FileModifyDate": "2026:11:07 10:46:15+00:00",
+              "File:FileAccessDate": "2026:11:16 13:55:00+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 13:55:00+00:00",
+              "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "encrypted_agile_sha1.docx",
               "File:FilePermissions": 100644,
               "File:FileSize": 17920,
@@ -132,7 +164,6 @@
             "email": false,
             "email_body": null,
             "encryption_info": null,
-            "error": "could not crack password",
             "password": null,
             "word_list": [
               "VelvetSweatshop",
@@ -504,39 +535,6 @@
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
-    "file:eb0f9c54a3e2f8d8b7d6344de4ce2030ceabc8a42db925a538b496c6cd3e97f4": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "encrypted_agile_sha1.docx.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:3c32d3d78324204d11407d30c736a71564c75a9d4582aa6215cac2379ee44cbd": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
           },
           "summary": null,
           "tags": {}

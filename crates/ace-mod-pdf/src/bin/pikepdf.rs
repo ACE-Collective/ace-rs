@@ -1,5 +1,5 @@
 //! The Rust side of `tools/library-diff/run pikepdf`: what `tools/library-diff/adapters/pikepdf.py`
-//! reads of a file, on libqpdf.
+//! reads of a file, on libqpdf, for the PDF module and for the link text module.
 
 use std::path::Path;
 
@@ -16,11 +16,9 @@ fn raised(error: &Raised) -> Value {
 }
 
 fn annotation_uris(objects: &Objects<'_>) -> Result<Value, Raised> {
-    let mut uris = Vec::new();
-    for uri in objects.annotation_uris()? {
-        uris.push(objects.value_of(&uri)?);
-    }
-    Ok(Value::Array(uris))
+    Ok(Value::Array(
+        objects.annotation_uris(|uri| objects.value_of(uri))?,
+    ))
 }
 
 fn form_fields(objects: &Objects<'_>) -> Result<Value, Raised> {
@@ -46,6 +44,30 @@ fn javascript(objects: &Objects<'_>) -> Result<Value, Raised> {
         }));
     }
     Ok(Value::Array(scripts))
+}
+
+/// A float as its 64 bits, as the adapter writes one.
+fn bits(value: f64) -> String {
+    format!("{:016x}", value.to_bits())
+}
+
+/// The adapter's `links`: ace3's `read_links` with its default `max_links`.
+fn links(objects: &Objects<'_>) -> Result<Value, Raised> {
+    let (links, truncated) = ace_mod_pdf::links::read_links(objects, 200)?;
+    let links: Vec<Value> = links
+        .iter()
+        .map(|link| {
+            json!({
+                "url": link.url,
+                "page": link.page,
+                "rect": link.rect.map(|rect| rect.map(bits)),
+                "rotated": link.rotated,
+                "mediabox": link.mediabox.map(bits),
+                "contents": link.text,
+            })
+        })
+        .collect();
+    Ok(json!({"links": links, "truncated": truncated}))
 }
 
 fn read(path: &Path) -> Result<Value, Raised> {
@@ -75,10 +97,11 @@ fn read(path: &Path) -> Result<Value, Raised> {
             },
         );
     }
-    let parts: [(&str, Part); 3] = [
+    let parts: [(&str, Part); 4] = [
         ("annotation_uris", annotation_uris),
         ("form_fields", form_fields),
         ("javascript", javascript),
+        ("links", links),
     ];
     for (name, part) in parts {
         let value = part(&objects).unwrap_or_else(|error| raised(&error));

@@ -430,7 +430,6 @@
               "mimetype",
               "Thumbnails/thumbnail.png"
             ],
-            "extraction_error": null,
             "file_count": 12
           },
           "summary": "Archive Analysis: extracted 12 of 12 files: (settings.xml, styles.xml, content.xml, meta.xml, Basic/script-lc.xml, Basic/Standard/script-lb.xml, Basic/Standard/Module1.xml, META-INF/manifest.xml, Configurations2/accelerator/current.xml, manifest.rdf, mimetype, Thumbnails/thumbnail.png)",
@@ -438,13 +437,12 @@
         },
         "exif": {
           "details": {
-            "error": null,
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 08:43:40+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 08:43:40+00:00",
-              "File:FileModifyDate": "2026:11:06 19:20:07+00:00",
+              "File:FileAccessDate": "2026:11:16 13:38:50+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 13:38:50+00:00",
+              "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "demo.odt",
               "File:FilePermissions": 100644,
               "File:FileSize": 7668,
@@ -529,6 +527,39 @@
         "microsoft_office": true,
         "zip": true
       }
+    },
+    "file:86ea9cb55a1c1793fa01c96abf3926a15bda08f868f82a5a9df9418230e33c13": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "demo.odt.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:8495d37825dab8744f7d2c8049fc6b70b1777b9184f0abe69ce314795480ce39": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
     },
     "file:8fbddec35c26494c0b123a5900c32e1cbb8de7e6e5f5e235dd9bc6b470170d3f": {
       "detections": {},
@@ -830,39 +861,6 @@
           "details": {
             "extracted_text": null,
             "inverted": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
-    "file:ae160637810a10a440eddfbf7b79819a6197769d81846afdaa5e3e0e9f273c49": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "demo.odt.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:8495d37825dab8744f7d2c8049fc6b70b1777b9184f0abe69ce314795480ce39": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
           },
           "summary": null,
           "tags": {}
@@ -1291,7 +1289,6 @@
             "dispatch_state": "DONE",
             "gui_link": null,
             "query": "index=proxy hostname=\"example.com\"",
-            "query_error": null,
             "query_results": [
               {
                 "_time": "2026-10-30T14:02:11.000+00:00",
@@ -1331,7 +1328,6 @@
             "datetime_of_last_update": "2026-08-14 08:01:43+00:00",
             "domain_name": "EXAMPLE.COM",
             "emails": [],
-            "error": null,
             "ip_version": null,
             "lookup_protocol": "rdap",
             "name_servers": [
@@ -1340,6 +1336,7 @@
             ],
             "network_cidr": null,
             "network_name": null,
+            "not_found": null,
             "rdap_attempt_error": null,
             "rdap_data": {
               "copyright_notice": "",
@@ -1517,7 +1514,6 @@
             "dispatch_state": "DONE",
             "gui_link": null,
             "query": "index=proxy hostname=\"openoffice.org\"",
-            "query_error": null,
             "query_results": [
               {
                 "_time": "2026-10-30T14:02:11.000+00:00",
@@ -1557,12 +1553,12 @@
             "datetime_of_last_update": null,
             "domain_name": null,
             "emails": null,
-            "error": "rdap: Failed to make a GET request to https://rdap.publicinterestregistry.org/rdap/domain/openoffice.org: nothing recorded for GET https://rdap.publicinterestregistry.org/rdap/domain/openoffice.org; whois: no WHOIS in a replay",
             "ip_version": null,
             "lookup_protocol": null,
             "name_servers": null,
             "network_cidr": null,
             "network_name": null,
+            "not_found": null,
             "rdap_attempt_error": "Failed to make a GET request to https://rdap.publicinterestregistry.org/rdap/domain/openoffice.org: nothing recorded for GET https://rdap.publicinterestregistry.org/rdap/domain/openoffice.org",
             "rdap_data": null,
             "rdap_raw_json": null,

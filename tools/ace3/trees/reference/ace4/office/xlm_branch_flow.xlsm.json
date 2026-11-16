@@ -59,6 +59,39 @@
       },
       "tags": {}
     },
+    "file:0a96162cdf2866f6b97fcc1f7efd71297221a3bc8e8750d113d92cc464b7430a": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "xlm_branch_flow.xlsm.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:7f787d2170119c9ac6295a0cbf619d01c139041fd40493c01b6db8976f8544bf": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:12296a2e3e1f199897e1c188e2eb4d5b3ba984748fbfa82e51157f53fbef555f": {
       "detections": {},
       "directives": {},
@@ -87,39 +120,6 @@
           "summary": "File Type Analysis: ASCII text (text/plain)",
           "tags": {}
         },
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
-    "file:3771233058e1aaa1999cd4c65f76d5913129bf18f827471e6f34ab2bdc02e510": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "xlm_branch_flow.xlsm.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:7f787d2170119c9ac6295a0cbf619d01c139041fd40493c01b6db8976f8544bf": true
-      },
-      "results": {
         "observable_detection": {
           "details": {
             "for_detection": false
@@ -378,7 +378,6 @@
               "xl/_rels/workbook.xml.rels",
               "_rels/.rels"
             ],
-            "extraction_error": null,
             "file_count": 5
           },
           "summary": "Archive Analysis: extracted 5 of 5 files: ([Content_Types].xml, xl/workbook.xml, xl/macrosheets/sheet1.xml, xl/_rels/workbook.xml.rels, _rels/.rels)",
@@ -386,13 +385,12 @@
         },
         "exif": {
           "details": {
-            "error": null,
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 09:13:49+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 09:13:49+00:00",
-              "File:FileModifyDate": "2026:11:07 14:35:12+00:00",
+              "File:FileAccessDate": "2026:11:16 14:13:50+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 14:13:50+00:00",
+              "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "xlm_branch_flow.xlsm",
               "File:FilePermissions": 100644,
               "File:FileSize": 3791,

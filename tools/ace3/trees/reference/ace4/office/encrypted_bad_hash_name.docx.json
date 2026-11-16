@@ -131,6 +131,39 @@
       },
       "tags": {}
     },
+    "file:a8cbc1e0dcd5984bad8941c6dc26d3afa0ebd4f2d5e67b97a40dc07d332a2169": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "encrypted_bad_hash_name.docx.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:b9bc3f38d05479fe01fcab2ef38311388c1f115a621dacfeb9135c261d53f56d": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:ad7facb2586fc6e966c004d7d1d16b024f5805ff7cb47c7a85dabd8b48892ca7": {
       "detections": {},
       "directives": {
@@ -274,13 +307,12 @@
       "results": {
         "exif": {
           "details": {
-            "error": null,
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 08:57:58+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 08:57:58+00:00",
-              "File:FileModifyDate": "2026:11:07 10:46:15+00:00",
+              "File:FileAccessDate": "2026:11:16 13:55:12+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 13:55:12+00:00",
+              "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "encrypted_bad_hash_name.docx",
               "File:FilePermissions": 100644,
               "File:FileSize": 9216,
@@ -327,7 +359,6 @@
             "email": false,
             "email_body": null,
             "encryption_info": null,
-            "error": "office2john.py failed: encrypted_bad_hash_name.docx uses un-supported hashing algorithm WHIRLPOOL, please file a bug! \n",
             "password": null,
             "word_list": []
           },
@@ -443,39 +474,6 @@
         "xml_plain_text_analyzer": {
           "details": {
             "xml_plain_text": null
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
-    "file:da2262a246928fd02993b9e43fa09184ef1338378fb6e009f7238610cb8f8f6b": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "encrypted_bad_hash_name.docx.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:b9bc3f38d05479fe01fcab2ef38311388c1f115a621dacfeb9135c261d53f56d": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
           },
           "summary": null,
           "tags": {}

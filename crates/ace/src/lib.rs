@@ -78,8 +78,8 @@ pub fn parser_pool() -> ParserPool {
 
 /// The sandbox pool (PLAN.md 7.3, 7.5 batches 10 to 12): a parser pool whose image carries the
 /// programs its modules run in the sandbox runner (`ace_sdk::tools::SANDBOX_TOOLS`): the archive
-/// module, for ACE archives' unace; the PDF module, for Ghostscript's rewrite; pdftotext, exif,
-/// qrcode and ocr; the unpackers and decompilers, java_class_decompiler, upx, autoit, de4dot
+/// module, for ACE archives' unace; the PDF module, for Ghostscript's rewrite; pdftotext, the PDF
+/// link text module, which runs pdftotext too, exif, qrcode and ocr; the unpackers and decompilers, java_class_decompiler, upx, autoit, de4dot
 /// and ilspy; the macOS image modules, dmg_analyzer and cve_2021_30657_analyzer; and the two
 /// packet capture modules that run tshark, pcap_analyzer and pcap_tls_decryption.
 pub fn sandbox_pool() -> ParserPool {
@@ -88,6 +88,7 @@ pub fn sandbox_pool() -> ParserPool {
         .module::<ace_mod_archive::ArchiveAnalyzer>()
         .module::<ace_mod_pdf::PdfAnalyzer>()
         .module::<ace_mod_sandbox::PdfTextAnalyzer>()
+        .module::<ace_mod_pdf::PdfLinkTextAnalyzer>()
         .module::<ace_mod_sandbox::ExifAnalyzer>()
         .module::<ace_mod_sandbox::QrCodeAnalyzer>()
         .module::<ace_mod_sandbox::OcrAnalyzer>()

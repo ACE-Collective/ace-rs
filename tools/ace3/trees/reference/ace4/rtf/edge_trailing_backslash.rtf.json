@@ -1,6 +1,39 @@
 {
   "form": 1,
   "observables": {
+    "file:5f1c9a60c04167f2885b7b641422df4151b86afb66a49f0ad9687474d2f1f8d8": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "edge_trailing_backslash.rtf.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:693a9ec384dea3d26f390adeaa1649c0d2e1ead842c064f48670267c79abb8c4": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:693a9ec384dea3d26f390adeaa1649c0d2e1ead842c064f48670267c79abb8c4": {
       "detections": {},
       "directives": {},
@@ -20,14 +53,13 @@
         },
         "exif": {
           "details": {
-            "error": null,
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "ExifTool:Warning": "Unspecified RTF encoding. Will assume Latin",
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 09:39:39+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 09:39:39+00:00",
-              "File:FileModifyDate": "2026:11:07 15:11:53+00:00",
+              "File:FileAccessDate": "2026:11:16 15:08:31+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 15:08:31+00:00",
+              "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "edge_trailing_backslash.rtf",
               "File:FilePermissions": 100644,
               "File:FileSize": 21,
@@ -181,39 +213,6 @@
         "microsoft_office": true,
         "rtf": true
       }
-    },
-    "file:b24c7fc9f89c3e762b5f0de5f8763a33b60e9d932a0654f9fd403a5b757609c2": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "edge_trailing_backslash.rtf.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:693a9ec384dea3d26f390adeaa1649c0d2e1ead842c064f48670267c79abb8c4": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
     },
     "md5:1ede86c71ad87b0ec9cec9069b3c374a": {
       "detections": {},

@@ -235,6 +235,10 @@ pub fn modules(settings: &Value) -> Result<Modules, SetupError> {
             block("pdftotext"),
             &secrets,
         )?)
+        .with_parser(Entry::<ace_mod_pdf::PdfLinkTextAnalyzer>::parser(
+            block("pdf_link_text"),
+            &secrets,
+        )?)
         .with_parser(Entry::<ace_mod_sandbox::ExifAnalyzer>::parser(
             block("exif"),
             &secrets,

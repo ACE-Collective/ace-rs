@@ -1,138 +1,7 @@
 {
   "form": 1,
   "observables": {
-    "file:3346c0a8ff605c9bed65d96521e2d5285eefd91b7bb8263c1afe3ef7d57e8324": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {},
-      "paths": {
-        "parser_nested_490.pdf": {
-          "type=document.pdf": true,
-          "type=email.attachment": true
-        }
-      },
-      "relationships": {},
-      "results": {
-        "exif": {
-          "details": {
-            "error": null,
-            "exifdata": {
-              "ExifTool:ExifToolVersion": 13.25,
-              "ExifTool:Warning": "Invalid xref table",
-              "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 09:36:37+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 09:36:37+00:00",
-              "File:FileModifyDate": "2026:11:07 04:47:50+00:00",
-              "File:FileName": "parser_nested_490.pdf",
-              "File:FilePermissions": 100644,
-              "File:FileSize": 3463,
-              "File:FileType": "PDF",
-              "File:FileTypeExtension": "PDF",
-              "File:MIMEType": "application/pdf",
-              "PDF:Linearized": false,
-              "PDF:PDFVersion": 1.7,
-              "SourceFile": "<root>/files/parser_nested_490.pdf"
-            },
-            "output_dir": "<root>/files/parser_nested_490.pdf.exif"
-          },
-          "summary": "Exiftool Analysis: PDFVersion=1.7, Linearized=False",
-          "tags": {}
-        },
-        "file_hash_analyzer": {
-          "details": {
-            "md5": "c3f003dbd9f79d8e7039050b4aa0b4a6",
-            "sha1": "789547e0fe32683bcd59016a752559791c8665cc",
-            "sha256": "3346c0a8ff605c9bed65d96521e2d5285eefd91b7bb8263c1afe3ef7d57e8324"
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "file_type": {
-          "details": {
-            "is_email_file": false,
-            "is_jar_file": false,
-            "is_lnk_file": false,
-            "is_office_document": false,
-            "is_office_ext": false,
-            "is_ole_file": false,
-            "is_pdf_file": true,
-            "is_pe_file": false,
-            "is_rtf_file": false,
-            "is_x509": false,
-            "is_zip_file": false,
-            "mime": "application/pdf",
-            "type": "PDF document, version 1.7"
-          },
-          "summary": "File Type Analysis: PDF document, version 1.7 (application/pdf) (pdf document)",
-          "tags": {}
-        },
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "pdf_analyzer": {
-          "details": {},
-          "summary": null,
-          "tags": {}
-        },
-        "pdftotext": {
-          "details": {
-            "output_path": null,
-            "stderr": "Syntax Error: Couldn't find trailer dictionary\nSyntax Error: Couldn't find trailer dictionary\nSyntax Error: Couldn't read xref table\n",
-            "stdout": ""
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {
-        "pdf": true
-      }
-    },
-    "file:702ec6cf6d7a915d8357ab045a2c9e0e8241fa600eeb8fb221a4dcaa519002e4": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "parser_nested_490.pdf.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:3346c0a8ff605c9bed65d96521e2d5285eefd91b7bb8263c1afe3ef7d57e8324": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
-    "file:adc9a7f8d896d12cf4b107f1ce41c383efd72bb699994a62f80b3399c18ac761": {
+    "file:298f22668a86e6118427f4a4a086fd93fbf3053d1223fe8e73177d595cb357ed": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -214,6 +83,136 @@
         "pdf": true
       }
     },
+    "file:3346c0a8ff605c9bed65d96521e2d5285eefd91b7bb8263c1afe3ef7d57e8324": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "paths": {
+        "parser_nested_490.pdf": {
+          "type=document.pdf": true,
+          "type=email.attachment": true
+        }
+      },
+      "relationships": {},
+      "results": {
+        "exif": {
+          "details": {
+            "exifdata": {
+              "ExifTool:ExifToolVersion": 13.25,
+              "ExifTool:Warning": "Invalid xref table",
+              "File:Directory": "<root>/files",
+              "File:FileAccessDate": "2026:11:16 15:04:58+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 15:04:58+00:00",
+              "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
+              "File:FileName": "parser_nested_490.pdf",
+              "File:FilePermissions": 100644,
+              "File:FileSize": 3463,
+              "File:FileType": "PDF",
+              "File:FileTypeExtension": "PDF",
+              "File:MIMEType": "application/pdf",
+              "PDF:Linearized": false,
+              "PDF:PDFVersion": 1.7,
+              "SourceFile": "<root>/files/parser_nested_490.pdf"
+            },
+            "output_dir": "<root>/files/parser_nested_490.pdf.exif"
+          },
+          "summary": "Exiftool Analysis: PDFVersion=1.7, Linearized=False",
+          "tags": {}
+        },
+        "file_hash_analyzer": {
+          "details": {
+            "md5": "c3f003dbd9f79d8e7039050b4aa0b4a6",
+            "sha1": "789547e0fe32683bcd59016a752559791c8665cc",
+            "sha256": "3346c0a8ff605c9bed65d96521e2d5285eefd91b7bb8263c1afe3ef7d57e8324"
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": true,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/pdf",
+            "type": "PDF document, version 1.7"
+          },
+          "summary": "File Type Analysis: PDF document, version 1.7 (application/pdf) (pdf document)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "pdf_analyzer": {
+          "details": {},
+          "summary": null,
+          "tags": {}
+        },
+        "pdftotext": {
+          "details": {
+            "output_path": null,
+            "stderr": "Syntax Error: Couldn't find trailer dictionary\nSyntax Error: Couldn't find trailer dictionary\nSyntax Error: Couldn't read xref table\n",
+            "stdout": ""
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {
+        "pdf": true
+      }
+    },
+    "file:b81f47b04fd9a3abbbaf398b38373498da9e626c21dc66025f43c2437cde1a2f": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "parser_nested_490.pdf.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:3346c0a8ff605c9bed65d96521e2d5285eefd91b7bb8263c1afe3ef7d57e8324": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:e2095698f90d4b7541a04b13cedaebe0426bc6fcc749ec24dba4e017f3160382": {
       "detections": {},
       "directives": {
@@ -285,9 +284,9 @@
           "type=document.pdf.text": true
         }
       },
-      "redirection": "file:adc9a7f8d896d12cf4b107f1ce41c383efd72bb699994a62f80b3399c18ac761",
+      "redirection": "file:298f22668a86e6118427f4a4a086fd93fbf3053d1223fe8e73177d595cb357ed",
       "relationships": {
-        "extracted_from file:adc9a7f8d896d12cf4b107f1ce41c383efd72bb699994a62f80b3399c18ac761": true
+        "extracted_from file:298f22668a86e6118427f4a4a086fd93fbf3053d1223fe8e73177d595cb357ed": true
       },
       "results": {
         "file_type": {

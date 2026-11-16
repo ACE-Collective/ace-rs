@@ -519,7 +519,6 @@
               "theme/theme/_rels/themeManager.xml.rels",
               "_rels/.rels"
             ],
-            "extraction_error": null,
             "file_count": 5
           },
           "summary": "Archive Analysis: extracted 5 of 5 files: ([Content_Types].xml, theme/theme/theme1.xml, theme/theme/themeManager.xml, theme/theme/_rels/themeManager.xml.rels, _rels/.rels)",
@@ -1158,6 +1157,39 @@
       },
       "tags": {}
     },
+    "file:758e72dd8269ff0fcd17e35224cb39ec267a5bf594a52c1d0fc76252be71e247": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "Past Due Invoices.doc.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:794700af5b1f1d032372ffa72482f6908eda7360f42b48134b881f91b8ea2902": {
       "detections": {},
       "directives": {
@@ -1353,39 +1385,6 @@
       },
       "tags": {}
     },
-    "file:946df38d1d12fbc7221e7879c6d7a206d713ac56ed3c756c3c7e43c9ce8eccf3": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "Past Due Invoices.doc.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f": {
       "detections": {},
       "directives": {
@@ -1401,13 +1400,12 @@
       "results": {
         "exif": {
           "details": {
-            "error": null,
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 08:43:31+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 08:43:31+00:00",
-              "File:FileModifyDate": "2026:11:06 19:20:07+00:00",
+              "File:FileAccessDate": "2026:11:16 13:38:40+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 13:38:40+00:00",
+              "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "Past Due Invoices.doc",
               "File:FilePermissions": 100644,
               "File:FileSize": 143360,
@@ -2175,7 +2173,6 @@
             "dispatch_state": "DONE",
             "gui_link": null,
             "query": "index=proxy hostname=\"example.com\"",
-            "query_error": null,
             "query_results": [
               {
                 "_time": "2026-10-30T14:02:11.000+00:00",
@@ -2215,7 +2212,6 @@
             "datetime_of_last_update": "2026-08-14 08:01:43+00:00",
             "domain_name": "EXAMPLE.COM",
             "emails": [],
-            "error": null,
             "ip_version": null,
             "lookup_protocol": "rdap",
             "name_servers": [
@@ -2224,6 +2220,7 @@
             ],
             "network_cidr": null,
             "network_name": null,
+            "not_found": null,
             "rdap_attempt_error": null,
             "rdap_data": {
               "copyright_notice": "",
@@ -2401,7 +2398,6 @@
             "dispatch_state": "DONE",
             "gui_link": null,
             "query": "index=proxy hostname=\"yrbfrviqrolaijq.com\"",
-            "query_error": null,
             "query_results": [
               {
                 "_time": "2026-10-30T14:02:11.000+00:00",
@@ -2441,12 +2437,12 @@
             "datetime_of_last_update": null,
             "domain_name": null,
             "emails": null,
-            "error": "rdap: Failed to make a GET request to https://rdap.verisign.com/com/v1/domain/yrbfrviqrolaijq.com: nothing recorded for GET https://rdap.verisign.com/com/v1/domain/yrbfrviqrolaijq.com; whois: no WHOIS in a replay",
             "ip_version": null,
             "lookup_protocol": null,
             "name_servers": null,
             "network_cidr": null,
             "network_name": null,
+            "not_found": null,
             "rdap_attempt_error": "Failed to make a GET request to https://rdap.verisign.com/com/v1/domain/yrbfrviqrolaijq.com: nothing recorded for GET https://rdap.verisign.com/com/v1/domain/yrbfrviqrolaijq.com",
             "rdap_data": null,
             "rdap_raw_json": null,

@@ -1,39 +1,6 @@
 {
   "form": 1,
   "observables": {
-    "file:158743b56f77b82cb470d337bd5b1d29d5d0677b707c8384c6f4fc30510c38ee": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "encrypted_bad_key_bits.docx.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:be7e30f02c9bb2c3593693ab2ed399950d9dd8871b4e58337a2ff705883304c4": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:167181108f6fd083cd67d569e9906a592ca923bc2d4c571ed1242caf92ed48f8": {
       "detections": {},
       "directives": {
@@ -164,6 +131,39 @@
         "xml_plain_text_analyzer": {
           "details": {
             "xml_plain_text": null
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:68a485a1bfcd3da8b7f7f86cda18fadfb8a58df79b7c55992c116c43eb1c46ec": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "encrypted_bad_key_bits.docx.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:be7e30f02c9bb2c3593693ab2ed399950d9dd8871b4e58337a2ff705883304c4": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}
@@ -379,13 +379,12 @@
       "results": {
         "exif": {
           "details": {
-            "error": null,
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 08:58:01+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 08:58:01+00:00",
-              "File:FileModifyDate": "2026:11:07 10:46:15+00:00",
+              "File:FileAccessDate": "2026:11:16 13:55:16+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 13:55:16+00:00",
+              "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "encrypted_bad_key_bits.docx",
               "File:FilePermissions": 100644,
               "File:FileSize": 9216,
@@ -432,7 +431,6 @@
             "email": false,
             "email_body": null,
             "encryption_info": null,
-            "error": "could not crack password",
             "password": null,
             "word_list": [
               "VelvetSweatshop",

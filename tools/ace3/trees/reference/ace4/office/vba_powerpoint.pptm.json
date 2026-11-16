@@ -152,12 +152,11 @@
       "results": {
         "exif": {
           "details": {
-            "error": null,
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files/vba_powerpoint.pptm.extracted/ppt",
-              "File:FileAccessDate": "2026:11:11 09:11:28+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 09:11:28+00:00",
+              "File:FileAccessDate": "2026:11:16 14:11:04+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 14:11:04+00:00",
               "File:FileModifyDate": "2026:01:01 00:00:00+00:00",
               "File:FileName": "vbaProject.bin",
               "File:FilePermissions": 100664,
@@ -388,7 +387,40 @@
       },
       "tags": {}
     },
-    "file:4bc687112b062deebec1665d3572562b08b613563aa793fc1a89f62260cc8905": {
+    "file:2f0754dd36a9131da2b61be6dbe9ebf0b4fdeca04e1fade2f5edd2dcaf5a8487": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "vba_powerpoint.pptm.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:51033c0fde249aea99d9ed95904de1c3558d84a3b865e93f7e21e6cde33a2887": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:39dceb9b12d4d95e5a4abe3919fe108ba97377df774f1ee01151ebc9ffaf9a6e": {
       "detections": {},
       "directives": {},
       "excluded_analysis": {
@@ -442,7 +474,6 @@
               "ppt/vbaProject.bin",
               "_rels/.rels"
             ],
-            "extraction_error": null,
             "file_count": 4
           },
           "summary": "Archive Analysis: extracted 4 of 4 files: ([Content_Types].xml, ppt/presentation.xml, ppt/vbaProject.bin, _rels/.rels)",
@@ -450,13 +481,12 @@
         },
         "exif": {
           "details": {
-            "error": null,
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 09:11:27+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 09:11:27+00:00",
-              "File:FileModifyDate": "2026:11:07 15:11:53+00:00",
+              "File:FileAccessDate": "2026:11:16 14:11:03+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 14:11:03+00:00",
+              "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "vba_powerpoint.pptm",
               "File:FilePermissions": 100644,
               "File:FileSize": 11485,
@@ -663,39 +693,6 @@
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
-    "file:72d5621f51475ba5ac519b1865c16b3a7462fa9a85f91206799ebcdd2af9e5a4": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "vba_powerpoint.pptm.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:51033c0fde249aea99d9ed95904de1c3558d84a3b865e93f7e21e6cde33a2887": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
           },
           "summary": null,
           "tags": {}

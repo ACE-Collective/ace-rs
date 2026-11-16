@@ -1,0 +1,36 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "37a765bf",
+  "also_enabled": [],
+  "analyses": [],
+  "input": {
+    "directives": [],
+    "label": "ace4/pdf/javascript_kids.pdf",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "javascript_kids.pdf",
+      "size": 462,
+      "type": "file",
+      "value": "b6ba798dc40cd67531cc0fc2df808e0215168a1ec02685917e6a076bc4db5d67"
+    }
+  },
+  "module": "pdf_link_text",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "javascript_kids.pdf",
+    "relationships": [],
+    "size": 462,
+    "tags": [],
+    "type": "file",
+    "value": "b6ba798dc40cd67531cc0fc2df808e0215168a1ec02685917e6a076bc4db5d67",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

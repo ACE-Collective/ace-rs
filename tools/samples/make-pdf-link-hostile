@@ -1,0 +1,144 @@
+#!/usr/bin/env python3
+"""Makes the crafted PDFs of docs/measurements/pdf-link-text.md, which measure what a PDF can make the
+link text module (pdf_link_text) do against its task's deadline and limits: libqpdf reading the link
+annotations in the task, and `pdftotext -bbox` placing words in the sandbox runner. They're large or
+slow on purpose, so they aren't samples. Each name starts with the module's, which is how
+`crafted_files_through_the_sandbox_modules` (crates/ace-pool/tests/hung_tasks.rs) picks its module.
+
+    make-pdf-link-hostile <out dir>
+"""
+
+import sys
+import zlib
+from pathlib import Path
+
+FONT = b"/Resources<</Font<</F1<</Type/Font/Subtype/Type1/BaseFont/Helvetica>>>>>>"
+LETTER = b"/MediaBox[0 0 612 792]"
+
+
+def stream(data, entries=b""):
+    return b"<<" + entries + b"/Length %d>>\nstream\n" % len(data) + data + b"\nendstream"
+
+
+def flate(data):
+    return stream(zlib.compress(data, 9), b"/Filter/FlateDecode")
+
+
+def body(objects, trailer=b"", xref=True):
+    """A file of these (number, object) pairs. Without `xref` it has no cross-reference table, and
+    libqpdf rebuilds one by reading every object, which is what costs it most."""
+    out = bytearray(b"%PDF-1.7\n")
+    offsets = {}
+    for number, value in objects:
+        offsets[number] = len(out)
+        out += b"%d 0 obj\n" % number + value + b"\nendobj\n"
+    if not xref:
+        out += b"trailer\n<</Root 1 0 R" + trailer + b">>\n"
+        return bytes(out)
+    start = len(out)
+    top = max(offsets) + 1
+    out += b"xref\n0 %d\n0000000000 65535 f \n" % top
+    for number in range(1, top):
+        out += b"%010d 00000 n \n" % offsets[number] if number in offsets else b"0000000000 00000 f \n"
+    out += b"trailer\n<</Size %d/Root 1 0 R%s>>\nstartxref\n%d\n%%%%EOF\n" % (top, trailer, start)
+    return bytes(out)
+
+
+def link(uri, rect=b"[70 676 180 692]"):
+    return b"<</Type/Annot/Subtype/Link/Rect" + rect + b"/A<</S/URI/URI(" + uri + b")>>>>"
+
+
+def one_page(annots, content, trailer=b"", xref=True):
+    return body([
+        (1, b"<</Type/Catalog/Pages 2 0 R>>"),
+        (2, b"<</Type/Pages/Kids[3 0 R]/Count 1>>"),
+        (3, b"<</Type/Page/Parent 2 0 R" + LETTER + FONT + b"/Contents 4 0 R/Annots[" + annots + b"]>>"),
+        (4, content),
+        (5, link(b"https://example.com/repeated")),
+    ], trailer, xref)
+
+
+def words(count, per_line=100):
+    """`count` one-letter words in tiny print, `per_line` to a line. poppler 25.03.0 gives a page about
+    50,000 characters of text, spaces among them, so about 25,100 such words are the most a page yields."""
+    lines = []
+    for start in range(0, count, per_line):
+        text = b" ".join(b"abcdefghij"[i % 10 : i % 10 + 1] for i in range(start, min(count, start + per_line)))
+        lines.append(b"(" + text + b") Tj T*\n")
+    return b"BT /F1 2 Tf 2 TL 5 790 Td\n" + b"".join(lines) + b"ET\n"
+
+
+TEXT = stream(b"BT /F1 12 Tf 72 680 Td (View invoice online) Tj ET\n")
+
+
+def make(directory):
+    samples = {
+        # a million links, each its own URL and box: 200 are recorded, and every one is read
+        "pdf_link_text_links_1m.pdf": one_page(
+            b"".join(link(b"https://example.com/%d" % i, b"[%d 676 %d 692]" % (i, i + 1)) for i in range(1_000_000)),
+            TEXT,
+        ),
+        # 200,000 of them
+        "pdf_link_text_links_200k.pdf": one_page(
+            b"".join(link(b"https://example.com/%d" % i, b"[%d 676 %d 692]" % (i, i + 1)) for i in range(200_000)),
+            TEXT,
+        ),
+        # one annotation five million times: recorded once
+        "pdf_link_text_repeat_5m.pdf": one_page(b"5 0 R " * 5_000_000, TEXT),
+        # the same two with no cross-reference table, which libqpdf rebuilds from the whole file
+        "pdf_link_text_links_1m_no_xref.pdf": one_page(
+            b"".join(link(b"https://example.com/%d" % i, b"[%d 676 %d 692]" % (i, i + 1)) for i in range(1_000_000)),
+            TEXT, xref=False,
+        ),
+        "pdf_link_text_repeat_5m_no_xref.pdf": one_page(b"5 0 R " * 5_000_000, TEXT, xref=False),
+        # three pages of 60,000 one-letter words each, of which poppler gives about 25,100, each with a
+        # link: the most words pdftotext writes and the task reads, and every page too crowded to place
+        "pdf_link_text_words_3x60k.pdf": body([
+            (1, b"<</Type/Catalog/Pages 2 0 R>>"),
+            (2, b"<</Type/Pages/Kids[3 0 R 6 0 R 7 0 R]/Count 3>>"),
+            *[(n, b"<</Type/Page/Parent 2 0 R" + LETTER + FONT + b"/Contents 4 0 R/Annots[" + link(b"https://example.com/dense") + b"]>>")
+              for n in (3, 6, 7)],
+            (4, flate(words(60_000))),
+        ]),
+        # 19,900 words, a page that is placed, and 200 links whose boxes each cover every line
+        "pdf_link_text_words_20k_links_200.pdf": one_page(
+            b"".join(link(b"https://example.com/%d" % i, b"[%d 0 %d 792]" % (i, 612 - i)) for i in range(200)),
+            flate(words(19_900)),
+        ),
+        # the same page under 200 links of one line each, which are placed
+        "pdf_link_text_words_20k_lines_200.pdf": one_page(
+            b"".join(link(b"https://example.com/%d" % i, b"[0 %d 612 %d]" % (788 - 2 * i, 790 - 2 * i)) for i in range(200)),
+            flate(words(19_900)),
+        ),
+        # a title of 100 MB, which `pdftotext -bbox` writes before the words: past the runner's 64 MiB
+        "pdf_link_text_title_100mb.pdf": body([
+            (1, b"<</Type/Catalog/Pages 2 0 R>>"),
+            (2, b"<</Type/Pages/Kids[3 0 R]/Count 1>>"),
+            (3, b"<</Type/Page/Parent 2 0 R" + LETTER + FONT + b"/Contents 4 0 R/Annots[" + link(b"https://example.com/title") + b"]>>"),
+            (4, TEXT),
+            (8, b"<</Title(" + b"t" * 100_000_000 + b")>>"),
+        ], b"/Info 8 0 R"),
+        # a content stream that inflates to 2 GiB of text operators, which pdftotext has ten seconds for
+        "pdf_link_text_content_2gib.pdf": one_page(
+            link(b"https://example.com/bomb"),
+            stream(bomb(b"BT /F1 1 Tf (w) Tj ET\n", 2 << 30), b"/Filter/FlateDecode"),
+        ),
+    }
+    directory.mkdir(parents=True, exist_ok=True)
+    for name, data in samples.items():
+        (directory / name).write_bytes(data)
+    return samples
+
+
+def bomb(unit, size, chunk=1 << 24):
+    compress = zlib.compressobj(9)
+    out = bytearray()
+    block = unit * (chunk // len(unit))
+    for _ in range(size // len(block)):
+        out += compress.compress(block)
+    return bytes(out + compress.flush())
+
+
+if __name__ == "__main__":
+    for name in sorted(make(Path(sys.argv[1]))):
+        print(name)

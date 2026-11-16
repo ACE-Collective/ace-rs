@@ -14,13 +14,12 @@
       "results": {
         "exif": {
           "details": {
-            "error": null,
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 08:59:14+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 08:59:14+00:00",
-              "File:FileModifyDate": "2026:11:07 10:46:15+00:00",
+              "File:FileAccessDate": "2026:11:16 13:56:49+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 13:56:49+00:00",
+              "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "encrypted_not_zip.docx",
               "File:FilePermissions": 100644,
               "File:FileSize": 10240,
@@ -67,7 +66,6 @@
             "email": false,
             "email_body": null,
             "encryption_info": null,
-            "error": "could not crack password",
             "password": null,
             "word_list": [
               "VelvetSweatshop",
@@ -251,39 +249,6 @@
       },
       "tags": {}
     },
-    "file:a81219a0e890a4cb85a0f321882debe5c180e5fa12e4cc9c53ab7a49cb47c63b": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "encrypted_not_zip.docx.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:07976a449bfc5f9679812800d40f5f0afecb30afcedfb6c3e039728efcb22e80": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:b520d7662070c97304b0bbff09af9f61baaa6872976663ed1a886abc7c29cb15": {
       "detections": {},
       "directives": {
@@ -414,6 +379,39 @@
         "xml_plain_text_analyzer": {
           "details": {
             "xml_plain_text": null
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:bdaa5de1f029a76d422fe8841950e46983c6d98ed462a3def1bab1cae184c082": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "encrypted_not_zip.docx.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:07976a449bfc5f9679812800d40f5f0afecb30afcedfb6c3e039728efcb22e80": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}

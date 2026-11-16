@@ -415,11 +415,11 @@
                 },
                 "namespace": "<work>/signatures/observable_export",
                 "rule": "detect_fqdn",
-                "rule_content_hash": "ccb16da16578f5311ba0f4e3b8abf90cbdfcd67d540be95131fe7ab048bad5b4",
+                "rule_content_hash": "c1d34c6526603e50d782b48a790e9ec52bcfd98b9b132de9bc790fa9b22f7442",
                 "rule_source": {
                   "file": "fqdn.yar",
                   "start_line": 1,
-                  "text": "rule detect_fqdn : detect_fqdn\n{\n    meta:\n        author = \"ACE Automation\"\n        description = \"ACE Observable Export\"\n        tlp = \"amber\"\n        date = \"11/15/2026\"\n        scope = \"['detection']\"\n        platform = \"ACE\"\n    strings:\n          $obsd_1 = /(^|[^a-zA-Z0-9_\\-])corp\\.example([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase\n          $obsd_wide_1 = /(^|([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00]))c\\x00o\\x00r\\x00p\\x00\\.\\x00e\\x00x\\x00a\\x00m\\x00p\\x00l\\x00e\\x00(([^a-zA-Z0-9_\\-.]\\x00|[\\x00-\\xff][^\\x00])|\\.\\x00([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00])|(\\.\\x00)?$)/ nocase\n\n    condition:\n        any of ($obsd_*)\n}\n"
+                  "text": "rule detect_fqdn : detect_fqdn\n{\n    meta:\n        author = \"ACE Automation\"\n        description = \"ACE Observable Export\"\n        tlp = \"amber\"\n        date = \"11/16/2026\"\n        scope = \"['detection']\"\n        platform = \"ACE\"\n    strings:\n          $obsd_1 = /(^|[^a-zA-Z0-9_\\-])corp\\.example([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase\n          $obsd_wide_1 = /(^|([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00]))c\\x00o\\x00r\\x00p\\x00\\.\\x00e\\x00x\\x00a\\x00m\\x00p\\x00l\\x00e\\x00(([^a-zA-Z0-9_\\-.]\\x00|[\\x00-\\xff][^\\x00])|\\.\\x00([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00])|(\\.\\x00)?$)/ nocase\n\n    condition:\n        any of ($obsd_*)\n}\n"
                 },
                 "string_patterns": {
                   "$obsd_1": "/(^|[^a-zA-Z0-9_\\-])corp\\.example([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase"
@@ -658,12 +658,16 @@
                 "highlights": [
                   [
                     "invoice.txt"
+                  ],
+                  [
+                    "The invoice is attached."
                   ]
                 ],
                 "reasons": [
-                  "found in attachment invoice.txt"
+                  "found in attachment invoice.txt",
+                  "the email refers to its attachment: 'The invoice is attached.'"
                 ],
-                "score": 15,
+                "score": 35,
                 "sources": [
                   "attachment"
                 ],
@@ -677,12 +681,16 @@
               "highlights": [
                 [
                   "invoice.txt"
+                ],
+                [
+                  "The invoice is attached."
                 ]
               ],
               "reasons": [
-                "found in attachment invoice.txt"
+                "found in attachment invoice.txt",
+                "the email refers to its attachment: 'The invoice is attached.'"
               ],
-              "score": 15,
+              "score": 35,
               "sources": [
                 "attachment"
               ],
@@ -690,7 +698,7 @@
             },
             "subject": "Invoice"
           },
-          "summary": "Lure URL Analysis: https://pay.lure-example.net/invoice/1001 (found in attachment invoice.txt)",
+          "summary": "Lure URL Analysis: https://pay.lure-example.net/invoice/1001 (found in attachment invoice.txt; the email refers to its attachment: 'The invoice is attached.')",
           "tags": {}
         },
         "observable_detection": {
@@ -768,11 +776,11 @@
                 },
                 "namespace": "<work>/signatures/observable_export",
                 "rule": "detect_fqdn",
-                "rule_content_hash": "ccb16da16578f5311ba0f4e3b8abf90cbdfcd67d540be95131fe7ab048bad5b4",
+                "rule_content_hash": "c1d34c6526603e50d782b48a790e9ec52bcfd98b9b132de9bc790fa9b22f7442",
                 "rule_source": {
                   "file": "fqdn.yar",
                   "start_line": 1,
-                  "text": "rule detect_fqdn : detect_fqdn\n{\n    meta:\n        author = \"ACE Automation\"\n        description = \"ACE Observable Export\"\n        tlp = \"amber\"\n        date = \"11/15/2026\"\n        scope = \"['detection']\"\n        platform = \"ACE\"\n    strings:\n          $obsd_1 = /(^|[^a-zA-Z0-9_\\-])corp\\.example([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase\n          $obsd_wide_1 = /(^|([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00]))c\\x00o\\x00r\\x00p\\x00\\.\\x00e\\x00x\\x00a\\x00m\\x00p\\x00l\\x00e\\x00(([^a-zA-Z0-9_\\-.]\\x00|[\\x00-\\xff][^\\x00])|\\.\\x00([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00])|(\\.\\x00)?$)/ nocase\n\n    condition:\n        any of ($obsd_*)\n}\n"
+                  "text": "rule detect_fqdn : detect_fqdn\n{\n    meta:\n        author = \"ACE Automation\"\n        description = \"ACE Observable Export\"\n        tlp = \"amber\"\n        date = \"11/16/2026\"\n        scope = \"['detection']\"\n        platform = \"ACE\"\n    strings:\n          $obsd_1 = /(^|[^a-zA-Z0-9_\\-])corp\\.example([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase\n          $obsd_wide_1 = /(^|([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00]))c\\x00o\\x00r\\x00p\\x00\\.\\x00e\\x00x\\x00a\\x00m\\x00p\\x00l\\x00e\\x00(([^a-zA-Z0-9_\\-.]\\x00|[\\x00-\\xff][^\\x00])|\\.\\x00([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00])|(\\.\\x00)?$)/ nocase\n\n    condition:\n        any of ($obsd_*)\n}\n"
                 },
                 "string_patterns": {
                   "$obsd_1": "/(^|[^a-zA-Z0-9_\\-])corp\\.example([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase"
@@ -947,11 +955,11 @@
                 },
                 "namespace": "<work>/signatures/observable_export",
                 "rule": "detect_fqdn",
-                "rule_content_hash": "ccb16da16578f5311ba0f4e3b8abf90cbdfcd67d540be95131fe7ab048bad5b4",
+                "rule_content_hash": "c1d34c6526603e50d782b48a790e9ec52bcfd98b9b132de9bc790fa9b22f7442",
                 "rule_source": {
                   "file": "fqdn.yar",
                   "start_line": 1,
-                  "text": "rule detect_fqdn : detect_fqdn\n{\n    meta:\n        author = \"ACE Automation\"\n        description = \"ACE Observable Export\"\n        tlp = \"amber\"\n        date = \"11/15/2026\"\n        scope = \"['detection']\"\n        platform = \"ACE\"\n    strings:\n          $obsd_1 = /(^|[^a-zA-Z0-9_\\-])corp\\.example([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase\n          $obsd_wide_1 = /(^|([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00]))c\\x00o\\x00r\\x00p\\x00\\.\\x00e\\x00x\\x00a\\x00m\\x00p\\x00l\\x00e\\x00(([^a-zA-Z0-9_\\-.]\\x00|[\\x00-\\xff][^\\x00])|\\.\\x00([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00])|(\\.\\x00)?$)/ nocase\n\n    condition:\n        any of ($obsd_*)\n}\n"
+                  "text": "rule detect_fqdn : detect_fqdn\n{\n    meta:\n        author = \"ACE Automation\"\n        description = \"ACE Observable Export\"\n        tlp = \"amber\"\n        date = \"11/16/2026\"\n        scope = \"['detection']\"\n        platform = \"ACE\"\n    strings:\n          $obsd_1 = /(^|[^a-zA-Z0-9_\\-])corp\\.example([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase\n          $obsd_wide_1 = /(^|([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00]))c\\x00o\\x00r\\x00p\\x00\\.\\x00e\\x00x\\x00a\\x00m\\x00p\\x00l\\x00e\\x00(([^a-zA-Z0-9_\\-.]\\x00|[\\x00-\\xff][^\\x00])|\\.\\x00([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00])|(\\.\\x00)?$)/ nocase\n\n    condition:\n        any of ($obsd_*)\n}\n"
                 },
                 "string_patterns": {
                   "$obsd_1": "/(^|[^a-zA-Z0-9_\\-])corp\\.example([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase"
@@ -1087,7 +1095,6 @@
             "dispatch_state": "DONE",
             "gui_link": null,
             "query": "index=proxy hostname=\"corp.example\"",
-            "query_error": null,
             "query_results": [
               {
                 "_time": "2026-10-30T14:02:11.000+00:00",
@@ -1127,12 +1134,12 @@
             "datetime_of_last_update": null,
             "domain_name": null,
             "emails": null,
-            "error": "rdap: no RDAP service for TLD: TLD \"example\" has no known RDAP endpoint and is unsupported. It may be supported by overrides, try using whoisit.bootstrap(overrides=True); whois: no WHOIS in a replay",
             "ip_version": null,
             "lookup_protocol": null,
             "name_servers": null,
             "network_cidr": null,
             "network_name": null,
+            "not_found": null,
             "rdap_attempt_error": "no RDAP service for TLD: TLD \"example\" has no known RDAP endpoint and is unsupported. It may be supported by overrides, try using whoisit.bootstrap(overrides=True)",
             "rdap_data": null,
             "rdap_raw_json": null,
@@ -1192,7 +1199,6 @@
             "dispatch_state": "DONE",
             "gui_link": null,
             "query": "index=proxy hostname=\"example.com\"",
-            "query_error": null,
             "query_results": [
               {
                 "_time": "2026-10-30T14:02:11.000+00:00",
@@ -1232,7 +1238,6 @@
             "datetime_of_last_update": "2026-08-14 08:01:43+00:00",
             "domain_name": "EXAMPLE.COM",
             "emails": [],
-            "error": null,
             "ip_version": null,
             "lookup_protocol": "rdap",
             "name_servers": [
@@ -1241,6 +1246,7 @@
             ],
             "network_cidr": null,
             "network_name": null,
+            "not_found": null,
             "rdap_attempt_error": null,
             "rdap_data": {
               "copyright_notice": "",
@@ -1418,7 +1424,6 @@
             "dispatch_state": "DONE",
             "gui_link": null,
             "query": "index=proxy hostname=\"mailer.corp.example\"",
-            "query_error": null,
             "query_results": [
               {
                 "_time": "2026-10-30T14:02:11.000+00:00",
@@ -1458,12 +1463,12 @@
             "datetime_of_last_update": null,
             "domain_name": null,
             "emails": null,
-            "error": "rdap: no RDAP service for TLD: TLD \"example\" has no known RDAP endpoint and is unsupported. It may be supported by overrides, try using whoisit.bootstrap(overrides=True); whois: no WHOIS in a replay",
             "ip_version": null,
             "lookup_protocol": null,
             "name_servers": null,
             "network_cidr": null,
             "network_name": null,
+            "not_found": null,
             "rdap_attempt_error": "no RDAP service for TLD: TLD \"example\" has no known RDAP endpoint and is unsupported. It may be supported by overrides, try using whoisit.bootstrap(overrides=True)",
             "rdap_data": null,
             "rdap_raw_json": null,
@@ -1515,7 +1520,6 @@
             "dispatch_state": "DONE",
             "gui_link": null,
             "query": "index=proxy hostname=\"pay.lure-example.net\"",
-            "query_error": null,
             "query_results": [
               {
                 "_time": "2026-10-30T14:02:11.000+00:00",
@@ -1555,12 +1559,12 @@
             "datetime_of_last_update": null,
             "domain_name": null,
             "emails": null,
-            "error": "rdap: Failed to make a GET request to https://rdap.verisign.com/net/v1/domain/lure-example.net: nothing recorded for GET https://rdap.verisign.com/net/v1/domain/lure-example.net; whois: no WHOIS in a replay",
             "ip_version": null,
             "lookup_protocol": null,
             "name_servers": null,
             "network_cidr": null,
             "network_name": null,
+            "not_found": null,
             "rdap_attempt_error": "Failed to make a GET request to https://rdap.verisign.com/net/v1/domain/lure-example.net: nothing recorded for GET https://rdap.verisign.com/net/v1/domain/lure-example.net",
             "rdap_data": null,
             "rdap_raw_json": null,

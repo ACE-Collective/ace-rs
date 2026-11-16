@@ -1,5 +1,6 @@
 //! `pdf_analysis`: what a PDF's encryption is, when it opens with the empty password (ace3's
 //! `PDFAnalysis`, `saq/modules/file_analysis/pdf.py`). The rest of the module's output is files.
+//! `pdf_link_text_analysis`: the text under each of a PDF's links (ace3's `PDFLinkTextAnalysis`).
 
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -56,6 +57,36 @@ impl AnalysisType for PdfAnalysis {
     const MODULE: &'static str = "pdf_analyzer";
 }
 
+/// `pdf_link_text_analysis`: a PDF's link annotations, each with the text the PDF shows under it
+/// (ace3's `PDFLinkTextAnalysis`), which the lure module reads as the links' text.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct PdfLinkTextAnalysis {
+    /// Each (URL, page, box) once, in the PDF's order, at most the module's `max_links`.
+    pub links: Vec<PdfLink>,
+}
+
+/// One link annotation of a PDF.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct PdfLink {
+    /// The annotation's URI, as the PDF wrote it.
+    pub url: String,
+    /// The page it is on, from 1.
+    pub page: i64,
+    /// The words under the link's box, or the annotation's `/Contents` when there are none; cut at
+    /// 200 characters.
+    pub text: Option<String>,
+    /// The words of the lines the link's box is on; cut at 200 characters.
+    pub line: Option<String>,
+}
+
+impl AnalysisType for PdfLinkTextAnalysis {
+    const NAME: &'static str = "pdf_link_text_analysis";
+    const VERSION: u32 = 1;
+    const MODULE: &'static str = "pdf_link_text";
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -79,5 +110,18 @@ mod tests {
             assert_eq!(serde_json::to_value(&read).expect("writes"), details);
         }
         assert!(serde_json::from_value::<PdfAnalysis>(json!({"x": 1})).is_err());
+    }
+
+    #[test]
+    fn link_text_reads_as_written_and_refuses_an_unknown_field() {
+        let details = json!({"links": [
+            {"url": "https://example.com/a", "page": 1, "text": "Open", "line": "Open the file"},
+            {"url": "https://example.com/b", "page": 4, "text": null, "line": null},
+        ]});
+        let read: PdfLinkTextAnalysis = serde_json::from_value(details.clone()).expect("reads");
+        assert_eq!(serde_json::to_value(&read).expect("writes"), details);
+        assert!(
+            serde_json::from_value::<PdfLinkTextAnalysis>(json!({"links": [], "x": 1})).is_err()
+        );
     }
 }

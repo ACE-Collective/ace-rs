@@ -367,6 +367,39 @@
       },
       "tags": {}
     },
+    "file:438e1e5e6609709f01221b655f9e485b872312f7b4ff499b6140c212afb4f89b": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "Paid Invoice.doc.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:fb9fc26235d7b3f7465a6da2d0a60ebf395785372d06a16c9f558b773b0b2c01": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:4ac596b07705314bf771e906573ae340de9a15c8844ec797a26ebb8a8298e415": {
       "detections": {},
       "directives": {
@@ -809,7 +842,6 @@
               "theme/theme/_rels/themeManager.xml.rels",
               "_rels/.rels"
             ],
-            "extraction_error": null,
             "file_count": 5
           },
           "summary": "Archive Analysis: extracted 5 of 5 files: ([Content_Types].xml, theme/theme/theme1.xml, theme/theme/themeManager.xml, theme/theme/_rels/themeManager.xml.rels, _rels/.rels)",
@@ -1325,39 +1357,6 @@
       },
       "tags": {}
     },
-    "file:b99e9bbeab9fe67f0ed334f5633426b7b638753d7ee7265b415b8eab3d3e81a1": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "Paid Invoice.doc.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:fb9fc26235d7b3f7465a6da2d0a60ebf395785372d06a16c9f558b773b0b2c01": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:bad44fabb73aa7cdf283035325af18f1e61647f54127582caa26f8ccfb5d8d97": {
       "detections": {},
       "directives": {
@@ -1690,13 +1689,12 @@
       "results": {
         "exif": {
           "details": {
-            "error": null,
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 08:43:26+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 08:43:26+00:00",
-              "File:FileModifyDate": "2026:11:06 19:20:07+00:00",
+              "File:FileAccessDate": "2026:11:16 13:38:34+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 13:38:34+00:00",
+              "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "Paid Invoice.doc",
               "File:FilePermissions": 100644,
               "File:FileSize": 134656,

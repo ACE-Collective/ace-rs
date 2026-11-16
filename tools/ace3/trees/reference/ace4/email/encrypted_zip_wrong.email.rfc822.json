@@ -265,7 +265,6 @@
               "invoice.txt",
               "docs/notes.txt"
             ],
-            "extraction_error": null,
             "file_count": 2
           },
           "summary": "Archive Analysis: extracted 2 of 2 files: (invoice.txt, docs/notes.txt)",
@@ -335,7 +334,6 @@
             "email": true,
             "email_body": "The password is Wr0ngOne\n\n",
             "encryption_info": null,
-            "error": "ZipEncryptionAnalyzer was unable to crack the password",
             "password": null,
             "word_list": [
               "0ngO",
@@ -776,7 +774,6 @@
             "dispatch_state": "DONE",
             "gui_link": null,
             "query": "index=proxy hostname=\"example.com\"",
-            "query_error": null,
             "query_results": [
               {
                 "_time": "2026-10-30T14:02:11.000+00:00",
@@ -816,7 +813,6 @@
             "datetime_of_last_update": "2026-08-14 08:01:43+00:00",
             "domain_name": "EXAMPLE.COM",
             "emails": [],
-            "error": null,
             "ip_version": null,
             "lookup_protocol": "rdap",
             "name_servers": [
@@ -825,6 +821,7 @@
             ],
             "network_cidr": null,
             "network_name": null,
+            "not_found": null,
             "rdap_attempt_error": null,
             "rdap_data": {
               "copyright_notice": "",

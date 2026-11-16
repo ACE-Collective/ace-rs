@@ -243,9 +243,19 @@ fn summarize(details: &MsofficeEncryptionAnalysis) -> String {
     format!("{DISPLAY_NAME}: password not available")
 }
 
+/// What ace3's `except Exception` records of an encrypted document whose cracking or decryption
+/// raised (since its `41d44392`): `decryption failed: {str(e) or type(e).__name__}`.
+fn decryption_failed(kind: &str, message: &str) -> String {
+    format!(
+        "decryption failed: {}",
+        if message.is_empty() { kind } else { message }
+    )
+}
+
 impl MsofficeEncryption {
     /// Fills in the details and returns the decrypted file, if it got that far. A Python exception
-    /// past here is ace3's `except Exception`, which logs and keeps what the result has.
+    /// past here is ace3's `except Exception`, which logs, records that decryption failed and keeps
+    /// what the result has.
     fn decrypt(
         ctx: &TaskContext<MsofficeEncryptionSettings>,
         office: &mut OfficeFile,
@@ -272,6 +282,7 @@ impl MsofficeEncryption {
                     }
                     Err(error) => {
                         tracing::warn!("reading the email's body raised: {}", error.message);
+                        details.error = Some(decryption_failed(&error.kind, &error.message));
                         return Ok(None);
                     }
                 }
@@ -297,6 +308,7 @@ impl MsofficeEncryption {
             Err(error) => {
                 // a file that broke the port, or one too large for it. It keeps its password
                 tracing::warn!("decryption raised {}: {}", error.kind, error.message);
+                details.error = Some(decryption_failed(&error.kind, &error.message));
                 return Ok(None);
             }
         };
@@ -530,14 +542,25 @@ mod tests {
     }
 
     #[test]
-    fn a_body_html2text_raises_on_keeps_what_the_result_has() {
+    fn a_body_html2text_raises_on_keeps_what_the_result_has_and_says_decryption_failed() {
         let dir = tempfile::tempdir().expect("a directory");
         let harness = harness().carrying_email(body_file(dir.path(), b"before &#1a after\n"));
         let input = harness.sample(NO_EMAIL).expect("a sample");
         let result = done(harness.run_parser(input).expect("runs"));
         assert!(!result.details.email);
         assert_eq!(result.details.word_list, DEFAULT_PASSWORDS);
-        assert_eq!(result.details.error, None);
+        // ace3's `except Exception`, since its 41d44392: the exception's own text
+        assert_eq!(
+            result.details.error.as_deref(),
+            Some("decryption failed: invalid literal for int() with base 10: '1a after\\n'")
+        );
+        assert_eq!(
+            result.summary.as_deref(),
+            Some(
+                "MSOffice Encryption Analysis: decryption failed: invalid literal for int() with \
+                 base 10: '1a after\\n'"
+            )
+        );
     }
 
     #[test]
@@ -551,6 +574,11 @@ mod tests {
         let result = done(harness.run_parser(input).expect("runs"));
         assert_eq!(result.details.password.as_deref(), Some("Secr3tPw"));
         assert!(result.files.is_empty());
+        // msoffcrypto's exception, which ace3 records since its 41d44392
+        assert_eq!(
+            result.details.error.as_deref(),
+            Some("decryption failed: The file could not be decrypted with this password")
+        );
     }
 
     #[test]

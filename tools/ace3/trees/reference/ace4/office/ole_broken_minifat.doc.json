@@ -177,11 +177,11 @@
                 },
                 "namespace": "<work>/signatures/observable_export",
                 "rule": "detect_url",
-                "rule_content_hash": "9edb3f16aafc2a09cf2ffee91eaef05ce24342c9d90cde0c9221ce0b722de847",
+                "rule_content_hash": "aa790744243b20e8bec23dd662a4538107c814b8403f5a93545475669e7baefb",
                 "rule_source": {
                   "file": "url.yar",
                   "start_line": 1,
-                  "text": "rule detect_url : detect_url\n{\n    meta:\n        author = \"ACE Automation\"\n        description = \"ACE Observable Export\"\n        tlp = \"amber\"\n        date = \"11/15/2026\"\n        scope = \"['detection']\"\n        platform = \"ACE\"\n    strings:\n          $obsd_2 = /(^|[^a-zA-Z0-9_\\-])http:\\/\\/example\\.com\\/payload\\.exe([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase\n          $obsd_wide_2 = /(^|([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00]))h\\x00t\\x00t\\x00p\\x00:\\x00\\/\\x00\\/\\x00e\\x00x\\x00a\\x00m\\x00p\\x00l\\x00e\\x00\\.\\x00c\\x00o\\x00m\\x00\\/\\x00p\\x00a\\x00y\\x00l\\x00o\\x00a\\x00d\\x00\\.\\x00e\\x00x\\x00e\\x00(([^a-zA-Z0-9_\\-.]\\x00|[\\x00-\\xff][^\\x00])|\\.\\x00([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00])|(\\.\\x00)?$)/ nocase\n\n    condition:\n        any of ($obsd_*)\n}\n"
+                  "text": "rule detect_url : detect_url\n{\n    meta:\n        author = \"ACE Automation\"\n        description = \"ACE Observable Export\"\n        tlp = \"amber\"\n        date = \"11/16/2026\"\n        scope = \"['detection']\"\n        platform = \"ACE\"\n    strings:\n          $obsd_2 = /(^|[^a-zA-Z0-9_\\-])http:\\/\\/example\\.com\\/payload\\.exe([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase\n          $obsd_wide_2 = /(^|([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00]))h\\x00t\\x00t\\x00p\\x00:\\x00\\/\\x00\\/\\x00e\\x00x\\x00a\\x00m\\x00p\\x00l\\x00e\\x00\\.\\x00c\\x00o\\x00m\\x00\\/\\x00p\\x00a\\x00y\\x00l\\x00o\\x00a\\x00d\\x00\\.\\x00e\\x00x\\x00e\\x00(([^a-zA-Z0-9_\\-.]\\x00|[\\x00-\\xff][^\\x00])|\\.\\x00([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00])|(\\.\\x00)?$)/ nocase\n\n    condition:\n        any of ($obsd_*)\n}\n"
                 },
                 "string_patterns": {
                   "$obsd_2": "/(^|[^a-zA-Z0-9_\\-])http:\\/\\/example\\.com\\/payload\\.exe([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase"
@@ -325,39 +325,6 @@
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
-    "file:c12a4e7da247be7002eb97bd3acef3bcef680fd184454615329123b44ec40765": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "ole_broken_minifat.doc.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:ef55398e3ea7f174e47cec4e0cb143d2e74f8de63416d9e16b046f8678e56836": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
           },
           "summary": null,
           "tags": {}
@@ -523,11 +490,11 @@
                 },
                 "namespace": "<work>/signatures/observable_export",
                 "rule": "detect_url",
-                "rule_content_hash": "9edb3f16aafc2a09cf2ffee91eaef05ce24342c9d90cde0c9221ce0b722de847",
+                "rule_content_hash": "aa790744243b20e8bec23dd662a4538107c814b8403f5a93545475669e7baefb",
                 "rule_source": {
                   "file": "url.yar",
                   "start_line": 1,
-                  "text": "rule detect_url : detect_url\n{\n    meta:\n        author = \"ACE Automation\"\n        description = \"ACE Observable Export\"\n        tlp = \"amber\"\n        date = \"11/15/2026\"\n        scope = \"['detection']\"\n        platform = \"ACE\"\n    strings:\n          $obsd_2 = /(^|[^a-zA-Z0-9_\\-])http:\\/\\/example\\.com\\/payload\\.exe([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase\n          $obsd_wide_2 = /(^|([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00]))h\\x00t\\x00t\\x00p\\x00:\\x00\\/\\x00\\/\\x00e\\x00x\\x00a\\x00m\\x00p\\x00l\\x00e\\x00\\.\\x00c\\x00o\\x00m\\x00\\/\\x00p\\x00a\\x00y\\x00l\\x00o\\x00a\\x00d\\x00\\.\\x00e\\x00x\\x00e\\x00(([^a-zA-Z0-9_\\-.]\\x00|[\\x00-\\xff][^\\x00])|\\.\\x00([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00])|(\\.\\x00)?$)/ nocase\n\n    condition:\n        any of ($obsd_*)\n}\n"
+                  "text": "rule detect_url : detect_url\n{\n    meta:\n        author = \"ACE Automation\"\n        description = \"ACE Observable Export\"\n        tlp = \"amber\"\n        date = \"11/16/2026\"\n        scope = \"['detection']\"\n        platform = \"ACE\"\n    strings:\n          $obsd_2 = /(^|[^a-zA-Z0-9_\\-])http:\\/\\/example\\.com\\/payload\\.exe([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase\n          $obsd_wide_2 = /(^|([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00]))h\\x00t\\x00t\\x00p\\x00:\\x00\\/\\x00\\/\\x00e\\x00x\\x00a\\x00m\\x00p\\x00l\\x00e\\x00\\.\\x00c\\x00o\\x00m\\x00\\/\\x00p\\x00a\\x00y\\x00l\\x00o\\x00a\\x00d\\x00\\.\\x00e\\x00x\\x00e\\x00(([^a-zA-Z0-9_\\-.]\\x00|[\\x00-\\xff][^\\x00])|\\.\\x00([^a-zA-Z0-9_\\-]\\x00|[\\x00-\\xff][^\\x00])|(\\.\\x00)?$)/ nocase\n\n    condition:\n        any of ($obsd_*)\n}\n"
                 },
                 "string_patterns": {
                   "$obsd_2": "/(^|[^a-zA-Z0-9_\\-])http:\\/\\/example\\.com\\/payload\\.exe([^a-zA-Z0-9_\\-.]|\\.[^a-zA-Z0-9_\\-]|(\\.)?$)/ ascii nocase"
@@ -620,6 +587,39 @@
       },
       "tags": {}
     },
+    "file:eb3725a42e13ad24337e14bf6afde6505ef8d1e0092fba6072ca69f6a267e09f": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "ole_broken_minifat.doc.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:ef55398e3ea7f174e47cec4e0cb143d2e74f8de63416d9e16b046f8678e56836": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:ef55398e3ea7f174e47cec4e0cb143d2e74f8de63416d9e16b046f8678e56836": {
       "detections": {},
       "directives": {
@@ -635,13 +635,12 @@
       "results": {
         "exif": {
           "details": {
-            "error": null,
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:15 11:01:51+00:00",
-              "File:FileInodeChangeDate": "2026:11:15 11:01:51+00:00",
-              "File:FileModifyDate": "2026:11:07 15:11:53+00:00",
+              "File:FileAccessDate": "2026:11:16 13:59:46+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 13:59:46+00:00",
+              "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "ole_broken_minifat.doc",
               "File:FilePermissions": 100644,
               "File:FileSize": 3584,
@@ -777,7 +776,6 @@
             "dispatch_state": "DONE",
             "gui_link": null,
             "query": "index=proxy hostname=\"example.com\"",
-            "query_error": null,
             "query_results": [
               {
                 "_time": "2026-10-30T14:02:11.000+00:00",
@@ -817,7 +815,6 @@
             "datetime_of_last_update": "2026-08-14 08:01:43+00:00",
             "domain_name": "EXAMPLE.COM",
             "emails": [],
-            "error": null,
             "ip_version": null,
             "lookup_protocol": "rdap",
             "name_servers": [
@@ -826,6 +823,7 @@
             ],
             "network_cidr": null,
             "network_name": null,
+            "not_found": null,
             "rdap_attempt_error": null,
             "rdap_data": {
               "copyright_notice": "",

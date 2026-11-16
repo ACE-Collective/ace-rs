@@ -61,39 +61,6 @@
       },
       "tags": {}
     },
-    "file:0f7cf6934909402b569f9b135e739f27fa3ae28f4216ca6c23863844d24262ee": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "uris.pdf.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:3c9e1da8404ecd61021fd13a29b7d8652a81ae9676bce526aaffeb4479c1247a": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:1fa667f3400192e0abea60bd5e0891f30e26e0d6d935e996c537942c9ec421e8": {
       "detections": {},
       "directives": {
@@ -178,13 +145,12 @@
       "results": {
         "exif": {
           "details": {
-            "error": null,
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:11 09:38:45+00:00",
-              "File:FileInodeChangeDate": "2026:11:11 09:38:45+00:00",
-              "File:FileModifyDate": "2026:11:07 04:47:50+00:00",
+              "File:FileAccessDate": "2026:11:16 15:07:28+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 15:07:28+00:00",
+              "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "uris.pdf",
               "File:FilePermissions": 100644,
               "File:FileSize": 1175,
@@ -239,6 +205,56 @@
         "pdf_analyzer": {
           "details": {},
           "summary": null,
+          "tags": {}
+        },
+        "pdf_link_text": {
+          "details": {
+            "links": [
+              {
+                "line": null,
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/literal"
+              },
+              {
+                "line": null,
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/hex"
+              },
+              {
+                "line": null,
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/ü"
+              },
+              {
+                "line": null,
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/•bullet"
+              },
+              {
+                "line": null,
+                "page": 1,
+                "text": null,
+                "url": "/https:"
+              },
+              {
+                "line": null,
+                "page": 1,
+                "text": null,
+                "url": "12"
+              },
+              {
+                "line": null,
+                "page": 1,
+                "text": null,
+                "url": "https://example.com/indirect"
+              }
+            ]
+          },
+          "summary": "PDF Link Text Analysis: 7 links, 0 with text",
           "tags": {}
         },
         "pdftotext": {
@@ -347,7 +363,7 @@
       },
       "tags": {}
     },
-    "file:95af905a6a26f1cb17fc7a8f05ad2c58fd3999488577be0d297b36f6604e3558": {
+    "file:937d0fc2f198d132920d4339fa55a1623393c7b55c8f97d1582e949d56c1df64": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -429,6 +445,39 @@
         "pdf": true
       }
     },
+    "file:b550abc66a2f2b30c3f9e028558b6b3c6247ba7043886ae390e386281ac252ab": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "uris.pdf.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:3c9e1da8404ecd61021fd13a29b7d8652a81ae9676bce526aaffeb4479c1247a": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:ef6cbd2161eaea7943ce8693b9824d23d1793ffb1c0fca05b600d3899b44c977": {
       "detections": {},
       "directives": {},
@@ -443,10 +492,10 @@
           "type=document.pdf.text": true
         }
       },
-      "redirection": "file:95af905a6a26f1cb17fc7a8f05ad2c58fd3999488577be0d297b36f6604e3558",
+      "redirection": "file:937d0fc2f198d132920d4339fa55a1623393c7b55c8f97d1582e949d56c1df64",
       "relationships": {
         "extracted_from file:3c9e1da8404ecd61021fd13a29b7d8652a81ae9676bce526aaffeb4479c1247a": true,
-        "extracted_from file:95af905a6a26f1cb17fc7a8f05ad2c58fd3999488577be0d297b36f6604e3558": true
+        "extracted_from file:937d0fc2f198d132920d4339fa55a1623393c7b55c8f97d1582e949d56c1df64": true
       },
       "results": {
         "file_type": {
@@ -522,7 +571,6 @@
             "dispatch_state": "DONE",
             "gui_link": null,
             "query": "index=proxy hostname=\"example.com\"",
-            "query_error": null,
             "query_results": [
               {
                 "_time": "2026-10-30T14:02:11.000+00:00",
@@ -562,7 +610,6 @@
             "datetime_of_last_update": "2026-08-14 08:01:43+00:00",
             "domain_name": "EXAMPLE.COM",
             "emails": [],
-            "error": null,
             "ip_version": null,
             "lookup_protocol": "rdap",
             "name_servers": [
@@ -571,6 +618,7 @@
             ],
             "network_cidr": null,
             "network_name": null,
+            "not_found": null,
             "rdap_attempt_error": null,
             "rdap_data": {
               "copyright_notice": "",

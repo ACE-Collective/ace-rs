@@ -1,6 +1,6 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "f72f8946",
+  "ace3_commit": "37a765bf",
   "also_enabled": [
     "file_type",
     "email_analyzer",
@@ -44,7 +44,8 @@
     "nowhitespace_analyzer",
     "zip_encryption_analyzer",
     "rar_encryption_analyzer",
-    "pdf_encryption_analyzer"
+    "pdf_encryption_analyzer",
+    "pdf_link_text"
   ],
   "analyses": [
     {
@@ -62,7 +63,7 @@
               [],
               []
             ],
-            "observable_uuid": "f1927fd6-a76f-48f6-8cdb-60ba8e8f080b",
+            "observable_uuid": "a748d24c-00df-4800-930a-7b8d0cd163cc",
             "reasons": [
               "found in the email body",
               "clickable link with text 'Verify your mailbox'",
@@ -91,7 +92,7 @@
                 "docs.lure-example.net/open?d=1"
               ]
             ],
-            "observable_uuid": "d192e8a5-b9d2-439d-994d-95582b5ac0d9",
+            "observable_uuid": "aed0523e-8827-4486-bed8-eb76f841ce9c",
             "reasons": [
               "found in the email body",
               "clickable link with text 'View the document'",
@@ -118,7 +119,7 @@
             [],
             []
           ],
-          "observable_uuid": "f1927fd6-a76f-48f6-8cdb-60ba8e8f080b",
+          "observable_uuid": "a748d24c-00df-4800-930a-7b8d0cd163cc",
           "reasons": [
             "found in the email body",
             "clickable link with text 'Verify your mailbox'",
@@ -212,7 +213,7 @@
             "cc": [],
             "compauth_reason": null,
             "compauth_result": null,
-            "date": "2026-11-10 05:37:46.633743 +0000",
+            "date": "2026-11-16 16:44:20.825046 +0000",
             "dkim_result": null,
             "dmarc_result": null,
             "env_mail_from": null,
@@ -497,6 +498,7 @@
   "tree_view": {
     "alert_type": "cli_analysis",
     "bodies": {
+      "35cbe161bb99757665d56d449a0fc36e4c1daa95c220377294e99393551b56dc": "VmVyaWZ5IHlvdXIgbWFpbGJveCBhdCBodHRwczovL2xvZ2luLmx1cmUtZXhhbXBsZS5uZXQvdmVyaWZ5P2lkPTcK",
       "77367fe8b6a5d18ff77b715a9d1aa0058ba70c027d3f0c97a5bf31b2b9eaa017": "PGh0bWw+PGhlYWQ+PGxpbmsgaHJlZj0iaHR0cHM6Ly9mb250cy5nb29nbGVhcGlzLmNvbS9jc3M/ZmFtaWx5PVJvYm90byIgcmVsPSJzdHlsZXNoZWV0Ij48L2hlYWQ+PGJvZHk+PHA+PGEgaHJlZj0iaHR0cHM6Ly9jb3JwLmV4YW1wbGUvIj48aW1nIHNyYz0iaHR0cHM6Ly9jb3JwLmV4YW1wbGUvbG9nby5wbmciIGFsdD0iQ29ycCI+PC9hPjwvcD48cD5Zb3VyIG1haWxib3ggaXMgYWxtb3N0IGZ1bGwuPC9wPjx0YWJsZT48dHI+PHRkIHN0eWxlPSJiYWNrZ3JvdW5kLWNvbG9yOiMwMDc4ZDQ7IHBhZGRpbmc6IDEycHgiPjxhIGhyZWY9Imh0dHBzOi8vbG9naW4ubHVyZS1leGFtcGxlLm5ldC92ZXJpZnk/aWQ9NyI+VmVyaWZ5IHlvdXIgbWFpbGJveDwvYT48L3RkPjwvdHI+PC90YWJsZT48cD48YSBjbGFzcz0iYnRuLXNlY29uZGFyeSIgaHJlZj0iaHR0cHM6Ly90LnRyYWNrLWV4YW1wbGUuY29tL2M/dT1odHRwcyUzQSUyRiUyRmRvY3MubHVyZS1leGFtcGxlLm5ldCUyRm9wZW4lM0ZkJTNEMSI+VmlldyB0aGUgZG9jdW1lbnQ8L2E+PC9wPjxmb3JtIGFjdGlvbj0iaHR0cHM6Ly9jb2xsZWN0Lmx1cmUtZXhhbXBsZS5uZXQvcG9zdCI+PGlucHV0IG5hbWU9InAiPjwvZm9ybT48aW1nIHNyYz0iaHR0cHM6Ly9jZG4ubHVyZS1leGFtcGxlLm5ldC9waXhlbC5naWYiPjxwPjxhIGhyZWY9Imh0dHBzOi8vY29ycC5leGFtcGxlL3Vuc3Vic2NyaWJlIj5VbnN1YnNjcmliZTwvYT4gfCA8YSBocmVmPSJodHRwczovL2NvcnAuZXhhbXBsZS9wcml2YWN5Ij5Qcml2YWN5PC9hPjwvcD48L2JvZHk+PC9odG1sPgo="
     },
     "observables": [
@@ -508,117 +510,7 @@
           "domain_in_url"
         ],
         "type": "fqdn",
-        "value": "docs.lure-example.net"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [
-          "domain_in_url"
-        ],
-        "type": "fqdn",
         "value": "cdn.lure-example.net"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [
-          "domain_in_url"
-        ],
-        "type": "fqdn",
-        "value": "login.lure-example.net"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "uri_path",
-        "value": "/css?family=Roboto"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_return_path",
-        "value": "bounce@mailer.corp.example"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [
-          "domain_in_url"
-        ],
-        "type": "fqdn",
-        "value": "fonts.googleapis.com"
-      },
-      {
-        "detections": [],
-        "directives": [
-          "extract_urls",
-          "preview"
-        ],
-        "paths": [
-          {
-            "path": "email.rfc822.unknown_text_plain_000.txt",
-            "yara_meta": [
-              "type=email.attachment"
-            ]
-          }
-        ],
-        "size": 66,
-        "tags": [],
-        "type": "file",
-        "value": "35cbe161bb99757665d56d449a0fc36e4c1daa95c220377294e99393551b56dc"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [
-          {
-            "path": "email.rfc822.headers",
-            "yara_meta": [
-              "type=email",
-              "type=email.headers"
-            ]
-          }
-        ],
-        "size": 304,
-        "tags": [
-          "email"
-        ],
-        "type": "file",
-        "value": "5ba978b14d4991f9ae57018a993afec4b1339b3b808afd19fe4e847f4cddec16"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "uri_path",
-        "value": "/post"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [
-          {
-            "path": "email.rfc822",
-            "yara_meta": [
-              "type=email"
-            ]
-          }
-        ],
-        "size": 1469,
-        "tags": [
-          "email"
-        ],
-        "type": "file",
-        "value": "890392a1c2d8445fac130cff74dfbc58c00c71a324873b55f3aaf7dd103aaf56"
       },
       {
         "detections": [],
@@ -646,32 +538,6 @@
         "paths": [],
         "tags": [],
         "type": "uri_path",
-        "value": "/open?d=1"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [
-          "domain_in_url"
-        ],
-        "type": "fqdn",
-        "value": "collect.lure-example.net"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "fqdn",
-        "value": "corp.example"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "uri_path",
         "value": "/c?u=https%3A%2F%2Fdocs.lure-example.net%2Fopen%3Fd%3D1"
       },
       {
@@ -687,24 +553,53 @@
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "email_subject",
-        "value": "Action required: verify your mailbox"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
         "type": "email_conversation",
         "value": "it@corp.example|pat@corp.example"
       },
       {
         "detections": [],
+        "directives": [
+          "extract_urls",
+          "preview"
+        ],
+        "paths": [
+          {
+            "path": "email.rfc822.unknown_text_plain_000.txt",
+            "yara_meta": [
+              "type=email.attachment"
+            ]
+          }
+        ],
+        "size": 66,
+        "tags": [],
+        "type": "file",
+        "value": "35cbe161bb99757665d56d449a0fc36e4c1daa95c220377294e99393551b56dc"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [
+          {
+            "path": "email.rfc822",
+            "yara_meta": [
+              "type=email"
+            ]
+          }
+        ],
+        "size": 1469,
+        "tags": [
+          "email"
+        ],
+        "type": "file",
+        "value": "890392a1c2d8445fac130cff74dfbc58c00c71a324873b55f3aaf7dd103aaf56"
+      },
+      {
+        "detections": [],
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "url",
-        "value": "https://collect.lure-example.net/post"
+        "type": "message_id",
+        "value": "<lure_button@corp.example>"
       },
       {
         "detections": [],
@@ -712,7 +607,15 @@
         "paths": [],
         "tags": [],
         "type": "url",
-        "value": "https://docs.lure-example.net/open?d=1"
+        "value": "https://fonts.googleapis.com/css?family=Roboto"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "fqdn",
+        "value": "mailer.corp.example"
       },
       {
         "detections": [],
@@ -738,8 +641,117 @@
         "directives": [],
         "paths": [],
         "tags": [],
+        "type": "uri_path",
+        "value": "/open?d=1"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_subject",
+        "value": "Action required: verify your mailbox"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "url",
+        "value": "https://cdn.lure-example.net/pixel.gif"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "uri_path",
+        "value": "/post"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
         "type": "email_to",
         "value": "pat@corp.example"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [
+          "domain_in_url"
+        ],
+        "type": "fqdn",
+        "value": "docs.lure-example.net"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "url",
+        "value": "https://login.lure-example.net/verify?id=7"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "url",
+        "value": "https://docs.lure-example.net/open?d=1"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "fqdn",
+        "value": "corp.example"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "uri_path",
+        "value": "/pixel.gif"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "url",
+        "value": "https://t.track-example.com/c?u=https%3A%2F%2Fdocs.lure-example.net%2Fopen%3Fd%3D1"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "uri_path",
+        "value": "/verify?id=7"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [
+          {
+            "path": "email.rfc822.headers",
+            "yara_meta": [
+              "type=email",
+              "type=email.headers"
+            ]
+          }
+        ],
+        "size": 304,
+        "tags": [
+          "email"
+        ],
+        "type": "file",
+        "value": "5ba978b14d4991f9ae57018a993afec4b1339b3b808afd19fe4e847f4cddec16"
       },
       {
         "detections": [],
@@ -756,48 +768,46 @@
         "directives": [],
         "paths": [],
         "tags": [],
+        "type": "url",
+        "value": "https://collect.lure-example.net/post"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [
+          "domain_in_url"
+        ],
         "type": "fqdn",
-        "value": "mailer.corp.example"
+        "value": "fonts.googleapis.com"
       },
       {
         "detections": [],
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "message_id",
-        "value": "<lure_button@corp.example>"
+        "type": "email_return_path",
+        "value": "bounce@mailer.corp.example"
       },
       {
         "detections": [],
         "directives": [],
         "paths": [],
-        "tags": [],
-        "type": "url",
-        "value": "https://t.track-example.com/c?u=https%3A%2F%2Fdocs.lure-example.net%2Fopen%3Fd%3D1"
+        "tags": [
+          "domain_in_url"
+        ],
+        "type": "fqdn",
+        "value": "collect.lure-example.net"
       },
       {
         "detections": [],
         "directives": [],
         "paths": [],
-        "tags": [],
-        "type": "url",
-        "value": "https://fonts.googleapis.com/css?family=Roboto"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "uri_path",
-        "value": "/pixel.gif"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "url",
-        "value": "https://login.lure-example.net/verify?id=7"
+        "tags": [
+          "domain_in_url"
+        ],
+        "type": "fqdn",
+        "value": "login.lure-example.net"
       },
       {
         "detections": [],
@@ -805,31 +815,114 @@
         "paths": [],
         "tags": [],
         "type": "uri_path",
-        "value": "/verify?id=7"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "url",
-        "value": "https://cdn.lure-example.net/pixel.gif"
+        "value": "/css?family=Roboto"
       }
     ],
     "results": [
       {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": false,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "text/html",
+          "type": "HTML document, ASCII text, with very long lines (790)"
+        },
+        "module": "file_type",
+        "observable": 1,
+        "summary": "File Type Analysis: HTML document, ASCII text, with very long lines (790) (text/html)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "HTMLJavaScriptExtractionAnalysis",
+        "details": {
+          "dom_snapshot_files": [],
+          "duplicate_count": 0,
+          "extracted_files": [],
+          "extracted_uri_paths": [],
+          "extracted_urls": [],
+          "inline_handlers": [],
+          "script_count": 0
+        },
+        "module": "html_js_extraction",
+        "observable": 1,
+        "summary": null,
+        "tags": []
+      },
+      {
         "added": [
           {
-            "observable": 23
+            "observable": 8
+          },
+          {
+            "observable": 21
+          },
+          {
+            "observable": 25
+          },
+          {
+            "observable": 17
+          },
+          {
+            "observable": 18
+          },
+          {
+            "observable": 13
+          }
+        ],
+        "class": "URLExtractionAnalysis",
+        "details": {
+          "urls": [
+            "https://fonts.googleapis.com/css?family=Roboto",
+            "https://t.track-example.com/c?u=https%3A%2F%2Fdocs.lure-example.net%2Fopen%3Fd%3D1",
+            "https://collect.lure-example.net/post",
+            "https://login.lure-example.net/verify?id=7",
+            "https://docs.lure-example.net/open?d=1",
+            "https://cdn.lure-example.net/pixel.gif"
+          ],
+          "urls_grouped_by_domain": {
+            "fonts.googleapis.com": [
+              "https://fonts.googleapis.com/css?family=Roboto"
+            ],
+            "lure-example.net": [
+              "https://collect.lure-example.net/post",
+              "https://login.lure-example.net/verify?id=7",
+              "https://docs.lure-example.net/open?d=1",
+              "https://cdn.lure-example.net/pixel.gif"
+            ],
+            "track-example.com": [
+              "https://t.track-example.com/c?u=https%3A%2F%2Fdocs.lure-example.net%2Fopen%3Fd%3D1"
+            ]
+          }
+        },
+        "module": "url_extraction",
+        "observable": 1,
+        "summary": "URL Extraction Analysis (cdn.lure-example.net, collect.lure-example.net, docs.lure-example.net, fonts.googleapis.com, login.lure-example.net, t.track-example.com)",
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 19
           }
         ],
         "class": "EmailAddressFQDNAnalysis",
         "details": {
-          "domain": "mailer.corp.example"
+          "domain": "corp.example"
         },
         "module": "email_address_fqdn_analyzer",
-        "observable": 4,
-        "summary": "Email Address FQDN: mailer.corp.example",
+        "observable": 3,
+        "summary": "Email Address FQDN: corp.example",
         "tags": []
       },
       {
@@ -851,14 +944,14 @@
           "type": "ASCII text"
         },
         "module": "file_type",
-        "observable": 6,
+        "observable": 5,
         "summary": "File Type Analysis: ASCII text (text/plain)",
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 28
+            "observable": 17
           }
         ],
         "class": "URLExtractionAnalysis",
@@ -873,48 +966,8 @@
           }
         },
         "module": "url_extraction",
-        "observable": 6,
+        "observable": 5,
         "summary": "URL Extraction Analysis (login.lure-example.net)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": true,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "message/rfc822",
-          "type": "news or mail, ASCII text"
-        },
-        "module": "file_type",
-        "observable": 7,
-        "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "HTMLJavaScriptExtractionAnalysis",
-        "details": {
-          "dom_snapshot_files": [],
-          "duplicate_count": 0,
-          "extracted_files": [],
-          "extracted_uri_paths": [],
-          "extracted_urls": [],
-          "inline_handlers": [],
-          "script_count": 0
-        },
-        "module": "html_js_extraction",
-        "observable": 7,
-        "summary": null,
         "tags": []
       },
       {
@@ -933,7 +986,7 @@
                 [],
                 []
               ],
-              "observable_uuid": "f1927fd6-a76f-48f6-8cdb-60ba8e8f080b",
+              "observable_uuid": "a748d24c-00df-4800-930a-7b8d0cd163cc",
               "reasons": [
                 "found in the email body",
                 "clickable link with text 'Verify your mailbox'",
@@ -962,7 +1015,7 @@
                   "docs.lure-example.net/open?d=1"
                 ]
               ],
-              "observable_uuid": "d192e8a5-b9d2-439d-994d-95582b5ac0d9",
+              "observable_uuid": "aed0523e-8827-4486-bed8-eb76f841ce9c",
               "reasons": [
                 "found in the email body",
                 "clickable link with text 'View the document'",
@@ -989,7 +1042,7 @@
               [],
               []
             ],
-            "observable_uuid": "f1927fd6-a76f-48f6-8cdb-60ba8e8f080b",
+            "observable_uuid": "a748d24c-00df-4800-930a-7b8d0cd163cc",
             "reasons": [
               "found in the email body",
               "clickable link with text 'Verify your mailbox'",
@@ -1005,44 +1058,44 @@
           "subject": "Action required: verify your mailbox"
         },
         "module": "lure_url_analyzer",
-        "observable": 9,
+        "observable": 6,
         "summary": "Lure URL Analysis: https://login.lure-example.net/verify?id=7 (found in the email body; clickable link with text 'Verify your mailbox'; styled as a button; call-to-action text (verify))",
         "tags": []
       },
       {
         "added": [
           {
+            "observable": 3
+          },
+          {
             "observable": 15
-          },
-          {
-            "observable": 21
-          },
-          {
-            "observable": 17
-          },
-          {
-            "observable": 16
-          },
-          {
-            "observable": 24
           },
           {
             "observable": 4
           },
           {
-            "observable": 6,
+            "observable": 12
+          },
+          {
+            "observable": 7
+          },
+          {
+            "observable": 27
+          },
+          {
+            "observable": 5,
             "path": "email.rfc822.unknown_text_plain_000.txt"
           },
           {
-            "observable": 10,
+            "observable": 1,
             "path": "email.rfc822.unknown_text_html_000.html"
           },
           {
-            "observable": 7,
+            "observable": 23,
             "path": "email.rfc822.headers"
           },
           {
-            "observable": 20,
+            "observable": 10,
             "path": "email.rfc822.combined"
           }
         ],
@@ -1118,7 +1171,7 @@
               "cc": [],
               "compauth_reason": null,
               "compauth_result": null,
-              "date": "2026-11-10 05:37:46.633743 +0000",
+              "date": "2026-11-16 16:44:20.825046 +0000",
               "dkim_result": null,
               "dmarc_result": null,
               "env_mail_from": null,
@@ -1178,7 +1231,7 @@
           "parsing_error": null
         },
         "module": "email_analyzer",
-        "observable": 9,
+        "observable": 6,
         "summary": "Email Analysis: From IT Desk <it@corp.example> To pat@corp.example Subject Action required: verify your mailbox",
         "tags": []
       },
@@ -1201,7 +1254,7 @@
           "type": "news or mail, ASCII text"
         },
         "module": "file_type",
-        "observable": 9,
+        "observable": 6,
         "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
         "tags": []
       },
@@ -1218,47 +1271,7 @@
           "script_count": 0
         },
         "module": "html_js_extraction",
-        "observable": 9,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": false,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "text/html",
-          "type": "HTML document, ASCII text, with very long lines (790)"
-        },
-        "module": "file_type",
-        "observable": 10,
-        "summary": "File Type Analysis: HTML document, ASCII text, with very long lines (790) (text/html)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "HTMLJavaScriptExtractionAnalysis",
-        "details": {
-          "dom_snapshot_files": [],
-          "duplicate_count": 0,
-          "extracted_files": [],
-          "extracted_uri_paths": [],
-          "extracted_urls": [],
-          "inline_handlers": [],
-          "script_count": 0
-        },
-        "module": "html_js_extraction",
-        "observable": 10,
+        "observable": 6,
         "summary": null,
         "tags": []
       },
@@ -1268,133 +1281,32 @@
             "observable": 26
           },
           {
-            "observable": 25
-          },
-          {
-            "observable": 18
-          },
-          {
-            "observable": 28
-          },
-          {
-            "observable": 19
-          },
-          {
             "observable": 30
           }
         ],
-        "class": "URLExtractionAnalysis",
-        "details": {
-          "urls": [
-            "https://fonts.googleapis.com/css?family=Roboto",
-            "https://t.track-example.com/c?u=https%3A%2F%2Fdocs.lure-example.net%2Fopen%3Fd%3D1",
-            "https://collect.lure-example.net/post",
-            "https://login.lure-example.net/verify?id=7",
-            "https://docs.lure-example.net/open?d=1",
-            "https://cdn.lure-example.net/pixel.gif"
-          ],
-          "urls_grouped_by_domain": {
-            "fonts.googleapis.com": [
-              "https://fonts.googleapis.com/css?family=Roboto"
-            ],
-            "lure-example.net": [
-              "https://collect.lure-example.net/post",
-              "https://login.lure-example.net/verify?id=7",
-              "https://docs.lure-example.net/open?d=1",
-              "https://cdn.lure-example.net/pixel.gif"
-            ],
-            "track-example.com": [
-              "https://t.track-example.com/c?u=https%3A%2F%2Fdocs.lure-example.net%2Fopen%3Fd%3D1"
-            ]
-          }
-        },
-        "module": "url_extraction",
-        "observable": 10,
-        "summary": "URL Extraction Analysis (cdn.lure-example.net, collect.lure-example.net, docs.lure-example.net, fonts.googleapis.com, login.lure-example.net, t.track-example.com)",
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 13
-          }
-        ],
-        "class": "EmailAddressFQDNAnalysis",
-        "details": {
-          "domain": "corp.example"
-        },
-        "module": "email_address_fqdn_analyzer",
-        "observable": 15,
-        "summary": "Email Address FQDN: corp.example",
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 12
-          },
-          {
-            "observable": 8
-          }
-        ],
         "class": "ParseURLAnalysis",
         "details": {
           "fragment": "",
-          "netloc": "collect.lure-example.net",
+          "netloc": "fonts.googleapis.com",
           "params": null,
-          "path": "/post",
-          "query": "",
+          "path": "/css",
+          "query": "family=Roboto",
           "scheme": "https"
         },
         "module": "parse_url",
-        "observable": 18,
-        "summary": "URL Parser: scheme=https, netloc=collect.lure-example.net, path=/post",
+        "observable": 8,
+        "summary": "URL Parser: scheme=https, netloc=fonts.googleapis.com, path=/css, query=family=Roboto, params=(family=Roboto)",
         "tags": []
       },
       {
         "added": [],
         "class": "ProtectedURLAnalysis",
         "details": {
-          "extracted_url": "https://collect.lure-example.net/post",
+          "extracted_url": "https://fonts.googleapis.com/css?family=Roboto",
           "protection_type": "unprotected"
         },
         "module": "protected_url_analyzer",
-        "observable": 18,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 0
-          },
-          {
-            "observable": 11
-          }
-        ],
-        "class": "ParseURLAnalysis",
-        "details": {
-          "fragment": "",
-          "netloc": "docs.lure-example.net",
-          "params": null,
-          "path": "/open",
-          "query": "d=1",
-          "scheme": "https"
-        },
-        "module": "parse_url",
-        "observable": 19,
-        "summary": "URL Parser: scheme=https, netloc=docs.lure-example.net, path=/open, query=d=1, params=(d=1)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "ProtectedURLAnalysis",
-        "details": {
-          "extracted_url": "https://docs.lure-example.net/open?d=1",
-          "protection_type": "unprotected"
-        },
-        "module": "protected_url_analyzer",
-        "observable": 19,
+        "observable": 8,
         "summary": null,
         "tags": []
       },
@@ -1417,7 +1329,7 @@
           "type": "news or mail, ASCII text, with very long lines (790)"
         },
         "module": "file_type",
-        "observable": 20,
+        "observable": 10,
         "summary": "File Type Analysis: news or mail, ASCII text, with very long lines (790) (message/rfc822) (email)",
         "tags": []
       },
@@ -1434,137 +1346,17 @@
           "script_count": 0
         },
         "module": "html_js_extraction",
-        "observable": 20,
+        "observable": 10,
         "summary": null,
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 13
-          }
-        ],
-        "class": "EmailAddressFQDNAnalysis",
-        "details": {
-          "domain": "corp.example"
-        },
-        "module": "email_address_fqdn_analyzer",
-        "observable": 21,
-        "summary": "Email Address FQDN: corp.example",
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 22
+            "observable": 0
           },
           {
-            "observable": 14
-          }
-        ],
-        "class": "ParseURLAnalysis",
-        "details": {
-          "fragment": "",
-          "netloc": "t.track-example.com",
-          "params": null,
-          "path": "/c",
-          "query": "u=https%3A%2F%2Fdocs.lure-example.net%2Fopen%3Fd%3D1",
-          "scheme": "https"
-        },
-        "module": "parse_url",
-        "observable": 25,
-        "summary": "URL Parser: scheme=https, netloc=t.track-example.com, path=/c, query=u=https%3A%2F%2Fdocs.lure-example.net%2Fopen%3Fd%3D1, params=(u=https://docs.lure-example.net/open?d=1)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "ProtectedURLAnalysis",
-        "details": {
-          "extracted_url": "https://t.track-example.com/c?u=https%3A%2F%2Fdocs.lure-example.net%2Fopen%3Fd%3D1",
-          "protection_type": "unprotected"
-        },
-        "module": "protected_url_analyzer",
-        "observable": 25,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 5
-          },
-          {
-            "observable": 3
-          }
-        ],
-        "class": "ParseURLAnalysis",
-        "details": {
-          "fragment": "",
-          "netloc": "fonts.googleapis.com",
-          "params": null,
-          "path": "/css",
-          "query": "family=Roboto",
-          "scheme": "https"
-        },
-        "module": "parse_url",
-        "observable": 26,
-        "summary": "URL Parser: scheme=https, netloc=fonts.googleapis.com, path=/css, query=family=Roboto, params=(family=Roboto)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "ProtectedURLAnalysis",
-        "details": {
-          "extracted_url": "https://fonts.googleapis.com/css?family=Roboto",
-          "protection_type": "unprotected"
-        },
-        "module": "protected_url_analyzer",
-        "observable": 26,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 2
-          },
-          {
-            "observable": 29
-          }
-        ],
-        "class": "ParseURLAnalysis",
-        "details": {
-          "fragment": "",
-          "netloc": "login.lure-example.net",
-          "params": null,
-          "path": "/verify",
-          "query": "id=7",
-          "scheme": "https"
-        },
-        "module": "parse_url",
-        "observable": 28,
-        "summary": "URL Parser: scheme=https, netloc=login.lure-example.net, path=/verify, query=id=7, params=(id=7)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "ProtectedURLAnalysis",
-        "details": {
-          "extracted_url": "https://login.lure-example.net/verify?id=7",
-          "protection_type": "unprotected"
-        },
-        "module": "protected_url_analyzer",
-        "observable": 28,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 1
-          },
-          {
-            "observable": 27
+            "observable": 20
           }
         ],
         "class": "ParseURLAnalysis",
@@ -1577,7 +1369,7 @@
           "scheme": "https"
         },
         "module": "parse_url",
-        "observable": 30,
+        "observable": 13,
         "summary": "URL Parser: scheme=https, netloc=cdn.lure-example.net, path=/pixel.gif",
         "tags": []
       },
@@ -1589,8 +1381,218 @@
           "protection_type": "unprotected"
         },
         "module": "protected_url_analyzer",
-        "observable": 30,
+        "observable": 13,
         "summary": null,
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 19
+          }
+        ],
+        "class": "EmailAddressFQDNAnalysis",
+        "details": {
+          "domain": "corp.example"
+        },
+        "module": "email_address_fqdn_analyzer",
+        "observable": 15,
+        "summary": "Email Address FQDN: corp.example",
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 29
+          },
+          {
+            "observable": 22
+          }
+        ],
+        "class": "ParseURLAnalysis",
+        "details": {
+          "fragment": "",
+          "netloc": "login.lure-example.net",
+          "params": null,
+          "path": "/verify",
+          "query": "id=7",
+          "scheme": "https"
+        },
+        "module": "parse_url",
+        "observable": 17,
+        "summary": "URL Parser: scheme=https, netloc=login.lure-example.net, path=/verify, query=id=7, params=(id=7)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "ProtectedURLAnalysis",
+        "details": {
+          "extracted_url": "https://login.lure-example.net/verify?id=7",
+          "protection_type": "unprotected"
+        },
+        "module": "protected_url_analyzer",
+        "observable": 17,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 16
+          },
+          {
+            "observable": 11
+          }
+        ],
+        "class": "ParseURLAnalysis",
+        "details": {
+          "fragment": "",
+          "netloc": "docs.lure-example.net",
+          "params": null,
+          "path": "/open",
+          "query": "d=1",
+          "scheme": "https"
+        },
+        "module": "parse_url",
+        "observable": 18,
+        "summary": "URL Parser: scheme=https, netloc=docs.lure-example.net, path=/open, query=d=1, params=(d=1)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "ProtectedURLAnalysis",
+        "details": {
+          "extracted_url": "https://docs.lure-example.net/open?d=1",
+          "protection_type": "unprotected"
+        },
+        "module": "protected_url_analyzer",
+        "observable": 18,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 24
+          },
+          {
+            "observable": 2
+          }
+        ],
+        "class": "ParseURLAnalysis",
+        "details": {
+          "fragment": "",
+          "netloc": "t.track-example.com",
+          "params": null,
+          "path": "/c",
+          "query": "u=https%3A%2F%2Fdocs.lure-example.net%2Fopen%3Fd%3D1",
+          "scheme": "https"
+        },
+        "module": "parse_url",
+        "observable": 21,
+        "summary": "URL Parser: scheme=https, netloc=t.track-example.com, path=/c, query=u=https%3A%2F%2Fdocs.lure-example.net%2Fopen%3Fd%3D1, params=(u=https://docs.lure-example.net/open?d=1)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "ProtectedURLAnalysis",
+        "details": {
+          "extracted_url": "https://t.track-example.com/c?u=https%3A%2F%2Fdocs.lure-example.net%2Fopen%3Fd%3D1",
+          "protection_type": "unprotected"
+        },
+        "module": "protected_url_analyzer",
+        "observable": 21,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": true,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "message/rfc822",
+          "type": "news or mail, ASCII text"
+        },
+        "module": "file_type",
+        "observable": 23,
+        "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "HTMLJavaScriptExtractionAnalysis",
+        "details": {
+          "dom_snapshot_files": [],
+          "duplicate_count": 0,
+          "extracted_files": [],
+          "extracted_uri_paths": [],
+          "extracted_urls": [],
+          "inline_handlers": [],
+          "script_count": 0
+        },
+        "module": "html_js_extraction",
+        "observable": 23,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 28
+          },
+          {
+            "observable": 14
+          }
+        ],
+        "class": "ParseURLAnalysis",
+        "details": {
+          "fragment": "",
+          "netloc": "collect.lure-example.net",
+          "params": null,
+          "path": "/post",
+          "query": "",
+          "scheme": "https"
+        },
+        "module": "parse_url",
+        "observable": 25,
+        "summary": "URL Parser: scheme=https, netloc=collect.lure-example.net, path=/post",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "ProtectedURLAnalysis",
+        "details": {
+          "extracted_url": "https://collect.lure-example.net/post",
+          "protection_type": "unprotected"
+        },
+        "module": "protected_url_analyzer",
+        "observable": 25,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 9
+          }
+        ],
+        "class": "EmailAddressFQDNAnalysis",
+        "details": {
+          "domain": "mailer.corp.example"
+        },
+        "module": "email_address_fqdn_analyzer",
+        "observable": 27,
+        "summary": "Email Address FQDN: mailer.corp.example",
         "tags": []
       }
     ],
