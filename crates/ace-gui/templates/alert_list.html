@@ -8,7 +8,7 @@
   {%- if list.rows.is_empty() %}
   <p class="muted">No alerts match these filters.</p>
   {%- else %}
-  <table class="alerts">
+  <div class="table-wrap"><table class="alerts">
     <thead>
       <tr>
         <th><input type="checkbox" id="tick-all" aria-label="Tick every alert on this page" data-ids="{{ list.ids }}"
@@ -30,7 +30,7 @@
       </tr>
       {%- endfor %}
     </tbody>
-  </table>
+  </table></div>
   {%- endif %}
   <nav class="pager" aria-label="Pages">
     {%- if let Some(first) = list.first %}<a href="{{ first }}">First</a>{% endif %}

@@ -14,7 +14,7 @@
   <p class="muted">You have no saved filters on {{ view.screen_label }} yet. Set a filter there, then save it under Saved filters.</p>
   {%- endif %}
   {%- else %}
-  <table class="saved-filters">
+  <div class="table-wrap"><table class="saved-filters">
     <thead>
       <tr><th>Quick filter</th><th>Order</th><th>Name</th><th>Description</th><th></th></tr>
     </thead>
@@ -56,7 +56,7 @@
       </tr>
       {%- endfor %}
     </tbody>
-  </table>
+  </table></div>
   {%- if view.alerts %}
   <p class="muted hint">Pinned filters appear as quick filters on the alert list's filter bar, in the order shown here. Tip: use <code>$USER_QUEUE</code> as a Queue value or <code>$USER</code> as an Owner value to make a shared link adapt to whoever opens it.</p>
   {%- else %}

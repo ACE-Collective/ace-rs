@@ -1,11 +1,10 @@
 {#- A list's filter form (src/remediation.rs): a field per filter of its screen, folded into `f`. -#}
-  <form method="get" action="{{ action }}" class="detection-filters">
-    {%- for field in view.fields %}
-    <label for="filter-{{ field.slug }}">{{ field.name }}</label>
-    <input type="text" id="filter-{{ field.slug }}" name="{{ field.slug }}" value="{{ field.value }}" placeholder="{% if field.options.is_empty() %}{{ field.hint }}{% else %}{{ field.options|join(", ") }}{% endif %}">
-    {%- endfor %}
-    <button type="submit">Apply</button>
+  <form method="get" action="{{ action }}" class="detection-filters filter-form">
+    {%- include "filter_fields.html" %}
+    <div class="filter-actions">
+    <button type="submit" class="primary">Apply</button>
     <a href="{{ action }}">Reset</a>
+    </div>
   </form>
   <p class="muted">{{ view.total }} matching · newest first · export as <a href="{{ view.csv }}">CSV</a> or <a href="{{ view.ndjson }}">NDJSON</a></p>
   {%- if view.first.is_some() || view.next.is_some() %}

@@ -50,7 +50,7 @@
     <a href="/signatures/yara-qa">Reset</a>
   </form>
 
-  <table class="keys qa-rules">
+  <div class="table-wrap"><table class="keys qa-rules">
     <thead>
       <tr>
         <th>Rule</th><th>UUID</th><th>Status</th><th>Enabled</th>
@@ -76,7 +76,7 @@
       <tr><td colspan="8" class="muted">No signatures match these filters.</td></tr>
       {%- endfor %}
     </tbody>
-  </table>
+  </table></div>
   <nav class="pager" aria-label="Pages">
     {%- if let Some(previous) = view.previous %}<a href="{{ previous }}" rel="prev">Previous</a>{% endif %}
     <span class="muted">{{ view.first_shown }}–{{ view.last_shown }} of {{ view.total }}</span>

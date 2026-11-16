@@ -14,7 +14,7 @@
 
   <h3>Rows</h3>
   <p class="muted">Its technique tags and what it is measured on, as of the last coverage refresh; the resolutions as of now.</p>
-  <table class="keys">
+  <div class="table-wrap"><table class="keys">
     <thead><tr><th>Technique</th><th>Kind</th><th>Status</th><th>Tagged</th><th>Measured on</th><th>Resolution</th>{% if view.manage %}<th>Resolve</th>{% endif %}</tr></thead>
     <tbody>
       {%- for row in view.rows %}
@@ -45,11 +45,11 @@
       </tr>
       {%- endfor %}
     </tbody>
-  </table>
+  </table></div>
 
   <h3>Measured on</h3>
   <p class="muted">The techniques of the tests that expect it now.</p>
-  <table class="keys">
+  <div class="table-wrap"><table class="keys">
     <thead><tr><th>Technique</th><th>Tests</th></tr></thead>
     <tbody>
       {%- for row in view.measured %}
@@ -61,6 +61,6 @@
       <tr><td colspan="2" class="muted">No test expects it now.</td></tr>
       {%- endfor %}
     </tbody>
-  </table>
+  </table></div>
 </section>
 {% endblock %}

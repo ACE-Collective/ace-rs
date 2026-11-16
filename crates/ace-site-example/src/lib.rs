@@ -7,12 +7,16 @@
 //! have a view of the site's own, its analysis template (5.9), and a ticket has an observable action
 //! of the site's own that opens it, both named by the binary's list.
 //!
+//! Its alert summary is the site's own too: an alert whose type is `example - ticket`, or starts with
+//! it, has its ticket queue and ticket at the top of its page (`ExampleTicketSummary`), where ace3 has
+//! a template per alert type.
+//!
 //! Its alert router type (PLAN.md 7.13) is ace3's example integration's (`integrations.example`'s
 //! `ExampleTagRouter`): an overlay entry of type `example_tag` sends a new alert carrying one tag to one
 //! queue, and does nothing to any other, so the type changes nothing until an entry and that tag appear.
 
 use ace_app::App;
-use ace_gui::{AnalysisView, ObservableAction};
+use ace_gui::{AlertSummary, AnalysisView, ObservableAction, SummaryInput};
 use ace_results::{AnalysisType, NewObservable, ObservableKind, ObservableType, ResultEnvelope};
 use ace_sdk::{Lookup, Module, ModuleError, Outcome, TaskContext};
 use schemars::JsonSchema;
@@ -39,6 +43,7 @@ pub fn app() -> App {
         .module_in_group("correlation", TicketLookup::NAME)
         .analysis_view::<TicketAnalysis>()
         .observable_action(OPEN_TICKET)
+        .alert_summary::<ExampleTicketSummary>()
         .alert_router_type(EXAMPLE_TAG_ROUTER, |settings| {
             Ok(std::sync::Arc::new(ExampleTagRouter::new(settings)?))
         })
@@ -92,6 +97,38 @@ pub const OPEN_TICKET: ObservableAction =
             )
         })
     });
+
+/// The alert type the site's summary draws: what the site's own submitter would name.
+pub const TICKET_ALERT_TYPE: &str = "example - ticket";
+
+/// The site's summary of a ticket alert, at the top of the alert's page: the ticket system's queue
+/// from what the submitter said, and the alert's first ticket.
+pub struct ExampleTicketSummary;
+
+/// How a ticket alert's summary shows.
+#[derive(askama::Template)]
+#[template(path = "ticket_summary.html")]
+pub struct TicketSummaryView<'a> {
+    pub queue: &'a str,
+    pub ticket: Option<&'a str>,
+}
+
+impl AlertSummary for ExampleTicketSummary {
+    const ALERT_TYPE: &'static str = TICKET_ALERT_TYPE;
+    type View<'a> = TicketSummaryView<'a>;
+
+    fn view<'a>(alert: &SummaryInput<'a>) -> Option<TicketSummaryView<'a>> {
+        // an alert that names no ticket queue has the page's default summary
+        let queue = alert.origin["details"]["ticket_queue"].as_str()?;
+        let ticket = alert
+            .tree
+            .observables
+            .iter()
+            .find(|observable| observable.kind == TICKET.as_str())
+            .map(|observable| observable.value.as_str());
+        Some(TicketSummaryView { queue, ticket })
+    }
+}
 
 pub struct TicketLookup;
 

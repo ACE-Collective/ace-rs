@@ -59,7 +59,10 @@ use ace_core::eligibility::Catalog;
 use ace_core::modes::Modes;
 use ace_core::orchestrator::Orchestrator;
 use ace_core::testing::TestDb;
-use ace_gui::alert::{AlertPage, AlertTreeFragment, GraphPage, OwnerNoticeFragment, tree_view};
+use ace_gui::alert::{
+    AlertPage, AlertTreeFragment, GraphPage, OwnerNoticeFragment, PageOptions, TreeMode, tree_view,
+    tree_view_in,
+};
 use ace_gui::list::{ListPage, ListQuery, list_view};
 use ace_gui::templates::{ChangePasswordPage, ErrorPage, Layout, LoginPage};
 use ace_gui::{Gui, LiveLimits, ObservableActions, Views, asset_named};
@@ -1516,6 +1519,7 @@ fn fixture_tree() -> (AlertTree, Vec<ObservableComment>) {
         .collect(),
         root_detections: Vec::new(),
         truncated: false,
+        origin: serde_json::Value::Null,
     };
     let comments = vec![ObservableComment {
         id: 1,
@@ -1604,13 +1608,28 @@ fn the_view_function_draws_a_fixture_tree() {
     .expect("a page");
     let version = open.version.clone();
     assert_eq!(version.len(), 16);
+    // the page starts at the branches that carry a detection (the UI direction of 2026-11-15), so
+    // its version is that tree's, and the whole tree's is another
+    let branches = tree_view_in(
+        &tree,
+        &comments,
+        &ObservableActions::empty(),
+        TreeMode::Detections,
+    );
     assert_eq!(
-        AlertTreeFragment { tree: view }
+        AlertTreeFragment { tree: branches }
             .render_versioned()
             .expect("renders")
             .1,
         version,
         "the page's version is its tree's"
+    );
+    assert_ne!(
+        AlertTreeFragment { tree: view }
+            .render_versioned()
+            .expect("renders")
+            .1,
+        version
     );
     let page = open.render().expect("renders");
     assert!(page.contains(&format!(
@@ -1626,7 +1645,18 @@ fn the_view_function_draws_a_fixture_tree() {
         page.contains("<h1>&#60;i&#62;Phish&#60;/i&#62;</h1>"),
         "{page}"
     );
-    assert!(page.contains(r#"<details class="section" data-section-id="alert_details" open>"#));
+    // a secondary section starts collapsed, with a line saying what it holds
+    assert!(
+        page.contains(r#"<details class="section" data-section-id="alert_details">"#),
+        "{page}"
+    );
+    assert!(
+        page.contains(
+            r#"<summary>Alert Details <span class="hint">correlation mode · 4 observables · 1 detections · event time 2026-10-26 07:33:20 UTC (event)</span></summary>"#
+        ),
+        "{page}"
+    );
+    assert!(page.contains("Collapsed by default"));
     assert!(page.contains("<th>Submitted by</th><td>&#60;the submitter&#62;</td>"));
     // the alert's queue is among its details, as ace3's alert.html has it (PLAN.md 7.13), as text
     assert!(
@@ -1639,18 +1669,19 @@ fn the_view_function_draws_a_fixture_tree() {
         "no inline style, which the policy refuses"
     );
     assert!(!page.contains("<script>"), "no inline script");
-    let closed = AlertPage::new(
+    // the viewer's pin opens it
+    let pinned = AlertPage::new(
         Layout::new("n0nce", Theme::Light, Some("alice".to_owned()), "/alerts/x"),
         &tree,
         &comments,
         &ObservableActions::empty(),
-        &[("alert_details".to_owned(), false)].into_iter().collect(),
+        &[("alert_details".to_owned(), true)].into_iter().collect(),
     )
     .expect("a page")
     .render()
     .expect("renders");
-    assert!(closed.contains(r#"<details class="section" data-section-id="alert_details">"#));
-    assert!(closed.contains("Collapsed by default"));
+    assert!(pinned.contains(r#"<details class="section" data-section-id="alert_details" open>"#));
+    assert!(pinned.contains("Open by default"));
 }
 
 /// PLAN.md 7.6: what the core's hooks did shows as ace3's alert page shows it: the alert's own
@@ -1723,6 +1754,515 @@ fn the_alert_shows_what_the_hooks_did() {
     );
     assert!(!html.contains("<b>hide") && !html.contains("<bad>") && !html.contains("<phish>"));
     assert!(!html.contains("style="));
+}
+
+/// The owner's UI direction of 2026-11-15: the page leads with what decides the alert, its secondary
+/// sections are collapsed, and its tree starts at the branches that carry a detection, with the whole
+/// tree a link or a pin away and nothing removed.
+#[test]
+fn the_alert_page_leads_with_what_decides_the_alert() {
+    let (tree, comments) = fixture_tree();
+    let id = tree.alert.summary.id;
+    let layout = || Layout::new("n0nce", Theme::Light, Some("alice".to_owned()), "/alerts/x");
+    let none = std::collections::BTreeMap::new();
+    let page = AlertPage::new(
+        layout(),
+        &tree,
+        &comments,
+        &ObservableActions::empty(),
+        &none,
+    )
+    .expect("a page");
+    assert_eq!(
+        page.fired
+            .iter()
+            .map(|f| (f.description.as_str(), f.on.as_str(), f.others))
+            .collect::<Vec<_>>(),
+        [("a known <bad> sender", "email_from: a@example.com", 0)]
+    );
+    assert!(!page.tree.full && page.tree.prunable);
+    assert_eq!((page.tree.shown, page.tree.total), (3, 4));
+    let html = drawn_safely(&page);
+    let compact: String = html.lines().map(str::trim).collect();
+    // the order of the page: the title, what it is and whose, what fired, the key observables, the
+    // collapsed details, the tree
+    let order = [
+        "<h1>&#60;i&#62;Phish&#60;/i&#62;</h1>",
+        r#"<dt>Disposition</dt><dd><span class="badge disposition-"#,
+        r#"<dt>Owner</dt><dd><span class="muted">nobody</span></dd>"#,
+        "<dt>Queue</dt><dd>&#60;q&#62;ueue &#38; &#34;co&#34;</dd>",
+        r#"<h2 id="fired-title">What fired</h2>"#,
+        r#"<span class="fired-what">a known &#60;bad&#62; sender</span>"#,
+        "on email_from: a@example.com",
+        r#"<h2 id="type-summary-title">Key observables</h2>"#,
+        &format!(
+            r#"<b class="type">Mail From (email_from)</b> <a class="value" href="/alerts/{id}?tree=full#o2">a@example.com</a> <span class="badge tone-bad">1 detection</span>"#
+        ),
+        &format!(
+            r#"<b class="type">file</b> <a class="value" href="/alerts/{id}?tree=full#o1">email.rfc822</a>"#
+        ),
+        r#"<details class="section" data-section-id="alert_details">"#,
+        r#"<section class="overview" id="analysis">"#,
+        r##"<p class="tree-scope">The branches with a detection: 3 of 4 observables. <a href="?tree=full#analysis">Show the whole tree</a></p>"##,
+        r#"<li class="observable" id="o1">"#,
+        r#"<li class="observable" id="o2">"#,
+        "Detections only by default",
+    ];
+    let mut at = 0;
+    for part in order {
+        let found = compact[at..]
+            .find(part)
+            .unwrap_or_else(|| panic!("{part}\nisn't after byte {at} of\n{compact}"));
+        at += found + part.len();
+    }
+    // the branches: the email, its result, the sender with the detection, and the IP whose result
+    // names the sender again; the fqdn carries nothing and leads to nothing
+    assert!(compact.contains(r#"id="o3""#) && compact.contains(r#"id="r11""#));
+    assert!(!compact.contains(r#"id="o4""#), "{compact}");
+    assert!(!compact.contains(" open>"), "no section starts open");
+    assert!(
+        !compact.contains("t=full"),
+        "the stream follows the page's tree"
+    );
+
+    // nothing is removed: the whole tree is a link away, and says how to come back
+    let whole = drawn_safely(
+        &AlertPage::with(
+            layout(),
+            &tree,
+            &comments,
+            &ObservableActions::empty(),
+            &none,
+            PageOptions {
+                tree: Some(TreeMode::Full),
+                ..PageOptions::default()
+            },
+        )
+        .expect("a page"),
+    );
+    let whole: String = whole.lines().map(str::trim).collect();
+    assert!(whole.contains(r#"id="o4""#), "{whole}");
+    assert!(
+        whole.contains(
+            r##"<p class="tree-scope">The whole tree, 4 observables. <a href="?tree=detections#analysis">Show only the branches with a detection</a></p>"##
+        ),
+        "{whole}"
+    );
+    assert!(
+        whole.contains("&amp;o=&#38;t=full')\">"),
+        "the stream is told which tree the page drew: {whole}"
+    );
+    // or a pin away: the viewer's choice for every alert, which a page's own link still overrides
+    let pinned: std::collections::BTreeMap<String, bool> =
+        [("analysis_tree".to_owned(), true)].into_iter().collect();
+    let by_pin = AlertPage::new(
+        layout(),
+        &tree,
+        &comments,
+        &ObservableActions::empty(),
+        &pinned,
+    )
+    .expect("a page");
+    assert!(by_pin.tree.full);
+    assert!(drawn_safely(&by_pin).contains("Whole tree by default"));
+    let asked = AlertPage::with(
+        layout(),
+        &tree,
+        &comments,
+        &ObservableActions::empty(),
+        &pinned,
+        PageOptions {
+            tree: Some(TreeMode::Detections),
+            ..PageOptions::default()
+        },
+    )
+    .expect("a page");
+    assert!(!asked.tree.full);
+
+    // a tree with no detection on any observable is drawn whole, with nothing to choose
+    let mut plain = tree.clone();
+    for observable in &mut plain.observables {
+        observable.detections.clear();
+    }
+    let plain = AlertPage::new(
+        layout(),
+        &plain,
+        &comments,
+        &ObservableActions::empty(),
+        &none,
+    )
+    .expect("a page");
+    assert!(plain.tree.full && !plain.tree.prunable && plain.fired.is_empty());
+    let plain = drawn_safely(&plain);
+    assert!(plain.contains(r#"id="o4""#) && !plain.contains("tree-scope"));
+    assert!(plain.contains("No detection is recorded on this alert."));
+    assert!(!plain.contains("Detections only by default"));
+}
+
+/// A site's summary for one kind of hunt, as `ace_app::App::alert_summary` registers one.
+#[derive(Template)]
+#[template(
+    source = r#"<section class="type-summary cloud-summary">{{ note }}</section>"#,
+    ext = "html"
+)]
+struct CloudSummaryView<'a> {
+    note: &'a str,
+}
+
+struct CloudSummary;
+
+impl ace_gui::AlertSummary for CloudSummary {
+    const ALERT_TYPE: &'static str = "hunter - splunk - aws";
+    type View<'a> = CloudSummaryView<'a>;
+
+    fn view<'a>(alert: &ace_gui::SummaryInput<'a>) -> Option<CloudSummaryView<'a>> {
+        alert.origin["details"]["note"]
+            .as_str()
+            .map(|note| CloudSummaryView { note })
+    }
+}
+
+/// The page's summary is chosen by the alert's type, its origin's `alert_type`, as ace3 chooses a
+/// template (`GUIAlertPresenter.template_path`): a mailbox alert's email, a hunt alert's hunt, a
+/// site's own for the types it names, and the key observables for everything else. Each draws what
+/// the submitter and the modules wrote as text.
+#[test]
+fn an_alert_s_summary_is_chosen_by_its_type() {
+    let builtin = ace_gui::AlertSummaries::builtin();
+    assert_eq!(builtin.types().collect::<Vec<_>>(), ["hunter", "mailbox"]);
+    for (alert_type, chosen) in [
+        ("mailbox", Some("mailbox")),
+        ("hunter", Some("hunter")),
+        ("hunter - splunk - v2", Some("hunter")),
+        ("hunter - splunk - aws - prod", Some("hunter")),
+        // a type is matched at its ` - ` parts, not by its letters
+        ("hunters - splunk", None),
+        ("mailboxes", None),
+        ("manual", None),
+        ("", None),
+    ] {
+        assert_eq!(builtin.chosen(alert_type), chosen, "{alert_type}");
+    }
+    let site = builtin
+        .clone()
+        .with(ace_gui::SummaryEntry::of::<CloudSummary>());
+    assert_eq!(
+        site.chosen("hunter - splunk - aws - prod"),
+        Some("hunter - splunk - aws"),
+        "the longest registered type"
+    );
+    assert_eq!(site.chosen("hunter - splunk - gcp"), Some("hunter"));
+
+    let (fixture, comments) = fixture_tree();
+    let id = fixture.alert.summary.id;
+    let page_of = |tree: &AlertTree, options: PageOptions<'_>| {
+        let html = drawn_safely(
+            &AlertPage::with(
+                Layout::new("n0nce", Theme::Light, Some("alice".to_owned()), "/alerts/x"),
+                tree,
+                &comments,
+                &ObservableActions::empty(),
+                &std::collections::BTreeMap::new(),
+                options,
+            )
+            .expect("a page"),
+        );
+        html.lines().map(str::trim).collect::<Vec<_>>().join("")
+    };
+
+    // no type: the default
+    let default = page_of(&fixture, PageOptions::default());
+    assert!(default.contains(r#"<h2 id="type-summary-title">Key observables</h2>"#));
+    assert!(!default.contains("<dt>Type</dt>"));
+
+    // a mailbox alert: the email, from what the mailbox module merged into the root's origin
+    let mut mail = fixture.clone();
+    mail.origin = serde_json::json!({"alert_type": "mailbox", "details": {"email": {
+        "from": "\"<b>Billing</b>\" <billing@example.net>",
+        "env_mail_from": "bounce@example.net",
+        "to": ["pat@example.com"],
+        "env_rcpt_to": ["pat@example.com", "sam@example.com"],
+        "subject": "=?utf-8?q?raw?=",
+        "decoded_subject": "<script>alert(1)</script> invoice",
+        "message-id": " <m1@example.net> ",
+        "spf_result": "pass",
+        "dmarc_result": "fail",
+        "authentication_failed": true,
+        "headers": [["Date", "Mon, 26 Oct 2026 07:00:00 +0000"], ["X-<i>", "v</pre><b>"]],
+        "log_entry": {
+            "attachment_names": ["<img src=x>.html", "b.pdf"],
+            "attachment_types": ["text/html"],
+            "attachment_sizes": [10],
+        },
+    }}});
+    // the email's result, and the body among the files it added
+    mail.observables[0].results[0].analysis_type = "email_analysis".to_owned();
+    let mut body = observable(5, "file", "b0");
+    body.files.push(AlertFile {
+        path: "email.rfc822.unknown_text_html_000.html".to_owned(),
+        yara_meta: Vec::new(),
+    });
+    mail.observables.push(body);
+    mail.additions.push(ace_service::Addition {
+        result: 10,
+        observable: 5,
+    });
+    let target = |recipient: &str, sources: &[&str]| ace_service::TargetCoverage {
+        target: format!("<m1@example.net>|{recipient}"),
+        sources: sources.iter().map(|s| (*s).to_owned()).collect(),
+        failed: false,
+        pending: false,
+        remediating: false,
+        not_found: false,
+        attempted: !sources.is_empty(),
+    };
+    let coverage = ace_service::Coverage {
+        targets: vec![
+            target("pat@example.com", &["ACE"]),
+            target("<u>sam</u>@example.com", &[]),
+        ],
+    };
+    let page = page_of(
+        &mail,
+        PageOptions {
+            remediation: Some(&coverage),
+            ..PageOptions::default()
+        },
+    );
+    contains_all(
+        &page,
+        &[
+            r#"<section class="type-summary email-summary" aria-labelledby="type-summary-title">"#,
+            r#"<p class="summary-lead">&#60;script&#62;alert(1)&#60;/script&#62; invoice</p>"#,
+            r#"<span class="badge tone-bad">authentication failed</span>"#,
+            r#"<span class="badge tone-ok">SPF: pass</span>"#,
+            r#"<span class="badge tone-warn">DMARC: fail</span>"#,
+            "<dt>From</dt><dd>&#34;&#60;b&#62;Billing&#60;/b&#62;&#34; &#60;billing@example.net&#62;</dd>",
+            "<dt>Envelope sender</dt><dd>bounce@example.net</dd>",
+            "<dt>To</dt><dd>pat@example.com</dd>",
+            "<dt>Delivered to</dt><dd>pat@example.com, sam@example.com</dd>",
+            "<dt>Date</dt><dd>Mon, 26 Oct 2026 07:00:00 +0000</dd>",
+            "<dt>Message-ID</dt><dd>&#60;m1@example.net&#62;</dd>",
+            &format!(
+                r#"<dt>Body</dt><dd><a href="/alerts/{id}?tree=full#o5">email.rfc822.unknown_text_html_000.html</a>"#
+            ),
+            r#"<li>&#60;img src=x&#62;.html <span class="muted">text/html</span> <span class="muted">10 bytes</span></li>"#,
+            "<li>b.pdf</li>",
+            r#"<li>pat@example.com <span class="badge coverage-remediated">remediated</span> <span class="muted">by ACE</span></li>"#,
+            r#"<li>&#60;u&#62;sam&#60;/u&#62;@example.com <span class="badge coverage-unremediated">not attempted</span></li>"#,
+            &format!(r#"<a href="/remediations/targets?alert={id}">Remediation targets</a>"#),
+            "X-&#60;i&#62;: v&#60;/pre&#62;&#60;b&#62;",
+            // the header and the details say the type, and the alert's remediation has its panel
+            "<dt>Type</dt><dd>mailbox</dd>",
+            "<th>Alert type</th><td>mailbox</td>",
+            r#"<details class="section remediation" id="remediation" data-section-id="remediation">"#,
+        ],
+    );
+    assert!(!page.contains("Key observables"), "{page}");
+    // a viewer who may not read remediation has the email, with no delivered copies and no panel
+    let unread = page_of(&mail, PageOptions::default());
+    assert!(
+        unread.contains("email-summary")
+            && !unread.contains("Delivered copies")
+            && !unread.contains(r#"id="remediation""#),
+        "{unread}"
+    );
+    // a mailbox alert with no email yet has the default
+    let mut early = fixture.clone();
+    early.origin = serde_json::json!({"alert_type": "mailbox"});
+    assert!(page_of(&early, PageOptions::default()).contains("Key observables"));
+
+    // a hunt alert: what the hunter submitted, the query with its window, and the matched event
+    let mut hunt = fixture.clone();
+    hunt.origin = serde_json::json!({
+        "alert_type": "hunter - splunk - v2",
+        "description": "<b>hunt</b>",
+        "instructions": "look <i>here</i>",
+        "tool": "hunter-splunk",
+        "tool_instance": "splunk.example.com",
+        "event_time": "2026-10-26T07:00:00+00:00",
+        "event_time_source": "event",
+        "queue": "default",
+        "extensions": {"playbook_url": "javascript:alert(1)"},
+        "details": {
+            "search_link": "https://splunk.example.com/search?sid=1&x=<y>",
+            "query": "search index=x earliest=10/26/2026:06:00:00 latest=10/26/2026:07:00:00 \"<script>\" | stats count",
+            "events": [{"host": "<img src=x>", "n": 3, "list": ["a", "b"]}, {"host": "second"}],
+        },
+    });
+    let page = page_of(&hunt, PageOptions::default());
+    contains_all(
+        &page,
+        &[
+            r#"<section class="type-summary hunt-summary" aria-labelledby="type-summary-title">"#,
+            r#"<span class="muted">2 matched events</span>"#,
+            r#"<p class="summary-note">look &#60;i&#62;here&#60;/i&#62;</p>"#,
+            "<dt>Hunt</dt><dd>&#60;b&#62;hunt&#60;/b&#62;</dd>",
+            "<dt>Alert type</dt><dd>hunter - splunk - v2</dd>",
+            "<dt>Searched</dt><dd>hunter-splunk at splunk.example.com</dd>",
+            "<dt>Event time</dt><dd>2026-10-26T07:00:00+00:00 (event)</dd>",
+            "<dt>Time window</dt><dd><code>earliest=10/26/2026:06:00:00 latest=10/26/2026:07:00:00</code></dd>",
+            r#"<a href="https://splunk.example.com/search?sid=1&#38;x=&#60;y&#62;" rel="noopener noreferrer" target="_blank">Open the search</a>"#,
+            "&#34;&#60;script&#62;&#34; | stats count</pre>",
+            "<dt>host</dt><dd>&#60;img src=x&#62;</dd>",
+            "<dt>list</dt><dd>a, b</dd>",
+            "<dt>n</dt><dd>3</dd>",
+            "<summary>All 2 events</summary>",
+        ],
+    );
+    // a link is only an http or https address
+    assert!(
+        !page.contains("javascript:") && !page.contains("Playbook"),
+        "{page}"
+    );
+    assert!(!page.contains("Key observables"), "{page}");
+    // an origin that names a hunter's type but holds neither a query nor an event has the default
+    let mut thin = fixture.clone();
+    thin.origin = serde_json::json!({"alert_type": "hunter - splunk", "tool": "hunter"});
+    let thin = page_of(&thin, PageOptions::default());
+    assert!(thin.contains("Key observables") && !thin.contains("hunt-summary"));
+
+    // a site's summary takes the alerts of its type, and only those; an alert it has nothing to say
+    // about has the default
+    let mut cloud = hunt.clone();
+    cloud.origin["alert_type"] = serde_json::json!("hunter - splunk - aws - prod");
+    cloud.origin["details"]["note"] = serde_json::json!("<b>role</b> assumed");
+    let options = || PageOptions {
+        summaries: Some(&site),
+        ..PageOptions::default()
+    };
+    let page = page_of(&cloud, options());
+    assert!(
+        page.contains(
+            r#"<section class="type-summary cloud-summary">&#60;b&#62;role&#60;/b&#62; assumed</section>"#
+        ) && !page.contains("hunt-summary"),
+        "{page}"
+    );
+    assert!(page_of(&hunt, options()).contains("hunt-summary"));
+    cloud.origin["details"]
+        .as_object_mut()
+        .expect("details")
+        .remove("note");
+    let page = page_of(&cloud, options());
+    assert!(
+        page.contains("Key observables") && !page.contains("cloud-summary"),
+        "{page}"
+    );
+}
+
+/// The page through the server: an alert's origin chooses its summary, a detection prunes its tree,
+/// `?tree=full` draws the whole one, and each page's stream draws the tree its page did.
+#[tokio::test]
+async fn the_alert_page_reads_the_alert_s_type_and_draws_the_tree_asked_for() {
+    let stack = stack().await;
+    let alice = user(&stack, "alice").await;
+    grant_alert_read(&stack, &alice).await;
+    let (root, fqdn) = splunk_alert(&stack).await;
+    let db = stack.test_db.db().pool();
+    sqlx::query("UPDATE analysis.roots SET origin = $2 WHERE id = $1")
+        .bind(root)
+        .bind(serde_json::json!({
+            "alert_type": "hunter - splunk - proxy",
+            "description": "Proxy <hunt>",
+            "tool": "hunter-splunk",
+            "tool_instance": "splunk.example.com",
+            "details": {"query": "search index=proxy earliest=-1h latest=now", "events": [{"dest": "www.example.com"}]},
+        }))
+        .execute(db)
+        .await
+        .expect("an origin");
+    sqlx::query(
+        "INSERT INTO analysis.detections (root_id, observable_id, description) VALUES ($1, $2, $3)",
+    )
+    .bind(root)
+    .bind(fqdn.0)
+    .bind("hunt <Proxy> matched")
+    .execute(db)
+    .await
+    .expect("a detection");
+    let session = session_of(&stack, "alice").await;
+    let page = |path: String| {
+        let request = stack.get(&path).header("cookie", cookie(&session));
+        async move {
+            let response = request.send().await.expect("answered");
+            assert_eq!(response.status(), StatusCode::OK, "{path}");
+            response.text().await.expect("a page")
+        }
+    };
+    let start = page(format!("/alerts/{root}")).await;
+    assert!(
+        start.contains(r#"class="type-summary hunt-summary""#)
+            && start.contains("<dt>Hunt</dt><dd>Proxy &#60;hunt&#62;</dd>")
+            && start.contains("<dt>Time window</dt><dd><code>earliest=-1h latest=now</code></dd>")
+            && start.contains("<dt>dest</dt><dd>www.example.com</dd>")
+            && start.contains("<th>Alert type</th><td>hunter - splunk - proxy</td>")
+            && start.contains("<th>Instance</th><td>splunk.example.com</td>"),
+        "{start}"
+    );
+    assert!(
+        start.contains(r#"<span class="fired-what">hunt &#60;Proxy&#62; matched</span>"#)
+            && start.contains("on fqdn: www.example.com"),
+        "{start}"
+    );
+    // the fqdn carries the detection; its module's result and what that added don't
+    assert!(
+        start.contains("The branches with a detection: 1 of ")
+            && !start.contains(r#"data-module="proxy_domain_lookup""#)
+            && !start.contains("t=full"),
+        "{start}"
+    );
+    let whole = page(format!("/alerts/{root}?tree=full")).await;
+    assert!(
+        whole.contains(r#"data-module="proxy_domain_lookup""#)
+            && whole.contains("The whole tree, ")
+            && whole.contains("&#38;t=full')\""),
+        "{whole}"
+    );
+    // a parameter that names no tree is the viewer's default
+    let other = page(format!("/alerts/{root}?tree=%3Cb%3E")).await;
+    assert!(!other.contains(r#"data-module="proxy_domain_lookup""#) && !other.contains("<b>"));
+
+    // each page's stream draws its page's tree: a stream that has neither page's version sends the
+    // tree its `t` names
+    let within = std::time::Duration::from_secs(10);
+    let mut branches = stack
+        .open_stream(&format!("/alerts/{root}/live?v=none&o="), &session)
+        .await;
+    assert_eq!(branches.status(), StatusCode::OK);
+    let (sent, _) = read_stream(&mut branches, within, |text| text.contains("\n\n")).await;
+    assert!(
+        sent.contains("The branches with a detection") && !sent.contains("proxy_domain_lookup"),
+        "{sent}"
+    );
+    let mut full = stack
+        .open_stream(&format!("/alerts/{root}/live?v=none&o=&t=full"), &session)
+        .await;
+    let (sent, _) = read_stream(&mut full, within, |text| text.contains("\n\n")).await;
+    assert!(
+        sent.contains("The whole tree") && sent.contains("proxy_domain_lookup"),
+        "{sent}"
+    );
+    // and one that has its page's version is quiet
+    let version = |page: &str| {
+        page.split("/live?v=")
+            .nth(1)
+            .and_then(|rest| rest.split("&amp;").next())
+            .expect("a version")
+            .to_owned()
+    };
+    for (page, t) in [(&start, ""), (&whole, "&t=full")] {
+        let mut stream = stack
+            .open_stream(
+                &format!("/alerts/{root}/live?v={}&o={t}", version(page)),
+                &session,
+            )
+            .await;
+        let (nothing, _) = read_stream(&mut stream, std::time::Duration::from_millis(600), |_| {
+            false
+        })
+        .await;
+        assert!(!nothing.contains("datastar-patch-elements"), "{nothing}");
+    }
 }
 
 fn grant_alert_read(stack: &Stack, actor: &Actor) -> impl std::future::Future<Output = ()> {
@@ -2534,10 +3074,11 @@ async fn a_section_pin_sets_how_it_starts() {
                 .expect("a page")
         }
     };
+    // a section starts collapsed until the viewer pins it open
     assert!(
         page(&stack)
             .await
-            .contains(r#"data-section-id="alert_details" open>"#)
+            .contains(r#"data-section-id="alert_details">"#)
     );
 
     let audits = stack.audit_count().await;
@@ -2546,7 +3087,7 @@ async fn a_section_pin_sets_how_it_starts() {
             "/preferences/alert-section",
             &[
                 ("section", "alert_details"),
-                ("open", "false"),
+                ("open", "true"),
                 ("next", &path),
             ],
         )
@@ -2560,11 +3101,11 @@ async fn a_section_pin_sets_how_it_starts() {
     assert!(
         page(&stack)
             .await
-            .contains(r#"data-section-id="alert_details">"#)
+            .contains(r#"data-section-id="alert_details" open>"#)
     );
     assert_eq!(
         stack.service.alert_sections(&alice).await.expect("reads"),
-        [("alert_details".to_owned(), false)].into_iter().collect()
+        [("alert_details".to_owned(), true)].into_iter().collect()
     );
 
     for form in [
@@ -3892,7 +4433,11 @@ async fn add_comment_comments_on_the_observable() {
         .await
         .expect("answered");
     assert_eq!(added.status(), StatusCode::SEE_OTHER);
-    assert_eq!(location(&added), format!("/alerts/{root}#o{}", fqdn.0));
+    // back on the whole tree, where the observable is drawn whether or not it carries a detection
+    assert_eq!(
+        location(&added),
+        format!("/alerts/{root}?tree=full#o{}", fqdn.0)
+    );
     assert_eq!(stack.audit_count().await, audits + 1);
     let page = stack
         .get(&format!("/alerts/{root}"))
@@ -6609,7 +7154,10 @@ async fn the_admin_area_needs_admin_read_then_each_page_s_own_permission() {
     assert_eq!(hub.status(), StatusCode::OK);
     let hub = hub.text().await.expect("a page");
     assert!(hub.contains("You do not have access to any administration areas."));
-    assert!(hub.contains(r#"<a href="/admin">Admin</a>"#), "{hub}");
+    assert!(
+        hub.contains(r#"<a href="/admin" aria-current="page">Admin</a>"#),
+        "{hub}"
+    );
     let users = get("/admin/users").await.expect("answered");
     assert_eq!(users.status(), StatusCode::FORBIDDEN);
     assert!(users.text().await.expect("a page").contains("user:read"));
@@ -8117,7 +8665,7 @@ async fn the_signatures_area_needs_signature_read_then_download_and_purge() {
     assert_eq!(hub.status(), StatusCode::OK);
     let hub = hub.text().await.expect("a page");
     assert!(
-        hub.contains(r#"<a href="/signatures">Signatures</a>"#),
+        hub.contains(r#"<a href="/signatures" aria-current="page">Signatures</a>"#),
         "{hub}"
     );
     assert!(
@@ -11749,7 +12297,7 @@ async fn remediations_and_collections_are_worked_through_the_gui() {
     let listed = text(get(&rd, "/remediations").await.expect("answered")).await;
     assert!(listed.contains("No remediations."), "{listed}");
     assert!(
-        listed.contains(r#"<a href="/remediations">Remediations</a>"#),
+        listed.contains(r#"<a href="/remediations" aria-current="page">Remediations</a>"#),
         "the nav links it"
     );
     assert!(!listed.contains(r#"href="/file-collections""#), "{listed}");
@@ -12155,8 +12703,8 @@ fn the_verdicts_view_draws_ace3_s_badges_and_menu() {
     contains_all(
         &html,
         &[
-            r#"<details class="section verdicts" id="detections" open>"#,
-            "<summary>Detection Verdicts (3)</summary>",
+            r#"<details class="section verdicts" id="detections" data-section-id="detections">"#,
+            r#"<summary>Detection Verdicts (3) <span class="hint">3 detections · 2 TP · 1 FP · 1 unconfirmed</span></summary>"#,
             &format!("<td>{HOSTILE_ESCAPED}</td>"),
             &format!(r#"<td class="muted">fqdn: {HOSTILE_ESCAPED}.example</td>"#),
             r#"<span class="badge verdict-fp" title="set by an analyst">FP · explicit</span>"#,
@@ -12203,7 +12751,12 @@ fn the_verdicts_view_draws_ace3_s_badges_and_menu() {
         let html = page.render().expect("renders");
         assert!(!html.contains(r#"name="verdict""#), "{html}");
         assert!(!html.contains("/detections/confirm"), "{html}");
-        assert!(html.contains("<summary>Detection Verdicts (3+)</summary>"));
+        assert!(
+            html.contains(
+                r#"<summary>Detection Verdicts (3+) <span class="hint">3+ detections · "#
+            ),
+            "{html}"
+        );
         assert!(html.contains("more detections than this list shows"));
         assert_eq!(
             html.contains("correct its disposition"),
@@ -13502,7 +14055,7 @@ fn the_svs_views_draw_runs_a_run_and_test_hosts() {
         list.contains(r#"<span class="badge disposition-warning">ended</span> <span class="muted">needs attention</span>"#),
         "{list}"
     );
-    assert!(list.contains("<td>1/3 <span"), "{list}");
+    assert!(list.contains(r#"<td class="num">1/3 <span"#), "{list}");
     assert!(
         list.contains(r#"<a href="/svs/runs?f=state%3Aended">First</a>"#)
             && list.contains(
@@ -13577,7 +14130,8 @@ fn the_svs_views_draw_runs_a_run_and_test_hosts() {
         view: batches_view(tabs(false), &query, &filters, &[batch], None, Some("b2")),
     });
     assert!(
-        batches.contains("<td>2 ended, 1 started</td>") && batches.contains("<td>1/4</td>"),
+        batches.contains("<td>2 ended, 1 started</td>")
+            && batches.contains(r#"<td class="num">1/4</td>"#),
         "{batches}"
     );
     assert!(
@@ -14294,7 +14848,7 @@ fn the_svs_review_views_draw_alerts_a_review_and_the_banner() {
     let full = page_with(SvsBanner::new(alert, Some(&view), &tags, true, true));
     assert!(
         full.contains(&format!(
-            r#"<section class="svs-banner" id="svs" role="note"><h2>SVS <span class="badge svs-status">test?</span> <span class="badge tag">svs_test</span> <span class="badge tag">{HOSTILE_ESCAPED}</span></h2>"#
+            r#"<details class="section svs-banner" id="svs" data-section-id="svs"><summary>SVS <span class="badge svs-status">test?</span> <span class="badge tag">svs_test</span> <span class="badge tag">{HOSTILE_ESCAPED}</span> <span class="hint">"#
         )),
         "{full}"
     );
@@ -14353,7 +14907,7 @@ fn the_svs_review_views_draw_alerts_a_review_and_the_banner() {
         true,
     ));
     assert!(
-        tagged.contains(r#"<h2>SVS <span class="badge tag">svs:maintenance</span></h2>"#)
+        tagged.contains(r#"<summary>SVS <span class="badge tag">svs:maintenance</span> <span class="hint">tagged by the core</span></summary>"#)
             && !tagged.contains("svs-status"),
         "{tagged}"
     );
@@ -14645,7 +15199,7 @@ async fn the_svs_review_pages_need_run_manage_and_the_banner_alert_write() {
     // the alert's banner, with its run a link and its tag, and no form without alert:write
     let banner = text(format!("/alerts/{marked}")).await;
     assert!(
-        banner.contains(r#"<section class="svs-banner" id="svs" role="note">"#)
+        banner.contains(r#"<details class="section svs-banner" id="svs" data-section-id="svs">"#)
             && banner.contains(r#"<span class="badge svs-status">test</span>"#)
             && banner.contains(r#"<span class="badge tag">svs_test</span>"#)
             && banner.contains(&format!(r#"<a href="{page_of}"><code>{run}</code></a>"#))
@@ -15267,10 +15821,11 @@ async fn the_svs_pages_need_run_read_then_run_manage_and_svs_admin() {
     assert_eq!(list.status(), StatusCode::OK);
     let list = list.text().await.expect("a page");
     assert!(list.contains(&format!(r#"<a href="{page_of}">"#)), "{list}");
-    // the layout's link, with the one run that needs attention (batch 9)
+    // the layout's link, marked as the section the page is in, with the one run that needs attention
+    // (batch 9)
     assert!(
         list.contains(
-            r#"<a href="/svs">SVS<span class="count" id="svs-nav-count" title="runs that need attention">(1)</span></a>"#
+            r#"<a href="/svs" aria-current="page">SVS<span class="count" id="svs-nav-count" title="runs that need attention">(1)</span></a>"#
         ),
         "{list}"
     );
@@ -15838,7 +16393,7 @@ fn the_svs_coverage_views_draw_tests_coverage_and_the_worklist() {
             && list.contains(r#"<span class="badge disposition-danger">failing</span>"#)
             && list.contains(&format!(r#"<a href="{run}">2023-11-14 22:13:20 UTC</a>"#))
             && list.contains("<td>2 of 5 missed</td>")
-            && list.contains("<td>7</td>"),
+            && list.contains(r#"<td class="num">7</td>"#),
         "{list}"
     );
     assert!(
@@ -17342,7 +17897,7 @@ async fn the_help_pages_are_for_anyone_signed_in() {
     assert_eq!(index.status(), StatusCode::OK);
     let index = index.text().await.expect("a page");
     assert!(
-        index.contains(r#"<a href="/help">Documentation</a>"#),
+        index.contains(r#"<a href="/help" aria-current="page">Documentation</a>"#),
         "{index}"
     );
     // nothing here says the reader may open SVS

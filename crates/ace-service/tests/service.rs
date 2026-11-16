@@ -13376,6 +13376,7 @@ fn graph_tree(
             .collect(),
         root_detections: Vec::new(),
         truncated: false,
+        origin: serde_json::Value::Null,
     }
 }
 

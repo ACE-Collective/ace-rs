@@ -48,9 +48,31 @@
 //! it and does nothing more, where ace3's swapped its label for its details and opened an analysis's page
 //! in a new window; and relationships are edges, which ace3's graph didn't draw.
 //!
-//! Above the details, what SVS makes of the alert, when it has anything to say (PLAN.md 7.10 batch 7b,
-//! `crate::svs_alert`). Below the details, the alert's detections with their verdicts and, for an analyst who may, the forms that
-//! change them (PLAN.md 7.14, `crate::verdicts`).
+//! How the page is laid out (the owner's UI direction of 2026-11-15: what decides the alert first, and
+//! everything else reachable but out of the way):
+//! - The top: the title; the disposition, owner, queue, when it alerted, its analysis state, its type
+//!   and what SVS makes of it, as one line of facts; the forms that change them, for a viewer with
+//!   `alert:write` (the disposition form posts to the list's `/alerts/disposition` with this one
+//!   alert); what fired and on what, each detection once with its verdict, at most `MAX_FIRED`; and
+//!   the summary the alert's type chose (`crate::analysis::summary`): a mailbox alert's email, a hunt
+//!   alert's hunt, a site's own, or the default, the key observables: those the submission added and
+//!   those that carry a detection, at most `MAX_KEY_OBSERVABLES`.
+//! - Collapsed panels, each a `<details>` whose summary line says what it holds: what SVS makes of the
+//!   alert (PLAN.md 7.10 batch 7b, `crate::svs_alert`), the detections with their verdicts and the
+//!   forms that change them (PLAN.md 7.14, `crate::verdicts`), remediation's coverage of the alert
+//!   for a viewer with `remediation:read`, the alert's details, and the observable modifier rules.
+//!   Each has the viewer's pin (`SECTIONS`), which opens it on every alert they look at.
+//! - The analysis tree, which starts at the branches that carry a detection (`TreeMode::Detections`):
+//!   each observable with one, the result of the module that raised it, and what leads down to them
+//!   from the top. `?tree=full` draws the whole tree, the page's first line of the tree links each to
+//!   the other, and the `analysis_tree` pin makes the whole tree the viewer's default. A tree with no
+//!   detection on an observable is drawn whole. Nothing is left out of the whole tree, and a link to
+//!   an observable's place (a key observable, a comment's way back, a result's additions) goes to
+//!   the whole tree. The stream's URL says which tree its page drew (`t=full`), and draws that one.
+//!
+//! The alert's type is its origin's `alert_type` (`AlertTree::alert_type`), what its submitter said:
+//! the hunter's is its hunt's, and a mailbox root's is `mailbox`. The service reads the origin with
+//! the tree, which is all the page needs to choose.
 //!
 //! Ownership (PLAN.md 7.17): the details say who owns the alert and since when, and a viewer with
 //! `alert:write` has ace3's Take Ownership and Assign Ownership as forms that post to `/alerts/owner`
@@ -77,12 +99,13 @@
 //! - The owner's name is a person's text and goes through askama's escaper, as the page's does. The
 //!   page has no script of its own for it.
 //!
-//! From ace3, and what differs: the section ids, the tree's shape and the jump links are ace3's. Not here
-//! yet: observable actions (#1032), the pruned
-//! "Critical Analysis Overview", tag levels and colours, pivot links, summary details, and the other
-//! sections of ace3's page, which come with what they show. A section opens and closes with `<details>`,
-//! with no script, and its pin is a form that posts to `/preferences/alert-section`, which comes back
-//! here.
+//! From ace3, and what differs: the section ids, the tree's shape and the jump links are ace3's, and
+//! the tree's branches with a detection are its pruned "Critical Analysis Overview". ace3 chooses a
+//! whole template by alert type; here the type chooses the summary block and the rest of the page is
+//! the same for every alert. Not here yet: tag levels and colours, pivot links, summary details, and
+//! the other sections of ace3's page, which come with what they show. A section opens and closes
+//! with `<details>`, with no script, and its pin is a form that posts to
+//! `/preferences/alert-section`, which comes back here.
 
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::convert::Infallible;
@@ -104,6 +127,7 @@ use uuid::Uuid;
 
 use crate::Gui;
 use crate::actions::{ActionLink, ObservableActions};
+use crate::analysis::summary::{DrawnSummary, Summaries, SummaryInput};
 use crate::analysis::{DrawnView, Views};
 use crate::places::{Place, Places};
 use crate::session::{Failure, SignedIn, render};
@@ -115,7 +139,46 @@ const MIN_REDRAW: Duration = Duration::from_millis(250);
 
 /// The sections this page has, ace3's ids, and whether each starts open for an analyst who hasn't
 /// chosen.
-pub const SECTIONS: &[(&str, &str, bool)] = &[("alert_details", "Alert Details", true)];
+pub const SECTIONS: &[(&str, &str, bool)] = &[
+    ("svs", "SVS", false),
+    ("detections", "Detection Verdicts", false),
+    ("remediation", "Remediation", false),
+    ("alert_details", "Alert Details", false),
+    ("modifier_rules", "Observable Modifier Rules", false),
+    (TREE_SECTION, "Full analysis tree", false),
+];
+
+/// The section whose pin says how the analysis tree starts: open is the whole tree, closed only the
+/// branches that carry a detection.
+pub const TREE_SECTION: &str = "analysis_tree";
+
+/// The most detections the page's top lists before the rest fold into the verdicts panel.
+pub const MAX_FIRED: usize = 6;
+/// The most key observables the default summary lists.
+pub const MAX_KEY_OBSERVABLES: usize = 8;
+
+/// How much of the tree a page draws.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum TreeMode {
+    /// Every observable and result, ace3's tree.
+    #[default]
+    Full,
+    /// Only the branches that carry a detection: an observable with one, the result that raised it,
+    /// and what leads down to it from the top. A tree with no detection on any observable is drawn
+    /// whole.
+    Detections,
+}
+
+impl TreeMode {
+    /// What a page's `tree` parameter or a stream's `t` asks for, if it names a mode.
+    pub fn named(name: &str) -> Option<TreeMode> {
+        match name {
+            "full" => Some(TreeMode::Full),
+            "detections" => Some(TreeMode::Detections),
+            _ => None,
+        }
+    }
+}
 
 /// How many live streams may be open, and how often each checks its session.
 #[derive(Debug, Clone, Copy)]
@@ -225,6 +288,13 @@ pub struct TreeView {
     pub lines: Vec<TreeLine>,
     /// The alert had more observables than one tree holds.
     pub truncated: bool,
+    /// Whether this is the whole tree, or only its branches that carry a detection.
+    pub full: bool,
+    /// Whether the tree has such branches at all, so the other view differs from this one.
+    pub prunable: bool,
+    /// How many observables it draws in full, and how many the alert's tree holds.
+    pub shown: usize,
+    pub total: usize,
 }
 
 impl TreeView {
@@ -247,6 +317,70 @@ pub fn tree_view(
     comments: &[ObservableComment],
     actions: &ObservableActions,
 ) -> TreeView {
+    tree_view_in(tree, comments, actions, TreeMode::Full)
+}
+
+/// The observables and results of the branches that carry a detection: each observable with one, each
+/// result of the module that raised one on its observable, and every result and observable on a way
+/// down to them from the top. Empty sets when no observable carries one.
+fn detection_branches(tree: &AlertTree) -> (HashSet<i64>, HashSet<i64>) {
+    let mut owner_of: HashMap<i64, i64> = HashMap::new();
+    let mut observables: HashSet<i64> = HashSet::new();
+    let mut results: HashSet<i64> = HashSet::new();
+    let mut queue: Vec<i64> = Vec::new();
+    for observable in tree.observables.iter().filter(|o| !o.ignored) {
+        for result in &observable.results {
+            owner_of.insert(result.id, observable.id);
+        }
+        if observable.detections.is_empty() {
+            continue;
+        }
+        observables.insert(observable.id);
+        queue.push(observable.id);
+        for result in &observable.results {
+            let raised = observable
+                .detections
+                .iter()
+                .any(|d| d.module.as_deref() == Some(result.module.as_str()));
+            if raised {
+                results.insert(result.id);
+            }
+        }
+    }
+    let mut added_in: HashMap<i64, Vec<i64>> = HashMap::new();
+    for addition in &tree.additions {
+        added_in
+            .entry(addition.observable)
+            .or_default()
+            .push(addition.result);
+    }
+    // up from each: the results that added it, and the observables those are on
+    while let Some(observable) = queue.pop() {
+        for result in added_in.get(&observable).into_iter().flatten() {
+            results.insert(*result);
+            if let Some(owner) = owner_of.get(result)
+                && observables.insert(*owner)
+            {
+                queue.push(*owner);
+            }
+        }
+    }
+    (observables, results)
+}
+
+/// The tree's lines in a mode: the whole tree, or its branches that carry a detection.
+pub fn tree_view_in(
+    tree: &AlertTree,
+    comments: &[ObservableComment],
+    actions: &ObservableActions,
+    mode: TreeMode,
+) -> TreeView {
+    let (kept_observables, kept_results) = detection_branches(tree);
+    let prunable = !kept_observables.is_empty();
+    let keep = (mode == TreeMode::Detections && prunable).then_some(Keep {
+        observables: kept_observables,
+        results: kept_results,
+    });
     let by_id: HashMap<i64, &AlertObservable> =
         tree.observables.iter().map(|o| (o.id, o)).collect();
     let mut added_by: HashMap<i64, Vec<i64>> = HashMap::new();
@@ -287,12 +421,15 @@ pub fn tree_view(
         .chain(shown().filter(|o| !top.contains(&o.id) && !added.contains(&o.id)))
         .chain(shown())
         .map(|o| o.id);
+    let total = shown().count();
+    let full = keep.is_none();
     let context = Context {
         alert: tree.alert.summary.id,
         actions,
         by_id,
         added_by,
         comments_of,
+        keep,
     };
     let mut drawn: HashSet<i64> = HashSet::new();
     let mut lines = Vec::new();
@@ -307,7 +444,17 @@ pub fn tree_view(
     TreeView {
         lines,
         truncated: tree.truncated,
+        full,
+        prunable,
+        shown: drawn.len(),
+        total,
     }
+}
+
+/// What a pruned walk draws: the observables and results of the branches that carry a detection.
+struct Keep {
+    observables: HashSet<i64>,
+    results: HashSet<i64>,
 }
 
 /// What the walk reads: the alert, its actions, its observables by id, which result added which, and the
@@ -318,6 +465,8 @@ struct Context<'a> {
     by_id: HashMap<i64, &'a AlertObservable>,
     added_by: HashMap<i64, Vec<i64>>,
     comments_of: HashMap<(&'a str, &'a str), Vec<CommentView>>,
+    /// None for the whole tree.
+    keep: Option<Keep>,
 }
 
 /// Draws what's on the stack, and everything below it.
@@ -333,16 +482,27 @@ fn walk<'a>(
         by_id,
         added_by,
         comments_of,
+        keep,
     } = context;
     let alert = *alert;
+    let kept_observable = |id: i64| keep.as_ref().is_none_or(|k| k.observables.contains(&id));
+    let kept_result = |id: i64| keep.as_ref().is_none_or(|k| k.results.contains(&id));
     while let Some(step) = stack.pop() {
         match step {
             Step::Line(line) => lines.push(line),
             Step::Observable(id) => {
                 // past MAX_TREE_OBSERVABLES, which the view says, or ignored
-                let Some(observable) = by_id.get(&id).filter(|o| !o.ignored) else {
+                let Some(observable) = by_id
+                    .get(&id)
+                    .filter(|o| !o.ignored && kept_observable(o.id))
+                else {
                     continue;
                 };
+                let results: Vec<&ModuleResult> = observable
+                    .results
+                    .iter()
+                    .filter(|result| kept_result(result.id))
+                    .collect();
                 let reference = !drawn.insert(id);
                 let mut node = observable_node(
                     observable,
@@ -357,7 +517,7 @@ fn walk<'a>(
                 }
                 let anchor = node.anchor.clone();
                 lines.push(TreeLine::Observable(node));
-                if observable.results.is_empty() {
+                if results.is_empty() {
                     lines.push(TreeLine::EndItem);
                 } else if reference {
                     lines.extend([
@@ -370,7 +530,7 @@ fn walk<'a>(
                     lines.push(TreeLine::Children);
                     stack.push(Step::Line(TreeLine::EndItem));
                     stack.push(Step::Line(TreeLine::EndChildren));
-                    stack.extend(observable.results.iter().rev().map(Step::Result));
+                    stack.extend(results.into_iter().rev().map(Step::Result));
                 }
             }
             Step::Result(result) => {
@@ -384,14 +544,20 @@ fn walk<'a>(
                     tags: result.tags.clone(),
                     href: result_href(alert, result.id),
                 }));
-                match added_by.get(&result.id) {
-                    Some(children) if !children.is_empty() => {
-                        lines.push(TreeLine::Children);
-                        stack.push(Step::Line(TreeLine::EndItem));
-                        stack.push(Step::Line(TreeLine::EndChildren));
-                        stack.extend(children.iter().rev().map(|id| Step::Observable(*id)));
-                    }
-                    _ => lines.push(TreeLine::EndItem),
+                let children: Vec<i64> = added_by
+                    .get(&result.id)
+                    .into_iter()
+                    .flatten()
+                    .copied()
+                    .filter(|id| by_id.get(id).is_some_and(|o| !o.ignored) && kept_observable(*id))
+                    .collect();
+                if children.is_empty() {
+                    lines.push(TreeLine::EndItem);
+                } else {
+                    lines.push(TreeLine::Children);
+                    stack.push(Step::Line(TreeLine::EndItem));
+                    stack.push(Step::Line(TreeLine::EndChildren));
+                    stack.extend(children.into_iter().rev().map(Step::Observable));
                 }
             }
         }
@@ -583,6 +749,83 @@ pub struct Detail {
     pub value: String,
 }
 
+/// One detection in the page's top: what fired and on what, with its verdict.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Fired {
+    pub description: String,
+    /// What it's on: an observable's type and value, a file by its path, or the alert.
+    pub on: String,
+    /// The same as the verdicts name it, an observable's type and its stored value, which is how a
+    /// verdict finds its detection here.
+    pub key: String,
+    /// How many more observables the same detection is on.
+    pub others: usize,
+    /// Its verdict's badge, such as `TP · inherited`, empty with none.
+    pub badge: String,
+    /// `tp` or `fp`, the badge's look.
+    pub verdict: &'static str,
+    /// What the badge's source means.
+    pub title: &'static str,
+}
+
+/// One of the alert's key observables, which the default summary lists.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct KeyObservable {
+    pub label: String,
+    pub value: String,
+    /// The whole value when `value` was cut.
+    pub full: Option<String>,
+    /// Where the whole tree draws it.
+    pub href: String,
+    /// How many detections are on it.
+    pub detections: usize,
+    pub tags: Vec<String>,
+}
+
+/// The alert's remediation, as its panel shows it: ace3's remediation badge and its targets.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RemediationPanel {
+    pub badge: crate::remediation::CoverageBadge,
+    /// Each target and what became of it, in ace3's words.
+    pub targets: Vec<(String, String)>,
+    pub more: usize,
+    /// The page that finds the alert's targets, where one is removed or restored.
+    pub href: String,
+}
+
+impl RemediationPanel {
+    /// The panel of an alert's coverage, or None when there's nothing to show for it.
+    pub fn of(alert: Uuid, coverage: &ace_service::Coverage) -> Option<Self> {
+        let badge = crate::remediation::coverage_badge(coverage)?;
+        Some(RemediationPanel {
+            badge,
+            targets: coverage
+                .targets
+                .iter()
+                .take(MAX_KEY_OBSERVABLES)
+                .map(|target| (target.recipient().to_owned(), target.status_display()))
+                .collect(),
+            more: coverage.targets.len().saturating_sub(MAX_KEY_OBSERVABLES),
+            href: format!("/remediations/targets?alert={alert}"),
+        })
+    }
+}
+
+/// What a page is drawn with besides the alert: the binary's summaries, the site's dispositions, what
+/// the viewer asked of the tree and what remediation did.
+#[derive(Debug, Clone, Copy, Default)]
+pub struct PageOptions<'a> {
+    /// The tree the page's `tree` parameter asked for; None follows the viewer's pin, and then the
+    /// branches that carry a detection.
+    pub tree: Option<TreeMode>,
+    /// None draws with the open-source summaries.
+    pub summaries: Option<&'a Summaries>,
+    /// None draws a disposition as ace3's set does.
+    pub dispositions: Option<&'a ace_service::Dispositions>,
+    /// The alert's remediation coverage, when the viewer may read it.
+    pub remediation: Option<&'a ace_service::Coverage>,
+}
+
 /// `/alerts/{id}`.
 #[derive(Debug, Template)]
 #[template(path = "alert.html")]
@@ -590,7 +833,34 @@ pub struct AlertPage {
     pub layout: Layout,
     pub id: Uuid,
     pub title: String,
+    /// The alert's disposition, `OPEN` for none, and its badge's class, the disposition's `css`.
+    pub disposition: String,
+    pub disposition_css: String,
+    pub queue: String,
+    /// Who owns it, and since when.
+    pub owner_name: Option<String>,
+    pub owned_since: Option<String>,
+    pub alerted: String,
+    /// `analyzing`, `complete` or `cancelled`.
+    pub analysis: String,
+    /// The alert's type, its origin's `alert_type`, which chooses the summary.
+    pub alert_type: Option<String>,
+    /// The tags the core gave the root.
+    pub tags: Vec<String>,
+    /// What fired and on what, at most `MAX_FIRED`, and how many more the verdicts panel lists.
+    pub fired: Vec<Fired>,
+    pub more_fired: usize,
+    /// The summary of the alert's type, or None for the default: the key observables.
+    pub summary: Option<DrawnSummary>,
+    pub key_observables: Vec<KeyObservable>,
+    pub more_observables: usize,
+    pub svs_section: Section,
+    pub verdicts_section: Section,
+    pub remediation_section: Section,
     pub details_section: Section,
+    pub rules_section: Section,
+    /// Whether the viewer's pin starts the tree whole.
+    pub tree_section: Section,
     pub details: Vec<Detail>,
     /// The detections on the alert itself, such as a tag configured as alertable makes.
     pub root_detections: Vec<String>,
@@ -610,6 +880,10 @@ pub struct AlertPage {
     pub svs: Option<crate::svs_alert::SvsBanner>,
     /// Take Ownership and Assign Ownership, for a viewer with `alert:write` (PLAN.md 7.17).
     pub ownership: Option<OwnershipForms>,
+    /// The dispositions the page's form offers a viewer with `alert:write`: the site's an analyst may
+    /// choose, in order. The form posts to the list's `/alerts/disposition` with this one alert.
+    pub dispositions: Vec<String>,
+    pub remediation: Option<RemediationPanel>,
 }
 
 /// ace3's Take Ownership and Assign Ownership buttons of the alert page (`analysis/index.html`): forms
@@ -622,9 +896,108 @@ pub struct OwnershipForms {
     pub users: Vec<crate::list::OwnerOption>,
 }
 
+/// What fired, from the tree alone: each detection once, on the first observable that carries it.
+fn fired_of_tree(tree: &AlertTree) -> Vec<Fired> {
+    let mut fired: Vec<Fired> = Vec::new();
+    let mut add = |description: &str, on: String, key: String| match fired
+        .iter_mut()
+        .find(|f| f.description == description)
+    {
+        Some(known) => known.others += 1,
+        None => fired.push(Fired {
+            description: description.to_owned(),
+            on,
+            key,
+            others: 0,
+            badge: String::new(),
+            verdict: "",
+            title: "",
+        }),
+    };
+    for detection in &tree.root_detections {
+        add(
+            &detection.description,
+            "the alert".to_owned(),
+            "the alert".to_owned(),
+        );
+    }
+    for observable in tree.observables.iter().filter(|o| !o.ignored) {
+        for detection in &observable.detections {
+            add(
+                &detection.description,
+                format!("{}: {}", observable.kind, display_value(observable)),
+                format!("{}: {}", observable.kind, observable.value),
+            );
+        }
+    }
+    fired
+}
+
+/// Gives each detection of the page's top the verdict of its row in the verdicts: the row with its
+/// description on the same observable, or failing that the first with its description.
+fn verdicts_onto(fired: &mut [Fired], verdicts: &VerdictsView) {
+    for detection in fired {
+        let rows = || {
+            verdicts
+                .rows
+                .iter()
+                .filter(|row| row.description == detection.description)
+        };
+        if let Some(row) = rows()
+            .find(|row| row.on == detection.key)
+            .or_else(|| rows().next())
+        {
+            detection.badge = row.badge.clone();
+            detection.verdict = row.verdict;
+            detection.title = row.title;
+        }
+    }
+}
+
+/// The default summary's observables: those the submission added, then those that carry a detection,
+/// each once.
+fn key_observables(tree: &AlertTree) -> (Vec<KeyObservable>, usize) {
+    let top: HashSet<i64> = tree.top.iter().copied().collect();
+    let shown = || tree.observables.iter().filter(|o| !o.ignored);
+    let mut chosen: Vec<&AlertObservable> = shown().filter(|o| top.contains(&o.id)).collect();
+    for observable in shown().filter(|o| !o.detections.is_empty()) {
+        if !chosen.iter().any(|o| o.id == observable.id) {
+            chosen.push(observable);
+        }
+    }
+    // the ones with a detection first, in the order the tree has them
+    chosen.sort_by_key(|o| o.detections.is_empty());
+    let more = chosen.len().saturating_sub(MAX_KEY_OBSERVABLES);
+    let alert = tree.alert.summary.id;
+    let observables = chosen
+        .into_iter()
+        .take(MAX_KEY_OBSERVABLES)
+        .map(|observable| {
+            let value = display_value(observable);
+            let cut = crate::analysis::clip(&value, MAX_KEY_VALUE);
+            KeyObservable {
+                label: observable.display_label(),
+                full: (cut.more > 0).then(|| value.clone()),
+                value: if cut.more > 0 {
+                    format!("{}…", cut.text)
+                } else {
+                    cut.text
+                },
+                href: format!("/alerts/{alert}?tree=full#o{}", observable.id),
+                detections: observable.detections.len(),
+                tags: observable.tags.clone(),
+            }
+        })
+        .collect();
+    (observables, more)
+}
+
+/// The most bytes of a key observable's value the summary shows.
+const MAX_KEY_VALUE: usize = 160;
+
 impl AlertPage {
     /// The page for a tree, its comments, the binary's observable actions and the viewer's section
-    /// choices.
+    /// choices, with the open-source summaries.
     pub fn new(
         layout: Layout,
         tree: &AlertTree,
@@ -632,8 +1005,25 @@ impl AlertPage {
         actions: &ObservableActions,
         sections: &BTreeMap<String, bool>,
     ) -> Result<Self, askama::Error> {
-        let view = tree_view(tree, comments, actions);
-        let (_, version) = AlertTreeFragment { tree: view.clone() }.render_versioned()?;
+        AlertPage::with(
+            layout,
+            tree,
+            comments,
+            actions,
+            sections,
+            PageOptions::default(),
+        )
+    }
+
+    /// The page drawn with `options`.
+    pub fn with(
+        layout: Layout,
+        tree: &AlertTree,
+        comments: &[ObservableComment],
+        actions: &ObservableActions,
+        sections: &BTreeMap<String, bool>,
+        options: PageOptions<'_>,
+    ) -> Result<Self, askama::Error> {
         let summary = &tree.alert.summary;
         let section = |id: &'static str| {
             let (id, title, default) = SECTIONS
@@ -647,8 +1037,22 @@ impl AlertPage {
                 open: sections.get(id).copied().unwrap_or(default),
             }
         };
+        let tree_section = section(TREE_SECTION);
+        let mode = options.tree.unwrap_or(if tree_section.open {
+            TreeMode::Full
+        } else {
+            TreeMode::Detections
+        });
+        let view = tree_view_in(tree, comments, actions, mode);
+        let (_, version) = AlertTreeFragment { tree: view.clone() }.render_versioned()?;
         let time =
             |time: chrono::DateTime<chrono::Utc>| time.format("%Y-%m-%d %H:%M:%S UTC").to_string();
+        let disposition = summary
+            .disposition
+            .clone()
+            .unwrap_or_else(|| "OPEN".to_owned());
+        let analysis = format!("{:?}", summary.analysis).to_lowercase();
+        let alert_type = tree.alert_type().map(str::to_owned);
         let mut details = vec![
             Detail {
                 name: "Alerted",
@@ -668,14 +1072,11 @@ impl AlertPage {
             },
             Detail {
                 name: "Analysis",
-                value: format!("{:?}", summary.analysis).to_lowercase(),
+                value: analysis.clone(),
             },
             Detail {
                 name: "Disposition",
-                value: summary
-                    .disposition
-                    .clone()
-                    .unwrap_or_else(|| "OPEN".to_owned()),
+                value: disposition.clone(),
             },
             // ace3's alert.html says who owns the alert (PLAN.md 7.17)
             Detail {
@@ -700,6 +1101,23 @@ impl AlertPage {
                 value: tree.alert.detections.to_string(),
             },
         ];
+        // ace3's alert.html: the alert type, and the tool and instance that made it
+        if let Some(kind) = &alert_type {
+            details.push(Detail {
+                name: "Alert type",
+                value: kind.clone(),
+            });
+        }
+        for (name, key) in [("Source", "tool"), ("Instance", "tool_instance")] {
+            if let Some(value) = tree.origin.get(key).and_then(|v| v.as_str())
+                && !value.is_empty()
+            {
+                details.push(Detail {
+                    name,
+                    value: value.to_owned(),
+                });
+            }
+        }
         if let Some(by) = &summary.submitted_by {
             details.push(Detail {
                 name: "Submitted by",
@@ -718,11 +1136,58 @@ impl AlertPage {
             .flat_map(|r| r.ignored.iter().map(|i| (&i.kind, &i.value)))
             .collect::<HashSet<_>>()
             .len();
+        let builtin;
+        let summaries = match options.summaries {
+            Some(summaries) => summaries,
+            None => {
+                builtin = Summaries::builtin();
+                &builtin
+            }
+        };
+        let drawn = alert_type.as_deref().and_then(|kind| {
+            summaries.draw(&SummaryInput {
+                alert_type: kind,
+                origin: &tree.origin,
+                tree,
+                remediation: options.remediation,
+            })
+        });
+        let (key_observables, more_observables) = key_observables(tree);
+        let mut fired = fired_of_tree(tree);
+        let more_fired = fired.len().saturating_sub(MAX_FIRED);
+        fired.truncate(MAX_FIRED);
+        let ace3;
+        let dispositions = match options.dispositions {
+            Some(dispositions) => dispositions,
+            None => {
+                ace3 = ace_service::Dispositions::ace3();
+                &ace3
+            }
+        };
         Ok(AlertPage {
             layout,
             id: summary.id,
             title: summary.title.clone(),
+            disposition_css: dispositions.css(summary.disposition.as_deref()).to_owned(),
+            disposition,
+            queue: summary.queue.clone(),
+            owner_name: summary.owner.as_ref().map(|owner| owner.name.clone()),
+            owned_since: summary.owned_at.map(time),
+            alerted: time(summary.alerted_at),
+            analysis,
+            alert_type,
+            tags: summary.tags.clone(),
+            fired,
+            more_fired,
+            summary: drawn,
+            key_observables,
+            more_observables,
+            svs_section: section("svs"),
+            verdicts_section: section("detections"),
+            remediation_section: section("remediation"),
             details_section: section("alert_details"),
+            rules_section: section("modifier_rules"),
+            tree_section,
             details,
             root_detections,
             modifier_rules,
@@ -737,6 +1202,10 @@ impl AlertPage {
             verdicts: None,
             svs: None,
             ownership: None,
+            dispositions: Vec::new(),
+            remediation: options
+                .remediation
+                .and_then(|coverage| RemediationPanel::of(summary.id, coverage)),
         })
     }
 
@@ -746,16 +1215,99 @@ impl AlertPage {
         self
     }
 
+    /// The page with its disposition form's choices.
+    pub fn with_dispositions(mut self, dispositions: Vec<String>) -> Self {
+        self.dispositions = dispositions;
+        self
+    }
+
     /// The page with its SVS banner.
     pub fn with_svs(mut self, svs: Option<crate::svs_alert::SvsBanner>) -> Self {
         self.svs = svs;
         self
     }
 
-    /// The page with its detections' verdicts.
+    /// The page with its detections' verdicts, which the top's detections then carry.
     pub fn with_verdicts(mut self, verdicts: VerdictsView) -> Self {
+        verdicts_onto(&mut self.fired, &verdicts);
         self.verdicts = Some(verdicts);
         self
+    }
+
+    /// The stream's `t`: the tree the page drew, said only when it's the whole one.
+    pub fn stream_tree(&self) -> &'static str {
+        if self.tree.full && self.tree.prunable {
+            "&t=full"
+        } else {
+            ""
+        }
+    }
+
+    /// One line on what the verdicts panel holds.
+    pub fn verdicts_hint(&self) -> String {
+        let Some(verdicts) = &self.verdicts else {
+            return String::new();
+        };
+        let count = |verdict: &str| {
+            verdicts
+                .rows
+                .iter()
+                .filter(|r| r.verdict == verdict)
+                .count()
+        };
+        let mut parts = vec![format!(
+            "{}{} detection{}",
+            verdicts.rows.len(),
+            if verdicts.more { "+" } else { "" },
+            if verdicts.rows.len() == 1 { "" } else { "s" }
+        )];
+        for (verdict, label) in [("tp", "TP"), ("fp", "FP"), ("", "with no verdict")] {
+            let n = count(verdict);
+            if n > 0 {
+                parts.push(format!("{n} {label}"));
+            }
+        }
+        if verdicts.unconfirmed > 0 {
+            parts.push(format!("{} unconfirmed", verdicts.unconfirmed));
+        }
+        parts.join(" · ")
+    }
+
+    /// One line on what the details panel holds.
+    pub fn details_hint(&self) -> String {
+        let named = |name: &str| {
+            self.details
+                .iter()
+                .find(|d| d.name == name)
+                .map(|d| d.value.as_str())
+                .unwrap_or_default()
+        };
+        format!(
+            "{} mode · {} observables · {} detections · event time {}",
+            named("Analysis mode"),
+            named("Observables"),
+            named("Detections"),
+            named("Event time"),
+        )
+    }
+
+    /// One line on what the SVS panel holds.
+    pub fn svs_hint(&self) -> String {
+        let Some(svs) = &self.svs else {
+            return String::new();
+        };
+        match (svs.runs.first(), svs.mismatches.len()) {
+            (Some(run), 0) if svs.runs.len() == 1 => {
+                format!("test run of {}, {}", run.test, run.state)
+            }
+            (Some(_), 0) => format!("{} test runs", svs.runs.len()),
+            (_, mismatches) if mismatches > 0 => format!(
+                "{mismatches} marker{} that disagree{} with a run",
+                if mismatches == 1 { "" } else { "s" },
+                if mismatches == 1 { "s" } else { "" }
+            ),
+            _ => "tagged by the core".to_owned(),
+        }
     }
 }
 
@@ -814,12 +1366,52 @@ pub(crate) async fn page(
                 .is_some_and(|owner| Some(owner.id) == viewer_id),
             users: choices.iter().map(crate::list::owner_option).collect(),
         });
-    match AlertPage::new(viewer.layout, &tree, &comments, &gui.actions, &sections) {
+    // what remediation did with the alert's targets, for a viewer who may read it; without it the
+    // page has no remediation panel and an email's summary no delivered copies
+    let remediation = match gui.service.remediation_coverage(actor, &[id]).await {
+        Ok(mut coverage) => coverage.remove(&id),
+        Err(ServiceError::PermissionDenied { .. }) => None,
+        Err(error) => {
+            tracing::warn!(%actor, "reading an alert's remediation coverage failed: {error}");
+            None
+        }
+    };
+    // `?tree=full` or `?tree=detections`; anything else follows the viewer's pin
+    let asked = parts
+        .uri
+        .query()
+        .and_then(|query| serde_urlencoded::from_str::<Vec<(String, String)>>(query).ok())
+        .and_then(|query| {
+            query
+                .iter()
+                .find(|(key, _)| key == "tree")
+                .and_then(|(_, value)| TreeMode::named(value))
+        });
+    let options = PageOptions {
+        tree: asked,
+        summaries: Some(&gui.summaries),
+        dispositions: Some(gui.service.dispositions()),
+        remediation: remediation.as_ref(),
+    };
+    let dispositions = if ownership.is_some() {
+        gui.service.dispositions().selectable()
+    } else {
+        Vec::new()
+    };
+    match AlertPage::with(
+        viewer.layout,
+        &tree,
+        &comments,
+        &gui.actions,
+        &sections,
+        options,
+    ) {
         Ok(page) => render(
             &page
                 .with_verdicts(verdicts)
                 .with_svs(svs)
-                .with_ownership(ownership),
+                .with_ownership(ownership)
+                .with_dispositions(dispositions),
         ),
         Err(error) => {
             tracing::error!("an alert page couldn't be drawn: {error}");
@@ -1031,6 +1623,8 @@ struct Streaming {
     watch: AlertWatch,
     /// The version the client has.
     version: String,
+    /// The tree the client's page drew.
+    mode: TreeMode,
     /// Who the client knows the alert's owner to be: the one its page was drawn with, then the one the
     /// last notice named.
     owner: Option<Uuid>,
@@ -1111,7 +1705,7 @@ impl Streaming {
                         }
                     };
                     let fragment = AlertTreeFragment {
-                        tree: tree_view(&tree, &comments, &self.gui.actions),
+                        tree: tree_view_in(&tree, &comments, &self.gui.actions, self.mode),
                     };
                     let (html, version) = match fragment.render_versioned() {
                         Ok(drawn) => drawn,
@@ -1200,6 +1794,10 @@ pub(crate) async fn live(
         .map(str::to_owned)
         .or_else(|| named("v"))
         .unwrap_or_default();
+    // the tree the page drew: the whole one says so, and anything else is the detections' branches
+    let mode = named("t")
+        .and_then(|mode| TreeMode::named(&mode))
+        .unwrap_or(TreeMode::Detections);
     // who owned the alert when the page was drawn; anything but a uuid is nobody
     let owner = named("o").and_then(|owner| owner.parse::<Uuid>().ok());
     let Some(admitted) = gui.live.admit(&viewer.actor) else {
@@ -1230,6 +1828,7 @@ pub(crate) async fn live(
         actor: viewer.actor,
         watch,
         version,
+        mode,
         owner,
         pending: None,
         dirty: true,

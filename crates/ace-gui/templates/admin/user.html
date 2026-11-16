@@ -73,7 +73,7 @@
     {%- if view.is_you && view.can_write %}
     <p class="muted">You can't take user:write from yourself: another user with user:write has to.</p>
     {%- endif %}
-    <table class="keys">
+    <div class="table-wrap"><table class="keys">
       <thead><tr><th>Effect</th><th>Pattern</th><th>What it does</th><th></th></tr></thead>
       <tbody>
         {%- for grant in view.grants %}
@@ -106,7 +106,7 @@
         </tr>
         {%- endfor %}
       </tbody>
-    </table>
+    </table></div>
     {%- if view.can_write %}
     {%- let holder_kind = "user" %}
     {%- let holder_id = view.id %}
@@ -147,7 +147,7 @@
   <div class="section" id="api-keys">
     <h2>API Keys</h2>
     <p class="muted">A key does only what both its scope and this user's permissions allow, so a permission they lose stops working for their keys too.</p>
-    <table class="keys">
+    <div class="table-wrap"><table class="keys">
       <thead><tr><th>Name</th><th>Scope</th><th>Created</th><th></th></tr></thead>
       <tbody>
         {%- for key in view.keys %}
@@ -169,7 +169,7 @@
         <tr><td colspan="4" class="muted">No API keys.</td></tr>
         {%- endfor %}
       </tbody>
-    </table>
+    </table></div>
     {%- if view.can_write %}
     <h3>New API key</h3>
     <form method="post" action="/admin/users/{{ view.id }}/keys" class="fields">

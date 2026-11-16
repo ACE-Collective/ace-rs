@@ -1,0 +1,10 @@
+{#- The site's summary of a ticket alert (src/lib.rs), drawn at the top of the alert's page. -#}
+<section class="type-summary ticket-summary" aria-labelledby="type-summary-title">
+  <h2 id="type-summary-title">Ticket</h2>
+  <dl class="facts">
+    <dt>Ticket queue</dt><dd>{{ queue }}</dd>
+    {%- if let Some(ticket) = ticket %}
+    <dt>Ticket</dt><dd>{{ ticket }}</dd>
+    {%- endif %}
+  </dl>
+</section>

@@ -23,7 +23,7 @@
     <h2>Observables this result added</h2>
     <ul class="added">
       {%- for observable in added %}
-      <li><a href="/alerts/{{ alert_id }}#{{ observable.anchor }}"><b class="type">{{ observable.label }}</b> : {{ observable.value }}</a>{% for tag in observable.tags %} <span class="tag">{{ tag }}</span>{% endfor %}</li>
+      <li><a href="/alerts/{{ alert_id }}?tree=full#{{ observable.anchor }}"><b class="type">{{ observable.label }}</b> : {{ observable.value }}</a>{% for tag in observable.tags %} <span class="tag">{{ tag }}</span>{% endfor %}</li>
       {%- endfor %}
     </ul>
   </div>

@@ -30,7 +30,7 @@
     {%- if view.versions.is_empty() %}
     <p class="muted">No version of this rule has matched.</p>
     {%- else %}
-    <table class="keys">
+    <div class="table-wrap"><table class="keys">
       <thead><tr><th>Version</th><th>Rule</th><th>Matches</th><th>Stored</th><th>First match</th><th>Last match</th></tr></thead>
       <tbody>
         {%- for version in view.versions %}
@@ -44,7 +44,7 @@
         </tr>
         {%- endfor %}
       </tbody>
-    </table>
+    </table></div>
     {%- endif %}
   </div>
 
@@ -62,7 +62,7 @@
     {%- if view.selectable() %}
     <form method="get" action="{{ view.form_action() }}" id="qa-files">
     {%- endif %}
-    <table class="keys qa-files">
+    <div class="table-wrap"><table class="keys qa-files">
       <thead>
         <tr>{% if view.selectable() %}<th></th>{% endif %}<th>File</th><th>SHA256</th><th>Size</th><th>Version</th><th>Hits</th><th>First seen</th><th>Last seen</th><th>Expires</th><th></th></tr>
       </thead>
@@ -86,7 +86,7 @@
         </tr>
         {%- endfor %}
       </tbody>
-    </table>
+    </table></div>
     {%- if view.selectable() %}
     <p>
       {%- if view.can_download %}<button type="submit" formaction="{{ view.download_selected }}" title="password: infected">Download selected</button>{% endif %}

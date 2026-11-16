@@ -155,6 +155,111 @@ fn the_site_binary_draws_its_results_with_its_own_view() {
     assert_eq!(app.actions().links(Uuid::nil(), &ticket("fqdn")).len(), 1);
 }
 
+/// The owner's UI direction of 2026-11-15: the site's binary list names its alert summary, so its GUI
+/// draws the top of a ticket alert's page with the site's template, as an ace3 integration adds an
+/// alert template for its alert type, beside the open-source summaries.
+#[test]
+fn the_site_binary_draws_its_alert_type_s_summary() {
+    let app = ace_site_example::app();
+    let summaries = app.alert_summaries();
+    assert_eq!(
+        summaries.types().collect::<Vec<_>>(),
+        ["example - ticket", "hunter", "mailbox"],
+        "the site's beside the open-source ones"
+    );
+    // a type is the site's when it is the registered one, or starts with it and ` - `
+    assert_eq!(
+        summaries.chosen("example - ticket - vip"),
+        Some("example - ticket")
+    );
+    assert_eq!(summaries.chosen("example - tickets"), None);
+    assert_eq!(summaries.chosen("hunter - splunk"), Some("hunter"));
+
+    let at = chrono::Utc::now();
+    let tree = |origin: serde_json::Value, ticket: Option<&str>| ace_service::AlertTree {
+        alert: ace_service::Alert {
+            summary: ace_service::AlertSummary {
+                id: Uuid::nil(),
+                title: "a ticket alert".to_owned(),
+                analysis_mode: "correlation".to_owned(),
+                event_time: None,
+                event_time_source: "unset".to_owned(),
+                created_at: at,
+                alerted_at: at,
+                disposition: None,
+                dispositioned_at: None,
+                dispositioned_by: None,
+                submitted_by: None,
+                analysis: ace_service::AnalysisState::Complete,
+                queue: "default".to_owned(),
+                tags: Vec::new(),
+                svs: None,
+                owner: None,
+                owned_at: None,
+            },
+            observables: 1,
+            files: 0,
+            detections: 0,
+        },
+        observables: ticket
+            .map(|value| ace_service::AlertObservable {
+                id: 1,
+                kind: "example_ticket".to_owned(),
+                value: value.to_owned(),
+                time: None,
+                tags: Vec::new(),
+                directives: Vec::new(),
+                exclude_modules: Vec::new(),
+                redirection: None,
+                display_type: None,
+                display_value: None,
+                ignored: false,
+                files: Vec::new(),
+                relationships: Vec::new(),
+                results: Vec::new(),
+                detections: Vec::new(),
+            })
+            .into_iter()
+            .collect(),
+        top: vec![1],
+        additions: Vec::new(),
+        root_detections: Vec::new(),
+        truncated: false,
+        origin,
+    };
+    let draw = |tree: &ace_service::AlertTree| {
+        let alert_type = tree.alert_type().unwrap_or_default().to_owned();
+        summaries.draw(&ace_gui::SummaryInput {
+            alert_type: &alert_type,
+            origin: &tree.origin,
+            tree,
+            remediation: None,
+        })
+    };
+    let ticket = tree(
+        json!({"alert_type": "example - ticket - vip", "details": {"ticket_queue": "<b>SOC</b> tier 2"}}),
+        Some("TICKET-<i>7</i>"),
+    );
+    let drawn = draw(&ticket).expect("the site's summary");
+    assert_eq!(drawn.alert_type, "example - ticket");
+    let html = drawn.html.as_str();
+    assert!(
+        html.contains("<dt>Ticket queue</dt><dd>&#60;b&#62;SOC&#60;/b&#62; tier 2</dd>")
+            && html.contains("<dt>Ticket</dt><dd>TICKET-&#60;i&#62;7&#60;/i&#62;</dd>"),
+        "{html}"
+    );
+    // an alert of the type that names no ticket queue, and an alert of another type, have the page's
+    // default: the site's summary says nothing of them
+    assert!(draw(&tree(json!({"alert_type": "example - ticket"}), None)).is_none());
+    assert!(
+        draw(&tree(
+            json!({"alert_type": "manual", "details": {"ticket_queue": "q"}}),
+            None
+        ))
+        .is_none()
+    );
+}
+
 #[test]
 fn the_site_binary_exports_its_types_schemas() {
     let dir = tempfile::tempdir().expect("a directory");

@@ -1,5 +1,5 @@
 {#- ace3's signatures/_validations_page.html: a page of the validations table (src/svs_validations.rs). -#}
-  <table class="keys">
+  <div class="table-wrap"><table class="keys">
     <thead><tr><th>Created</th><th>Repository</th><th>Branch</th><th>Head</th><th>State</th><th>Regressions</th><th>New FP</th><th>Compile errors</th><th>Requested by</th></tr></thead>
     <tbody>
       {%- for row in view.rows %}
@@ -18,4 +18,4 @@
       <tr><td colspan="9" class="muted">No validations.</td></tr>
       {%- endfor %}
     </tbody>
-  </table>
+  </table></div>

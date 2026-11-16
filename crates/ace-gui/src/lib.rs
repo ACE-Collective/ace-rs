@@ -9,10 +9,12 @@
 //! What's here:
 //! - `templates`: askama's templates, compiled into the binary and checked against their structs, so a
 //!   template that names a field its struct doesn't have fails the build. Every one escapes HTML.
-//! - `assets`: the stylesheet, Datastar, and vis.js with the graph's own script (5.13), the vendored
-//!   files being Datastar and vis (`vendor/README.md`), embedded in the binary and served under a hash
-//!   of their bytes, cached for a year. Nothing is read from disk while
-//!   it runs, so nothing depends on where the checkout or the binary is (PLAN.md 0.7, ace3 #920).
+//! - `assets`: the stylesheet (`static/ace.css`: design tokens, then a small set of components every
+//!   page is drawn with, and nothing fetched from anywhere else), Datastar, and vis.js with the
+//!   graph's own script (5.13), the vendored files being Datastar and vis (`vendor/README.md`),
+//!   embedded in the binary and served under a hash of their bytes, cached for a year. Nothing is
+//!   read from disk while it runs, so nothing depends on where the checkout or the binary is
+//!   (PLAN.md 0.7, ace3 #920).
 //! - `headers`: the security headers on every response, with a Content-Security-Policy whose nonce is
 //!   new for each page, which is how Datastar runs its expressions without `unsafe-eval`.
 //! - `session`: who the viewer is, through `Service::authenticate_request`.
@@ -24,7 +26,8 @@
 //! - `alert`: an alert's page and its analysis tree, and the event stream that draws a result on an open
 //!   page when it lands (5.8), a result's page (5.9), and the alert's relationship graph (5.13).
 //! - `analysis`: each analysis type's view, ace3's analysis templates, by type from the binary's list
-//!   (5.9).
+//!   (5.9), and `analysis::summary`, the alert page's summary by alert type, ace3's per-alert-type
+//!   templates, from the binary's list too.
 //! - `actions`: the observable actions the tree offers, from the binary's list, and the comment form
 //!   ace3's "Add Comment" opens (5.9, #1032).
 //! - `list`: the alert list at `/` (5.10), ace3's manage page, with its filters, saved filters, columns,
@@ -132,6 +135,9 @@ pub mod verdicts;
 
 pub use actions::{ObservableAction, ObservableActions};
 pub use alert::LiveLimits;
+pub use analysis::summary::{
+    AlertSummary, Summaries as AlertSummaries, SummaryEntry, SummaryInput,
+};
 pub use analysis::{AnalysisView, ViewEntry, Views};
 pub use assets::{Asset, asset_named};
 pub use headers::content_security_policy;
@@ -150,6 +156,7 @@ pub struct Gui {
     live: std::sync::Arc<alert::Live>,
     views: std::sync::Arc<Views>,
     actions: std::sync::Arc<ObservableActions>,
+    summaries: std::sync::Arc<AlertSummaries>,
     refreshes: std::sync::Arc<places::Places>,
     cli_refreshes: std::sync::Arc<places::Places>,
     svs_attention: std::sync::Arc<session::NavCount>,
@@ -168,6 +175,7 @@ impl Gui {
             live: std::sync::Arc::new(alert::Live::new(limits)),
             views: std::sync::Arc::new(Views::builtin()),
             actions: std::sync::Arc::new(ObservableActions::builtin()),
+            summaries: std::sync::Arc::new(AlertSummaries::builtin()),
             refreshes: std::sync::Arc::new(places::Places::new(
                 list::REFRESH_LIMITS.0,
                 list::REFRESH_LIMITS.1,
@@ -200,6 +208,13 @@ impl Gui {
     /// ones alone.
     pub fn with_actions(mut self, actions: ObservableActions) -> Self {
         self.actions = std::sync::Arc::new(actions);
+        self
+    }
+
+    /// The GUI drawing an alert's summary by its type with these (`analysis::summary`), the binary's
+    /// list, rather than the open-source ones alone.
+    pub fn with_summaries(mut self, summaries: AlertSummaries) -> Self {
+        self.summaries = std::sync::Arc::new(summaries);
         self
     }
 

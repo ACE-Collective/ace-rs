@@ -275,7 +275,8 @@ async fn serve(app: &App) -> Result<ExitCode> {
     let indexing_service = service.clone();
     let gui = ace_gui::Gui::new(service.clone(), web_config.transport)
         .with_views(app.views().clone())
-        .with_actions(app.actions().clone());
+        .with_actions(app.actions().clone())
+        .with_summaries(app.alert_summaries().clone());
     let web = ace_api::Web::new(service, bucket.clone(), web_config)
         .with_email_archive(archive)
         .with_hunts(ace_api::HuntSupport {

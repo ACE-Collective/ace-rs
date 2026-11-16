@@ -16,66 +16,90 @@
   {%- endif %}
   <details class="section event-filters">
     <summary>Edit Filters</summary>
-    <form method="get" action="/events" class="fields">
+    <form method="get" action="/events" class="filter-form">
       <input type="hidden" name="filtered" value="1">
+      <div class="filter-grid">
+      <div class="field">
       <label for="created">Date Range</label>
       <input type="text" id="created" name="created" value="{{ view.created }}" placeholder="MM-DD-YYYY HH:MM - MM-DD-YYYY HH:MM, or -7d">
+      </div>
+      <div class="field">
       <label for="status">Status</label>
       <select multiple id="status" name="status">
         {%- for c in view.statuses %}
         <option value="{{ c.value }}"{% if c.selected %} selected{% endif %}>{{ c.label }}</option>
         {%- endfor %}
       </select>
+      </div>
+      <div class="field">
       <label for="owner">Owner</label>
       <select multiple id="owner" name="owner">
         {%- for c in view.owners %}
         <option value="{{ c.value }}"{% if c.selected %} selected{% endif %}>{{ c.label }}</option>
         {%- endfor %}
       </select>
+      </div>
+      <div class="field">
       <label for="disposition">Disposition</label>
       <select multiple id="disposition" name="disposition">
         {%- for c in view.dispositions %}
         <option value="{{ c.value }}"{% if c.selected %} selected{% endif %}>{{ c.label }}</option>
         {%- endfor %}
       </select>
+      </div>
+      <div class="field">
       <label for="type">Type</label>
       <select id="type" name="type">
         {%- for c in view.types %}
         <option value="{{ c.value }}"{% if c.selected %} selected{% endif %}>{{ c.label }}</option>
         {%- endfor %}
       </select>
+      </div>
+      <div class="field">
       <label for="vector">Vector</label>
       <select id="vector" name="vector">
         {%- for c in view.vectors %}
         <option value="{{ c.value }}"{% if c.selected %} selected{% endif %}>{{ c.label }}</option>
         {%- endfor %}
       </select>
+      </div>
+      <div class="field">
       <label for="prevention_tool">Prevention Tool</label>
       <select id="prevention_tool" name="prevention_tool">
         {%- for c in view.prevention_tools %}
         <option value="{{ c.value }}"{% if c.selected %} selected{% endif %}>{{ c.label }}</option>
         {%- endfor %}
       </select>
+      </div>
+      <div class="field">
       <label for="risk_level">Severity</label>
       <select id="risk_level" name="risk_level">
         {%- for c in view.risk_levels %}
         <option value="{{ c.value }}"{% if c.selected %} selected{% endif %}>{{ c.label }}</option>
         {%- endfor %}
       </select>
+      </div>
+      <div class="field">
       <label for="observable_type">Observable Type</label>
       <select id="observable_type" name="observable_type">
         {%- for c in view.observable_types %}
         <option value="{{ c.value }}"{% if c.selected %} selected{% endif %}>{{ c.label }}</option>
         {%- endfor %}
       </select>
+      </div>
+      <div class="field">
       <label for="observable_value">Observable Value</label>
       <input type="text" id="observable_value" name="observable_value" value="{{ view.observable_value }}">
+      </div>
+      <div class="field">
       <label for="tag">Tag</label>
       <select multiple id="tag" name="tag">
         {%- for c in view.tags %}
         <option value="{{ c.value }}"{% if c.selected %} selected{% endif %}>{{ c.label }}</option>
         {%- endfor %}
       </select>
+      </div>
+      </div>
       <fieldset>
         <legend>Threat Actors</legend>
         {%- for c in view.campaigns %}
@@ -92,7 +116,7 @@
         <p class="muted">None recorded.</p>
         {%- endfor %}
       </fieldset>
-      <button type="submit">Apply</button>
+      <div class="filter-actions"><button type="submit" class="primary">Apply</button> <a href="/events">Reset Filters</a></div>
     </form>
   </details>
   <form id="export" method="get" action="/events/export" class="inline"></form>
@@ -105,7 +129,7 @@
   </p>
   {%- endif %}
   <p class="muted">{{ view.total }} event{% if view.total != 1 %}s{% endif %}. Export takes at most {{ view.max_export }} ticked.</p>
-  <table class="keys event-table">
+  <div class="table-wrap"><table class="keys event-table">
     <thead>
       <tr>
         <th></th>
@@ -138,7 +162,7 @@
       <tr><td colspan="13" class="muted">No events match.</td></tr>
       {%- endfor %}
     </tbody>
-  </table>
+  </table></div>
   <p class="pager">
     {%- if let Some(first) = view.first %}<a href="{{ first }}">First</a>{% endif %}
     {%- if let Some(next) = view.next %} <a href="{{ next }}" rel="next">Next</a>{% endif %}

@@ -46,7 +46,7 @@
   <div class="section" id="grants">
     <h2>Grants</h2>
     <p class="muted">Every member holds these.</p>
-    <table class="keys">
+    <div class="table-wrap"><table class="keys">
       <thead><tr><th>Effect</th><th>Pattern</th><th>What it does</th><th></th></tr></thead>
       <tbody>
         {%- for grant in view.grants %}
@@ -71,7 +71,7 @@
         <tr><td colspan="4" class="muted">No grants.</td></tr>
         {%- endfor %}
       </tbody>
-    </table>
+    </table></div>
     {%- if view.can_write %}
     {%- let holder_kind = "group" %}
     {%- let holder_id = view.id %}

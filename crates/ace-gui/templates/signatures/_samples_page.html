@@ -1,5 +1,5 @@
 {#- ace3's signatures/_samples_page.html: a page of the samples table (src/svs_samples.rs). -#}
-  <table class="keys">
+  <div class="table-wrap"><table class="keys">
     <thead><tr><th>File</th><th>Rule</th><th>Label</th><th>Captures</th><th>Stored</th><th>Missing data</th><th>Last captured</th><th></th></tr></thead>
     <tbody>
       {%- for row in view.rows %}
@@ -17,4 +17,4 @@
       <tr><td colspan="8" class="muted">No samples.</td></tr>
       {%- endfor %}
     </tbody>
-  </table>
+  </table></div>

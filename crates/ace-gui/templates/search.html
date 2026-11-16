@@ -41,7 +41,7 @@
   {%- if view.rows.is_empty() %}
   <p class="muted">Nothing matched.</p>
   {%- else %}
-  <table class="alerts search-results">
+  <div class="table-wrap"><table class="alerts search-results">
     <thead>
       <tr><th>#</th><th>Alert</th><th>Queue</th><th>Disposition</th><th>Owner</th><th>Alert Date</th></tr>
     </thead>
@@ -68,7 +68,7 @@
       {%- endif %}
       {%- endfor %}
     </tbody>
-  </table>
+  </table></div>
   {%- endif %}
   <nav class="pager" aria-label="Pages">
     {%- if let Some(previous) = view.previous %}<a href="{{ previous }}" rel="prev">Previous</a>{% endif %}

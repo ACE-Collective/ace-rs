@@ -1,15 +1,53 @@
-{#- One alert (PLAN.md 5.8): ace3's analysis/index.html and alert.html, with its Alert Details section and
-    its analysis tree. data-init opens the live stream, whose URL holds only the alert's uuid, the
-    tree's hex version and the uuid of who owned the alert when the page was drawn (src/alert.rs). The
-    stream fills #owner-notice when the alert has another owner, ace3's "Alert Ownership Changed!". -#}
+{#- One alert (PLAN.md 5.8, and the owner's UI direction of 2026-11-15): ace3's analysis/index.html and
+    alert.html, laid out so what decides the alert comes first. The top is its title, its disposition,
+    owner and queue with their forms, what fired and on what, and the summary its type chose
+    (src/analysis/summary.rs), the key observables by default. Everything else is a collapsed panel
+    whose summary line says what it holds, each with the viewer's pin, and the analysis tree, which
+    starts at the branches that carry a detection with the whole tree a link away (src/alert.rs).
+    data-init opens the live stream, whose URL holds only the alert's uuid, the tree's hex version,
+    the uuid of who owned the alert when the page was drawn and which tree it drew. The stream fills
+    #owner-notice when the alert has another owner, ace3's "Alert Ownership Changed!". -#}
 {% extends "base.html" %}
 {% block title %}{{ title }} · ACE{% endblock %}
 {% block content %}
-<section class="alert" data-init="@get('/alerts/{{ id }}/live?v={{ version }}&amp;o={{ owner }}')">
+<section class="alert" data-init="@get('/alerts/{{ id }}/live?v={{ version }}&amp;o={{ owner }}{{ self.stream_tree() }}')">
+  <header class="alert-header">
   <h1>{{ title }}</h1>
   <p id="owner-notice" hidden></p>
-  <p class="alert-links"><a href="/alerts/{{ id }}/graph">Graph</a> <a href="/search?similar={{ id }}" title="Other alerts whose text is like this one's">Similar alerts</a></p>
+  <dl class="meta">
+    <div><dt>Disposition</dt><dd><span class="badge disposition-{{ disposition_css }}">{{ disposition }}</span></dd></div>
+    <div><dt>Owner</dt><dd>{% if let Some(name) = owner_name %}{{ name }}{% if let Some(since) = owned_since %} <span class="muted">since {{ since }}</span>{% endif %}{% else %}<span class="muted">nobody</span>{% endif %}</dd></div>
+    <div><dt>Queue</dt><dd>{{ queue }}</dd></div>
+    <div><dt>Alerted</dt><dd>{{ alerted }}</dd></div>
+    <div><dt>Analysis</dt><dd>{{ analysis }}</dd></div>
+    {%- if let Some(kind) = alert_type %}
+    <div><dt>Type</dt><dd>{{ kind }}</dd></div>
+    {%- endif %}
+    {%- if let Some(svs) = svs %}
+    {%- if !svs.status.is_empty() %}
+    <div><dt>SVS</dt><dd><a class="badge svs-status" href="#svs" title="{{ svs.meaning }}">{{ svs.status }}</a></dd></div>
+    {%- endif %}
+    {%- endif %}
+    {%- if !tags.is_empty() %}
+    <div><dt>Tags</dt><dd>{% for tag in tags %}<span class="badge tag">{{ tag }}</span> {% endfor %}</dd></div>
+    {%- endif %}
+  </dl>
+  <div class="alert-actions">
   {%- if let Some(own) = ownership %}
+  {%- if !dispositions.is_empty() %}
+  {#- the list's bulk disposition (src/list.rs), with this one alert -#}
+  <form method="post" action="/alerts/disposition" class="inline disposition">
+    <input type="hidden" name="alert" value="{{ id }}">
+    <input type="hidden" name="next" value="/alerts/{{ id }}">
+    <label for="alert-disposition">Disposition</label>
+    <select id="alert-disposition" name="disposition">
+      {%- for name in dispositions %}
+      <option value="{{ name }}"{% if name.as_str() == disposition.as_str() %} selected{% endif %}>{{ name }}</option>
+      {%- endfor %}
+    </select>
+    <button type="submit" class="primary">Set Disposition</button>
+  </form>
+  {%- endif %}
   {#- ace3's Take Ownership and Assign Ownership (PLAN.md 7.17, src/list.rs's bulk_owner) -#}
   <form method="post" action="/alerts/owner" class="inline ownership">
     <input type="hidden" name="alert" value="{{ id }}">
@@ -27,45 +65,111 @@
     <button type="submit" name="owner" value="assign">Assign</button>
   </form>
   {%- endif %}
+  <p class="alert-links"><a href="/alerts/{{ id }}/graph">Graph</a> <a href="/search?similar={{ id }}" title="Other alerts whose text is like this one's">Similar alerts</a></p>
+  </div>
+  </header>
+  <div class="alert-summary">
+    <section class="fired" aria-labelledby="fired-title">
+      <h2 id="fired-title">What fired</h2>
+      {%- if fired.is_empty() %}
+      <p class="muted">No detection is recorded on this alert.</p>
+      {%- else %}
+      <ul class="fired-list">
+        {%- for detection in fired %}
+        <li><span class="fired-what">{{ detection.description }}</span>
+          <span class="fired-on">on {{ detection.on }}{% if detection.others > 0 %} <span class="muted">and {{ detection.others }} more</span>{% endif %}</span>
+          {%- if !detection.badge.is_empty() %} <span class="badge verdict-{{ detection.verdict }}" title="{{ detection.title }}">{{ detection.badge }}</span>{% endif %}</li>
+        {%- endfor %}
+      </ul>
+      {%- endif %}
+      {%- if more_fired > 0 %}
+      <p class="muted">{{ more_fired }} more under <a href="#detections">Detection Verdicts</a>.</p>
+      {%- endif %}
+    </section>
+    {%- if let Some(summary) = summary %}
+{{ summary.html }}
+    {%- else %}
+    <section class="type-summary key-observables" aria-labelledby="type-summary-title">
+      <h2 id="type-summary-title">Key observables</h2>
+      {%- if key_observables.is_empty() %}
+      <p class="muted">The alert has no observables yet.</p>
+      {%- else %}
+      <ul class="plain">
+        {%- for observable in key_observables %}
+        <li><b class="type">{{ observable.label }}</b> <a class="value" href="{{ observable.href }}"{% if let Some(full) = observable.full %} title="{{ full }}"{% endif %}>{{ observable.value }}</a>
+          {%- if observable.detections > 0 %} <span class="badge tone-bad">{{ observable.detections }} detection{% if observable.detections != 1 %}s{% endif %}</span>{% endif %}
+          {%- for tag in observable.tags %} <span class="tag">{{ tag }}</span>{% endfor %}</li>
+        {%- endfor %}
+      </ul>
+      {%- if more_observables > 0 %}
+      <p class="muted">{{ more_observables }} more in the analysis tree.</p>
+      {%- endif %}
+      {%- endif %}
+    </section>
+    {%- endif %}
+  </div>
   {%- if let Some(svs) = svs %}
   {%- include "alert_svs.html" %}
   {%- endif %}
+  {%- if let Some(verdicts) = verdicts %}
+  {%- include "alert_verdicts.html" %}
+  {%- endif %}
+  {%- if let Some(remediation) = remediation %}
+  <details class="section remediation" id="remediation" data-section-id="{{ remediation_section.id }}"{% if remediation_section.open %} open{% endif %}>
+    <summary>{{ remediation_section.title }} <span class="badge {{ remediation.badge.class }}" title="{{ remediation.badge.tooltip }}">{{ remediation.badge.label }}</span></summary>
+    <ul class="plain">
+      {%- for target in remediation.targets %}
+      <li>{{ target.0 }} <span class="muted">{{ target.1 }}</span></li>
+      {%- endfor %}
+    </ul>
+    {%- if remediation.more > 0 %}
+    <p class="muted">{{ remediation.more }} more targets.</p>
+    {%- endif %}
+    <p><a href="{{ remediation.href }}">Find this alert's remediation targets</a></p>
+    <form method="post" action="/preferences/alert-section" class="pin">
+      <input type="hidden" name="section" value="{{ remediation_section.id }}">
+      <input type="hidden" name="next" value="{{ layout.path }}">
+      {%- if remediation_section.open %}
+      <input type="hidden" name="open" value="false">
+      <button type="submit" class="quiet" title="How this section starts on every alert you open. Only you are affected.">Open by default</button>
+      {%- else %}
+      <input type="hidden" name="open" value="true">
+      <button type="submit" class="quiet" title="How this section starts on every alert you open. Only you are affected.">Collapsed by default</button>
+      {%- endif %}
+    </form>
+  </details>
+  {%- endif %}
   <details class="section" data-section-id="{{ details_section.id }}"{% if details_section.open %} open{% endif %}>
-    <summary>{{ details_section.title }}</summary>
+    <summary>{{ details_section.title }} <span class="hint">{{ self.details_hint() }}</span></summary>
     <table class="details">
       {%- for detail in details %}
       <tr><th>{{ detail.name }}</th><td>{{ detail.value }}</td></tr>
       {%- endfor %}
     </table>
+    {%- if !root_detections.is_empty() %}
+    <h3>Detections on the alert</h3>
+    <ul class="root-detections">
+      {%- for detection in root_detections %}
+      <li><span class="detection" title="{{ detection }}">detection: {{ detection }}</span></li>
+      {%- endfor %}
+    </ul>
+    {%- endif %}
     <form method="post" action="/preferences/alert-section" class="pin">
       <input type="hidden" name="section" value="{{ details_section.id }}">
       <input type="hidden" name="next" value="{{ layout.path }}">
       {%- if details_section.open %}
       <input type="hidden" name="open" value="false">
-      <button type="submit" title="How this section starts on every alert you open. Only you are affected.">Open by default</button>
+      <button type="submit" class="quiet" title="How this section starts on every alert you open. Only you are affected.">Open by default</button>
       {%- else %}
       <input type="hidden" name="open" value="true">
-      <button type="submit" title="How this section starts on every alert you open. Only you are affected.">Collapsed by default</button>
+      <button type="submit" class="quiet" title="How this section starts on every alert you open. Only you are affected.">Collapsed by default</button>
       {%- endif %}
     </form>
   </details>
-  {%- if !root_detections.is_empty() %}
-  <section class="root-detections">
-    <h2>Detections on the alert</h2>
-    <ul>
-      {%- for detection in root_detections %}
-      <li><span class="detection" title="{{ detection }}">detection: {{ detection }}</span></li>
-      {%- endfor %}
-    </ul>
-  </section>
-  {%- endif %}
-  {%- if let Some(verdicts) = verdicts %}
-  {%- include "alert_verdicts.html" %}
-  {%- endif %}
   {%- if !modifier_rules.is_empty() %}
   {#- ace3's Observable Modifier Rules card: collapsed, but find-in-page opens it, and an observable the
       tree no longer draws can be found here -#}
-  <details class="section modifier-rules">
+  <details class="section modifier-rules" data-section-id="{{ rules_section.id }}"{% if rules_section.open %} open{% endif %}>
     <summary>Observable Modifier Rules ({{ modifier_rules.len() }} rule{% if modifier_rules.len() != 1 %}s{% endif %}){% if ignored_count > 0 %} <span class="badge">{{ ignored_count }} ignored</span>{% endif %}</summary>
     <table class="details">
       {%- for rule in modifier_rules %}
@@ -79,11 +183,35 @@
       {%- endfor %}
       {%- endfor %}
     </table>
+    <form method="post" action="/preferences/alert-section" class="pin">
+      <input type="hidden" name="section" value="{{ rules_section.id }}">
+      <input type="hidden" name="next" value="{{ layout.path }}">
+      {%- if rules_section.open %}
+      <input type="hidden" name="open" value="false">
+      <button type="submit" class="quiet" title="How this section starts on every alert you open. Only you are affected.">Open by default</button>
+      {%- else %}
+      <input type="hidden" name="open" value="true">
+      <button type="submit" class="quiet" title="How this section starts on every alert you open. Only you are affected.">Collapsed by default</button>
+      {%- endif %}
+    </form>
   </details>
   {%- endif %}
-  <section class="overview">
+  <section class="overview" id="analysis">
     <h2>Analysis Overview</h2>
     {% include "alert_tree.html" %}
+    {%- if tree.prunable %}
+    <form method="post" action="/preferences/alert-section" class="pin">
+      <input type="hidden" name="section" value="{{ tree_section.id }}">
+      <input type="hidden" name="next" value="/alerts/{{ id }}">
+      {%- if tree_section.open %}
+      <input type="hidden" name="open" value="false">
+      <button type="submit" class="quiet" title="How the tree starts on every alert you open. Only you are affected.">Whole tree by default</button>
+      {%- else %}
+      <input type="hidden" name="open" value="true">
+      <button type="submit" class="quiet" title="How the tree starts on every alert you open. Only you are affected.">Detections only by default</button>
+      {%- endif %}
+    </form>
+    {%- endif %}
   </section>
 </section>
 {% endblock %}

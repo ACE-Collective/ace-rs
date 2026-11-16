@@ -8,17 +8,16 @@
   {%- include "svs/tabs.html" %}
   <p class="muted">The Atomic Red Team tests in the catalog, by technique, each with its state on its latest reviewed run. Nothing here suggests what to run next. Times are UTC.</p>
   {%- include "quick_filters.html" %}
-  <form method="get" action="/svs/tests" class="detection-filters">
-    {%- for field in view.fields %}
-    <label for="filter-{{ field.slug }}">{{ field.name }}</label>
-    <input type="text" id="filter-{{ field.slug }}" name="{{ field.slug }}" value="{{ field.value }}" placeholder="{% if field.options.is_empty() %}{{ field.hint }}{% else %}{{ field.options|join(", ") }}{% endif %}">
-    {%- endfor %}
-    <button type="submit">Apply</button>
+  <form method="get" action="/svs/tests" class="detection-filters filter-form">
+    {%- include "filter_fields.html" %}
+    <div class="filter-actions">
+    <button type="submit" class="primary">Apply</button>
     <a href="/svs/tests">Reset</a>
+    </div>
   </form>
   <p class="muted">Export as <a href="{{ view.csv }}">CSV</a> or <a href="{{ view.ndjson }}">NDJSON</a></p>
-  <table class="keys">
-    <thead><tr><th>Technique</th><th>Test</th><th>Platforms</th><th>State</th><th>Runs</th><th>Latest run</th><th>Latest review</th><th title="signatures expected of it on any platform">Expected</th><th title="of its latest ended or reviewed runs, those that missed an expected signature">Recent misses</th></tr></thead>
+  <div class="table-wrap"><table class="keys">
+    <thead><tr><th>Technique</th><th>Test</th><th>Platforms</th><th>State</th><th class="num">Runs</th><th>Latest run</th><th>Latest review</th><th class="num" title="signatures expected of it on any platform">Expected</th><th title="of its latest ended or reviewed runs, those that missed an expected signature">Recent misses</th></tr></thead>
     <tbody>
       {%- for row in view.rows %}
       <tr>
@@ -26,17 +25,17 @@
         <td class="qa-text"><a href="{{ row.href }}">{{ row.name }}</a>{% if row.removed %} <span class="muted">removed</span>{% endif %}</td>
         <td>{{ row.platforms }}</td>
         <td><span class="badge disposition-{{ row.state_class }}">{{ row.state }}</span></td>
-        <td>{% if row.runs > 0 %}{{ row.runs }}{% endif %}</td>
+        <td class="num">{% if row.runs > 0 %}{{ row.runs }}{% endif %}</td>
         <td class="nowrap">{% if let Some(run) = row.last_run %}<a href="{{ run.href }}">{{ run.text }}</a>{% endif %}</td>
         <td class="nowrap">{% if let Some(run) = row.last_reviewed %}<a href="{{ run.href }}">{{ run.text }}</a>{% endif %}</td>
-        <td>{% if row.expected > 0 %}{{ row.expected }}{% endif %}</td>
+        <td class="num">{% if row.expected > 0 %}{{ row.expected }}{% endif %}</td>
         <td>{{ row.recent }}</td>
       </tr>
       {%- else %}
       <tr><td colspan="9" class="muted">No tests.</td></tr>
       {%- endfor %}
     </tbody>
-  </table>
+  </table></div>
   {%- if view.first.is_some() || view.next.is_some() %}
   <nav class="pager" aria-label="Pages">
     {%- if let Some(first) = view.first %} <a href="{{ first }}">First</a>{% endif %}

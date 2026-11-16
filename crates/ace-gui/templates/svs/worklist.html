@@ -8,13 +8,12 @@
   {%- include "svs/tabs.html" %}
   <p class="muted">Each signature that a test measures, its technique tags against the techniques its tests measure. A tag no test confirms is kept or removed; a removed tag stops counting toward coverage. Statuses are as of the last coverage refresh. Times are UTC.</p>
   {%- include "quick_filters.html" %}
-  <form method="get" action="/svs/worklist" class="detection-filters">
-    {%- for field in view.fields %}
-    <label for="filter-{{ field.slug }}">{{ field.name }}</label>
-    <input type="text" id="filter-{{ field.slug }}" name="{{ field.slug }}" value="{{ field.value }}" placeholder="{% if field.options.is_empty() %}{{ field.hint }}{% else %}{{ field.options|join(", ") }}{% endif %}">
-    {%- endfor %}
-    <button type="submit">Apply</button>
+  <form method="get" action="/svs/worklist" class="detection-filters filter-form">
+    {%- include "filter_fields.html" %}
+    <div class="filter-actions">
+    <button type="submit" class="primary">Apply</button>
     <a href="/svs/worklist">Reset</a>
+    </div>
   </form>
   {%- if let Some(notice) = view.notice %}
   <p class="notice" role="status">{{ notice }}</p>
@@ -31,7 +30,7 @@
     <button type="submit" name="resolution" value="remove" title="The signature repository will drop the tag; it stops counting toward coverage from the next refresh.">Remove the ticked tags</button>
   </form>
   {%- endif %}
-  <table class="keys">
+  <div class="table-wrap"><table class="keys">
     <thead><tr>{% if view.manage %}<th></th>{% endif %}<th>Signature</th><th>Family</th><th>Technique</th><th>Kind</th><th>Status</th><th title="the tag ids that count as the technique">Tagged</th><th>Measured on</th><th>Resolution</th></tr></thead>
     <tbody>
       {%- for row in view.rows %}
@@ -52,7 +51,7 @@
       <tr><td colspan="8" class="muted">No worklist rows.</td></tr>
       {%- endfor %}
     </tbody>
-  </table>
+  </table></div>
   {%- if view.first.is_some() || view.next.is_some() %}
   <nav class="pager" aria-label="Pages">
     {%- if let Some(first) = view.first %} <a href="{{ first }}">First</a>{% endif %}

@@ -51,7 +51,7 @@
   <p><a href="{{ view.delete_href() }}">Delete this file from SVS…</a></p>
   {%- endif %}
   <h2>Captures</h2>
-  <table class="keys">
+  <div class="table-wrap"><table class="keys">
     <thead><tr><th>ID</th><th>Alert</th><th>Path</th><th>State</th><th>Version</th><th>yara_meta</th><th>Strings</th><th>Detections (verdict, source, override)</th><th>Captured</th><th></th></tr></thead>
     <tbody>
       {%- for c in view.captures %}
@@ -75,6 +75,6 @@
       </tr>
       {%- endfor %}
     </tbody>
-  </table>
+  </table></div>
 </section>
 {% endblock %}

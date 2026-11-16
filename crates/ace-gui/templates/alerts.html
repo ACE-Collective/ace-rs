@@ -6,33 +6,7 @@
 {% block title %}Alerts · ACE{% endblock %}
 {% block content %}
 <section class="manage">
-  <div class="actions-bar">
-    <form id="bulk" method="post" action="/alerts/disposition" class="bulk">
-      <input type="hidden" name="next" value="{{ view.here }}">
-      <label for="bulk-disposition">Set disposition of the ticked alerts</label>
-      <select id="bulk-disposition" name="disposition">
-        {%- for disposition in view.dispositions %}
-        <option value="{{ disposition }}">{{ disposition }}</option>
-        {%- endfor %}
-      </select>
-      <button type="submit">Set Disposition</button>
-      <button type="submit" formaction="/events/add" formmethod="get">Add to Event</button>
-      {%- if view.can_own %}
-      {#- ace3's Take Ownership and Assign Ownership of the ticked alerts (PLAN.md 7.17) -#}
-      <button type="submit" formaction="/alerts/owner" name="owner" value="me" title="Make the ticked alerts yours. One another analyst owns is left alone until you confirm taking it.">Take Ownership</button>
-      <label for="bulk-assignee">Assign the ticked alerts to</label>
-      <select id="bulk-assignee" name="assignee">
-        <option value="">nobody (unassign)</option>
-        {%- for user in view.owners %}
-        <option value="{{ user.id }}">{{ user.name }}</option>
-        {%- endfor %}
-      </select>
-      <button type="submit" formaction="/alerts/owner" name="owner" value="assign">Assign</button>
-      {%- endif %}
-    </form>
-    <span class="exports">Export: <a href="{{ view.export_csv }}">CSV</a> <a href="{{ view.export_ndjson }}">NDJSON</a></span>
-  </div>
-
+  <h1>Alerts</h1>
   {#- ace3's search box (PLAN.md 7.11, src/search.rs): a search within this list's filters -#}
   <form method="get" action="/search" class="search-box" role="search">
     {%- for f in view.f %}
@@ -51,54 +25,71 @@
     {%- for warning in view.warnings %}
     <p class="warning">{{ warning }}</p>
     {%- endfor %}
-    <span class="label">Filters</span> |
+    <span class="label">Filters</span>
     <a href="{{ view.reset }}">Reset</a>
     <a href="{{ view.clear }}">Clear</a>
     <a href="{{ view.share }}" title="A link to this list, to copy and share">Link</a>
-    |
+    <span class="sep" aria-hidden="true">|</span>
     {%- for badge in view.badges %}
     <a class="badge{% if badge.current %} current{% endif %}" href="{{ badge.href }}">{{ badge.label }}{% if let Some(count) = badge.count %} <span class="count">{{ count }}</span>{% endif %}</a>
     {%- endfor %}
-    |
+    {%- if !view.chips.is_empty() %}
+    <span class="sep" aria-hidden="true">|</span>
+    {%- endif %}
     {%- for chip in view.chips %}
     <span class="chip">{% if chip.inverted %}NOT {% endif %}<a href="{{ chip.remove }}" title="Remove this filter">{{ chip.name }}</a>:
       {%- for value in chip.values %} <a href="{{ value.1 }}" title="Remove this value">{{ value.0 }}</a>{% if !loop.last %} |{% endif %}{% endfor %}</span>
     {%- endfor %}
   </div>
 
-  <details class="section editor">
-    <summary>Add a filter</summary>
-    <form method="get" action="/" class="filter-editor">
-      {%- for f in view.f %}
-      <input type="hidden" name="f" value="{{ f }}">
-      {%- endfor %}
-      <label><input type="checkbox" name="not"> Exclude</label>
-      <select name="add" aria-label="Filter">
+  {#- the filter editor: the commonly used filters first in its menu, and what's used less (excluding,
+      an observable's type, what each filter takes) behind its disclosure -#}
+  <form method="get" action="/" class="filter-editor">
+    {%- for f in view.f %}
+    <input type="hidden" name="f" value="{{ f }}">
+    {%- endfor %}
+    <label for="filter-add">Add a filter</label>
+    <select id="filter-add" name="add">
+      <optgroup label="Common">
         {%- for filter in view.editor %}
+        {%- if filter.common %}
         <option value="{{ filter.slug }}">{{ filter.name }}</option>
+        {%- endif %}
         {%- endfor %}
-      </select>
-      <input type="text" name="type" placeholder="type, for Observable" aria-label="Observable type">
-      <input type="text" name="value" list="filter-values" placeholder="a value" aria-label="Value" required>
-      <datalist id="filter-values">
-        {%- for disposition in view.filter_dispositions %}
-        <option value="{{ disposition }}">
+      </optgroup>
+      <optgroup label="More">
+        {%- for filter in view.editor %}
+        {%- if !filter.common %}
+        <option value="{{ filter.slug }}">{{ filter.name }}</option>
+        {%- endif %}
         {%- endfor %}
-        <option value="-24h"><option value="-7d"><option value="-30d"><option value="@d">
-      </datalist>
-      <button type="submit">Add</button>
-    </form>
-    <dl class="hints">
-      {%- for filter in view.editor %}
-      <dt>{{ filter.name }}</dt><dd>{{ filter.hint }}</dd>
+      </optgroup>
+    </select>
+    <input type="text" name="value" list="filter-values" placeholder="a value" aria-label="Value" required>
+    <datalist id="filter-values">
+      {%- for disposition in view.filter_dispositions %}
+      <option value="{{ disposition }}">
       {%- endfor %}
-    </dl>
-    <p class="muted">Not here yet:
-      {%- for gone in view.left_out %} {{ gone.0 }} ({{ gone.1 }}){% if !loop.last %};{% endif %}{% endfor %}.</p>
-  </details>
+      <option value="-24h"><option value="-7d"><option value="-30d"><option value="@d">
+    </datalist>
+    <button type="submit">Add</button>
+    <details class="more-filters editor">
+      <summary>More filter options</summary>
+      <p><label><input type="checkbox" name="not"> Exclude what the filter matches</label>
+        <input type="text" name="type" placeholder="type, for Observable" aria-label="Observable type"></p>
+      <dl class="hints">
+        {%- for filter in view.editor %}
+        <dt>{{ filter.name }}</dt><dd>{{ filter.hint }}</dd>
+        {%- endfor %}
+      </dl>
+      <p class="muted">Not here yet:
+        {%- for gone in view.left_out %} {{ gone.0 }} ({{ gone.1 }}){% if !loop.last %};{% endif %}{% endfor %}.</p>
+    </details>
+  </form>
 
+  <div class="list-tools">
   <details class="section saved">
-    <summary>Saved filters</summary>
+    <summary>Saved filters <span class="hint">{{ view.saved.len() }} saved</span></summary>
     <p><a href="{{ view.manage }}">Manage…</a> <span class="muted">Rename them and set the quick filters' order.</span></p>
     <form method="post" action="/filters/saved" class="save-filter">
       <input type="hidden" name="next" value="{{ view.here }}">
@@ -130,6 +121,39 @@
   </details>
 
   {% include "column_chooser.html" %}
+  <span class="exports">Export: <a href="{{ view.export_csv }}">CSV</a> <a href="{{ view.export_ndjson }}">NDJSON</a></span>
+  </div>
+
+  <div class="actions-bar">
+    <form id="bulk" method="post" action="/alerts/disposition" class="bulk-form">
+      <input type="hidden" name="next" value="{{ view.here }}">
+      <span class="bulk-title">Ticked alerts</span>
+      <span class="bulk-group">
+      <label for="bulk-disposition" title="Set the disposition of the ticked alerts">Disposition</label>
+      <select id="bulk-disposition" name="disposition">
+        {%- for disposition in view.dispositions %}
+        <option value="{{ disposition }}">{{ disposition }}</option>
+        {%- endfor %}
+      </select>
+      <button type="submit" class="primary">Set Disposition</button>
+      <button type="submit" formaction="/events/add" formmethod="get">Add to Event</button>
+      </span>
+      {%- if view.can_own %}
+      {#- ace3's Take Ownership and Assign Ownership of the ticked alerts (PLAN.md 7.17) -#}
+      <span class="bulk-group">
+      <button type="submit" formaction="/alerts/owner" name="owner" value="me" title="Make the ticked alerts yours. One another analyst owns is left alone until you confirm taking it.">Take Ownership</button>
+      <label for="bulk-assignee" title="Assign the ticked alerts to an analyst">Assign to</label>
+      <select id="bulk-assignee" name="assignee">
+        <option value="">nobody (unassign)</option>
+        {%- for user in view.owners %}
+        <option value="{{ user.id }}">{{ user.name }}</option>
+        {%- endfor %}
+      </select>
+      <button type="submit" formaction="/alerts/owner" name="owner" value="assign">Assign</button>
+      </span>
+      {%- endif %}
+    </form>
+  </div>
 
   <div id="alert-page" data-signals:_sel="[]" data-refresh="{{ view.refresh }}"
        data-on-interval__duration.{{ view.refresh_seconds }}s="!document.hidden && @get(el.dataset.refresh)">

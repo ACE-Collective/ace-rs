@@ -7,35 +7,34 @@
   {%- include "svs/tabs.html" %}
   <p><a href="{{ view.runs }}">Runs</a> · <b>Batches</b></p>
   <p class="muted">One row per batch, summing the runs these filters match. Open a batch to see its runs. Times are UTC.</p>
-  <form method="get" action="/svs/runs/batches" class="detection-filters">
-    {%- for field in view.fields %}
-    <label for="filter-{{ field.slug }}">{{ field.name }}</label>
-    <input type="text" id="filter-{{ field.slug }}" name="{{ field.slug }}" value="{{ field.value }}" placeholder="{% if field.options.is_empty() %}{{ field.hint }}{% else %}{{ field.options|join(", ") }}{% endif %}">
-    {%- endfor %}
-    <button type="submit">Apply</button>
+  <form method="get" action="/svs/runs/batches" class="detection-filters filter-form">
+    {%- include "filter_fields.html" %}
+    <div class="filter-actions">
+    <button type="submit" class="primary">Apply</button>
     <a href="/svs/runs/batches">Reset</a>
+    </div>
   </form>
   <p class="muted">Export as <a href="{{ view.csv }}">CSV</a> or <a href="{{ view.ndjson }}">NDJSON</a></p>
-  <table class="keys">
-    <thead><tr><th>Batch</th><th>Runs</th><th>States</th><th>Need attention</th><th>First run</th><th>Latest run</th><th>Hits</th><th>Missing</th><th>Candidates</th></tr></thead>
+  <div class="table-wrap"><table class="keys">
+    <thead><tr><th>Batch</th><th class="num">Runs</th><th>States</th><th class="num">Need attention</th><th>First run</th><th>Latest run</th><th class="num">Hits</th><th class="num">Missing</th><th class="num">Candidates</th></tr></thead>
     <tbody>
       {%- for row in view.rows %}
       <tr>
         <td class="qa-text"><a href="{{ row.href }}">{{ row.batch }}</a></td>
-        <td>{{ row.runs }}</td>
+        <td class="num">{{ row.runs }}</td>
         <td>{{ row.states }}</td>
-        <td>{% if row.needs_attention > 0 %}{{ row.needs_attention }}{% endif %}</td>
+        <td class="num">{% if row.needs_attention > 0 %}{{ row.needs_attention }}{% endif %}</td>
         <td class="nowrap">{{ row.first }}</td>
         <td class="nowrap">{{ row.last }}</td>
-        <td>{{ row.hits }}</td>
-        <td>{% if row.missing > 0 %}{{ row.missing }}{% endif %}</td>
-        <td>{% if row.candidates > 0 %}{{ row.candidates }}{% endif %}</td>
+        <td class="num">{{ row.hits }}</td>
+        <td class="num">{% if row.missing > 0 %}{{ row.missing }}{% endif %}</td>
+        <td class="num">{% if row.candidates > 0 %}{{ row.candidates }}{% endif %}</td>
       </tr>
       {%- else %}
       <tr><td colspan="9" class="muted">No batches.</td></tr>
       {%- endfor %}
     </tbody>
-  </table>
+  </table></div>
   {%- if view.first.is_some() || view.next.is_some() %}
   <nav class="pager" aria-label="Pages">
     {%- if let Some(first) = view.first %} <a href="{{ first }}">First</a>{% endif %}

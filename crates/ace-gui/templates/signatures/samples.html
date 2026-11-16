@@ -9,17 +9,16 @@
   <h1>Samples</h1>
   <p class="muted">The files YARA rules matched on alerts graded TP or FP, one row per file and rule over every alert it was captured from. A label comes from the verdicts on those alerts' detections.</p>
   {%- include "quick_filters.html" %}
-  <form method="get" action="/signatures/samples" class="detection-filters">
-    {%- for field in view.fields %}
-    <label for="filter-{{ field.slug }}">{{ field.name }}</label>
-    <input type="text" id="filter-{{ field.slug }}" name="{{ field.slug }}" value="{{ field.value }}" placeholder="{% if field.options.is_empty() %}{{ field.hint }}{% else %}{{ field.options|join(", ") }}{% endif %}">
-    {%- endfor %}
+  <form method="get" action="/signatures/samples" class="detection-filters filter-form">
+    {%- include "filter_fields.html" %}
     <input type="hidden" name="sort" value="{{ view.sort }}">
     <input type="hidden" name="desc" value="{{ view.descending }}">
-    <button type="submit">Apply</button>
+    <div class="filter-actions">
+    <button type="submit" class="primary">Apply</button>
     <a href="/signatures/samples">Reset</a>
+    </div>
   </form>
-  <form method="get" action="/signatures/samples" class="fields">
+  <form method="get" action="/signatures/samples" class="controls">
     {%- for f in view.filters %}
     <input type="hidden" name="f" value="{{ f }}">
     {%- endfor %}
@@ -46,14 +45,14 @@
   {%- endif %}
   {%- if !view.missing.is_empty() %}
   <h2>Captures missing something</h2>
-  <table class="keys">
+  <div class="table-wrap"><table class="keys">
     <thead><tr><th>Rule</th><th>Rule uuid</th><th>Missing</th><th>Captures</th></tr></thead>
     <tbody>
       {%- for m in view.missing %}
       <tr><td class="qa-text">{{ m.rule_name }}</td><td class="qa-text"><code>{{ m.rule_uuid }}</code></td><td>{{ m.reason }}</td><td>{{ m.count }}</td></tr>
       {%- endfor %}
     </tbody>
-  </table>
+  </table></div>
   {%- endif %}
 </section>
 {% endblock %}

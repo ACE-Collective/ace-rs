@@ -74,7 +74,7 @@
   <p class="muted">The observable needn't have been seen. With no expiry it takes its type's default: 90 days, or never for sha256 and md5.</p>
   {%- endif %}
 
-  <table class="keys detections">
+  <div class="table-wrap"><table class="keys detections">
     <thead><tr><th>Type</th><th>Value</th><th>Added By</th><th>Context</th><th>Comments</th><th>Expires</th><th></th></tr></thead>
     <tbody>
       {%- for det in view.rows %}
@@ -116,7 +116,7 @@
       <tr><td colspan="7" class="muted">No detections found.</td></tr>
       {%- endfor %}
     </tbody>
-  </table>
+  </table></div>
 
   <h2>YARA export</h2>
   {%- if let Some((commit, key, built)) = view.export.ruleset %}
@@ -125,25 +125,25 @@
   <p class="error" role="alert">Nothing was exported: {{ error }}</p>
   {%- endif %}
   {%- if !view.export.types.is_empty() %}
-  <table class="keys detection-export-types">
+  <div class="table-wrap"><table class="keys detection-export-types">
     <thead><tr><th>Type</th><th>Detections</th><th>Strings</th></tr></thead>
     <tbody>
       {%- for (kind, detections, strings) in view.export.types %}
       <tr><td>{{ kind }}</td><td>{{ detections }}</td><td>{{ strings }}</td></tr>
       {%- endfor %}
     </tbody>
-  </table>
+  </table></div>
   {%- endif %}
   {%- if !view.export.skipped.is_empty() %}
   <h3>Left out</h3>
-  <table class="keys detection-export-skipped">
+  <div class="table-wrap"><table class="keys detection-export-skipped">
     <thead><tr><th>Type</th><th>Value</th><th>Why</th></tr></thead>
     <tbody>
       {%- for s in view.export.skipped %}
       <tr><td>{{ s.observable_type }}</td><td>{% if s.value.is_empty() %}<span class="muted">removed since</span>{% else %}<code>{{ s.value }}</code>{% endif %}</td><td>{{ s.error }}</td></tr>
       {%- endfor %}
     </tbody>
-  </table>
+  </table></div>
   {%- endif %}
   {%- else %}
   <p class="muted">No ruleset has been built, so no detection is a YARA rule yet.</p>

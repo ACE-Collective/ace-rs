@@ -826,8 +826,9 @@ every value, and a value in a link is percent-encoded.
 - **The run page.** `templates/svs/run.html`: the run's facts, what a review waits for, its result with
   the decisions as forms, its history, its alerts with the association forms, its comments and its event
   log.
-- **The alert page.** `crates/ace-gui/src/svs_alert.rs` draws the SVS banner when SVS touched the alert
-  or its root has a tag: the status in words, the runs, the markers that disagree and the tags. With
+- **The alert page.** `crates/ace-gui/src/svs_alert.rs` draws the SVS section when SVS touched the alert
+  or its root has a tag: the status in words, the runs, the markers that disagree and the tags. It is
+  one of the page's collapsed panels, with the status also in the page's header. With
   `alert:write`, a form posts to `/alerts/{id}/svs` to disassociate the alert or mark it not a test. The
   alert list shows the status as a word beside each alert's description. The alert page lists each
   detection's verdict with its menu as forms.

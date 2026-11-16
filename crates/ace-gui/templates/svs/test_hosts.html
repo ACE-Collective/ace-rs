@@ -9,7 +9,7 @@
   {%- if let Some(notice) = view.notice %}
   <p class="notice" role="status">{{ notice }}</p>
   {%- endif %}
-  <table class="keys">
+  <div class="table-wrap"><table class="keys">
     <thead><tr><th>Host</th><th>FQDN</th><th>Platform</th><th title="empty: any user">Users</th><th>IP addresses</th><th>Notes</th><th title="UTC">Updated</th></tr></thead>
     <tbody>
       {%- for row in view.rows %}
@@ -26,7 +26,7 @@
       <tr><td colspan="7" class="muted">No test hosts.</td></tr>
       {%- endfor %}
     </tbody>
-  </table>
+  </table></div>
   {%- if view.first.is_some() || view.next.is_some() %}
   <nav class="pager" aria-label="Pages">
     {%- if let Some(first) = view.first %} <a href="{{ first }}">First</a>{% endif %}

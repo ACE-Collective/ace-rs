@@ -127,6 +127,25 @@ impl Layout {
         Layout::new(nonce, Theme::default(), None, "/")
     }
 
+    /// The section of the site the page is in, which the navigation marks as the current one:
+    /// `alerts`, `events`, `remediations`, `file-collections`, `signatures`, `svs`, `admin`, `help`,
+    /// or nothing for a page in none, such as the preferences.
+    pub fn section(&self) -> &'static str {
+        let path = self.path.split(['?', '#']).next().unwrap_or_default();
+        let first = path.trim_start_matches('/').split('/').next().unwrap_or("");
+        match first {
+            "" | "alerts" | "search" | "filters" => "alerts",
+            "events" => "events",
+            "remediations" => "remediations",
+            "file-collections" => "file-collections",
+            "signatures" => "signatures",
+            "svs" => "svs",
+            "admin" => "admin",
+            "help" => "help",
+            _ => "",
+        }
+    }
+
     /// Whether the menu marks this theme as the page's.
     pub fn is_theme(&self, theme: &Theme) -> bool {
         *theme == self.theme

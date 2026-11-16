@@ -58,7 +58,7 @@
   <div class="section" id="api-keys">
     <h2>API Keys</h2>
     <p class="muted">A key is shown once, when it is made. It can only do what both its scope and your own permissions allow, so a permission you lose stops working for your keys too.</p>
-    <table class="keys">
+    <div class="table-wrap"><table class="keys">
       <thead><tr><th>Name</th><th>Scope</th><th>Created</th><th></th></tr></thead>
       <tbody>
         {%- for key in view.keys %}
@@ -81,7 +81,7 @@
         <tr><td colspan="4" class="muted">You have no API keys.</td></tr>
         {%- endfor %}
       </tbody>
-    </table>
+    </table></div>
     {%- if view.can_manage_keys %}
     <h3>New API key</h3>
     {%- if let Some(problem) = view.key_problem %}

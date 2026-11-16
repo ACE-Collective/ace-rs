@@ -1,0 +1,30 @@
+{#- A list's filter fields (src/remediation.rs's FilterField): each filter of the screen as a field, its
+    label over its input, in a grid. A screen with many shows its commonly used ones and any that
+    holds a value, and puts the rest behind "More filters". The form around it sends them all. -#}
+    <div class="filter-grid">
+    {%- for field in view.fields %}
+    {%- if field.common %}
+    <div class="field">
+    <label for="filter-{{ field.slug }}">{{ field.name }}</label>
+    <input type="text" id="filter-{{ field.slug }}" name="{{ field.slug }}" value="{{ field.value }}" placeholder="{% if field.options.is_empty() %}{{ field.hint }}{% else %}{{ field.options|join(", ") }}{% endif %}" title="{% if field.options.is_empty() %}{{ field.hint }}{% else %}{{ field.options|join(", ") }}{% endif %}">
+    </div>
+    {%- endif %}
+    {%- endfor %}
+    </div>
+    {%- for field in view.fields %}
+    {%- if field.opens_more %}
+    <details class="more-filters">
+    <summary>More filters</summary>
+    <div class="filter-grid">
+    {%- endif %}
+    {%- if !field.common %}
+    <div class="field">
+    <label for="filter-{{ field.slug }}">{{ field.name }}</label>
+    <input type="text" id="filter-{{ field.slug }}" name="{{ field.slug }}" value="{{ field.value }}" placeholder="{% if field.options.is_empty() %}{{ field.hint }}{% else %}{{ field.options|join(", ") }}{% endif %}" title="{% if field.options.is_empty() %}{{ field.hint }}{% else %}{{ field.options|join(", ") }}{% endif %}">
+    </div>
+    {%- endif %}
+    {%- if field.closes_more %}
+    </div>
+    </details>
+    {%- endif %}
+    {%- endfor %}

@@ -22,7 +22,7 @@
 
   <h3>By platform</h3>
   <p class="muted">The test is judged on each platform by its latest reviewed run there against what is expected of it there.</p>
-  <table class="keys">
+  <div class="table-wrap"><table class="keys">
     <thead><tr><th>Platform</th><th>State</th><th>Latest review</th><th>Expected</th></tr></thead>
     <tbody>
       {%- for row in view.platforms %}
@@ -36,7 +36,7 @@
       <tr><td colspan="4" class="muted">No platforms.</td></tr>
       {%- endfor %}
     </tbody>
-  </table>
+  </table></div>
 
   {%- if !view.description.is_empty() %}
   <h3>Description</h3>
@@ -63,7 +63,7 @@
 
   <h3>Expectations</h3>
   <p class="muted">What a run of the test should fire, and what fires but isn't what the test is about, on each platform. A decision is made from a run's result.</p>
-  <table class="keys">
+  <div class="table-wrap"><table class="keys">
     <thead><tr><th>Platform</th><th>Signature</th><th>Decision</th><th>Reason</th><th>By</th><th title="UTC">When</th>{% if view.manage %}<th>Change</th>{% endif %}</tr></thead>
     <tbody>
       {%- for row in view.expectations %}
@@ -82,11 +82,11 @@
       <tr><td colspan="6" class="muted">Nothing is decided.</td></tr>
       {%- endfor %}
     </tbody>
-  </table>
+  </table></div>
 
   <h3>Ignores</h3>
   <p class="muted">Signatures that are launcher noise during this test's runs, or during every test's.</p>
-  <table class="keys">
+  <div class="table-wrap"><table class="keys">
     <thead><tr><th>Signature</th><th>Ignored for</th><th>Reason</th><th>By</th><th title="UTC">When</th><th>Change</th></tr></thead>
     <tbody>
       {%- for row in view.ignores %}
@@ -102,6 +102,6 @@
       <tr><td colspan="6" class="muted">Nothing is ignored.</td></tr>
       {%- endfor %}
     </tbody>
-  </table>
+  </table></div>
 </section>
 {% endblock %}

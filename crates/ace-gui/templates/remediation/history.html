@@ -1,6 +1,6 @@
 {#- An action's tries, newest first (src/remediation.rs). -#}
   <h2>History</h2>
-  <table class="keys">
+  <div class="table-wrap"><table class="keys">
     <thead><tr><th>When (UTC)</th><th>Status</th><th>Result</th><th>Message</th></tr></thead>
     <tbody>
       {%- for a in view.attempts %}
@@ -9,4 +9,4 @@
       <tr><td colspan="4" class="muted">No tries yet.</td></tr>
       {%- endfor %}
     </tbody>
-  </table>
+  </table></div>

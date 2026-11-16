@@ -1,98 +1,289 @@
-/* ACE's stylesheet (PLAN.md 5.7). The theme is <html data-theme>: ace3's five, as colour variables.
-   "system" follows the browser's prefers-color-scheme here, where ace3 runs an inline script. */
+/* ACE's stylesheet (PLAN.md 5.7, and the UI pass of 2026-11-15). It is ace4's own: no framework, no
+   font or image from anywhere else, nothing the page's policy has to allow.
 
-:root,
-[data-theme="light"],
-[data-theme="system"] {
+   How it is laid out, so a later change is a change of values:
+   1. Tokens: colour roles for every theme, a spacing scale, a type scale, radii. Nothing below this
+      part names a colour, a size or a radius of its own, except the graph's canvas.
+   2. Base: the document, headings, links, focus.
+   3. Components: the header and navigation, panels and disclosures, tables, forms and filter grids,
+      buttons, badges, notices, fact lists, pagers.
+   4. Pages: what one page needs beyond the components.
+
+   The theme is <html data-theme>: ace3's five. "system" follows the browser's prefers-color-scheme
+   through color-scheme and light-dark(), where ace3 runs an inline script. */
+
+/* ---- 1. tokens ---- */
+
+:root {
   color-scheme: light;
-  --background: #ffffff;
-  --surface: #f3f4f6;
-  --text: #1f2328;
-  --muted: #59636e;
-  --border: #d1d9e0;
-  --accent: #0b5cad;
-  --accent-text: #ffffff;
-  --danger: #b42318;
+
+  /* colour roles, each as light-dark(light, dark) */
+  --bg: light-dark(#ffffff, #12161b);
+  --surface: light-dark(#f6f8fa, #1a2028);
+  --surface-raised: light-dark(#eef1f5, #232b35);
+  --text: light-dark(#1b1f24, #e6e9ed);
+  --muted: light-dark(#57606a, #9aa5b1);
+  --border: light-dark(#d0d7de, #303a46);
+  --border-strong: light-dark(#8c959f, #5b6878);
+  --accent: light-dark(#0a58a8, #74b4f7);
+  --accent-text: light-dark(#ffffff, #0b1118);
+  --accent-soft: light-dark(#ddebfa, #17304a);
+  --focus: light-dark(#0969da, #8cc8ff);
+  --danger: light-dark(#a40e26, #ffa3a0);
+  --mark: light-dark(#fff2a8, #5c4a00);
+
+  /* tones: what a badge or a notice says, as text, tint and edge */
+  --ok-fg: light-dark(#116329, #7ee2a0);
+  --ok-bg: light-dark(#dafbe1, #12301c);
+  --ok-edge: light-dark(#4ac26b, #2f7a49);
+  --bad-fg: light-dark(#a40e26, #ffa3a0);
+  --bad-bg: light-dark(#ffebe9, #3d1518);
+  --bad-edge: light-dark(#e5707a, #9a3840);
+  --warn-fg: light-dark(#6f4400, #f2cc60);
+  --warn-bg: light-dark(#fff8c5, #3a2d08);
+  --warn-edge: light-dark(#c69a1e, #8a6d18);
+  --info-fg: light-dark(#0550ae, #8cc8ff);
+  --info-bg: light-dark(#ddf4ff, #0f2c4a);
+  --info-edge: light-dark(#54aeff, #33689f);
+  --neutral-fg: light-dark(#424a53, #c9d1d9);
+  --neutral-bg: light-dark(#eaeef2, #2a323c);
+  --neutral-edge: light-dark(#afb8c1, #4a5562);
+
+  /* spacing */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+
+  /* type */
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  --text-xs: 0.75rem;
+  --text-sm: 0.8125rem;
+  --text-md: 0.875rem;
+  --text-lg: 1rem;
+  --text-xl: 1.2rem;
+  --text-2xl: 1.45rem;
+  --line: 1.45;
+
+  /* shape */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+  --shadow: 0 6px 20px light-dark(rgb(27 31 36 / 15%), rgb(0 0 0 / 55%));
+
+  /* sizes the components share */
+  --control-height: 1.9rem;
+  --page-gutter: var(--space-5);
+  --prose-width: 46rem;
+}
+
+[data-theme="light"] {
+  color-scheme: light;
 }
 
 [data-theme="dark"] {
   color-scheme: dark;
-  --background: #15181c;
-  --surface: #1f242a;
-  --text: #e6e8eb;
-  --muted: #9aa4af;
-  --border: #353c44;
-  --accent: #5aa2f0;
-  --accent-text: #0b0d10;
-  --danger: #f07167;
 }
 
-@media (prefers-color-scheme: dark) {
-  [data-theme="system"] {
-    color-scheme: dark;
-    --background: #15181c;
-    --surface: #1f242a;
-    --text: #e6e8eb;
-    --muted: #9aa4af;
-    --border: #353c44;
-    --accent: #5aa2f0;
-    --accent-text: #0b0d10;
-    --danger: #f07167;
-  }
+[data-theme="system"] {
+  color-scheme: light dark;
 }
 
 /* ace3's "jd": high-contrast light. */
 [data-theme="jd"] {
   color-scheme: light;
-  --background: #ffffff;
+  --bg: #ffffff;
   --surface: #ffffff;
+  --surface-raised: #f0f0f0;
   --text: #000000;
   --muted: #000000;
   --border: #000000;
+  --border-strong: #000000;
   --accent: #0000c0;
   --accent-text: #ffffff;
+  --accent-soft: #e4e4ff;
+  --focus: #0000c0;
   --danger: #a00000;
+  --ok-fg: #004d00;
+  --ok-bg: #ffffff;
+  --ok-edge: #004d00;
+  --bad-fg: #a00000;
+  --bad-bg: #ffffff;
+  --bad-edge: #a00000;
+  --warn-fg: #5c3a00;
+  --warn-bg: #ffffff;
+  --warn-edge: #5c3a00;
+  --info-fg: #0000c0;
+  --info-bg: #ffffff;
+  --info-edge: #0000c0;
+  --neutral-fg: #000000;
+  --neutral-bg: #ffffff;
+  --neutral-edge: #000000;
 }
 
 /* ace3's "halloween": pumpkin orange on midnight purple. */
 [data-theme="halloween"] {
   color-scheme: dark;
-  --background: #1a1028;
-  --surface: #2a1a3e;
+  --bg: #1a1028;
+  --surface: #241637;
+  --surface-raised: #32204a;
   --text: #f4e9d8;
   --muted: #c9b79c;
   --border: #4a2f66;
-  --accent: #ff7518;
+  --border-strong: #7a5a9c;
+  --accent: #ff8a3c;
   --accent-text: #1a1028;
-  --danger: #ff4d4d;
+  --accent-soft: #46240f;
+  --focus: #ffb37a;
+  --danger: #ff8080;
+  --neutral-bg: #32204a;
+  --neutral-edge: #5d4480;
+  --neutral-fg: #e6d9c6;
 }
+
+/* ---- 2. base ---- */
 
 * {
   box-sizing: border-box;
 }
 
+html {
+  font-size: 100%;
+}
+
 body {
   margin: 0;
-  background: var(--background);
+  background: var(--bg);
   color: var(--text);
-  font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font: var(--text-md) / var(--line) var(--font-sans);
+}
+
+main {
+  padding: var(--space-4) var(--page-gutter) var(--space-6);
+}
+
+h1,
+h2,
+h3 {
+  margin: var(--space-5) 0 var(--space-2);
+  line-height: 1.25;
+  overflow-wrap: break-word;
+}
+
+h1 {
+  margin-top: 0;
+  font-size: var(--text-2xl);
+  font-weight: 650;
+}
+
+h2 {
+  font-size: var(--text-xl);
+  font-weight: 650;
+}
+
+h3 {
+  font-size: var(--text-lg);
+  font-weight: 650;
+}
+
+p,
+ul,
+ol,
+dl,
+pre,
+table {
+  margin: var(--space-2) 0;
 }
 
 a {
   color: var(--accent);
+  text-underline-offset: 2px;
 }
 
+a:hover {
+  text-decoration-thickness: 2px;
+}
+
+code,
+pre,
+kbd {
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+}
+
+pre {
+  padding: var(--space-2) var(--space-3);
+  overflow: auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+mark {
+  background: var(--mark);
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.muted,
+.hint {
+  color: var(--muted);
+}
+
+.nowrap {
+  white-space: nowrap;
+}
+
+.clipped {
+  color: var(--muted);
+  font-style: italic;
+}
+
+ul.plain {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* a link that takes a keyboard past the header */
+.skip {
+  position: absolute;
+  left: -200vw;
+  padding: var(--space-2) var(--space-3);
+  background: var(--accent);
+  color: var(--accent-text);
+}
+
+.skip:focus {
+  left: var(--space-2);
+  top: var(--space-2);
+  z-index: 20;
+}
+
+/* ---- 3. components ---- */
+
+/* the header and its navigation: the sections, then the guides and the viewer's own menu at the right */
 .bar {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  padding: 0.5rem 1rem;
+  gap: var(--space-4);
+  min-height: 2.75rem;
+  padding: 0 var(--page-gutter);
   background: var(--surface);
   border-bottom: 1px solid var(--border);
 }
 
 .brand {
-  font-weight: 700;
+  font-size: var(--text-lg);
+  font-weight: 750;
+  letter-spacing: 0.04em;
   text-decoration: none;
   color: var(--text);
 }
@@ -100,90 +291,1060 @@ a {
 .menu {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: var(--space-1);
+  white-space: nowrap;
+}
+
+.menu.account {
   margin-left: auto;
 }
 
-.menu form {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  margin: 0;
+.menu > a {
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  border-bottom: 2px solid transparent;
+  color: var(--text);
+  text-decoration: none;
 }
 
-.user {
+.menu > a:hover {
+  background: var(--surface-raised);
+}
+
+/* the current section: heavier, and underlined, so it isn't told by colour alone */
+.menu > a[aria-current="page"] {
+  font-weight: 650;
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+}
+
+.menu .count {
+  margin-left: var(--space-1);
+  font-size: var(--text-xs);
+  color: var(--warn-fg);
+  font-weight: 650;
+}
+
+.user-menu {
+  position: relative;
+}
+
+.user-menu > summary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  cursor: pointer;
+  list-style: none;
+}
+
+.user-menu > summary::-webkit-details-marker {
+  display: none;
+}
+
+.user-menu > summary::after {
+  content: "\25BE";
   color: var(--muted);
 }
 
-main {
-  padding: 1rem;
+.user-menu[open] > summary {
+  background: var(--surface-raised);
 }
 
-button,
-input,
-select {
-  font: inherit;
-  color: var(--text);
-  background: var(--background);
+.user-menu-items {
+  position: absolute;
+  right: 0;
+  top: calc(100% + var(--space-1));
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 15rem;
+  padding: var(--space-3);
+  background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: 4px;
-  padding: 0.25rem 0.5rem;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow);
+  white-space: normal;
 }
 
-button[type="submit"] {
-  cursor: pointer;
+.user-menu-items form {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
 }
 
-.login {
-  max-width: 22rem;
-  margin: 4rem auto;
-  padding: 1.5rem;
+.user-menu-items a {
+  color: var(--text);
+}
+
+.user {
+  font-weight: 600;
+}
+
+/* tabs inside an area, and a sub-navigation line */
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin: var(--space-2) 0 var(--space-4);
+  border-bottom: 1px solid var(--border);
+}
+
+.tabs a {
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.tabs a:hover {
+  background: var(--surface);
+}
+
+.tabs a[aria-current="page"] {
+  font-weight: 650;
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+/* panels: a boxed part of a page, and a disclosure whose summary line says what it holds */
+.section,
+.overview,
+.type-summary,
+.fired {
+  margin: var(--space-3) 0;
+  padding: var(--space-3) var(--space-4);
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
+}
+
+.section > :first-child,
+.overview > :first-child,
+.type-summary > :first-child,
+.fired > :first-child {
+  margin-top: 0;
+}
+
+.section h2,
+.overview h2,
+.type-summary h2,
+.fired h2 {
+  font-size: var(--text-lg);
+}
+
+details.section {
+  padding: 0;
+}
+
+details.section > summary {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  cursor: pointer;
+  font-weight: 650;
+  list-style: none;
+}
+
+details.section > summary::-webkit-details-marker {
+  display: none;
+}
+
+details.section > summary::before {
+  content: "\25B8";
+  flex: none;
+  color: var(--muted);
+}
+
+details.section[open] > summary::before {
+  content: "\25BE";
+}
+
+details.section > summary:hover {
+  background: var(--surface-raised);
+}
+
+details.section[open] > summary {
+  border-bottom: 1px solid var(--border);
+}
+
+/* the one line that says what a closed panel holds */
+details.section > summary .hint {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 400;
+}
+
+details.section > .filter-form {
+  padding: 0;
+  border: 0;
+  background: none;
+}
+
+details.section > :not(summary) {
+  margin-left: var(--space-4);
+  margin-right: var(--space-4);
+}
+
+details.section > :last-child:not(summary) {
+  margin-bottom: var(--space-3);
+}
+
+details.block,
+details.more-filters {
+  margin: var(--space-2) 0;
+}
+
+details.block > summary,
+details.more-filters > summary {
+  cursor: pointer;
+  color: var(--accent);
+}
+
+/* tables: columns as wide as what they hold, dense rows, a header that stays put, and when one is
+   wider than its place it scrolls there and not the page */
+.table-wrap {
+  max-width: 100%;
+  overflow-x: auto;
+  margin: var(--space-2) 0;
+}
+
+.table-wrap > table {
+  margin: 0;
+}
+
+/* a wide window has room for the table, so it is left in the page, where its header can stay at the
+   top of the window as the page scrolls */
+@media (min-width: 1200px) {
+  .table-wrap {
+    overflow-x: visible;
+  }
+}
+
+table.keys,
+table.alerts,
+table.saved-filters,
+.analysis-view .rows,
+.help-guide table {
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+table.keys,
+table.alerts,
+table.saved-filters {
+  width: 100%;
+}
+
+table.keys th,
+table.keys td,
+table.alerts th,
+table.alerts td,
+table.saved-filters th,
+table.saved-filters td {
+  padding: 0.3rem var(--space-2);
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+  /* break-word, not anywhere: a long value may break, but it never makes its column a letter wide */
+  overflow-wrap: break-word;
+}
+
+table.keys th,
+table.alerts th,
+table.saved-filters th {
+  white-space: nowrap;
+  font-weight: 650;
+  color: var(--muted);
+}
+
+table.keys thead th,
+table.alerts thead th,
+table.saved-filters thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border-strong);
+}
+
+table.keys thead th a,
+table.alerts thead th a {
+  color: inherit;
+}
+
+table.keys tbody tr:hover,
+table.alerts tbody tr:hover {
+  background: var(--surface);
+}
+
+/* a table of facts, name then value: the name is the row's header */
+table.keys tbody th {
+  width: 1%;
+  padding-right: var(--space-4);
+  color: var(--text);
+}
+
+td.num,
+th.num {
+  text-align: right !important;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* a date and time in a list: it may break between the two, and nowhere else */
+td.when {
+  min-width: 7.5rem;
+  width: 7.5rem;
+}
+
+/* a state's badge, with its note under it when the column is tight */
+td.state .badge {
+  margin-right: var(--space-1);
+}
+
+/* a cell cut to its column with the whole value in its title */
+td.cut,
+.cut {
+  max-width: 16rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+td.cut.wide {
+  max-width: 28rem;
+}
+
+/* a cell of someone's text, of any length: wraps at words, and inside a word only when it must */
+.qa-text {
+  overflow-wrap: break-word;
+}
+
+td.qa-text {
+  min-width: 7rem;
+  max-width: 34rem;
+}
+
+/* a hash, a path or JSON in a cell has no place to break, so it may break anywhere */
+table.keys td code,
+table.alerts td code {
+  overflow-wrap: anywhere;
+}
+
+table input[type="checkbox"] {
+  margin: 0.15rem 0 0;
+}
+
+table.details {
+  border-collapse: collapse;
+}
+
+table.details th,
+table.details td {
+  padding: 0.15rem var(--space-4) 0.15rem 0;
+  text-align: left;
+  vertical-align: top;
+  overflow-wrap: break-word;
+}
+
+table.details th {
+  white-space: nowrap;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+/* forms: labels above their fields, fields in an aligned grid, one primary action */
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  padding: 0.2rem var(--space-2);
+}
+
+input:not([type="checkbox"], [type="radio"]),
+select:not([multiple]),
+button {
+  min-height: var(--control-height);
+}
+
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: var(--accent);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--muted);
+  opacity: 0.85;
+}
+
+textarea {
+  padding: var(--space-2);
+}
+
+label {
+  font-weight: 600;
+}
+
+label:has(> input[type="checkbox"]),
+label:has(> input[type="radio"]),
+label.choice {
+  font-weight: 400;
+}
+
+button {
+  cursor: pointer;
+  padding: 0.2rem var(--space-3);
+  background: var(--surface);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+button:hover {
+  background: var(--surface-raised);
+  border-color: var(--text);
+}
+
+/* the action a form is for: named so, or the button that ends a form down the page */
+:where(.fields) > button[type="submit"],
+button.primary,
+.login button,
+.search-box button {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-text);
+}
+
+:where(.fields) > button[type="submit"]:hover,
+button.primary:hover,
+.login button:hover,
+.search-box button:hover {
+  filter: brightness(1.12);
+  border-color: var(--accent);
+}
+
+/* an action that takes something away: by its class, or by where its form posts */
+button.danger,
+form[action$="/delete"] button,
+form[action$="/revoke"] button,
+form[action$="/purge"] button[type="submit"],
+form[action$="/remove"] button,
+form[action$="/cancel"] button,
+form[action$="/close"] button[type="submit"],
+button[name="action"][value="cancel"],
+button[name="action"][value="delete"],
+button[name="action"][value="disassociate"] {
+  color: var(--bad-fg);
+  border-color: var(--bad-edge);
+  background: var(--bg);
+}
+
+button.danger:hover,
+form[action$="/delete"] button:hover,
+form[action$="/revoke"] button:hover,
+form[action$="/purge"] button[type="submit"]:hover,
+form[action$="/remove"] button:hover,
+form[action$="/cancel"] button:hover,
+form[action$="/close"] button[type="submit"]:hover,
+button[name="action"][value="cancel"]:hover,
+button[name="action"][value="delete"]:hover,
+button[name="action"][value="disassociate"]:hover {
+  background: var(--bad-bg);
+  border-color: var(--bad-fg);
+}
+
+/* an action beside the point of the page, such as a pin */
+button.quiet {
+  min-height: 0;
+  padding: 0 var(--space-2);
+  background: none;
+  border-color: transparent;
+  color: var(--muted);
+  font-weight: 400;
+  font-size: var(--text-sm);
+  text-decoration: underline;
+}
+
+button.quiet:hover {
+  color: var(--text);
+  background: none;
+  border-color: var(--border);
+}
+
+form.inline,
+.actions-bar form {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-2);
+  margin: 0;
+}
+
+/* a form down the page: each label over its field */
+.fields {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-1);
+  max-width: var(--prose-width);
+}
+
+.fields > label {
+  margin-top: var(--space-2);
+}
+
+.fields > input[type="text"],
+.fields > input[type="password"],
+.fields > input[type="email"],
+.fields > input:not([type]),
+.fields > textarea,
+.fields > select {
+  width: 100%;
+}
+
+.fields > button {
+  margin-top: var(--space-3);
+}
+
+/* a list's filters: a grid of fields, each label over its input, then the form's actions */
+.filter-form {
+  margin: var(--space-3) 0;
+  padding: var(--space-3) var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.filter-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(11.5rem, 1fr));
+  gap: var(--space-2) var(--space-3);
+  align-items: end;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.field > label,
+.filter-grid > label {
+  font-size: var(--text-xs);
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.field > input,
+.field > select,
+.field > textarea {
+  width: 100%;
+  min-width: 0;
+}
+
+.field.wide {
+  grid-column: span 2;
+}
+
+.filter-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+}
+
+.more-filters > .filter-grid {
+  margin-top: var(--space-2);
+}
+
+/* a row of controls: a label, a field, its buttons */
+.controls,
+.run-actions,
+.bulk,
+.review,
+.detection-add,
+.save-filter,
+.filter-editor,
+.search-box {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin: var(--space-2) 0;
+}
+
+.bulk,
+.run-actions {
+  padding: var(--space-2) var(--space-3);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+fieldset {
+  margin: 0 0 var(--space-3);
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+legend {
+  padding: 0 var(--space-1);
+  font-weight: 600;
+}
+
+.choice {
+  display: block;
+  margin: 0.15rem 0;
+  overflow-wrap: break-word;
+}
+
+/* badges: one set for dispositions, run states, verdicts, SVS status and remediation. Each holds its
+   word, so the colour only repeats what the text says. A site's own disposition `css` with no rule
+   here is the plain badge. */
+.badge {
+  display: inline-block;
+  padding: 0 0.45rem;
+  border: 1px solid var(--neutral-edge);
+  border-radius: 999px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  line-height: 1.55;
+  white-space: nowrap;
+  text-decoration: none;
+  vertical-align: baseline;
+}
+
+a.badge:hover {
+  border-color: var(--text);
+}
+
+.badge.current {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.badge .count {
+  font-weight: 400;
+  color: var(--muted);
+}
+
+/* good: closed as nothing, a hit, validated, remediated, a false positive verdict */
+.badge.tone-ok,
+.badge.disposition-success,
+.badge.coverage-remediated,
+.badge.verdict-fp,
+.badge.cli-completed {
+  background: var(--ok-bg);
+  border-color: var(--ok-edge);
+  color: var(--ok-fg);
+}
+
+/* bad: a true positive, a miss, a failure */
+.badge.tone-bad,
+.badge.disposition-danger,
+.badge.coverage-failed,
+.badge.verdict-tp,
+.badge.cli-failed,
+.badge.cli-timed_out {
+  background: var(--bad-bg);
+  border-color: var(--bad-edge);
+  color: var(--bad-fg);
+}
+
+/* needs a look: stale, partial, awaiting someone */
+.badge.tone-warn,
+.badge.disposition-warning,
+.badge.coverage-partial,
+.badge.cli-cancelled {
+  background: var(--warn-bg);
+  border-color: var(--warn-edge);
+  color: var(--warn-fg);
+}
+
+/* under way, or a note: started, running, an SVS status */
+.badge.tone-info,
+.badge.disposition-info,
+.badge.disposition-primary,
+.badge.svs-status,
+.badge.cli-running,
+.badge.cli-queued {
+  background: var(--info-bg);
+  border-color: var(--info-edge);
+  color: var(--info-fg);
+}
+
+/* nothing to say yet */
+.badge.tone-neutral,
+.badge.disposition-secondary,
+.badge.disposition-dark,
+.badge.disposition-light,
+.badge.coverage-pending,
+.badge.coverage-unremediated,
+.badge.tag {
+  background: var(--neutral-bg);
+  border-color: var(--neutral-edge);
+  color: var(--neutral-fg);
+}
+
+.badge.disposition-light {
+  font-weight: 400;
+}
+
+.badge.svs-status {
+  border-style: dashed;
+}
+
+.badge.tag,
+.tag {
+  border-radius: var(--radius-sm);
+  font-weight: 400;
+}
+
+/* notices: what the page says back, each with a mark at its edge and its role in the markup */
+p.error,
+p.notice,
+p.warning,
+p.search-hint {
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--info-edge);
+  border-left-width: 4px;
+  border-radius: var(--radius-sm);
+  background: var(--info-bg);
+  color: var(--info-fg);
+  max-width: 70rem;
+}
+
+p.error {
+  border-color: var(--bad-edge);
+  background: var(--bad-bg);
+  color: var(--bad-fg);
+}
+
+p.warning {
+  border-color: var(--warn-edge);
+  background: var(--warn-bg);
+  color: var(--warn-fg);
+}
+
+p.error a,
+p.notice a,
+p.warning a {
+  color: inherit;
+}
+
+.error {
+  color: var(--bad-fg);
+}
+
+.notice {
+  color: var(--info-fg);
+}
+
+.warning {
+  color: var(--warn-fg);
+}
+
+.owner-changed {
+  border-color: var(--warn-edge) !important;
+  background: var(--warn-bg) !important;
+  color: var(--warn-fg) !important;
+}
+
+/* facts: names beside their values */
+.facts {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 0.15rem var(--space-4);
+  margin: var(--space-2) 0;
+}
+
+.facts dt {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.facts dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* a line of facts, each a small name over its value */
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-5);
+  margin: var(--space-2) 0;
+}
+
+.meta dt {
+  font-size: var(--text-xs);
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.meta dd {
+  margin: 0;
+}
+
+/* pages of a list */
+.pager {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-2);
+  margin: var(--space-4) 0;
+}
+
+.pager a {
+  padding: 0.2rem var(--space-3);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.pager a:hover {
+  background: var(--surface-raised);
+}
+
+.count {
+  color: var(--muted);
+}
+
+/* tiles: an area's pages */
+.tiles {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
+  gap: var(--space-3);
+}
+
+.tiles a {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  height: 100%;
+  padding: var(--space-3) var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  text-decoration: none;
+}
+
+.tiles a:hover {
+  border-color: var(--accent);
+}
+
+.tiles a b {
+  font-size: var(--text-lg);
+}
+
+/* ---- 4. pages ---- */
+
+/* the login and the password change, in a box */
+.login {
+  max-width: 23rem;
+  margin: var(--space-6) auto;
+  padding: var(--space-5);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
 }
 
 .login h1 {
-  margin-top: 0;
-  font-size: 1.4rem;
+  font-size: var(--text-xl);
+}
+
+.login h2 {
+  margin-bottom: var(--space-1);
+  font-size: var(--text-lg);
 }
 
 .login form {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: var(--space-1);
+}
+
+.login form label {
+  margin-top: var(--space-2);
 }
 
 .login button {
-  margin-top: 0.5rem;
-  background: var(--accent);
-  color: var(--accent-text);
-  border-color: var(--accent);
-}
-
-.error {
-  color: var(--danger);
-}
-
-.notice {
-  color: var(--accent);
-}
-
-/* The password change (PLAN.md 5.11's auth area), in the login box's shape. */
-.login h2 {
-  margin-bottom: 0.25rem;
-  font-size: 1.1rem;
+  margin-top: var(--space-4);
 }
 
 .requirements {
   margin-top: 0;
-  padding-left: 1.25rem;
+  padding-left: var(--space-5);
 }
 
-/* The alert view (PLAN.md 5.8). */
+/* the alert's page (PLAN.md 5.8, and the UI direction of 2026-11-15): what decides the alert first */
 .alert h1 {
-  font-size: 1.3rem;
+  margin-bottom: var(--space-1);
   overflow-wrap: anywhere;
+}
+
+.alert-header {
+  margin-bottom: var(--space-3);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--border);
+}
+
+.alert-header .meta dd .badge {
+  font-size: var(--text-sm);
+}
+
+.alert-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-5);
+}
+
+.alert-actions form {
+  margin: 0;
+}
+
+.alert-links {
+  display: flex;
+  gap: var(--space-3);
+  margin: 0 0 0 auto;
+}
+
+/* what fired, beside the summary the alert's type chose */
+.alert-summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-3);
+  align-items: start;
+}
+
+.alert-summary > * {
+  margin: 0;
+  min-width: 0;
+}
+
+@media (min-width: 1100px) {
+  .alert-summary {
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  }
+}
+
+.fired-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.fired-list li {
+  padding: var(--space-1) 0 var(--space-1) var(--space-3);
+  border-left: 3px solid var(--bad-edge);
+  margin: var(--space-2) 0;
+  overflow-wrap: anywhere;
+}
+
+.fired-what {
+  display: block;
+  font-weight: 650;
+}
+
+.fired-on {
+  color: var(--muted);
+  font-size: var(--text-sm);
+}
+
+.type-summary ul.plain li {
+  padding: 0.1rem 0;
+  overflow-wrap: anywhere;
+}
+
+.type-summary h3 {
+  margin-top: var(--space-3);
+  font-size: var(--text-md);
+}
+
+.summary-lead {
+  font-size: var(--text-lg);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+  max-height: 6.5rem;
+  overflow: auto;
+}
+
+.summary-note {
+  max-width: var(--prose-width);
+  max-height: 6.5rem;
+  overflow: auto;
+}
+
+.summary-marks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+.type-summary pre {
+  max-height: 16rem;
+  background: var(--bg);
+}
+
+.type-summary pre.wrap {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.event-fields {
+  font-size: var(--text-sm);
+}
+
+.event-fields dt {
+  font-family: var(--font-mono);
+  font-weight: 400;
+}
+
+.pin {
+  margin-top: var(--space-2);
+  text-align: right;
+}
+
+.svs-banner {
+  border-style: dashed;
+  border-color: var(--info-edge);
+}
+
+.verdict-table th,
+.verdict-table td {
+  padding-bottom: 0.3rem;
 }
 
 /* The relationship graph (5.13). vis.js paints on a canvas in its own colours, so the canvas is light in
@@ -195,96 +1356,117 @@ button[type="submit"] {
   background: #ffffff;
 }
 
-.section,
-.overview {
-  margin: 1rem 0;
-  padding: 0.75rem 1rem;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-}
-
-.section summary {
-  cursor: pointer;
-  font-weight: bold;
-}
-
-.overview h2 {
+/* the analysis tree */
+.tree-scope {
   margin-top: 0;
-  font-size: 1.1rem;
-}
-
-.details th {
-  text-align: left;
-  padding-right: 1rem;
-}
-
-.pin {
-  margin-top: 0.5rem;
-}
-
-.tree ul {
-  list-style: disc;
-  padding-left: 1.25rem;
-  margin: 0.15rem 0;
-}
-
-.tree li {
-  overflow-wrap: anywhere;
-}
-
-.tree .result {
-  list-style: circle;
-}
-
-.tree .tag {
-  display: inline-block;
-  padding: 0 0.4rem;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  font-size: 0.85em;
-}
-
-.tree .detection {
-  color: var(--danger);
-  font-weight: bold;
-  font-size: 0.85em;
-}
-
-.tree .time,
-.muted {
   color: var(--muted);
 }
 
-.tree .comments {
+.tree ul {
   list-style: none;
-  font-size: 0.9em;
+  margin: 0;
+  padding-left: var(--space-4);
+  border-left: 1px solid var(--border);
+}
+
+.tree > ul {
+  padding-left: 0;
+  border-left: 0;
+}
+
+.tree li {
+  padding: 0.1rem 0;
+  overflow-wrap: anywhere;
+}
+
+.tree .result > a.summary {
+  color: var(--text);
+  text-decoration-color: var(--border-strong);
+}
+
+.tree .result::before {
+  content: "\21B3";
+  margin-right: var(--space-1);
+  color: var(--muted);
+}
+
+.tree .type,
+.type {
+  font-weight: 650;
+}
+
+.tree .tag,
+.tag {
+  display: inline-block;
+  padding: 0 0.35rem;
+  border: 1px solid var(--neutral-edge);
+  background: var(--neutral-bg);
+  color: var(--neutral-fg);
+  font-size: var(--text-xs);
+}
+
+span.detection {
+  display: inline-block;
+  padding: 0 0.4rem;
+  border: 1px solid var(--bad-edge);
+  border-radius: var(--radius-sm);
+  background: var(--bad-bg);
+  color: var(--bad-fg);
+  font-size: var(--text-xs);
+  font-weight: 650;
+}
+
+.tree .time {
+  color: var(--muted);
+  font-size: var(--text-sm);
+}
+
+.tree .comments {
+  border-left: 0;
+  font-size: var(--text-sm);
+  color: var(--muted);
+}
+
+.tree .jump {
+  font-size: var(--text-sm);
+}
+
+/* An observable's actions (PLAN.md 5.9): ace3's dropdown, as <details>. */
+.tree .actions {
+  display: inline-block;
+  margin-left: var(--space-2);
+  font-size: var(--text-sm);
+}
+
+.tree .actions summary {
+  cursor: pointer;
+  color: var(--muted);
+}
+
+.tree .actions ul {
+  margin: 0.15rem 0;
+  padding: var(--space-1) var(--space-2);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
 }
 
 /* A result's page and its analysis views (PLAN.md 5.9), with what ace3's templates had inline. */
-.tree a.summary {
-  color: inherit;
-}
-
 .result-page h2,
 .result-page h3 {
-  font-size: 1.05rem;
+  font-size: var(--text-lg);
   overflow-wrap: anywhere;
 }
 
 .analysis-view h3 {
-  font-size: 1rem;
-  margin: 1rem 0 0.25rem;
+  font-size: var(--text-md);
+  margin: var(--space-4) 0 var(--space-1);
 }
 
 .analysis-view pre {
-  margin: 0.25rem 0;
-  padding: 0.5rem;
+  margin: var(--space-1) 0;
   max-height: 40rem;
-  overflow: auto;
-  background: var(--background);
-  border: 1px solid var(--border);
-  border-radius: 4px;
+  background: var(--bg);
 }
 
 .analysis-view pre.wrap {
@@ -292,11 +1474,17 @@ button[type="submit"] {
   word-break: break-all;
 }
 
+.analysis-view .fields {
+  display: table;
+  max-width: none;
+}
+
 .analysis-view .fields th {
   text-align: left;
   vertical-align: top;
-  padding-right: 1rem;
+  padding-right: var(--space-4);
   white-space: nowrap;
+  color: var(--muted);
 }
 
 .analysis-view .fields td {
@@ -306,10 +1494,6 @@ button[type="submit"] {
 .analysis-view .scroll {
   max-height: 600px;
   overflow: auto;
-}
-
-.analysis-view .rows {
-  border-collapse: collapse;
 }
 
 .analysis-view .rows th,
@@ -333,18 +1517,14 @@ button[type="submit"] {
 }
 
 .analysis-view .block {
-  margin: 0.5rem 0;
-}
-
-.analysis-view .block summary {
-  cursor: pointer;
+  margin: var(--space-2) 0;
 }
 
 .analysis-view .panel {
-  margin: 0.75rem 0;
-  padding: 0.5rem 0.75rem;
+  margin: var(--space-3) 0;
+  padding: var(--space-2) var(--space-3);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
 }
 
 .analysis-view .panel h3 {
@@ -352,17 +1532,12 @@ button[type="submit"] {
 }
 
 .analysis-view .matches {
-  padding-left: 1.25rem;
+  padding-left: var(--space-5);
 }
 
 .analysis-view .matches li {
-  margin-bottom: 0.5rem;
+  margin-bottom: var(--space-2);
   overflow-wrap: anywhere;
-}
-
-.clipped {
-  color: var(--muted);
-  font-style: italic;
 }
 
 /* ace3's yara_analysis_v3_4.html: whitespace in a matched value drawn as an editor shows it, and the meta's
@@ -404,46 +1579,15 @@ button[type="submit"] {
   user-select: none;
 }
 
-/* An observable's actions (PLAN.md 5.9): ace3's dropdown, as <details>. */
-.tree .actions {
-  display: inline-block;
-  margin-left: 0.5rem;
-  font-size: 0.85em;
-}
-
-.tree .actions summary {
-  cursor: pointer;
-  color: var(--muted);
-}
-
-.tree .actions ul {
-  list-style: none;
-  margin: 0.15rem 0;
-  padding: 0.25rem 0.5rem;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-}
-
 .comment-page form {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  max-width: 40rem;
+  gap: var(--space-2);
+  max-width: var(--prose-width);
 }
 
 .comment-page h2 {
   margin: 0;
-  font-size: 1.1rem;
-}
-
-textarea {
-  font: inherit;
-  color: var(--text);
-  background: var(--background);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  padding: 0.25rem 0.5rem;
 }
 
 /* The alert list (PLAN.md 5.10), with what ace3's manage page had inline. */
@@ -451,152 +1595,106 @@ textarea {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 1rem;
-  margin-bottom: 0.5rem;
-}
-
-.actions-bar form,
-form.inline {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  margin: 0;
-}
-
-.filter-bar {
-  margin: 0.5rem 0;
-  overflow-wrap: anywhere;
-}
-
-.filter-bar .label {
-  font-weight: bold;
-}
-
-.filter-bar .chip {
-  margin-right: 0.75rem;
-}
-
-.badge {
-  display: inline-block;
-  padding: 0 0.5rem;
+  gap: var(--space-2) var(--space-4);
+  margin-bottom: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 4px;
-  text-decoration: none;
+  border-radius: var(--radius-md);
 }
 
-.badge.current {
-  border-color: var(--accent);
-}
-
-.badge .count {
-  color: var(--muted);
-  font-size: 0.85em;
-}
-
-/* an alert's remediation coverage (PLAN.md 7.9), ace3's text-bg-success, -warning, -danger and -secondary */
-.badge.coverage-remediated {
-  border-color: var(--accent);
-  color: var(--accent);
-}
-
-.badge.coverage-partial {
-  border-style: dashed;
-  border-color: var(--accent);
-}
-
-.badge.coverage-failed {
-  border-color: var(--danger);
-  color: var(--danger);
-}
-
-.badge.coverage-pending,
-.badge.coverage-unremediated {
+.exports {
+  margin-left: auto;
+  align-self: center;
   color: var(--muted);
 }
 
-/* a disposition's badge, its `css` in the site's dispositions (PLAN.md 7.14), ace3's text-bg-<css> in the
-   theme's few colours: success as the accent, danger and warning as danger, info and primary dashed. A
-   `css` with no rule here (a site's own class) is the plain .badge: the page's text in the standard border */
-.badge.disposition-success {
-  border-color: var(--accent);
-  color: var(--accent);
-}
-
-.badge.disposition-danger {
-  border-color: var(--danger);
-  color: var(--danger);
-  font-weight: bold;
-}
-
-.badge.disposition-warning {
-  border-color: var(--danger);
-  color: var(--danger);
-}
-
-.badge.disposition-info,
-.badge.disposition-primary {
-  border-style: dashed;
-  border-color: var(--accent);
-}
-
-.badge.disposition-secondary,
-.badge.disposition-dark {
-  color: var(--text);
-}
-
-.badge.disposition-light {
-  color: var(--muted);
-}
-
-/* a detection's verdict (PLAN.md 7.14), ace3's text-bg-warning for TP and text-bg-success for FP */
-.badge.verdict-tp {
-  border-color: var(--danger);
-  color: var(--danger);
-}
-
-.badge.verdict-fp {
-  border-color: var(--accent);
-  color: var(--accent);
-}
-
-/* what SVS makes of an alert (PLAN.md 7.10), on the alert list, the alert's banner and a run's alerts, and
-   a tag the core gave its root */
-.badge.svs-status {
-  border-style: dashed;
-  border-color: var(--accent);
-  color: var(--accent);
-}
-
-.badge.tag {
-  color: var(--muted);
-  font-size: 0.85em;
-}
-
-.svs-banner {
-  border: 1px dashed var(--accent);
-  border-radius: 4px;
-  padding: 0 0.75rem 0.5rem;
-  margin: 0.5rem 0;
-}
-
-.warning {
-  color: var(--accent);
-}
-
-.filter-editor,
-.save-filter {
+.bulk-form {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.5rem;
-  margin: 0.5rem 0;
+  gap: var(--space-2) var(--space-3);
+  margin: 0;
+}
+
+.bulk-title {
+  font-weight: 650;
+  color: var(--muted);
+}
+
+.bulk-form select {
+  max-width: 13rem;
+}
+
+.bulk-group {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-2);
+}
+
+.bulk-group + .bulk-group {
+  padding-left: var(--space-3);
+  border-left: 1px solid var(--border);
+}
+
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-2);
+  margin: var(--space-2) 0;
+  overflow-wrap: anywhere;
+}
+
+.filter-bar p {
+  flex: 1 1 100%;
+  margin: 0;
+}
+
+.filter-bar .label,
+.quick-filters .label {
+  font-weight: 650;
+  color: var(--muted);
+}
+
+.filter-bar .sep {
+  color: var(--border-strong);
+}
+
+.filter-bar .chip {
+  padding: 0 var(--space-2);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+
+.list-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: flex-start;
+}
+
+.list-tools > details.section {
+  margin: 0;
+  flex: 0 1 auto;
+}
+
+.list-tools > details.section[open] {
+  flex: 1 1 100%;
+}
+
+.search-box input[type="search"] {
+  flex: 1 1 24rem;
+  max-width: 48rem;
 }
 
 .hints {
   display: grid;
   grid-template-columns: max-content 1fr;
-  gap: 0 1rem;
-  font-size: 0.9em;
+  gap: 0 var(--space-4);
+  font-size: var(--text-sm);
 }
 
 .hints dd {
@@ -609,149 +1707,57 @@ form.inline {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.5rem;
-  margin: 0.25rem 0;
+  gap: var(--space-2);
+  margin: var(--space-1) 0;
+}
+
+ul.saved-filters,
+ul.column-chooser {
+  list-style: none;
+  padding: 0;
 }
 
 .column-chooser .column-label {
   min-width: 8rem;
 }
 
-table.alerts {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-table.alerts th,
-table.alerts td {
-  text-align: left;
-  padding: 0.25rem 0.5rem;
-  border-bottom: 1px solid var(--border);
-  vertical-align: top;
-}
-
-table.alerts td[data-col-id="date"] {
+table.alerts td[data-col-id="date"],
+table.alerts td[data-col-id="event_time"] {
   white-space: nowrap;
 }
 
 table.alerts td[data-col-id="description"] {
-  width: 100%;
-  overflow-wrap: anywhere;
+  width: 60%;
+  min-width: 18rem;
 }
 
-.pager {
-  display: flex;
-  justify-content: center;
-  gap: 1rem;
-  margin: 1rem 0;
-}
 
 /* The preferences page (PLAN.md 5.11's preferences area). */
-.preferences .fields {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.35rem;
-  max-width: 40rem;
-}
-
-.preferences .hint {
-  margin: 0 0 0.5rem;
-  font-size: 0.9em;
-}
-
-.preferences .choice {
-  display: block;
-  margin: 0.2rem 0;
+.preferences .hint,
+.manage-filters .hint {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-sm);
 }
 
 .preferences .scope {
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   width: 100%;
 }
 
 .preferences textarea,
 .preferences .token {
   width: 100%;
-  font-family: monospace;
-}
-
-table.keys {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-table.keys th,
-table.keys td {
-  text-align: left;
-  padding: 0.25rem 0.5rem;
-  border-bottom: 1px solid var(--border);
-  vertical-align: top;
-  overflow-wrap: anywhere;
-}
-
-.nowrap {
-  white-space: nowrap;
+  font-family: var(--font-mono);
 }
 
 /* The saved filters' manage page (PLAN.md 5.11's saved_filters area). */
-table.saved-filters {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-table.saved-filters th,
-table.saved-filters td {
-  text-align: left;
-  padding: 0.25rem 0.5rem;
-  border-bottom: 1px solid var(--border);
-  vertical-align: top;
-  overflow-wrap: anywhere;
-}
-
 table.saved-filters .place {
   display: inline-block;
   min-width: 1.5rem;
 }
 
-.manage-filters .fields {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.35rem;
-  max-width: 40rem;
-}
-
-.manage-filters .fields input[type="text"] {
-  width: 100%;
-}
-
-.manage-filters .hint {
-  margin: 0.5rem 0;
-  font-size: 0.9em;
-}
-
 /* The administration area (PLAN.md 5.11's admin area). */
-.admin .tiles {
-  list-style: none;
-  padding: 0;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
-}
-
-.admin .tiles a {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-  width: 18rem;
-  padding: 0.75rem 1rem;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  text-decoration: none;
-}
-
 .admin ul.grants {
   list-style: none;
   margin: 0;
@@ -763,74 +1769,36 @@ table.saved-filters .place {
 }
 
 .admin .section {
-  margin-bottom: 1.5rem;
+  margin-bottom: var(--space-5);
 }
 
 /* The signatures area (PLAN.md 5.11's signatures area). A rule's text is its author's, of any length. */
-.signatures .qa-text {
-  overflow-wrap: anywhere;
-}
-
-.signatures .qa-filters {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  gap: 0.5rem 1rem;
-  margin: 1rem 0;
-}
-
-.signatures table.details th {
-  text-align: left;
-  padding-right: 1rem;
-  vertical-align: top;
-}
-
-.signatures pre.qa-meta {
+.signatures pre.qa-meta,
+pre.qa-meta {
   max-height: 16rem;
-  overflow: auto;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
 
-.signatures .fields {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.35rem;
-  max-width: 40rem;
-}
-
 /* Adding alerts to an event (PLAN.md 5.11's events area), ace3's event modal as a page. */
-.events fieldset {
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  margin: 0 0 1rem;
-  padding: 0.5rem 1rem;
-}
-
-.events .choice {
-  display: block;
-  overflow-wrap: anywhere;
-}
-
 .events .new-event label:not(.choice),
 .events .new-event textarea,
 .events .new-event input {
   display: block;
   width: 100%;
-  max-width: 40rem;
+  max-width: var(--prose-width);
+}
+
+.event-filters select[multiple] {
+  min-height: 6rem;
 }
 
 /* Administration's CLI (PLAN.md 5.12), ace3's admin/cli.html: a run's output as text, kept in its box. */
 .cli .cli-output {
   max-height: 32rem;
-  overflow: auto;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
-  font-size: 0.85rem;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  padding: 0.5rem;
+  font-size: var(--text-sm);
 }
 
 .cli .cli-command {
@@ -840,7 +1808,7 @@ table.saved-filters .place {
 .cli .cli-facts {
   display: grid;
   grid-template-columns: max-content 1fr;
-  gap: 0.25rem 1rem;
+  gap: var(--space-1) var(--space-4);
 }
 
 .cli .cli-facts dd {
@@ -849,28 +1817,15 @@ table.saved-filters .place {
 }
 
 .cli #cli-command {
-  font-family: monospace;
+  font-family: var(--font-mono);
   width: 100%;
-  max-width: 40rem;
+  max-width: var(--prose-width);
 }
 
-/* Administration's Observables (PLAN.md 7.6), ace3's admin/detection.html: its filters and new
-   detection as rows of fields, and a long value kept inside the table. */
-.detection .detection-filters,
-.detection .detection-add {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.35rem 0.5rem;
-  margin: 0.5rem 0;
-}
-
+/* Administration's Observables (PLAN.md 7.6), ace3's admin/detection.html: a long value kept inside
+   the table. */
 .detection .detection-add #detection-add-value {
   min-width: 22rem;
-}
-
-.detection table.detections {
-  table-layout: fixed;
 }
 
 .detection table.detections code {
@@ -879,32 +1834,27 @@ table.saved-filters .place {
 }
 
 .detection table.detections td p {
-  margin: 0 0 0.25rem;
-}
-
-.detection .pager a,
-.detection .pager span {
-  margin-right: 0.5rem;
+  margin: 0 0 var(--space-1);
 }
 
 /* The help area (PLAN.md 5.11's help area, with 7.10 batch 9): a guide beside its sidebar. */
 .help-page {
   display: flex;
   align-items: flex-start;
-  gap: 2rem;
+  gap: var(--space-6);
 }
 
 .help-sidebar {
   flex: 0 0 16rem;
   position: sticky;
-  top: 1rem;
+  top: var(--space-4);
   max-height: calc(100vh - 2rem);
   overflow-y: auto;
-  font-size: 0.9em;
+  font-size: var(--text-sm);
 }
 
 .help-sidebar p {
-  margin: 0.75rem 0 0.25rem;
+  margin: var(--space-3) 0 var(--space-1);
 }
 
 .help-sidebar ul {
@@ -914,23 +1864,24 @@ table.saved-filters .place {
 }
 
 .help-sidebar ul ul {
-  padding-left: 1rem;
+  padding-left: var(--space-4);
 }
 
 .help-main {
   flex: 1 1 0;
   min-width: 0;
   max-width: 60rem;
+  font-size: var(--text-lg);
 }
 
 .help-guide h2 {
-  margin-top: 2rem;
-  padding-bottom: 0.25rem;
+  margin-top: var(--space-6);
+  padding-bottom: var(--space-1);
   border-bottom: 1px solid var(--border);
 }
 
 .help-guide .help-anchor {
-  margin-left: 0.5rem;
+  margin-left: var(--space-2);
   color: var(--muted);
   text-decoration: none;
   visibility: hidden;
@@ -946,13 +1897,13 @@ table.saved-filters .place {
   max-width: 100%;
   height: auto;
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: #ffffff;
 }
 
 .help-guide table {
-  border-collapse: collapse;
-  margin: 1rem 0;
+  margin: var(--space-4) 0;
+  font-size: var(--text-md);
 }
 
 .help-guide th,
@@ -968,26 +1919,22 @@ table.saved-filters .place {
 }
 
 .help-guide pre {
-  padding: 0.75rem 1rem;
-  overflow-x: auto;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  background: var(--surface);
+  padding: var(--space-3) var(--space-4);
 }
 
 .help-guide blockquote {
-  margin: 1rem 0;
-  padding: 0 1rem;
+  margin: var(--space-4) 0;
+  padding: 0 var(--space-4);
   border-left: 4px solid var(--border);
   color: var(--muted);
 }
 
 .help-callout {
-  margin: 1rem 0;
-  padding: 0.5rem 1rem;
+  margin: var(--space-4) 0;
+  padding: var(--space-2) var(--space-4);
   border: 1px solid var(--border);
   border-left: 4px solid var(--accent);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: var(--surface);
 }
 
@@ -1001,92 +1948,104 @@ table.saved-filters .place {
 }
 
 .help-callout-title {
-  font-weight: 600;
+  font-weight: 650;
 }
 
 .help-pager {
   display: flex;
   justify-content: space-between;
-  gap: 1rem;
-  margin: 2rem 0;
-  padding-top: 1rem;
+  gap: var(--space-4);
+  margin: var(--space-6) 0;
+  padding-top: var(--space-4);
   border-top: 1px solid var(--border);
-}
-
-.menu .count {
-  margin-left: 0.25rem;
-  font-size: 0.85em;
 }
 
 /* Search (PLAN.md 7.11): the box, and under each alert found its tier and its hits. As in ace3, none of
    it is a badge: the row above uses badges for its disposition. */
-.search-box {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.5rem;
-  margin: 0.5rem 0;
-}
-
-.search-box input[type="search"] {
-  flex: 1 1 24rem;
-  max-width: 48rem;
-}
-
-.search-hint {
-  border-left: 3px solid currentColor;
-  padding-left: 0.5rem;
-}
-
 .search-evidence td {
   border-top: 0;
   padding-top: 0;
 }
 
 .search-tier {
-  font-size: 0.85em;
+  font-size: var(--text-sm);
 }
 
 .search-tier-exact {
-  font-weight: bold;
+  font-weight: 650;
 }
 
 .search-tier-exact,
 .search-tier-strong {
-  color: #2e7d32;
+  color: var(--ok-fg);
 }
 
 .search-tier-weak {
-  opacity: 0.6;
+  color: var(--muted);
 }
 
 .search-hit {
-  border-left: 3px solid #888;
+  border-left: 3px solid var(--neutral-edge);
   margin: 0.15rem 0;
-  padding-left: 0.5rem;
+  padding-left: var(--space-2);
   overflow-wrap: anywhere;
 }
 
 .search-hit-observable,
 .search-hit-tag,
 .search-hit-uuid {
-  border-left-color: #2e7d32;
+  border-left-color: var(--ok-edge);
 }
 
 .search-hit-comment {
-  border-left-color: #1565c0;
+  border-left-color: var(--info-edge);
 }
 
 .search-hit-detection {
-  border-left-color: #c62828;
+  border-left-color: var(--bad-edge);
 }
 
 .search-hit-kind {
-  font-size: 0.8em;
-  opacity: 0.7;
+  font-size: var(--text-xs);
+  color: var(--muted);
   text-transform: uppercase;
 }
 
 .search-hit-title {
-  font-weight: bold;
+  font-weight: 650;
+}
+
+/* ---- narrow windows ---- */
+
+@media (max-width: 1000px) {
+  :root {
+    --page-gutter: var(--space-3);
+  }
+
+  .bar {
+    flex-wrap: wrap;
+    padding-top: var(--space-1);
+    padding-bottom: var(--space-1);
+    gap: var(--space-1) var(--space-3);
+  }
+
+  .menu.sections {
+    order: 3;
+    flex: 1 1 100%;
+    flex-wrap: wrap;
+  }
+
+  .help-page {
+    flex-direction: column;
+  }
+
+  .help-sidebar {
+    position: static;
+    flex: none;
+    max-height: none;
+  }
+
+  .alert-links {
+    margin-left: 0;
+  }
 }

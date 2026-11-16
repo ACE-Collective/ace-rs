@@ -24,7 +24,8 @@
 //!
 //! Each kind of thing an ace3 integration can add (`ace3/docs/INTEGRATIONS.md`) becomes an entry
 //! here once its feature exists in ace4: analysis modules and observable types (2.31), analysis
-//! templates and observable actions (5.9, `analysis_view`, `observable_action`), hunt types (6.2,
+//! templates and observable actions (5.9, `analysis_view`, `observable_action`), the alert page's
+//! summaries by alert type (ace3's `custom_alerts` templates, `alert_summary`), hunt types (6.2,
 //! `hunt_type`), correlation command types (6.6, `command_type`), the script command types that
 //! stand in for hunt scripts (decision 16, `hunt_script`), scheduled tasks (6.7,
 //! `scheduled_task`), remediators, remediation probes and file collectors (7.9, `LookupPool::action`),
@@ -72,6 +73,7 @@ pub struct App {
     groups: Vec<(String, String)>,
     views: ace_gui::Views,
     actions: ace_gui::ObservableActions,
+    summaries: ace_gui::AlertSummaries,
     hunt_types: Vec<Arc<dyn ace_hunt::HuntType>>,
     command_types: Vec<(String, CommandTypeFactory)>,
     hunt_scripts: Vec<(String, String, HuntScriptFactory)>,
@@ -203,6 +205,16 @@ impl App {
     /// its own. A type with no view draws as its details in JSON.
     pub fn analysis_view<T: ace_gui::AnalysisView>(mut self) -> App {
         self.views = self.views.with(ace_gui::ViewEntry::of::<T>());
+        self
+    }
+
+    /// Adds the alert page's summary for an alert type, ace3's per-alert-type template
+    /// (`analysis/custom/<alert_type>.html`), beside the open-source ones
+    /// (`ace_gui::AlertSummaries::builtin`: mailbox and hunt alerts). It draws every alert whose type
+    /// is `T::ALERT_TYPE` or starts with it and ` - `, unless a longer registered type matches. One
+    /// for an open-source type takes its place. A type with none has the page's default summary.
+    pub fn alert_summary<T: ace_gui::AlertSummary>(mut self) -> App {
+        self.summaries = self.summaries.with(ace_gui::SummaryEntry::of::<T>());
         self
     }
 
@@ -442,6 +454,11 @@ impl App {
     /// The observable actions the GUI offers.
     pub fn actions(&self) -> &ace_gui::ObservableActions {
         &self.actions
+    }
+
+    /// The summaries the GUI's alert page chooses from by an alert's type.
+    pub fn alert_summaries(&self) -> &ace_gui::AlertSummaries {
+        &self.summaries
     }
 
     /// The analysis views the GUI draws results with.

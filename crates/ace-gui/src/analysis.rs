@@ -138,6 +138,7 @@ pub const MAX_JSON: usize = 256 << 10;
 /// and its binary's list names it, `App::new().analysis_view::<TicketAnalysis>()`, as
 /// `ace-site-example` does.
 pub mod pcap;
+pub mod summary;
 
 pub trait AnalysisView: AnalysisType + DeserializeOwned {
     type View<'a>: Template
@@ -370,8 +371,9 @@ pub struct DrawnView {
     pub fallback: Option<String>,
 }
 
-/// HTML a template drew, which a page places as it is. Only `Views::draw` makes one, from askama's
-/// output, whose every value was escaped, so it's the one type here that askama doesn't escape again.
+/// HTML a template drew, which a page places as it is. Only `Views::draw` and `summary`'s
+/// `Summaries::draw` make one, each from askama's output, whose every value was escaped, so it's the
+/// one type here that askama doesn't escape again.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ViewHtml(String);
 

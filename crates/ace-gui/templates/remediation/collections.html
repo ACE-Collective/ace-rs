@@ -15,7 +15,7 @@
   {%- let action = "/file-collections" %}
   {%- include "quick_filters.html" %}
   {%- include "remediation/filters.html" %}
-  <table class="keys">
+  <div class="table-wrap"><table class="keys">
     <thead><tr><th>ID</th><th>Collector</th><th>Type</th><th>Value</th><th>Status</th><th>Result</th><th>Tries</th><th>Alerts</th><th>File</th><th>Created (UTC)</th><th></th></tr></thead>
     <tbody>
       {%- for row in view.rows %}
@@ -39,6 +39,6 @@
       <tr><td colspan="11" class="muted">No file collections.</td></tr>
       {%- endfor %}
     </tbody>
-  </table>
+  </table></div>
 </section>
 {% endblock %}

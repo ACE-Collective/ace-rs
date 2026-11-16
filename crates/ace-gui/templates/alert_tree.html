@@ -1,7 +1,15 @@
 {#- The analysis tree of an alert (PLAN.md 5.8): ace3's display_tree_node, drawn from `TreeView`'s lines
     in order, so it needs no recursion. The page includes it, and the live stream sends it alone, which
-    Datastar morphs into the page by its id. -#}
+    Datastar morphs into the page by its id. When the tree has branches that carry a detection, its
+    first line says which view this is and links to the other (`TreeView`'s full and prunable). -#}
 <div id="alert-tree" class="tree">
+{%- if tree.prunable %}
+{%- if tree.full %}
+<p class="tree-scope">The whole tree, {{ tree.total }} observable{% if tree.total != 1 %}s{% endif %}. <a href="?tree=detections#analysis">Show only the branches with a detection</a></p>
+{%- else %}
+<p class="tree-scope">The branches with a detection: {{ tree.shown }} of {{ tree.total }} observables. <a href="?tree=full#analysis">Show the whole tree</a></p>
+{%- endif %}
+{%- endif %}
 {%- if tree.is_empty() %}
 <p class="muted">Nothing has been added to this alert.</p>
 {%- else %}

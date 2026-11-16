@@ -3,7 +3,7 @@
     tabs are batch 8's (src/svs_coverage.rs). The guides (src/help.rs) sit at the end of the row, a
     link rather than a tab, as in ace3. -#}
   <h1>SVS</h1>
-  <nav class="pager" aria-label="SVS">
+  <nav class="tabs" aria-label="SVS">
     <a href="/svs/runs?f=needs_attention%3Atrue"{% if view.tabs.open == "runs" %} aria-current="page"{% endif %}>Runs</a>
     <a href="/svs/tests?f=removed%3Afalse"{% if view.tabs.open == "tests" %} aria-current="page"{% endif %}>Tests</a>
     <a href="/svs/coverage?f=platform%3Awindows%2Clinux%2Cmacos&amp;f=retired%3Afalse"{% if view.tabs.open == "coverage" %} aria-current="page"{% endif %}>Coverage</a>

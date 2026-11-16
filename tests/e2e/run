@@ -43,7 +43,11 @@ Then the browser test (PLAN.md 5.8, 5.9 and 5.10): the e2e profile's headless Ch
 compose.yaml, logs in to the GUI as an analyst that `ace user create-first` makes and opens a third
 submission's alert page while the network pool is frozen, so the page has no RDAP result. The pool is
 let go, and the RDAP result has to appear on the open page, pushed by its live stream, with no reload
-and nothing the page's Content-Security-Policy refused. Then it opens the alert list (5.10) filtered to
+and nothing the page's Content-Security-Policy refused. The page it watches is the alert's whole
+tree: the alert page starts at the branches that carry a detection, which the test checks first, and
+the RDAP result lands on an observable with none. Then a second analyst takes that alert in a session
+of their own, and the open page has to say that its ownership changed and to whom, pushed by the same
+stream (the owner's decision of 2026-11-15). Then it opens the alert list (5.10) filtered to
 open alerts, which shows that alert, and a filter that matches nothing, which lists nothing; it opens
 the open alerts again, dispositions the alert through the JSON API with a key of its own, and the
 list's refresh has to drop it from the open page, again with no reload and nothing refused. It drives
@@ -182,6 +186,9 @@ SCANNER_IMAGES = ["ace4-js-deobfuscator:latest", "ace4-phishkit:latest"]
 # The analyst the browser test logs in as, and the GUI as the browser reaches it on the stack's network.
 ANALYST = "e2e-analyst"
 ANALYST_PASSWORD = "e2e analyst password, not a secret"
+# A second analyst, who takes an alert the first has open (the ownership-changed notice).
+SECOND_ANALYST = "e2e-analyst-two"
+SECOND_ANALYST_PASSWORD = "e2e second analyst password, not a secret"
 GUI_IN_STACK = "http://ace:8000"
 # Ports of Python libraries: each must have results from both systems, because a comparison with
 # nothing compared passes.
@@ -975,9 +982,24 @@ def check_live_alert(email, failures):
                 for row in tasks(root):
                     log("  task " + " | ".join(row))
                 raise
+            # the page starts at the branches that carry a detection, with the whole tree a link away
             page.events.clear()
             page.call("Page.navigate", url=f"{GUI_IN_STACK}/alerts/{root}")
             page.wait("the alert page", "document.readyState === 'complete' && "
+                      "document.getElementById('alert-tree') !== null", within=30)
+            whole = page.evaluate(
+                "document.querySelector('#alert-tree .tree-scope a')?.getAttribute('href') ?? null"
+            )
+            pruned = page.evaluate(
+                "[...document.querySelectorAll('#alert-tree .result')].map(r => r.dataset.module)"
+            )
+            expect(whole == "?tree=full#analysis" and "yara_scanner_v3_4" in pruned,
+                   f"the alert page starts at its detections' branches, with a link to the whole "
+                   f"tree: {whole}, {pruned}")
+            # the whole tree, which is where a result on an observable with no detection lands
+            page.events.clear()
+            page.call("Page.navigate", url=f"{GUI_IN_STACK}/alerts/{root}?tree=full")
+            page.wait("the alert page with its whole tree", "document.readyState === 'complete' && "
                       "document.getElementById('alert-tree') !== null", within=30)
             page.evaluate("window.ace4E2eMarker = 'the page as it was loaded'")
             navigations = len([e for e in page.events if e["method"] == "Page.frameNavigated"])
@@ -1012,6 +1034,7 @@ def check_live_alert(email, failures):
         check_result_pages(page, expect)
         wait_for(f"root {root} to complete", lambda: completed_after(root), within=300)
         check_graph(page, root, expect)
+        check_owner_notice(page, root, expect)
         check_alert_list(page, root, expect)
     finally:
         page.close()
@@ -1121,6 +1144,77 @@ def check_graph(page, root, expect):
     thrown = [e["params"]["exceptionDetails"].get("text") for e in page.events
               if e["method"] == "Runtime.exceptionThrown"]
     expect(not thrown, f"nothing on the graph's page threw: {thrown}")
+
+
+def check_owner_notice(page, root, expect):
+    """The ownership-changed notice (the owner's decision of 2026-11-15): the browser has the alert's
+    page open, a second analyst takes the alert from a session of their own, and the open page says who
+    owns it now, pushed by its live stream, with no reload and nothing the page's policy refused."""
+    page.events.clear()
+    page.call("Page.navigate", url=f"{GUI_IN_STACK}/alerts/{root}")
+    page.wait("the alert page", "document.readyState === 'complete' && "
+              "document.getElementById('owner-notice') !== null", within=30)
+    notice = "document.getElementById('owner-notice')"
+    expect(page.evaluate(f"{notice}.hidden && {notice}.textContent === ''"),
+           "the open alert page has no ownership notice while nobody else has taken the alert")
+    page.evaluate("window.ace4E2eMarker = 'the page as it was loaded'")
+    navigations = len([e for e in page.events if e["method"] == "Page.frameNavigated"])
+
+    # a second analyst, in a session of their own, takes the alert with the alert page's own form
+    result = subprocess.run(
+        [*COMPOSE, "exec", "-T", "ace", ACE_COMMAND, "user", "create-first", SECOND_ANALYST,
+         "--password-stdin", "--force"],
+        env=ENV, cwd=COMPOSE_FILE.parent, input=SECOND_ANALYST_PASSWORD + "\n", text=True,
+        capture_output=True,
+    )
+    if result.returncode != 0:
+        raise SystemExit(f"e2e: `ace user create-first --force` failed:\n{result.stderr}")
+    origin = f"http://127.0.0.1:{PORT}"
+    form_headers = {"Content-Type": "application/x-www-form-urlencoded", "Origin": origin}
+    status, headers, _ = web_request("POST", "/login", urllib.parse.urlencode(
+        {"username": SECOND_ANALYST, "password": SECOND_ANALYST_PASSWORD}), form_headers)
+    cookie = (headers.get("Set-Cookie") or headers.get("set-cookie") or "").split(";")[0]
+    if status != 303 or not cookie:
+        raise SystemExit(f"e2e: the second analyst's login answered {status}")
+    status, headers, body = web_request("POST", "/alerts/owner", urllib.parse.urlencode(
+        {"alert": root, "owner": "me", "next": f"/alerts/{root}"}), {**form_headers, "Cookie": cookie})
+    took = sql(f"""SELECT u.username FROM analysis.roots r JOIN service.users u ON u.id = r.owner_id
+                   WHERE r.id = '{root}'""")
+    expect(status == 303 and took == [[SECOND_ANALYST]],
+           f"the second analyst took the alert through the alert page's form: {status}, {took}")
+    log("the second analyst took the alert; waiting for the notice on the open page")
+    try:
+        page.wait(
+            "the ownership notice to appear on the open page",
+            f"!{notice}.hidden && {notice}.textContent.includes('Alert Ownership Changed!')",
+            within=60,
+        )
+        appeared = True
+    except SystemExit as error:
+        log(str(error))
+        appeared = False
+    text = page.evaluate(f"{notice}.textContent")
+    expect(appeared and SECOND_ANALYST in text,
+           f"the open page says the alert's ownership changed, and to whom: {text!r}")
+    expect(page.evaluate(f"{notice}.getAttribute('role')") == "alert",
+           "the notice is an alert to assistive technology")
+    same = page.evaluate("window.ace4E2eMarker") == "the page as it was loaded"
+    later = len([e for e in page.events if e["method"] == "Page.frameNavigated"])
+    expect(same and later == navigations, "the page wasn't reloaded or navigated for the notice")
+    refused = [
+        e["params"]["entry"]["text"] for e in page.events
+        if e["method"] == "Log.entryAdded"
+        and re.search(r"Content.Security.Policy|Refused to", e["params"]["entry"]["text"])
+    ]
+    expect(not refused, f"the notice: the page's policy refused nothing: {refused}")
+    # the second analyst gives the alert back, so the next check's client, which owns nothing, may
+    # disposition it: a disposition leaves another analyst's alert alone
+    status, _, _ = web_request("POST", "/alerts/owner", urllib.parse.urlencode(
+        {"alert": root, "owner": "assign", "assignee": "", "next": f"/alerts/{root}"}),
+        {**form_headers, "Cookie": cookie})
+    left = sql(f"SELECT owner_id IS NULL FROM analysis.roots WHERE id = '{root}'")
+    expect(status == 303 and left == [["t"]],
+           f"the second analyst unassigned the alert again: {status}, {left}")
 
 
 def disposition_elsewhere(root, disposition):

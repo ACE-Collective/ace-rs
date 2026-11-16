@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT origin FROM analysis.roots WHERE id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "origin",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "analysis.roots",
+            "name": "origin"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "b4c5fcc6c86a476a61b83c7515e592a08fd99107b83694934b36d48864500881"
+}

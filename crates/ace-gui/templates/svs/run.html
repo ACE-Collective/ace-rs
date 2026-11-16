@@ -47,7 +47,7 @@
 
   <h3>Result</h3>
   <p class="muted">{{ view.result_note }} <a href="{{ view.results_csv }}">CSV</a></p>
-  <table class="keys">
+  <div class="table-wrap"><table class="keys">
     <thead><tr><th>Signature</th><th>Family</th><th>Status</th><th>Alerts</th><th>As reviewed</th>{% for earlier in view.earlier %}<th class="nowrap"><a href="{{ earlier.0 }}" title="an earlier run of this test on this platform">{{ earlier.1 }}</a></th>{% endfor %}{% if view.manage %}<th>Decide</th>{% endif %}</tr></thead>
     <tbody>
       {%- for row in view.results %}
@@ -73,7 +73,7 @@
       <tr><td colspan="6" class="muted">No signatures.</td></tr>
       {%- endfor %}
     </tbody>
-  </table>
+  </table></div>
 
   {%- if let Some(review) = view.review %}
   <h3 id="review">Review</h3>
@@ -99,7 +99,7 @@
 
   <h3 id="alerts">Alerts</h3>
   <p class="muted">The alerts attributed to this run, now or before, in the order they were first attributed. <a href="{{ view.alerts_ndjson }}">NDJSON</a>{% if view.more_alerts %} · the page shows the first of them; the export has them all{% endif %}{% if let Some(captured) = view.captured %} · <a href="{{ captured }}" title="What the run's alerts captured for other rules: did this rule's target reach ACE?">files captured from this run's alerts</a>{% endif %}</p>
-  <table class="keys">
+  <div class="table-wrap"><table class="keys">
     <thead><tr><th>Alert</th><th>Disposition</th><th>SVS</th><th>Held by</th><th>Detections</th>{% if view.manage %}<th>Change</th>{% endif %}</tr></thead>
     <tbody>
       {%- for alert in view.alerts %}
@@ -125,7 +125,7 @@
       <tr><td colspan="6" class="muted">No alerts.</td></tr>
       {%- endfor %}
     </tbody>
-  </table>
+  </table></div>
   {%- if view.manage %}
   <form method="post" action="{{ view.href }}/alerts" class="associate">
     <input type="hidden" name="action" value="associate">
@@ -165,7 +165,7 @@
 
   <h3>Event log</h3>
   <p class="muted">Oldest first. <a href="{{ view.events_csv }}">CSV</a>{% if view.more_events %} · the page shows the first of them; the export has them all{% endif %}</p>
-  <table class="keys">
+  <div class="table-wrap"><table class="keys">
     <thead><tr><th>When</th><th>What</th><th>State</th><th>By</th><th>Details</th></tr></thead>
     <tbody>
       {%- for event in view.events %}
@@ -178,6 +178,6 @@
       </tr>
       {%- endfor %}
     </tbody>
-  </table>
+  </table></div>
 </section>
 {% endblock %}

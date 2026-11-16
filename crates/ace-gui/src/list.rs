@@ -477,7 +477,21 @@ pub struct EditorFilter {
     pub slug: &'static str,
     pub name: &'static str,
     pub hint: &'static str,
+    /// Whether it's one of the commonly used filters, which the editor's menu lists first.
+    pub common: bool,
 }
+
+/// The alert list's commonly used filters, by slug: the editor's menu lists them first and the rest
+/// under them.
+pub const COMMON_ALERT_FILTERS: &[&str] = &[
+    "alert_date",
+    "disposition",
+    "owner",
+    "queue",
+    "observable",
+    "tag",
+    "description",
+];
 
 /// Everything the page shows besides its layout, from what the service read: the view function.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -828,6 +842,7 @@ pub fn list_view(
                 slug: spec.slug,
                 name: spec.name,
                 hint: spec.hint,
+                common: COMMON_ALERT_FILTERS.contains(&spec.slug),
             })
             .collect(),
         left_out: FilterScreen::Alerts

@@ -25,7 +25,7 @@
   {%- endif %}
   {%- if let Some(targets) = view.targets %}
   <form method="post" action="/remediations" id="queue-targets">
-    <table class="keys">
+    <div class="table-wrap"><table class="keys">
       <thead><tr><th></th><th>Remediator</th><th>Type</th><th>Value</th><th>Latest</th></tr></thead>
       <tbody>
         {%- for t in targets %}
@@ -40,7 +40,7 @@
         <tr><td colspan="5" class="muted">No remediator acts on these.</td></tr>
         {%- endfor %}
       </tbody>
-    </table>
+    </table></div>
     {%- if view.can_write && !targets.is_empty() %}
     <button type="submit" name="action" value="remove">Remove</button>
     <button type="submit" name="action" value="restore">Restore</button>

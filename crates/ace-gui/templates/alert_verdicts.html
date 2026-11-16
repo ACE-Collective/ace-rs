@@ -1,14 +1,14 @@
 {#- An alert's detections with their verdicts (PLAN.md 7.14, src/verdicts.rs): ace3's verdict chips as a
     list, and its menu as small forms for an analyst who may change them. -#}
-<details class="section verdicts" id="detections" open>
-  <summary>Detection Verdicts ({{ verdicts.rows.len() }}{% if verdicts.more %}+{% endif %})</summary>
+<details class="section verdicts" id="detections" data-section-id="{{ verdicts_section.id }}"{% if verdicts_section.open %} open{% endif %}>
+  <summary>Detection Verdicts ({{ verdicts.rows.len() }}{% if verdicts.more %}+{% endif %}) <span class="hint">{{ self.verdicts_hint() }}</span></summary>
   {%- if let Some(note) = verdicts.note %}
   <p class="muted">{{ note }}</p>
   {%- endif %}
   {%- if verdicts.rows.is_empty() %}
   <p class="muted">The alert has no detections.</p>
   {%- else %}
-  <table class="details">
+  <div class="table-wrap"><table class="details verdict-table">
     <tr><th>Detection</th><th>On</th><th>Verdict</th><th></th></tr>
     {%- for row in verdicts.rows %}
     <tr id="d{{ row.id }}">
@@ -26,7 +26,7 @@
       </td>
     </tr>
     {%- endfor %}
-  </table>
+  </table></div>
   {%- if verdicts.more %}
   <p class="muted">The alert has more detections than this list shows: the API's detection list has them all.</p>
   {%- endif %}
@@ -36,4 +36,15 @@
     <button type="submit">Confirm the others as TP ({{ verdicts.unconfirmed }})</button>
   </form>
   {%- endif %}
+  <form method="post" action="/preferences/alert-section" class="pin">
+    <input type="hidden" name="section" value="{{ verdicts_section.id }}">
+    <input type="hidden" name="next" value="{{ layout.path }}">
+    {%- if verdicts_section.open %}
+    <input type="hidden" name="open" value="false">
+    <button type="submit" class="quiet" title="How this section starts on every alert you open. Only you are affected.">Open by default</button>
+    {%- else %}
+    <input type="hidden" name="open" value="true">
+    <button type="submit" class="quiet" title="How this section starts on every alert you open. Only you are affected.">Collapsed by default</button>
+    {%- endif %}
+  </form>
 </details>

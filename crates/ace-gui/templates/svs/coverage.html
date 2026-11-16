@@ -12,17 +12,16 @@
   <p class="error" role="alert">{{ error }}</p>
   {%- endif %}
   {%- include "quick_filters.html" %}
-  <form method="get" action="/svs/coverage" class="detection-filters">
-    {%- for field in view.fields %}
-    <label for="filter-{{ field.slug }}">{{ field.name }}</label>
-    <input type="text" id="filter-{{ field.slug }}" name="{{ field.slug }}" value="{{ field.value }}" placeholder="{% if field.options.is_empty() %}{{ field.hint }}{% else %}{{ field.options|join(", ") }}{% endif %}">
-    {%- endfor %}
-    <button type="submit">Apply</button>
+  <form method="get" action="/svs/coverage" class="detection-filters filter-form">
+    {%- include "filter_fields.html" %}
+    <div class="filter-actions">
+    <button type="submit" class="primary">Apply</button>
     <a href="/svs/coverage">Reset</a>
+    </div>
   </form>
   <p class="muted">{{ view.summary }} · export as <a href="{{ view.csv }}">CSV</a> or <a href="{{ view.ndjson }}">NDJSON</a></p>
-  <table class="keys">
-    <thead><tr><th>Technique</th><th>Name</th><th>Platform</th><th title="the worst of what counts toward the technique and its sub-techniques on the platform">State</th><th title="the same, leaving the sub-techniques out">Own</th><th>Tests</th><th title="signatures whose technique tag counts">Manual</th><th title="signatures expected of the counted tests">Measured</th><th>Latest review</th><th>State since</th></tr></thead>
+  <div class="table-wrap"><table class="keys">
+    <thead><tr><th>Technique</th><th>Name</th><th>Platform</th><th title="the worst of what counts toward the technique and its sub-techniques on the platform">State</th><th title="the same, leaving the sub-techniques out">Own</th><th>Tests</th><th class="num" title="signatures whose technique tag counts">Manual</th><th class="num" title="signatures expected of the counted tests">Measured</th><th>Latest review</th><th>State since</th></tr></thead>
     <tbody>
       {%- for row in view.rows %}
       <tr>
@@ -32,8 +31,8 @@
         <td><span class="badge disposition-{{ row.state_class }}">{{ row.state }}</span></td>
         <td>{{ row.own_state }}</td>
         <td>{{ row.tests }}</td>
-        <td>{% if row.manual > 0 %}{{ row.manual }}{% endif %}</td>
-        <td>{% if row.measured > 0 %}{{ row.measured }}{% endif %}</td>
+        <td class="num">{% if row.manual > 0 %}{{ row.manual }}{% endif %}</td>
+        <td class="num">{% if row.measured > 0 %}{{ row.measured }}{% endif %}</td>
         <td class="nowrap">{{ row.last_reviewed }}</td>
         <td class="nowrap">{{ row.changed }}</td>
       </tr>
@@ -41,7 +40,7 @@
       <tr><td colspan="10" class="muted">No coverage rows.</td></tr>
       {%- endfor %}
     </tbody>
-  </table>
+  </table></div>
   {%- if view.first.is_some() || view.next.is_some() %}
   <nav class="pager" aria-label="Pages">
     {%- if let Some(first) = view.first %} <a href="{{ first }}">First</a>{% endif %}

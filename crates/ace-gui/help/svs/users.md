@@ -474,9 +474,12 @@ attention* while someone fixes the cause.
 
 ## Test alerts on the alert page
 
-Every alert SVS touched shows an **SVS** section at the top of its page, with its status, the test
-runs that hold it (each a link to the run's page, with `svs:run_read`) and its SVS tags. The alert
-list shows the status after the alert's description, as a link to the run.
+Every alert SVS touched shows its status at the top of its page, beside its disposition, and has an
+**SVS** section under what fired. The section starts collapsed: its line shows the status, the SVS
+tags and the test run that holds the alert. Open it for the test runs that hold it (each a link to
+the run's page, with `svs:run_read`), the markers that disagree, and the forms. *Collapsed by
+default* at its foot keeps it open on every alert you look at. The alert list shows the status after
+the alert's description, as a link to the run.
 
 | Status | Means | What to do |
 |---|---|---|

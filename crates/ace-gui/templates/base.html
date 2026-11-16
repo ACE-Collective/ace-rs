@@ -1,5 +1,6 @@
 {#- The base layout (PLAN.md 5.7), from ace3's core.html and base.html. Every page extends it and has a
-    `layout: Layout`. Datastar reads the nonce from <html data-nonce> (src/headers.rs says why). -#}
+    `layout: Layout`. The header is the site's sections, the current one marked with aria-current
+    (`Layout::section`), and at the right the guides and the viewer's own menu. Datastar reads the nonce from <html data-nonce> (src/headers.rs says why). -#}
 <!DOCTYPE html>
 <html lang="en" data-theme="{{ layout.theme.as_str() }}" data-nonce="{{ layout.nonce }}">
 <head>
@@ -13,45 +14,54 @@
 {%- endfor %}
 </head>
 <body>
+<a class="skip" href="#content">Skip to the page</a>
 <header class="bar">
   <a class="brand" href="/">ACE</a>
   {%- if let Some(username) = layout.username %}
-  <nav class="menu" aria-label="Account">
-    <form method="post" action="/preferences/theme" class="theme">
-      <input type="hidden" name="next" value="{{ layout.path }}">
-      <label for="theme-mode">Theme</label>
-      <select id="theme-mode" name="mode">
-        {%- for theme in layout.themes %}
-        <option value="{{ theme.as_str() }}"{% if layout.is_theme(theme) %} selected{% endif %}>{{ theme.label() }}</option>
-        {%- endfor %}
-      </select>
-      <button type="submit">Apply</button>
-    </form>
-    <span class="user" id="username">{{ username }}</span>
+  <nav class="menu sections" aria-label="Sections">
+    <a href="/"{% if layout.section() == "alerts" %} aria-current="page"{% endif %}>Alerts</a>
     {%- if layout.events %}
-    <a href="/events">Events</a>
+    <a href="/events"{% if layout.section() == "events" %} aria-current="page"{% endif %}>Events</a>
     {%- endif %}
     {%- if layout.remediations %}
-    <a href="/remediations">Remediations</a>
+    <a href="/remediations"{% if layout.section() == "remediations" %} aria-current="page"{% endif %}>Remediations</a>
     {%- endif %}
     {%- if layout.file_collections %}
-    <a href="/file-collections">File Collections</a>
-    {%- endif %}
-    {%- if layout.admin %}
-    <a href="/admin">Admin</a>
+    <a href="/file-collections"{% if layout.section() == "file-collections" %} aria-current="page"{% endif %}>File Collections</a>
     {%- endif %}
     {%- if layout.signatures %}
-    <a href="/signatures">Signatures</a>
+    <a href="/signatures"{% if layout.section() == "signatures" %} aria-current="page"{% endif %}>Signatures</a>
     {%- endif %}
     {%- if layout.svs %}
-    <a href="/svs">SVS{% if let Some(count) = layout.svs_attention %}<span class="count" id="svs-nav-count" title="runs that need attention">({{ count }})</span>{% endif %}</a>
+    <a href="/svs"{% if layout.section() == "svs" %} aria-current="page"{% endif %}>SVS{% if let Some(count) = layout.svs_attention %}<span class="count" id="svs-nav-count" title="runs that need attention">({{ count }})</span>{% endif %}</a>
     {%- endif %}
-    <a href="/help">Documentation</a>
-    <a href="/preferences">Preferences</a>
-    <a href="/login/change">Change Password</a>
-    <form method="post" action="/logout">
-      <button type="submit">Log out</button>
-    </form>
+    {%- if layout.admin %}
+    <a href="/admin"{% if layout.section() == "admin" %} aria-current="page"{% endif %}>Admin</a>
+    {%- endif %}
+  </nav>
+  <nav class="menu account" aria-label="Account">
+    <a href="/help"{% if layout.section() == "help" %} aria-current="page"{% endif %}>Documentation</a>
+    {#- the viewer's own items, grouped under their name: a disclosure, so it needs no script -#}
+    <details class="user-menu">
+      <summary><span class="user" id="username">{{ username }}</span></summary>
+      <div class="user-menu-items">
+        <form method="post" action="/preferences/theme" class="theme">
+          <input type="hidden" name="next" value="{{ layout.path }}">
+          <label for="theme-mode">Theme</label>
+          <select id="theme-mode" name="mode">
+            {%- for theme in layout.themes %}
+            <option value="{{ theme.as_str() }}"{% if layout.is_theme(theme) %} selected{% endif %}>{{ theme.label() }}</option>
+            {%- endfor %}
+          </select>
+          <button type="submit">Apply</button>
+        </form>
+        <a href="/preferences">Preferences</a>
+        <a href="/login/change">Change Password</a>
+        <form method="post" action="/logout">
+          <button type="submit">Log out</button>
+        </form>
+      </div>
+    </details>
   </nav>
   {%- endif %}
 </header>

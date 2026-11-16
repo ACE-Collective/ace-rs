@@ -8,13 +8,12 @@
   <h1>Validations</h1>
   <p class="muted">A YARA rule repository's CI asks ACE to check a change: every sample is scanned with the rules of the base commit and of the head commit, and the report lists what the change does to them. Validation warns and never blocks. A report is reused while the samples, their labels and the scanner are unchanged.</p>
   {%- include "quick_filters.html" %}
-  <form method="get" action="/signatures/validations" class="detection-filters">
-    {%- for field in view.fields %}
-    <label for="filter-{{ field.slug }}">{{ field.name }}</label>
-    <input type="text" id="filter-{{ field.slug }}" name="{{ field.slug }}" value="{{ field.value }}" placeholder="{% if field.options.is_empty() %}{{ field.hint }}{% else %}{{ field.options|join(", ") }}{% endif %}">
-    {%- endfor %}
-    <button type="submit">Apply</button>
+  <form method="get" action="/signatures/validations" class="detection-filters filter-form">
+    {%- include "filter_fields.html" %}
+    <div class="filter-actions">
+    <button type="submit" class="primary">Apply</button>
     <a href="/signatures/validations">Reset</a>
+    </div>
   </form>
   <p class="muted">Export as <a href="{{ view.csv }}">CSV</a> or <a href="{{ view.ndjson }}">NDJSON</a></p>
   {%- include "signatures/_validations_page.html" %}

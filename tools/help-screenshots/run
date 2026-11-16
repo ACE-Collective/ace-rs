@@ -21,7 +21,9 @@ few minutes once `ace` is built, and builds nothing for release. It:
    which raises its alert), then fixtures/2-runs.sql (earlier runs with their alerts, samples,
    validations and YARA QA files), then alice's reviews of two runs through the API, and
    `ace svs coverage refresh` and `snapshot`, which compute coverage and the worklist from them, with
-   fixtures/3-history.sql's earlier snapshots;
+   fixtures/3-history.sql's earlier snapshots, and fixtures/4-alerts.sql, a mailbox alert and a hunt
+   alert, whose pages have the summary of their type (no guide pictures them yet; they are there to
+   look at when the alert page changes);
 5. signs in as alice in the browser and captures each page of SHOTS at 1280 pixels wide, a whole page
    or the part of it a guide illustrates;
 6. shrinks each PNG with pngquant and oxipng, run in an Alpine container (which installs them, so
@@ -602,10 +604,10 @@ def shots(made):
         {"name": "run-error", "path": run + error, "expect": ["error", "HTTP 407", "bob"]},
         # alerts
         {"name": "alert-page-test", "path": "/alerts/" + alert_uuid(6), "expect": ["SIMULATED", "svs_test"]},
-        {"name": "alert-test", "path": "/alerts/" + alert_uuid(81), "element": "#svs"},
-        {"name": "alert-context", "path": "/alerts/" + alert_uuid(82), "element": "#svs", "expect": ["Not a test"]},
-        {"name": "alert-partial", "path": "/alerts/" + alert_uuid(83), "element": "#svs"},
-        {"name": "alert-mismatch", "path": "/alerts/" + alert_uuid(900), "element": "#svs",
+        {"name": "alert-test", "path": "/alerts/" + alert_uuid(81), "prepare": "document.getElementById('svs').open = true", "element": "#svs"},
+        {"name": "alert-context", "path": "/alerts/" + alert_uuid(82), "prepare": "document.getElementById('svs').open = true", "element": "#svs", "expect": ["Not a test"]},
+        {"name": "alert-partial", "path": "/alerts/" + alert_uuid(83), "prepare": "document.getElementById('svs').open = true", "element": "#svs"},
+        {"name": "alert-mismatch", "path": "/alerts/" + alert_uuid(900), "prepare": "document.getElementById('svs').open = true", "element": "#svs",
          "expect": ["other host"]},
         {"name": "alert-refused", "path": "/alerts/" + made["refused"],
          "expect": ["registration refused", "fin-ws-042.corp.example.com"]},
@@ -673,6 +675,7 @@ def main(argv):
             cookie = sign_in()
             reviews(cookie)
             coverage(cookie)
+            seed("4-alerts.sql")
         wanted = [shot for shot in shots(launcher_made()) if not only or shot["name"] in only]
         unknown = set(only) - {shot["name"] for shot in wanted}
         if unknown:

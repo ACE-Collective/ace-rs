@@ -1,0 +1,61 @@
+{#- A hunt alert's summary (src/analysis/summary.rs), from ace3's analysis/custom/hunter_splunk.html: the
+    hunt and where it searched, its query as it ran with its time window, and the matched event's
+    fields, with ace3's Raw Splunk Details folded away. A link is only an http or https address the
+    origin gave (`web_link`). -#}
+<section class="type-summary hunt-summary" aria-labelledby="type-summary-title">
+  <h2 id="type-summary-title">Hunt <span class="muted">{{ events }} matched event{% if events != 1 %}s{% endif %}</span></h2>
+  {%- if let Some(instructions) = instructions %}
+  <p class="summary-note">{{ instructions }}</p>
+  {%- endif %}
+  <dl class="facts">
+    {%- for field in fields %}
+    <dt>{{ field.name }}</dt><dd{% if let Some(full) = field.full %} title="{{ full }}"{% endif %}>{{ field.value }}</dd>
+    {%- endfor %}
+    {%- if let Some(window) = window %}
+    <dt>Time window</dt><dd><code>{{ window }}</code></dd>
+    {%- endif %}
+    {%- if search_link.is_some() || playbook.is_some() %}
+    <dt>Links</dt>
+    <dd>
+      {%- if let Some(link) = search_link %} <a href="{{ link }}" rel="noopener noreferrer" target="_blank">Open the search</a>{% endif %}
+      {%- if let Some(link) = playbook %} <a href="{{ link }}" rel="noopener noreferrer" target="_blank">Playbook</a>{% endif %}
+    </dd>
+    {%- endif %}
+  </dl>
+  {%- if let Some(query) = query %}
+  <details class="block">
+    <summary>Query as it ran</summary>
+    <pre class="wrap">{{ query.text }}</pre>
+    {%- if query.more > 0 %}
+    <p class="clipped">{{ query.more }} more bytes of the query not shown.</p>
+    {%- endif %}
+  </details>
+  {%- endif %}
+  {%- if !event.is_empty() %}
+  <h3>Matched event</h3>
+  <dl class="facts event-fields">
+    {%- for field in event %}
+    <dt>{{ field.name }}</dt><dd{% if let Some(full) = field.full %} title="{{ full }}"{% endif %}>{{ field.value }}</dd>
+    {%- endfor %}
+  </dl>
+  {%- if !more_fields.is_empty() %}
+  <details class="block">
+    <summary>{{ more_fields.len() }} more field{% if more_fields.len() != 1 %}s{% endif %}</summary>
+    <dl class="facts event-fields">
+      {%- for field in more_fields %}
+      <dt>{{ field.name }}</dt><dd{% if let Some(full) = field.full %} title="{{ full }}"{% endif %}>{{ field.value }}</dd>
+      {%- endfor %}
+    </dl>
+  </details>
+  {%- endif %}
+  {%- endif %}
+  {%- if let Some(all) = all_events %}
+  <details class="block">
+    <summary>All {{ events }} events</summary>
+    <pre>{{ all.text }}</pre>
+    {%- if all.more > 0 %}
+    <p class="clipped">{{ all.more }} more bytes not shown: the API's alert has them all.</p>
+    {%- endif %}
+  </details>
+  {%- endif %}
+</section>

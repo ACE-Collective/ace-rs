@@ -1,8 +1,9 @@
 {#- What SVS makes of the alert (PLAN.md 7.10 batch 7b, src/svs_alert.rs): ace3's SVS banner, with the
     root's tags, the runs its attributions hold to, the markers that disagree with their run, and for an
-    analyst who may, the forms that give it back. -#}
-<section class="svs-banner" id="svs" role="note">
-  <h2>SVS{% if !svs.status.is_empty() %} <span class="badge svs-status">{{ svs.status }}</span>{% endif %}{% for tag in svs.tags %} <span class="badge tag">{{ tag }}</span>{% endfor %}</h2>
+    analyst who may, the forms that give it back. It is a collapsed panel of the page, whose summary
+    line carries the status, the tags and what holds the alert. -#}
+<details class="section svs-banner" id="svs" data-section-id="{{ svs_section.id }}"{% if svs_section.open %} open{% endif %}>
+  <summary>SVS{% if !svs.status.is_empty() %} <span class="badge svs-status">{{ svs.status }}</span>{% endif %}{% for tag in svs.tags %} <span class="badge tag">{{ tag }}</span>{% endfor %} <span class="hint">{{ self.svs_hint() }}</span></summary>
   {%- if !svs.meaning.is_empty() %}
   <p>{{ svs.meaning }}</p>
   {%- endif %}
@@ -31,4 +32,15 @@
     {%- endif %}
   </form>
   {%- endif %}
-</section>
+  <form method="post" action="/preferences/alert-section" class="pin">
+    <input type="hidden" name="section" value="{{ svs_section.id }}">
+    <input type="hidden" name="next" value="{{ layout.path }}">
+    {%- if svs_section.open %}
+    <input type="hidden" name="open" value="false">
+    <button type="submit" class="quiet" title="How this section starts on every alert you open. Only you are affected.">Open by default</button>
+    {%- else %}
+    <input type="hidden" name="open" value="true">
+    <button type="submit" class="quiet" title="How this section starts on every alert you open. Only you are affected.">Collapsed by default</button>
+    {%- endif %}
+  </form>
+</details>

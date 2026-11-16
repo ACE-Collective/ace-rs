@@ -70,11 +70,36 @@ pub struct FilterField {
     pub options: &'static [&'static str],
     /// What it holds now, its values joined by commas.
     pub value: String,
+    /// Whether the form shows it at once: a screen's commonly used filters, and any that holds a
+    /// value. The rest sit behind the form's "More filters".
+    pub common: bool,
+    /// The first and the last of the rest, where the template opens and closes that disclosure.
+    pub opens_more: bool,
+    pub closes_more: bool,
+}
+
+/// The filters a screen with many shows at once, by slug; a screen not listed shows them all. The SVS
+/// runs screen has nineteen, and an analyst reaches for these.
+fn common_filters(screen: FilterScreen) -> Option<&'static [&'static str]> {
+    match screen {
+        FilterScreen::SvsRuns => Some(&[
+            "needs_attention",
+            "state",
+            "test_name",
+            "technique",
+            "target",
+            "platform",
+            "batch",
+            "owner",
+        ]),
+        _ => None,
+    }
 }
 
 /// A list's filters as the form shows them, from the checked entries.
 pub fn filter_fields(screen: FilterScreen, entries: &[FilterEntry]) -> Vec<FilterField> {
-    screen
+    let common = common_filters(screen);
+    let mut fields: Vec<FilterField> = screen
         .filters()
         .iter()
         .map(|spec: &FilterSpec| FilterField {
@@ -92,8 +117,23 @@ pub fn filter_fields(screen: FilterScreen, entries: &[FilterEntry]) -> Vec<Filte
                 })
                 .collect::<Vec<_>>()
                 .join(","),
+            common: true,
+            opens_more: false,
+            closes_more: false,
         })
-        .collect()
+        .collect();
+    if let Some(common) = common {
+        for field in &mut fields {
+            field.common = common.contains(&field.slug) || !field.value.is_empty();
+        }
+        if let Some(first) = fields.iter().position(|f| !f.common) {
+            fields[first].opens_more = true;
+        }
+        if let Some(last) = fields.iter().rposition(|f| !f.common) {
+            fields[last].closes_more = true;
+        }
+    }
+    fields
 }
 
 /// A list's query string: its filters as a share link, and `after`.

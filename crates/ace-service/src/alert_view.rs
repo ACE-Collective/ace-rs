@@ -68,6 +68,22 @@ pub struct AlertTree {
     pub root_detections: Vec<crate::alerts::AlertDetection>,
     /// Whether the alert has more observables than `MAX_TREE_OBSERVABLES`, which this leaves out.
     pub truncated: bool,
+    /// What the root's submitter said about it, as `analysis.roots.origin` keeps it: its alert type,
+    /// tool and details, such as a hunt's query and matched events. Null when it said nothing. The
+    /// alert page chooses its summary by the alert type and draws it from the details.
+    pub origin: serde_json::Value,
+}
+
+impl AlertTree {
+    /// The root's alert type, ace3's `alert_type`, such as `mailbox` or `hunter - splunk - v2`: its
+    /// origin's `alert_type`, which is also what a module reads on the lease's tree. None when the
+    /// submitter named none.
+    pub fn alert_type(&self) -> Option<&str> {
+        self.origin
+            .get("alert_type")
+            .and_then(|kind| kind.as_str())
+            .filter(|kind| !kind.is_empty())
+    }
 }
 
 /// One open watch on an alert. Dropping it stops it, and the last one to go stops the listener.
@@ -241,6 +257,12 @@ impl Service {
                     )
                     .fetch_all(tx.conn())
                     .await?;
+                    let origin =
+                        sqlx::query_scalar!("SELECT origin FROM analysis.roots WHERE id = $1", id,)
+                            .fetch_optional(tx.conn())
+                            .await?
+                            .flatten()
+                            .unwrap_or(serde_json::Value::Null);
                     Ok(AlertTree {
                         alert,
                         observables,
@@ -248,6 +270,7 @@ impl Service {
                         additions,
                         root_detections,
                         truncated,
+                        origin,
                     })
                 })
             })

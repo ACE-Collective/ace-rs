@@ -19,7 +19,7 @@
 
   <h3>By platform</h3>
   <p class="muted">The rows as of the last refresh. What follows them is read now.</p>
-  <table class="keys">
+  <div class="table-wrap"><table class="keys">
     <thead><tr><th>Platform</th><th>State</th><th>Own</th><th>Tests</th><th>Manual</th><th>Measured</th><th>Latest review</th><th>State since</th></tr></thead>
     <tbody>
       {%- for row in view.rows %}
@@ -37,11 +37,11 @@
       <tr><td colspan="8" class="muted">No rows.</td></tr>
       {%- endfor %}
     </tbody>
-  </table>
+  </table></div>
 
   {%- if !view.sub_rows.is_empty() %}
   <h3>Sub-techniques</h3>
-  <table class="keys">
+  <div class="table-wrap"><table class="keys">
     <thead><tr><th>Technique</th><th>Name</th><th>Platform</th><th>State</th><th>Tests</th><th>Manual</th></tr></thead>
     <tbody>
       {%- for row in view.sub_rows %}
@@ -55,12 +55,12 @@
       </tr>
       {%- endfor %}
     </tbody>
-  </table>
+  </table></div>
   {%- endif %}
 
   <h3>Tests</h3>
   <p class="muted">The tests of the technique and its sub-techniques, on each platform, and what each counts as.</p>
-  <table class="keys">
+  <div class="table-wrap"><table class="keys">
     <thead><tr><th>Test</th><th>Technique</th><th>Platform</th><th>State</th><th>Counts as</th><th>Latest review</th><th>Expected</th></tr></thead>
     <tbody>
       {%- for test in view.tests %}
@@ -77,11 +77,11 @@
       <tr><td colspan="7" class="muted">No tests.</td></tr>
       {%- endfor %}
     </tbody>
-  </table>
+  </table></div>
 
   <h3>Measured signatures</h3>
   <p class="muted">Signatures expected of those tests.</p>
-  <table class="keys">
+  <div class="table-wrap"><table class="keys">
     <thead><tr><th>Signature</th><th>Family</th><th>Measured by</th></tr></thead>
     <tbody>
       {%- for row in view.measured %}
@@ -94,11 +94,11 @@
       <tr><td colspan="3" class="muted">No measured signatures.</td></tr>
       {%- endfor %}
     </tbody>
-  </table>
+  </table></div>
 
   <h3>Manual signatures</h3>
   <p class="muted">Signatures whose technique tag names the technique or one of its sub-techniques.</p>
-  <table class="keys">
+  <div class="table-wrap"><table class="keys">
     <thead><tr><th>Signature</th><th>Family</th><th>Tag</th><th>Counts</th></tr></thead>
     <tbody>
       {%- for row in view.manual %}
@@ -112,7 +112,7 @@
       <tr><td colspan="4" class="muted">No manual signatures.</td></tr>
       {%- endfor %}
     </tbody>
-  </table>
+  </table></div>
 
   {%- if !view.removed.is_empty() %}
   <h3>Removed tests</h3>
@@ -126,7 +126,7 @@
 
   <h3>History</h3>
   <p class="muted">Its daily snapshots of the last two months, newest first. The last year's are in the <a href="{{ view.history_csv }}">CSV</a>.</p>
-  <table class="keys">
+  <div class="table-wrap"><table class="keys">
     <thead><tr><th>Day</th><th>Technique</th><th>Platform</th><th>State</th><th>Own</th><th>Tests</th><th>Release</th></tr></thead>
     <tbody>
       {%- for row in view.history %}
@@ -143,6 +143,6 @@
       <tr><td colspan="7" class="muted">No snapshots yet.</td></tr>
       {%- endfor %}
     </tbody>
-  </table>
+  </table></div>
 </section>
 {% endblock %}

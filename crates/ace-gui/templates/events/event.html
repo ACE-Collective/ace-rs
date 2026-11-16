@@ -24,11 +24,11 @@
   {%- endif %}
   <div class="section">
     <p><strong>Description:</strong> {{ view.comment }}</p>
-    <table class="keys">
+    <div class="table-wrap"><table class="keys">
       <thead><tr>{% for time in view.times %}<th>{{ time.0 }} (UTC)</th>{% endfor %}</tr></thead>
       <tbody><tr>{% for time in view.times %}<td class="nowrap">{{ time.1 }}</td>{% endfor %}</tr></tbody>
-    </table>
-    <table class="keys">
+    </table></div>
+    <div class="table-wrap"><table class="keys">
       <thead>
         <tr><th>Disposition</th><th>Status</th><th>Owner</th><th>Remediation</th><th>Type</th><th>Vector</th><th>Severity</th><th>Prevention Tool</th><th>Threat Actor</th><th>Threat Types</th><th>Threat Names</th></tr>
       </thead>
@@ -47,7 +47,7 @@
           <td>{% for m in view.malware %}<span class="badge">{{ m }}</span> {% endfor %}</td>
         </tr>
       </tbody>
-    </table>
+    </table></div>
   </div>
   <h2 id="alerts">Alerts</h2>
   {%- if let Some(remediate) = view.remediate %}
@@ -70,7 +70,7 @@
     {%- endif %}
   </form>
   {%- endif %}
-  <table class="keys">
+  <div class="table-wrap"><table class="keys">
     <thead><tr>{% if view.ticks() %}<th></th>{% endif %}<th>Date (UTC)</th><th>Alert</th><th>Disposition</th><th>Status</th></tr></thead>
     <tbody>
       {%- for alert in view.alerts %}
@@ -87,6 +87,6 @@
       <tr><td colspan="5" class="muted">No alerts.</td></tr>
       {%- endfor %}
     </tbody>
-  </table>
+  </table></div>
 </section>
 {% endblock %}

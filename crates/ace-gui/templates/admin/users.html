@@ -16,7 +16,7 @@
   <div class="section" id="users">
     <h2>Users</h2>
     <p>{% if view.hide_disabled %}<a href="/admin/users">Show disabled users</a>{% else %}<a href="/admin/users?disabled=hide">Hide disabled users</a>{% endif %}</p>
-    <table class="keys">
+    <div class="table-wrap"><table class="keys">
       <thead><tr><th>User name</th><th>Display name</th><th>Email</th><th>Enabled</th><th>Timezone</th><th>Default queue</th><th>API keys</th><th>Grants</th></tr></thead>
       <tbody>
         {%- for user in view.users %}
@@ -42,12 +42,12 @@
         <tr><td colspan="7" class="muted">No users.</td></tr>
         {%- endfor %}
       </tbody>
-    </table>
+    </table></div>
   </div>
 
   <div class="section" id="groups">
     <h2>Groups</h2>
-    <table class="keys">
+    <div class="table-wrap"><table class="keys">
       <thead><tr><th>Group name</th><th>Members</th><th>Grants</th></tr></thead>
       <tbody>
         {%- for group in view.groups %}
@@ -68,14 +68,14 @@
         <tr><td colspan="3" class="muted">No groups.</td></tr>
         {%- endfor %}
       </tbody>
-    </table>
+    </table></div>
   </div>
 
   {%- if !view.service_keys.is_empty() %}
   <div class="section" id="service-keys">
     <h2>Keys with no owner</h2>
     <p class="muted">Each stands for a service, and holds what its scope allows.</p>
-    <table class="keys">
+    <div class="table-wrap"><table class="keys">
       <thead><tr><th>Name</th><th>Scope</th><th>Created</th><th></th></tr></thead>
       <tbody>
         {%- for key in view.service_keys %}
@@ -94,7 +94,7 @@
         </tr>
         {%- endfor %}
       </tbody>
-    </table>
+    </table></div>
   </div>
   {%- endif %}
 

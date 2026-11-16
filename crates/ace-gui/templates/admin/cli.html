@@ -24,7 +24,7 @@
   </form>
 
   <h2>History</h2>
-  <table class="keys">
+  <div class="table-wrap"><table class="keys">
     <thead><tr><th>#</th><th>Requested</th><th>User</th><th>Command</th><th>Status</th></tr></thead>
     <tbody>
       {%- for run in view.runs %}
@@ -39,7 +39,7 @@
       <tr><td colspan="5" class="muted">No command has run.</td></tr>
       {%- endfor %}
     </tbody>
-  </table>
+  </table></div>
   <p>{% if view.later %}<a href="/admin/cli">First</a>{% endif %}{% if let Some(next) = view.next %} <a href="{{ next }}">Next</a>{% endif %}</p>
 </section>
 {% endblock %}

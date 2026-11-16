@@ -293,7 +293,11 @@ pub(crate) async fn add_comment(
         )
         .await
     {
-        Ok(_) => see_other(&format!("/alerts/{alert_id}#o{}", observable.id), None),
+        Ok(_) => see_other(
+            // the whole tree: the observable may not be on a branch that carries a detection
+            &format!("/alerts/{alert_id}?tree=full#o{}", observable.id),
+            None,
+        ),
         Err(error) => Failure::from_service(error, &parts).into_response(),
     }
 }

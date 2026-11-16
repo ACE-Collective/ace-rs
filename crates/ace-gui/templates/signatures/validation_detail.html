@@ -28,14 +28,14 @@
   {%- endif %}
   {%- if !view.counts.is_empty() %}
   <h2>Counts</h2>
-  <table class="keys">
+  <div class="table-wrap"><table class="keys">
     <thead><tr><th>Category</th><th>Pairs</th></tr></thead>
     <tbody>
       {%- for count in view.counts %}
       <tr><td>{% if let Some(href) = count.href %}<a href="{{ href }}">{{ count.category }}</a>{% else %}{{ count.category }}{% endif %}</td><td>{{ count.count }}</td></tr>
       {%- endfor %}
     </tbody>
-  </table>
+  </table></div>
   {%- endif %}
   {%- for side in view.sides %}
   <h2>{{ side.name }} <code>{{ side.sha }}</code></h2>
@@ -88,7 +88,7 @@
   {%- if let Some(download) = view.download %}
   <p><a href="{{ download }}" title="password: infected">Download these rows' files</a></p>
   {%- endif %}
-  <table class="keys">
+  <div class="table-wrap"><table class="keys">
     <thead><tr><th>Sample</th><th>Rule</th><th>Label</th><th>Base</th><th>Head</th><th>Category</th><th>Note</th></tr></thead>
     <tbody>
       {%- for row in view.results %}
@@ -105,7 +105,7 @@
       <tr><td colspan="7" class="muted">No rows.</td></tr>
       {%- endfor %}
     </tbody>
-  </table>
+  </table></div>
   {%- if view.first.is_some() || view.next.is_some() %}
   <nav class="pager" aria-label="Pages">
     {%- if let Some(first) = view.first %} <a href="{{ first }}">First</a>{% endif %}

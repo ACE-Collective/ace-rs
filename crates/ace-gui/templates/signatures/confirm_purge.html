@@ -11,7 +11,7 @@
   {%- endif %}
   {%- if !view.versions.is_empty() %}
   <p>Every record of {% if view.versions.len() == 1 %}this version{% else %}these {{ view.versions.len() }} versions{% endif %} goes: the files kept now, and those whose keeping has lapsed.</p>
-  <table class="keys">
+  <div class="table-wrap"><table class="keys">
     <thead><tr><th>Version</th><th>Matches</th><th>Stored</th><th>Last match</th></tr></thead>
     <tbody>
       {%- for version in view.versions %}
@@ -23,9 +23,9 @@
       </tr>
       {%- endfor %}
     </tbody>
-  </table>
+  </table></div>
   {%- else %}
-  <table class="keys">
+  <div class="table-wrap"><table class="keys">
     <thead><tr><th>Match</th><th>File</th><th>SHA256</th><th>Version</th><th>Last seen</th></tr></thead>
     <tbody>
       {%- for m in view.matches %}
@@ -38,7 +38,7 @@
       </tr>
       {%- endfor %}
     </tbody>
-  </table>
+  </table></div>
   {%- endif %}
   <p class="warning">Files that match again are stored again. A file another rule, version or alert still holds stays.</p>
   <form method="post" action="{{ view.action }}" class="fields">

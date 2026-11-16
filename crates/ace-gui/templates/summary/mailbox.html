@@ -1,0 +1,56 @@
+{#- A mailbox alert's summary (src/analysis/summary.rs), from ace3's analysis/custom/email_alert.html:
+    the message's subject, who sent it and to whom, how it authenticated, its attachments, its body
+    part, what remediation did with its delivered copies, and its headers folded away. Every value is
+    the message's own text. -#}
+<section class="type-summary email-summary" aria-labelledby="type-summary-title">
+  <h2 id="type-summary-title">Email{% if let Some(coverage) = coverage %} <span class="badge {{ coverage.class }}" title="{{ coverage.tooltip }}">{{ coverage.label }}</span>{% endif %}</h2>
+  {%- if let Some(subject) = subject %}
+  <p class="summary-lead">{{ subject }}</p>
+  {%- endif %}
+  {%- if !warnings.is_empty() || !authentication.is_empty() %}
+  <p class="summary-marks">
+    {%- for warning in warnings %} <span class="badge tone-bad">{{ warning }}</span>{% endfor %}
+    {%- for check in authentication %} <span class="badge {% if check.2 %}tone-ok{% else %}tone-warn{% endif %}">{{ check.0 }}: {{ check.1 }}</span>{% endfor %}
+  </p>
+  {%- endif %}
+  <dl class="facts">
+    {%- for field in fields %}
+    <dt>{{ field.name }}</dt><dd{% if let Some(full) = field.full %} title="{{ full }}"{% endif %}>{{ field.value }}</dd>
+    {%- endfor %}
+    {%- if let Some(body) = body %}
+    <dt>Body</dt><dd><a href="{{ body.1 }}">{{ body.0 }}</a> <span class="muted">in the analysis tree</span></dd>
+    {%- endif %}
+    {%- if !attachments.is_empty() %}
+    <dt>Attachments</dt>
+    <dd>
+      <ul class="plain">
+        {%- for attachment in attachments %}
+        <li>{{ attachment.name }}{% if !attachment.content_type.is_empty() %} <span class="muted">{{ attachment.content_type }}</span>{% endif %}{% if !attachment.size.is_empty() %} <span class="muted">{{ attachment.size }} bytes</span>{% endif %}</li>
+        {%- endfor %}
+      </ul>
+      {%- if more_attachments > 0 %}<span class="muted">{{ more_attachments }} more in the email's analysis.</span>{% endif %}
+    </dd>
+    {%- endif %}
+    {%- if !deliveries.is_empty() %}
+    <dt>Delivered copies</dt>
+    <dd>
+      <ul class="plain">
+        {%- for delivery in deliveries %}
+        <li>{{ delivery.recipient }} <span class="badge {{ delivery.class }}">{{ delivery.state }}</span>{% if !delivery.sources.is_empty() %} <span class="muted">by {{ delivery.sources }}</span>{% endif %}</li>
+        {%- endfor %}
+      </ul>
+      {%- if more_deliveries > 0 %}<span class="muted">{{ more_deliveries }} more. </span>{% endif %}
+      <a href="{{ remediate }}">Remediation targets</a>
+    </dd>
+    {%- endif %}
+  </dl>
+  {%- if let Some(headers) = headers %}
+  <details class="block">
+    <summary>Headers</summary>
+    <pre class="wrap">{{ headers.text }}</pre>
+    {%- if headers.more > 0 %}
+    <p class="clipped">{{ headers.more }} more bytes of headers not shown.</p>
+    {%- endif %}
+  </details>
+  {%- endif %}
+</section>

@@ -9,7 +9,7 @@
   <h1>Monitoring</h1>
 
   <h2>Scheduled tasks</h2>
-  <table class="keys monitoring-tasks">
+  <div class="table-wrap"><table class="keys monitoring-tasks">
     <thead><tr><th>Task</th><th>Schedule (UTC)</th><th>Due</th><th>Last run</th><th>Ended</th><th>Failures since a success</th><th>Error</th></tr></thead>
     <tbody>
       {%- for task in view.tasks %}
@@ -26,13 +26,13 @@
       <tr><td colspan="7" class="muted">No task has been scheduled yet.</td></tr>
       {%- endfor %}
     </tbody>
-  </table>
+  </table></div>
 
   <h2>Runs{% if !view.selected_task.is_empty() %} of {{ view.selected_task }}{% endif %}</h2>
   {%- if !view.selected_task.is_empty() %}
   <p><a href="/admin/monitoring">Every task's runs</a></p>
   {%- endif %}
-  <table class="keys monitoring-runs">
+  <div class="table-wrap"><table class="keys monitoring-runs">
     <thead><tr><th>Task</th><th>Due</th><th>Started</th><th>Ended</th><th>Outcome</th><th>Node</th><th>Summary</th><th>Error</th></tr></thead>
     <tbody>
       {%- for run in view.runs %}
@@ -50,11 +50,11 @@
       <tr><td colspan="8" class="muted">No runs.</td></tr>
       {%- endfor %}
     </tbody>
-  </table>
+  </table></div>
 
   <h2>Monitor records</h2>
   <p class="muted">What each check found when it last ran. A check's run replaces its records.{% if view.records_left_out > 0 %} {{ view.records_left_out }} more aren't shown.{% endif %}</p>
-  <table class="keys monitoring-records">
+  <div class="table-wrap"><table class="keys monitoring-records">
     <thead><tr><th>Check</th><th>Path</th><th>About</th><th>Value</th><th>Emitted</th></tr></thead>
     <tbody>
       {%- for record in view.records %}
@@ -69,6 +69,6 @@
       <tr><td colspan="5" class="muted">No check has run yet.</td></tr>
       {%- endfor %}
     </tbody>
-  </table>
+  </table></div>
 </section>
 {% endblock %}
