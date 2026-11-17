@@ -13,8 +13,10 @@ The owner's direction, which every item here is measured against:
   away.
 - What decides an alert depends on its type, so the top of the page is chosen by alert type.
 - Don't add an always-visible section to the alert page without saying what it displaces.
-- ace4's own CSS only: no framework, no outside assets, no new scripts. The CSP stays as strict as it
-  is. No need to resemble ace3.
+- ace4's own CSS only: no framework and no outside assets. The CSP stays as strict as it is. A page gets
+  a script of ace4's own only for a behaviour that can't be a link, a form or a Datastar expression, as
+  a same-origin file loaded with the nonce: the graph and the alert list's range selection are the two.
+  No need to resemble ace3.
 
 ## Decisions waiting on the owner
 
@@ -102,10 +104,14 @@ The pass styled these through the shared foundation but nobody viewed them:
 - [ ] **A `scheduler.runs` page** beyond what `/admin/monitoring` shows.
 - [ ] **Dialogs.** ace4 has none. A reason is a field beside the buttons, and a confirmation is a page.
   Check which of ace3's dialogs analysts miss.
-- [ ] **Two things ace3 gained between `f72f8946` and `37a765bf`** (2026-11-16), each the owner's to
-  want or not: a Sepia theme (`e477e14f`), and selecting a range of alerts on the list by shift+click
-  or by dragging over the checkboxes (`5fb36276`). The third, the `error` badge on a failed analysis
-  (`2b9fcd2c`), is built: see *The alert page*.
+- [ ] **A Sepia theme,** which ace3 gained in `e477e14f`. Not now, by the owner's decision of
+  2026-11-16; not built.
+- [x] **Selecting a range of alerts on the list,** by shift+click or by dragging over the checkboxes
+  (ace3 `5fb36276`). Built on 2026-11-17 as `static/select.js`; `crates/ace-gui/src/list.rs`'s
+  *Selection* says how it behaves and where it differs from ace3's. Seen working in the e2e's headless
+  Chromium, not by a person with a mouse. Three things to check with analysts: the only hint that it
+  exists is the tooltip on "Ticked alerts"; a drag doesn't scroll the page when it reaches the edge of
+  the window, as in ace3; and it is mouse and keyboard only, so a touch screen ticks one box at a time.
 
 ## How to look at a change
 

@@ -266,11 +266,10 @@ async fn the_base_layout_renders_for_a_visitor_and_a_user() {
         &ace_service::Dispositions::ace3(),
         None,
     );
-    let signed_in = ListPage {
-        layout: Layout::new("n0nce", Theme::Dark, Some("alice".to_owned()), "/"),
-        list: view.list.clone(),
+    let signed_in = ListPage::new(
+        Layout::new("n0nce", Theme::Dark, Some("alice".to_owned()), "/"),
         view,
-    }
+    )
     .render()
     .expect("renders");
     assert!(signed_in.contains(r#"data-theme="dark""#), "{signed_in}");
@@ -4750,11 +4749,10 @@ fn the_list_view_draws_a_page_of_alerts() {
     );
     assert_eq!(view.chips.len(), 2);
     assert!(view.chips[1].inverted);
-    let html = ListPage {
-        layout: Layout::new("n0nce", Theme::Light, Some("alice".to_owned()), "/"),
-        list: view.list.clone(),
-        view: view.clone(),
-    }
+    let html = ListPage::new(
+        Layout::new("n0nce", Theme::Light, Some("alice".to_owned()), "/"),
+        view.clone(),
+    )
     .render()
     .expect("renders");
     assert!(!html.contains("<script>alert"), "{html}");
@@ -4846,6 +4844,68 @@ fn the_list_view_draws_a_page_of_alerts() {
         html.contains(&fragment),
         "the page includes the same fragment"
     );
+
+    // range selection (ace3 5fb36276): the page loads its one script after Datastar, from this origin
+    // with the nonce and deferred, and nothing inline. The script finds a row's box by what the bulk
+    // form posts, and sends the page one event, whose handler is fixed text over the ids it names.
+    let scripts = script_tags(&html);
+    assert_eq!(scripts.len(), 2, "Datastar and the list's: {scripts:?}");
+    let select = asset_named(
+        scripts[1]
+            .split("src=\"/static/")
+            .nth(1)
+            .and_then(|rest| rest.split('"').next())
+            .expect("a source"),
+    )
+    .expect("an embedded asset");
+    assert!(select.name.starts_with("select."), "{}", select.name);
+    assert_eq!(
+        scripts[1],
+        format!(r#"<script nonce="n0nce" src="{}" defer>"#, select.url())
+    );
+    assert!(
+        html.contains(
+            r#"data-on:ace-select="$_sel = $_sel.filter(id => !evt.detail.on.includes(id) && !evt.detail.off.includes(id)).concat(evt.detail.on)""#
+        ),
+        "{html}"
+    );
+    for id in [one, two] {
+        assert!(
+            html.contains(&format!(
+                r#"<input type="checkbox" form="bulk" name="alert" value="{id}" aria-label="Tick this alert""#
+            )),
+            "{html}"
+        );
+    }
+    let script = std::str::from_utf8(select.bytes).expect("text");
+    contains_all(
+        script,
+        &[
+            // the boxes it reads are the rows' own, and the event is the one the page handles
+            r##"var BOXES = '#alert-list input[type="checkbox"][name="alert"]';"##,
+            r#"document.getElementById("alert-page")"#,
+            r#"new CustomEvent("ace-select", { detail: { on: on, off: off } })"#,
+        ],
+    );
+    // it writes nothing into the page and evaluates no text, so no alert's text can become markup or code
+    for never in [
+        "innerHTML",
+        "outerHTML",
+        "insertAdjacent",
+        "document.write",
+        "eval(",
+        "Function(",
+        "setAttribute",
+        "fetch(",
+        "XMLHttpRequest",
+        "http://",
+        "https://",
+    ] {
+        assert!(!script.contains(never), "select.js has {never}");
+    }
+    // a refresh brings rows, never a script or the handler: both stay on the page around it
+    assert!(script_tags(&fragment).is_empty(), "{fragment}");
+    assert!(!fragment.contains("ace-select"), "{fragment}");
 }
 
 /// The Done check's GUI half: the list filters and pages through fixture alerts read from Postgres by the
@@ -4934,6 +4994,69 @@ async fn the_list_filters_and_pages_through_fixture_alerts() {
     assert_eq!(row_ids(&page).len(), 5);
     let (status, _) = get("/?sort=status".to_owned()).await;
     assert_eq!(status, StatusCode::BAD_REQUEST);
+
+    // range selection through the server: the page's policy is as strict as every page's, its script
+    // is served from the binary under its hash, and a signed-out visitor is sent to the login
+    let response = stack
+        .get("/?f=disposition:OPEN")
+        .header("cookie", cookie(&session))
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(response.status(), StatusCode::OK);
+    let policy = response.headers()["content-security-policy"]
+        .to_str()
+        .expect("text")
+        .to_owned();
+    let page = response.text().await.expect("a page");
+    let nonce = page
+        .split("data-nonce=\"")
+        .nth(1)
+        .and_then(|rest| rest.split('"').next())
+        .expect("the nonce");
+    assert_eq!(policy, ace_gui::content_security_policy(nonce));
+    assert!(!policy.contains("unsafe"), "{policy}");
+    assert!(inline_free(&page), "{page}");
+    let scripts = script_tags(&page);
+    assert_eq!(scripts.len(), 2, "{scripts:?}");
+    let url = scripts[1]
+        .split("src=\"")
+        .nth(1)
+        .and_then(|rest| rest.split('"').next())
+        .expect("a source");
+    assert_eq!(
+        scripts[1],
+        format!(r#"<script nonce="{nonce}" src="{url}" defer>"#)
+    );
+    let served = stack.get(url).send().await.expect("answered");
+    assert_eq!(served.status(), StatusCode::OK, "{url}");
+    assert_eq!(
+        served.headers()["content-type"],
+        "text/javascript; charset=utf-8"
+    );
+    assert_eq!(
+        served.headers()["cache-control"],
+        "public, max-age=31536000, immutable"
+    );
+    let bytes = served.bytes().await.expect("bytes");
+    assert_eq!(
+        &bytes[..],
+        include_bytes!("../static/select.js"),
+        "the list's script is the repository's file"
+    );
+    let hash = hex::encode(Sha256::digest(&bytes));
+    assert_eq!(url, format!("/static/select.{}.js", &hash[..16]));
+    let stale = stack
+        .get("/static/select.js")
+        .send()
+        .await
+        .expect("answered");
+    assert_eq!(stale.status(), StatusCode::NOT_FOUND);
+    let anonymous = stack.get("/").send().await.expect("answered");
+    assert_eq!(anonymous.status(), StatusCode::SEE_OTHER);
+    // no other page loads it
+    let (_, saved) = get("/filters/saved".to_owned()).await;
+    assert_eq!(script_tags(&saved).len(), 1, "{saved}");
 
     // the refresh sends the same list as its fragment, and a request with no session gets 401
     let (status, fragment) = get("/alerts/list?f=disposition:OPEN".to_owned()).await;
@@ -11680,6 +11803,46 @@ fn the_monitoring_page_draws_runs_and_records_as_text() {
         view,
     });
     assert!(html.contains("7 more aren't shown."), "{html}");
+
+    // the page is where an operator learns of the per-root metrics event: its target, its message
+    // and every field the core emits, by the name it emits it under
+    let event = ace_core::metrics::RootMetrics {
+        event_type: ace_core::metrics::EVENT_TYPE_ROOT,
+        timestamp: chrono::Utc::now(),
+        root_uuid: uuid::Uuid::from_u128(7),
+        pass: 1,
+        total_time_seconds: Some(1.5),
+        alert_type: None,
+        is_alert: false,
+        queue: "default".to_owned(),
+        observable_count: 0,
+        observable_type_counts: std::collections::BTreeMap::new(),
+        task_count: 0,
+        failed_task_count: 0,
+        cancelled: false,
+    };
+    let fields: serde_json::Value = serde_json::from_str(&event.to_json()).expect("JSON");
+    let fields = fields.as_object().expect("an object");
+    assert_eq!(fields.len(), 13);
+    for field in fields.keys() {
+        assert!(
+            html.contains(&format!("<tr><td><code>{field}</code></td><td>")),
+            "the page doesn't describe the event's {field}"
+        );
+    }
+    assert_eq!(
+        html.matches("<tr><td><code>").count(),
+        fields.len(),
+        "the page describes a field the event doesn't have"
+    );
+    contains_all(
+        &html,
+        &[
+            &format!("<code>{}</code>", ace_core::metrics::TARGET),
+            &format!("<code>{}</code>", ace_core::metrics::MESSAGE_PREFIX),
+            "<code>ace_monitor</code>",
+        ],
+    );
 }
 
 /// PLAN.md 7.12: the Monitoring page through the server. It needs `admin:read` and `monitoring:read`, and
@@ -18293,11 +18456,10 @@ fn the_ownership_views_draw_owners_as_text() {
             &ace_service::Dispositions::ace3(),
             owners,
         );
-        let html = drawn_safely(&ListPage {
-            layout: Layout::new("n0nce", Theme::Light, Some("alice".to_owned()), "/"),
-            list: view.list.clone(),
-            view: view.clone(),
-        });
+        let html = drawn_safely(&ListPage::new(
+            Layout::new("n0nce", Theme::Light, Some("alice".to_owned()), "/"),
+            view.clone(),
+        ));
         (view, html)
     };
     let (view, html) = draw(Some(&choices));

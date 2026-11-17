@@ -10,6 +10,8 @@
 //! `Db::transaction` runs a closure in a transaction and commits it. When Postgres aborts the
 //! transaction with a serialization failure or a deadlock, it rolls the whole transaction back
 //! and runs the closure again from the start, so a retry never reruns part of one (ace3 #1084).
+//! What must happen only if the transaction commits, such as a log record of what it did, is handed
+//! to `Tx::after_commit`: it runs after the commit and never for an attempt that was rolled back.
 //!
 //! Queries are checked against the migrated schema when they compile. With no database set,
 //! the checks read the offline data committed in the workspace's `.sqlx/`; `cargo sqlx prepare
@@ -231,6 +233,8 @@ impl Db {
     pub async fn begin(&self) -> Result<Tx<'static>, DbError> {
         Ok(Tx {
             inner: self.pool.begin().await?,
+            committed: Vec::new(),
+            outer: None,
         })
     }
 
@@ -306,18 +310,54 @@ impl Db {
 ///
 /// Functions that write take `&mut Tx`, so a write can only happen inside a transaction that
 /// the caller ends.
-#[derive(Debug)]
 pub struct Tx<'c> {
     inner: sqlx::Transaction<'c, Postgres>,
+    /// What `after_commit` was given, in order.
+    committed: Vec<AfterCommit>,
+    /// A savepoint's enclosing transaction's list, which takes the savepoint's when it commits.
+    outer: Option<&'c mut Vec<AfterCommit>>,
+}
+
+/// What a transaction does once it has committed.
+type AfterCommit = Box<dyn FnOnce() + Send>;
+
+impl std::fmt::Debug for Tx<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Tx")
+            .field("inner", &self.inner)
+            .field("after_commit", &self.committed.len())
+            .finish()
+    }
 }
 
 impl Tx<'_> {
+    /// Commits, then runs what `after_commit` was given, in the order it was given. A savepoint's
+    /// commit hands its list to the transaction it is in, which runs it when that commits.
     pub async fn commit(self) -> Result<(), DbError> {
-        Ok(self.inner.commit().await?)
+        let Tx {
+            inner,
+            committed,
+            outer,
+        } = self;
+        inner.commit().await?;
+        match outer {
+            Some(outer) => outer.extend(committed),
+            None => committed.into_iter().for_each(|run| run()),
+        }
+        Ok(())
     }
 
     pub async fn rollback(self) -> Result<(), DbError> {
         Ok(self.inner.rollback().await?)
+    }
+
+    /// Runs `then` once this transaction has committed, and never if it rolls back, is dropped or
+    /// fails to commit: for an effect outside the database that must match what was committed, such
+    /// as the log record of a pass's end (`crate::metrics`). `Db::transaction` runs its closure
+    /// again after a serialization failure, and what a failed attempt gave is dropped with it.
+    /// `then` must not block: it runs on the committing task.
+    pub fn after_commit(&mut self, then: impl FnOnce() + Send + 'static) {
+        self.committed.push(Box::new(then));
     }
 
     /// The transaction's connection, to run a statement on.
@@ -331,6 +371,8 @@ impl Tx<'_> {
         use sqlx::Acquire;
         Ok(Tx {
             inner: (&mut *self.inner).begin().await?,
+            committed: Vec::new(),
+            outer: Some(&mut self.committed),
         })
     }
 }

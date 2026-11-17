@@ -45,6 +45,42 @@
 //! expressions hold no outside text: the refresh URL is read from `data-refresh`, an attribute askama
 //! escapes, through `el.dataset`.
 //!
+//! A range of rows is ticked as in ace3 since `5fb36276` (`manage_alerts.js`): shift+click on a row's box
+//! sets every row from the last one clicked to this one to this one's new state, ticked or not, and
+//! pressing on a box and dragging over other rows sets the rows between to the first box's new state,
+//! putting back the rows the pointer leaves again. It is `static/select.js`, the page's one script of its
+//! own, loaded as the graph's is: from this origin, with the response's nonce, so the policy is as it
+//! was. It is a file and not Datastar expressions because the behaviour is four document handlers that
+//! share state (the anchor, the drag) and one function, which as attributes would be the same code
+//! written out four times in the page. It changes no box: it sends `#alert-page` one `ace-select` event
+//! with the ids to tick and to untick, and the page's `data-on:ace-select` folds them into `$_sel`, so
+//! the boxes follow `$_sel` as they do for a single click, and the bulk forms read them as before. At the
+//! edges it is ace3's:
+//! - The anchor is the row last clicked or dragged to, by its id, and outlives a refresh. If the refresh
+//!   dropped that row, a shift+click ticks its own box only and becomes the anchor. A range reaches the
+//!   rows between the two as the list is now, so a row a refresh brought in between them is in it, and
+//!   nothing is ticked that isn't between the two rows the analyst chose.
+//! - A shift+click that unticks its box unticks the range. A shift+click on the anchor itself is a plain
+//!   click. With no anchor yet, the first shift+click is a plain click.
+//! - The box at the head of the column ticks or unticks every row and leaves the anchor where it was.
+//! - A drag started with shift held does nothing; one released outside the window ends when the pointer
+//!   comes back with no button down; one released back on its first box leaves that box as the drag set
+//!   it.
+//!
+//! Where it differs from ace3's script, each for a reason:
+//! - ace3 sets each box and fires its change event, one at a time, and a shift+click waits a turn of the
+//!   event loop so the clicked box's own change lands first. Here the range is one event that holds the
+//!   clicked box too, so there's one write to `$_sel` and nothing to wait for.
+//! - ace3's `preventDefault` on the press, which stops the rows' text being selected, also stops the box
+//!   taking the focus. Here the script gives the box the focus, so Tab and Space carry on from the box
+//!   that was clicked.
+//! - The keyboard: Shift+Space on a focused box is a shift+click in a browser, so it ticks the range from
+//!   the anchor, and a box toggled with Space is the anchor. ace3's handler reads the same click, so it
+//!   should do the same, but nothing in ace3 says so or tests it; here the e2e's browser checks it.
+//! - A drag acts when the pointer enters another row, not on every move within one.
+//! - Without the script (it failed to load, or scripts are off) each box still ticks by itself and the
+//!   bulk forms still post the ticked rows.
+//!
 //! Bulk disposition is ace3's "Set Disposition" on the ticked rows. Each alert is its own
 //! `Service::disposition`, which checks `alert:write` and writes its audit row, so the result is per alert:
 //! the page lists the alerts it dispositioned and those it couldn't, with why. ace3's runs them in one
@@ -873,6 +909,19 @@ pub struct ListPage {
     pub list: AlertList,
 }
 
+impl ListPage {
+    /// The page of `view`, which loads the list's script (`static/select.js`) after Datastar, with the
+    /// response's nonce, as the graph's page loads its own.
+    pub fn new(mut layout: Layout, view: ListView) -> Self {
+        layout.scripts = vec![crate::assets::SELECT_SCRIPT.url()];
+        ListPage {
+            layout,
+            list: view.list.clone(),
+            view,
+        }
+    }
+}
+
 /// The list's table on its own: what the page includes and a refresh sends.
 #[derive(Debug, Template)]
 #[template(path = "alert_list.html")]
@@ -1034,11 +1083,7 @@ pub(crate) async fn page(
         gui.service.dispositions(),
         owners.as_deref(),
     );
-    render(&ListPage {
-        layout: viewer.layout,
-        list: view.list.clone(),
-        view,
-    })
+    render(&ListPage::new(viewer.layout, view))
 }
 
 /// `GET /alerts/list`: the list's fragment, for the page's refresh.

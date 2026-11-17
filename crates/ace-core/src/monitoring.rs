@@ -31,6 +31,12 @@
 //!   suppression window, dedup). A check here is turned off or slowed by its task's entry in the
 //!   overlay's `scheduler:` section, and there are no definitions.
 //! - The records name no company: ace4 has none.
+//!
+//! ace3's other record of this kind isn't a monitor's: the engine's per-root metrics event, which it
+//! sends to fluent-bit under the tag `metrics` when it has finished a work item. Here it is
+//! `crate::metrics`: a log record under the target `ace_metrics`, one for each pass a root completes,
+//! emitted by the transaction that ends the pass and not by a scheduled check, so it has no row in
+//! `monitoring.records`.
 
 use std::path::Path;
 

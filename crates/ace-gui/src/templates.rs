@@ -97,7 +97,7 @@ pub struct Layout {
     pub stylesheet: String,
     pub datastar: String,
     /// The page's own scripts, after Datastar, each loaded with the nonce and deferred. Only the graph's
-    /// page (5.13) has any.
+    /// page (5.13) and the alert list (its range selection) have any.
     pub scripts: Vec<String>,
 }
 

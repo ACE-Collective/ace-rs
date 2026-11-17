@@ -18,7 +18,8 @@
 //! A root is complete when it has no queued, delayed or running tasks. Queueing work on an
 //! idle root starts an analysis pass, and the transaction that ends its last task records the
 //! pass's one completion (`check_completion`), which `Completions` waits for, and, for an alert, that its
-//! routing is due (`queue.routing_due`, PLAN.md 7.13's `ace_service::routing`). Every change
+//! routing is due (`queue.routing_due`, PLAN.md 7.13's `ace_service::routing`). The same transaction
+//! reads the pass's metrics event, which is logged once it has committed (`crate::metrics`). Every change
 //! that queues or ends tasks locks the root's row first, so two that race on one root take
 //! turns and the second sees what the first did: a pass can't end twice, or not at all.
 //! When the core's hooks are due (`crate::hooks`), the transaction that ends the last task queues
@@ -150,9 +151,16 @@ pub async fn lock_root(tx: &mut Tx<'_>, root: Uuid) -> Result<(), QueueError> {
 /// Starts a new analysis pass if the root's last one completed, as when tasks are queued on an
 /// idle root. Locks the root.
 pub async fn begin_pass(tx: &mut Tx<'_>, root: Uuid) -> Result<(), QueueError> {
+    Ok(start_pass(tx, root).await?)
+}
+
+/// `begin_pass`'s statement. A pass that begins records when (`pass_started_at`), which its end's
+/// metrics event measures from (`crate::metrics`).
+async fn start_pass(tx: &mut Tx<'_>, root: Uuid) -> Result<(), DbError> {
     sqlx::query!(
         "UPDATE analysis.roots
-         SET pass = CASE WHEN completed_pass = pass THEN pass + 1 ELSE pass END
+         SET pass = CASE WHEN completed_pass = pass THEN pass + 1 ELSE pass END,
+             pass_started_at = CASE WHEN completed_pass = pass THEN now() ELSE pass_started_at END
          WHERE id = $1",
         root,
     )
@@ -221,14 +229,17 @@ pub async fn check_completion(tx: &mut Tx<'_>, root: Uuid) -> Result<Option<i32>
     .fetch_optional(tx.conn())
     .await?;
     if let Some(pass) = pass {
-        sqlx::query!(
-            "INSERT INTO queue.root_completions (root_id, pass) VALUES ($1, $2)",
+        let completed_at = sqlx::query_scalar!(
+            "INSERT INTO queue.root_completions (root_id, pass) VALUES ($1, $2)
+             RETURNING completed_at",
             root,
             pass,
         )
-        .execute(tx.conn())
+        .fetch_one(tx.conn())
         .await?;
         tracing::info!(%root, pass, "the root's analysis pass completed");
+        // the pass's metrics event, ace3's per-root one, emitted once this has committed
+        crate::metrics::record(tx, root, pass, completed_at).await?;
         // an alert's routing runs on its completion (PLAN.md 7.13, `ace_service::routing`)
         sqlx::query!(
             "INSERT INTO queue.routing_due (root_id, pass)
@@ -356,14 +367,7 @@ pub async fn requeue_without_result(
     .fetch_all(tx.conn())
     .await?;
     if !ids.is_empty() {
-        sqlx::query!(
-            "UPDATE analysis.roots
-             SET pass = CASE WHEN completed_pass = pass THEN pass + 1 ELSE pass END
-             WHERE id = $1",
-            root,
-        )
-        .execute(tx.conn())
-        .await?;
+        start_pass(tx, root).await?;
     }
     Ok(ids)
 }

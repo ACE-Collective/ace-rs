@@ -11,7 +11,8 @@
 //! `configuration_defined_tagging` in the core, over the whole tree, at the end of a pass (PLAN.md 7.6).
 //! `actions` holds remediations, remediation checks and file collections, which network pools lease
 //! through the lease API as they lease tasks (PLAN.md 7.9). `svs` is the model of SVS, the Signature
-//! Validation System, which the rest of SVS builds on (PLAN.md 7.10).
+//! Validation System, which the rest of SVS builds on (PLAN.md 7.10). `metrics` is the event a root's
+//! pass logs when it ends, ace3's per-root metrics event.
 
 pub mod actions;
 pub mod api;
@@ -22,6 +23,7 @@ pub mod eligibility;
 pub mod email_archive;
 pub mod hooks;
 pub mod lists;
+pub mod metrics;
 pub mod modes;
 pub mod monitoring;
 pub mod normal;

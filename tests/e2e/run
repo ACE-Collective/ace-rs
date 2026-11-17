@@ -25,7 +25,8 @@ parser pool is frozen before the submission, so the core leases it a task it nev
 it is killed with SIGKILL while it holds that lease, then started again. Both roots must have
 results from all five modules and complete; the second only later. The same email goes in both
 times, so their trees in the normal form (PLAN.md 3.1) must be the same text, which goes to
-<work>/normal-form.json.
+<work>/normal-form.json. The core's log must have one per-root metrics event (`ace_core::metrics`,
+ace3's since 972058d1) for each pass each of the two completed, the last with the root's counts.
 
 Then search (PLAN.md 7.11): the indexer, a task of `ace serve`, has to have indexed both alerts once
 their passes completed, embedding their text with the model the ace image carries into the pgvector
@@ -50,7 +51,10 @@ of their own, and the open page has to say that its ownership changed and to who
 stream (the owner's decision of 2026-11-15). Then it opens the alert list (5.10) filtered to
 open alerts, which shows that alert, and a filter that matches nothing, which lists nothing; it opens
 the open alerts again, dispositions the alert through the JSON API with a key of its own, and the
-list's refresh has to drop it from the open page, again with no reload and nothing refused. It drives
+list's refresh has to drop it from the open page, again with no reload and nothing refused. Then it
+ticks ranges of alerts on a list of eight it makes (ace3 5fb36276): shift+click, a drag over the boxes
+and Shift+Space, sent as the browser's own mouse and key events, across two refreshes of the list, and
+Set Disposition on what is ticked (`check_range_selection`). It drives
 the browser over the DevTools protocol, with a WebSocket client here, so it needs nothing more than
 python3. Before the list, it opens that alert's relationship graph (5.13) from the alert page's link and
 checks that vis.js drew a node for the alert and each of its observables, results and tags, with nothing
@@ -1065,6 +1069,7 @@ def check_live_alert(email, failures):
         check_graph(page, root, expect)
         check_owner_notice(page, root, expect)
         check_alert_list(page, root, expect)
+        check_range_selection(page, expect)
     finally:
         page.close()
 
@@ -1311,6 +1316,257 @@ def check_alert_list(page, root, expect):
         and re.search(r"Content.Security.Policy|Refused to", e["params"]["entry"]["text"])
     ]
     expect(not refused, f"the list's policy refused nothing: {refused}")
+
+
+def check_root_metrics(roots, failures):
+    """The per-root metrics event (ace3 972058d1 and 6a9cd43f, `ace_core::metrics`): the core's log, which
+    is where the event is shipped from, has one `METRICS (root)` record for each pass each of these
+    roots completed and no more, and the last one's counts are the root's."""
+
+    def expect(ok, message):
+        log(("ok    " if ok else "FAIL  ") + message)
+        if not ok:
+            failures.append(f"the metrics event: {message}")
+        return ok
+
+    prefix = "METRICS (root): "
+    decoder = json.JSONDecoder()
+    events = []
+    for line in compose("logs", "--no-color", "ace", capture=True).splitlines():
+        at = line.find(prefix)
+        if at >= 0:
+            events.append(decoder.raw_decode(line[at + len(prefix):])[0])
+    for root in roots:
+        mine = [event for event in events if event["root_uuid"] == root]
+        row = sql(
+            f"""SELECT (SELECT count(*) FROM queue.root_completions WHERE root_id = r.id),
+                       (SELECT count(*) FROM analysis.observables WHERE root_id = r.id),
+                       (SELECT count(*) FROM queue.tasks
+                        WHERE root_id = r.id AND module <> 'core_hooks'),
+                       (SELECT count(*) FROM queue.tasks
+                        WHERE root_id = r.id AND module <> 'core_hooks' AND state = 'failed'),
+                       r.alerted_at IS NOT NULL, r.queue
+                FROM analysis.roots r WHERE r.id = '{root}'"""
+        )[0]
+        passes, observables, tasks, failed = (int(n) for n in row[:4])
+        if not expect(passes >= 1 and [event["pass"] for event in mine] == list(range(1, passes + 1)),
+                      f"the core logged one event for each of root {root}'s {passes} passes: "
+                      f"{[event['pass'] for event in mine]}"):
+            continue
+        last = mine[-1]
+        expect(last["event_type"] == "root"
+               and last["observable_count"] == observables
+               and sum(last["observable_type_counts"].values()) == observables
+               and last["task_count"] == tasks and last["failed_task_count"] == failed
+               and last["is_alert"] == (row[4] == "t") and last["queue"] == row[5]
+               and last["cancelled"] is False and last["total_time_seconds"] > 0,
+               f"its last event has the root's counts ({observables} observables, {tasks} tasks, "
+               f"{failed} failed): {json.dumps(last)}")
+
+
+def check_range_selection(page, expect):
+    """Ticking a range of alerts on the list (ace3 5fb36276, static/select.js), with a real pointer and
+    keyboard: the browser's own mouse and key events, sent over the DevTools protocol, on a list of
+    eight alerts made here. A shift+click ticks the rows from the last one clicked, and unticks them
+    when it unticks its own box; a drag over the boxes ticks the rows it passes and puts back the ones
+    it leaves, and a release back on its first box leaves that box ticked. Then the list refreshes
+    underneath, twice: the ticked rows stay ticked and a row the refresh brought in isn't, the anchor
+    outlives the refresh, and once the refresh has dropped the anchor's row a shift+click ticks its
+    own box alone. The box at the head of the column leaves the anchor where it was. Shift+Space ticks
+    a range from the keyboard. Last, the bulk form posts exactly the ticked rows, which Set
+    Disposition then dispositions. Nothing the page's policy refused, and nothing thrown."""
+    made = [str(uuid.uuid4()) for _ in range(9)]
+
+    def add(n, minutes_ago):
+        sql(f"""INSERT INTO analysis.roots
+                    (id, analysis_mode, description, event_time_source, alerted_at)
+                VALUES ('{made[n]}', 'correlation', 'e2e-range-{n}', 'unset',
+                        now() - interval '{minutes_ago} minutes')""")
+
+    def remove(n):
+        sql(f"DELETE FROM analysis.roots WHERE id = '{made[n]}'")
+
+    boxes = "[...document.querySelectorAll('#alert-list input[name=\"alert\"]')]"
+
+    def names(ids):
+        return [made.index(i) if i in made else i for i in ids]
+
+    def rows():
+        return names(page.evaluate(f"{boxes}.map(b => b.value)"))
+
+    def ticked():
+        return names(page.evaluate(f"{boxes}.filter(b => b.checked).map(b => b.value)"))
+
+    def is_ticked(wanted, what):
+        try:
+            wait_for(what, lambda: ticked() == wanted, within=5, every=0.1)
+        except SystemExit:
+            pass
+        found = ticked()
+        return expect(found == wanted, f"{what}: rows {found} are ticked")
+
+    def centre(selector):
+        point = page.evaluate(
+            f"(() => {{ const r = document.querySelector({json.dumps(selector)})"
+            ".getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; })()"
+        )
+        return point[0], point[1]
+
+    def box(n):
+        return f'#alert-list input[name="alert"][value="{made[n]}"]'
+
+    def mouse(kind, selector, shift=False):
+        x, y = centre(selector)
+        held = kind in ("mousePressed", "mouseDragged")
+        page.call(
+            "Input.dispatchMouseEvent",
+            type="mouseMoved" if kind == "mouseDragged" else kind,
+            x=x, y=y,
+            button="none" if kind == "mouseMoved" else "left",
+            buttons=1 if held else 0,
+            clickCount=0 if kind in ("mouseMoved", "mouseDragged") else 1,
+            modifiers=8 if shift else 0,
+        )
+
+    def click(selector, shift=False):
+        mouse("mouseMoved", selector, shift)
+        mouse("mousePressed", selector, shift)
+        mouse("mouseReleased", selector, shift)
+
+    def space(shift=False):
+        for kind in ("keyDown", "keyUp"):
+            page.call(
+                "Input.dispatchKeyEvent", type=kind, key=" ", code="Space",
+                windowsVirtualKeyCode=32, nativeVirtualKeyCode=32,
+                modifiers=8 if shift else 0, **({"text": " "} if kind == "keyDown" else {}),
+            )
+
+    def refreshed(wanted, what):
+        try:
+            wait_for(what, lambda: rows() == wanted, within=75, every=0.5)
+        except SystemExit as error:
+            log(str(error))
+        return expect(rows() == wanted, f"{what}: the list has rows {rows()}")
+
+    try:
+        # alert n is n + 1 minutes old, so the list, newest first, has them in order
+        for n in range(8):
+            add(n, n + 1)
+        page.events.clear()
+        # tall enough that every row is on the screen, so a drag never scrolls the page under it
+        page.call("Emulation.setDeviceMetricsOverride", width=1280, height=1600,
+                  deviceScaleFactor=1, mobile=False)
+        page.call("Page.navigate", url=f"{GUI_IN_STACK}/?f=description:e2e-range-")
+        page.wait("the alert list of the range's alerts", "document.readyState === 'complete' && "
+                  "document.getElementById('alert-list') !== null", within=30)
+        page.evaluate("window.ace4E2eMarker = 'the list as it was loaded'")
+        navigations = len([e for e in page.events if e["method"] == "Page.frameNavigated"])
+        loaded = page.evaluate(
+            "[...document.querySelectorAll('script[src]')].map(s => s.getAttribute('src'))"
+        )
+        expect(len(loaded) == 2 and re.fullmatch(r"/static/select\.[0-9a-f]{16}\.js", loaded[1]),
+               f"the list loads Datastar and its own script, from this origin: {loaded}")
+        if not expect(rows() == list(range(8)) and ticked() == [],
+                      f"the list has the eight alerts, newest first, none ticked: {rows()}"):
+            return
+
+        click(box(1))
+        is_ticked([1], "a click ticks its row")
+        focused = page.evaluate("document.activeElement?.value ?? null")
+        expect(focused == made[1], "the clicked box has the focus, for the keyboard to carry on from")
+        click(box(4), shift=True)
+        is_ticked([1, 2, 3, 4], "a shift+click ticks every row from the last one clicked")
+        posted = names(page.evaluate("new FormData(document.getElementById('bulk')).getAll('alert')"))
+        expect(posted == [1, 2, 3, 4], f"the bulk form would post the ticked rows: {posted}")
+        click(box(2), shift=True)
+        is_ticked([1], "a shift+click that unticks its box unticks the range back to the last click")
+
+        # a drag: press on row 5, over rows 6 and 7, back to 6, and let go there
+        mouse("mouseMoved", box(5))
+        mouse("mousePressed", box(5))
+        mouse("mouseDragged", box(6))
+        mouse("mouseDragged", box(7))
+        is_ticked([1, 5, 6, 7], "a drag ticks the rows it passes over")
+        mouse("mouseDragged", box(6))
+        is_ticked([1, 5, 6], "and puts back the row it leaves again")
+        mouse("mouseReleased", box(6))
+        is_ticked([1, 5, 6], "letting go keeps them")
+        # a drag that comes back to its first box and lets go there: the click that follows the
+        # release must not untick it
+        mouse("mouseMoved", box(0))
+        mouse("mousePressed", box(0))
+        mouse("mouseDragged", box(1))
+        mouse("mouseDragged", box(0))
+        mouse("mouseReleased", box(0))
+        is_ticked([0, 1, 5, 6], "a drag let go on its first box leaves that box ticked")
+        selected = page.evaluate("String(window.getSelection())")
+        expect(selected == "", f"neither selected the rows' text: {selected!r}")
+
+        # the list refreshes underneath: a new alert arrives at the top and an unticked one goes
+        add(8, 0)
+        remove(3)
+        log("changed the list underneath; waiting for its refresh")
+        if not refreshed([8, 0, 1, 2, 4, 5, 6, 7], "the refresh brought the new alert and dropped one"):
+            return
+        is_ticked([0, 1, 5, 6], "the refresh kept the ticked rows and ticked nothing else")
+        click(box(2), shift=True)
+        is_ticked([0, 1, 2, 5, 6], "the anchor, the row the drag ended on, outlived the refresh")
+        # the anchor is row 2 now; the next refresh drops it
+        remove(2)
+        log("removed the anchor's alert; waiting for the list's refresh")
+        if not refreshed([8, 0, 1, 4, 5, 6, 7], "the refresh dropped the anchor's row"):
+            return
+        click(box(7), shift=True)
+        is_ticked([0, 1, 5, 6, 7], "with its anchor gone, a shift+click ticks its own row alone")
+
+        click("#tick-all")
+        is_ticked([8, 0, 1, 4, 5, 6, 7], "the box at the head of the column ticks every row")
+        click("#tick-all")
+        is_ticked([], "and unticks them")
+        click(box(4), shift=True)
+        is_ticked([4, 5, 6, 7], "it left the anchor where it was, on the last row")
+
+        # the keyboard: Space ticks the focused box, and Shift+Space ticks the range from it
+        page.evaluate(f"document.querySelector({json.dumps(box(8))}).focus()")
+        space()
+        is_ticked([8, 4, 5, 6, 7], "Space ticks the focused row")
+        page.evaluate(f"document.querySelector({json.dumps(box(1))}).focus()")
+        space(shift=True)
+        is_ticked([8, 0, 1, 4, 5, 6, 7], "Shift+Space ticks the range from the last row ticked")
+        click(box(8))
+        is_ticked([0, 1, 4, 5, 6, 7], "a click unticks one row of it")
+
+        same = page.evaluate("window.ace4E2eMarker") == "the list as it was loaded"
+        later = len([e for e in page.events if e["method"] == "Page.frameNavigated"])
+        expect(same and later == navigations, "the list wasn't reloaded or navigated through all of it")
+        refused = [
+            e["params"]["entry"]["text"] for e in page.events
+            if e["method"] == "Log.entryAdded"
+            and re.search(r"Content.Security.Policy|Refused to", e["params"]["entry"]["text"])
+        ]
+        expect(not refused, f"the list's policy refused nothing: {refused}")
+        thrown = [e["params"]["exceptionDetails"].get("text") for e in page.events
+                  if e["method"] == "Runtime.exceptionThrown"]
+        expect(not thrown, f"nothing on the list threw: {thrown}")
+
+        # the bulk action reads the ticked boxes: Set Disposition dispositions those six alone
+        page.evaluate("document.getElementById('bulk-disposition').value = 'FALSE_POSITIVE'")
+        click("#bulk button.primary")
+        try:
+            page.wait("the bulk disposition's answer", "document.readyState === 'complete' && "
+                      "location.pathname === '/alerts/disposition'", within=30)
+        except SystemExit as error:
+            log(str(error))
+        dispositioned = sorted(
+            int(row[0].rsplit("-", 1)[1]) for row in sql(
+                "SELECT description FROM analysis.roots "
+                "WHERE description LIKE 'e2e-range-%' AND disposition = 'FALSE_POSITIVE'")
+        )
+        expect(dispositioned == [0, 1, 4, 5, 6, 7],
+               f"Set Disposition dispositioned the ticked alerts and no other: {dispositioned}")
+    finally:
+        page.call("Emulation.clearDeviceMetricsOverride")
+        sql("DELETE FROM analysis.roots WHERE description LIKE 'e2e-range-%'")
 
 
 def check_search(first, second, failures):
@@ -1776,6 +2032,7 @@ def main(argv):
         else:
             log("FAIL  the roots' normal forms differ; see normal-form*.json in " + str(WORK))
             failures.append("the same email's two roots have different normal forms")
+        check_root_metrics([first, second], failures)
         check_search(first, second, failures)
         check_ai(first, failures)
         check_whitelist(email, failures)

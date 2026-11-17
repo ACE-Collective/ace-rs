@@ -1,7 +1,8 @@
 {#- The alert list (PLAN.md 5.10): ace3's analysis/manage.html, with its filter bar, filter editor, saved
     filters, column chooser, bulk disposition and the alert table, which refreshes in place. Every control
     is a link or a form. The Datastar expressions hold no outside value: the refresh URL is data-refresh,
-    read through el.dataset, and a row's id is a uuid (src/list.rs). -#}
+    read through el.dataset, and a row's id is a uuid (src/list.rs). The page's own script,
+    static/select.js, ticks a range of rows; the layout loads it (ListPage::new). -#}
 {% extends "base.html" %}
 {% block title %}Alerts · ACE{% endblock %}
 {% block content %}
@@ -127,7 +128,7 @@
   <div class="actions-bar">
     <form id="bulk" method="post" action="/alerts/disposition" class="bulk-form">
       <input type="hidden" name="next" value="{{ view.here }}">
-      <span class="bulk-title">Ticked alerts</span>
+      <span class="bulk-title" title="Shift+click a box, or drag over the boxes, to tick a range of alerts">Ticked alerts</span>
       <span class="bulk-group">
       <label for="bulk-disposition" title="Set the disposition of the ticked alerts">Disposition</label>
       <select id="bulk-disposition" name="disposition">
@@ -155,7 +156,10 @@
     </form>
   </div>
 
+  {#- $_sel is the ticked rows' ids. ace-select is static/select.js's event, a range of rows to tick
+      (detail.on) and to untick (detail.off), each an id read off a row's box -#}
   <div id="alert-page" data-signals:_sel="[]" data-refresh="{{ view.refresh }}"
+       data-on:ace-select="$_sel = $_sel.filter(id => !evt.detail.on.includes(id) && !evt.detail.off.includes(id)).concat(evt.detail.on)"
        data-on-interval__duration.{{ view.refresh_seconds }}s="!document.hidden && @get(el.dataset.refresh)">
     {% include "alert_list.html" %}
   </div>

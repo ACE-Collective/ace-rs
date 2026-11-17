@@ -69,6 +69,17 @@ pub(crate) static GRAPH_SCRIPT: LazyLock<Asset> = LazyLock::new(|| {
     )
 });
 
+/// The alert list's own script, which ticks a range of alerts (`crate::list`'s *Selection*). Only the
+/// list's page loads it.
+pub(crate) static SELECT_SCRIPT: LazyLock<Asset> = LazyLock::new(|| {
+    Asset::new(
+        "select",
+        "js",
+        include_bytes!("../static/select.js"),
+        "text/javascript; charset=utf-8",
+    )
+});
+
 /// The stylesheet, with ace3's five themes.
 pub(crate) static STYLESHEET: LazyLock<Asset> = LazyLock::new(|| {
     Asset::new(
@@ -81,9 +92,15 @@ pub(crate) static STYLESHEET: LazyLock<Asset> = LazyLock::new(|| {
 
 /// The asset whose hashed name this is.
 pub fn asset_named(name: &str) -> Option<&'static Asset> {
-    [&*DATASTAR, &*STYLESHEET, &*VIS, &*GRAPH_SCRIPT]
-        .into_iter()
-        .find(|asset| asset.name == name)
+    [
+        &*DATASTAR,
+        &*STYLESHEET,
+        &*VIS,
+        &*GRAPH_SCRIPT,
+        &*SELECT_SCRIPT,
+    ]
+    .into_iter()
+    .find(|asset| asset.name == name)
 }
 
 /// `GET /static/{name}`.

@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO queue.root_completions (root_id, pass) VALUES ($1, $2)\n             RETURNING completed_at",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "completed_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "queue.root_completions",
+            "name": "completed_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "ebda4b5391518aa7b88b812b9a30a256b6d13a1bcc13a97efd4b9fc5272c0193"
+}
