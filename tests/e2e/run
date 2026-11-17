@@ -111,18 +111,25 @@ Usage: tests/e2e/run [--keep] [--compare] [--jobs N]
 
 Exits 0 when every check passes. Needs docker compose and python3 on the host.
 
-A site repository runs the same scenario, without the comparison with ace3, against its own images (PLAN.md 2.32) by setting:
+A site repository runs the same scenario against its own images (PLAN.md 2.32) by setting:
 
 - ACE4_E2E_COMPOSE: its Compose file, whose services have this file's names (postgres, bucket,
-  ace, parsers, lookups and the e2e profile's responder);
+  ace, ai, parsers, sandbox, lookups, scanners and the e2e profile's responder, and its browser
+  for the browser test), with the `scanned` network, and whose ace and ai services get their
+  database logins in ACE4_DATABASE_URL;
 - ACE4_E2E_PREFIX: the prefix of that file's variables, such as SITE_PORT_, in place of ACE4_;
 - ACE4_E2E_PROJECT: the Compose project the test runs under, in place of ace4-e2e;
 - ACE4_E2E_SITE: the site overlay directory, in place of tests/e2e/site;
 - ACE4_E2E_WORK: where the signatures repository goes, in place of target/e2e;
 - ACE4_E2E_PORT: the host port, as for ace4;
-- ACE4_E2E_ACE_COMMAND: the ace service's binary, in place of ace.
+- ACE4_E2E_ACE_COMMAND: the ace service's binary, in place of ace;
+- ACE4_E2E_COMPARE: 1 to run the comparison with ace3 and its threshold as well.
 
-Its modules differ from ace3's by design, so setting ACE4_E2E_SITE skips the comparison.
+A site's own modules may differ from ace3's by design, so setting ACE4_E2E_SITE skips the
+comparison, unless ACE4_E2E_COMPARE is 1: a site whose binaries hold every module of ace4's, and
+whose own modules run on nothing in the sample set, has to make the same trees. Its overlay then
+needs what tests/e2e/site/overlay.yaml gives ace4. The library diff's self-test and the module
+inventory check this repository, not a stack, so a site's run never includes them.
 """
 
 import base64
@@ -150,6 +157,9 @@ SITE = Path(os.environ.get("ACE4_E2E_SITE", ROOT / "tests" / "e2e" / "site")).re
 PROJECT = os.environ.get("ACE4_E2E_PROJECT", "ace4-e2e")
 PORT = os.environ.get("ACE4_E2E_PORT", "7444")
 ACE_COMMAND = os.environ.get("ACE4_E2E_ACE_COMMAND", "ace")
+# A site's run: against another repository's Compose file and overlay.
+SITE_RUN = "ACE4_E2E_SITE" in os.environ
+COMPARE = not SITE_RUN or os.environ.get("ACE4_E2E_COMPARE") == "1"
 LEASE_SECONDS = 15
 
 
@@ -247,6 +257,14 @@ def compose(*args, check=True, capture=False, exit_code=False):
             f"{result.stderr if capture else ''}"
         )
     return result.stdout if capture else ""
+
+
+def database_login(service):
+    """The database URL the Compose file gives a service, and the login in it: ace4's own names, or
+    a site's."""
+    config = json.loads(compose("config", "--format", "json", capture=True))
+    url = config["services"][service]["environment"]["ACE4_DATABASE_URL"]
+    return url, urllib.parse.urlsplit(url).username
 
 
 def sql(query):
@@ -1697,16 +1715,18 @@ def check_ai(first, failures):
     logs = compose("logs", "ai", capture=True)
     expect("AI API custody checks passed" in logs and "the AI investigation API is on" in logs,
            "the ai service checked what it holds when it started, and turned the API on")
+    core_url, _ = database_login("ace")
+    _, ai_login = database_login("ai")
     login = sql("SELECT rolsuper OR rolcreaterole OR rolcreatedb OR rolbypassrls, "
-                "pg_has_role(rolname, 'ace4_ai', 'MEMBER') FROM pg_roles WHERE rolname = 'ace4_ai_login'")
+                "pg_has_role(rolname, 'ace4_ai', 'MEMBER') FROM pg_roles WHERE rolname = '"
+                + ai_login.replace("'", "''") + "'")
     expect(login == [["f", "t"]],
-           f"its database login is a plain member of ace4_ai: {login}")
+           f"its database login, {ai_login}, is a plain member of ace4_ai: {login}")
     # handed the email archive's key, or the core's database login, it doesn't start
     for what, args, named in [
         ("the email archive's key", ["-e", "ACE4_ENCRYPTION_KEY=" + "00" * 32], "ACE4_ENCRYPTION_KEY"),
         ("a pool's token", ["-e", "ACE4_POOL_TOKEN_PARSERS=ace4-dev-parsers-token"], "ACE4_POOL_TOKEN_PARSERS"),
-        ("the core's database login",
-         ["-e", "ACE4_DATABASE_URL=postgres://ace4:ace4-dev-password@postgres:5432/ace4"], "superuser"),
+        ("the core's database login", ["-e", f"ACE4_DATABASE_URL={core_url}"], "superuser"),
     ]:
         refused = subprocess.run(
             [*COMPOSE, "run", "--rm", "--no-deps", "-T", *args, "ai"],
@@ -2045,9 +2065,10 @@ def main(argv):
                 failures.append(f"the browser test: {error}")
         else:
             log("SKIP  the browser test: the Compose file has no browser service")
-        if "ACE4_E2E_SITE" not in os.environ:
+        if not SITE_RUN:
             check_library_diff(failures)
             check_module_inventory(failures)
+        if COMPARE:
             compare_failed = compare_with_ace3(threshold=True, jobs=jobs) != 0
             check_ports_compared(failures)
             if compare_failed:
