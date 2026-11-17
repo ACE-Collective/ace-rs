@@ -101,7 +101,7 @@ use crate::commands::{CommandState, CommandWorker};
 use crate::db::{Db, DbError, Isolation, Retryable};
 use crate::lists::ListCache;
 use crate::orchestrator::{Orchestrator, OrchestratorError, Rejected};
-use crate::queue::{QueueError, TASKS_CHANNEL, Task, TaskId, Worker};
+use crate::queue::{HELD_BACK_BY, QueueError, TASKS_CHANNEL, Task, TaskId, Worker};
 use crate::scans::{EndedScan, ScanRowState, ScanWorker};
 use crate::tree;
 
@@ -113,7 +113,9 @@ pub const WORKER_HEADER: &str = "x-ace4-worker";
 
 /// How long a task that runs last first waits for the rest of its root, doubling up to 32 s while the
 /// same thing holds it back (`tree::HeldBack`). Every file has one, so it starts low: most roots are
-/// done in a moment.
+/// done in a moment. A task that waits for every other module is also woken when the last of them
+/// ends (`queue::check_completion`), so this is how soon it asks again while they run, and the
+/// fallback when nothing wakes it.
 const OTHERS_PENDING_DELAY: Duration = Duration::from_millis(250);
 
 /// How long a file's first task is held, at most, while something nearer the root that could add
@@ -941,18 +943,29 @@ impl Api {
             {
                 let before = task.delayed.as_ref().map(|d| &d.state);
                 let step = match before {
-                    Some(state) if state["held_back_by"] == held.as_str() => {
+                    Some(state) if state[HELD_BACK_BY] == held.as_str() => {
                         state["step"].as_u64().unwrap_or(0).saturating_add(1)
                     }
                     _ => 0,
                 };
                 let exponent = u32::try_from(step.min(7)).unwrap_or(7);
                 let after = OTHERS_PENDING_DELAY.saturating_mul(2u32.saturating_pow(exponent));
-                let state = serde_json::json!({"held_back_by": held.as_str(), "step": step});
+                let state = serde_json::json!({HELD_BACK_BY: held.as_str(), "step": step});
                 match worker.delay(task.id, after, &state).await {
-                    Ok(_) | Err(QueueError::Cancelled(_)) => return Ok(None),
+                    Ok(_) => {}
+                    Err(QueueError::Cancelled(_)) => return Ok(None),
                     Err(e) => return Err(e.into()),
                 }
+                // every other module has finished, and this task's delay isn't an end that would
+                // wake the ones still waiting for that (`queue::check_completion`). They come back
+                // when their waits end if this fails, so it doesn't fail the lease.
+                if held == tree::HeldBack::ByLastBelow
+                    && let Err(e) =
+                        crate::queue::wake_held_back_now(&self.inner.db, task.root).await
+                {
+                    tracing::warn!(task = %task.id, "couldn't wake the tasks held back: {e}");
+                }
+                return Ok(None);
             }
         }
         let reads_email = catalog

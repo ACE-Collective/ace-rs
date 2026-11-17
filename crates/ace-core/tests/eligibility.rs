@@ -1000,6 +1000,243 @@ async fn a_module_that_runs_last_waits_for_one_below_it() {
     assert!(!pending(email_id).await && !pending(xls_id).await);
 }
 
+/// A task that runs last and waits for every other module is due as soon as the last of them ends,
+/// however long its wait had grown, with its delay's record as it was: its state, its count and its
+/// first delay. Nothing else moves: not while another module's task is left, a module's own delay
+/// among them, which keeps its time, and not a task that waits for one below it.
+#[tokio::test]
+async fn a_task_held_back_for_the_others_is_due_when_the_last_of_them_ends() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let hash = |c: &str| c.repeat(64);
+    let (file, below) = (hash("a"), hash("b"));
+    let (root, ids) = root_with(
+        db,
+        "test",
+        &[
+            (ObservableKind::File, file.as_str()),
+            (ObservableKind::File, below.as_str()),
+            (ObservableKind::Fqdn, "example.com"),
+        ],
+    )
+    .await;
+    let queue = |id, module: &'static str| async move {
+        let mut tx = db.begin().await.expect("begins");
+        ace_core::queue::enqueue(&mut tx, root, id, module)
+            .await
+            .expect("queues");
+        tx.commit().await.expect("commits");
+    };
+    for (id, module) in [
+        (ids[0], "xlmdeobfuscator"),
+        (ids[1], "xlmdeobfuscator"),
+        (ids[0], "lure_url_analyzer"),
+        (ids[0], "archive"),
+        (ids[1], "archive"),
+        (ids[2], "proxy_domain_splunk"),
+    ] {
+        queue(id, module).await;
+    }
+    let lease = Duration::from_secs(30);
+    let minute = Duration::from_secs(60);
+    // as the lease holds them back: two for the others, for a minute, as after many asks, and one
+    // for a task below it
+    let last = worker(
+        &test_db,
+        "last",
+        &["xlmdeobfuscator", "lure_url_analyzer"],
+        lease,
+    )
+    .await;
+    let mut held = Vec::new();
+    while let Some(task) = last.claim().await.expect("claims") {
+        let by = if task.module == "lure_url_analyzer" {
+            tree::HeldBack::ByLastBelow
+        } else {
+            tree::HeldBack::ByOthers
+        };
+        let state = json!({(ace_core::queue::HELD_BACK_BY): by.as_str(), "step": 6});
+        last.delay(task.id, minute, &state).await.expect("delays");
+        held.push(task.id);
+    }
+    assert_eq!(held.len(), 3);
+    let record = || async {
+        sqlx::query_as::<_, (i64, i32, chrono::DateTime<chrono::Utc>, serde_json::Value)>(
+            "SELECT id, delays, first_delayed_at, delay_state FROM queue.tasks
+             WHERE root_id = $1 AND module = 'xlmdeobfuscator' ORDER BY id",
+        )
+        .bind(root)
+        .fetch_all(db.pool())
+        .await
+        .expect("reads")
+    };
+    let before = record().await;
+    // a module's own delay, which is another module's task still to run
+    let splunk = worker(&test_db, "splunk", &["proxy_domain_splunk"], lease).await;
+    let task = splunk.claim().await.expect("claims").expect("the task");
+    let own = Duration::from_millis(1500);
+    let due = splunk
+        .delay(task.id, own, &json!({"sid": "1"}))
+        .await
+        .expect("delays");
+
+    let archive = worker(&test_db, "archive", &["archive"], lease).await;
+    let task = archive.claim().await.expect("claims").expect("the task");
+    archive.complete(task.id).await.expect("completes");
+    assert!(
+        last.claim().await.expect("claims").is_none(),
+        "an archive task is left"
+    );
+    let task = archive.claim().await.expect("claims").expect("the task");
+    archive.fail(task.id, "broke").await.expect("fails");
+    assert!(
+        last.claim().await.expect("claims").is_none(),
+        "the Splunk task is left, delayed"
+    );
+    assert!(
+        splunk.claim().await.expect("claims").is_none(),
+        "and its own delay is as long as it was"
+    );
+    assert_eq!(splunk.next_due().await.expect("reads"), Some(due));
+
+    tokio::time::sleep(own).await;
+    let task = splunk.claim().await.expect("claims").expect("the task");
+    splunk.complete(task.id).await.expect("completes");
+    // the last of the others ended: both are due, 58 seconds early
+    let mut woken = Vec::new();
+    while let Some(task) = last.claim().await.expect("claims") {
+        assert_eq!(task.module, "xlmdeobfuscator");
+        let delayed = task.delayed.as_ref().expect("its delay's record");
+        assert_eq!(
+            delayed.state,
+            json!({"held_back_by": "others", "step": 6}),
+            "the state the lease reads its next wait from"
+        );
+        assert_eq!(delayed.delays, 1);
+        woken.push(task.id);
+    }
+    assert_eq!(
+        woken.len(),
+        2,
+        "the one waiting for a task below keeps its wait"
+    );
+    assert_eq!(
+        record().await,
+        before,
+        "nothing of the delays' record moved"
+    );
+    let lure: String = sqlx::query_scalar(
+        "SELECT state::text FROM queue.tasks WHERE root_id = $1 AND module = 'lure_url_analyzer'",
+    )
+    .bind(root)
+    .fetch_one(db.pool())
+    .await
+    .expect("reads");
+    assert_eq!(lure, "delayed");
+}
+
+/// A task of a module that runs last that hasn't asked yet isn't marked as held back, so it counts as
+/// another module's and the others' wait stands; a task's end, or the lease when it holds that one
+/// back for a task below it (`queue::wake_held_back_now`), wakes them then. A cancelled root's tasks
+/// stay cancelled.
+#[tokio::test]
+async fn a_task_that_has_not_asked_yet_puts_the_wake_off_until_it_has() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let hash = |c: &str| c.repeat(64);
+    let (file, below) = (hash("a"), hash("b"));
+    let (root, ids) = root_with(
+        db,
+        "test",
+        &[
+            (ObservableKind::File, file.as_str()),
+            (ObservableKind::File, below.as_str()),
+        ],
+    )
+    .await;
+    let queue = |id, module: &'static str| async move {
+        let mut tx = db.begin().await.expect("begins");
+        ace_core::queue::enqueue(&mut tx, root, id, module)
+            .await
+            .expect("queues");
+        tx.commit().await.expect("commits");
+    };
+    let lease = Duration::from_secs(30);
+    let minute = Duration::from_secs(60);
+    let held_back =
+        |by: tree::HeldBack| json!({(ace_core::queue::HELD_BACK_BY): by.as_str(), "step": 0});
+    let last = worker(&test_db, "last", &["xlmdeobfuscator"], lease).await;
+    queue(ids[1], "xlmdeobfuscator").await;
+    let first = last.claim().await.expect("claims").expect("the task");
+    last.delay(first.id, minute, &held_back(tree::HeldBack::ByOthers))
+        .await
+        .expect("delays");
+    // one that hasn't asked, and the last other task
+    queue(ids[0], "xlmdeobfuscator").await;
+    queue(ids[0], "archive").await;
+    let archive = worker(&test_db, "archive", &["archive"], lease).await;
+    let task = archive.claim().await.expect("claims").expect("the task");
+    archive.complete(task.id).await.expect("completes");
+    let fresh = last
+        .claim()
+        .await
+        .expect("claims")
+        .expect("the one not asked");
+    assert_eq!(fresh.observable.id, ids[0]);
+    assert!(
+        last.claim().await.expect("claims").is_none(),
+        "the first one's wait stands"
+    );
+    // the lease holds the fresh one back for the one below it, and says so
+    last.delay(fresh.id, minute, &held_back(tree::HeldBack::ByLastBelow))
+        .await
+        .expect("delays");
+    assert_eq!(
+        ace_core::queue::wake_held_back_now(db, root)
+            .await
+            .expect("wakes"),
+        1
+    );
+    let woken = last.claim().await.expect("claims").expect("the first");
+    assert_eq!(woken.id, first.id);
+    assert_eq!(
+        ace_core::queue::wake_held_back_now(db, root)
+            .await
+            .expect("wakes"),
+        0,
+        "none is left waiting for the others"
+    );
+
+    // a cancelled root: its held tasks are cancelled, and an end wakes none of them
+    let (root, ids) = root_with(db, "test", &[(ObservableKind::File, file.as_str())]).await;
+    for module in ["xlmdeobfuscator", "archive"] {
+        let mut tx = db.begin().await.expect("begins");
+        ace_core::queue::enqueue(&mut tx, root, ids[0], module)
+            .await
+            .expect("queues");
+        tx.commit().await.expect("commits");
+    }
+    let task = last.claim().await.expect("claims").expect("the task");
+    last.delay(task.id, minute, &held_back(tree::HeldBack::ByOthers))
+        .await
+        .expect("delays");
+    let running = archive.claim().await.expect("claims").expect("the task");
+    let mut tx = db.begin().await.expect("begins");
+    ace_core::queue::cancel_root(&mut tx, root)
+        .await
+        .expect("cancels");
+    tx.commit().await.expect("commits");
+    archive.cancelled(running.id).await.expect("ends");
+    assert!(last.claim().await.expect("claims").is_none());
+    assert_eq!(
+        tasks_of(db, root).await,
+        [
+            ("archive".to_owned(), file.clone(), "cancelled".to_owned()),
+            ("xlmdeobfuscator".to_owned(), file, "cancelled".to_owned()),
+        ]
+    );
+}
+
 /// The walk ace3's `recurse_tree` does: the file, what was added below it by any module, and no
 /// further than that. A cycle ends, and a result with no rules has none.
 #[tokio::test]

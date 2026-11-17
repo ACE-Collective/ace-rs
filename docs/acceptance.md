@@ -39,6 +39,18 @@ A row says a difference is fine, so it needs a reason someone verified: read ace
 
 `tests/e2e/run --compare` reports without enforcing, for working through a port's differences. `report.md` and `report.json` under `target/e2e/compare/` have every difference, and `report.md` says whether the threshold is met.
 
+## How the samples run
+
+`ace compare` keeps several samples in the stack at a time (`--jobs`, 8 unless it says). `tests/e2e/run` gives its stack's parser and sandbox pools 4 to 8 slots by the machine's CPUs and passes that many, and `tests/e2e/run --jobs 1` runs the samples one at a time, as every run did before 2026-11-16. Either way each sample goes through the whole stack and is diffed with ace3's tree, and the threshold is the same. A sample's tree doesn't depend on what runs beside it: `crates/ace-app/src/compare.rs` (*Several samples at once*) says why, and `docs/measurements/compare-speed.md` has the runs that checked it.
+
+Two runs of the same code don't give the same report byte for byte, one at a time or not. Three things move, all in rows already listed:
+
+- Ghostscript's rewrite of a PDF has a new sha256 each run, so the `md5:`, `sha1:` and `sha256:` observables of its hashes do too. Their number doesn't change.
+- pdftotext's text of a PDF and of its rewrite is one observable, redirected to whichever of the two PDFs has the lower sha256, so about half of those redirections differ from ace3's on any run. The count of explained differences moves by a few for this reason alone (38 and 41 of them in two runs of one commit).
+- Values that hold a time or a task's temporary directory: exif's file dates, `dmg_analyzer`'s stderr, `de4dot`'s stdout.
+
+So a count of explained differences that moves by a few between runs is not a regression by itself. A difference with no row is one, on any run.
+
 ## A port of a library
 
 A Rust port of a library is compared with the library itself before its module moves (`PLAN.md` 4.9 to 4.12). `tools/library-diff/run LIBRARY --right rust:PACKAGE/BIN` runs each side on every file in `samples/manifest.json`, whatever its kind, and has the same threshold: a difference that `tools/library-diff/differences/LIBRARY.md` doesn't list fails, and so does a row that matches nothing. Rows follow *Listing a difference*. The top of that script has the contract. `tools/library-diff/run --all` runs each library on both sides, about 19 minutes over 364 samples, and `tests/e2e/run` runs only its `self-test`.

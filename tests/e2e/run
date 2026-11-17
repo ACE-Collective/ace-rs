@@ -95,11 +95,15 @@ that matches nothing, so the list stays true. So does a sample absent from this 
 is set: CI doesn't have the git-ignored samples/local/, so there it holds over the tracked samples,
 and the report says how many were absent.
 
-Usage: tests/e2e/run [--keep] [--compare]
+Usage: tests/e2e/run [--keep] [--compare] [--jobs N]
   --keep      leaves the stack up
   --compare   only brings up the stack and runs `ace compare` over the sample set, reporting
               differences without enforcing the threshold, and fails only when a sample can't be
               run
+  --jobs N    `ace compare` has N samples in the stack at once; 1 runs them one at a time
+              (crates/ace-app/src/compare.rs, *Several samples at once*). Without it, as many as
+              the parser pool has slots here: 8 on a machine whose Docker has 10 CPUs or more,
+              4 on a small one
 
 Exits 0 when every check passes. Needs docker compose and python3 on the host.
 
@@ -143,6 +147,20 @@ PROJECT = os.environ.get("ACE4_E2E_PROJECT", "ace4-e2e")
 PORT = os.environ.get("ACE4_E2E_PORT", "7444")
 ACE_COMMAND = os.environ.get("ACE4_E2E_ACE_COMMAND", "ace")
 LEASE_SECONDS = 15
+
+
+def pool_slots():
+    """How many tasks the parser and sandbox pools run at once here: Docker's CPUs less two, for the
+    core and Postgres, and no fewer than the stack's own 4 or more than 8. The comparison is bound by
+    these pools: at 4 they are full while the machine is a third used
+    (docs/measurements/compare-speed.md)."""
+    cpus = subprocess.run(
+        ["docker", "info", "--format", "{{.NCPU}}"], capture_output=True, text=True, check=False
+    ).stdout.strip()
+    return min(8, max(4, int(cpus) - 2)) if cpus.isdigit() else 4
+
+
+POOL_SLOTS = pool_slots()
 RULE = "ace4_e2e_attachment"
 SAMPLE = "ace4/email/e2e.email.rfc822"
 EMAIL_SAMPLE = ROOT / "samples" / SAMPLE
@@ -171,6 +189,17 @@ ENV = {
             "POOL_RULESET_POLL_SECONDS": "2",
             # the recorded Splunk takes any password
             "SPLUNK_PASSWORD": "ace4-fake-password",
+            # the pools that run a process per task, sized to this machine unless the environment
+            # says, with the stack's 1 GiB of memory limit a slot
+            **{
+                name: os.environ.get(PREFIX + name, value)
+                for name, value in {
+                    "PARSERS_CONCURRENCY": str(POOL_SLOTS),
+                    "SANDBOX_CONCURRENCY": str(POOL_SLOTS),
+                    "PARSERS_MEM_LIMIT": f"{POOL_SLOTS}g",
+                    "SANDBOX_MEM_LIMIT": f"{POOL_SLOTS}g",
+                }.items()
+            },
             # phishkit's containers go on the e2e profile's internal network, which reaches the
             # responder and nothing outside the stack (compose.yaml's `scanned`)
             "PHISHKIT_NETWORK": f"{PROJECT}_scanned",
@@ -1591,9 +1620,19 @@ def give_ace4_the_trees_world():
     return None
 
 
-def compare_with_ace3(threshold=False):
+def jobs_of(argv):
+    """The number after --jobs, or None without it, which leaves it to `ace compare`."""
+    if "--jobs" not in argv:
+        return None
+    following = argv[argv.index("--jobs") + 1:]
+    if not following or not following[0].isdigit() or int(following[0]) < 1:
+        raise SystemExit("e2e: --jobs takes a number, 1 or more")
+    return int(following[0])
+
+
+def compare_with_ace3(threshold=False, jobs=None):
     """Runs `ace compare` over the sample set in a one-off ace container, with the report under
-    <work>/compare. Returns its exit code."""
+    <work>/compare, `jobs` samples at once when it's given. Returns its exit code."""
     report = WORK / "compare"
     report.mkdir(parents=True, exist_ok=True)
     # ace3's trees were made against an empty brocess (tools/ace3/trees/brocess.json), and the
@@ -1621,6 +1660,8 @@ def compare_with_ace3(threshold=False):
         "ace", ACE_COMMAND, "compare", "--samples", "/compare/samples", "--trees", "/compare/trees",
         "--report", "/compare/report",
     ]
+    if jobs:
+        command += ["--jobs", str(jobs)]
     if threshold:
         command.append("--threshold")
         if os.environ.get("CI"):
@@ -1689,6 +1730,7 @@ def finish(failures):
 def main(argv):
     keep = "--keep" in argv
     compare_only = "--compare" in argv
+    jobs = jobs_of(argv) or POOL_SLOTS
     WORK.mkdir(parents=True, exist_ok=True)
     commit = make_signatures()
     log(f"signatures at {WORK / 'signatures'}, commit {commit}")
@@ -1711,7 +1753,7 @@ def main(argv):
             within=60,
         )
         if compare_only:
-            if compare_with_ace3() != 0:
+            if compare_with_ace3(jobs=jobs) != 0:
                 failures.append("ace compare couldn't run every sample; see above")
             return finish(failures)
         check_gui(failures)
@@ -1749,7 +1791,7 @@ def main(argv):
         if "ACE4_E2E_SITE" not in os.environ:
             check_library_diff(failures)
             check_module_inventory(failures)
-            compare_failed = compare_with_ace3(threshold=True) != 0
+            compare_failed = compare_with_ace3(threshold=True, jobs=jobs) != 0
             check_ports_compared(failures)
             if compare_failed:
                 failures.append("the acceptance threshold (docs/acceptance.md) isn't met; see "

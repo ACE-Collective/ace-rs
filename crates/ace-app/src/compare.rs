@@ -11,6 +11,7 @@
 //! ```text
 //! tests/e2e/run --compare             the stack, the whole sample set, then the stack down
 //! tests/e2e/run --compare --keep      and leaves the stack up
+//! tests/e2e/run --compare --jobs 1    one sample at a time (*Several samples at once*, below)
 //! ```
 //!
 //! The report goes to `target/e2e/compare/`. With the stack left up, the command runs again in a
@@ -67,6 +68,35 @@
 //! each such file is keyed by its path on both sides, `file:<path>`, and every reference to it
 //! follows; what ran on it is then compared like anything else.
 //!
+//! # Several samples at once
+//!
+//! `--jobs` samples are in the stack at a time, 8 unless it says, and `--jobs 1` runs them one at a
+//! time in the manifest's order. Each is still submitted, analyzed by the whole stack and diffed, and
+//! the report lists them in the manifest's order either way. `tests/e2e/run` passes as many as it
+//! gives the parser pool slots, since that pool is what a run waits on
+//! (`docs/measurements/compare-speed.md`).
+//!
+//! A sample's tree doesn't depend on what runs beside it, because nothing one root's analysis writes
+//! is read by another's:
+//!
+//! - brocess and the email archive are written only by the email logger and the archiver, on a file
+//!   with the `original_email` or `archive` directive, and a sample is submitted with neither, so
+//!   both stay as empty as `tests/e2e/run` left them, as ace3 had them for every sample;
+//! - the responder answers RDAP and DNS the same every time. Its recorded Splunk job says "running"
+//!   to the first requests after it starts and "done" from then on, whichever samples ask, and a
+//!   module told "running" asks again, so its result holds the finished job either way;
+//! - the newly registered domains, the detections and the tags are only read;
+//! - a file is analyzed once in its root (PLAN.md decision 15), and the same file in another root
+//!   again there; the bucket keeps its bytes once, under a hold for each root.
+//!
+//! What running together does change is how long a task waits for a pool's slot, and a few limits
+//! run on the clock across that wait: `--sample-timeout`, the 60 s a file's first task may be held
+//! for its path (`PATH_HOLD_LIMIT` in `ace-core`'s `api.rs`), the 60 s the JavaScript module waits
+//! for its scan, and a Splunk query's timeout. A task itself runs no slower than in one large root,
+//! since the pools take as many at once either way. That measurements file has how near each limit
+//! a run of 8 came, and the runs that showed the report is the same at 1 and at 8. More at once
+//! than the pools can serve only makes each sample wait longer, and brings those limits nearer.
+//!
 //! # What makes it fail
 //!
 //! Without `--threshold`, differences don't. It exits non-zero when a sample can't be read,
@@ -88,17 +118,20 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
+use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use ace_core::db::{Db, DbConfig};
 use ace_core::normal::{FORM, normal_form};
 use ace_core::queue::{FailedTask, failed_tasks, root_is_idle};
 use ace_results::differences::{Difference, Listed, ListedDifferences, diff, glob, path_matches};
+use ace_results::sort_json_keys;
 use anyhow::{Context, Result, anyhow, bail};
 use clap::Args;
 use serde::Deserialize;
 use serde_json::{Map, Value, json};
 use sha2::{Digest, Sha256};
+use tokio::task::JoinSet;
 use uuid::Uuid;
 
 use crate::App;
@@ -115,6 +148,8 @@ const SUBMIT_TIMEOUT: Duration = Duration::from_secs(60);
 const READ_TIMEOUT: Duration = Duration::from_secs(120);
 /// How often a root is asked whether it's idle.
 const POLL: Duration = Duration::from_millis(250);
+/// How many samples run at once unless `--jobs` says (*Several samples at once*, above).
+const DEFAULT_JOBS: u16 = 8;
 /// The most of one side of a difference `report.json` keeps, in characters.
 const VALUE_LIMIT: usize = 2000;
 /// The most of one side `report.md` shows.
@@ -154,6 +189,9 @@ pub struct CompareArgs {
     /// How long the whole run may take, in seconds. Samples left at the end fail as not run.
     #[arg(long, default_value_t = 3600)]
     timeout: u64,
+    /// How many samples run at once. 1 runs them one at a time, in the manifest's order.
+    #[arg(long, default_value_t = DEFAULT_JOBS, value_parser = clap::value_parser!(u16).range(1..))]
+    jobs: u16,
     /// Enforce docs/acceptance.md's threshold over the whole sample set: fail on an unexplained
     /// difference in any sample, on a row of differences.md that matched nothing, and on an absent
     /// sample.
@@ -688,12 +726,14 @@ impl Stack {
     }
 }
 
-/// One line of a value, cut to `limit` characters.
+/// One line of a value, cut to `limit` characters. Its objects' keys are sorted first: a tree's
+/// results come in the order they landed, which differs from run to run, and the cut would fall
+/// somewhere else in the same value.
 fn shown(value: &Option<Value>, limit: usize) -> String {
     let Some(value) = value else {
         return "(nothing)".to_owned();
     };
-    let text = value.to_string();
+    let text = sort_json_keys(value.clone()).to_string();
     if text.chars().count() > limit {
         format!("{}...", text.chars().take(limit).collect::<String>())
     } else {
@@ -705,7 +745,9 @@ fn shown(value: &Option<Value>, limit: usize) -> String {
 fn kept(value: &Option<Value>) -> Value {
     match value {
         None => Value::Null,
-        Some(value) if value.to_string().chars().count() <= VALUE_LIMIT => value.clone(),
+        Some(value) if value.to_string().chars().count() <= VALUE_LIMIT => {
+            sort_json_keys(value.clone())
+        }
         Some(_) => Value::String(shown(value, VALUE_LIMIT)),
     }
 }
@@ -1212,25 +1254,59 @@ pub fn run(app: &App, args: CompareArgs) -> Result<ExitCode> {
             .iter()
             .filter(|s| args.only.is_empty() || args.only.contains(&s.path))
             .collect();
-        for (i, sample) in selected.iter().enumerate() {
+        let stack = Arc::new(stack);
+        let files: Vec<PathBuf> = selected
+            .iter()
+            .map(|sample| args.samples.join(&sample.path))
+            .collect();
+        let absent: Vec<bool> = selected
+            .iter()
+            .zip(&files)
+            .map(|(sample, file)| !sample.in_git && !file.exists())
+            .collect();
+        for (i, sample) in selected.iter().enumerate().filter(|(i, _)| absent[*i]) {
+            println!("[{}/{}] {} is absent", i + 1, selected.len(), sample.path);
+            outcome.absent.push(sample.path.clone());
+        }
+        // what each sample came to, where the manifest has it, whatever order they finish in
+        let mut came_to: Vec<Option<Result<SampleResult, String>>> =
+            selected.iter().map(|_| None).collect();
+        let mut not_run = Vec::new();
+        let start = |i: usize| {
+            if absent[i] {
+                return None;
+            }
             let left = deadline.saturating_sub(started.elapsed());
             if left.is_zero() {
-                outcome.failures.push(Failure {
-                    sample: sample.path.clone(),
-                    why: format!("not run: the run passed its limit of {} seconds", args.timeout),
-                });
-                continue;
+                not_run.push(i);
+                return None;
             }
-            let file = args.samples.join(&sample.path);
-            if !sample.in_git && !file.exists() {
-                println!("[{}/{}] {} is absent", i + 1, selected.len(), sample.path);
-                outcome.absent.push(sample.path.clone());
-                continue;
-            }
-            let sample_started = Instant::now();
-            match compare_sample(&stack, sample, &file, &reference, sample_limit.min(left), &mut outcome)
-                .await
-            {
+            let tree = reference.join(format!("{}.json", selected[i].path));
+            let (stack, sample, file) = (Arc::clone(&stack), selected[i].clone(), files[i].clone());
+            let limit = sample_limit.min(left);
+            Some(async move {
+                let sample_started = Instant::now();
+                let ran = run_through(&stack, &sample, &file, &tree, limit).await;
+                (sample_started, ran)
+            })
+        };
+        let done = |i: usize, (sample_started, ran): (Instant, Result<Ran>)| {
+            let sample = selected[i];
+            // the diff and its classes are made here, one sample at a time, since the rows count
+            // what they matched
+            let compared = ran.and_then(|ran| {
+                let mut result = compare_forms(
+                    &sample.path,
+                    ran.ace3,
+                    ran.ace4,
+                    &outcome.ported,
+                    &mut outcome.rows,
+                )?;
+                result.root = Some(ran.root);
+                result.failed_tasks = ran.failed_tasks;
+                Ok(result)
+            });
+            came_to[i] = Some(match compared {
                 Ok(mut result) => {
                     result.seconds = sample_started.elapsed().as_secs_f64();
                     let mut counts = Counts::default();
@@ -1244,16 +1320,32 @@ pub fn run(app: &App, args: CompareArgs) -> Result<ExitCode> {
                         counts.unexplained,
                         result.seconds
                     );
-                    outcome.results.push(result);
+                    Ok(result)
                 }
                 Err(e) => {
                     let why = format!("{e:#}");
                     println!("[{}/{}] {} FAILED: {why}", i + 1, selected.len(), sample.path);
-                    outcome.failures.push(Failure {
-                        sample: sample.path.clone(),
-                        why,
-                    });
+                    Err(why)
                 }
+            });
+        };
+        run_at_once(selected.len(), usize::from(args.jobs), start, done).await?;
+        for i in not_run {
+            came_to[i] = Some(Err(format!(
+                "not run: the run passed its limit of {} seconds",
+                args.timeout
+            )));
+        }
+        // the report lists the samples in the manifest's order
+        for (sample, came_to) in selected.iter().zip(came_to) {
+            match came_to {
+                Some(Ok(result)) => outcome.results.push(result),
+                Some(Err(why)) => outcome.failures.push(Failure {
+                    sample: sample.path.clone(),
+                    why,
+                }),
+                // absent
+                None => {}
             }
         }
         outcome.seconds = started.elapsed().as_secs_f64();
@@ -1291,14 +1383,55 @@ pub fn run(app: &App, args: CompareArgs) -> Result<ExitCode> {
     })
 }
 
-async fn compare_sample(
+/// What a sample's run through the stack gave: the two trees to diff.
+struct Ran {
+    root: Uuid,
+    ace3: Value,
+    ace4: Value,
+    failed_tasks: Vec<FailedTask>,
+}
+
+/// Runs what `start` gives for each of `count` places, in their order, with at most `jobs` running
+/// at once, and hands `done` each output when it finishes, with its place. A place `start` gives
+/// nothing for isn't run. With `jobs` 1, each ends before the next starts.
+async fn run_at_once<O, F>(
+    count: usize,
+    jobs: usize,
+    mut start: impl FnMut(usize) -> Option<F>,
+    mut done: impl FnMut(usize, O),
+) -> Result<()>
+where
+    O: Send + 'static,
+    F: Future<Output = O> + Send + 'static,
+{
+    let mut running: JoinSet<(usize, O)> = JoinSet::new();
+    let mut places = 0..count;
+    loop {
+        while running.len() < jobs.max(1) {
+            let Some(i) = places.next() else {
+                break;
+            };
+            if let Some(run) = start(i) {
+                running.spawn(async move { (i, run.await) });
+            }
+        }
+        let Some(joined) = running.join_next().await else {
+            return Ok(());
+        };
+        let (i, output) = joined.context("a sample's run stopped")?;
+        done(i, output);
+    }
+}
+
+/// Runs one sample through the stack and reads ace3's tree of it. It touches nothing another
+/// sample's run does, so several run at once.
+async fn run_through(
     stack: &Stack,
     sample: &Sample,
     file: &Path,
-    reference: &Path,
+    tree: &Path,
     limit: Duration,
-    outcome: &mut Outcome,
-) -> Result<SampleResult> {
+) -> Result<Ran> {
     let bytes = std::fs::read(file).with_context(|| format!("reading {}", file.display()))?;
     let sha256 = ace_results::Sha256(Sha256::digest(&bytes).into()).to_hex();
     if sha256 != sample.sha256 {
@@ -1308,14 +1441,17 @@ async fn compare_sample(
             sample.sha256
         );
     }
-    let ace3 = read_json(&reference.join(format!("{}.json", sample.path)))?;
+    let ace3 = read_json(tree)?;
     let (root, ace4) = stack.run_sample(sample, &bytes, limit).await?;
-    let mut result = compare_forms(&sample.path, ace3, ace4, &outcome.ported, &mut outcome.rows)?;
-    result.root = Some(root);
-    result.failed_tasks = failed_tasks(&stack.db, root)
+    let failed_tasks = failed_tasks(&stack.db, root)
         .await
         .with_context(|| format!("reading root {root}'s failed tasks"))?;
-    Ok(result)
+    Ok(Ran {
+        root,
+        ace3,
+        ace4,
+        failed_tasks,
+    })
 }
 
 fn write_report(dir: &Path, outcome: &Outcome) -> Result<()> {
@@ -1839,5 +1975,144 @@ mod tests {
         assert!(is_volatile("x.pdf.gs.pdf"));
         assert!(!is_volatile("dir/x.js.deobfuscated-"));
         assert!(!is_volatile("x.dll.deobfuscated"));
+    }
+
+    /// What the report keeps of a value doesn't depend on the order a tree's results landed in, which
+    /// is the order of an object's keys when serde_json keeps it: the keys are sorted, before the cut.
+    #[test]
+    fn a_kept_value_is_the_same_whatever_order_its_keys_came_in() {
+        let long = "x".repeat(VALUE_LIMIT);
+        let mut one = Map::new();
+        one.insert("b".to_owned(), json!(long));
+        one.insert("a".to_owned(), json!({"d": 1, "c": 2}));
+        let mut other = Map::new();
+        other.insert("a".to_owned(), json!({"c": 2, "d": 1}));
+        other.insert("b".to_owned(), json!(long));
+        let (one, other) = (Some(Value::Object(one)), Some(Value::Object(other)));
+        let kept_one = kept(&one);
+        assert_eq!(kept_one, kept(&other));
+        let text = kept_one.as_str().expect("cut to text");
+        assert!(text.starts_with(r#"{"a":{"c":2,"d":1},"b":"xxx"#), "{text}");
+        assert_eq!(text.chars().count(), VALUE_LIMIT + 3);
+        // and one short enough to keep whole
+        let small = kept(&Some(json!({"b": 1, "a": 2})));
+        assert_eq!(small.to_string(), r#"{"a":2,"b":1}"#);
+    }
+
+    /// Several samples run at once, never more than `--jobs`, and each one's output comes back with
+    /// its place in the manifest, whichever finishes first.
+    #[tokio::test]
+    async fn at_most_jobs_run_at_once_and_each_output_keeps_its_place() {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+
+        let running = Arc::new(AtomicUsize::new(0));
+        let most = Arc::new(AtomicUsize::new(0));
+        let mut outputs: Vec<Option<usize>> = vec![None; 20];
+        let mut order = Vec::new();
+        run_at_once(
+            20,
+            4,
+            |i| {
+                let (running, most) = (Arc::clone(&running), Arc::clone(&most));
+                Some(async move {
+                    let now = running.fetch_add(1, Ordering::SeqCst) + 1;
+                    most.fetch_max(now, Ordering::SeqCst);
+                    // of those running together, the later places finish first
+                    let wait = u64::try_from(20 - i).expect("a small number");
+                    tokio::time::sleep(Duration::from_millis(5 * wait)).await;
+                    running.fetch_sub(1, Ordering::SeqCst);
+                    i * 10
+                })
+            },
+            |i, output| {
+                outputs[i] = Some(output);
+                order.push(i);
+            },
+        )
+        .await
+        .expect("every run ends");
+        assert_eq!(most.load(Ordering::SeqCst), 4);
+        assert_eq!(outputs, (0..20).map(|i| Some(i * 10)).collect::<Vec<_>>());
+        assert_ne!(
+            order,
+            (0..20).collect::<Vec<_>>(),
+            "they finished out of order"
+        );
+    }
+
+    /// `--jobs 1` is the run as it was: each sample ends before the next starts, in the manifest's
+    /// order.
+    #[tokio::test]
+    async fn one_job_runs_each_sample_after_the_one_before_ended() {
+        use std::sync::Mutex;
+
+        let events = Arc::new(Mutex::new(Vec::new()));
+        let seen = Arc::clone(&events);
+        run_at_once(
+            4,
+            1,
+            |i| {
+                let events = Arc::clone(&events);
+                Some(async move {
+                    events.lock().expect("the lock").push(format!("start {i}"));
+                    // the first takes longest, and still ends first
+                    let wait = u64::try_from(4 - i).expect("a small number");
+                    tokio::time::sleep(Duration::from_millis(5 * wait)).await;
+                    events.lock().expect("the lock").push(format!("end {i}"));
+                })
+            },
+            |i, ()| seen.lock().expect("the lock").push(format!("done {i}")),
+        )
+        .await
+        .expect("every run ends");
+        let expected: Vec<String> = (0..4)
+            .flat_map(|i| {
+                [
+                    format!("start {i}"),
+                    format!("end {i}"),
+                    format!("done {i}"),
+                ]
+            })
+            .collect();
+        assert_eq!(*events.lock().expect("the lock"), expected);
+    }
+
+    /// A sample that isn't started, as an absent one or one past the run's limit, takes no place
+    /// among those running, and the samples after it run. A run that panics fails the comparison.
+    #[tokio::test]
+    async fn a_sample_not_started_is_passed_over_and_a_panic_fails_the_run() {
+        let mut ran = Vec::new();
+        run_at_once(
+            6,
+            2,
+            |i| (i % 2 == 0).then_some(async move { i }),
+            |i, output| {
+                assert_eq!(i, output);
+                ran.push(i);
+            },
+        )
+        .await
+        .expect("every run ends");
+        ran.sort_unstable();
+        assert_eq!(ran, [0, 2, 4]);
+
+        let mut none = 0;
+        run_at_once(3, 2, |_| None::<std::future::Ready<()>>, |_, ()| none += 1)
+            .await
+            .expect("nothing to run");
+        assert_eq!(none, 0);
+
+        let failed = run_at_once(
+            2,
+            2,
+            |i| {
+                Some(async move {
+                    assert!(i == 0, "the second sample's run panics");
+                })
+            },
+            |_, ()| {},
+        )
+        .await;
+        assert!(format!("{:#}", failed.expect_err("a panic")).contains("a sample's run stopped"));
     }
 }

@@ -2,6 +2,8 @@
 
 PLAN.md step 3.5 measures each pool's private memory while 3.3's comparison runs. These numbers come from a small load: `ace compare` over the 54 local samples, 5.3 MB of files, in about 31 seconds. **They aren't comparable like for like with ace3's production figures,** and *Against ace3's figures* below says what they do and don't support.
 
+These runs were made when `ace compare` ran one sample at a time and the parser pool 4 tasks. Since 2026-11-16 `tests/e2e/run`, whose stack and comparison `tools/memory/measure` uses, runs 8 samples at once with 8 slots in the parser and sandbox pools on a machine with 10 CPUs (`compare-speed.md`), so a new run measures a heavier load than these did, and its peaks aren't comparable with these.
+
 ## Summary
 
 Medians of runs, with the range over runs, in MB. Private dirty is the column to read against ace3, because that's what ace3's figures are (*What "private" means*). Series *fixture* is `tests/e2e/run`'s stack with its one-rule ruleset, 5 runs. Series *signatures* is the same stack with the ruleset built from ace3's signatures checkout, 3 runs, because every task process loads the ruleset and one rule hides that cost.

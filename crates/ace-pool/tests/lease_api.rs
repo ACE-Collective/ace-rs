@@ -5326,3 +5326,94 @@ async fn the_capture_write_is_refused_unless_it_s_the_task_s_own_file_s_matches(
     client.end(task.id, &skipped(good())).await.expect("ends");
     assert_eq!(rows(&core).await, 1);
 }
+
+/// A task of a module that runs last is held back while another module's task is left in its root,
+/// with a wait that doubles to 32 seconds. The end of the last of them makes it due and wakes the
+/// pool waiting for it, so the rest of its wait isn't sat out. The module sees its delay as before:
+/// one, held back for the others.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_task_that_runs_last_is_leased_when_the_last_other_task_ends() {
+    let core = Core::start(
+        vec![ace_mod_brocess::thread::MANIFEST, ace_mod_archive::MANIFEST],
+        &["email_thread_analyzer", "archive"],
+        Duration::from_secs(30),
+    )
+    .await;
+    let message_id = "<a@example.com>";
+    let root = root_of(
+        &core,
+        ace_results::ObservableKind::MessageId,
+        &[message_id],
+        "email_thread_analyzer",
+    )
+    .await;
+    common::enqueue(&core, root, message_id, "archive").await;
+    let client =
+        ace_pool::client::LeaseClient::new(&core.url, common::TOKEN, "pool").expect("a client");
+    let thread = ["email_thread_analyzer".to_owned()];
+    assert!(
+        client
+            .lease(&thread, Duration::ZERO)
+            .await
+            .expect("leases")
+            .is_none(),
+        "held back: the archive task is left"
+    );
+    // as after its seventh ask: half a minute to the next
+    let held = sqlx::query(
+        "UPDATE queue.tasks
+         SET run_after = now() + interval '30 seconds',
+             delay_state = jsonb_set(delay_state, '{step}', '6')
+         WHERE root_id = $1 AND module = 'email_thread_analyzer' AND state = 'delayed'
+           AND delay_state->>'held_back_by' = 'others'",
+    )
+    .bind(root)
+    .execute(core.test_db.db().pool())
+    .await
+    .expect("updates")
+    .rows_affected();
+    assert_eq!(held, 1);
+    let archive = client
+        .lease(&["archive".to_owned()], Duration::ZERO)
+        .await
+        .expect("leases")
+        .expect("the archive task");
+    // a pool with a free slot waits for the held task
+    let waiting = tokio::spawn({
+        let client = client.clone();
+        async move { client.lease(&thread, Duration::from_secs(20)).await }
+    });
+    tokio::time::sleep(Duration::from_millis(500)).await;
+    assert!(
+        !waiting.is_finished(),
+        "still held back while the archive task runs"
+    );
+    let ended = std::time::Instant::now();
+    client
+        .end(
+            archive.id,
+            &ace_sdk::wire::TaskEnd::Skipped {
+                reason: "nothing to do".into(),
+                writes: Vec::new(),
+            },
+        )
+        .await
+        .expect("ends");
+    let task = waiting
+        .await
+        .expect("joins")
+        .expect("leases")
+        .expect("the held task");
+    assert!(
+        ended.elapsed() < Duration::from_secs(5),
+        "leased {:?} after the archive task ended: it sat out its wait",
+        ended.elapsed()
+    );
+    assert_eq!(task.module, "email_thread_analyzer");
+    let delayed = task.delayed.expect("its delay");
+    assert_eq!(delayed.delays, 1);
+    assert_eq!(
+        delayed.state,
+        serde_json::json!({"held_back_by": "others", "step": 6})
+    );
+}

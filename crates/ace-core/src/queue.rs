@@ -173,6 +173,7 @@ pub async fn check_completion(tx: &mut Tx<'_>, root: Uuid) -> Result<Option<i32>
     .fetch_one(tx.conn())
     .await?;
     if active {
+        wake_held_back(tx, root).await?;
         return Ok(None);
     }
     // the hooks run before the pass ends, once nothing else is left (`crate::hooks`)
@@ -253,6 +254,54 @@ pub async fn check_completion(tx: &mut Tx<'_>, root: Uuid) -> Result<Option<i32>
         crate::email_archive::index_urls(tx, root).await?;
     }
     Ok(pass)
+}
+
+/// The key of a delay's state that says the core holds the task back, and for what
+/// (`tree::HeldBack::as_str`): the mark of a task that runs last and isn't to run yet.
+pub const HELD_BACK_BY: &str = "held_back_by";
+
+/// Makes the root's tasks that wait for every other module due now, once nothing is left but tasks
+/// the core holds back, and returns how many. They are the tasks of modules that run last
+/// (`Module::RUNS_LAST`), which the lease delays with a wait that doubles to 32 s
+/// (`Api::leased`), so without this one sat out the rest of its wait after the root went quiet.
+///
+/// It changes only when such a task next asks. Whether it runs is still decided where it's leased,
+/// by `tree::held_back`, so one woken too early is delayed again, and one this misses, as when a
+/// pool dies holding the last other task, comes back when its wait ends, as before. A task that
+/// waits for one below it (`tree::HeldBack::ByLastBelow`) keeps its wait, which starts low.
+///
+/// What isn't marked counts as another module's task here: a task of a module that runs last that
+/// hasn't asked yet, or that its own module delayed. That only puts this off until that task ends
+/// or is held back in its turn (`wake_held_back_now`). Call it with the root locked.
+async fn wake_held_back(tx: &mut Tx<'_>, root: Uuid) -> Result<u64, QueueError> {
+    Ok(sqlx::query!(
+        "UPDATE queue.tasks SET run_after = now()
+         WHERE root_id = $1 AND state = 'delayed' AND run_after > now()
+           AND delay_state->>$2 = $3
+           AND NOT EXISTS (
+               SELECT 1 FROM queue.tasks other
+               WHERE other.root_id = $1 AND other.state IN ('queued', 'delayed', 'running')
+                 AND (other.delay_state->>$2) IS NULL)",
+        root,
+        HELD_BACK_BY,
+        crate::tree::HeldBack::ByOthers.as_str(),
+    )
+    .execute(tx.conn())
+    .await?
+    .rows_affected())
+}
+
+/// `wake_held_back` in a transaction of its own, for the lease, when a task that runs last is held
+/// back by one below it: every other module has finished then, and no task's end may follow to say
+/// so, so the tasks still waiting for that are woken here.
+pub async fn wake_held_back_now(db: &Db, root: Uuid) -> Result<u64, QueueError> {
+    db.transaction(Isolation::ReadCommitted, |tx| {
+        Box::pin(async move {
+            lock_root(tx, root).await?;
+            wake_held_back(tx, root).await
+        })
+    })
+    .await
 }
 
 /// Queues the root's hooks task (`crate::hooks`), on its first observable: a new one, or the one that
