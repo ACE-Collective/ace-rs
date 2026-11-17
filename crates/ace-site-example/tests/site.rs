@@ -927,3 +927,251 @@ async fn the_example_router_loads_and_routes_only_tagged_alerts() {
         "{error}"
     );
 }
+
+/// The site's parser pool binary with `overlay` as its site overlay, run as the pool's supervisor
+/// with no lease API to reach: its exit code and what it wrote on stderr.
+fn parser_pool_start(overlay: &str) -> (Option<i32>, String) {
+    let dir = tempfile::tempdir().expect("a directory");
+    let overlay_at = dir.path().join("overlay.yaml");
+    std::fs::write(&overlay_at, overlay).expect("writes the overlay");
+    let output = Command::new(env!("CARGO_BIN_EXE_example-parsers"))
+        .env_clear()
+        .env("ACE4_OVERLAY", &overlay_at)
+        .env("ACE4_RULESET_DIR", dir.path().join("rulesets"))
+        .output()
+        .expect("the pool runs");
+    (
+        output.status.code(),
+        String::from_utf8_lossy(&output.stderr).into_owned(),
+    )
+}
+
+/// PLAN.md 2.23, for a site's parser pool: the pool checks its overlay and builds every module
+/// when it starts, so a bad setting for any module, the site's own or an open-source one, stops
+/// it then with the module's name. A task process builds only its task's module from the block
+/// that passed here, so this is the one place the check happens. The pool is run with no lease
+/// API: a refused overlay ends it before it looks for one, and an overlay it takes ends it there.
+#[test]
+fn a_site_s_parser_pool_refuses_a_bad_setting_when_it_starts() {
+    let refused = [
+        // a key the site's module hasn't (ace3 #858)
+        (
+            "modules:\n  example_ticket_file:\n    settings:\n      prefx: CASE-\n",
+            "setup failed: the overlay's modules.example_ticket_file.settings: unknown settings key prefx",
+        ),
+        // a value of the wrong type
+        (
+            "modules:\n  example_ticket_file:\n    settings:\n      prefix: [CASE-]\n",
+            "setup failed: the overlay's modules.example_ticket_file.settings: invalid setting prefix",
+        ),
+        // the site's module's init refuses its settings
+        (
+            "modules:\n  example_ticket_file:\n    settings:\n      prefix: ''\n",
+            "setup failed: module example_ticket_file: prefix must not be empty",
+        ),
+        // and so does an instance of it
+        (
+            "modules:\n  example_ticket_file:\n    instances:\n      case_tickets:\n        settings:\n          prefix: ''\n",
+            "setup failed: module example_ticket_file: prefix must not be empty",
+        ),
+        // an open-source module's key
+        (
+            "modules:\n  email_analyzer:\n    settings:\n      no_such_key: 1\n",
+            "setup failed: the overlay's modules.email_analyzer.settings: unknown settings key no_such_key",
+        ),
+        // an open-source module's init: a network that isn't one
+        (
+            "modules:\n  network_identifier:\n    settings:\n      networks:\n        - cidr: nonsense\n          name: office\n",
+            "setup failed: module network_identifier: network \"nonsense\" isn't a range",
+        ),
+        // a module that is off by default, turned on without what it needs
+        (
+            "modules:\n  ssdeep: {}\n",
+            "setup failed: module ssdeep: ssdeep needs ssdeep_hashes",
+        ),
+        // an instance of a module with a name the overlay may not give it
+        (
+            "modules:\n  example_ticket_file:\n    instances:\n      email_analyzer: {}\n",
+            "setup failed: the overlay's instance email_analyzer of example_ticket_file has a module's or another instance's name",
+        ),
+        // a key the overlay itself hasn't
+        ("module: {}\n", "setup failed: the overlay doesn't parse"),
+    ];
+    for (overlay, error) in refused {
+        let (code, stderr) = parser_pool_start(overlay);
+        assert_eq!(code, Some(2), "{overlay}\n{stderr}");
+        assert!(stderr.contains(error), "{overlay}\n{stderr}");
+    }
+    // what the pool takes: no overlay sections, a site module's settings and an instance of it,
+    // a section for a module the binary no longer has (#901, #916) and another pool's module's
+    let taken = [
+        "",
+        "modules:\n  example_ticket_file:\n    instances:\n      case_tickets:\n        settings:\n          prefix: CASE-\n      ticket_tickets: {}\n",
+        "modules:\n  a_module_removed_last_year:\n    settings:\n      anything: 1\n  example_ticket_lookup:\n    settings:\n      no_such_key: 1\n",
+    ];
+    for overlay in taken {
+        let (code, stderr) = parser_pool_start(overlay);
+        assert!(!stderr.contains("setup failed"), "{overlay}\n{stderr}");
+        // it got as far as the lease API it wasn't given
+        assert_eq!(code, Some(2), "{overlay}\n{stderr}");
+        assert!(stderr.contains("ACE4_API_URL"), "{overlay}\n{stderr}");
+    }
+}
+
+/// A task of the component `key`, made of `module`, on a file holding `bytes`: the request a
+/// parser pool's supervisor writes its task process, here written by hand.
+fn task_request(
+    dir: &Path,
+    module: &str,
+    key: &str,
+    settings: Option<Value>,
+    bytes: &[u8],
+) -> ace_pool::supervisor::TaskRequest {
+    let (input, outputs) = (dir.join("input"), dir.join("outputs"));
+    std::fs::write(&input, bytes).expect("writes the input");
+    std::fs::create_dir_all(&outputs).expect("an output directory");
+    // the module doesn't check the hash, and nothing downloads the file
+    let sha256 = "0".repeat(64);
+    let task = serde_json::from_value(json!({
+        "id": 1,
+        "root": "00000000-0000-0000-0000-000000000000",
+        "module": key,
+        "attempts": 1,
+        "lease_expires_at": "2030-01-01T00:00:00Z",
+        "lease_seconds": 30.0,
+        "observable": {
+            "type": "file",
+            "value": sha256,
+            "file": {
+                "path": "notes.txt",
+                "sha256": sha256,
+                "size": bytes.len(),
+                "mime_type": "text/plain",
+                "download": {"url": "http://unused.invalid/"},
+            },
+        },
+    }))
+    .expect("a leased task");
+    let manifest = ace_sdk::Manifest::parser::<ace_site_example::TicketFile>();
+    ace_pool::supervisor::TaskRequest {
+        task,
+        module: module.to_owned(),
+        settings,
+        profile: ace_pool::SandboxProfile::for_manifest(&manifest)
+            .allow_read(&input)
+            .allow_write(&outputs),
+        input: Some(input),
+        email_body: None,
+        tree_files: None,
+        outputs,
+        tools: None,
+        scan_output: None,
+    }
+}
+
+/// Runs the site's parser pool binary as a task process on `request`, with an empty environment
+/// as the supervisor starts it: its exit code, its stdout and its stderr.
+fn task_process(request: &ace_pool::supervisor::TaskRequest) -> (Option<i32>, Vec<u8>, String) {
+    use std::io::Write;
+    let mut child = Command::new(env!("CARGO_BIN_EXE_example-parsers"))
+        .arg("task")
+        .env_clear()
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .expect("the task process starts");
+    child
+        .stdin
+        .take()
+        .expect("its stdin")
+        .write_all(&serde_json::to_vec(request).expect("the request"))
+        .expect("writes the request");
+    let output = child.wait_with_output().expect("the task process ends");
+    (
+        output.status.code(),
+        output.stdout,
+        String::from_utf8_lossy(&output.stderr).into_owned(),
+    )
+}
+
+/// A site's parser runs in a task process that builds it alone, from the settings its request
+/// carries: the request names the module, and the process is given no overlay and no ruleset
+/// directory, so it has nothing to build the pool's other modules from as the pool configured
+/// them. It is contained before it reads the file. A module whose `init` fails on the settings it
+/// is sent fails the task's setup, with its name, and a module the binary hasn't is refused.
+#[test]
+fn a_site_s_parser_is_built_alone_in_its_task_process() {
+    let dir = tempfile::tempdir().expect("a directory");
+    let module = "example_ticket_file";
+    let text = b"see TICKET-42 and CASE-9, then TICKET-7 and TICKET-42 again";
+    // the task's end as JSON: this process hasn't the site's observable types, which the
+    // result's new observables are of
+    let end = |stdout: &[u8]| serde_json::from_slice::<Value>(stdout).expect("a task's end");
+
+    // on its defaults, as itself
+    let (code, stdout, stderr) =
+        task_process(&task_request(dir.path(), module, module, None, text));
+    assert_eq!(code, Some(0), "{stderr}");
+    assert!(stderr.contains("contained: Contained"), "{stderr}");
+    let done = end(&stdout);
+    assert_eq!(done["outcome"], "done", "{done}");
+    assert_eq!(
+        done["result"]["details"]["tickets"],
+        json!(["TICKET-42", "TICKET-7"])
+    );
+    // the result adds each ticket as an observable of the site's type
+    assert_eq!(done["result"]["observables"][0]["type"], "example_ticket");
+
+    // as an instance, with the instance's settings
+    let settings = Some(json!({"prefix": "CASE-"}));
+    let (code, stdout, stderr) = task_process(&task_request(
+        dir.path(),
+        module,
+        "case_tickets",
+        settings,
+        text,
+    ));
+    assert_eq!(code, Some(0), "{stderr}");
+    assert_eq!(
+        end(&stdout)["result"]["details"]["tickets"],
+        json!(["CASE-9"])
+    );
+
+    // a file that names no ticket is declined
+    let (code, stdout, stderr) = task_process(&task_request(
+        dir.path(),
+        module,
+        module,
+        None,
+        b"nothing here",
+    ));
+    assert_eq!(code, Some(0), "{stderr}");
+    assert_eq!(end(&stdout)["outcome"], "skipped");
+
+    // settings its init refuses fail the setup, exit 10, before anything is contained or run
+    let settings = Some(json!({"prefix": ""}));
+    let (code, stdout, stderr) =
+        task_process(&task_request(dir.path(), module, module, settings, text));
+    assert_eq!(code, Some(10), "{stderr}");
+    assert!(stdout.is_empty());
+    assert!(
+        stderr.contains("setup failed: module example_ticket_file: prefix must not be empty"),
+        "{stderr}"
+    );
+    assert!(!stderr.contains("contained"), "{stderr}");
+
+    // a module this pool hasn't: the site's lookup is the network pool's
+    let (code, _, stderr) = task_process(&task_request(
+        dir.path(),
+        "example_ticket_lookup",
+        "example_ticket_lookup",
+        None,
+        text,
+    ));
+    assert_eq!(code, Some(10), "{stderr}");
+    assert!(
+        stderr.contains("setup failed: this pool doesn't run example_ticket_lookup"),
+        "{stderr}"
+    );
+}

@@ -8,6 +8,12 @@
 //! so it runs one thread, can't start a thread or a process, reads only its input and writes
 //! only its output directory.
 //!
+//! The supervisor holds every module of its pool, built when the pool started, which is where a
+//! setting that doesn't load or a module that doesn't build stops the pool (PLAN.md 2.23). A task
+//! process builds one: the request names the task's module and carries the settings block the
+//! supervisor built it from, so the process reads no overlay and builds no other module
+//! (`crate::task_process`).
+//!
 //! A task whose module runs tools (PLAN.md 7.3) gets a Unix socket as its descriptor 3, on which
 //! the supervisor runs them for it in the sandbox runner (`crate::tools`), and two more
 //! directories: `scratch`, which it may write, for the files it hands a tool, and `results`, which
@@ -61,6 +67,14 @@ const PIPE_TIMEOUT: Duration = Duration::from_secs(5);
 #[serde(deny_unknown_fields)]
 pub struct TaskRequest {
     pub task: LeasedTask,
+    /// The module the task's component is made of: its own name, where `task.module` is the
+    /// component's, which is an instance's name for a named instance. The task process builds
+    /// this module and no other of its pool.
+    pub module: String,
+    /// The component's settings block, as the supervisor read it from the site overlay and
+    /// checked it when the pool started. None runs on the module's defaults.
+    #[serde(default)]
+    pub settings: Option<serde_json::Value>,
     /// The input's bytes, for a file task.
     pub input: Option<PathBuf>,
     /// The body of the email that carried the task's file, for a module that reads it.
@@ -267,6 +281,8 @@ pub async fn run_task_process(
     }
     let request = TaskRequest {
         task: task.clone(),
+        module: manifest.name.to_owned(),
+        settings: parser.settings().cloned(),
         input,
         email_body,
         tree_files,

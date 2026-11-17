@@ -102,6 +102,9 @@ pub trait PoolParser: Send + Sync {
     fn manifest(&self) -> Manifest;
     /// The name its tasks carry: the module's, or its instance's.
     fn key(&self) -> &str;
+    /// The settings block it was built from, which the supervisor hands each of its task
+    /// processes, so the process builds it again from the block the pool checked when it started.
+    fn settings(&self) -> Option<&Value>;
     fn run(&self, run: Run<'_>) -> TaskEnd;
 }
 
@@ -116,6 +119,8 @@ pub trait PoolLookup: Send + Sync {
 pub struct Entry<M: ace_sdk::Module> {
     module: M,
     settings: Arc<M::Settings>,
+    /// The block `settings` was loaded from.
+    block: Option<Value>,
     secrets: Secrets,
     manifest: Manifest,
     key: String,
@@ -125,11 +130,11 @@ impl<M: ace_sdk::Module> Entry<M> {
     fn build(
         manifest: Manifest,
         key: &str,
-        settings: Option<&Value>,
+        block: Option<&Value>,
         secrets: &Secrets,
     ) -> Result<Self, SetupError> {
         let settings: M::Settings =
-            load_settings(settings).map_err(|source| SetupError::Settings {
+            load_settings(block).map_err(|source| SetupError::Settings {
                 module: M::NAME,
                 source,
             })?;
@@ -140,6 +145,7 @@ impl<M: ace_sdk::Module> Entry<M> {
         Ok(Entry {
             module,
             settings: Arc::new(settings),
+            block: block.cloned(),
             secrets: secrets.clone(),
             manifest,
             key: key.to_owned(),
@@ -197,6 +203,10 @@ impl<M: Parser> PoolParser for Entry<M> {
 
     fn key(&self) -> &str {
         &self.key
+    }
+
+    fn settings(&self) -> Option<&Value> {
+        self.block.as_ref()
     }
 
     fn run(&self, run: Run<'_>) -> TaskEnd {
@@ -396,6 +406,14 @@ impl Registry {
 
     pub fn manifests(&self) -> Vec<Manifest> {
         self.modules.iter().map(|(manifest, _)| *manifest).collect()
+    }
+
+    /// The manifest of the module named `name`, when the registry has it.
+    pub fn manifest(&self, name: &str) -> Option<Manifest> {
+        self.modules
+            .iter()
+            .map(|(manifest, _)| *manifest)
+            .find(|manifest| manifest.name == name)
     }
 
     /// The pool's modules from the site overlay: every component it makes of the registry's

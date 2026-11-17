@@ -1,0 +1,199 @@
+#!/usr/bin/env python3
+"""Times what a parser pool's task process costs before and around its module's work.
+
+A parser pool runs each task in a process of its own (crates/ace-pool/src/task_process.rs): the
+pool's binary in its `task` mode, which reads the task on stdin, builds the task's module, contains
+itself, runs the module and writes how the task ended. This starts that process RUNS times for each
+MODULE, one after another in one container made from IMAGE, and times each start from just before
+the process is started to just after it has exited, in three forms:
+
+  process   an argument the `task` mode refuses, so the process ends before it reads anything:
+            the cost of the process alone
+  built     a task for MODULE whose output directory can't be made, so the process ends once it has
+            read the task and built the module, before it contains itself: process, plus the
+            request, plus the module's `init`
+  whole     a task for MODULE on a small file, run to its end: built, plus containment, the
+            module's `analyze` on that file, and the reply
+
+It prints each form's median and range in milliseconds and how the `whole` tasks ended, since a
+task that failed isn't a task that ran. Each module runs on its defaults, as a pool with no section
+for it in the site overlay runs it, unless --settings gives its block. The ruleset module needs
+its block, as the pool gives it its ruleset directory: --settings yara_scanner_v3_4='{"rulesets":
+"/var/lib/ace4/rulesets"}' with --rulesets DIR, a directory in the layout of ace_sdk::generation.
+
+    tools/task-start/measure ace4-parsers:latest ace-parsers file_type email_analyzer
+    tools/task-start/measure ace4-sandbox:latest ace-sandbox archive --runs 200
+
+What the numbers hold besides the task process: bash starting it (fork and exec) and reaping it,
+which `process` measures alone. What they leave out: the supervisor's own work for a task (the
+lease, the input's download, the task's directory, the pipes), and the task user, since these run
+as the image's user where a pool runs them as ace4-task. The file is read from the container's own
+filesystem, not a mount. The request is written here by hand in the form of
+`ace_pool::supervisor::TaskRequest`; if that type changes, this must follow.
+
+Needs docker and python3 on the host, and bash in the image.
+"""
+
+import argparse
+import json
+import shutil
+import statistics
+import subprocess
+import tempfile
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent.parent
+
+# Runs in the container: copies the work directory off the mount, then times each start.
+LOOP = r"""
+set -u
+cp -r /measure /tmp/measure
+cd /tmp/measure
+binary="$1"; runs="$2"; shift 2
+mapfile -t task_args < /tmp/measure/task-args
+run() { # label stdin args...
+  local label="$1" input="$2"; shift 2
+  for _ in $(seq "$runs"); do
+    rm -rf /tmp/measure/outputs; mkdir /tmp/measure/outputs
+    local start=$EPOCHREALTIME
+    "$binary" task "$@" < "$input" > /tmp/measure/stdout 2> /tmp/measure/stderr
+    local code=$?
+    local end=$EPOCHREALTIME
+    local outcome
+    outcome=$(grep -o '"outcome":"[a-z_]*"' /tmp/measure/stdout | head -1 | cut -d'"' -f4)
+    echo "$label $(( ${end/./} - ${start/./} )) $code ${outcome:--}"
+  done
+}
+# once, unmeasured, so the binary and what it reads are in the page cache
+"$binary" task --no-such-argument x < /dev/null > /dev/null 2>&1
+run process /dev/null --no-such-argument x
+for module in "$@"; do
+  run "built:$module" "built-$module.json" "${task_args[@]}"
+  run "whole:$module" "whole-$module.json" "${task_args[@]}"
+done
+"""
+
+FILE = b"A small text file.\nIt is nothing a parser takes for its own kind of file.\n"
+
+
+def request(module, settings, observable, outputs, old_form):
+    """The request a supervisor writes a task process for one task of `module`."""
+    kind, value = observable
+    task_observable = {"type": kind, "value": value}
+    read_paths = []
+    request = {"input": None}
+    if kind == "file":
+        task_observable["file"] = {
+            "path": "note.txt",
+            "sha256": value,
+            "size": len(FILE),
+            "mime_type": "text/plain",
+            "download": {"url": "http://unused.invalid/"},
+        }
+        request["input"] = "/tmp/measure/input"
+        read_paths.append("/tmp/measure/input")
+    request.update({
+        "task": {
+            "id": 1,
+            "root": "00000000-0000-0000-0000-000000000000",
+            "module": module,
+            "attempts": 1,
+            "lease_expires_at": "2099-01-01T00:00:00Z",
+            "lease_seconds": 30.0,
+            "observable": task_observable,
+        },
+        "outputs": outputs,
+        "profile": {
+            "read_paths": read_paths,
+            "write_paths": [outputs],
+            "tcp_ports": [],
+            "address_space_bytes": 4 * 1024 * 1024 * 1024,
+            "cpu_seconds": 300,
+        },
+    })
+    if not old_form:
+        request["module"] = module
+        request["settings"] = settings
+    return request
+
+
+def summary(micros):
+    ms = sorted(m / 1000 for m in micros)
+    return f"{statistics.median(ms):7.2f}  {ms[0]:7.2f} to {ms[-1]:7.2f}"
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
+    parser.add_argument("image")
+    parser.add_argument("binary")
+    parser.add_argument("modules", nargs="+", metavar="MODULE")
+    parser.add_argument("--runs", type=int, default=100)
+    parser.add_argument("--settings", action="append", default=[], metavar="MODULE=JSON",
+                        help="a module's settings block, in place of its defaults")
+    parser.add_argument("--rulesets", type=Path,
+                        help="a ruleset directory, mounted at /var/lib/ace4/rulesets")
+    parser.add_argument("--site", type=Path, default=ROOT / "tests" / "e2e" / "site",
+                        help="the site overlay directory, mounted at /etc/ace4")
+    parser.add_argument("--observable", default="file", metavar="TYPE[=VALUE]",
+                        help="the task's observable; a file by default")
+    parser.add_argument("--task-arg", action="append", default=[], metavar="ARG",
+                        help="an argument of the task mode, such as --task-arg=--overlay "
+                             "--task-arg=/etc/ace4/overlay.yaml")
+    parser.add_argument("--head-request", action="store_true",
+                        help="write the request without `module` and `settings`, as a binary "
+                             "from before a task process built only its own module reads it")
+    parser.add_argument("--tsv", type=Path, help="also write every start to this file")
+    args = parser.parse_args()
+
+    settings = {}
+    for entry in args.settings:
+        module, _, block = entry.partition("=")
+        settings[module] = json.loads(block)
+    kind, _, value = args.observable.partition("=")
+    observable = (kind, value or "0" * 64)
+
+    work = Path(tempfile.mkdtemp(prefix="task-start-", dir=ROOT / "target"))
+    try:
+        (work / "input").write_bytes(FILE)
+        (work / "loop.sh").write_text(LOOP)
+        (work / "task-args").write_text("".join(f"{arg}\n" for arg in args.task_arg))
+        for module in args.modules:
+            block = settings.get(module)
+            # a directory can't be made under a file
+            built = request(module, block, observable, "/tmp/measure/input/outputs",
+                            args.head_request)
+            whole = request(module, block, observable, "/tmp/measure/outputs", args.head_request)
+            (work / f"built-{module}.json").write_text(json.dumps(built))
+            (work / f"whole-{module}.json").write_text(json.dumps(whole))
+        command = ["docker", "run", "--rm", "--entrypoint", "env",
+                   "-v", f"{work}:/measure:ro", "-v", f"{args.site.resolve()}:/etc/ace4:ro"]
+        if args.rulesets:
+            command += ["-v", f"{args.rulesets.resolve()}:/var/lib/ace4/rulesets:ro"]
+        # an empty environment, as the supervisor gives a task process
+        command += [args.image, "-i", "bash", "/measure/loop.sh", args.binary, str(args.runs)]
+        command += args.modules
+        output = subprocess.run(command, check=True, capture_output=True, text=True).stdout
+    finally:
+        shutil.rmtree(work, ignore_errors=True)
+
+    starts = {}
+    for line in output.splitlines():
+        label, micros, code, outcome = line.split()
+        starts.setdefault(label, []).append((int(micros), int(code), outcome))
+    if args.tsv:
+        args.tsv.write_text("form\tmicroseconds\texit\toutcome\n" + "".join(
+            f"{label}\t{micros}\t{code}\t{outcome}\n"
+            for label, rows in starts.items() for micros, code, outcome in rows))
+    print(f"{args.image} {args.binary}, {args.runs} starts of each form, milliseconds")
+    print(f"{'form':<52} {'median':>7}  {'range':<18} ends")
+    for label, rows in starts.items():
+        ends = {}
+        for _, code, outcome in rows:
+            key = f"exit {code}" + ("" if outcome == "-" else f" {outcome}")
+            ends[key] = ends.get(key, 0) + 1
+        ended = ", ".join(f"{n} {key}" for key, n in sorted(ends.items()))
+        print(f"{label:<52} {summary([m for m, _, _ in rows])}  {ended}")
+
+
+if __name__ == "__main__":
+    main()

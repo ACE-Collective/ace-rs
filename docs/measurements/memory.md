@@ -83,7 +83,9 @@ The sampler's RSS sits slightly above the kernel's peak on some tasks, by about 
 
 ## What the ruleset costs
 
-Every parser task process builds all the pool's modules before it reads its task (`crates/ace-app/src/pools.rs`, `parser_task`), so an email or archive task loads the YARA ruleset as well. The signatures series shows the cost: its ruleset file is 1.75 MB, at signatures commit `99a110b`, against the fixture's 69 KB.
+Since 2026-11-17 a task process builds only the module its task names ([`task-start.md`](task-start.md)), so only a YARA task loads the ruleset and what follows is true of YARA tasks alone. It wasn't measured again with a signatures ruleset.
+
+When these runs were made, every parser task process built all the pool's modules before it read its task (`crates/ace-app/src/pools.rs`, `parser_task`), so an email or archive task loaded the YARA ruleset as well. The signatures series shows the cost: its ruleset file is 1.75 MB, at signatures commit `99a110b`, against the fixture's 69 KB.
 
 | Per task process | Fixture | Signatures |
 |---|---|---|

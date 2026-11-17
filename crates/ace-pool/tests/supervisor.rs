@@ -838,6 +838,56 @@ async fn the_yara_module_scans_in_a_contained_task_process() {
     assert_eq!(rule, "contained_evil");
 }
 
+/// A task process builds the module its task names and no other of its pool. The supervisor
+/// builds every module when it starts, with the YARA rules in place, and then the rules go. A
+/// task of another module still runs, where it used to load the rules too and fail to set up.
+/// A task of the YARA module fails to set up, because its own module's `init` is what its
+/// process runs, on the settings the supervisor sent it.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_task_process_builds_only_its_tasks_module() {
+    let rules = tempfile::tempdir().expect("a rules directory");
+    let namespace = rules.path().join("fixture");
+    std::fs::create_dir(&namespace).expect("a namespace");
+    std::fs::write(
+        namespace.join("rules.yar"),
+        r#"rule contained_evil { strings: $a = "EVIL" condition: $a }"#,
+    )
+    .expect("a rule");
+    for dir in [rules.path(), namespace.as_path()] {
+        std::fs::set_permissions(dir, std::fs::Permissions::from_mode(0o755)).expect("opens it");
+    }
+    let settings = json!({"yara_scanner_v3_4": {"signature_dir": rules.path()}}).to_string();
+    let core = Core::start(
+        vec![ace_mod_files::file_type::MANIFEST, ace_mod_yara::MANIFEST],
+        &["file_type", "yara_scanner_v3_4"],
+        Duration::from_secs(30),
+    )
+    .await;
+    // the first root's scan shows the supervisor started, and its task processes ran, on the rules
+    let (first, _) = root_with_bytes(&core, "file", b"xxEVILxx", "first.bin").await;
+    let mut pool = supervisor(&core, &["--settings", &settings]);
+    let (state, error, _) =
+        task_state(&core, first, "yara_scanner_v3_4", Duration::from_secs(60)).await;
+    assert_eq!(state, "done", "{error:?}");
+
+    rules.close().expect("removes the rules");
+    // file mode runs file_type on the file and then the YARA module, which waits for it
+    let (second, _) = root_with_bytes(&core, "file", b"yyEVILyy", "second.bin").await;
+    let (file_type, file_type_error, _) =
+        task_state(&core, second, "file_type", Duration::from_secs(60)).await;
+    let (state, error, _) =
+        task_state(&core, second, "yara_scanner_v3_4", Duration::from_secs(60)).await;
+    let stderr = pool.stop();
+    assert_eq!(file_type, "done", "{file_type_error:?}\n{stderr}");
+    assert_eq!(state, "failed", "{error:?}\n{stderr}");
+    let error = error.unwrap_or_default();
+    assert!(
+        error.contains("the task process couldn't set up")
+            && error.contains("module yara_scanner_v3_4: loading the YARA rules"),
+        "{error}"
+    );
+}
+
 /// `/proc/PID/stat`'s fields after the command, which can hold spaces and parentheses. Index 0 is
 /// the state, 1 the parent, 11 and 12 the CPU ticks, 19 the start time.
 fn proc_stat(pid: u32) -> Option<Vec<String>> {

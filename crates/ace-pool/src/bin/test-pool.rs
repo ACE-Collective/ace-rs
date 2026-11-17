@@ -20,8 +20,9 @@
 //!     the sandbox runner's tool process: read what to run on stdin, contain, exec it
 //! test-pool parsers ... --tool NAME=PATH
 //!     the same, with a tool its modules may run, PATH run as NAME with no data of its own
-//! test-pool task [--settings JSON]
-//!     a task process: read a task on stdin, contain, run it, write its end on stdout
+//! test-pool task
+//!     a task process: read a task on stdin, build its module from the settings it carries,
+//!     contain, run it, write its end on stdout
 //! test-pool replay ID [--settings JSON]
 //!     replay task ID uncontained, with ACE4_ADMIN_TOKEN, and print how it ended
 //! ```
@@ -43,8 +44,6 @@ use tokio_util::sync::CancellationToken;
 
 struct Args {
     mode: String,
-    /// The settings as given, to hand to task processes.
-    settings_text: String,
     settings: Value,
     contained: bool,
     concurrency: usize,
@@ -64,7 +63,6 @@ fn parse() -> Result<Args, String> {
     }
     let mut parsed = Args {
         mode,
-        settings_text: "{}".to_owned(),
         settings: Value::Object(Default::default()),
         contained: false,
         concurrency: 4,
@@ -81,7 +79,6 @@ fn parse() -> Result<Args, String> {
             "--settings" => {
                 let text = args.next().ok_or("--settings takes JSON")?;
                 parsed.settings = serde_json::from_str(&text).map_err(|e| e.to_string())?;
-                parsed.settings_text = text;
             }
             "--contained" => parsed.contained = true,
             "--commands" => parsed.commands = true,
@@ -132,6 +129,12 @@ fn main() -> ExitCode {
     }
     // logs now; span export, which starts threads, once any containment is in place
     let mut telemetry = ace_pool::telemetry::init("ace4-test-pool", "info");
+    // a task's process builds the one module its task names, with the settings the task carries
+    if std::env::args().nth(1).as_deref() == Some("task") {
+        return ace_pool::task_process::main(&ace_pool::testing::registry(), &|_| {
+            Ok(ace_sdk::Secrets::new())
+        });
+    }
     let args = match parse() {
         Ok(args) => args,
         Err(e) => {
@@ -146,12 +149,9 @@ fn main() -> ExitCode {
         Ok(modules) => Arc::new(modules.with_tools(&args.tools)),
         Err(e) => {
             eprintln!("setup failed: {e}");
-            return ExitCode::from(if args.mode == "task" { 10 } else { 2 });
+            return ExitCode::from(2);
         }
     };
-    if args.mode == "task" {
-        return ace_pool::task_process::main(&modules);
-    }
     if let Some(id) = args.mode.strip_prefix("replay:") {
         return with_runtime(replay(id.to_owned(), modules));
     }
@@ -218,11 +218,7 @@ fn main() -> ExitCode {
             };
             let config = SupervisorConfig {
                 program: program.clone(),
-                args: vec![
-                    "task".to_owned(),
-                    "--settings".to_owned(),
-                    args.settings_text,
-                ],
+                args: vec!["task".to_owned()],
                 user,
                 concurrency: args.concurrency,
                 read_paths: args.read_paths,

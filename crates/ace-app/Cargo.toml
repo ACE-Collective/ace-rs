@@ -65,6 +65,8 @@ ace-mod-yara = { path = "../ace-mod-yara" }
 ace-testkit = { path = "../ace-testkit" }
 # The NRD refresh's tests serve its feeds over TLS with a certificate made for the test (PLAN.md 7.4).
 rcgen = "0.14.10"
+# The pools' tests declare parsers of their own, whose types need a schema.
+schemars = "1.2.3"
 # The scheduler's tests (PLAN.md 6.7) set up and read rows directly.
 sqlx = { version = "0.9.0", default-features = false, features = ["chrono", "json", "postgres", "runtime-tokio", "uuid"] }
 

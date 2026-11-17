@@ -1,0 +1,246 @@
+#!/usr/bin/env python3
+"""Counts a comparison's tasks that stored nothing, by pool and by what decided each.
+
+docs/measurements/task-start.md's tables come from this. It reads two things from a stack that
+`tests/e2e/run --compare --keep` left up:
+
+  TASKS   every task with whether its module stored a result, as tab-separated rows of
+          id, module, state, observable type and t or f:
+
+          docker exec -e QUERY="SELECT t.id, t.module, t.state, o.type, (r.id IS NOT NULL)
+              FROM queue.tasks t
+              JOIN analysis.observables o ON o.root_id = t.root_id AND o.id = t.observable_id
+              LEFT JOIN analysis.results r ON r.root_id = t.root_id
+                  AND r.observable_id = t.observable_id AND r.module = t.module" \\
+              ace4-e2e-postgres-1 sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -At -F "	" -c "$QUERY"' > TASKS
+
+  LOG     the core's log, which has a line for each task a module skipped, with its reason:
+
+          docker logs ace4-e2e-ace-1 > LOG 2>&1
+
+    tools/task-start/declines TASKS LOG [--modules]
+
+Each skip's reason is put in one class by RULES below, which is a reading of each module's code:
+the first check in its `analyze` that gives that reason, and what that check looks at. A reason no
+rule covers is printed as unclassed, so a module that gains a reason shows up here. --modules also
+prints each module's tasks, results and reasons.
+
+A module's pool is from the lists below, which follow crates/ace/src/lib.rs. Needs only python3.
+"""
+
+import argparse
+import collections
+import re
+
+SANDBOX = set(
+    "archive pdf_analyzer pdftotext pdf_link_text exif qrcode ocr java_class_decompiler upx autoit "
+    "de4dot ilspy dmg_analyzer cve_2021_30657_analyzer pcap_analyzer pcap_tls_decryption".split()
+)
+LOOKUPS = set(
+    "rdap_analyzer fqdn_analyzer snort nrd_analyzer user_analyzer proxy_domain_splunk "
+    "clicker_detection_splunk protected_url_one_drive email_archiver encrypted_archive_analyzer "
+    "url_email_pivot_analyzer message_id_analyzer observable_detection user_defined_tagging "
+    "yara_sample_capture email_conversation_frequency_analyzer email_logger "
+    "email_thread_analyzer".split()
+)
+# The core's own task, one a root, which runs its hooks.
+CORE = "core_hooks"
+
+NAME = "core: the file's name or path"
+SIZE = "core: the file's size"
+FILE_TYPE = "core: file_type's result"
+ADDED_BY = "core: which module added the file"
+TREE = "core: the root's tree"
+HEAD = "the file's first bytes"
+PARSE = "a parse or a scan of the file"
+VALUE = "the observable's value"
+
+# (module, or * for any, or a prefix ending in _; what the reason starts with; its class), first
+# match wins. "core:" classes are facts the core holds when it queues the task.
+RULES = [
+    ("site_tagger", "no site tag row is for", "core: the observable's type, with the module's settings"),
+    ("site_tagger", "no site tag row matches", VALUE),
+    ("*", "an empty file", SIZE),
+    ("dmg_analyzer", "not named", NAME),
+    ("cve_2021_30657_analyzer", "not named", NAME),
+    ("vbscript_analyzer", "not a .vbs", NAME),
+    ("office_xml_rel", "not document.xml.rels", NAME),
+    ("mhtml", "not an MHTML", NAME),
+    ("javascript_deobfuscation", "not JavaScript", NAME),
+    ("encrypted_archive_analyzer", "not an archived email", NAME),
+    ("xml_plain_text_analyzer", "a .noxml", NAME),
+    ("xml_plain_text_analyzer", "too large", SIZE),
+    ("xml_plain_text_analyzer", "not extracted from", ADDED_BY),
+    ("exif", "pdfparser output", NAME),
+    ("exif", "Ghostscript output", NAME),
+    ("pdf_analyzer", "this module's own output", NAME),
+    ("file_hash_analyzer", "ignored by", NAME),
+    ("archive", "a file of an email", NAME),
+    ("extracted_ole_analyzer", "not an output of", ADDED_BY),
+    ("extracted_rtf_analyzer", "not an output of", ADDED_BY),
+    ("phishkit_analyzer", "", "core: the file's directives, the mode and its name"),
+    ("email_conversation_attachment_analyzer", "the root has no email", TREE),
+    ("email_conversation_attachment_analyzer", "not an Office document", FILE_TYPE),
+    ("email_conversation_attachment_analyzer", "no macro", TREE),
+    ("email_analyzer", "not an RFC", FILE_TYPE),
+    ("html_js_extraction", "", FILE_TYPE),
+    ("pcodedmp", "not an Office file", FILE_TYPE),
+    ("x509_analyzer", "not an x", FILE_TYPE),
+    ("olevba_v1_2", "its mime type", FILE_TYPE),
+    ("hidden_mime", "an email", FILE_TYPE),
+    ("java_class_decompiler", "not a Java", HEAD),
+    ("upx", "not a PE", HEAD),
+    ("pdftotext", "not a PDF", HEAD),
+    ("pdf_link_text", "not a PDF", HEAD),
+    ("pdf_encryption_analyzer", "not a PDF", HEAD),
+    ("pdf_analyzer", "not a PDF", HEAD),
+    ("qrcode", "not an image or a PDF", HEAD),
+    ("xml_binary_analyzer", "not an XML", HEAD),
+    ("xml_plain_text_analyzer", "not an XML", HEAD),
+    ("lnk_parser", "not a Windows", HEAD),
+    ("rtfole", "not an RTF", HEAD),
+    ("nowhitespace_analyzer", "not an RTF", HEAD),
+    ("binary_file_analyzer", "not an RTF or EPS", HEAD),
+    ("officeparser3", "not an OLE", HEAD),
+    ("olevba_v1_2", "not an Office, OLE or zip", HEAD),
+    ("olevba_v1_2", "an RTF file", HEAD),
+    ("pcap_analyzer", "not a pcap", HEAD),
+    ("onenote_extraction", "not a OneNote", HEAD),
+    ("autoit", "not a compiled", HEAD),
+    ("har_extraction", "not an HTTP archive", HEAD),
+    ("microsoft_script_encoding_analysis", "not an encoded", HEAD),
+    ("de4dot", "not a .NET", HEAD),
+    ("ilspy", "not a .NET", HEAD),
+    ("exif", "not an Office document or a PDF", HEAD),
+    ("archive", "not an archive", HEAD),
+    ("archive", "an OLE compound", HEAD),
+    ("archive", "a packet capture", HEAD),
+    ("hidden_mime", "a packet capture", HEAD),
+    ("tls_keylog", "not a TLS", HEAD),
+    ("rar_encryption_analyzer", "not a RAR", HEAD),
+    ("zip_encryption_analyzer", "not an encrypted zip", PARSE),
+    ("msoffice_encryption_analyzer", "", PARSE),
+    ("active_mime", "", PARSE),
+    ("xlmdeobfuscator", "", PARSE),
+    ("yara_scanner_v3_4", "no rule", PARSE),
+    ("html_data_url_extraction", "no data URL", PARSE),
+    ("hidden_mime", "", PARSE),
+    ("xml_binary_analyzer", "not a Word.Document", PARSE),
+    ("pdf_encryption_analyzer", "", PARSE),
+    ("pdf_link_text", "", PARSE),
+    ("qrcode", "", PARSE),
+    ("pcodedmp", "no p-code", PARSE),
+    ("officeparser3", "", PARSE),
+    ("upx", "", PARSE),
+    ("de4dot", "", PARSE),
+    ("nowhitespace_analyzer", "already", PARSE),
+    ("vbscript_analyzer", "no hex", PARSE),
+    ("lure_url_analyzer", "", PARSE),
+    ("archive", "", PARSE),
+    ("url_extraction", "", PARSE),
+    ("pcap_", "", PARSE),
+    (CORE, "", "the core's hooks task"),
+    ("idna_analyzer", "", VALUE),
+    ("email_address_fqdn_analyzer", "", VALUE),
+]
+# Of the first-byte checks, the ones that ask libmagic or read some structure rather than compare
+# fixed bytes or search the first kilobyte.
+NOT_FIXED_BYTES = {
+    "de4dot", "ilspy", "qrcode", "archive", "autoit", "tls_keylog", "rar_encryption_analyzer",
+    "exif", "hidden_mime",
+}
+
+
+def pool_of(module):
+    if module in SANDBOX:
+        return "sandbox"
+    if module in LOOKUPS:
+        return "lookups"
+    return "core" if module == CORE else "parsers"
+
+
+def class_of(module, reason):
+    for name, prefix, klass in RULES:
+        named = name == "*" or module == name or (name.endswith("_") and module.startswith(name))
+        if named and reason.startswith(prefix):
+            return klass
+    return VALUE if module in LOOKUPS else "UNCLASSED"
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
+    parser.add_argument("tasks")
+    parser.add_argument("log")
+    parser.add_argument("--modules", action="store_true")
+    args = parser.parse_args()
+
+    ansi = re.compile(r"\x1b\[[0-9;]*m")
+    skipped = re.compile(r"skipped: (.*) task=task (\d+)\s*$")
+    reasons = {}
+    with open(args.log, errors="replace") as log:
+        for line in log:
+            if "skipped: " in line and (found := skipped.search(ansi.sub("", line))):
+                reasons[int(found.group(2))] = found.group(1)
+
+    pools = collections.defaultdict(collections.Counter)
+    classes = collections.defaultdict(collections.Counter)
+    modules = collections.defaultdict(collections.Counter)
+    module_reasons = collections.defaultdict(collections.Counter)
+    unclassed = collections.Counter()
+    fixed = collections.Counter()
+    with open(args.tasks) as tasks:
+        for line in tasks:
+            task, module, _state, _kind, stored = line.rstrip("\n").split("\t")[:5]
+            pool = pool_of(module)
+            pools[pool]["tasks"] += 1
+            modules[module]["tasks"] += 1
+            if stored == "t":
+                pools[pool]["results"] += 1
+                modules[module]["results"] += 1
+                continue
+            reason = reasons.get(int(task), "")
+            klass = class_of(module, reason)
+            classes[klass][pool] += 1
+            # numbers and hashes out, so one reason is one line
+            grouped = re.sub(r"\d+", "N", re.sub(r"[0-9a-f]{32,}", "HASH", reason))
+            module_reasons[module][grouped or "(no reason logged)"] += 1
+            if klass == "UNCLASSED":
+                unclassed[(module, grouped[:70])] += 1
+            if klass == HEAD:
+                fixed["not fixed bytes" if module in NOT_FIXED_BYTES else "fixed bytes"] += 1
+
+    order = ["parsers", "sandbox", "lookups", "core"]
+    print(f"{'pool':<10} {'tasks':>8} {'results':>8} {'nothing':>8}")
+    for pool in order:
+        counts = pools[pool]
+        print(f"{pool:<10} {counts['tasks']:>8} {counts['results']:>8} "
+              f"{counts['tasks'] - counts['results']:>8}")
+    tasks = sum(c["tasks"] for c in pools.values())
+    results = sum(c["results"] for c in pools.values())
+    nothing = tasks - results
+    print(f"{'all':<10} {tasks:>8} {results:>8} {nothing:>8}  {100 * nothing / tasks:.1f}% store nothing")
+    print()
+    print(f"{'what decided':<58} {'parsers':>8} {'sandbox':>8} {'lookups':>8} {'all':>8}  share")
+    held = collections.Counter()
+    for klass, by_pool in sorted(classes.items(), key=lambda kv: -sum(kv[1].values())):
+        total = sum(by_pool.values())
+        if klass.startswith("core:"):
+            held.update(by_pool)
+        print(f"{klass:<58} {by_pool['parsers']:>8} {by_pool['sandbox']:>8} "
+              f"{by_pool['lookups']:>8} {total:>8}  {100 * total / nothing:.1f}%")
+    total = sum(held.values())
+    print(f"{'every core: class':<58} {held['parsers']:>8} {held['sandbox']:>8} "
+          f"{held['lookups']:>8} {total:>8}  {100 * total / nothing:.1f}%")
+    print(f"of the first-byte checks: {fixed['fixed bytes']} fixed bytes, "
+          f"{fixed['not fixed bytes']} libmagic or some structure")
+    for (module, reason), count in unclassed.most_common():
+        print(f"UNCLASSED {count:>6} {module}: {reason}")
+    if args.modules:
+        print()
+        for module, counts in sorted(modules.items(), key=lambda kv: -kv[1]["tasks"]):
+            why = "; ".join(f"{n} {r}" for r, n in module_reasons[module].most_common(5))
+            print(f"{module:<40} {counts['tasks']:>6} tasks {counts['results']:>6} results  {why}")
+
+
+if __name__ == "__main__":
+    main()

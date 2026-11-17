@@ -1,0 +1,7 @@
+{#- The site's view of its ticket file parser's results (PLAN.md 5.9), drawn on a result's page. -#}
+<h3>Tickets named in the file</h3>
+<ul>
+{%- for ticket in analysis.tickets %}
+<li>{{ ticket }}</li>
+{%- endfor %}
+</ul>

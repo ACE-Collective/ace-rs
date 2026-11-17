@@ -1,6 +1,12 @@
 //! An example site, built the way a site repository builds its binaries (PLAN.md 2.31, 2.32):
-//! the open-source pools, one module of the site's own in the network pool, and one observable
-//! type of its own, which that module's results add.
+//! the open-source pools, one module of the site's own in the network pool and one in the parser
+//! pool, and one observable type of its own, which those modules' results add.
+//!
+//! The ticket file parser stands in for a site's parser of its own: it lists the tickets a file
+//! names. It runs as the open-source parsers do, one contained task process per task, which
+//! builds it and no other module of the pool from the settings the site's overlay gave it
+//! (`ace_pool::task_process`). Its `init` refuses an empty prefix, which stops the site's parser
+//! pool when it starts and not a task later.
 //!
 //! The ticket lookup stands in for a site's lookup in its own ticket system. For an fqdn it adds
 //! an `example_ticket` observable; for a ticket it records the ticket and adds nothing. A ticket
@@ -21,7 +27,7 @@
 use ace_app::App;
 use ace_gui::{AlertSummary, AnalysisView, ObservableAction, SummaryInput};
 use ace_results::{AnalysisType, NewObservable, ObservableKind, ObservableType, ResultEnvelope};
-use ace_sdk::{Lookup, Module, ModuleError, Outcome, TaskContext};
+use ace_sdk::{Lookup, Module, ModuleError, Outcome, Parser, TaskContext};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -41,10 +47,12 @@ pub const OBSERVABLE_TYPES: &[ObservableKind] = &[TICKET];
 pub fn app() -> App {
     App::new()
         .observable_types(OBSERVABLE_TYPES)
-        .parser_pool(ace::parser_pool())
+        .parser_pool(ace::parser_pool().module::<TicketFile>())
         .lookup_pool(ace::lookup_pool().module::<TicketLookup>())
         .module_in_group("correlation", TicketLookup::NAME)
+        .module_in_group("correlation", TicketFile::NAME)
         .analysis_view::<TicketAnalysis>()
+        .analysis_view::<TicketFileAnalysis>()
         .observable_action(OPEN_TICKET)
         .alert_summary::<ExampleTicketSummary>()
         .alert_router_type(EXAMPLE_TAG_ROUTER, |settings| {
@@ -225,6 +233,108 @@ impl Lookup for TicketLookup {
         })
         .with_summary(format!("1 ticket for {}", observable.value))
         .with_observable(NewObservable::new(TICKET, ticket));
+        Ok(Outcome::Done(result))
+    }
+}
+
+/// The site's parser: the tickets a file names.
+pub struct TicketFile;
+
+/// What the ticket file parser found.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct TicketFileAnalysis {
+    pub tickets: Vec<String>,
+}
+
+impl AnalysisType for TicketFileAnalysis {
+    const NAME: &'static str = "example_ticket_file_analysis";
+    const VERSION: u32 = 1;
+    const MODULE: &'static str = TicketFile::NAME;
+}
+
+/// How a ticket file's result shows on its page.
+#[derive(askama::Template)]
+#[template(path = "ticket_file_analysis.html")]
+pub struct TicketFileView<'a> {
+    pub analysis: &'a TicketFileAnalysis,
+}
+
+impl AnalysisView for TicketFileAnalysis {
+    type View<'a> = TicketFileView<'a>;
+
+    fn view(&self) -> TicketFileView<'_> {
+        TicketFileView { analysis: self }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields, default)]
+pub struct TicketFileSettings {
+    /// What a ticket's name starts with, before its number.
+    pub prefix: String,
+}
+
+impl Default for TicketFileSettings {
+    fn default() -> Self {
+        TicketFileSettings {
+            prefix: "TICKET-".to_owned(),
+        }
+    }
+}
+
+/// How much of a file the parser reads.
+const TICKET_FILE_BYTES: u64 = 1024 * 1024;
+
+impl Module for TicketFile {
+    const NAME: &'static str = "example_ticket_file";
+    const INPUTS: &'static [ObservableKind] = &[ObservableKind::File];
+    type Output = TicketFileAnalysis;
+    type Settings = TicketFileSettings;
+
+    fn init(settings: &TicketFileSettings) -> Result<Self, ModuleError> {
+        // every position of a file would start a ticket
+        if settings.prefix.is_empty() {
+            return Err(ModuleError::other("prefix must not be empty"));
+        }
+        Ok(TicketFile)
+    }
+}
+
+impl Parser for TicketFile {
+    fn analyze(
+        &self,
+        ctx: &TaskContext<TicketFileSettings>,
+    ) -> Result<Outcome<TicketFileAnalysis>, ModuleError> {
+        use std::io::Read;
+        let file = ctx.input_file()?;
+        let mut bytes = Vec::new();
+        std::fs::File::open(&file.local_path)?
+            .take(TICKET_FILE_BYTES)
+            .read_to_end(&mut bytes)?;
+        let text = String::from_utf8_lossy(&bytes);
+        let prefix = ctx.settings().prefix.as_str();
+        let mut tickets: Vec<String> = Vec::new();
+        for (at, _) in text.match_indices(prefix) {
+            let number: String = text[at + prefix.len()..]
+                .chars()
+                .take_while(char::is_ascii_digit)
+                .collect();
+            let ticket = format!("{prefix}{number}");
+            if !number.is_empty() && !tickets.contains(&ticket) {
+                tickets.push(ticket);
+            }
+        }
+        if tickets.is_empty() {
+            return Ok(Outcome::Skipped("the file names no ticket".to_owned()));
+        }
+        let mut result = ResultEnvelope::new(TicketFileAnalysis {
+            tickets: tickets.clone(),
+        })
+        .with_summary(format!("{} tickets named", tickets.len()));
+        for ticket in tickets {
+            result = result.with_observable(NewObservable::new(TICKET, ticket));
+        }
         Ok(Outcome::Done(result))
     }
 }

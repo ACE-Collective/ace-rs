@@ -5,292 +5,119 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::Duration;
 
 use ace_results::{AnalysisType, ObservableKind, ResultEnvelope};
-use ace_sdk::{Lookup, Module, ModuleError, Outcome, Secrets, TaskContext};
+use ace_sdk::{Component, Lookup, Module, ModuleError, Outcome, Secrets, TaskContext};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::modules::{Entry, Modules, SetupError};
+use crate::modules::{Modules, Registry, SetupError};
 
-/// The modules `test-pool` runs, each with its block from `settings`, an object keyed by
+/// The module types `test-pool` links: ported modules and the test modules below. Its supervisor
+/// builds its modules from this, and each of its task processes the one module its task names
+/// (`crate::task_process`), as a pool binary's do from its own registry.
+pub fn registry() -> Registry {
+    Registry::new()
+        .parser::<ace_mod_yara::YaraScanner>()
+        .parser::<ace_mod_pdf::PdfAnalyzer>()
+        .parser::<ace_mod_oletools::Olevba>()
+        .parser::<ace_mod_oletools::RtfOle>()
+        .parser::<ace_mod_xlm::XlmDeobfuscator>()
+        .parser::<ace_mod_xlm::PCode>()
+        .parser::<ace_mod_msoffice::MsofficeEncryption>()
+        .parser::<ace_mod_archive::ArchiveAnalyzer>()
+        .parser::<ace_mod_emailtree::LureUrlAnalyzer>()
+        .parser::<ace_mod_emailtree::MailboxEmailAnalyzer>()
+        .parser::<ace_mod_brocess::EmailConversationAttachmentAnalyzer>()
+        .parser::<ace_mod_brocess::EmailConversationLinkAnalyzer>()
+        .parser::<ace_mod_encrypted::ZipEncryptionAnalyzer>()
+        .parser::<ace_mod_encrypted::RarEncryptionAnalyzer>()
+        .parser::<ace_mod_encrypted::PdfEncryptionAnalyzer>()
+        .parser::<ace_mod_email::EmailAnalyzer>()
+        .parser::<ace_mod_files::FileType>()
+        .parser::<ace_mod_files::X509Analyzer>()
+        .parser::<ace_mod_files::DHashImageAnalyzer>()
+        .parser::<ace_mod_files::LnkParseAnalyzer>()
+        .parser::<ace_mod_urls::UrlExtraction>()
+        .parser::<ace_mod_urls::IocExtraction>()
+        .parser::<ace_mod_values::CommandLineAnalyzer>()
+        .parser::<ace_mod_values::FilePathAnalyzer>()
+        .parser::<ace_mod_values::ParseUrlAnalyzer>()
+        .parser::<ace_mod_values::IdnaAnalyzer>()
+        .parser::<ace_mod_values::ProtectedUrlAnalyzer>()
+        .parser::<ace_mod_values::NetworkIdentifier>()
+        .parser::<ace_mod_html::HtmlDataUrlAnalyzer>()
+        .parser::<ace_mod_html::MhtmlAnalyzer>()
+        .parser::<ace_mod_html::HtmlJavaScriptExtractor>()
+        .parser::<ace_mod_html::HarExtractor>()
+        .parser::<ace_mod_office::OneNoteAnalyzer>()
+        .parser::<ace_mod_office::OfficeParserAnalyzer>()
+        .parser::<ace_mod_office::OfficeXmlRelAnalyzer>()
+        .parser::<ace_mod_office::XmlBinaryAnalyzer>()
+        .parser::<ace_mod_office::XmlPlainTextAnalyzer>()
+        .parser::<ace_mod_office::ExtractedOleAnalyzer>()
+        .parser::<ace_mod_office::HiddenMimeAnalyzer>()
+        .parser::<ace_mod_office::ActiveMimeAnalyzer>()
+        .parser::<ace_mod_scripts::MicrosoftScriptEncodingAnalyzer>()
+        .parser::<ace_mod_scripts::ExtractedRtfAnalyzer>()
+        .parser::<ace_mod_scripts::VbScriptAnalyzer>()
+        .parser::<ace_mod_scripts::NoWhiteSpaceAnalyzer>()
+        .lookup::<Counted>()
+        .lookup::<Panicky>()
+        .lookup::<Connect>()
+        .parser::<Capabilities>()
+        .parser::<PanickingParser>()
+        .parser::<Spin>()
+        .parser::<Stuck>()
+        .parser::<WritesFiles>()
+        .lookup::<Hung>()
+        .parser::<RunsTool>()
+        .parser::<ace_mod_sandbox::QrCodeAnalyzer>()
+        .parser::<ace_mod_sandbox::OcrAnalyzer>()
+        .parser::<ace_mod_sandbox::PdfTextAnalyzer>()
+        .parser::<ace_mod_pdf::PdfLinkTextAnalyzer>()
+        .parser::<ace_mod_sandbox::ExifAnalyzer>()
+        .parser::<ace_mod_sandbox::JavaClassDecompiler>()
+        .parser::<ace_mod_sandbox::UpxAnalyzer>()
+        .parser::<ace_mod_sandbox::AutoItAnalyzer>()
+        .parser::<ace_mod_sandbox::De4dotAnalyzer>()
+        .parser::<ace_mod_sandbox::IlspyAnalyzer>()
+        .parser::<ace_mod_sandbox::DmgAnalyzer>()
+        .parser::<ace_mod_sandbox::Cve202130657Analyzer>()
+        .parser::<ace_mod_pcap::PcapAnalyzer>()
+        .parser::<ace_mod_pcap::PcapFiles>()
+        .parser::<ace_mod_pcap::PcapTls>()
+        .parser::<ace_mod_pcap::PcapDns>()
+        .parser::<ace_mod_pcap::PcapHttp>()
+}
+
+/// The components `test-pool` runs, each with its block from `settings`, an object keyed by
 /// module name. The YARA module is there only when `settings` has a block for it, since it
-/// needs a signature directory.
-pub fn modules(settings: &Value) -> Result<Modules, SetupError> {
-    let secrets = Secrets::new();
-    let block = |name: &str| settings.get(name);
-    let mut modules = Modules::new();
-    if let Some(yara) = block(ace_mod_yara::YaraScanner::NAME) {
-        modules = modules.with_parser(Entry::<ace_mod_yara::YaraScanner>::parser(
-            Some(yara),
-            &secrets,
-        )?);
+/// needs a signature directory. A key that names no test module is refused.
+pub fn components(settings: &Value) -> Result<Vec<Component>, SetupError> {
+    let registry = registry();
+    if let Some(unknown) = settings
+        .as_object()
+        .and_then(|blocks| blocks.keys().find(|key| registry.manifest(key).is_none()))
+    {
+        return Err(SetupError::Unknown(unknown.clone()));
     }
-    Ok(modules
-        .with_parser(Entry::<ace_mod_pdf::PdfAnalyzer>::parser(
-            block("pdf_analyzer"),
-            &secrets,
-        )?)
-        .with_parser(Entry::<ace_mod_oletools::Olevba>::parser(
-            block("olevba_v1_2"),
-            &secrets,
-        )?)
-        .with_parser(Entry::<ace_mod_oletools::RtfOle>::parser(
-            block("rtfole"),
-            &secrets,
-        )?)
-        .with_parser(Entry::<ace_mod_xlm::XlmDeobfuscator>::parser(
-            block("xlmdeobfuscator"),
-            &secrets,
-        )?)
-        .with_parser(Entry::<ace_mod_xlm::PCode>::parser(
-            block("pcodedmp"),
-            &secrets,
-        )?)
-        .with_parser(Entry::<ace_mod_msoffice::MsofficeEncryption>::parser(
-            block("msoffice_encryption_analyzer"),
-            &secrets,
-        )?)
-        .with_parser(Entry::<ace_mod_archive::ArchiveAnalyzer>::parser(
-            block("archive"),
-            &secrets,
-        )?)
-        .with_parser(Entry::<ace_mod_emailtree::LureUrlAnalyzer>::parser(
-            block("lure_url_analyzer"),
-            &secrets,
-        )?)
-        .with_parser(Entry::<ace_mod_emailtree::MailboxEmailAnalyzer>::parser(
-            block("mailbox_email_analyzer"),
-            &secrets,
-        )?)
-        .with_parser(
-            Entry::<ace_mod_brocess::EmailConversationAttachmentAnalyzer>::parser(
-                block("email_conversation_attachment_analyzer"),
-                &secrets,
-            )?,
-        )
-        .with_parser(
-            Entry::<ace_mod_brocess::EmailConversationLinkAnalyzer>::parser(
-                block("email_conversation_link_analyzer"),
-                &secrets,
-            )?,
-        )
-        .with_parser(Entry::<ace_mod_encrypted::ZipEncryptionAnalyzer>::parser(
-            block("zip_encryption_analyzer"),
-            &secrets,
-        )?)
-        .with_parser(Entry::<ace_mod_encrypted::RarEncryptionAnalyzer>::parser(
-            block("rar_encryption_analyzer"),
-            &secrets,
-        )?)
-        .with_parser(Entry::<ace_mod_encrypted::PdfEncryptionAnalyzer>::parser(
-            block("pdf_encryption_analyzer"),
-            &secrets,
-        )?)
-        .with_parser(Entry::<ace_mod_email::EmailAnalyzer>::parser(
-            block("email_analyzer"),
-            &secrets,
-        )?)
-        .with_parser(Entry::<ace_mod_files::FileType>::parser(
-            block("file_type"),
-            &secrets,
-        )?)
-        .with_parser(Entry::<ace_mod_files::X509Analyzer>::parser(
-            block("x509_analyzer"),
-            &secrets,
-        )?)
-        .with_parser(Entry::<ace_mod_files::DHashImageAnalyzer>::parser(
-            block("dhash"),
-            &secrets,
-        )?)
-        .with_parser(Entry::<ace_mod_files::LnkParseAnalyzer>::parser(
-            block("lnk_parser"),
-            &secrets,
-        )?)
-        .with_parser(Entry::<ace_mod_urls::UrlExtraction>::parser(
-            block("url_extraction"),
-            &secrets,
-        )?)
-        .with_parser(Entry::<ace_mod_urls::IocExtraction>::parser(
-            block("ioc_extraction"),
-            &secrets,
-        )?)
-        .with_parser(Entry::<ace_mod_values::CommandLineAnalyzer>::parser(
-            block("command_line_analyzer"),
-            &secrets,
-        )?)
-        .with_parser(Entry::<ace_mod_values::FilePathAnalyzer>::parser(
-            block("file_path_analysis"),
-            &secrets,
-        )?)
-        .with_parser(Entry::<ace_mod_values::ParseUrlAnalyzer>::parser(
-            block("parse_url"),
-            &secrets,
-        )?)
-        .with_parser(Entry::<ace_mod_values::IdnaAnalyzer>::parser(
-            block("idna_analyzer"),
-            &secrets,
-        )?)
-        .with_parser(Entry::<ace_mod_values::ProtectedUrlAnalyzer>::parser(
-            block("protected_url_analyzer"),
-            &secrets,
-        )?)
-        .with_parser(Entry::<ace_mod_values::NetworkIdentifier>::parser(
-            block("network_identifier"),
-            &secrets,
-        )?)
-        .with_parser(Entry::<ace_mod_html::HtmlDataUrlAnalyzer>::parser(
-            block("html_data_url_extraction"),
-            &secrets,
-        )?)
-        .with_parser(Entry::<ace_mod_html::MhtmlAnalyzer>::parser(
-            block("mhtml"),
-            &secrets,
-        )?)
-        .with_parser(Entry::<ace_mod_html::HtmlJavaScriptExtractor>::parser(
-            block("html_js_extraction"),
-            &secrets,
-        )?)
-        .with_parser(Entry::<ace_mod_html::HarExtractor>::parser(
-            block("har_extraction"),
-            &secrets,
-        )?)
-        .with_parser(Entry::<ace_mod_office::OneNoteAnalyzer>::parser(
-            block("onenote_extraction"),
-            &secrets,
-        )?)
-        .with_parser(Entry::<ace_mod_office::OfficeParserAnalyzer>::parser(
-            block("officeparser3"),
-            &secrets,
-        )?)
-        .with_parser(Entry::<ace_mod_office::OfficeXmlRelAnalyzer>::parser(
-            block("office_xml_rel"),
-            &secrets,
-        )?)
-        .with_parser(Entry::<ace_mod_office::XmlBinaryAnalyzer>::parser(
-            block("xml_binary_analyzer"),
-            &secrets,
-        )?)
-        .with_parser(Entry::<ace_mod_office::XmlPlainTextAnalyzer>::parser(
-            block("xml_plain_text_analyzer"),
-            &secrets,
-        )?)
-        .with_parser(Entry::<ace_mod_office::ExtractedOleAnalyzer>::parser(
-            block("extracted_ole_analyzer"),
-            &secrets,
-        )?)
-        .with_parser(Entry::<ace_mod_office::HiddenMimeAnalyzer>::parser(
-            block("hidden_mime"),
-            &secrets,
-        )?)
-        .with_parser(Entry::<ace_mod_office::ActiveMimeAnalyzer>::parser(
-            block("active_mime"),
-            &secrets,
-        )?)
-        .with_parser(
-            Entry::<ace_mod_scripts::MicrosoftScriptEncodingAnalyzer>::parser(
-                block("microsoft_script_encoding_analysis"),
-                &secrets,
-            )?,
-        )
-        .with_parser(Entry::<ace_mod_scripts::ExtractedRtfAnalyzer>::parser(
-            block("extracted_rtf_analyzer"),
-            &secrets,
-        )?)
-        .with_parser(Entry::<ace_mod_scripts::VbScriptAnalyzer>::parser(
-            block("vbscript_analyzer"),
-            &secrets,
-        )?)
-        .with_parser(Entry::<ace_mod_scripts::NoWhiteSpaceAnalyzer>::parser(
-            block("nowhitespace_analyzer"),
-            &secrets,
-        )?)
-        .with_lookup(Entry::<Counted>::lookup(block(Counted::NAME), &secrets)?)
-        .with_lookup(Entry::<Panicky>::lookup(block(Panicky::NAME), &secrets)?)
-        .with_lookup(Entry::<Connect>::lookup(block(Connect::NAME), &secrets)?)
-        .with_parser(Entry::<Capabilities>::parser(
-            block(Capabilities::NAME),
-            &secrets,
-        )?)
-        .with_parser(Entry::<PanickingParser>::parser(
-            block(PanickingParser::NAME),
-            &secrets,
-        )?)
-        .with_parser(Entry::<Spin>::parser(block(Spin::NAME), &secrets)?)
-        .with_parser(Entry::<Stuck>::parser(block(Stuck::NAME), &secrets)?)
-        .with_parser(Entry::<WritesFiles>::parser(
-            block(WritesFiles::NAME),
-            &secrets,
-        )?)
-        .with_lookup(Entry::<Hung>::lookup(block(Hung::NAME), &secrets)?)
-        .with_parser(Entry::<RunsTool>::parser(block(RunsTool::NAME), &secrets)?)
-        .with_parser(Entry::<ace_mod_sandbox::QrCodeAnalyzer>::parser(
-            block("qrcode"),
-            &secrets,
-        )?)
-        .with_parser(Entry::<ace_mod_sandbox::OcrAnalyzer>::parser(
-            block("ocr"),
-            &secrets,
-        )?)
-        .with_parser(Entry::<ace_mod_sandbox::PdfTextAnalyzer>::parser(
-            block("pdftotext"),
-            &secrets,
-        )?)
-        .with_parser(Entry::<ace_mod_pdf::PdfLinkTextAnalyzer>::parser(
-            block("pdf_link_text"),
-            &secrets,
-        )?)
-        .with_parser(Entry::<ace_mod_sandbox::ExifAnalyzer>::parser(
-            block("exif"),
-            &secrets,
-        )?)
-        .with_parser(Entry::<ace_mod_sandbox::JavaClassDecompiler>::parser(
-            block("java_class_decompiler"),
-            &secrets,
-        )?)
-        .with_parser(Entry::<ace_mod_sandbox::UpxAnalyzer>::parser(
-            block("upx"),
-            &secrets,
-        )?)
-        .with_parser(Entry::<ace_mod_sandbox::AutoItAnalyzer>::parser(
-            block("autoit"),
-            &secrets,
-        )?)
-        .with_parser(Entry::<ace_mod_sandbox::De4dotAnalyzer>::parser(
-            block("de4dot"),
-            &secrets,
-        )?)
-        .with_parser(Entry::<ace_mod_sandbox::IlspyAnalyzer>::parser(
-            block("ilspy"),
-            &secrets,
-        )?)
-        .with_parser(Entry::<ace_mod_sandbox::DmgAnalyzer>::parser(
-            block("dmg_analyzer"),
-            &secrets,
-        )?)
-        .with_parser(Entry::<ace_mod_sandbox::Cve202130657Analyzer>::parser(
-            block("cve_2021_30657_analyzer"),
-            &secrets,
-        )?)
-        .with_parser(Entry::<ace_mod_pcap::PcapAnalyzer>::parser(
-            block("pcap_analyzer"),
-            &secrets,
-        )?)
-        .with_parser(Entry::<ace_mod_pcap::PcapFiles>::parser(
-            block("pcap_files"),
-            &secrets,
-        )?)
-        .with_parser(Entry::<ace_mod_pcap::PcapTls>::parser(
-            block("pcap_tls"),
-            &secrets,
-        )?)
-        .with_parser(Entry::<ace_mod_pcap::PcapDns>::parser(
-            block("pcap_dns"),
-            &secrets,
-        )?)
-        .with_parser(Entry::<ace_mod_pcap::PcapHttp>::parser(
-            block("pcap_http"),
-            &secrets,
-        )?))
+    Ok(registry
+        .manifests()
+        .into_iter()
+        .filter(|manifest| {
+            manifest.name != ace_mod_yara::YaraScanner::NAME
+                || settings.get(manifest.name).is_some()
+        })
+        .map(|manifest| Component {
+            settings: settings.get(manifest.name).cloned(),
+            ..Component::of(manifest)
+        })
+        .collect())
+}
+
+/// The modules `test-pool` runs: `components`, built.
+pub fn modules(settings: &Value) -> Result<Modules, SetupError> {
+    registry().build(&components(settings)?, &Secrets::new())
 }
 
 /// A tool named `name` that runs `program`, with no data of its own, for `test-pool --tool`.

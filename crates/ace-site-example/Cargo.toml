@@ -1,7 +1,7 @@
 [package]
 name = "ace-site-example"
 version = "0.1.0"
-description = "An example site crate: binaries built through ace-app with one module and one observable type of the site's own"
+description = "An example site crate: binaries built through ace-app with two modules and one observable type of the site's own"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
@@ -31,7 +31,14 @@ path = "src/bin/example-ace.rs"
 name = "example-lookups"
 path = "src/bin/example-lookups.rs"
 
+[[bin]]
+name = "example-parsers"
+path = "src/bin/example-parsers.rs"
+
 [dev-dependencies]
+# The request a parser pool's supervisor writes its task process, which the task process test
+# writes by hand.
+ace-pool = { path = "../ace-pool" }
 # A routed alert's time, in the alert routing test (PLAN.md 7.13).
 chrono = { version = "0.4.45", default-features = false, features = ["clock"] }
 # A database of the test's own, which the site's `ace serve` runs on.

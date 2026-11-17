@@ -9,14 +9,23 @@
 //! A parser pool's supervisor reads `ACE4_API_URL`, `ACE4_POOL_TOKEN`, `ACE4_OVERLAY`,
 //! `ACE4_TASK_USER` (`ace4-task`, whom task processes run as), `ACE4_CONCURRENCY` (4) and
 //! `ACE4_HEALTH_FILE`, and with YARA rulesets `ACE4_RULESET_DIR` (`/var/lib/ace4/rulesets`) and
-//! `ACE4_RULESET_POLL_SECONDS` (30). It runs each task as
+//! `ACE4_RULESET_POLL_SECONDS` (30). When it starts it reads the overlay and builds every module
+//! of the pool, so a setting that doesn't load, an instance that isn't allowed or a module whose
+//! `init` fails stops the pool then, with the module's name (PLAN.md 2.23), and not a task later.
+//! It runs each task as
 //!
 //! ```text
-//! <binary> task [--overlay PATH] [--rulesets DIR]
+//! <binary> task [--overlay PATH]
 //! ```
 //!
-//! which gets the overlay's path and the ruleset directory as arguments, since it starts with
-//! an empty environment. A pool whose image carries tools (`ParserPool::tools`, PLAN.md 7.3) runs
+//! which starts with an empty environment and builds one module: the one its task names, from
+//! the settings block the supervisor sends with the task, which is the block the supervisor
+//! itself built that module from. So a task runs on the overlay as it was when the pool started,
+//! and a change to the overlay takes a restart of the pool, as it does for a network pool. The
+//! overlay's path is an argument for the one thing a task process still reads there: the
+//! sources of the secrets its own module declares.
+//!
+//! A pool whose image carries tools (`ParserPool::tools`, PLAN.md 7.3) runs
 //! each of its tasks' tools as `<binary> tool`, which contains itself and execs the tool
 //! (`ace_pool::tools`). A pool that runs GUI commands (`ParserPool::commands`, PLAN.md 5.12) also
 //! leases those, `ACE4_COMMAND_CONCURRENCY` (3) at once, and runs each as `<binary> command`, contained
@@ -231,37 +240,78 @@ pub fn parser_main(pool: &ParserPool) -> ExitCode {
     }
 }
 
-/// A task process: builds the modules as the supervisor did, then runs the task on stdin.
+/// A task process: reads the task on stdin and builds its one module (`ace_pool::task_process`).
+/// The module's settings come with the task, from the supervisor's read of the overlay, so this
+/// process reads the overlay only for a module that declares secrets, and then only their sources.
 fn parser_task(pool: &ParserPool, args: Vec<String>) -> ExitCode {
     let setup = u8::try_from(EXIT_SETUP).unwrap_or(u8::MAX);
     let mut overlay_at: Option<PathBuf> = None;
-    let mut rulesets: Option<PathBuf> = None;
     let mut args = args.into_iter();
     while let Some(arg) = args.next() {
         match (arg.as_str(), args.next()) {
             ("--overlay", Some(path)) => overlay_at = Some(path.into()),
-            ("--rulesets", Some(dir)) => rulesets = Some(dir.into()),
             (other, _) => {
                 eprintln!("setup failed: unknown argument {other}");
                 return ExitCode::from(setup);
             }
         }
     }
-    let with_rulesets = pool.rulesets.zip(rulesets.as_deref());
-    let built = overlay(overlay_at.as_deref()).and_then(|overlay| {
-        // a task process has no environment, so its modules' secrets resolve to none
-        modules(&pool.name, &pool.registry, &overlay, with_rulesets, &|_| {
-            None
-        })
-        .map_err(|e| e.to_string())
-    });
-    match built {
-        Ok(modules) => ace_pool::task_process::main(&modules),
-        Err(e) => {
-            eprintln!("setup failed: {e}");
-            ExitCode::from(setup)
-        }
+    ace_pool::task_process::main(&pool.registry, &|manifest| {
+        task_secrets(&pool.name, manifest, overlay_at.as_deref())
+    })
+}
+
+/// The secrets a task process gives the module of `manifest`: the ones it declares, from the
+/// overlay's sources (PLAN.md 2.24). A task process has no environment, so a secret the overlay
+/// reads from a variable isn't set for it, and one it reads from a file is, when the task's user
+/// can read the file. A module that declares none, as every open-source parser does, has none
+/// and the overlay isn't opened.
+fn task_secrets(
+    pool: &str,
+    manifest: &ace_sdk::Manifest,
+    overlay_at: Option<&Path>,
+) -> Result<ace_sdk::Secrets, String> {
+    if manifest.secrets.is_empty() {
+        return Ok(ace_sdk::Secrets::new());
     }
+    let overlay = overlay(overlay_at)?;
+    Ok(ace_pool::secrets::resolve(
+        pool,
+        std::slice::from_ref(manifest),
+        &overlay,
+        &|_| None,
+    ))
+}
+
+/// What a parser pool's supervisor checks and builds when it starts, before it leases a task:
+/// every component the overlay makes of the pool's modules, built, with the pool's tools. This
+/// is where the pool refuses its overlay (PLAN.md 2.23), with the module's name in the error: a
+/// settings key the module hasn't (#858) or a value of the wrong type, an instance with a bad
+/// name, a clashing name or an input its module doesn't take, settings for a module that runs
+/// only as instances, a module whose `init` fails on its settings, and a module that runs a
+/// tool the pool doesn't carry. A section for a module the pool hasn't is skipped (#901, #916),
+/// and a module with no section runs on its defaults (#1044).
+///
+/// A task process repeats none of it. It builds the task's one module again from the block
+/// that passed here (`ace_pool::task_process`), so the only failure left to it is that module's
+/// `init` failing on something that changed since, such as a file it reads having gone.
+fn parser_modules(
+    pool: &ParserPool,
+    overlay: &Overlay,
+    rulesets: Option<(Rulesets, &Path)>,
+    env: &dyn Fn(&str) -> Option<String>,
+) -> Result<Modules, String> {
+    let modules = modules(&pool.name, &pool.registry, overlay, rulesets, env)
+        .map_err(|e| e.to_string())?
+        .with_tools(&pool.tools);
+    let missing = modules.missing_tools();
+    if !missing.is_empty() {
+        return Err(format!(
+            "these modules run tools the pool doesn't carry: {}",
+            missing.join(", ")
+        ));
+    }
+    Ok(modules)
 }
 
 fn supervisor(pool: &ParserPool) -> ExitCode {
@@ -280,29 +330,19 @@ fn supervisor(pool: &ParserPool) -> ExitCode {
     };
     let with_rulesets = rulesets.as_ref().map(|(r, dir)| (*r, dir.as_path()));
     let modules = match overlay(overlay_at.as_deref()).and_then(|overlay| {
-        modules(
-            &pool.name,
-            &pool.registry,
+        parser_modules(
+            pool,
             &overlay,
             with_rulesets,
             &ace_pool::secrets::process_env,
         )
-        .map_err(|e| e.to_string())
     }) {
-        Ok(modules) => modules.with_tools(&pool.tools),
+        Ok(modules) => modules,
         Err(e) => {
             eprintln!("setup failed: {e}");
             return ExitCode::from(2);
         }
     };
-    let missing = modules.missing_tools();
-    if !missing.is_empty() {
-        eprintln!(
-            "setup failed: these modules run tools the pool doesn't carry: {}",
-            missing.join(", ")
-        );
-        return ExitCode::from(2);
-    }
     // each tool, its libraries and its data, as this image has them
     let tools = match ace_pool::tools::ToolTable::resolve(&pool.tools) {
         Ok(tools) => Arc::new(tools),
@@ -324,12 +364,11 @@ fn supervisor(pool: &ParserPool) -> ExitCode {
             return ExitCode::from(2);
         }
     };
+    // a task process gets its module's settings with its task; the overlay's path is for the
+    // secrets of a module that declares some
     let mut task_args = vec!["task".to_owned()];
     if let Some(path) = &overlay_at {
         task_args.extend(["--overlay".to_owned(), path.display().to_string()]);
-    }
-    if let Some((_, dir)) = &rulesets {
-        task_args.extend(["--rulesets".to_owned(), dir.display().to_string()]);
     }
     let client = match LeaseClient::from_env(&worker_name()) {
         Ok(client) => client,
@@ -584,5 +623,355 @@ mod tests {
         // the network pool's section isn't the parser pool's, so it's skipped
         let keys: Vec<&str> = components.iter().map(|c| c.key.as_str()).collect();
         assert_eq!(keys, ["email_analyzer", "yara_scanner_v3_4"]);
+    }
+
+    use ace_results::{AnalysisType, ObservableKind};
+    use ace_sdk::{Module, ModuleError, Outcome, Parser, TaskContext};
+
+    /// A parser of the test's own: its `init` refuses a `limit` of 0, as a real module's refuses a
+    /// setting it can't run on, and it declares a secret.
+    struct Picky;
+
+    #[derive(
+        Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, schemars::JsonSchema,
+    )]
+    #[serde(deny_unknown_fields)]
+    struct PickyAnalysis {}
+
+    impl AnalysisType for PickyAnalysis {
+        const NAME: &'static str = "test_picky_analysis";
+        const VERSION: u32 = 1;
+        const MODULE: &'static str = Picky::NAME;
+    }
+
+    #[derive(Debug, Clone, PartialEq, serde::Deserialize, schemars::JsonSchema)]
+    #[serde(deny_unknown_fields, default)]
+    struct PickySettings {
+        limit: u32,
+    }
+
+    impl Default for PickySettings {
+        fn default() -> Self {
+            PickySettings { limit: 1 }
+        }
+    }
+
+    impl Module for Picky {
+        const NAME: &'static str = "test_picky";
+        const INPUTS: &'static [ObservableKind] = &[ObservableKind::File];
+        const SECRETS: &'static [&'static str] = &["picky_token"];
+        type Output = PickyAnalysis;
+        type Settings = PickySettings;
+
+        fn init(settings: &PickySettings) -> Result<Self, ModuleError> {
+            if settings.limit == 0 {
+                return Err(ModuleError::other("limit must be at least 1"));
+            }
+            Ok(Picky)
+        }
+    }
+
+    impl Parser for Picky {
+        fn analyze(
+            &self,
+            _: &TaskContext<PickySettings>,
+        ) -> Result<Outcome<PickyAnalysis>, ModuleError> {
+            Ok(Outcome::Skipped("a test module".to_owned()))
+        }
+    }
+
+    /// A parser with one setting and nothing else of note.
+    struct Plain;
+
+    #[derive(
+        Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, schemars::JsonSchema,
+    )]
+    #[serde(deny_unknown_fields)]
+    struct PlainAnalysis {}
+
+    impl AnalysisType for PlainAnalysis {
+        const NAME: &'static str = "test_plain_analysis";
+        const VERSION: u32 = 1;
+        const MODULE: &'static str = Plain::NAME;
+    }
+
+    #[derive(Debug, Clone, Default, PartialEq, serde::Deserialize, schemars::JsonSchema)]
+    #[serde(deny_unknown_fields, default)]
+    struct PlainSettings {
+        max_bytes: u64,
+    }
+
+    impl Module for Plain {
+        const NAME: &'static str = "test_plain";
+        const INPUTS: &'static [ObservableKind] = &[ObservableKind::File];
+        type Output = PlainAnalysis;
+        type Settings = PlainSettings;
+
+        fn init(_: &PlainSettings) -> Result<Self, ModuleError> {
+            Ok(Plain)
+        }
+    }
+
+    impl Parser for Plain {
+        fn analyze(
+            &self,
+            _: &TaskContext<PlainSettings>,
+        ) -> Result<Outcome<PlainAnalysis>, ModuleError> {
+            Ok(Outcome::Skipped("a test module".to_owned()))
+        }
+    }
+
+    /// A parser that runs a tool.
+    struct ToolUser;
+
+    #[derive(
+        Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, schemars::JsonSchema,
+    )]
+    #[serde(deny_unknown_fields)]
+    struct ToolUserAnalysis {}
+
+    impl AnalysisType for ToolUserAnalysis {
+        const NAME: &'static str = "test_tool_user_analysis";
+        const VERSION: u32 = 1;
+        const MODULE: &'static str = ToolUser::NAME;
+    }
+
+    impl Module for ToolUser {
+        const NAME: &'static str = "test_tool_user";
+        const INPUTS: &'static [ObservableKind] = &[ObservableKind::File];
+        const TOOLS: &'static [&'static str] = &["tesseract"];
+        type Output = ToolUserAnalysis;
+        type Settings = PlainSettings;
+
+        fn init(_: &Self::Settings) -> Result<Self, ModuleError> {
+            Ok(ToolUser)
+        }
+    }
+
+    impl Parser for ToolUser {
+        fn analyze(
+            &self,
+            _: &TaskContext<Self::Settings>,
+        ) -> Result<Outcome<ToolUserAnalysis>, ModuleError> {
+            Ok(Outcome::Skipped("a test module".to_owned()))
+        }
+    }
+
+    fn picky_pool() -> ParserPool {
+        ParserPool::new("parsers")
+            .module::<Picky>()
+            .module::<Plain>()
+    }
+
+    /// What `pool` does with `yaml` when it starts: its modules' names, or its refusal.
+    fn start(pool: &ParserPool, yaml: &str) -> Result<Vec<String>, String> {
+        let overlay = Overlay::from_yaml(yaml).map_err(|e| e.to_string())?;
+        parser_modules(pool, &overlay, None, &|_| None).map(|modules| modules.names())
+    }
+
+    /// PLAN.md 2.23 and ace3 #858: a setting that doesn't load stops the pool when it starts, and
+    /// the error names the module and the key. A task process no longer reads the overlay, so
+    /// this is the one place it is checked.
+    #[test]
+    fn a_setting_that_does_not_load_stops_the_pool_at_its_start() {
+        let pool = picky_pool();
+        let unknown_key = start(
+            &pool,
+            "modules:\n  test_picky:\n    settings:\n      limt: 3\n",
+        )
+        .unwrap_err();
+        assert_eq!(
+            unknown_key,
+            "the overlay's modules.test_picky.settings: unknown settings key limt"
+        );
+        let wrong_type = start(
+            &pool,
+            "modules:\n  test_picky:\n    settings:\n      limit: many\n",
+        )
+        .unwrap_err();
+        assert!(
+            wrong_type
+                .starts_with("the overlay's modules.test_picky.settings: invalid setting limit"),
+            "{wrong_type}"
+        );
+        // the second module's block is checked too, though no task has named it
+        let second = start(
+            &pool,
+            "modules:\n  test_plain:\n    settings:\n      max_byte: 3\n",
+        )
+        .unwrap_err();
+        assert_eq!(
+            second,
+            "the overlay's modules.test_plain.settings: unknown settings key max_byte"
+        );
+        // a key the overlay itself hasn't is refused where it is read
+        let unknown_section = start(&pool, "moduls: {}\n").unwrap_err();
+        assert!(unknown_section.contains("moduls"), "{unknown_section}");
+    }
+
+    /// A module whose `init` fails on its settings stops the pool when it starts, by name. Before
+    /// a task process built only its own module, every task process hit the same failure; now
+    /// only this check does.
+    #[test]
+    fn a_module_that_does_not_build_stops_the_pool_at_its_start() {
+        let refused = start(
+            &picky_pool(),
+            "modules:\n  test_picky:\n    settings:\n      limit: 0\n",
+        )
+        .unwrap_err();
+        assert_eq!(refused, "module test_picky: limit must be at least 1");
+        // an instance's settings are built as the module's own are
+        let instance = start(
+            &picky_pool(),
+            "modules:\n  test_picky:\n    instances:\n      picky_two:\n        settings:\n          limit: 0\n",
+        )
+        .unwrap_err();
+        assert_eq!(instance, "module test_picky: limit must be at least 1");
+    }
+
+    /// The overlay's rules for instances (PLAN.md 2.23) are refused at the pool's start too.
+    #[test]
+    fn an_instance_the_overlay_may_not_declare_stops_the_pool_at_its_start() {
+        let pool = picky_pool();
+        let bad_name = start(
+            &pool,
+            "modules:\n  test_picky:\n    instances:\n      Picky-Two: {}\n",
+        )
+        .unwrap_err();
+        assert!(bad_name.contains("Picky-Two"), "{bad_name}");
+        let clash = start(
+            &pool,
+            "modules:\n  test_picky:\n    instances:\n      test_plain: {}\n",
+        )
+        .unwrap_err();
+        assert_eq!(
+            clash,
+            "the overlay's instance test_plain of test_picky has a module's or another instance's \
+             name"
+        );
+        let input = start(
+            &pool,
+            "modules:\n  test_picky:\n    instances:\n      picky_two:\n        inputs: [fqdn]\n",
+        )
+        .unwrap_err();
+        assert_eq!(
+            input,
+            "the overlay's instance picky_two of test_picky takes fqdn, which test_picky doesn't"
+        );
+        let both = start(
+            &pool,
+            "modules:\n  test_picky:\n    settings:\n      limit: 2\n    instances:\n      picky_two: {}\n",
+        )
+        .unwrap_err();
+        assert!(
+            both.contains("modules.test_picky.settings")
+                && both.contains("takes its settings in each instance"),
+            "{both}"
+        );
+    }
+
+    /// A module that runs a tool its pool doesn't carry stops the pool when it starts (PLAN.md 7.3).
+    #[test]
+    fn a_module_whose_tool_the_pool_lacks_stops_the_pool_at_its_start() {
+        let without = ParserPool::new("sandbox").module::<ToolUser>();
+        assert_eq!(
+            start(&without, "").unwrap_err(),
+            "these modules run tools the pool doesn't carry: test_tool_user: tesseract"
+        );
+        let with = ParserPool::new("sandbox")
+            .tools(ace_sdk::tools::SANDBOX_TOOLS)
+            .module::<ToolUser>();
+        assert_eq!(start(&with, "").expect("starts"), ["test_tool_user"]);
+    }
+
+    /// What starts all the same (PLAN.md 2.23): a module with no section runs on its defaults
+    /// (#1044), a section for a module the binary no longer has is skipped (#901, #916), and so is
+    /// another pool's module's, whatever its settings say.
+    #[test]
+    fn a_missing_section_and_a_removed_module_do_not_stop_the_pool() {
+        let pool = picky_pool();
+        assert_eq!(
+            start(&pool, "").expect("starts"),
+            ["test_picky", "test_plain"]
+        );
+        let removed = "modules:\n  a_module_removed_last_year:\n    settings:\n      anything: 1\n  \
+                       rdap_analyzer:\n    settings:\n      no_such_key: 5\n";
+        assert_eq!(
+            start(&pool, removed).expect("starts"),
+            ["test_picky", "test_plain"]
+        );
+    }
+
+    /// The supervisor sends a task process the block it built the task's module from, so a task
+    /// runs on exactly what the start check passed: the overlay's block, the pool's ruleset
+    /// directory for the ruleset module, an instance's own block, and nothing for a module on its
+    /// defaults.
+    #[test]
+    fn a_task_process_gets_the_block_its_module_was_built_from_at_the_start() {
+        let pool = picky_pool()
+            .module::<ace_mod_yara::YaraScanner>()
+            .yara_rulesets::<ace_mod_yara::YaraScanner>(ace_mod_yara::check_ruleset);
+        let overlay = Overlay::from_yaml(
+            "modules:\n  test_picky:\n    instances:\n      picky_two:\n        settings:\n          limit: 2\n      picky_nine:\n        settings:\n          limit: 9\n  yara_scanner_v3_4:\n    settings:\n      blacklist: [noisy]\n",
+        )
+        .expect("reads");
+        let dir = tempfile::tempdir().expect("a directory");
+        let rulesets = pool.rulesets.expect("rulesets");
+        let modules = parser_modules(&pool, &overlay, Some((rulesets, dir.path())), &|_| None)
+            .expect("starts");
+        let block = |key: &str| {
+            modules
+                .parser(key)
+                .unwrap_or_else(|| panic!("no {key}"))
+                .settings()
+                .cloned()
+        };
+        assert_eq!(block("picky_two"), Some(serde_json::json!({"limit": 2})));
+        assert_eq!(block("picky_nine"), Some(serde_json::json!({"limit": 9})));
+        assert_eq!(block("test_plain"), None);
+        assert_eq!(
+            block("yara_scanner_v3_4"),
+            Some(serde_json::json!({
+                "blacklist": ["noisy"],
+                "rulesets": dir.path().display().to_string(),
+            }))
+        );
+        // an instance's tasks name the instance, and its process builds the module it is made of
+        assert_eq!(
+            modules.parser("picky_two").map(|p| p.manifest().name),
+            Some("test_picky")
+        );
+    }
+
+    /// PLAN.md 2.24: a task process resolves the secrets its own module declares and no other's,
+    /// and opens the overlay only for a module that declares one. With no environment, a secret
+    /// from a variable isn't set for it.
+    #[test]
+    fn a_task_process_resolves_only_its_own_modules_secrets() {
+        let dir = tempfile::tempdir().expect("a directory");
+        let (token, other) = (dir.path().join("token"), dir.path().join("other"));
+        std::fs::write(&token, "picky-secret\n").expect("writes");
+        std::fs::write(&other, "another-modules-secret\n").expect("writes");
+        let overlay_at = dir.path().join("overlay.yaml");
+        std::fs::write(
+            &overlay_at,
+            format!(
+                "secrets:\n  picky_token: file:{}\n  resolver_token: file:{}\n  splunk_password: env:HOME\n",
+                token.display(),
+                other.display()
+            ),
+        )
+        .expect("writes");
+        let picky = ace_sdk::Manifest::parser::<Picky>();
+        let secrets = task_secrets("parsers", &picky, Some(&overlay_at)).expect("resolves");
+        assert_eq!(secrets.names(), ["picky_token"]);
+        // a module that declares none has none, and the overlay isn't read: this one isn't there
+        let counter = ace_sdk::Manifest::parser::<Plain>();
+        let missing = dir.path().join("no-overlay.yaml");
+        let none = task_secrets("parsers", &counter, Some(&missing)).expect("nothing to read");
+        assert!(none.names().is_empty());
+        // where one that declares a secret does read it, and says when it can't
+        let unread = task_secrets("parsers", &picky, Some(&missing)).unwrap_err();
+        assert!(unread.contains("no-overlay.yaml"), "{unread}");
     }
 }
