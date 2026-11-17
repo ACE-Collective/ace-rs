@@ -88,17 +88,25 @@ RUN dotnet tool install --tool-path /opt/dotnet ilspycmd --version 11.0.0.9375 \
 # ace3's search uses, from its repository on Hugging Face at one commit, each file pinned by hash
 # (vendor/README.md says what it is and its licence). `ace_search::model` checks the same hashes when
 # it loads the files. docker/dev/Dockerfile and docker/ace4/Dockerfile have this same stage.
-FROM debian:13.7-slim AS search-model
-ADD --checksum=sha256:53aa51172d142c89d9012cce15ae4d6cc0ca6895895114379cacb4fab128d9db \
-    https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/1110a243fdf4706b3f48f1d95db1a4f5529b4d41/model.safetensors \
-    /model/model.safetensors
-ADD --checksum=sha256:be50c3628f2bf5bb5e3a7f17b1f74611b2561a3a27eeab05e5aa30f411572037 \
-    https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/1110a243fdf4706b3f48f1d95db1a4f5529b4d41/tokenizer.json \
-    /model/tokenizer.json
-ADD --checksum=sha256:953f9c0d463486b10a6871cc2fd59f223b2c70184f49815e7efbcab5d8908b41 \
-    https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/1110a243fdf4706b3f48f1d95db1a4f5529b4d41/config.json \
-    /model/config.json
-RUN chmod 755 /model && chmod 644 /model/*
+#
+# The files are fetched in a RUN step, not with ADD. The builder fetches an ADD's URL itself, outside
+# any proxy the Docker client is set up with, so on a network that reaches Hugging Face's download
+# hosts only through a proxy the build failed here. `docker compose` passes the client's proxy
+# (the `proxies` of ~/.docker/config.json) to RUN steps as build arguments, which curl reads; a plain
+# `docker build` doesn't, and needs `--build-arg ALL_PROXY=...`. The image is the build stage's,
+# which has curl and is already here.
+FROM rust:1.99.1-trixie AS search-model
+RUN mkdir /model && cd /model \
+    && base=https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/1110a243fdf4706b3f48f1d95db1a4f5529b4d41 \
+    && for file in model.safetensors tokenizer.json config.json; do \
+           curl --fail --silent --show-error --location --retry 3 --output "$file" "$base/$file" || exit 1; \
+       done \
+    && printf '%s  %s\n' \
+        53aa51172d142c89d9012cce15ae4d6cc0ca6895895114379cacb4fab128d9db model.safetensors \
+        be50c3628f2bf5bb5e3a7f17b1f74611b2561a3a27eeab05e5aa30f411572037 tokenizer.json \
+        953f9c0d463486b10a6871cc2fd59f223b2c70184f49815e7efbcab5d8908b41 config.json \
+       | sha256sum --check --strict - \
+    && chmod 755 /model && chmod 644 /model/*
 
 FROM rust:1.99.1-trixie AS build
 
