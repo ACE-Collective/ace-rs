@@ -68,7 +68,7 @@ When a result lands, the orchestrator finds the (observable, module) pairs that 
 
 Modules for one alert run in parallel on different workers. They don't conflict because each writes its own rows, so the per-root lock goes away. A large email alert that today runs module by module under one worker's lock spreads across every free worker.
 
-Workers claim tasks with `FOR UPDATE SKIP LOCKED` and wake on `LISTEN/NOTIFY`. The queue is written on sqlx inside the core rather than taken from a library, because the Rust Postgres queue crates are younger than Go's River and the queue has to fit the eligibility model exactly. Every worker, Rust or Python, leases tasks through the core's API rather than the database, so a parser never holds database credentials.
+Workers claim tasks with `FOR UPDATE SKIP LOCKED` and wake on `LISTEN/NOTIFY`. A pool asks for as many tasks as it has free slots, in one request, and the core answers with the oldest that are due, each leased or held back on its own. A pool never asks for a task it can't start at once, so no task waits in a busy pool while another replica is free, and a pool that dies takes at most its slots' worth of tasks with it until their leases expire. The queue is written on sqlx inside the core rather than taken from a library, because the Rust Postgres queue crates are younger than Go's River and the queue has to fit the eligibility model exactly. Every worker, Rust or Python, leases tasks through the core's API rather than the database, so a parser never holds database credentials.
 
 ### Modules and pools
 

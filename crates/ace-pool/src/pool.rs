@@ -16,6 +16,10 @@ use tracing::Instrument;
 
 use crate::client::LeaseClient;
 use crate::containment::SandboxProfile;
+
+/// The target of the lease's timing events (`ace_core::api::LEASE_TIMING`): a pool logs one a
+/// lease request, at debug, with its round trip, the slots it had free and the tasks it got.
+pub const LEASE_TIMING: &str = "ace_lease";
 use crate::modules::Modules;
 use crate::run::run_in_process;
 
@@ -85,6 +89,9 @@ impl PoolDefinition {
 pub struct PoolStats {
     pub tasks: u64,
     pub errors: u64,
+    /// Lease requests the core answered with tasks. Fewer than `tasks` when requests brought
+    /// several.
+    pub leases: u64,
     /// Tasks still running at the shutdown deadline, whose leases were given back.
     pub released_at_deadline: u64,
 }
@@ -101,11 +108,27 @@ pub type Runner = Arc<
         + Sync,
 >;
 
-/// A pool's lease loop: leases a task whenever a slot is free and runs it, until `stop` fires.
-/// Then it leases no more, stops the running tasks, which give their leases back, and waits up
-/// to `grace` for them (PLAN.md 2.21). A task still running then is abandoned and its lease is
+/// A pool's lease loop: whenever a slot is free it asks the core for as many tasks as it has free
+/// slots, in one request, and starts each that comes back at once, until `stop` fires. One request
+/// is in flight at a time.
+///
+/// A lease is a promise the pool can keep. It takes the free slots before it asks and asks for
+/// that many, so every task it is given has a slot and starts when the answer arrives: none waits
+/// here behind a task that is running while another replica could run it, and a slow task delays
+/// none that came with it, since each runs in its own slot. The pool therefore never holds more
+/// leases than `concurrency`, running tasks and a request's answer together, which is also the
+/// most a pool that is killed or frozen takes with it; their leases run out and the core's reaper
+/// queues them again. Slots it asked for and got no task for are free again for the next request.
+/// A request asks for the slots that are free when it is sent, so one that waits while running
+/// tasks finish brings no more than it asked for, and the slots freed meanwhile are asked for by
+/// the next, one round trip later.
+///
+/// At `stop` it leases no more, stops the running tasks, which give their leases back, and waits
+/// up to `grace` for them (PLAN.md 2.21). A task still running then is abandoned and its lease is
 /// given back here, each call bounded, so shutdown ends by `grace` plus the release calls,
-/// whatever an upstream does.
+/// whatever an upstream does. A request in flight at `stop` is dropped, and the core gives back
+/// what it had claimed for it, but for a task whose lease it was deciding just then, which comes
+/// back when its lease runs out (`ace_core::api`'s `InHand`).
 pub async fn lease_loop(
     client: &LeaseClient,
     concurrency: usize,
@@ -121,8 +144,8 @@ pub async fn lease_loop(
     let mut running: JoinSet<bool> = JoinSet::new();
     let mut stats = PoolStats::default();
     loop {
-        // a slot first, so a leased task always has somewhere to run
-        let slot = tokio::select! {
+        // a slot first, and every other that is free now, so each leased task has somewhere to run
+        let first = tokio::select! {
             biased;
             () = stop.cancelled() => break,
             slot = slots.clone().acquire_owned() => match slot {
@@ -130,40 +153,67 @@ pub async fn lease_loop(
                 Err(_) => break,
             },
         };
+        let mut free = vec![first];
+        while let Ok(slot) = slots.clone().try_acquire_owned() {
+            free.push(slot);
+        }
         while let Some(finished) = running.try_join_next() {
             count(&mut stats, finished);
         }
+        let asked = std::time::Instant::now();
         let leased = tokio::select! {
             biased;
             () = stop.cancelled() => break,
-            leased = client.lease(&[], lease_wait) => leased,
+            leased = client.lease_up_to(&[], lease_wait, free.len()) => leased,
         };
+        tracing::debug!(
+            target: LEASE_TIMING,
+            free = free.len(),
+            tasks = leased.as_ref().map_or(0, Vec::len),
+            round_trip_us = u64::try_from(asked.elapsed().as_micros()).unwrap_or(u64::MAX),
+            "a lease request"
+        );
         match leased {
-            Ok(Some(task)) => {
-                let id = task.id;
-                lock(&held).insert(id);
-                // every span of the task's run in this process is a child of this one
-                let span = tracing::info_span!(
-                    "pool.task",
-                    task = id,
-                    module = %task.module,
-                    root = %task.root,
-                );
-                let (run, token, held) = (run.clone(), tasks.child_token(), held.clone());
-                running.spawn(
-                    async move {
-                        let _slot = slot;
-                        let ended = run(task, token).await;
-                        lock(&held).remove(&id);
-                        ended
-                    }
-                    .instrument(span),
-                );
+            Ok(leased) => {
+                if !leased.is_empty() {
+                    stats.leases += 1;
+                }
+                for task in leased {
+                    let id = task.id;
+                    let Some(slot) = free.pop() else {
+                        // more than was asked for: there is nowhere to run it, so it goes back
+                        tracing::error!(task = id, "the core leased a task no slot was free for");
+                        stats.errors += 1;
+                        if let Err(e) = client.release(id).await {
+                            tracing::warn!(task = id, "giving the task back failed: {e}");
+                        }
+                        continue;
+                    };
+                    lock(&held).insert(id);
+                    // every span of the task's run in this process is a child of this one
+                    let span = tracing::info_span!(
+                        "pool.task",
+                        task = id,
+                        module = %task.module,
+                        root = %task.root,
+                    );
+                    let (run, token, held) = (run.clone(), tasks.child_token(), held.clone());
+                    running.spawn(
+                        async move {
+                            let _slot = slot;
+                            let ended = run(task, token).await;
+                            lock(&held).remove(&id);
+                            ended
+                        }
+                        .instrument(span),
+                    );
+                }
             }
-            Ok(None) => {}
             Err(e) => {
                 tracing::warn!("leasing failed: {e}");
                 stats.errors += 1;
+                // the slots are free while it waits, though nothing takes them but this loop
+                drop(free);
                 tokio::select! {
                     () = stop.cancelled() => break,
                     () = tokio::time::sleep(Duration::from_secs(1)) => {}

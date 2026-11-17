@@ -774,7 +774,10 @@ impl PathStack {
                 return paths;
             }
             assert_eq!(response.status(), 200);
-            let leased: ace_sdk::wire::LeasedTask = response.json().await.expect("a task");
+            let mut leased: Vec<ace_sdk::wire::LeasedTask> =
+                response.json().await.expect("its tasks");
+            assert_eq!(leased.len(), 1, "it asked for one");
+            let leased = leased.remove(0);
             let file = leased.observable.file.expect("a file task");
             let path = file.path.as_str().to_owned();
             let task = worker

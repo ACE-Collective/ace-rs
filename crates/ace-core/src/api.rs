@@ -2,9 +2,15 @@
 //! presigned bucket URLs for its inputs and outputs. A worker holds an API token and nothing
 //! else: no database URL and no bucket key.
 //!
-//! - `POST /api/worker/v1/lease`: a task of the pool's modules, or 204 after waiting up to
-//!   `wait_seconds` (at most `ApiConfig::max_wait`) for one. A file task carries a presigned
-//!   URL that downloads its input.
+//! - `POST /api/worker/v1/lease`: tasks of the pool's modules, as a list, or 204 after waiting up
+//!   to `wait_seconds` (at most `ApiConfig::max_wait`) for one. The request says how many the
+//!   worker can start now (`max`, one when it doesn't say), and the answer holds the oldest that
+//!   are due, up to that many and up to `MAX_LEASED_AT_ONCE`. It comes as soon as one is leased
+//!   and never waits to fill the list. The tasks are claimed together and each lease is decided
+//!   for its task alone (`Api::leased_each`), so one that is held back, delayed, failed or
+//!   cancelled there keeps no other out of the answer. A file task carries a presigned URL that
+//!   downloads its input. A request that ends before its answer, as when its pool is stopped,
+//!   gives back what it had claimed, but for the task whose lease it was deciding (`InHand`).
 //! - `POST /api/worker/v1/tasks/<id>/renew`: extends the lease; the answer says whether the
 //!   task was cancelled.
 //! - `POST /api/worker/v1/tasks/<id>/uploads`: a presigned URL to upload one file the module
@@ -76,8 +82,8 @@ use ace_results::{AlertPath, ObservableKind, ObservableRef, ResultEnvelope, Sha2
 use ace_sdk::wire::{
     ApiError, COMMANDS, CarryingEmail, CommandEnd, CommandLeaseRequest, CommandOutcome,
     CommandReply, CommandReport, CurrentRuleset, FieldError as WireFieldError, LeaseRequest,
-    LeasedCommand, LeasedTask, Presigned, Renewal, TaskEnd, TaskFile, TaskObservable,
-    UploadRequest, paths,
+    LeasedCommand, LeasedTask, MAX_LEASED_AT_ONCE, Presigned, Renewal, TaskEnd, TaskFile,
+    TaskObservable, UploadRequest, paths,
 };
 use axum::extract::rejection::JsonRejection;
 use axum::extract::{Path, State};
@@ -133,6 +139,73 @@ const PATH_HOLD_MAX: Duration = Duration::from_secs(2);
 enum Choose {
     Settle,
     Read,
+}
+
+/// The target of the lease's timing events: one a claimed task from the core and one a lease request
+/// from a pool, at debug, so `ACE4_LOG=info,ace_lease=debug` turns them on
+/// (`docs/measurements/lease.md`).
+pub const LEASE_TIMING: &str = "ace_lease";
+
+/// Where the core's time went on one claimed task, in microseconds, for its timing event.
+#[derive(Debug, Default, Clone, Copy)]
+struct LeaseTimes {
+    /// The path hold's decision.
+    path: u64,
+    /// The file's record, its path settled, and its download URL.
+    file: u64,
+    /// Whether a task that runs last is held back, and its delay when it is.
+    last: u64,
+    /// The carrying email and everything the task reads of its root's tree.
+    reads: u64,
+}
+
+/// The tasks a lease request has claimed and not answered with yet. Dropped with any left, it
+/// gives them back to the queue, each claim uncounted, as a pool gives its leases back when it
+/// stops (`Worker::release`): the request ended before its answer, so no pool holds them.
+///
+/// All but the task whose lease was being decided when the request ended. That one keeps its
+/// lease until it runs out, as the one task of a request that ended did before, with its claim
+/// counted: a request also ends when a decision panics, and a task whose decision panics every
+/// time must use up its attempts and fail, not be claimed again for ever ahead of the others.
+struct InHand {
+    worker: Worker,
+    tasks: Vec<TaskId>,
+    deciding: Option<TaskId>,
+}
+
+impl Drop for InHand {
+    fn drop(&mut self) {
+        let mut tasks = std::mem::take(&mut self.tasks);
+        tasks.retain(|task| Some(*task) != self.deciding);
+        if tasks.is_empty() {
+            return;
+        }
+        let worker = self.worker.clone();
+        // outside a runtime, as when the server is torn down, their leases run out instead
+        let Ok(runtime) = tokio::runtime::Handle::try_current() else {
+            return;
+        };
+        runtime.spawn(async move {
+            for task in tasks {
+                match worker.release(task).await {
+                    Ok(()) => {
+                        tracing::info!(%task, "gave back a task its lease request never answered with");
+                    }
+                    // the core held it back, delayed it or failed it before the request ended
+                    Err(QueueError::LeaseLost(_)) => {}
+                    Err(e) => tracing::warn!(%task, "giving back an unanswered task failed: {e}"),
+                }
+            }
+        });
+    }
+}
+
+/// The microseconds since `since`, and `since` moved to now.
+fn lap(since: &mut std::time::Instant) -> u64 {
+    let now = std::time::Instant::now();
+    let micros = u64::try_from(now.duration_since(*since).as_micros()).unwrap_or(u64::MAX);
+    *since = now;
+    micros
 }
 
 /// A pool's access to the API: its name, the hash of its token and the modules it may lease.
@@ -860,24 +933,34 @@ impl Api {
         }
     }
 
-    /// Claims a task for `worker`, waiting up to `wait` for one.
+    /// Claims tasks for `worker`, `most` at most, waiting up to `wait` for the first. It answers as
+    /// soon as one is leased, with as many as were due then, and never waits to fill the list: the
+    /// worker asked for what it can start now, and a task that isn't due yet is for whoever is free
+    /// when it is.
     async fn lease_for(
         &self,
         worker: &Worker,
         wait: Duration,
-    ) -> Result<Option<LeasedTask>, Failure> {
+        most: usize,
+    ) -> Result<Vec<LeasedTask>, Failure> {
         let mut wakeups = self.inner.wakeups.subscribe();
         let deadline = tokio::time::Instant::now() + wait;
         loop {
-            if let Some(task) = worker.claim().await? {
-                match self.leased(worker, task).await? {
-                    Some(leased) => return Ok(Some(leased)),
-                    None => continue,
+            let mut clock = std::time::Instant::now();
+            let claimed = worker.claim_up_to(most).await?;
+            if !claimed.is_empty() {
+                let since = clock;
+                let claim = lap(&mut clock);
+                let leased = self.leased_each(worker, claimed, since, claim).await?;
+                if leased.is_empty() {
+                    // each was held back, delayed, failed or cancelled: claim again
+                    continue;
                 }
+                return Ok(leased);
             }
             let now = tokio::time::Instant::now();
             if now >= deadline || self.inner.stopping.is_cancelled() {
-                return Ok(None);
+                return Ok(Vec::new());
             }
             let mut until = deadline - now;
             if let Some(due) = worker.next_due().await? {
@@ -889,7 +972,7 @@ impl Api {
             loop {
                 tokio::select! {
                     () = &mut sleep => break,
-                    () = self.inner.stopping.cancelled() => return Ok(None),
+                    () = self.inner.stopping.cancelled() => return Ok(Vec::new()),
                     woken = wakeups.recv() => match woken {
                         Ok(module) if module == "*" || worker.modules().contains(&module) => break,
                         Ok(_) => {}
@@ -904,14 +987,119 @@ impl Api {
         }
     }
 
+    /// The leased form of each task claimed together, oldest first. Each task's lease is decided
+    /// for it alone, by `leased`, as when it is claimed alone: one that is held back, delayed, failed
+    /// or cancelled there is left out, and the others are leased. The decisions are made one after
+    /// another. Made at once they were slower: nearly every one of a root's takes its root's row
+    /// lock or waits behind a transaction that holds it, so they only queued there
+    /// (`docs/measurements/lease.md`).
+    ///
+    /// A task whose decision fails with an error, such as a statement Postgres refused, is left
+    /// out too when another was leased, and logged: its lease runs out and the reaper takes it
+    /// back, which is what a request that failed did with its one task. When none was leased the
+    /// first error is the request's answer.
+    ///
+    /// If the request is dropped before its answer, as when its pool stops or is killed while it
+    /// waits, the tasks it had claimed are given back to the queue at once, their claims
+    /// uncounted (`InHand`): no pool heard of them, so no pool will renew them.
+    ///
+    /// The tasks' leases all began at the claim, at `since`, and one decision that waits, as on a
+    /// row lock, keeps the answer of those decided before it. So an answer that took more than a
+    /// quarter of a lease renews what it holds first, and leaves out a task the worker no longer
+    /// owns: what the pool is handed is its to run, with a whole lease ahead of it.
+    async fn leased_each(
+        &self,
+        worker: &Worker,
+        claimed: Vec<Task>,
+        since: std::time::Instant,
+        claim: u64,
+    ) -> Result<Vec<LeasedTask>, Failure> {
+        let batch = claimed.len();
+        let mut in_hand = InHand {
+            worker: worker.clone(),
+            tasks: claimed.iter().map(|task| task.id).collect(),
+            deciding: None,
+        };
+        let mut leased = Vec::with_capacity(batch);
+        let mut failure = None;
+        for task in claimed {
+            let mut clock = std::time::Instant::now();
+            let (id, module) = (task.id, task.module.clone());
+            let mut times = LeaseTimes::default();
+            in_hand.deciding = Some(id);
+            let decided = self.leased(worker, task, &mut times).await;
+            in_hand.deciding = None;
+            tracing::debug!(
+                target: LEASE_TIMING,
+                task = id.0,
+                module,
+                leased = matches!(decided, Ok(Some(_))),
+                batch,
+                claim_us = claim,
+                path_us = times.path,
+                file_us = times.file,
+                last_us = times.last,
+                reads_us = times.reads,
+                total_us = lap(&mut clock),
+                "a claimed task"
+            );
+            match decided {
+                Ok(Some(task)) => leased.push(task),
+                // the core gave it up itself: it's no longer this request's
+                Ok(None) => in_hand.tasks.retain(|task| *task != id),
+                Err(e) => {
+                    in_hand.tasks.retain(|task| *task != id);
+                    tracing::error!(task = %id, "the lease's decision failed: {e:?}");
+                    failure.get_or_insert(e);
+                }
+            }
+        }
+        if since.elapsed() > worker.lease() / 4 {
+            let mut held = Vec::with_capacity(leased.len());
+            for mut task in leased {
+                let id = TaskId(task.id);
+                match worker.renew(id).await {
+                    Ok(lease) => {
+                        task.lease_expires_at = lease.expires_at;
+                        held.push(task);
+                    }
+                    // its lease ran out while the others were decided, and the reaper took it
+                    Err(e) => {
+                        in_hand.tasks.retain(|task| *task != id);
+                        tracing::warn!(task = %id, "a task's lease didn't last until its answer: {e}");
+                    }
+                }
+            }
+            leased = held;
+        }
+        if leased.is_empty()
+            && let Some(failure) = failure
+        {
+            return Err(failure);
+        }
+        // the answer has them now
+        in_hand.tasks.clear();
+        Ok(leased)
+    }
+
     /// The leased form of a claimed task. A file task whose bytes aren't in the bucket fails,
     /// and None says to claim another.
-    async fn leased(&self, worker: &Worker, task: Task) -> Result<Option<LeasedTask>, Failure> {
+    async fn leased(
+        &self,
+        worker: &Worker,
+        task: Task,
+        times: &mut LeaseTimes,
+    ) -> Result<Option<LeasedTask>, Failure> {
+        let mut clock = std::time::Instant::now();
         let file = if task.observable.kind == ObservableKind::File {
-            if self.held_for_path(worker, &task).await? {
+            let held = self.held_for_path(worker, &task).await;
+            times.path = lap(&mut clock);
+            if held? {
                 return Ok(None);
             }
-            match self.task_file(&task, Choose::Settle).await? {
+            let file = self.task_file(&task, Choose::Settle).await;
+            times.file = lap(&mut clock);
+            match file? {
                 Ok(file) => Some(file),
                 Err(why) => {
                     tracing::error!(task = %task.id, "{why}");
@@ -938,9 +1126,10 @@ impl Api {
                 .filter(|c| c.manifest.runs_last)
                 .map(|c| c.key.clone())
                 .collect();
-            if let Some(held) =
-                tree::held_back(self.inner.db.pool(), task.root, task.observable.id, &last).await?
-            {
+            let held =
+                tree::held_back(self.inner.db.pool(), task.root, task.observable.id, &last).await;
+            times.last = lap(&mut clock);
+            if let Some(held) = held? {
                 let before = task.delayed.as_ref().map(|d| &d.state);
                 let step = match before {
                     Some(state) if state[HELD_BACK_BY] == held.as_str() => {
@@ -965,6 +1154,7 @@ impl Api {
                 {
                     tracing::warn!(task = %task.id, "couldn't wake the tasks held back: {e}");
                 }
+                times.last = times.last.saturating_add(lap(&mut clock));
                 return Ok(None);
             }
         }
@@ -1015,6 +1205,7 @@ impl Api {
         (leased.dependency_results, leased.dependency_errors) = by_module(dependencies);
         leased.observables_below = observables_below;
         leased.scan = scan;
+        times.reads = lap(&mut clock);
         Ok(Some(leased))
     }
 
@@ -1682,9 +1873,14 @@ async fn lease_in(
     }
     let worker = api.pool_worker(pool, &request.worker, modules);
     let wait = Duration::from_secs(request.wait_seconds).min(api.inner.config.max_wait);
-    match api.lease_for(&worker, wait).await? {
-        Some(task) => Ok(Json(task).into_response()),
-        None => Ok(StatusCode::NO_CONTENT.into_response()),
+    let most = request.max.clamp(1, MAX_LEASED_AT_ONCE);
+    let tasks = api
+        .lease_for(&worker, wait, usize::try_from(most).unwrap_or(1))
+        .await?;
+    if tasks.is_empty() {
+        Ok(StatusCode::NO_CONTENT.into_response())
+    } else {
+        Ok(Json(tasks).into_response())
     }
 }
 

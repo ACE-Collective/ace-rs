@@ -8109,7 +8109,9 @@ async fn lease_list(stack: &Stack, http: &reqwest::Client, url: &str, root: Uuid
         .await
         .expect("answers");
     assert_eq!(response.status(), 200);
-    let task: ace_sdk::wire::LeasedTask = response.json().await.expect("a task");
+    let mut tasks: Vec<ace_sdk::wire::LeasedTask> = response.json().await.expect("its tasks");
+    let task = tasks.pop().expect("a task");
+    assert!(tasks.is_empty(), "it asked for one");
     assert_eq!(
         task.lists.len(),
         2,

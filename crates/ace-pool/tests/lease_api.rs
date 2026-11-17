@@ -5417,3 +5417,635 @@ async fn a_task_that_runs_last_is_leased_when_the_last_other_task_ends() {
         serde_json::json!({"held_back_by": "others", "step": 6})
     );
 }
+
+/// A task's state, attempts, error, delay state, and whether a module ever delayed it.
+type TaskState = (String, i32, Option<String>, Option<serde_json::Value>, bool);
+/// `TaskState` after the task's observable value and module.
+type TaskRow = (
+    String,
+    String,
+    String,
+    i32,
+    Option<String>,
+    Option<serde_json::Value>,
+    bool,
+);
+
+/// The states of a root's tasks by observable value and module.
+async fn task_rows(
+    core: &Core,
+    root: uuid::Uuid,
+) -> std::collections::BTreeMap<(String, String), TaskState> {
+    let rows: Vec<TaskRow> = sqlx::query_as(
+        "SELECT o.value, t.module, t.state::text, t.attempts, t.error, t.delay_state,
+                t.first_delayed_at IS NOT NULL
+         FROM queue.tasks t JOIN analysis.observables o ON o.id = t.observable_id
+         WHERE t.root_id = $1",
+    )
+    .bind(root)
+    .fetch_all(core.test_db.db().pool())
+    .await
+    .expect("the root's tasks");
+    rows.into_iter()
+        .map(|(value, module, state, attempts, error, delay, delayed)| {
+            ((value, module), (state, attempts, error, delay, delayed))
+        })
+        .collect()
+}
+
+/// An observable in `root` with a task of `module`, in the caller's transaction.
+async fn observable_with_task(
+    tx: &mut ace_core::db::Tx<'_>,
+    root: uuid::Uuid,
+    kind: ace_results::ObservableKind,
+    value: &str,
+    module: &str,
+) -> (ace_core::tree::ObservableId, i64) {
+    let observable =
+        ace_core::tree::upsert_observable(tx, root, &ace_results::NewObservable::new(kind, value))
+            .await
+            .expect("adds")
+            .id;
+    let task = ace_core::queue::enqueue(tx, root, observable, module)
+        .await
+        .expect("queues")
+        .expect("a new task");
+    (observable, task.0)
+}
+
+fn skipped() -> ace_sdk::wire::TaskEnd {
+    ace_sdk::wire::TaskEnd::Skipped {
+        reason: "nothing to do".into(),
+        writes: Vec::new(),
+    }
+}
+
+/// A request for several tasks is answered task by task. Seven are claimed together here, and each
+/// lease is decided as when it is claimed alone: a task that runs last is held back for the others
+/// and marked for their wake, a file's first task is held for its path while something nearer the
+/// root is pending, a file that isn't in the bucket fails its task, and the other four are leased,
+/// oldest first, each with what is its own: its observable, its file and download, its delay's
+/// state, its attempt. A task that isn't due and one of a cancelled root aren't claimed at all. So
+/// one task held back, failed or cancelled keeps no other from being leased. Then the held tasks
+/// are leased in their turn, the one that runs last once the rest of its root is done.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_request_for_several_tasks_decides_each_lease_alone() {
+    use ace_results::ObservableKind as Kind;
+    let mut manifests = ace_pool::testing::test_manifests();
+    manifests.push(ace_mod_brocess::thread::MANIFEST);
+    let core = Core::start(
+        manifests,
+        &["test_counted", "test_spin", "email_thread_analyzer"],
+        Duration::from_secs(30),
+    )
+    .await;
+    let db = core.test_db.db();
+    let root = ace_core::tree::NewRoot::new("analysis");
+    let mut tx = db.begin().await.expect("begins");
+    ace_core::tree::create_root(&mut tx, &root)
+        .await
+        .expect("creates");
+    tx.commit().await.expect("commits");
+    let root = root.id;
+    let hold = ace_core::bucket::Hold::root(root);
+    let mut stored = Vec::new();
+    for bytes in [&b"at the root"[..], &b"below the root"[..]] {
+        stored.push(
+            core.bucket
+                .put_bytes(ALERT_FILES, bytes, Some(&hold))
+                .await
+                .expect("puts the bytes")
+                .object
+                .sha256
+                .to_hex(),
+        );
+    }
+    let (at_root, below) = (stored[0].clone(), stored[1].clone());
+    let missing = hex(&sha2::Sha256::digest(b"never stored"));
+    let message_id = "<several@example.com>";
+
+    let mut tx = db.begin().await.expect("begins");
+    let (_, delayed) = observable_with_task(
+        &mut tx,
+        root,
+        Kind::Fqdn,
+        "delayed.example.com",
+        "test_counted",
+    )
+    .await;
+    for host in ["one.example.com", "two.example.com"] {
+        observable_with_task(&mut tx, root, Kind::Fqdn, host, "test_counted").await;
+    }
+    observable_with_task(
+        &mut tx,
+        root,
+        Kind::MessageId,
+        message_id,
+        "email_thread_analyzer",
+    )
+    .await;
+    let mut deep = None;
+    for (value, path) in [
+        (&at_root, "at-root.txt"),
+        (&missing, "missing.txt"),
+        (&below, "below.txt"),
+    ] {
+        let (observable, _) =
+            observable_with_task(&mut tx, root, Kind::File, value, "test_spin").await;
+        ace_core::tree::add_file(&mut tx, root, observable, path, &[])
+            .await
+            .expect("records the file");
+        deep = Some(observable);
+    }
+    tx.commit().await.expect("commits");
+    // the last file is one level down, so a path nearer the root could still be added for it
+    sqlx::query("UPDATE analysis.observables SET depth = 1 WHERE id = $1")
+        .bind(deep.expect("the file below").0)
+        .execute(db.pool())
+        .await
+        .expect("moves the file down");
+    // a module delayed this one, and its delay is over
+    sqlx::query(
+        "UPDATE queue.tasks SET state = 'delayed', run_after = now() - interval '1 minute',
+                delay_state = '{\"asked\": 1}', first_delayed_at = now(), delays = 1
+         WHERE id = $1",
+    )
+    .bind(delayed)
+    .execute(db.pool())
+    .await
+    .expect("delays it");
+    // a root whose task isn't due for an hour, and a cancelled root
+    let later =
+        common::root_with_tasks(&core, &["later.example.com".to_owned()], "test_counted").await;
+    sqlx::query("UPDATE queue.tasks SET run_after = now() + interval '1 hour' WHERE root_id = $1")
+        .bind(later)
+        .execute(db.pool())
+        .await
+        .expect("puts it off");
+    let cancelled =
+        common::root_with_tasks(&core, &["cancelled.example.com".to_owned()], "test_counted").await;
+    let mut tx = db.begin().await.expect("begins");
+    ace_core::queue::cancel_root(&mut tx, cancelled)
+        .await
+        .expect("cancels");
+    tx.commit().await.expect("commits");
+
+    let client =
+        ace_pool::client::LeaseClient::new(&core.url, common::TOKEN, "pool").expect("a client");
+    let leased = client
+        .lease_up_to(&[], Duration::ZERO, 20)
+        .await
+        .expect("leases");
+    let got: Vec<(&str, &str)> = leased
+        .iter()
+        .map(|task| (task.observable.value.as_str(), task.module.as_str()))
+        .collect();
+    assert_eq!(
+        got,
+        [
+            ("delayed.example.com", "test_counted"),
+            ("one.example.com", "test_counted"),
+            ("two.example.com", "test_counted"),
+            (at_root.as_str(), "test_spin"),
+        ],
+        "the four that can run now, oldest first"
+    );
+    for task in &leased {
+        assert_eq!((task.root, task.attempts), (root, 1));
+    }
+    let delay = leased[0].delayed.as_ref().expect("its delay");
+    assert_eq!(
+        (delay.delays, &delay.state),
+        (1, &serde_json::json!({"asked": 1}))
+    );
+    assert!(leased[1..].iter().all(|task| task.delayed.is_none()));
+    assert!(
+        leased[..3]
+            .iter()
+            .all(|task| task.observable.file.is_none())
+    );
+    let file = leased[3].observable.file.as_ref().expect("its file");
+    assert_eq!(
+        (file.path.as_str(), file.sha256.to_hex(), file.size),
+        ("at-root.txt", at_root.clone(), 11)
+    );
+    let bytes = reqwest::get(&file.download.url)
+        .await
+        .expect("downloads")
+        .bytes()
+        .await
+        .expect("the bytes");
+    assert_eq!(&bytes[..], b"at the root");
+
+    let rows = task_rows(&core, root).await;
+    let row = |value: &str, module: &str| rows[&(value.to_owned(), module.to_owned())].clone();
+    for (value, module) in &got {
+        assert_eq!(row(value, module).0, "running", "{value}");
+    }
+    // held back for the other modules, and marked so their end wakes it
+    let (state, attempts, _, delay, delayed) = row(message_id, "email_thread_analyzer");
+    assert_eq!((state.as_str(), attempts, delayed), ("delayed", 0, true));
+    assert_eq!(
+        delay,
+        Some(serde_json::json!({"held_back_by": "others", "step": 0}))
+    );
+    // held for its path, which its module never hears of
+    let (state, attempts, error, delay, delayed) = row(&below, "test_spin");
+    assert_eq!(
+        (state.as_str(), attempts, error, delay, delayed),
+        ("delayed", 0, None, None, false)
+    );
+    let (state, _, error, _, _) = row(&missing, "test_spin");
+    assert_eq!(state, "failed");
+    assert!(
+        error
+            .as_deref()
+            .is_some_and(|e| e.contains("isn't in the bucket")),
+        "{error:?}"
+    );
+    assert_eq!(
+        task_rows(&core, later).await[&("later.example.com".to_owned(), "test_counted".to_owned())]
+            .0,
+        "queued"
+    );
+    assert_eq!(
+        task_rows(&core, cancelled).await[&(
+            "cancelled.example.com".to_owned(),
+            "test_counted".to_owned()
+        )]
+            .0,
+        "cancelled"
+    );
+
+    // the four end, and the file below is leased once its hold is over: nothing nearer the root
+    // is pending but the task that runs last, which waits for it
+    for task in &leased {
+        client.end(task.id, &skipped()).await.expect("ends");
+    }
+    let next = client
+        .lease_up_to(&[], Duration::from_secs(10), 20)
+        .await
+        .expect("leases");
+    assert_eq!(next.len(), 1, "{next:?}");
+    assert_eq!(
+        (next[0].observable.value.as_str(), next[0].module.as_str()),
+        (below.as_str(), "test_spin")
+    );
+    let file = next[0].observable.file.as_ref().expect("its file");
+    assert_eq!(file.path.as_str(), "below.txt");
+    assert!(next[0].delayed.is_none(), "a hold isn't a module's delay");
+    client.end(next[0].id, &skipped()).await.expect("ends");
+    // and then the one that runs last
+    let last = client
+        .lease_up_to(&[], Duration::from_secs(10), 20)
+        .await
+        .expect("leases");
+    assert_eq!(last.len(), 1, "{last:?}");
+    assert_eq!(last[0].module, "email_thread_analyzer");
+    let delay = last[0].delayed.as_ref().expect("its delay");
+    assert_eq!(delay.state["held_back_by"], "others");
+}
+
+/// The answer holds no more tasks than the request asks for, one when it doesn't say, and no more
+/// than the core's own limit whatever it asks. It holds what is due now and doesn't wait for more.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_lease_request_is_answered_with_no_more_than_it_asks_for() {
+    let most = usize::try_from(ace_sdk::wire::MAX_LEASED_AT_ONCE).expect("fits");
+    let core = Core::start(
+        ace_pool::testing::test_manifests(),
+        &["test_counted"],
+        Duration::from_secs(30),
+    )
+    .await;
+    let values: Vec<String> = (0..most + 6)
+        .map(|i| format!("host{i}.example.com"))
+        .collect();
+    let root = common::root_with_tasks(&core, &values, "test_counted").await;
+    let client =
+        ace_pool::client::LeaseClient::new(&core.url, common::TOKEN, "pool").expect("a client");
+
+    // a request that names no number, as the wire had it before a request could
+    let response = reqwest::Client::new()
+        .post(format!("{}{}", core.url, ace_sdk::wire::paths::LEASE))
+        .bearer_auth(common::TOKEN)
+        .header("content-type", "application/json")
+        .body(r#"{"worker": "pool"}"#)
+        .send()
+        .await
+        .expect("answers");
+    assert_eq!(response.status(), 200);
+    let one: Vec<ace_sdk::wire::LeasedTask> =
+        serde_json::from_str(&response.text().await.expect("a body")).expect("a list of tasks");
+    assert_eq!(one.len(), 1);
+
+    let three = client
+        .lease_up_to(&[], Duration::ZERO, 3)
+        .await
+        .expect("leases");
+    assert_eq!(three.len(), 3);
+    let limit = client
+        .lease_up_to(&[], Duration::ZERO, 1000)
+        .await
+        .expect("leases");
+    assert_eq!(limit.len(), most, "the core's limit");
+    // two are left: the answer is those two, at once, though it may wait and asked for more
+    let asked = std::time::Instant::now();
+    let rest = client
+        .lease_up_to(&[], Duration::from_secs(10), 1000)
+        .await
+        .expect("leases");
+    assert_eq!(rest.len(), 2);
+    assert!(
+        asked.elapsed() < Duration::from_secs(5),
+        "{:?}",
+        asked.elapsed()
+    );
+    assert!(
+        client
+            .lease_up_to(&[], Duration::ZERO, 1000)
+            .await
+            .expect("leases")
+            .is_empty()
+    );
+
+    // every task once, in the order they were queued
+    let ids: Vec<i64> = one
+        .iter()
+        .chain(&three)
+        .chain(&limit)
+        .chain(&rest)
+        .map(|task| task.id)
+        .collect();
+    let queued: Vec<i64> =
+        sqlx::query_scalar("SELECT id FROM queue.tasks WHERE root_id = $1 ORDER BY id")
+            .bind(root)
+            .fetch_all(core.test_db.db().pool())
+            .await
+            .expect("the tasks");
+    assert_eq!(ids, queued);
+    let leased: i64 = sqlx::query_scalar(
+        "SELECT count(*) FROM queue.tasks
+         WHERE root_id = $1 AND state = 'running' AND lease_owner = 'test/pool' AND attempts = 1",
+    )
+    .bind(root)
+    .fetch_one(core.test_db.db().pool())
+    .await
+    .expect("counts");
+    assert_eq!(usize::try_from(leased).expect("fits"), most + 6);
+}
+
+/// A lease request that ends before its answer gives its tasks back. The request here claims three
+/// tasks. The first's lease is decided, the second's waits on a row this test has locked, the
+/// third's hasn't begun, and then the pool goes away, as when it is stopped or killed while it
+/// asks. No pool heard of any of them. The core queues the first and the third again at once with
+/// the claim uncounted, so they don't wait out a lease nobody renews. The one whose lease was
+/// being decided keeps its lease until it runs out, as a request's one task did before: a request
+/// that ends there may have ended because that decision panicked.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_lease_request_dropped_before_its_answer_gives_its_tasks_back() {
+    use ace_results::ObservableKind as Kind;
+    use tokio::io::AsyncWriteExt as _;
+    let core = Core::start(
+        ace_pool::testing::test_manifests(),
+        &["test_counted", "test_spin"],
+        Duration::from_secs(600),
+    )
+    .await;
+    let db = core.test_db.db();
+    let root = ace_core::tree::NewRoot::new("analysis");
+    let mut tx = db.begin().await.expect("begins");
+    ace_core::tree::create_root(&mut tx, &root)
+        .await
+        .expect("creates");
+    tx.commit().await.expect("commits");
+    let root = root.id;
+    let sha256 = core
+        .bucket
+        .put_bytes(
+            ALERT_FILES,
+            b"a file",
+            Some(&ace_core::bucket::Hold::root(root)),
+        )
+        .await
+        .expect("puts the bytes")
+        .object
+        .sha256
+        .to_hex();
+    let mut tx = db.begin().await.expect("begins");
+    observable_with_task(
+        &mut tx,
+        root,
+        Kind::Fqdn,
+        "first.example.com",
+        "test_counted",
+    )
+    .await;
+    let (file, _) = observable_with_task(&mut tx, root, Kind::File, &sha256, "test_spin").await;
+    ace_core::tree::add_file(&mut tx, root, file, "file.txt", &[])
+        .await
+        .expect("records the file");
+    observable_with_task(
+        &mut tx,
+        root,
+        Kind::Fqdn,
+        "third.example.com",
+        "test_counted",
+    )
+    .await;
+    tx.commit().await.expect("commits");
+
+    // the file's lease settles its path under this row's lock, so it waits here
+    let mut locked = db.pool().begin().await.expect("begins");
+    sqlx::query("SELECT id FROM analysis.observables WHERE id = $1 FOR UPDATE")
+        .bind(file.0)
+        .execute(&mut *locked)
+        .await
+        .expect("locks the file's row");
+
+    let body = r#"{"worker": "pool", "max": 8}"#;
+    let mut stream = tokio::net::TcpStream::connect(("127.0.0.1", core.port))
+        .await
+        .expect("connects");
+    stream
+        .write_all(
+            format!(
+                "POST {} HTTP/1.1\r\nHost: core\r\nAuthorization: Bearer {}\r\n\
+                 Content-Type: application/json\r\nContent-Length: {}\r\n\r\n{body}",
+                ace_sdk::wire::paths::LEASE,
+                common::TOKEN,
+                body.len(),
+            )
+            .as_bytes(),
+        )
+        .await
+        .expect("sends the request");
+    // each task's state and attempts, by its observable
+    let states = || async {
+        let rows = task_rows(&core, root).await;
+        let state = |value: &str, module: &str| {
+            let (state, attempts, ..) = rows[&(value.to_owned(), module.to_owned())].clone();
+            (state, attempts)
+        };
+        [
+            state("first.example.com", "test_counted"),
+            state(&sha256, "test_spin"),
+            state("third.example.com", "test_counted"),
+        ]
+    };
+    let running = ("running".to_owned(), 1);
+    let queued = ("queued".to_owned(), 0);
+    let started = std::time::Instant::now();
+    while states().await != [running.clone(), running.clone(), running.clone()] {
+        assert!(
+            started.elapsed() < Duration::from_secs(30),
+            "the request never claimed its tasks"
+        );
+        tokio::time::sleep(Duration::from_millis(20)).await;
+    }
+    // long enough for the first task's lease to be decided; the answer waits for the second
+    tokio::time::sleep(Duration::from_millis(500)).await;
+    assert_eq!(
+        states().await,
+        [running.clone(), running.clone(), running.clone()]
+    );
+    drop(stream);
+
+    let started = std::time::Instant::now();
+    while states().await != [queued.clone(), running.clone(), queued.clone()] {
+        assert!(
+            started.elapsed() < Duration::from_secs(30),
+            "the tasks weren't given back: {:?}",
+            states().await
+        );
+        tokio::time::sleep(Duration::from_millis(20)).await;
+    }
+    println!("given back {:?} after the request ended", started.elapsed());
+    locked.rollback().await.expect("lets the row go");
+
+    // the next request leases the two, and the third still has the lease the request left it
+    let client =
+        ace_pool::client::LeaseClient::new(&core.url, common::TOKEN, "pool").expect("a client");
+    let leased = client
+        .lease_up_to(&[], Duration::from_secs(10), 8)
+        .await
+        .expect("leases");
+    let got: Vec<(&str, i32)> = leased
+        .iter()
+        .map(|task| (task.observable.value.as_str(), task.attempts))
+        .collect();
+    assert_eq!(got, [("first.example.com", 1), ("third.example.com", 1)]);
+    assert_eq!(states().await[1], running);
+}
+
+/// One decision that waits keeps the answer of the tasks decided before it, and their leases began
+/// at the claim. Here a file's lease waits on a row this test has locked for longer than a lease
+/// lasts, and the reaper takes all three claimed tasks back meanwhile. The request doesn't hand
+/// the pool tasks it no longer holds: it leaves them out, claims again and answers with the three
+/// on their second claim, each with a whole lease ahead of it.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_request_that_outlasts_its_leases_answers_only_with_tasks_it_holds() {
+    use ace_results::ObservableKind as Kind;
+    let lease = Duration::from_secs(2);
+    let core = Core::start(
+        ace_pool::testing::test_manifests(),
+        &["test_counted", "test_spin"],
+        lease,
+    )
+    .await;
+    let db = core.test_db.db();
+    let root = ace_core::tree::NewRoot::new("analysis");
+    let mut tx = db.begin().await.expect("begins");
+    ace_core::tree::create_root(&mut tx, &root)
+        .await
+        .expect("creates");
+    tx.commit().await.expect("commits");
+    let root = root.id;
+    let sha256 = core
+        .bucket
+        .put_bytes(
+            ALERT_FILES,
+            b"a file",
+            Some(&ace_core::bucket::Hold::root(root)),
+        )
+        .await
+        .expect("puts the bytes")
+        .object
+        .sha256
+        .to_hex();
+    let mut tx = db.begin().await.expect("begins");
+    observable_with_task(
+        &mut tx,
+        root,
+        Kind::Fqdn,
+        "first.example.com",
+        "test_counted",
+    )
+    .await;
+    let (file, _) = observable_with_task(&mut tx, root, Kind::File, &sha256, "test_spin").await;
+    ace_core::tree::add_file(&mut tx, root, file, "file.txt", &[])
+        .await
+        .expect("records the file");
+    observable_with_task(
+        &mut tx,
+        root,
+        Kind::Fqdn,
+        "third.example.com",
+        "test_counted",
+    )
+    .await;
+    tx.commit().await.expect("commits");
+
+    let mut locked = db.pool().begin().await.expect("begins");
+    sqlx::query("SELECT id FROM analysis.observables WHERE id = $1 FOR UPDATE")
+        .bind(file.0)
+        .execute(&mut *locked)
+        .await
+        .expect("locks the file's row");
+    let client =
+        ace_pool::client::LeaseClient::new(&core.url, common::TOKEN, "pool").expect("a client");
+    let asking = tokio::spawn({
+        let client = client.clone();
+        async move { client.lease_up_to(&[], Duration::from_secs(10), 8).await }
+    });
+    // past the lease: the reaper takes the three back, and then the row is let go
+    tokio::time::sleep(lease + Duration::from_millis(500)).await;
+    let reaped = ace_core::queue::reap_expired_leases(db)
+        .await
+        .expect("reaps");
+    assert_eq!(reaped.requeued.len(), 3, "{reaped:?}");
+    assert!(!asking.is_finished(), "the request still waits on the row");
+    locked.rollback().await.expect("lets the row go");
+
+    let leased = asking.await.expect("joins").expect("leases");
+    let got: Vec<(&str, i32)> = leased
+        .iter()
+        .map(|task| (task.observable.value.as_str(), task.attempts))
+        .collect();
+    assert_eq!(
+        got,
+        [
+            ("first.example.com", 2),
+            (sha256.as_str(), 2),
+            ("third.example.com", 2)
+        ],
+        "each on the claim made after the reaper took it back"
+    );
+    let now = chrono::Utc::now();
+    for task in &leased {
+        let left = (task.lease_expires_at - now).to_std().unwrap_or_default();
+        assert!(
+            left > lease * 3 / 4,
+            "{}'s lease has {left:?} left",
+            task.observable.value
+        );
+    }
+    let owned: i64 = sqlx::query_scalar(
+        "SELECT count(*) FROM queue.tasks
+         WHERE root_id = $1 AND state = 'running' AND lease_owner = 'test/pool' AND attempts = 2",
+    )
+    .bind(root)
+    .fetch_one(db.pool())
+    .await
+    .expect("counts");
+    assert_eq!(owned, 3);
+}

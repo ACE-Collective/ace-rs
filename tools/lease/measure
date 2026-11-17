@@ -1,0 +1,379 @@
+#!/usr/bin/env python3
+"""Measures how a pool leases under load, on a stack `tests/e2e/run --compare --keep` left up.
+
+It runs `ace compare` over a few of the larger samples, several at once, and while it runs:
+
+- samples the queue every 100 ms with `psql \\watch` in the stack's Postgres: the tasks each pool
+  has leased, the tasks that are due, and how many roots are in each phase (`PHASES`): running,
+  waiting for a pool, held for a file's path, waiting on a module's delay, or down to the tasks
+  that run last. A pool's leased tasks are its busy slots, a little overcounted: a task is leased
+  from its claim, before its pool has heard of it.
+- with --timing, starts the core and the pools with `ACE4_LOG=info,ace_lease=debug` and reads their
+  timing events from the logs: for each claimed task, where the core's time went
+  (`ace_core::api::LEASE_TIMING`), and for each lease request, its round trip as the pool saw it
+  and how many tasks came back.
+- with --statements, loads pg_stat_statements into the stack's Postgres (which restarts it, and
+  the core and pools after it) and prints the statements that took the most time in Postgres
+  during the runs.
+- reads each container's CPU time before and after from its cgroup.
+
+    tools/lease/measure                      one run of the default samples, 8 at once
+    tools/lease/measure --runs 3 --timing    three runs, with the timing events
+    tools/lease/measure --only ace3/archive/test.jar --jobs 1
+
+With --all it runs the whole sample set, as tests/e2e/run does, on the stack as it is: the lists
+and detections that script loaded are still there. Each run's report stays in target/lease/run-N.
+
+It prints, for each run, the seconds `ace compare` took, the tasks its roots have, tasks a second,
+and for each pool the median, mean and most tasks leased while more than --busy tasks were due;
+then over all runs the median and range of each timing.
+
+What the numbers could be measuring instead. The queue sampler sees a moment every 100 ms, and a
+task that lasts a few milliseconds is in few of them, so a pool's leased count is an average over
+moments, not a count of tasks. The timing events are written by the processes they time, a line a
+task, which costs each a little. A sample's own waits (a delayed module, a scan) are in the run's
+seconds. A kept stack holds every earlier run's rows, and its Postgres has more to read as they
+grow, so compare runs made one after another on one stack, in the same order.
+
+It uses tests/e2e/run's own settings for the stack, so it runs against the project that script
+made. It starts the core and the pools again with the log filter the run needs, and Postgres too
+when --statements is given or was given to the run before. Needs docker compose and python3 on
+the host. Leaves the stack up.
+"""
+
+import argparse
+import importlib.machinery
+import importlib.util
+import json
+import os
+import re
+import statistics
+import subprocess
+import sys
+import shutil
+import threading
+import time
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent.parent
+
+# The 14 samples with the most tasks that don't wait on a module's own delay for most of their
+# time, which between them keep the pools supplied: 43,074 tasks, chosen from one comparison's
+# `queue.tasks` (docs/measurements/lease.md).
+DEFAULT_SAMPLES = [
+    "ace4/rtf/objects.rtf",
+    "ace4/pcap/many_hosts.pcap",
+    "ace4/macos/many_members.dmg",
+    "ace4/pcap/many_files.pcap",
+    "ace3/archive/test.jar",
+    "ace3/archive/too_many_files.jar",
+    "ace3/archive/malicious.jar",
+    "ace3/office/js_ole_obj.docx",
+    "ace4/email/macro_attachment.email.rfc822",
+    "ace3/office/receipt_687790.doc",
+    "ace4/rtf/edge_objects.rtf",
+    "ace3/office/DOC_PO_10142020EX.doc",
+    "ace3/pdf/718148a5712c1fec7b50acc89eee2aa0",
+    "ace3/office/mortgage_payment-0873821-0565.docm",
+]
+
+SERVICES = ["ace", "postgres", "parsers", "sandbox", "lookups", "bucket"]
+POOLS = ["parsers", "sandbox", "lookups"]
+ANSI = re.compile(r"\x1b\[[0-9;]*m")
+FIELD = re.compile(r"(\w+)=(\"[^\"]*\"|\S+)")
+
+PHASES = ["running", "due", "path hold", "module wait", "held back"]
+
+# A root's phase at a moment is the first of these that holds: a task of it is leased; one could
+# be claimed; the core holds one for its file's path (a delay its module never asked for); a
+# module's own delay is all that's left; only tasks that run last are left, held back.
+WATCH = """
+WITH active AS (
+    SELECT root_id, state, lease_owner, run_after, delay_state FROM queue.tasks
+    WHERE state IN ('queued', 'delayed', 'running')
+), roots AS (
+    SELECT CASE WHEN bool_or(state = 'running') THEN 0
+                WHEN bool_or(run_after <= now()) THEN 1
+                WHEN bool_or(delay_state IS NULL) THEN 2
+                WHEN bool_or(NOT delay_state ? 'held_back_by') THEN 3
+                ELSE 4 END AS phase
+    FROM active GROUP BY root_id
+)
+SELECT 'tick', extract(epoch FROM clock_timestamp()),
+       count(*) FILTER (WHERE state = 'running' AND lease_owner LIKE 'parsers/%'),
+       count(*) FILTER (WHERE state = 'running' AND lease_owner LIKE 'sandbox/%'),
+       count(*) FILTER (WHERE state = 'running' AND lease_owner LIKE 'lookups/%'),
+       count(*) FILTER (WHERE state IN ('queued', 'delayed') AND run_after <= now()),
+       (SELECT count(*) FROM roots WHERE phase = 0), (SELECT count(*) FROM roots WHERE phase = 1),
+       (SELECT count(*) FROM roots WHERE phase = 2), (SELECT count(*) FROM roots WHERE phase = 3),
+       (SELECT count(*) FROM roots WHERE phase = 4)
+FROM active
+\\watch 0.1
+"""
+
+
+def e2e():
+    """tests/e2e/run as a module: its Compose settings and helpers."""
+    path = str(ROOT / "tests" / "e2e" / "run")
+    loader = importlib.machinery.SourceFileLoader("e2e_run", path)
+    spec = importlib.util.spec_from_loader("e2e_run", loader)
+    module = importlib.util.module_from_spec(spec)
+    sys.dont_write_bytecode = True
+    loader.exec_module(module)
+    return module
+
+
+def spread(values, digits=2):
+    if not values:
+        return "none"
+    return (f"{statistics.median(values):.{digits}f} "
+            f"({min(values):.{digits}f} to {max(values):.{digits}f})")
+
+
+def cpu_usage(run):
+    usage = {}
+    for service in SERVICES:
+        out = run.compose("exec", "-T", service, "cat", "/sys/fs/cgroup/cpu.stat", capture=True)
+        match = re.search(r"usage_usec (\d+)", out)
+        usage[service] = int(match.group(1)) / 1e6 if match else 0.0
+    return usage
+
+
+class Sampler:
+    """The queue's counts every 100 ms, from a psql that runs in the stack's Postgres."""
+
+    def __init__(self, run):
+        self.ticks = []
+        self.process = subprocess.Popen(
+            [*run.COMPOSE, "exec", "-T", "postgres", "sh", "-c",
+             'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -At -F " " -f -'],
+            env=run.ENV, cwd=run.COMPOSE_FILE.parent, text=True,
+            stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+        )
+        self.process.stdin.write(WATCH)
+        self.process.stdin.flush()
+        self.thread = threading.Thread(target=self.read, daemon=True)
+        self.thread.start()
+
+    def read(self):
+        for line in self.process.stdout:
+            parts = line.split()
+            if len(parts) == 11 and parts[0] == "tick":
+                self.ticks.append(tuple(float(p) for p in parts[1:]))
+
+    def stop(self, run):
+        self.process.stdin.close()
+        self.process.terminate()
+        # the watch runs on in the container until its psql is ended there
+        run.compose("exec", "-T", "postgres", "pkill", "-f", "psql.*-f -", check=False)
+        self.thread.join(timeout=5)
+        return self.ticks
+
+
+def events(run, since):
+    """The timing events the core and the pools logged since `since`: (claimed tasks, lease
+    requests by pool)."""
+    claimed, requests = [], {pool: [] for pool in POOLS}
+    for service in ["ace", *POOLS]:
+        out = subprocess.run(
+            [*run.COMPOSE, "logs", "--no-color", "--no-log-prefix", "--since", since, service],
+            env=run.ENV, cwd=run.COMPOSE_FILE.parent, text=True, capture_output=True, check=False,
+        ).stdout
+        for line in out.splitlines():
+            line = ANSI.sub("", line)
+            if " ace_lease: " not in line:
+                continue
+            fields = {name: value.strip('"') for name, value in FIELD.findall(line)}
+            if "a claimed task" in line and service == "ace":
+                claimed.append(fields)
+            elif "a lease request" in line and service in requests:
+                requests[service].append(fields)
+    return claimed, requests
+
+
+def print_timing(claimed, requests):
+    def micros(rows, name):
+        return [int(row[name]) / 1000 for row in rows if name in row]
+
+    print(f"\nThe core's time on a claimed task, milliseconds, median (range), {len(claimed)} tasks")
+    kinds = {
+        "leased": [row for row in claimed if row.get("leased") == "true"],
+        "not leased: held, delayed, failed or cancelled":
+            [row for row in claimed if row.get("leased") != "true"],
+    }
+    for kind, rows in kinds.items():
+        if not rows:
+            continue
+        print(f"  {kind}: {len(rows)}")
+        for name in ["claim_us", "path_us", "file_us", "last_us", "reads_us", "total_us"]:
+            values = micros(rows, name)
+            if values:
+                print(f"    {name[:-3]:6} {spread(values)}  mean {statistics.fmean(values):.2f}")
+    batches = [int(row["batch"]) for row in claimed if "batch" in row]
+    if batches:
+        print(f"  tasks claimed together: {spread(batches, 0)}  mean {statistics.fmean(batches):.2f}")
+    for pool, rows in requests.items():
+        if not rows:
+            continue
+        answered = [row for row in rows if row.get("tasks", "0") != "0"]
+        tasks = [int(row["tasks"]) for row in answered]
+        print(f"\n{pool}: {len(rows)} lease requests, {len(answered)} answered with "
+              f"{sum(tasks)} tasks")
+        print(f"  round trip of an answered request, ms: {spread(micros(answered, 'round_trip_us'))}"
+              f"  mean {statistics.fmean(micros(answered, 'round_trip_us')):.2f}")
+        print(f"  tasks in an answer: {spread(tasks, 0)}  mean {statistics.fmean(tasks):.2f}")
+        free = [int(row["free"]) for row in answered if "free" in row]
+        if free:
+            print(f"  slots free when it asked: {spread(free, 0)}  mean {statistics.fmean(free):.2f}")
+
+
+def load_statements(run):
+    """Loads pg_stat_statements, which needs Postgres started with it."""
+    loaded = run.sql("SHOW shared_preload_libraries")
+    if not loaded or "pg_stat_statements" not in loaded[0][0]:
+        run.sql("ALTER SYSTEM SET shared_preload_libraries = 'pg_stat_statements'")
+        run.compose("restart", "postgres")
+        run.compose("up", "-d", "--wait", "postgres")
+        run.compose("restart", "ace", *POOLS)
+        run.compose("up", "-d", "--wait", "ace", *POOLS)
+    run.sql("CREATE EXTENSION IF NOT EXISTS pg_stat_statements")
+
+
+def unload_statements(run):
+    """Starts Postgres without pg_stat_statements again, if an earlier run loaded it."""
+    loaded = run.sql("SHOW shared_preload_libraries")
+    if loaded and "pg_stat_statements" in loaded[0][0]:
+        run.sql("ALTER SYSTEM RESET shared_preload_libraries")
+        run.compose("restart", "postgres")
+        run.compose("up", "-d", "--wait", "postgres")
+        run.compose("restart", "ace", *POOLS)
+        run.compose("up", "-d", "--wait", "ace", *POOLS)
+
+
+def print_statements(run, limit):
+    rows = run.sql(
+        f"""SELECT calls, round(mean_exec_time::numeric, 3), round(total_exec_time::numeric, 0),
+                   round(stddev_exec_time::numeric, 3), rows,
+                   regexp_replace(left(query, 400), '\\s+', ' ', 'g')
+            FROM pg_stat_statements WHERE query NOT LIKE '%pg_stat_statements%'
+            ORDER BY total_exec_time DESC LIMIT {limit}"""
+    )
+    print("\nStatements by their time in Postgres: calls, mean ms, total ms, stddev ms, rows")
+    for calls, mean, total, deviation, count, query in rows:
+        print(f"  {calls:>8} {mean:>8} {total:>8} {deviation:>8} {count:>8}  {query[:150]}")
+
+
+def main(argv):
+    parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
+    parser.add_argument("--runs", type=int, default=1)
+    parser.add_argument("--jobs", type=int, default=8)
+    parser.add_argument("--only", action="append", help="a sample, in place of the default 14")
+    parser.add_argument("--all", action="store_true", help="the whole sample set")
+    parser.add_argument("--busy", type=int, default=50,
+                        help="a pool's slots are counted while more than this many tasks are due")
+    parser.add_argument("--timing", action="store_true")
+    parser.add_argument("--statements", action="store_true")
+    parser.add_argument("--top", type=int, default=30, help="statements to print")
+    args = parser.parse_args(argv)
+    samples = [] if args.all else args.only or DEFAULT_SAMPLES
+
+    run = e2e()
+    # the core and the pools log the timing events only for a run that reads them
+    run.ENV[run.PREFIX + "LOG"] = "info,ace_lease=debug" if args.timing else "info"
+    run.compose("up", "-d", "--wait", "ace", *POOLS)
+    if args.statements:
+        load_statements(run)
+    else:
+        unload_statements(run)
+    # a key of this run's own: `ace user create-key` refuses a name it has
+    out = run.compose(
+        "exec", "-T", "ace", run.ACE_COMMAND, "user", "create-key", f"lease-measure-{int(time.time())}",
+        "--grant", "alert:create", capture=True,
+    )
+    run.ENV["ACE4_API_KEY"] = next(
+        line.split(": ", 1)[1] for line in out.splitlines()
+        if line.startswith("token (shown once): ")
+    )
+    since = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+    if args.statements:
+        run.sql("SELECT pg_stat_statements_reset()")
+
+    walls, rates = [], []
+    leased = {pool: [] for pool in POOLS}
+    for number in range(1, args.runs + 1):
+        before = cpu_usage(run)
+        report = ROOT / "target" / "lease" / f"run-{number}"
+        shutil.rmtree(report, ignore_errors=True)
+        report.mkdir(parents=True)
+        command = [
+            "run", "--rm", "--no-deps", "--user", f"{os.getuid()}:{os.getgid()}",
+            "-e", "ACE4_API_KEY",
+            "-v", f"{ROOT / 'samples'}:/compare/samples:ro",
+            "-v", f"{run.TREES}:/compare/trees:ro",
+            "-v", f"{report}:/compare/report",
+            "ace", run.ACE_COMMAND, "compare", "--samples", "/compare/samples",
+            "--trees", "/compare/trees", "--report", "/compare/report", "--jobs", str(args.jobs),
+        ]
+        for sample in samples:
+            command += ["--only", sample]
+        sampler = Sampler(run)
+        started = time.time()
+        output = run.compose(*command, check=False, capture=True)
+        wall = time.time() - started
+        ticks = sampler.stop(run)
+        after = cpu_usage(run)
+        result = json.loads((report / "report.json").read_text())
+        roots = [sample["root"] for sample in result["samples"] if sample.get("root")]
+        failed = len(result.get("failed", []))
+        counted = run.sql(
+            "SELECT count(*), count(*) FILTER (WHERE attempts > 1), "
+            "count(*) FILTER (WHERE state = 'failed') FROM queue.tasks WHERE root_id IN ("
+            + ", ".join(f"'{root}'" for root in roots) + ")"
+        )[0]
+        tasks = int(counted[0])
+        seconds = result.get("seconds", wall)
+        walls.append(seconds)
+        rates.append(tasks / seconds)
+        times = [sample["seconds"] for sample in result["samples"]]
+        print(f"\nrun {number}: {len(roots)} samples, {failed} failed, {seconds:.1f}s in `ace compare` "
+              f"({wall:.1f}s with its container), {tasks} tasks, {tasks / seconds:.0f} a second; "
+              f"{counted[1]} leased more than once, {counted[2]} failed")
+        print(f"  a sample, seconds: {spread(times)}; started {started:.0f}, ended {started + wall:.0f}")
+        if failed:
+            print(output[-2000:])
+        busy = [tick for tick in ticks if tick[4] > args.busy]
+        print(f"  {len(ticks)} moments sampled, {len(busy)} with more than {args.busy} tasks due; "
+              f"tasks due then: {spread([tick[4] for tick in busy], 0)}")
+        for index, pool in enumerate(POOLS, start=1):
+            counts = [tick[index] for tick in busy]
+            if counts:
+                leased[pool].append(statistics.fmean(counts))
+                print(f"  {pool}: tasks leased then, median {statistics.median(counts):.0f}, "
+                      f"mean {statistics.fmean(counts):.2f}, most {max(counts):.0f}")
+        # each moment stands for the time to the next
+        spans = [later[0] - tick[0] for tick, later in zip(ticks, ticks[1:])]
+        phases = [sum(tick[5 + index] * span for tick, span in zip(ticks, spans))
+                  for index in range(len(PHASES))]
+        if sum(phases):
+            print("  the roots' time by phase: " + ", ".join(
+                f"{name} {seconds:.0f}s ({100 * seconds / sum(phases):.0f}%)"
+                for name, seconds in zip(PHASES, phases)))
+        cpu = {service: after[service] - before[service] for service in SERVICES}
+        print("  CPU seconds: " + ", ".join(f"{s} {cpu[s]:.1f}" for s in SERVICES)
+              + f"; all {sum(cpu.values()):.1f}, {sum(cpu.values()) / wall:.2f} cores")
+
+    print(f"\n{args.runs} run(s), {args.jobs} samples at once")
+    print(f"  seconds: {spread(walls, 1)}")
+    print(f"  tasks a second: {spread(rates, 0)}")
+    for pool in POOLS:
+        if leased[pool]:
+            print(f"  {pool}, mean tasks leased while busy: {spread(leased[pool])}")
+    if args.timing:
+        print_timing(*events(run, since))
+    if args.statements:
+        print_statements(run, args.top)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

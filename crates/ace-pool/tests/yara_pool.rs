@@ -103,6 +103,12 @@ async fn file(core: &Core, n: usize) -> Uuid {
         .0
 }
 
+fn signal(pool: &PoolProcess, signal: i32) {
+    let pid = i32::try_from(pool.pid()).expect("a pid");
+    // SAFETY: kill takes integers only; the pid is this test's child, not yet reaped
+    assert_eq!(unsafe { libc::kill(pid, signal) }, 0, "signals the pool");
+}
+
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn a_switch_during_a_stream_of_scans_drops_none() {
     let checkout = tempfile::tempdir().unwrap();
@@ -145,12 +151,16 @@ async fn a_switch_during_a_stream_of_scans_drops_none() {
         ],
     ));
 
-    // a stream of files: half at once, so scans are queued and running when the rules change
-    let mut roots = Vec::new();
-    for n in 0..15 {
+    // a stream of files: half at once, so scans are queued and running when the rules change.
+    // The pool is stopped while they are queued and the second ruleset is built, and then let go:
+    // a pool that leases as many scans as it has slots finishes fourteen small ones before a
+    // ruleset is built, so without the stop nothing would be left for the switch to happen under.
+    let mut roots = vec![file(&core, 0).await];
+    wait_until_idle(&core, roots[0], Duration::from_secs(60)).await;
+    signal(&pool, libc::SIGSTOP);
+    for n in 1..15 {
         roots.push(file(&core, n).await);
     }
-    wait_until_idle(&core, roots[0], Duration::from_secs(60)).await;
     let second_commit = commit_rules(repo, SECOND, "two rules");
     let second = build_new(db, &core.bucket, &signatures)
         .await
@@ -163,7 +173,8 @@ async fn a_switch_during_a_stream_of_scans_drops_none() {
             .await
             .unwrap();
     println!("{unfinished} scans unfinished when the second ruleset was built");
-    assert!(unfinished > 0);
+    assert_eq!(unfinished, 14);
+    signal(&pool, libc::SIGCONT);
     // and the rest after it, spaced out
     for n in 15..30 {
         roots.push(file(&core, n).await);

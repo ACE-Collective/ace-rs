@@ -1,8 +1,9 @@
 //! The task queue: every module run is a task, (root, observable, module), in `queue.tasks`.
 //!
-//! A worker claims the oldest claimable task of the modules it hosts with `FOR UPDATE SKIP
-//! LOCKED`, so workers never wait on each other's claims and no task is claimed twice. A
-//! claim takes a lease: the worker is the task's owner until the lease expires. Every later
+//! A worker claims the oldest claimable tasks of the modules it hosts with `FOR UPDATE SKIP
+//! LOCKED`, one or as many as it can start now (`Worker::claim_up_to`), so workers never wait on
+//! each other's claims and no task is claimed twice. A claim takes a lease on each task: the
+//! worker is the task's owner until the lease expires. Every later
 //! change a worker makes to the task checks that it still owns it, so a worker whose lease ran
 //! out can't overwrite what the task's next owner does.
 //!
@@ -485,67 +486,82 @@ impl Worker {
     /// Claims the oldest claimable task of the worker's modules, if there is one, and takes
     /// its lease.
     pub async fn claim(&self) -> Result<Option<Task>, QueueError> {
-        let row = self
+        Ok(self.claim_up_to(1).await?.pop())
+    }
+
+    /// Claims the oldest claimable tasks of the worker's modules, `most` of them at most, and
+    /// takes the lease of each: what that many calls of `claim` would take, in the same order, in
+    /// one statement. The tasks come back oldest first. A worker asks for as many as it can start
+    /// now, so none of them waits in a worker that is busy while another could run it.
+    pub async fn claim_up_to(&self, most: usize) -> Result<Vec<Task>, QueueError> {
+        let most = i64::try_from(most.max(1)).unwrap_or(i64::MAX);
+        // the tasks to claim are chosen and locked in a CTE, which Postgres runs once: as a
+        // subquery of the UPDATE's WHERE it could run again for a row and lock more than `most`
+        let mut rows = self
             .db
             .transaction(Isolation::ReadCommitted, |tx| {
                 Box::pin(async move {
                     Ok::<_, QueueError>(
                         sqlx::query!(
-                            r#"UPDATE queue.tasks t
+                            r#"WITH due AS MATERIALIZED (
+                   SELECT id FROM queue.tasks
+                   WHERE state IN ('queued', 'delayed') AND run_after <= now()
+                     AND module = ANY($3)
+                   ORDER BY run_after, id
+                   FOR UPDATE SKIP LOCKED
+                   LIMIT $4)
+               UPDATE queue.tasks t
                SET state = 'running', lease_owner = $1,
                    lease_expires_at = now() + make_interval(secs => $2),
                    attempts = t.attempts + 1, updated_at = now()
-               FROM analysis.observables o
-               WHERE t.id = (
-                       SELECT id FROM queue.tasks
-                       WHERE state IN ('queued', 'delayed') AND run_after <= now()
-                         AND module = ANY($3)
-                       ORDER BY run_after, id
-                       FOR UPDATE SKIP LOCKED
-                       LIMIT 1)
-                 AND o.id = t.observable_id
+               FROM due, analysis.observables o
+               WHERE t.id = due.id AND o.id = t.observable_id
                RETURNING t.id AS "id: TaskId", t.root_id, t.module, t.attempts, t.input_hashes,
-                         t.lease_expires_at AS "lease_expires_at!",
+                         t.lease_expires_at AS "lease_expires_at!", t.run_after,
                          t.delay_state, t.first_delayed_at, t.delays,
                          o.id AS "observable_id: ObservableId", o.type AS kind, o.value,
                          o.time, o.directives"#,
                             self.name,
                             self.lease.as_secs_f64(),
                             &self.modules,
+                            most,
                         )
-                        .fetch_optional(tx.conn())
+                        .fetch_all(tx.conn())
                         .await?,
                     )
                 })
             })
             .await?;
-        let Some(row) = row else {
-            return Ok(None);
-        };
-        let kind = row
-            .kind
-            .parse()
-            .map_err(|e| DbError::Decode(format!("{}: {e}", row.id)))?;
-        Ok(Some(Task {
-            id: row.id,
-            root: row.root_id,
-            observable: TaskObservable {
-                id: row.observable_id,
-                kind,
-                value: row.value,
-                time: row.time,
-                directives: row.directives,
-            },
-            module: row.module,
-            attempts: row.attempts,
-            input_hashes: row.input_hashes,
-            lease_expires_at: row.lease_expires_at,
-            delayed: row.first_delayed_at.map(|first_delayed_at| DelayedRun {
-                state: row.delay_state.unwrap_or_default(),
-                first_delayed_at,
-                delays: u32::try_from(row.delays).unwrap_or_default(),
-            }),
-        }))
+        // an UPDATE returns its rows in no order of its own
+        rows.sort_by_key(|row| (row.run_after, row.id));
+        rows.into_iter()
+            .map(|row| {
+                let kind = row
+                    .kind
+                    .parse()
+                    .map_err(|e| DbError::Decode(format!("{}: {e}", row.id)))?;
+                Ok(Task {
+                    id: row.id,
+                    root: row.root_id,
+                    observable: TaskObservable {
+                        id: row.observable_id,
+                        kind,
+                        value: row.value,
+                        time: row.time,
+                        directives: row.directives,
+                    },
+                    module: row.module,
+                    attempts: row.attempts,
+                    input_hashes: row.input_hashes,
+                    lease_expires_at: row.lease_expires_at,
+                    delayed: row.first_delayed_at.map(|first_delayed_at| DelayedRun {
+                        state: row.delay_state.unwrap_or_default(),
+                        first_delayed_at,
+                        delays: u32::try_from(row.delays).unwrap_or_default(),
+                    }),
+                })
+            })
+            .collect()
     }
 
     /// The modules the worker runs.

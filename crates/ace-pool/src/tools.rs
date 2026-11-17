@@ -1023,11 +1023,15 @@ async fn read_capped<R: AsyncRead + Unpin>(pipe: R, over: Arc<AtomicBool>) -> Ve
     bytes
 }
 
-/// Receives the tool filter's listener on `socket`, or the runner's reason for failing.
+/// Receives the tool filter's listener on `socket`, or the runner's reason for failing, waiting
+/// `SETUP_TIMEOUT` at most.
+///
+/// A signal this thread handles ends the wait early with EINTR, and the wait starts again for
+/// what is left of the timeout. The supervisor handles SIGCHLD, for every task process and tool
+/// that ends, and a socket with a receive timeout isn't waited on again by the kernel whatever the
+/// handler's flags, so with several tasks running at once this is ordinary, not an error.
 fn receive_listener(socket: UnixStream) -> Result<(OwnedFd, UnixStream), String> {
-    socket
-        .set_read_timeout(Some(SETUP_TIMEOUT))
-        .map_err(|e| e.to_string())?;
+    let deadline = std::time::Instant::now() + SETUP_TIMEOUT;
     let mut byte = [0u8; 1];
     let mut space = [0u8; 64];
     let mut iov = libc::iovec {
@@ -1035,13 +1039,27 @@ fn receive_listener(socket: UnixStream) -> Result<(OwnedFd, UnixStream), String>
         iov_len: 1,
     };
     let mut message: libc::msghdr = unsafe_zeroed();
-    message.msg_iov = &mut iov;
-    message.msg_iovlen = 1;
-    message.msg_control = space.as_mut_ptr().cast();
-    message.msg_controllen = space.len() as _;
-    // SAFETY: the message's buffers live for the call.
-    let received =
-        unsafe { libc::recvmsg(socket.as_raw_fd(), &mut message, libc::MSG_CMSG_CLOEXEC) };
+    let received = loop {
+        let left = deadline.saturating_duration_since(std::time::Instant::now());
+        // no timeout at all is how a socket takes a timeout of zero
+        socket
+            .set_read_timeout(Some(left.max(Duration::from_millis(1))))
+            .map_err(|e| e.to_string())?;
+        message.msg_iov = &mut iov;
+        message.msg_iovlen = 1;
+        message.msg_control = space.as_mut_ptr().cast();
+        message.msg_controllen = space.len() as _;
+        // SAFETY: the message's buffers live for the call.
+        let received =
+            unsafe { libc::recvmsg(socket.as_raw_fd(), &mut message, libc::MSG_CMSG_CLOEXEC) };
+        if received < 0
+            && io::Error::last_os_error().kind() == io::ErrorKind::Interrupted
+            && !left.is_zero()
+        {
+            continue;
+        }
+        break received;
+    };
     if received < 0 {
         return Err(format!(
             "the tool runner didn't contain itself: {}",
@@ -1128,14 +1146,21 @@ fn watch_execs(listener: &OwnedFd, pid: libc::pid_t, done: &AtomicBool, second: 
             unsafe { libc::kill(pid, libc::SIGKILL) };
             response.error = -libc::EPERM;
         }
-        // SAFETY: the kernel reads one seccomp_notif_resp, which lives for the call.
-        unsafe {
-            libc::ioctl(
-                listener.as_raw_fd(),
-                libc::SECCOMP_IOCTL_NOTIF_SEND,
-                &mut response,
-            )
-        };
+        // The answer must reach the kernel, or the tool waits in its exec until its timeout: a
+        // signal this thread handles can end the call first, so it is made again.
+        loop {
+            // SAFETY: the kernel reads one seccomp_notif_resp, which lives for the call.
+            let sent = unsafe {
+                libc::ioctl(
+                    listener.as_raw_fd(),
+                    libc::SECCOMP_IOCTL_NOTIF_SEND,
+                    &mut response,
+                )
+            };
+            if sent == 0 || io::Error::last_os_error().kind() != io::ErrorKind::Interrupted {
+                break;
+            }
+        }
     }
 }
 
@@ -1354,6 +1379,40 @@ mod tests {
         let mut huge = (u32::MAX).to_be_bytes().to_vec();
         huge.extend_from_slice(b"{}");
         assert!(read_frame::<ToolRun>(&mut huge.as_slice()).is_err());
+    }
+
+    extern "C" fn handled(_: libc::c_int) {}
+
+    /// The supervisor handles SIGCHLD for every process it started, and a signal can land on the
+    /// thread that waits for a tool runner's listener. The wait goes on: the listener sent after
+    /// three signals is received. Before, the first signal ended the wait as a tool that couldn't
+    /// start, which failed its task, and with eight tasks running at once it happened.
+    #[test]
+    fn a_signal_during_the_runners_handshake_doesnt_fail_it() {
+        // a handler that restarts calls, as tokio's SIGCHLD handler does: a socket with a receive
+        // timeout is interrupted all the same
+        let mut action: libc::sigaction = unsafe_zeroed();
+        action.sa_sigaction = handled as extern "C" fn(libc::c_int) as usize;
+        action.sa_flags = libc::SA_RESTART;
+        // SAFETY: the handler does nothing, and nothing else in these tests uses SIGUSR1.
+        assert_eq!(
+            unsafe { libc::sigaction(libc::SIGUSR1, &action, std::ptr::null_mut()) },
+            0
+        );
+        let (ours, theirs) = UnixStream::pair().unwrap();
+        let waiting = std::thread::spawn(move || receive_listener(ours));
+        let thread = std::os::unix::thread::JoinHandleExt::as_pthread_t(&waiting);
+        for _ in 0..3 {
+            std::thread::sleep(Duration::from_millis(100));
+            // SAFETY: the thread is running: it waits for the listener sent below.
+            assert_eq!(unsafe { libc::pthread_kill(thread, libc::SIGUSR1) }, 0);
+        }
+        std::thread::sleep(Duration::from_millis(100));
+        assert!(!waiting.is_finished(), "the signals ended the wait");
+        let listener: OwnedFd = fs::File::open("/dev/null").unwrap().into();
+        send_listener(&theirs, &listener).unwrap();
+        let received = waiting.join().unwrap();
+        assert!(received.is_ok(), "{:?}", received.err());
     }
 
     #[test]

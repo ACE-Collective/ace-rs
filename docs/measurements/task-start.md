@@ -171,7 +171,7 @@ The series' medians differ by up to 0.6 ms between series, so a difference under
 
 ## What bounds a run now: a pool leases one task a request
 
-Found here and left. A pool's lease loop takes a free slot, asks the core for one task, starts it and asks again (`lease_loop` in `crates/ace-pool/src/pool.rs`), so a pool starts tasks no faster than one lease request after another, however many slots it has. With a task process at 25 ms that hid behind the slots. At 3 ms it is the limit.
+Found here and left then; built since, in the step after this one: [`lease.md`](lease.md) has where a lease's time went, the change and its measurements. What follows is as it was found. A pool's lease loop takes a free slot, asks the core for one task, starts it and asks again (`lease_loop` in `crates/ace-pool/src/pool.rs`), so a pool starts tasks no faster than one lease request after another, however many slots it has. With a task process at 25 ms that hid behind the slots. At 3 ms it is the limit.
 
 On the stack the comparison left up, 14 of the larger samples were run again with 8 at once while `psql \watch 0.1` counted the queue's tasks by state and lease owner:
 
@@ -286,5 +286,5 @@ Two cheaper things the same numbers show, either of which could go first:
 
 - A production ruleset. With the signatures' ruleset `memory.md` measured 77 ms more a task process, which only YARA tasks pay now; the saving on a real stack should be larger than here by about that much a non-YARA parser task, and it wasn't measured.
 - A machine with fewer CPUs, and a pool with more than 16 slots.
-- The supervisor's own work for a task, split from the task process, and a lease request's time.
+- The supervisor's own work for a task, split from the task process. A lease request's time is measured since, in [`lease.md`](lease.md).
 - Memory. A task process that builds one module holds less than one that built 53, and `memory.md`'s figures weren't taken again.

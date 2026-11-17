@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "UPDATE queue.tasks t\n               SET state = 'running', lease_owner = $1,\n                   lease_expires_at = now() + make_interval(secs => $2),\n                   attempts = t.attempts + 1, updated_at = now()\n               FROM analysis.observables o\n               WHERE t.id = (\n                       SELECT id FROM queue.tasks\n                       WHERE state IN ('queued', 'delayed') AND run_after <= now()\n                         AND module = ANY($3)\n                       ORDER BY run_after, id\n                       FOR UPDATE SKIP LOCKED\n                       LIMIT 1)\n                 AND o.id = t.observable_id\n               RETURNING t.id AS \"id: TaskId\", t.root_id, t.module, t.attempts, t.input_hashes,\n                         t.lease_expires_at AS \"lease_expires_at!\",\n                         t.delay_state, t.first_delayed_at, t.delays,\n                         o.id AS \"observable_id: ObservableId\", o.type AS kind, o.value,\n                         o.time, o.directives",
+  "query": "WITH due AS MATERIALIZED (\n                   SELECT id FROM queue.tasks\n                   WHERE state IN ('queued', 'delayed') AND run_after <= now()\n                     AND module = ANY($3)\n                   ORDER BY run_after, id\n                   FOR UPDATE SKIP LOCKED\n                   LIMIT $4)\n               UPDATE queue.tasks t\n               SET state = 'running', lease_owner = $1,\n                   lease_expires_at = now() + make_interval(secs => $2),\n                   attempts = t.attempts + 1, updated_at = now()\n               FROM due, analysis.observables o\n               WHERE t.id = due.id AND o.id = t.observable_id\n               RETURNING t.id AS \"id: TaskId\", t.root_id, t.module, t.attempts, t.input_hashes,\n                         t.lease_expires_at AS \"lease_expires_at!\", t.run_after,\n                         t.delay_state, t.first_delayed_at, t.delays,\n                         o.id AS \"observable_id: ObservableId\", o.type AS kind, o.value,\n                         o.time, o.directives",
   "describe": {
     "columns": [
       {
@@ -71,6 +71,17 @@
       },
       {
         "ordinal": 6,
+        "name": "run_after",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "queue.tasks",
+            "name": "run_after"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
         "name": "delay_state",
         "type_info": "Jsonb",
         "origin": {
@@ -81,7 +92,7 @@
         }
       },
       {
-        "ordinal": 7,
+        "ordinal": 8,
         "name": "first_delayed_at",
         "type_info": "Timestamptz",
         "origin": {
@@ -92,7 +103,7 @@
         }
       },
       {
-        "ordinal": 8,
+        "ordinal": 9,
         "name": "delays",
         "type_info": "Int4",
         "origin": {
@@ -103,7 +114,7 @@
         }
       },
       {
-        "ordinal": 9,
+        "ordinal": 10,
         "name": "observable_id: ObservableId",
         "type_info": "Int8",
         "origin": {
@@ -114,7 +125,7 @@
         }
       },
       {
-        "ordinal": 10,
+        "ordinal": 11,
         "name": "kind",
         "type_info": "Text",
         "origin": {
@@ -125,7 +136,7 @@
         }
       },
       {
-        "ordinal": 11,
+        "ordinal": 12,
         "name": "value",
         "type_info": "Text",
         "origin": {
@@ -136,7 +147,7 @@
         }
       },
       {
-        "ordinal": 12,
+        "ordinal": 13,
         "name": "time",
         "type_info": "Timestamptz",
         "origin": {
@@ -147,7 +158,7 @@
         }
       },
       {
-        "ordinal": 13,
+        "ordinal": 14,
         "name": "directives",
         "type_info": "TextArray",
         "origin": {
@@ -162,7 +173,8 @@
       "Left": [
         "Text",
         "Float8",
-        "TextArray"
+        "TextArray",
+        "Int8"
       ]
     },
     "nullable": [
@@ -172,6 +184,7 @@
       false,
       false,
       true,
+      false,
       true,
       true,
       false,
@@ -182,5 +195,5 @@
       false
     ]
   },
-  "hash": "172d9447f824c174b87886be9125bc83149f6b6d3d3b414d62d642a1a9d83541"
+  "hash": "7f1d7e43ea4988100402dd721e7464dee9446c84c002d631d20a3947f3e7b14e"
 }

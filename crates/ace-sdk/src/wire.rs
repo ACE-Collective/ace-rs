@@ -61,7 +61,8 @@ pub mod paths {
 /// can have the name, and it's the payload that wakes the pools waiting for a command.
 pub const COMMANDS: &str = "@commands";
 
-/// A worker asking for a task.
+/// A worker asking for tasks. The answer is a list of `LeasedTask`, never empty, or 204 when the
+/// wait ended with none.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct LeaseRequest {
@@ -73,7 +74,17 @@ pub struct LeaseRequest {
     /// How long the core may hold the request open waiting for a task, up to its own limit.
     #[serde(default)]
     pub wait_seconds: u64,
+    /// The most tasks the answer may hold: how many the worker can start now, which for a pool is
+    /// its free slots. The core answers as soon as it has one, with as many as are due up to
+    /// this, and it never waits to fill the list. Left out or 0 asks for one. The core has a
+    /// limit of its own (`MAX_LEASED_AT_ONCE`).
+    #[serde(default)]
+    pub max: u32,
 }
+
+/// The most tasks one lease request is answered with, whatever it asks for. A pool with more free
+/// slots than this asks again for the rest.
+pub const MAX_LEASED_AT_ONCE: u32 = 64;
 
 /// A URL the bucket accepts without credentials until it expires.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

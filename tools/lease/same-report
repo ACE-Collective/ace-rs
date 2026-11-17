@@ -1,0 +1,140 @@
+#!/usr/bin/env python3
+"""Says whether two `ace compare` reports are the same report, by the method of
+docs/measurements/compare-speed.md, *The same report*.
+
+Two runs of the same code never write the same report.json. This sets aside what differs between
+any two runs and compares everything else exactly:
+
+- `seconds` and `root`;
+- hashes that only one of the two reports has. Ghostscript's rewrite of a PDF has new bytes each
+  run, and so have the observables that hold its hashes, so such a hash is compared as "a hash of
+  this run" wherever it stands, in a path or in a value. A hash both reports have is compared as
+  it is;
+- ace4's values that hold a time or a task's temporary directory: exif's three file dates,
+  `dmg_analyzer`'s stderr and `de4dot`'s stdout;
+- the redirection of pdftotext's text, which goes to whichever of a PDF and its rewrite has the
+  lower sha256, a coin toss each run. These are counted and listed apart: the samples where the
+  two reports differ in them, and how many each report has.
+
+Everything else must be equal: the samples and their order, the absent and failed ones, the
+threshold's result, the stale rows, the rows of differences.md and which matched, each sample's
+failed tasks and skipped results, and for every sample each difference's path, module, class and
+both values. It prints what is left over, and exits 1 if anything is.
+
+    tools/lease/same-report A/report.json B/report.json
+"""
+
+import collections
+import json
+import re
+import sys
+
+HASH = re.compile(r"\b[0-9a-f]{32}\b|\b[0-9a-f]{40}\b|\b[0-9a-f]{64}\b")
+# ace4's values that are a time or hold a temporary directory, by where they stand
+VOLATILE = [
+    re.compile(r"/results/exif/details/exifdata/File:File(Access|InodeChange|Modify)Date$"),
+    re.compile(r"/results/dmg_analyzer/details/.*stderr"),
+    re.compile(r"/results/de4dot/details/.*stdout"),
+]
+
+
+def hashes(report):
+    found = set()
+    for sample in report["samples"]:
+        for difference in sample["differences"]:
+            found.update(HASH.findall(json.dumps(difference, sort_keys=True)))
+    return found
+
+
+def is_redirection(difference):
+    return "redirection" in difference["path"]
+
+
+def normal(report, own):
+    """The report's samples as comparable text: per sample, its differences with this run's own
+    hashes and volatile values masked, the redirections apart."""
+    def mask(text):
+        return HASH.sub(lambda m: "<a hash of this run>" if m.group(0) in own else m.group(0), text)
+
+    samples = []
+    for sample in report["samples"]:
+        kept, redirections = collections.Counter(), collections.Counter()
+        for difference in sample["differences"]:
+            difference = dict(difference)
+            if any(pattern.search(difference["path"]) for pattern in VOLATILE):
+                difference["ace4"] = "<volatile>"
+            text = mask(json.dumps(difference, sort_keys=True))
+            (redirections if is_redirection(difference) else kept)[text] += 1
+        samples.append({
+            "sample": sample["sample"],
+            "skipped": mask(json.dumps(sample["skipped"], sort_keys=True)),
+            "failed_tasks": mask(json.dumps(sample["failed_tasks"], sort_keys=True)),
+            "differences": kept,
+            "redirections": redirections,
+        })
+    return samples
+
+
+def main(argv):
+    if len(argv) != 2:
+        raise SystemExit(__doc__)
+    a, b = (json.load(open(path)) for path in argv)
+    own_a, own_b = hashes(a) - hashes(b), hashes(b) - hashes(a)
+    left = []
+
+    for key in ["ace3_commit", "ported", "compared", "absent", "failed", "threshold", "stale_rows",
+                "skipped"]:
+        if a.get(key) != b.get(key):
+            left.append(f"{key} differs: {json.dumps(a.get(key))[:200]} and {json.dumps(b.get(key))[:200]}")
+    rows_a = [(row["samples"], row["path"], row["section"], row["matched"] > 0) for row in a["rows"]]
+    rows_b = [(row["samples"], row["path"], row["section"], row["matched"] > 0) for row in b["rows"]]
+    if rows_a != rows_b:
+        left.append("the rows of differences.md, or which of them matched, differ")
+    moved = [
+        (ra["path"], ra["matched"], rb["matched"])
+        for ra, rb in zip(a["rows"], b["rows"]) if ra["matched"] != rb["matched"]
+    ]
+
+    samples_a, samples_b = normal(a, own_a), normal(b, own_b)
+    if [s["sample"] for s in samples_a] != [s["sample"] for s in samples_b]:
+        left.append("the samples or their order differ")
+    tossed = 0
+    for sa, sb in zip(samples_a, samples_b):
+        for key in ["skipped", "failed_tasks"]:
+            if sa[key] != sb[key]:
+                left.append(f"{sa['sample']}: {key} differs")
+        if sa["differences"] != sb["differences"]:
+            only_a = sa["differences"] - sb["differences"]
+            only_b = sb["differences"] - sa["differences"]
+            left.append(f"{sa['sample']}: {sum(only_a.values())} differences only in A, "
+                        f"{sum(only_b.values())} only in B")
+            for text in list(only_a)[:3]:
+                left.append(f"    A: {text[:300]}")
+            for text in list(only_b)[:3]:
+                left.append(f"    B: {text[:300]}")
+        if sa["redirections"] != sb["redirections"]:
+            tossed += 1
+
+    def count(samples, key):
+        return sum(sum(sample[key].values()) for sample in samples)
+
+    print(f"A: {a['compared']} samples, {count(samples_a, 'differences')} differences compared, "
+          f"{count(samples_a, 'redirections')} redirections, {len(own_a)} hashes of its own, "
+          f"totals {a['totals']}")
+    print(f"B: {b['compared']} samples, {count(samples_b, 'differences')} differences compared, "
+          f"{count(samples_b, 'redirections')} redirections, {len(own_b)} hashes of its own, "
+          f"totals {b['totals']}")
+    print(f"the redirections differ in {tossed} samples")
+    for path, in_a, in_b in moved:
+        print(f"a row matched {in_a} in A and {in_b} in B: {path}")
+    if left:
+        print(f"{len(left)} line(s) left over:")
+        for line in left[:60]:
+            print(f"  {line}")
+        return 1
+    print("the same report: nothing else differs")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

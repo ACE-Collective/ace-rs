@@ -135,19 +135,33 @@ impl LeaseClient {
         modules: &[String],
         wait: Duration,
     ) -> Result<Option<LeasedTask>, ClientError> {
+        Ok(self.lease_up_to(modules, wait, 1).await?.pop())
+    }
+
+    /// Leases tasks of `modules` (all the pool's when empty), `most` of them at most, waiting up
+    /// to `wait` for the first. The core answers with those that are due, oldest first, and
+    /// doesn't wait for more. Ask for no more than can start now: each task that comes back is
+    /// leased to this worker from that moment.
+    pub async fn lease_up_to(
+        &self,
+        modules: &[String],
+        wait: Duration,
+        most: usize,
+    ) -> Result<Vec<LeasedTask>, ClientError> {
         let request = self
             .post(paths::LEASE)
             .json(&LeaseRequest {
                 worker: self.worker.clone(),
                 modules: modules.to_vec(),
                 wait_seconds: wait.as_secs(),
+                max: u32::try_from(most).unwrap_or(u32::MAX),
             })
             .timeout(wait + CALL_TIMEOUT);
         let response = self.http.send(request).await?;
         if response.status() == StatusCode::NO_CONTENT {
-            return Ok(None);
+            return Ok(Vec::new());
         }
-        answer(response, 0).await.map(Some)
+        answer(response, 0).await
     }
 
     /// Leases a GUI command (PLAN.md 5.12), waiting up to `wait` for one.

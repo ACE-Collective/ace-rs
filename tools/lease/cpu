@@ -1,0 +1,120 @@
+#!/usr/bin/env python3
+"""Reads how much CPU each container of a Compose project used between two moments.
+
+One helper container, `<project>-cpu`, mounts the Docker VM's cgroup tree read-only and prints every
+container's `usage_usec` (cgroup v2's `cpu.stat`) every few seconds. Nothing is run inside the
+containers it reads, so the reading costs them nothing: `docs/measurements/task-start.md` read the
+same files with a `docker exec` a container a tick, and its runs were 16% to 29% longer for it.
+
+    tools/lease/cpu start                 starts the helper
+    tools/lease/cpu report SINCE UNTIL    core-seconds by service between two times, each the
+                                          seconds since the epoch or an ISO time
+    tools/lease/cpu stop                  removes the helper
+
+`report` takes, for each container, the last reading at or before SINCE and the first at or after
+UNTIL, so it covers a little more than the span, by up to two ticks. A container that started or
+ended inside the span counts from its first reading to its last, which is how a one-off container
+such as `ace compare`'s is counted. It names containers by `docker ps -a`, so one that was removed
+is listed by its id.
+
+Needs docker and python3 on the host, and cgroup v2 in the Docker VM.
+"""
+
+import argparse
+import datetime
+import subprocess
+import sys
+
+IMAGE = "alpine:3.24.2"
+LOOP = r"""
+while true; do
+  now=$(date +%s)
+  for f in /hostcg/docker/*/cpu.stat; do
+    id=${f#/hostcg/docker/}; id=${id%/cpu.stat}
+    usage=$(sed -n 's/^usage_usec //p' "$f" 2>/dev/null)
+    [ -n "$usage" ] && echo "$now $id $usage"
+  done
+  sleep "$1"
+done
+"""
+
+
+def docker(*args, check=True):
+    result = subprocess.run(["docker", *args], capture_output=True, text=True, check=False)
+    if check and result.returncode != 0:
+        raise SystemExit(f"docker {' '.join(args)} failed:\n{result.stderr}")
+    return result.stdout
+
+
+def epoch(text):
+    try:
+        return float(text)
+    except ValueError:
+        return datetime.datetime.fromisoformat(text).timestamp()
+
+
+def main(argv):
+    parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
+    parser.add_argument("--project", default="ace4-e2e")
+    parser.add_argument("--every", type=int, default=5, help="seconds between readings")
+    commands = parser.add_subparsers(dest="command", required=True)
+    commands.add_parser("start")
+    commands.add_parser("stop")
+    report = commands.add_parser("report")
+    report.add_argument("since")
+    report.add_argument("until")
+    args = parser.parse_args(argv)
+    helper = f"{args.project}-cpu"
+
+    if args.command == "start":
+        docker("rm", "-f", helper, check=False)
+        docker("run", "-d", "--name", helper, "-v", "/sys/fs/cgroup:/hostcg:ro", IMAGE,
+               "sh", "-c", LOOP, "sh", str(args.every))
+        print(f"{helper} is reading every {args.every}s")
+        return 0
+    if args.command == "stop":
+        docker("rm", "-f", helper)
+        return 0
+
+    since, until = epoch(args.since), epoch(args.until)
+    names = {}
+    for line in docker("ps", "-a", "--no-trunc", "--format",
+                       '{{.ID}}\t{{.Names}}\t{{.Label "com.docker.compose.project"}}\t'
+                       '{{.Label "com.docker.compose.service"}}').splitlines():
+        ident, name, project, service = (line.split("\t") + ["", "", ""])[:4]
+        names[ident] = (name, project, service)
+    readings = {}
+    for line in docker("logs", helper).splitlines():
+        parts = line.split()
+        if len(parts) == 3:
+            readings.setdefault(parts[1], []).append((int(parts[0]), int(parts[2])))
+    rows, total = [], 0.0
+    for ident, series in readings.items():
+        name, project, service = names.get(ident, (ident[:12], "", ""))
+        before = [r for r in series if r[0] <= since]
+        after = [r for r in series if r[0] >= until]
+        inside = [r for r in series if since <= r[0] <= until]
+        first = before[-1] if before else (inside[0] if inside else None)
+        last = after[0] if after else (inside[-1] if inside else None)
+        if not first or not last or last[0] <= first[0]:
+            continue
+        seconds = (last[1] - first[1]) / 1e6
+        # a container that isn't the project's and wasn't removed is someone else's
+        if project and project != args.project:
+            continue
+        if not project and ident in names:
+            continue
+        label = service or f"removed {name}"
+        rows.append((seconds, label, last[0] - first[0]))
+        total += seconds
+    rows.sort(reverse=True)
+    for seconds, label, span in rows:
+        if seconds >= 0.5:
+            print(f"{seconds:9.1f}  {label}  (over {span}s)")
+    print(f"{total:9.1f}  all, {total / max(until - since, 1):.2f} cores busy on average "
+          f"over {until - since:.0f}s")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))
