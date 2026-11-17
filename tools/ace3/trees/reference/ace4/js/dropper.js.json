@@ -57,6 +57,7 @@
             "webcrack_error": null,
             "webcrack_status": "applied (cosmetic only)"
           },
+          "error": "evalmachine.<anonymous>:1\nvar s = new ActiveXObject(\"WScript.Shell\");\n        ^\n\nReferenceError: ActiveXObject is not defined\n    at evalmachine.<anonymous>:1:9\n    at Script.runInContext (node:vm:150:12)\n    at file:///opt/app/harness.js:914:12",
           "summary": "JavaScript Deobfuscation: failed: evalmachine.<anonymous>:1\nvar s = new ActiveXObject(\"WScript.Shell\");\n        ^\n\nReferenceError: ActiveXObject is not defined\n    at evalmachine.<anonymous>:1:9\n    at Script.runInContext (node:vm:150:12)\n    at file:///opt/app/harness.js:914:12",
           "tags": {}
         },
@@ -79,7 +80,7 @@
         "js": true
       }
     },
-    "file:833f28f1f8210483c2d184329632facf5bbdcfe05d4c770e7c37d29a8defc826": {
+    "file:d4c9ea82d53c2d5ff7e3817148f546c4d59ea4f398646e54de36f9c19e358c32": {
       "detections": {},
       "directives": {
         "extract_urls": true

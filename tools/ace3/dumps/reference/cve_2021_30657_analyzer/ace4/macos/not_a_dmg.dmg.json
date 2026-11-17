@@ -1,6 +1,6 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "f72f8946",
+  "ace3_commit": "37a765bf",
   "also_enabled": [
     "dmg_analyzer"
   ],
@@ -14,6 +14,7 @@
         "stdout": ""
       },
       "detections": [],
+      "error": "dmg2img exited with status 255: dmg image is corrupted!, without writing an image",
       "module_path": "saq.modules.file_analysis.dmg:DMGAnalysis",
       "observables": [],
       "summary": null,

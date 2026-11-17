@@ -66,6 +66,39 @@
       },
       "tags": {}
     },
+    "file:090e472f8f6b1cc9f58bb0f0751e987b701f6a28af86fbe12f869cebc9eb3c4f": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "zip_bad_rels.docm.extracted/word/vbaProject.bin.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:170b804293599496c29d816cfe408adc5a99e767eb930b0c0cf9e7db62436abe": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:12f38cb4a227f1f4e8834440f7565e9ea65d7d432ec67d28a0e3f16096a12329": {
       "detections": {},
       "directives": {
@@ -155,8 +188,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files/zip_bad_rels.docm.extracted/word",
-              "File:FileAccessDate": "2026:11:16 14:16:16+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 14:16:16+00:00",
+              "File:FileAccessDate": "2026:11:16 20:24:30+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 20:24:29+00:00",
               "File:FileModifyDate": "2026:01:01 00:00:00+00:00",
               "File:FileName": "vbaProject.bin",
               "File:FilePermissions": 100664,
@@ -443,7 +476,7 @@
       },
       "tags": {}
     },
-    "file:410fd761a7a094314077b4bfbda4a8d2b723706d30c88e299d1b4ce3b5f8d872": {
+    "file:253b3a2d281341a1305fc0eecc219cb590d5d1c41330af60bb894ad9df64d137": {
       "detections": {},
       "directives": {},
       "excluded_analysis": {
@@ -451,12 +484,12 @@
         "file_type": true
       },
       "paths": {
-        "zip_bad_rels.docm.extracted/word/vbaProject.bin.exif/exiftool.out": {
+        "zip_bad_rels.docm.exif/exiftool.out": {
           "type=metadata.exif": true
         }
       },
       "relationships": {
-        "extracted_from file:170b804293599496c29d816cfe408adc5a99e767eb930b0c0cf9e7db62436abe": true
+        "extracted_from file:c94cfed2698aa66dd0391b667aa09c44cabe28dacf9de5e13c8641a492e037bb": true
       },
       "results": {
         "observable_detection": {
@@ -660,39 +693,6 @@
       },
       "tags": {}
     },
-    "file:a560df7ccad29f65beaf7b90e8d4e2104c2e786dcd3eb4d98d4e2302f9d582bb": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "zip_bad_rels.docm.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:c94cfed2698aa66dd0391b667aa09c44cabe28dacf9de5e13c8641a492e037bb": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:c94cfed2698aa66dd0391b667aa09c44cabe28dacf9de5e13c8641a492e037bb": {
       "detections": {},
       "directives": {
@@ -723,8 +723,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 14:16:15+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 14:16:15+00:00",
+              "File:FileAccessDate": "2026:11:16 20:24:28+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 20:24:28+00:00",
               "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "zip_bad_rels.docm",
               "File:FilePermissions": 100644,
@@ -788,6 +788,7 @@
             "macros": [],
             "type": null
           },
+          "error": "olevba failed: Specification mandates value for attribute xml, line 1, column 9 (<string>, line 1)",
           "summary": null,
           "tags": {}
         },

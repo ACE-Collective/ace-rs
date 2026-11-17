@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<entry xmlns="http://www.w3.org/2005/Atom" xmlns:s="http://dev.splunk.com/ns/rest" xmlns:opensearch="http://a9.com/-/spec/opensearch/1.1/">
+  <title>search index=ace4_clicks sourcetype=&quot;ace4:click&quot; Url=(&quot;https://multi.example.com/x&quot;) earliest = 11/09/2026:21:00:56 latest = 11/16/2026:22:00:56
+| table Timestamp AccountUpn ActionType Url NetworkMessageId
+</title>
+  <id>https://127.0.0.1:8089/services/search/v2/jobs/1767225600.1</id>
+  <updated>2026-11-16T21:00:58.000+00:00</updated>
+  <link href="/servicesNS/ace4/search/search/v2/jobs/1767225600.1" rel="alternate"/>
+  <published>2026-11-16T21:00:58.000+00:00</published>
+  <link href="/servicesNS/ace4/search/search/v2/jobs/1767225600.1/events" rel="events"/>
+  <link href="/servicesNS/ace4/search/search/v2/jobs/1767225600.1/results" rel="results"/>
+  <link href="/servicesNS/ace4/search/search/v2/jobs/1767225600.1/results_preview" rel="results_preview"/>
+  <link href="/servicesNS/ace4/search/search/v2/jobs/1767225600.1/summary" rel="summary"/>
+  <link href="/servicesNS/ace4/search/search/v2/jobs/1767225600.1/timeline" rel="timeline"/>
+  <link href="/servicesNS/ace4/search/search/v2/jobs/1767225600.1/control" rel="control"/>
+  <author>
+    <name>ace4</name>
+  </author>
+  <content type="text/xml">
+    <s:dict>
+      <s:key name="cursorTime">1970-01-01T00:00:00.000+00:00</s:key>
+      <s:key name="dispatchState">RUNNING</s:key>
+      <s:key name="doneProgress">0.67</s:key>
+      <s:key name="eai:acl">
+        <s:dict>
+          <s:key name="app">search</s:key>
+          <s:key name="can_write">1</s:key>
+          <s:key name="modifiable">1</s:key>
+          <s:key name="owner">ace4</s:key>
+          <s:key name="perms">
+            <s:dict>
+              <s:key name="read"><s:list><s:item>ace4</s:item></s:list></s:key>
+              <s:key name="write"><s:list><s:item>ace4</s:item></s:list></s:key>
+            </s:dict>
+          </s:key>
+          <s:key name="sharing">global</s:key>
+          <s:key name="ttl">600</s:key>
+        </s:dict>
+      </s:key>
+      <s:key name="eventCount">0</s:key>
+      <s:key name="isDone">0</s:key>
+      <s:key name="isFailed">0</s:key>
+      <s:key name="isFinalized">0</s:key>
+      <s:key name="isPaused">0</s:key>
+      <s:key name="label"></s:key>
+      <s:key name="resultCount">0</s:key>
+      <s:key name="runDuration">1.000</s:key>
+      <s:key name="sid">1767225600.1</s:key>
+    </s:dict>
+  </content>
+</entry>

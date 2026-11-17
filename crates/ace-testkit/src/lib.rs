@@ -103,6 +103,7 @@ pub struct Harness<M: Module> {
     lists: Vec<WireList>,
     reader: Option<Arc<dyn Reader>>,
     dependency_results: Vec<(String, Value)>,
+    dependency_errors: Vec<(String, String)>,
     observables_below: Vec<ObservableRef>,
     added_by: Vec<String>,
     related_tags: Vec<RelatedTags>,
@@ -138,6 +139,7 @@ impl<M: Module> Harness<M> {
             lists: Vec::new(),
             reader: None,
             dependency_results: Vec::new(),
+            dependency_errors: Vec::new(),
             observables_below: Vec::new(),
             added_by: Vec::new(),
             related_tags: Vec::new(),
@@ -187,6 +189,15 @@ impl<M: Module> Harness<M> {
     pub fn dependency_result(mut self, module: &str, details: Value) -> Self {
         self.dependency_results.retain(|(m, _)| m != module);
         self.dependency_results.push((module.to_owned(), details));
+        self
+    }
+
+    /// Why a module this one depends on said it failed on the observable, as the core sends it
+    /// with the task beside that module's details (`TaskContext::dependency_error`).
+    pub fn dependency_error(mut self, module: &str, error: &str) -> Self {
+        self.dependency_errors.retain(|(m, _)| m != module);
+        self.dependency_errors
+            .push((module.to_owned(), error.to_owned()));
         self
     }
 
@@ -340,6 +351,7 @@ impl<M: Module> Harness<M> {
             .with_lists(self.lists.clone())
             .with_reader(self.reader.clone())
             .with_dependency_results(self.dependency_results.clone())
+            .with_dependency_errors(self.dependency_errors.clone())
             .with_observables_below(self.observables_below.clone())
             .with_added_by(self.added_by.clone())
             .with_related_tags(self.related_tags.clone())

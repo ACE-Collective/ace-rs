@@ -25,7 +25,7 @@ use ace_sdk::{Manifest, Module, ModuleError, Outcome, Parser, Resources, TaskCon
 use schemars::JsonSchema;
 use serde::Deserialize;
 
-use crate::{DIRECTIVE_SANDBOX, name_fits, source};
+use crate::{DIRECTIVE_SANDBOX, name_fits, name_too_long, source};
 
 /// `extracted_rtf_analyzer`'s manifest.
 pub const EXTRACTED_RTF_MANIFEST: Manifest = Manifest::parser::<ExtractedRtfAnalyzer>();
@@ -218,6 +218,8 @@ impl Parser for NoWhiteSpaceAnalyzer {
             output.redirection = Some(source(file));
             result.files.push(output);
             result.details.count = stripped.removed;
+        } else {
+            result.error = Some(name_too_long(file, NOWHITESPACE_SUFFIX));
         }
         result.summary = nowhitespace_summary(result.details.count);
         Ok(Outcome::Done(result))

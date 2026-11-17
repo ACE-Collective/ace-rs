@@ -67,6 +67,7 @@
           "details": {
             "xml_plain_text": null
           },
+          "error": "unable to parse XML: Start tag expected, '<' not found, line 1, column 1 (stream_10_0.dat, line 1)",
           "summary": null,
           "tags": {}
         }
@@ -203,7 +204,7 @@
       },
       "tags": {}
     },
-    "file:78803795cd51762fd7cc430439bc9c064d0f0600aa8b44356eb88c88d23f4d29": {
+    "file:71268424c8eea55bfcbd403681e6d474ea583320aab11d741c665c5a946df37d": {
       "detections": {},
       "directives": {},
       "excluded_analysis": {
@@ -252,8 +253,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 13:54:55+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 13:54:55+00:00",
+              "File:FileAccessDate": "2026:11:16 20:03:14+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 20:03:14+00:00",
               "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "encrypted_agile.docx",
               "File:FilePermissions": 100644,
@@ -307,6 +308,7 @@
               "/01Hannes Ruescher/01"
             ]
           },
+          "error": "could not crack password",
           "summary": "MSOffice Encryption Analysis: could not crack password",
           "tags": {}
         },

@@ -11,8 +11,6 @@ use crate::envelope::AnalysisType;
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct OcrAnalysis {
-    /// ace3 has this key and never sets it.
-    pub error: Option<String>,
     /// True when tesseract found text, which the module wrote to a file.
     pub ocr: bool,
 }
@@ -43,9 +41,9 @@ impl AnalysisType for QrCodeAnalysis {
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct ExifAnalysis {
-    /// Why exiftool gave nothing: its own error, its last line on stderr, or that it didn't finish.
-    pub error: Option<String>,
-    /// What `exiftool -j -G -n` printed for the file, its `Group:Tag` names as keys.
+    /// What `exiftool -j -G -n` printed for the file, its `Group:Tag` names as keys. Empty when
+    /// exiftool gave nothing, and the result's `error` then says why: its own error, its last line
+    /// on stderr, or that it didn't finish.
     pub exifdata: serde_json::Map<String, serde_json::Value>,
     /// Where the pretty-printed copy went, as ace3 names it: `<file>.exif`. Only when exiftool
     /// succeeded.

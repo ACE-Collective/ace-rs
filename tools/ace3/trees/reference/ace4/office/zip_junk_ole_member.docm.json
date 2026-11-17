@@ -133,6 +133,39 @@
       },
       "tags": {}
     },
+    "file:2a08ae37c2cb745440b68595f4e1acdb254f413661109cbfa1f0534f007a8a6b": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "zip_junk_ole_member.docm.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:d8289946067ea027b9d49334a5fa2a519a5a61e456760954ba8af236f7af1153": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:a51b129d94cbc0c953907adaa3aab3e4a44b85515d6374925ae7c934d5006236": {
       "detections": {},
       "directives": {},
@@ -149,6 +182,7 @@
           "details": {
             "exifdata": {}
           },
+          "error": "Error reading FAT from sector 0",
           "summary": "Exiftool Analysis: ⚠ Error reading FAT from sector 0",
           "tags": {}
         },
@@ -193,6 +227,7 @@
             "macros": [],
             "type": null
           },
+          "error": "olevba failed: 'NoneType' object has no attribute 'name'",
           "summary": null,
           "tags": {}
         },
@@ -240,8 +275,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 14:16:24+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 14:16:24+00:00",
+              "File:FileAccessDate": "2026:11:16 20:24:37+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 20:24:37+00:00",
               "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "zip_junk_ole_member.docm",
               "File:FilePermissions": 100644,
@@ -305,6 +340,7 @@
             "macros": [],
             "type": null
           },
+          "error": "olevba failed: 'NoneType' object has no attribute 'name'",
           "summary": null,
           "tags": {}
         },
@@ -380,39 +416,6 @@
         "xml_plain_text_analyzer": {
           "details": {
             "xml_plain_text": null
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
-    "file:e4e36fd4070ae203916796479004c5a7ca48409cfa9a0aed4f862f82cf0a23e1": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "zip_junk_ole_member.docm.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:d8289946067ea027b9d49334a5fa2a519a5a61e456760954ba8af236f7af1153": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
           },
           "summary": null,
           "tags": {}

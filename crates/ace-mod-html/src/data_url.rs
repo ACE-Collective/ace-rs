@@ -83,6 +83,7 @@ impl Parser for HtmlDataUrlAnalyzer {
         let mut analysis: Option<HtmlDataUrlAnalysis> = None;
         let mut files = Vec::new();
         let mut count = 0usize;
+        let mut raised = None;
         for found in RE_HTML_EMBED.captures_iter(&data) {
             ctx.check_cancelled()?;
             let (mime_type, encoded) = (&found[1], &found[2]);
@@ -92,8 +93,12 @@ impl Parser for HtmlDataUrlAnalyzer {
             let ext = mime_extension(&String::from_utf8_lossy(mime_type));
             let name = format!("{}_embed_{count}.{ext}", file.name());
             // open() raises out of ace3's module on a name the file system can't hold, which
-            // leaves the analysis as it was
+            // leaves the analysis as it was, and ace3's engine marks it failed with the exception
             if name.len() > NAME_MAX_BYTES {
+                raised = Some(format!(
+                    "OSError: [Errno 36] File name too long: '{}_embed_{count}.{ext}'",
+                    file.path
+                ));
                 break;
             }
             // ace3's root takes no more files, and nothing more comes of this one
@@ -127,6 +132,8 @@ impl Parser for HtmlDataUrlAnalyzer {
         });
         let mut result = ResultEnvelope::new(analysis);
         result.summary = summary;
+        // only an analysis that exists is marked: one that raised on its first file left none
+        result.error = raised;
         result.files = files;
         Ok(Outcome::Done(result))
     }

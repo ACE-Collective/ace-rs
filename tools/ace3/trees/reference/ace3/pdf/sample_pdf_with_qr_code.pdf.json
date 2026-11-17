@@ -61,7 +61,7 @@
       },
       "tags": {}
     },
-    "file:32157587aae31adb4c8d7022d0214bc03787c103c2a4761a6279456ff3f843d2": {
+    "file:137703472179e33b0e53f20381d6c53e131ca9a352244e269a3e95baf23337fe": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -143,39 +143,6 @@
         "pdf": true
       }
     },
-    "file:41a6e42da0c1ebc8314afc6b7c81fab4f20565c18fbbaac11d8584fc55cea2d5": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "sample_pdf_with_qr_code.pdf.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:4efb0032a6de86d9c0dabc0d2814533aac30811ee40e433d26092eaf988ca110": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:4efb0032a6de86d9c0dabc0d2814533aac30811ee40e433d26092eaf988ca110": {
       "detections": {},
       "directives": {},
@@ -193,8 +160,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 14:53:47+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 14:53:47+00:00",
+              "File:FileAccessDate": "2026:11:16 19:45:14+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 19:45:14+00:00",
               "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "sample_pdf_with_qr_code.pdf",
               "File:FilePermissions": 100644,
@@ -358,7 +325,7 @@
         }
       },
       "relationships": {
-        "extracted_from file:32157587aae31adb4c8d7022d0214bc03787c103c2a4761a6279456ff3f843d2": true,
+        "extracted_from file:137703472179e33b0e53f20381d6c53e131ca9a352244e269a3e95baf23337fe": true,
         "extracted_from file:4efb0032a6de86d9c0dabc0d2814533aac30811ee40e433d26092eaf988ca110": true
       },
       "results": {
@@ -485,9 +452,9 @@
           "type=document.pdf.text": true
         }
       },
-      "redirection": "file:32157587aae31adb4c8d7022d0214bc03787c103c2a4761a6279456ff3f843d2",
+      "redirection": "file:137703472179e33b0e53f20381d6c53e131ca9a352244e269a3e95baf23337fe",
       "relationships": {
-        "extracted_from file:32157587aae31adb4c8d7022d0214bc03787c103c2a4761a6279456ff3f843d2": true
+        "extracted_from file:137703472179e33b0e53f20381d6c53e131ca9a352244e269a3e95baf23337fe": true
       },
       "results": {
         "file_type": {
@@ -509,6 +476,39 @@
           "summary": "File Type Analysis: Unicode text, UTF-8 text (text/plain)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:f032384686cdcffe77af6a46820caaac1d555f0ff02160151d324be2e31a2225": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "sample_pdf_with_qr_code.pdf.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:4efb0032a6de86d9c0dabc0d2814533aac30811ee40e433d26092eaf988ca110": true
+      },
+      "results": {
         "observable_detection": {
           "details": {
             "for_detection": false
@@ -841,6 +841,7 @@
             "whois_data": null,
             "whois_raw_text": null
           },
+          "error": "rdap: Failed to make a GET request to https://rdap.publicinterestregistry.org/rdap/domain/emmetcrcs.org: nothing recorded for GET https://rdap.publicinterestregistry.org/rdap/domain/emmetcrcs.org; whois: no WHOIS in a replay",
           "tags": {}
         },
         "user_defined_tagging": {

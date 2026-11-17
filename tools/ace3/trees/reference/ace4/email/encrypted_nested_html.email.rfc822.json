@@ -311,6 +311,39 @@
       },
       "tags": {}
     },
+    "file:174d62853e83da2f43a45bbfd3cddeb42c8b842840a161eef25cbb0556127442": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "invoice_000.docx.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:2ed4859b4203569d8720219e128039963af868b98f9b04ced3d2db0e49d4bfd2": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:2e966c65c82862da88710459a90e2c3a494f4bedf0f3ec3cbf85942f88078460": {
       "detections": {},
       "directives": {
@@ -399,9 +432,9 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 13:42:51+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 13:42:51+00:00",
-              "File:FileModifyDate": "2026:11:16 13:42:51+00:00",
+              "File:FileAccessDate": "2026:11:16 19:47:45+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 19:47:45+00:00",
+              "File:FileModifyDate": "2026:11:16 19:47:45+00:00",
               "File:FileName": "invoice.docx",
               "File:FilePermissions": 100664,
               "File:FileSize": 17920,
@@ -475,6 +508,7 @@
               "word"
             ]
           },
+          "error": "could not crack password",
           "summary": "MSOffice Encryption Analysis: could not crack password",
           "tags": {}
         },
@@ -919,39 +953,6 @@
       },
       "tags": {}
     },
-    "file:52224552f188f48969ab142ca75e639733d7305f74b93598fad3a2f66646f591": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "invoice_000.docx.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:2ed4859b4203569d8720219e128039963af868b98f9b04ced3d2db0e49d4bfd2": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:57f864ea46ae8800e8bd091988954467090e9328ebf77b523d26c98891cc8a66": {
       "detections": {},
       "directives": {
@@ -1194,9 +1195,9 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 13:42:54+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 13:42:54+00:00",
-              "File:FileModifyDate": "2026:11:16 13:42:54+00:00",
+              "File:FileAccessDate": "2026:11:16 19:47:49+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 19:47:49+00:00",
+              "File:FileModifyDate": "2026:11:16 19:47:49+00:00",
               "File:FileName": "invoice_000.docx.decrypted",
               "File:FilePermissions": 100666,
               "File:FileSize": 12529,
@@ -1307,39 +1308,6 @@
         "microsoft_office": true,
         "zip": true
       }
-    },
-    "file:6abf05578000f8ad45cf299cc18c5ff2a7a3ec86e73410fb8f1a71dd94486334": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "invoice_000.docx.decrypted.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:6a65fb99c4c7ecb88273b7f1d49b00640de95cb682cb1a63df0c08764f0ef24d": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
     },
     "file:6aea6c39e5e4b96dc0a87732d1d382409bda27bbf6cd504f3169a901f7e8e9eb": {
       "detections": {},
@@ -1713,6 +1681,7 @@
           "details": {
             "xml_plain_text": null
           },
+          "error": "unable to parse XML: Start tag expected, '<' not found, line 1, column 1 (stream_10_0.dat, line 1)",
           "summary": null,
           "tags": {}
         }
@@ -2381,39 +2350,6 @@
       },
       "tags": {}
     },
-    "file:c86f2e185940bef425e34f857126c5af5e5f31191f82c61244ce8297e95019de": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "invoice.docx.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:2ed4859b4203569d8720219e128039963af868b98f9b04ced3d2db0e49d4bfd2": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:ccb0a81ffb69bd4d7c6f43220e251f1ff02781f9c759e47e2a93e6cda58ca7f6": {
       "detections": {},
       "directives": {
@@ -2609,6 +2545,39 @@
       },
       "tags": {}
     },
+    "file:e6ef46dbde1a6222c46e8e2ea9c6f209425662b24da1534447d41e9beb038e26": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "invoice_000.docx.decrypted.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:6a65fb99c4c7ecb88273b7f1d49b00640de95cb682cb1a63df0c08764f0ef24d": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:e81d2d7f4d8b4aa96a9d1ac9aad489caa06f24c3de2b66471479daf34672ce3a": {
       "detections": {},
       "directives": {
@@ -2661,6 +2630,39 @@
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:f36519b9f036c6dde8c96883df4cf169e31286871a18da7d43dd0b0868d6e42e": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "invoice.docx.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:2ed4859b4203569d8720219e128039963af868b98f9b04ced3d2db0e49d4bfd2": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
           },
           "summary": null,
           "tags": {}

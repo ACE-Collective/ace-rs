@@ -49,7 +49,8 @@ async fn a_domain_the_registry_doesnt_know_is_an_answer_without_a_fallback() {
             .ends_with("no-such-domain-here.com returned a 404 error, the resource does not exist"),
         "{answer}"
     );
-    assert_eq!(result.details.error, None);
+    // an answer, not a failure: ace3 caches it
+    assert_eq!(result.error, None);
     assert_eq!(result.details.lookup_protocol, None);
     assert_eq!(result.details.rdap_attempt_error, None);
     assert_eq!(
@@ -86,9 +87,14 @@ async fn a_tld_without_rdap_records_the_rdap_error() {
         "no RDAP service for TLD: TLD \"not-a-tld\" has no known RDAP endpoint and is unsupported. \
          It may be supported by overrides, try using whoisit.bootstrap(overrides=True)"
     );
+    // the lookup failed: the result's error, ace3's `Analysis.error`
     assert_eq!(
-        result.details.error.as_deref(),
+        result.error.as_deref(),
         Some(format!("rdap: {attempt}").as_str())
+    );
+    assert_eq!(
+        result.summary.as_deref(),
+        Some(format!("RDAP Analysis: error: rdap: {attempt}").as_str())
     );
     assert_eq!(result.details.not_found, None);
     assert_eq!(replay.requested(), ["https://data.iana.org/rdap/dns.json"]);

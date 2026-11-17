@@ -39,6 +39,15 @@ pub struct ResultEnvelope<D> {
     /// One line for the alert view.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub summary: Option<String>,
+    /// Why the module failed, when it ran to its end and says it failed, as ace3's
+    /// `Analysis.error`: a tool that exited with an error, a lookup that couldn't answer, a file it
+    /// couldn't read. None for a module that didn't fail. Whatever else the result holds is kept
+    /// and shown as a partial result. A failure needs a reason, so the core refuses a result
+    /// whose `error` is blank. A task that never produced a result (a crash, a deadline, a
+    /// `ModuleError`) is a failed task, not this.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(regex(pattern = r"\S"))]
+    pub error: Option<String>,
     /// Tags on the result itself, as ace3's analysis tags, such as `single_file_zip`. Tags for the
     /// observable the module analyzed go in `analyzed`.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -123,6 +132,7 @@ impl<D: AnalysisType> ResultEnvelope<D> {
             schema_version: D::VERSION,
             details,
             summary: None,
+            error: None,
             tags: Vec::new(),
             detections: Vec::new(),
             analyzed: ObservableAdditions::default(),
@@ -154,6 +164,7 @@ impl<D: AnalysisType> ResultEnvelope<D> {
             schema_version: self.schema_version,
             details: serde_json::to_value(&self.details)?,
             summary: self.summary.clone(),
+            error: self.error.clone(),
             tags: self.tags.clone(),
             detections: self.detections.clone(),
             analyzed: self.analyzed.clone(),
@@ -168,6 +179,12 @@ impl<D: AnalysisType> ResultEnvelope<D> {
 
     pub fn with_summary(mut self, summary: impl Into<String>) -> Self {
         self.summary = Some(summary.into());
+        self
+    }
+
+    /// Marks the result failed, with the reason (`ResultEnvelope::error`).
+    pub fn with_error(mut self, error: impl Into<String>) -> Self {
+        self.error = Some(error.into());
         self
     }
 
@@ -430,6 +447,45 @@ mod tests {
                 }],
             })
         );
+    }
+
+    #[test]
+    fn a_failed_result_carries_its_reason() {
+        let failed = sample().with_error("the tool exited with status 2");
+        let value = serde_json::to_value(&failed).expect("serializes");
+        assert_eq!(value["error"], json!("the tool exited with status 2"));
+        // and keeps what it had: a failure is a partial result, not an empty one
+        assert_eq!(value["summary"], json!("one header"));
+        let back = ResultEnvelope::<HeaderDump>::from_json(value).expect("reads back");
+        assert_eq!(back, failed);
+        assert_eq!(
+            back.to_raw().expect("details serialize").error.as_deref(),
+            Some("the tool exited with status 2")
+        );
+        // a result that didn't fail has no such key, so results stored before the mark still read
+        assert!(
+            serde_json::to_value(sample())
+                .expect("serializes")
+                .get("error")
+                .is_none()
+        );
+    }
+
+    #[test]
+    fn a_failure_needs_a_reason() {
+        let validator = crate::validate::ResultValidator::of::<HeaderDump>().expect("a schema");
+        for blank in ["", "  ", "\n\t"] {
+            let value = serde_json::to_value(sample().with_error(blank)).expect("serializes");
+            let invalid = validator
+                .validate(&value)
+                .expect_err("a blank reason is refused");
+            assert_eq!(invalid.fields()[0].path, "/error", "{blank:?}");
+        }
+        let value = serde_json::to_value(sample().with_error("x")).expect("serializes");
+        validator.validate(&value).expect("a reason passes");
+        validator
+            .validate(&serde_json::to_value(sample()).expect("serializes"))
+            .expect("no failure passes");
     }
 
     #[test]

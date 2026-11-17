@@ -1,6 +1,6 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "f72f8946",
+  "ace3_commit": "37a765bf",
   "also_enabled": [],
   "analyses": [
     {
@@ -9,11 +9,11 @@
         "age_created_in_days": null,
         "datetime_created": null,
         "is_nrd": true,
-        "lookup_error": "rdap: rdap result has no registration date; whois: no WHOIS in a replay",
         "lookup_protocol": null,
-        "matched_at": "2026-11-08T23:04:32.447916+00:00"
+        "matched_at": "2026-11-16T20:59:40.299786+00:00"
       },
       "detections": [],
+      "error": "rdap: rdap result has no registration date; whois: no WHOIS in a replay",
       "module_path": "saq.modules.nrd:NRDAnalysis",
       "observables": [],
       "summary": "Newly Registered Domain: present in local NRD list (registration age unverified: rdap: rdap result has no registration date; whois: no WHOIS in a replay)",

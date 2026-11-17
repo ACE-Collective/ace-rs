@@ -1,6 +1,39 @@
 {
   "form": 1,
   "observables": {
+    "file:147cab2060359fd26515248d0664adfc4d4266b34c863d0ddf0bd337c474bbec": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "zip_bad_deflate.docm.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:d100fd50935e779f722a91518cdad9487e0e7a370a174d849192c44563f39fe8": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:1b64a7354e519be9704767a735fc623c0eff61205ab257fb75985ab648a2c4b2": {
       "detections": {},
       "directives": {
@@ -133,39 +166,6 @@
       },
       "tags": {}
     },
-    "file:577a1b29729f8cc7d37c54a33c516d4599d21018fb8bee8c9b2021e0f37998a5": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "zip_bad_deflate.docm.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:d100fd50935e779f722a91518cdad9487e0e7a370a174d849192c44563f39fe8": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:d100fd50935e779f722a91518cdad9487e0e7a370a174d849192c44563f39fe8": {
       "detections": {},
       "directives": {
@@ -197,8 +197,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 14:16:11+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 14:16:11+00:00",
+              "File:FileAccessDate": "2026:11:16 20:24:25+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 20:24:25+00:00",
               "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "zip_bad_deflate.docm",
               "File:FilePermissions": 100644,
@@ -262,6 +262,7 @@
             "macros": [],
             "type": null
           },
+          "error": "olevba failed: Error -3 while decompressing data: invalid block type",
           "summary": null,
           "tags": {}
         },

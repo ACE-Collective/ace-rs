@@ -1,0 +1,36 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "37a765bf",
+  "also_enabled": [],
+  "analyses": [],
+  "input": {
+    "directives": [],
+    "label": "ace4/pcap/http_tls_keys.zip",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "http_tls_keys.zip",
+      "size": 9385,
+      "type": "file",
+      "value": "ed2ca0b60fb01a271232c576b6d3c8a6871aaaee5caba4b2175b94b6809b0587"
+    }
+  },
+  "module": "zip_encryption_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "http_tls_keys.zip",
+    "relationships": [],
+    "size": 9385,
+    "tags": [],
+    "type": "file",
+    "value": "ed2ca0b60fb01a271232c576b6d3c8a6871aaaee5caba4b2175b94b6809b0587",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

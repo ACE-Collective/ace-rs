@@ -38,7 +38,6 @@ impl PcapTable {
 #[derive(Debug, Template)]
 #[template(path = "analysis/pcap.html")]
 pub struct PcapView {
-    pub error: Option<String>,
     /// The parts of the line that says which capture the page is of.
     pub capture: Vec<String>,
     pub notice: Option<String>,
@@ -390,7 +389,6 @@ impl AnalysisView for PcapAnalysis {
     fn view(&self) -> PcapView {
         let Some(index) = &self.index else {
             return PcapView {
-                error: self.error.clone(),
                 capture: Vec::new(),
                 notice: None,
                 tables: Vec::new(),
@@ -502,7 +500,6 @@ impl AnalysisView for PcapAnalysis {
             format!("No endpoint or flow tables: the packet statistics pass failed ({e}).")
         });
         PcapView {
-            error: self.error.clone(),
             capture: capture_summary(capture),
             notice,
             tables,
@@ -522,7 +519,6 @@ fn category_view(
         ..index
     };
     PcapView {
-        error: None,
         capture: capture_summary(capture),
         notice: None,
         tables: index_tables(&index, Some(category), capture),
@@ -620,7 +616,6 @@ impl AnalysisView for PcapTlsDecryptionAnalysis {
             tables.extend(index_tables(index, None, capture.as_ref()));
         }
         PcapView {
-            error: self.error.clone(),
             capture: capture_summary(capture.as_ref()),
             notice: None,
             tables,
@@ -637,7 +632,6 @@ impl AnalysisView for TlsKeylogAnalysis {
             .map(|(label, count)| vec![label.clone(), count.to_string()])
             .collect();
         PcapView {
-            error: None,
             capture: Vec::new(),
             notice: None,
             tables: vec![table(

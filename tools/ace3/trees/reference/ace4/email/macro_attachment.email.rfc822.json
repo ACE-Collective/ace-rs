@@ -275,39 +275,6 @@
       },
       "tags": {}
     },
-    "file:096af546304009630f37b369e0cb626c8f290b8b7417aa62a74bd76fb65d3b6d": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "receipt.doc.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:a363fb24edce3162326238d0152b99845d0dd0be53191183aad2ceba2d168a2a": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:09ddbe6d159c1fae7299f5d4e1281dad6068331d9f651f45a51265277b80f0ed": {
       "detections": {},
       "directives": {
@@ -2567,9 +2534,9 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 13:45:44+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 13:45:44+00:00",
-              "File:FileModifyDate": "2026:11:16 13:45:44+00:00",
+              "File:FileAccessDate": "2026:11:16 19:53:17+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 19:53:17+00:00",
+              "File:FileModifyDate": "2026:11:16 19:53:17+00:00",
               "File:FileName": "receipt.doc",
               "File:FilePermissions": 100664,
               "File:FileSize": 219648,
@@ -3806,6 +3773,39 @@
       },
       "tags": {}
     },
+    "file:e6fd551a43494a65e412631fc909486e5905d9e515c39d27ce87c930050dc6ad": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "receipt.doc.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:a363fb24edce3162326238d0152b99845d0dd0be53191183aad2ceba2d168a2a": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:eb89416cffdc60260c1350f33c28e999fd628501b45849703fa46cab55efc13b": {
       "detections": {},
       "directives": {
@@ -4137,6 +4137,7 @@
             "whois_data": null,
             "whois_raw_text": null
           },
+          "error": "rdap: no RDAP service for TLD: TLD \"example\" has no known RDAP endpoint and is unsupported. It may be supported by overrides, try using whoisit.bootstrap(overrides=True); whois: no WHOIS in a replay",
           "tags": {}
         },
         "user_defined_tagging": {
@@ -4466,6 +4467,7 @@
             "whois_data": null,
             "whois_raw_text": null
           },
+          "error": "rdap: Failed to make a GET request to https://rdap.nic.re/domain/lmm.re: nothing recorded for GET https://rdap.nic.re/domain/lmm.re; whois: no WHOIS in a replay",
           "tags": {}
         },
         "user_defined_tagging": {
@@ -4564,6 +4566,7 @@
             "whois_data": null,
             "whois_raw_text": null
           },
+          "error": "rdap: no RDAP service for TLD: TLD \"example\" has no known RDAP endpoint and is unsupported. It may be supported by overrides, try using whoisit.bootstrap(overrides=True); whois: no WHOIS in a replay",
           "tags": {}
         },
         "user_defined_tagging": {
@@ -4660,6 +4663,7 @@
             "whois_data": null,
             "whois_raw_text": null
           },
+          "error": "rdap: no RDAP service for TLD: TLD \"km\" has no known RDAP endpoint and is unsupported. It may be supported by overrides, try using whoisit.bootstrap(overrides=True); whois: no WHOIS in a replay",
           "tags": {}
         },
         "user_defined_tagging": {

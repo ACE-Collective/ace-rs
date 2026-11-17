@@ -74,8 +74,10 @@ impl Parser for PdfTextAnalyzer {
             .keep("output.txt")
             .timeout(Duration::from_secs(ctx.settings().timeout));
         let output = ctx.run_tool(run)?;
-        if output.stopped().is_some() {
-            // ace3's run_sandboxed_tool returns nothing for a tool it stopped
+        if let Some(stop) = output.stopped() {
+            // ace3's run_sandboxed_tool returns nothing for a tool it stopped, and pdf.py marks
+            // the analysis failed
+            result.error = Some(format!("pdftotext did not finish: {}", stop.describe()));
             return Ok(Outcome::Done(result));
         }
         result.details.stdout = Some(output.stdout_text());

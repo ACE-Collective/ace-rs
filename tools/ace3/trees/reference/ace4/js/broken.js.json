@@ -56,6 +56,7 @@
             "webcrack_error": "Unexpected token (1:9)",
             "webcrack_status": "failed: Unexpected token (1:9)"
           },
+          "error": "evalmachine.<anonymous>:1\nfunction (\n^^^^^^^^\n\nSyntaxError: Function statements require a function name\n    at new Script (node:vm:118:7)\n    at file:///opt/app/harness.js:907:12",
           "summary": "JavaScript Deobfuscation: failed: evalmachine.<anonymous>:1\nfunction (\n^^^^^^^^\n\nSyntaxError: Function statements require a function name\n    at new Script (node:vm:118:7)\n    at file:///opt/app/harness.js:907:12",
           "tags": {}
         },
@@ -78,7 +79,7 @@
         "js": true
       }
     },
-    "file:59d7e6c95ea987ee6688eee1a0cb94673a80a75ba06a5dc9d65d518b1535c745": {
+    "file:967184f264db3b7ec3ccc311af27efccd4755c4c3eabceee525fb07c942cd386": {
       "detections": {},
       "directives": {
         "extract_urls": true

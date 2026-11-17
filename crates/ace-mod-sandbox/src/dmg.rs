@@ -24,7 +24,7 @@ use ace_sdk::tools::{MAX_RUNS, ToolOutput, ToolRun};
 use ace_sdk::{Module, ModuleError, Outcome, Parser, Resources, TaskContext};
 use regex::Regex;
 
-use crate::{MAX_FILES, item_list, name_fits, source, stopped_reason};
+use crate::{MAX_FILES, item_list, name_fits, source, stopped_reason, tool_failure_reason};
 
 /// ace3's built-in signature `cve_2021_30657_dmg_script`.
 pub const CVE_2021_30657_DMG_SCRIPT: &str = "3ba358a3-b7ab-4475-a10a-f2a8070b455d";
@@ -81,15 +81,22 @@ impl Parser for DmgAnalyzer {
         let output = ctx.run_tool(convert)?;
         if output.stopped().is_some() {
             // whatever it wrote is incomplete, and wasn't kept
-            result.details.stopped = Some(format!(
+            result.error = Some(format!(
                 "dmg2img did not finish: {}",
                 stopped_reason(&output)
             ));
             return Ok(Outcome::Done(result));
         }
+        let stderr = output.stderr_text();
         result.details.stdout = Some(output.stdout_text());
-        result.details.stderr = Some(output.stderr_text());
+        result.details.stderr = Some(stderr.clone());
         let Some(image) = output.output("image.img") else {
+            let error = format!(
+                "{}, without writing an image",
+                tool_failure_reason("dmg2img", output.returncode().unwrap_or_default(), &stderr)
+            );
+            tracing::info!("dmg2img failed: {error}");
+            result.error = Some(error);
             return Ok(Outcome::Done(result));
         };
         result.details.image_file = Some(image_path.clone());
@@ -107,8 +114,20 @@ impl Parser for DmgAnalyzer {
 
         // get the list of files
         match list(ctx, image)? {
-            Listing::Lines(lines) => result.details.file_list = lines,
-            Listing::Stopped(why) => result.details.stopped = Some(why),
+            Listing::Lines { lines, failure } => {
+                result.details.file_list = lines;
+                // 7z exits 1 for a warning, and still lists what it read. Above that the listing is
+                // kept, since it's whatever 7z read before it failed
+                if let Some(failure) = failure {
+                    let error = format!("{failure}, so the image's file list may be incomplete");
+                    tracing::info!("7z l failed: {error}");
+                    result.error = Some(error);
+                }
+            }
+            // the image is still analyzed on its own
+            Listing::Stopped(why) => {
+                result.error = Some(format!("{why}, so the image's files are not listed"));
+            }
         }
         if !result.details.file_list.is_empty() {
             result.summary = Some(format!(
@@ -122,8 +141,11 @@ impl Parser for DmgAnalyzer {
 
 /// What `7z l` gave.
 enum Listing {
-    /// The listing's files, in its order.
-    Lines(Vec<String>),
+    /// The listing's files, in its order, and how 7z failed when it exited above 1 (1 is a warning).
+    Lines {
+        lines: Vec<String>,
+        failure: Option<String>,
+    },
     /// Why the runner stopped it.
     Stopped(String),
 }
@@ -142,7 +164,14 @@ fn list(ctx: &TaskContext<()>, image: &Path) -> Result<Listing, ModuleError> {
             stopped_reason(&output)
         )));
     }
-    file_list(&output.stdout_text()).map(Listing::Lines)
+    let failure = output
+        .returncode()
+        .filter(|code| *code > 1)
+        .map(|code| tool_failure_reason("7z l", code, &output.stderr_text()));
+    Ok(Listing::Lines {
+        lines: file_list(&output.stdout_text())?,
+        failure,
+    })
 }
 
 /// dmg.py's parse of `7z l`'s output: entries look like
@@ -219,10 +248,12 @@ impl Parser for Cve202130657Analyzer {
         }
         let mut result = ResultEnvelope::new(Cve202130657Analysis::default());
         let lines = match list(ctx, &file.local_path)? {
-            Listing::Lines(lines) => lines,
+            // a listing 7z failed part way through is checked as far as it goes, as ace3 checks
+            // the DMG analysis's list, and that analysis says the list may be incomplete
+            Listing::Lines { lines, .. } => lines,
             Listing::Stopped(why) => {
                 // ace3's DMG analysis then has no files, and this one checks none
-                result.details.stopped = Some(why);
+                result.error = Some(format!("{why}, so no file was checked"));
                 return Ok(Outcome::Done(result));
             }
         };
@@ -246,7 +277,7 @@ impl Parser for Cve202130657Analyzer {
         // one run went on the listing
         'runs: for batch in batches(&members, MAX_RUNS as usize - 1) {
             if let Some(long) = batch.iter().find(|m| m.len() >= MAX_ARGUMENT) {
-                result.details.stopped = Some(format!(
+                result.error = Some(format!(
                     "a member's path is {} bytes, longer than a program's argument may be",
                     long.len()
                 ));
@@ -254,7 +285,7 @@ impl Parser for Cve202130657Analyzer {
             }
             let bytes: usize = batch.iter().map(|m| m.len() + 1).sum();
             if bytes >= MAX_ARGUMENTS {
-                result.details.stopped = Some(format!(
+                result.error = Some(format!(
                     "the members' paths for one run are {bytes} bytes, more than a program's \
                      arguments may be"
                 ));
@@ -275,18 +306,34 @@ impl Parser for Cve202130657Analyzer {
                 .timeout(ctx.time_left());
             let output = ctx.run_tool(run)?;
             if output.stopped().is_some() {
-                // out of time: the rest of the files are not checked
-                result.details.stopped =
-                    Some(format!("7z x did not finish: {}", stopped_reason(&output)));
+                // out of time: the rest of the files are not checked. cve.py names the member 7z
+                // was on, one a run; here it's the first of the run's
+                result.error = Some(format!(
+                    "7z did not finish extracting {}, so it and the files after it were not \
+                     checked: {}",
+                    batch.first().map_or("", String::as_str),
+                    stopped_reason(&output)
+                ));
                 break;
             }
+            let failure = tool_failure_reason(
+                "7z",
+                output.returncode().unwrap_or_default(),
+                &output.stderr_text(),
+            );
             for member in batch {
                 if result.files.len() >= MAX_FILES {
                     // ace3's root takes no more files, and its module adds none past them
-                    result.details.stopped = Some(format!(
+                    result.error = Some(format!(
                         "the {MAX_FILES} files a module adds were added; the rest weren't checked"
                     ));
                     break 'runs;
+                }
+                if output.output(member).is_none() {
+                    // cve.py goes on to the next member, and its error is the last one's
+                    tracing::warn!("7z didn't extract {member}: {failure}");
+                    result.error = Some(format!("{failure}, without extracting {member}"));
+                    continue;
                 }
                 if let Some(path) = suspect(magic.as_ref(), &output, member) {
                     self.add_script(ctx, &mut result, &mut order, member, path)?;

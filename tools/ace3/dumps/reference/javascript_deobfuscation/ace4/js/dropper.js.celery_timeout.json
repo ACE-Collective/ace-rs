@@ -1,6 +1,6 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "f72f8946",
+  "ace3_commit": "37a765bf",
   "also_enabled": [],
   "analyses": [
     {
@@ -8,7 +8,6 @@
       "details": {
         "dom_snapshot": false,
         "dom_snapshot_source": null,
-        "error": "js deobfuscator call failed: The operation timed out.",
         "error_type": null,
         "event_count": 0,
         "exit_code": null,
@@ -20,6 +19,7 @@
         "webcrack_status": null
       },
       "detections": [],
+      "error": "js deobfuscator call failed: The operation timed out.",
       "module_path": "saq.modules.file_analysis.js:JavaScriptDeobfuscationAnalysis",
       "observables": [],
       "summary": "JavaScript Deobfuscation: failed: js deobfuscator call failed: The operation timed out.",

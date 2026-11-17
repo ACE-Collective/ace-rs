@@ -3,9 +3,6 @@
     analysis/default_template.html, the password among them. -#}
 <table class="fields">
 <tr><th>password</th><td>{% if let Some(password) = analysis.password %}<code>{{ password }}</code>{% else %}<span class="muted">none</span>{% endif %}</td></tr>
-{%- if let Some(error) = analysis.error %}
-<tr><th>error</th><td>{{ error }}</td></tr>
-{%- endif %}
 <tr><th>email</th><td>{{ analysis.email }}</td></tr>
 {%- if let Some(info) = analysis.encryption_info %}
 <tr><th>encryption_info</th><td>{{ info }}</td></tr>

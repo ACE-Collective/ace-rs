@@ -1,39 +1,6 @@
 {
   "form": 1,
   "observables": {
-    "file:0059939a9674455a03607e6f092d70a809064b5243897a242d740c0c999f9224": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "encrypted_bad_version.doc.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:1a7adb002d2801989845ecc25e1887e30acf29520b10194820357046a46afc4d": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:0817180ed734dec3249a1790171953930a559fa6724e94a768e9438a553fc525": {
       "detections": {},
       "directives": {
@@ -99,6 +66,39 @@
       },
       "tags": {}
     },
+    "file:10dd6c76e2b420ed7bc85b8af79a0105949d6810893431667721e6821abf4357": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "encrypted_bad_version.doc.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:1a7adb002d2801989845ecc25e1887e30acf29520b10194820357046a46afc4d": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:1a7adb002d2801989845ecc25e1887e30acf29520b10194820357046a46afc4d": {
       "detections": {},
       "directives": {},
@@ -115,8 +115,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 13:56:00+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 13:56:00+00:00",
+              "File:FileAccessDate": "2026:11:16 20:04:21+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 20:04:21+00:00",
               "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "encrypted_bad_version.doc",
               "File:FilePermissions": 100644,
@@ -212,6 +212,7 @@
             "password": null,
             "word_list": []
           },
+          "error": "office2john.py failed: encrypted_bad_version.doc : Cannot find RC4 pass info, is the document encrypted?\n",
           "summary": "MSOffice Encryption Analysis: office2john.py failed: encrypted_bad_version.doc : Cannot find RC4 pass info, is the document encrypted?\n",
           "tags": {}
         },

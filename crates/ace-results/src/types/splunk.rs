@@ -21,10 +21,9 @@ pub struct SplunkApiAnalysis {
     pub query: Option<String>,
     /// The rows the search returned, as Splunk's JSON output gives them: each field's value is
     /// a string, or a list of strings for a multivalue field. Null when the search failed or
-    /// timed out.
+    /// timed out, and the result's `error` then says why, such as `timed out`, as ace3's
+    /// `Analysis.error` (its `query_error` until 41d44392).
     pub query_results: Option<Vec<Map<String, Value>>>,
-    /// Why there are no rows, such as `timed out`.
-    pub query_error: Option<String>,
     /// The question the search answers, from the settings.
     pub question: Option<String>,
     /// The summary's prefix, from the settings.
@@ -80,9 +79,8 @@ pub struct ClickerEvent {
 #[serde(deny_unknown_fields)]
 pub struct SplunkClickerDetectionAnalysis {
     pub query: Option<String>,
+    /// Null. Each failed search's `<name>: <error>`, joined by `; `, is the result's `error`.
     pub query_results: Option<Vec<Map<String, Value>>>,
-    /// Each failed search's `<name>: <error>`, joined by `; `.
-    pub query_error: Option<String>,
     pub question: Option<String>,
     pub query_summary: Option<String>,
     /// When the analysis started, in seconds since the epoch.

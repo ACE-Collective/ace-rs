@@ -57,6 +57,7 @@
             "webcrack_error": null,
             "webcrack_status": "applied"
           },
+          "error": "evalmachine.<anonymous>:4\nnotDefinedAnywhere(next);\n^\n\nReferenceError: notDefinedAnywhere is not defined\n    at evalmachine.<anonymous>:4:1\n    at Script.runInContext (node:vm:150:12)\n    at file:///opt/app/harness.js:914:12",
           "summary": "JavaScript Deobfuscation: failed: evalmachine.<anonymous>:4\nnotDefinedAnywhere(next);\n^\n\nReferenceError: notDefinedAnywhere is not defined\n    at evalmachine.<anonymous>:4:1\n    at Script.runInContext (node:vm:150:12)\n    at file:///opt/app/harness.js:914:12",
           "tags": {}
         },
@@ -79,7 +80,7 @@
         "js": true
       }
     },
-    "file:293c149bbae1c100de216652323f83927d91d004054dc5b00c36decd822071b4": {
+    "file:b15d4f5385fe310cc8717d5881304396455b38a391acb4aed05410a09f2cd465": {
       "detections": {},
       "directives": {
         "extract_urls": true

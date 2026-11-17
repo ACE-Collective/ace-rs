@@ -1,6 +1,6 @@
 # Differences from ace3's reference dumps
 
-`tests/reference.rs` runs each module on each file `tools/ace3/dumps/reference/<module>/` has a dump for, named `<module>/<dump>` here, with the dump's directives, meta tags, file_type's result where the module depends on it, and the file it was extracted from with that file's tags and, for `extracted_ole_analyzer`, the module that added it. The files are `tools/ace3/dumps/fixtures/office`, which `tools/samples/make-office-containers` writes, and the samples the modules take. Both results go into the normal form `ace_testkit::reference` describes, and the test fails on any difference this table doesn't list, or on a row that no longer matches anything. The dumps were made with ace3 at commit f72f8946.
+`tests/reference.rs` runs each module on each file `tools/ace3/dumps/reference/<module>/` has a dump for, named `<module>/<dump>` here, with the dump's directives, meta tags, file_type's result where the module depends on it, and the file it was extracted from with that file's tags and, for `extracted_ole_analyzer`, the module that added it. The files are `tools/ace3/dumps/fixtures/office`, which `tools/samples/make-office-containers` writes, and the samples the modules take. Both results go into the normal form `ace_testkit::reference` describes, and the test fails on any difference this table doesn't list, or on a row that no longer matches anything. The dumps were made with ace3 at commit 37a765bf.
 
 In the Dumps column, `*` matches any text in a dump's name. In the Path column, a `*` segment matches one segment of the JSON pointer, `**` any number, and a `*` inside a segment any text; `/` alone is the whole result.
 
@@ -21,6 +21,7 @@ In the Dumps column, `*` matches any text in a dump's name. In the Path column, 
 | `hidden_mime/*` | `/details/extracted_files/*` | ace3 names each part by its path on its node, `<root>/files/<file>.mime/extracted-<n>`, as `active_mime` does. Checked on all 15: the rest of each path is the same, and the files match. |
 | `hidden_mime/*` | `/summary` | The same paths, in the summary. |
 | `xml_plain_text_analyzer/plain/cp1252.xml` | `/details/xml_plain_text` | The document declares windows-1252. lxml's libxml2 has iconv and decodes it; the vendored libxml2 has no iconv and refuses an encoding it doesn't decode itself, so the parse raises and there is no `.noxml` file. UTF-8, UTF-16 and the ISO-8859 family, which libxml2 decodes itself, match (`latin1.xml` here, and `crates/ace-lxml`'s target cases). |
+| `xml_plain_text_analyzer/plain/cp1252.xml` | `/error` | The same parse, which raises here and not in ace3: the result is marked failed with libxml2's reason, `unable to parse XML: Unsupported encoding: windows-1252, line 1, column 44 (cp1252.xml, line 1)`, where ace3's analysis has no error. |
 | `xml_plain_text_analyzer/plain/cp1252.xml` | `/observables/file:*` | The `.noxml` file ace3 wrote, the same way. |
 
 ## Behaviour the dumps don't exercise

@@ -317,8 +317,8 @@ pub async fn insert_result(
     let id = sqlx::query_scalar!(
         r#"INSERT INTO analysis.results
                (root_id, observable_id, module, analysis_type, schema_version, details, summary,
-                tags)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                tags, error)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
            RETURNING id AS "id: ResultId""#,
         root,
         observable as ObservableId,
@@ -329,6 +329,7 @@ pub async fn insert_result(
         result.details,
         result.summary,
         &result.tags,
+        result.error,
     )
     .fetch_one(tx.conn())
     .await?;
@@ -810,17 +811,27 @@ pub async fn yara_rules_below(
     .await?)
 }
 
-/// The details of the observable's results from `modules`, by module, as a module that depends on
-/// them reads them (`Module::DEPENDS_ON`). A module has one result per observable.
+/// A result a module that depends on its module reads (`Module::DEPENDS_ON`).
+#[derive(Debug, Clone, PartialEq)]
+pub struct DependencyResult {
+    pub module: String,
+    pub details: Value,
+    /// Why its module said it failed (`ResultEnvelope::error`), when it did.
+    pub error: Option<String>,
+}
+
+/// The observable's results from `modules`, by module, as a module that depends on them reads
+/// them (`Module::DEPENDS_ON`): each one's details, and its error when its module said it failed.
+/// A module has one result per observable.
 pub async fn results_of(
     pool: &PgPool,
     root: Uuid,
     observable: ObservableId,
     modules: &[&str],
-) -> Result<Vec<(String, Value)>, DbError> {
+) -> Result<Vec<DependencyResult>, DbError> {
     let modules: Vec<String> = modules.iter().map(|m| (*m).to_owned()).collect();
     let rows = sqlx::query!(
-        r#"SELECT module, details
+        r#"SELECT module, details, error
            FROM analysis.results
            WHERE root_id = $1 AND observable_id = $2 AND module = ANY($3)
            ORDER BY module"#,
@@ -830,7 +841,14 @@ pub async fn results_of(
     )
     .fetch_all(pool)
     .await?;
-    Ok(rows.into_iter().map(|r| (r.module, r.details)).collect())
+    Ok(rows
+        .into_iter()
+        .map(|r| DependencyResult {
+            module: r.module,
+            details: r.details,
+            error: r.error,
+        })
+        .collect())
 }
 
 /// The observables of `kinds` added below an observable, by any route, as ace3's `recurse_tree`
@@ -1147,7 +1165,7 @@ pub async fn tree_view(
     let details_of: Vec<String> = details_of.iter().map(|m| (*m).to_owned()).collect();
     let rows = sqlx::query!(
         r#"SELECT id AS "id: ResultId", observable_id AS "observable_id: ObservableId",
-                  module, analysis_type, tags,
+                  module, analysis_type, tags, error,
                   CASE WHEN module = ANY($3) THEN details END AS details
            FROM analysis.results WHERE root_id = $1
            ORDER BY id
@@ -1171,6 +1189,7 @@ pub async fn tree_view(
             module: row.module,
             analysis_type: row.analysis_type,
             tags: row.tags,
+            error: row.error,
             added: Vec::new(),
             details: row.details,
         });

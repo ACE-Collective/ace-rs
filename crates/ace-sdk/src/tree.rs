@@ -128,6 +128,10 @@ pub struct TreeResult {
     /// Its own tags, as ace3's analysis tags.
     #[serde(default)]
     pub tags: Vec<String>,
+    /// Why its module said it failed (`ResultEnvelope::error`), as ace3's `Analysis.error`. None
+    /// when it didn't.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub error: Option<String>,
     /// What it added, in order: ace3's `analysis.observables`.
     #[serde(default)]
     pub added: Vec<TreeAddition>,
@@ -320,6 +324,7 @@ mod tests {
             module: module.to_owned(),
             analysis_type: format!("{module}_analysis"),
             tags: Vec::new(),
+            error: None,
             added: added
                 .iter()
                 .map(|&observable| TreeAddition {

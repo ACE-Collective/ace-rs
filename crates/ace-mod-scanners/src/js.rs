@@ -255,6 +255,8 @@ fn finish(
         ..Default::default()
     });
     result.analyzed.add_tag("js");
+    // why the scan gave nothing, or stopped part way: the result's error, ace3's `Analysis.error`
+    let mut error: Option<String> = None;
     let details = &mut result.details;
     let output = match scan.state {
         ScanState::Completed => match &scan.output {
@@ -273,42 +275,48 @@ fn finish(
             None
         }
         ScanState::Pending => {
-            details.error = Some(Value::String(format!(
-                "js deobfuscator call failed: {CELERY_TIMEOUT}"
-            )));
-            return Ok(done(result));
+            let error = format!("js deobfuscator call failed: {CELERY_TIMEOUT}");
+            return Ok(done(result, Some(error)));
         }
         ScanState::Failed | ScanState::Abandoned | ScanState::Cancelled => {
-            details.error = Some(Value::String(format!(
+            let error = format!(
                 "js deobfuscator call failed: {}",
                 scan.error.as_deref().unwrap_or(scan.state.as_str())
-            )));
-            return Ok(done(result));
+            );
+            return Ok(done(result, Some(error)));
         }
     };
     let blob_names = match &output {
-        Some(output) => read_report(output, scan.exit_code, details)?,
+        Some(output) => read_report(output, scan.exit_code, details, &mut error)?,
         None => Vec::new(),
     };
 
     // a parse failure proves it isn't JavaScript; a failure while it ran doesn't
     let source_parsed =
-        details.error.is_none() || details.error_type == Some(Value::String("runtime".to_owned()));
+        error.is_none() || details.error_type == Some(Value::String("runtime".to_owned()));
     if details.exit_code == Some(0) && source_parsed && !has_js_tag {
         result.analyzed.add_yara_meta(meta()?);
     }
     let details = &mut result.details;
     if details.exit_code != Some(0) {
-        return Ok(done(result));
+        // a scanner that timed out or crashed reports no error of its own
+        if error.is_none() {
+            error = Some(tool_failure_reason(
+                "js deobfuscator",
+                details.exit_code,
+                details.stderr.as_deref().unwrap_or_default(),
+            ));
+        }
+        return Ok(done(result, error));
     }
     let Some(output) = output else {
-        return Ok(done(result));
+        return Ok(done(result, error));
     };
     let Some(trace) = output.at("deobfuscated.js") else {
-        return Ok(done(result));
+        return Ok(done(result, error));
     };
-    if trace.file.size == 0 || (details.event_count == 0 && details.error.is_none()) {
-        return Ok(done(result));
+    if trace.file.size == 0 || (details.event_count == 0 && error.is_none()) {
+        return Ok(done(result, error));
     }
     let dir = dirname(file.path.as_str());
     let tree = ctx.tree();
@@ -321,7 +329,7 @@ fn finish(
     };
     let target = join(dir, &format!("{DEOBFUSCATED_PREFIX}{}", file.name()));
     if taken(&target) {
-        return Ok(done(result));
+        return Ok(done(result, error));
     }
     let source = ace_results::ObservableRef::new(ObservableKind::File, file.sha256.to_hex());
     let mut new_file = trace.file.clone();
@@ -360,7 +368,7 @@ fn finish(
         result.details.extracted_files.push(target);
         result.files.push(new_file);
     }
-    Ok(done(result))
+    Ok(done(result, error))
 }
 
 /// What the manager and the module read of the scan: stdout, stderr, the exit code, and the report,
@@ -369,6 +377,7 @@ fn read_report(
     output: &ScanOutput,
     exit_code: Option<i32>,
     details: &mut JavaScriptDeobfuscationAnalysis,
+    error: &mut Option<String>,
 ) -> Result<Vec<String>, ModuleError> {
     let stdout = text(&output.stdout);
     details.stdout = Some(stdout.clone());
@@ -386,8 +395,9 @@ fn read_report(
     };
     details.event_count = py_int(report.get("event_count"))?;
     details.secondary_script_count = py_int(report.get("secondary_script_count"))?;
-    if report.get("error").is_some_and(truthy) {
-        details.error = report.get("error").cloned();
+    // js.py's `str(report["error"])`
+    if let Some(reported) = report.get("error").filter(|e| truthy(e)) {
+        *error = Some(py_str(reported));
     }
     details.error_type = report.get("error_type").cloned().filter(|v| !v.is_null());
     details.webcrack_status = report
@@ -464,21 +474,40 @@ fn meta() -> Result<YaraMeta, ModuleError> {
     YaraMeta::new("type", JAVASCRIPT).map_err(ModuleError::other)
 }
 
-/// The result, with ace3's `generate_summary`.
+/// The result, with its error and ace3's `generate_summary`.
 fn done(
     mut result: ResultEnvelope<JavaScriptDeobfuscationAnalysis>,
+    error: Option<String>,
 ) -> Outcome<JavaScriptDeobfuscationAnalysis> {
-    result.summary = summary(&result.details);
+    // a reason that is all whitespace is no reason: ace3's setter raises on one
+    let error = error.filter(|e| !e.trim().is_empty());
+    result.summary = summary(&result.details, error.as_deref());
+    result.error = error;
     Outcome::Done(result)
 }
 
-/// `generate_summary`.
-pub fn summary(details: &JavaScriptDeobfuscationAnalysis) -> Option<String> {
-    if let Some(error) = details.error.as_ref().filter(|e| truthy(e)) {
-        return Some(format!(
-            "JavaScript Deobfuscation: failed: {}",
-            py_str(error)
-        ));
+/// ace3's `tool_failure_reason` (`saq/sandbox/runner.py`): how the scanner exited, and the last line
+/// it wrote to stderr. The status is unknown when the scan brought none back.
+fn tool_failure_reason(tool: &str, returncode: Option<i64>, stderr: &str) -> String {
+    let mut reason = match returncode {
+        None => format!("{tool} exited with an unknown status"),
+        // 128 + N is a command killed by signal N, up to SIGRTMAX
+        Some(code) if 128 < code && code <= 128 + 64 => {
+            format!("{tool} was killed by signal {}", code - 128)
+        }
+        Some(code) => format!("{tool} exited with status {code}"),
+    };
+    if let Some(last) = ace_pycompat::pystr::splitlines(ace_pycompat::pystr::strip(stderr)).last() {
+        reason.push_str(": ");
+        reason.extend(last.chars().take(500));
+    }
+    reason
+}
+
+/// `generate_summary`, with the result's error.
+pub fn summary(details: &JavaScriptDeobfuscationAnalysis, error: Option<&str>) -> Option<String> {
+    if let Some(error) = error.filter(|e| !e.is_empty()) {
+        return Some(format!("JavaScript Deobfuscation: failed: {error}"));
     }
     if details.exit_code != Some(0) || details.extracted_files.is_empty() {
         return None;
@@ -537,18 +566,33 @@ mod tests {
             ..Default::default()
         };
         assert_eq!(
-            summary(&details).as_deref(),
+            summary(&details, None).as_deref(),
             Some(
                 "JavaScript Deobfuscation: extracted deobfuscated-a.js (3 events, 0 secondary scripts) (webcrack failed: x)"
             )
         );
-        details.error = Some(json!("boom"));
         assert_eq!(
-            summary(&details).as_deref(),
+            summary(&details, Some("boom")).as_deref(),
             Some("JavaScript Deobfuscation: failed: boom")
         );
-        details.error = None;
         details.exit_code = Some(1);
-        assert_eq!(summary(&details), None);
+        assert_eq!(summary(&details, None), None);
+        // a scanner that reports no error of its own: how it exited, and its last line
+        assert_eq!(
+            tool_failure_reason(
+                "js deobfuscator",
+                Some(-1),
+                "a\nscanner container timed out after 30s\n"
+            ),
+            "js deobfuscator exited with status -1: scanner container timed out after 30s"
+        );
+        assert_eq!(
+            tool_failure_reason("js deobfuscator", None, ""),
+            "js deobfuscator exited with an unknown status"
+        );
+        assert_eq!(
+            tool_failure_reason("js deobfuscator", Some(137), " "),
+            "js deobfuscator was killed by signal 9"
+        );
     }
 }

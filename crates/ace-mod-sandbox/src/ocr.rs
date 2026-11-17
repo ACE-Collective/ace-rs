@@ -410,10 +410,7 @@ impl Parser for OcrAnalyzer {
         for (header, text) in &texts {
             body.push_str(&format!("===== {header} =====\n\n{text}\n\n"));
         }
-        let mut result = ResultEnvelope::new(OcrAnalysis {
-            error: None,
-            ocr: true,
-        });
+        let mut result = ResultEnvelope::new(OcrAnalysis { ocr: true });
         result.summary = Some("OCR Analysis".to_owned());
         let target = format!("{}.ocr/{}.ocr", file.path.as_str(), file.name());
         if name_fits(&target) {

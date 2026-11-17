@@ -131,39 +131,6 @@
       },
       "tags": {}
     },
-    "file:4fca297273288d21eec578eef1864b574d429cfba7430fc6b47fad7250b0dc81": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "encrypted_rc4.xls.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:8ff8e52eb1b97ac21b0b4348d81f143f6f25d0ea817d7748b7f8ddae27637857": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:7a75bfc74e9bae899d38cb18102e56509c65c15c0aed4549a1acd7fab5f0fc83": {
       "detections": {},
       "directives": {
@@ -241,8 +208,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 13:57:09+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 13:57:09+00:00",
+              "File:FileAccessDate": "2026:11:16 20:06:00+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 20:06:00+00:00",
               "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "encrypted_rc4.xls",
               "File:FilePermissions": 100644,
@@ -319,6 +286,7 @@
               "/01Hannes Ruescher/01"
             ]
           },
+          "error": "could not crack password",
           "summary": "MSOffice Encryption Analysis: could not crack password",
           "tags": {}
         },
@@ -371,6 +339,39 @@
         "xlm4:error": true,
         "xlm4:no_cells": true
       }
+    },
+    "file:9b6f32ecc8fe44f11f6b4a679f4f02fb780ddf6b944ce7ee8e3a95f2b5034817": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "encrypted_rc4.xls.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:8ff8e52eb1b97ac21b0b4348d81f143f6f25d0ea817d7748b7f8ddae27637857": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
     },
     "file:ec775ff513ad5858f63ca6ed0a533957be694eaa011bb027720c2f6d0eea88b9": {
       "detections": {},

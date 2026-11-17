@@ -1,6 +1,6 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "f72f8946",
+  "ace3_commit": "37a765bf",
   "also_enabled": [
     "file_type"
   ],
@@ -8,14 +8,13 @@
     {
       "class": "ExifAnalysis",
       "details": {
-        "error": null,
         "exifdata": {
           "ExifTool:ExifToolVersion": 13.25,
           "ExifTool:Warning": "Root object (1 0 obj) not found at offset 99",
           "File:Directory": "<root>/files",
-          "File:FileAccessDate": "2026:11:10 11:01:23+00:00",
-          "File:FileInodeChangeDate": "2026:11:10 11:01:23+00:00",
-          "File:FileModifyDate": "2026:11:07 04:47:50+00:00",
+          "File:FileAccessDate": "2026:11:16 22:00:23+00:00",
+          "File:FileInodeChangeDate": "2026:11:16 22:00:23+00:00",
+          "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
           "File:FileName": "broken_xref_offsets.pdf",
           "File:FilePermissions": 100644,
           "File:FileSize": 1175,
@@ -53,7 +52,7 @@
           "size": 720,
           "tags": [],
           "type": "file",
-          "value": "69cfd9341080405d818edaeb606a92305b9ce641868bfc63a542eb18a2c84058",
+          "value": "b07f1e83e8927aa3db21fb05692681afca2d6a49b27b00237e2ca0401af65e66",
           "yara_meta": [
             "type=metadata.exif"
           ]

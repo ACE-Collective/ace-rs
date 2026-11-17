@@ -317,6 +317,39 @@
       },
       "tags": {}
     },
+    "file:24214400c02b8e03737ee0ba4a74e2a46c0757c93a89962f1cc7c11dc9da8219": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "invoice.docx.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:b161b3f2d5fca3dd7b8ecb2986787f88d86d56e0ed107860b29cc4eb6d3085ec": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:28c4be1e39bff0434d9e31fe088b743c03b9e0a2fb056b0e3ed509983b8bd81c": {
       "detections": {},
       "directives": {
@@ -633,39 +666,6 @@
       },
       "tags": {}
     },
-    "file:367961a2e04045f03e59b2c9cddf38abf69f2a74dd9d364cd76ad8986ebed0a0": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "invoice.docx.decrypted.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:6a65fb99c4c7ecb88273b7f1d49b00640de95cb682cb1a63df0c08764f0ef24d": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:3cb60595b9577c175ece5bee6aec6f5fe6339035fd541ca9fc0877fb198e2b4e": {
       "detections": {},
       "directives": {
@@ -732,6 +732,7 @@
           "details": {
             "xml_plain_text": null
           },
+          "error": "unable to parse XML: Start tag expected, '<' not found, line 1, column 1 (stream_10_0.dat, line 1)",
           "summary": null,
           "tags": {}
         }
@@ -844,9 +845,9 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 13:41:59+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 13:41:59+00:00",
-              "File:FileModifyDate": "2026:11:16 13:41:59+00:00",
+              "File:FileAccessDate": "2026:11:16 19:46:36+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 19:46:36+00:00",
+              "File:FileModifyDate": "2026:11:16 19:46:36+00:00",
               "File:FileName": "invoice.docx.decrypted",
               "File:FilePermissions": 100666,
               "File:FileSize": 12529,
@@ -1347,9 +1348,9 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 13:41:57+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 13:41:57+00:00",
-              "File:FileModifyDate": "2026:11:16 13:41:57+00:00",
+              "File:FileAccessDate": "2026:11:16 19:46:35+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 19:46:35+00:00",
+              "File:FileModifyDate": "2026:11:16 19:46:35+00:00",
               "File:FileName": "invoice.docx",
               "File:FilePermissions": 100664,
               "File:FileSize": 17920,
@@ -1963,39 +1964,6 @@
       },
       "tags": {}
     },
-    "file:c62e28a25681252b0f199d79ec0b7597287a889b68521bf16791aa77edaaec93": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "invoice.docx.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:b161b3f2d5fca3dd7b8ecb2986787f88d86d56e0ed107860b29cc4eb6d3085ec": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:ccb0a81ffb69bd4d7c6f43220e251f1ff02781f9c759e47e2a93e6cda58ca7f6": {
       "detections": {},
       "directives": {
@@ -2054,6 +2022,39 @@
         "xml_plain_text_analyzer": {
           "details": {
             "xml_plain_text": null
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:d64c5ac21891329f086bc12c144211966e5328ed90911d5bdb5be389f5115148": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "invoice.docx.decrypted.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:6a65fb99c4c7ecb88273b7f1d49b00640de95cb682cb1a63df0c08764f0ef24d": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}

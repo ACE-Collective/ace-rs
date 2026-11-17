@@ -15,10 +15,8 @@ use crate::envelope::AnalysisType;
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct RdapAnalysis {
-    /// Why the lookup failed, when RDAP couldn't answer. ace3 keeps this in `Analysis.error`
-    /// since its 2b9fcd2c, outside the details; ace4 has no such mark yet.
-    pub error: Option<String>,
-    /// `rdap` when the lookup succeeded.
+    /// `rdap` when the lookup succeeded. Why a lookup failed is the result's `error`, outside the
+    /// details, as ace3's `Analysis.error`.
     pub lookup_protocol: Option<String>,
     /// Why RDAP couldn't answer, when it couldn't. ace3 then tries WHOIS.
     pub rdap_attempt_error: Option<String>,

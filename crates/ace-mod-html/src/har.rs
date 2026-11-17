@@ -215,8 +215,8 @@ impl Response {
 
     /// `file_name`: `<entry index>_<last path segment><extension>`. `urlsplit` raises on some
     /// URLs, as Python's does.
-    fn file_name(&self) -> Result<String, String> {
-        let parts = urlsplit(&self.url, "", true).map_err(|e| e.to_string())?;
+    fn file_name(&self) -> Result<String, ace_pycompat::PyErr> {
+        let parts = urlsplit(&self.url, "", true)?;
         let path = parts.path.trim_end_matches('/');
         let last = path.rsplit('/').next().unwrap_or("");
         let mut name = unquote(last).into_owned();
@@ -329,7 +329,10 @@ struct Run<'a> {
 
 impl Run<'_> {
     /// One selected response. An `Err` is what Python raises, which ends ace3's module.
-    fn extract(&mut self, response: Response) -> Result<Result<(), String>, ModuleError> {
+    fn extract(
+        &mut self,
+        response: Response,
+    ) -> Result<Result<(), ace_pycompat::PyErr>, ModuleError> {
         self.ctx.check_cancelled()?;
         let name = match response.file_name() {
             Ok(name) => name,
@@ -346,7 +349,7 @@ impl Run<'_> {
             Ok(parts) => pystr::lower(&parts.scheme).into_owned(),
             Err(error) => {
                 self.files.push(new_file);
-                return Ok(Err(error.to_string()));
+                return Ok(Err(error));
             }
         };
         if scheme == "http" || scheme == "https" {
@@ -393,7 +396,7 @@ impl Run<'_> {
         &mut self,
         response: &Response,
         file_path: &str,
-    ) -> Result<(), String> {
+    ) -> Result<(), ace_pycompat::PyErr> {
         let text = pystr::decode_utf8_ignore(&response.body);
         let Some(tree) = dom::parse_document(&text) else {
             return Ok(());
@@ -407,7 +410,7 @@ impl Run<'_> {
             if source.is_empty() {
                 continue;
             }
-            let script_url = urljoin(&response.url, source, true).map_err(|e| e.to_string())?;
+            let script_url = urljoin(&response.url, source, true)?;
             if self.page_of.contains_key(&script_url) {
                 continue;
             }
@@ -435,8 +438,8 @@ fn snapshot_of(tree: &Tree, url: &str) -> Option<DomSnapshot> {
     dom::build_dom_snapshot(tree, dom::DOM_SNAPSHOT_MAX_BYTES, Some(url))
 }
 
-fn summary(analysis: &HarAnalysis) -> String {
-    if let Some(error) = &analysis.error {
+fn summary(analysis: &HarAnalysis, error: Option<&str>) -> String {
+    if let Some(error) = error {
         return format!("HTTP Archive: failed: {error}");
     }
     let pages = analysis
@@ -480,32 +483,32 @@ impl Parser for HarExtractor {
         }
         let settings = ctx.settings();
         let mut analysis = HarAnalysis::default();
-        let finish = |analysis: HarAnalysis| {
-            let summary = summary(&analysis);
-            Ok(Outcome::Done(
-                ResultEnvelope::new(analysis).with_summary(summary),
-            ))
+        // `error` is why nothing was extracted: ace3's `Analysis.error`
+        let finish = |analysis: HarAnalysis, error: Option<String>| {
+            let summary = summary(&analysis, error.as_deref());
+            let mut result = ResultEnvelope::new(analysis).with_summary(summary);
+            result.error = error;
+            Ok(Outcome::Done(result))
         };
         if file.size > settings.max_file_size {
-            analysis.error = Some(format!(
+            let error = format!(
                 "{} bytes exceeds max_file_size {}",
                 file.size, settings.max_file_size
-            ));
-            return finish(analysis);
+            );
+            return finish(analysis, Some(error));
         }
         let data = std::fs::read(&file.local_path)?;
         ctx.check_cancelled()?;
         let har = match ace_pycompat::json::loads_bytes(&data) {
             Ok(har) => har,
             Err(error) => {
-                analysis.error = Some(format!("not valid JSON: {}", error.message));
-                return finish(analysis);
+                let error = format!("not valid JSON: {}", error.message);
+                return finish(analysis, Some(error));
             }
         };
         drop(data);
         let Some(entries) = entries(&har) else {
-            analysis.error = Some("no log.entries list".to_owned());
-            return finish(analysis);
+            return finish(analysis, Some("no log.entries list".to_owned()));
         };
         let creator = members(
             get(members(Some(&har)), "log").and_then(|log| get(members(Some(log)), "creator")),
@@ -529,9 +532,14 @@ impl Parser for HarExtractor {
             .take(settings.max_extracted_files)
             .collect();
         analysis.skipped_count = (total - selected.len()) as u64;
-        // os.makedirs raises out of ace3's module on a name the file system can't hold
+        // os.makedirs raises out of ace3's module on a name the file system can't hold, and ace3's
+        // engine marks the analysis failed with the exception
         if file.name().len() + ".extracted".len() > crate::py::NAME_MAX_BYTES {
-            return finish(analysis);
+            let raised = format!(
+                "OSError: [Errno 36] File name too long: '{}.extracted'",
+                file.path
+            );
+            return finish(analysis, Some(raised));
         }
 
         let mut run = Run {
@@ -545,9 +553,14 @@ impl Parser for HarExtractor {
             pages: Vec::new(),
             page_of: HashMap::new(),
         };
+        // Where Python raises out of ace3's module, the engine keeps the analysis as far as it got
+        // and marks it failed with the exception, as `<type>: <message>` and its crash report's id.
+        // The result here is the same, without the id.
+        let mut raised = None;
         for response in selected {
             if let Err(error) = run.extract(response)? {
                 tracing::warn!("har_extraction stopped where ace3's module raises: {error}");
+                raised = Some(error.as_engine_marks());
                 break;
             }
         }
@@ -559,8 +572,9 @@ impl Parser for HarExtractor {
             ..
         } = run;
         analysis.dom_snapshots = sidecars.into_files();
-        let summary = summary(&analysis);
+        let summary = summary(&analysis, raised.as_deref());
         let mut result = ResultEnvelope::new(analysis).with_summary(summary);
+        result.error = raised;
         result.files = files;
         result.observables = observables;
         Ok(Outcome::Done(result))

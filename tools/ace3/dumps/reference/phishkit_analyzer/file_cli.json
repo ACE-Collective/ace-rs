@@ -1,6 +1,6 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "f72f8946",
+  "ace3_commit": "37a765bf",
   "also_enabled": [
     "file_type"
   ],
@@ -33,7 +33,7 @@
     {
       "record": {
         "path": "database.pool.status",
-        "timestamp": "2026-11-11T03:27:32.313802",
+        "timestamp": "2026-11-16T21:34:51.628090",
         "value": "Pool size: 5  Connections in pool: 0 Current Overflow: -4 Current Checked out connections: 1"
       },
       "tag": "monitoring"
@@ -41,23 +41,36 @@
     {
       "record": {
         "alert_type": "cli_analysis",
-        "analysis_time_seconds": 0.011231,
-        "exec_count": 1,
+        "event_type": "root",
         "is_alert": false,
-        "module": "file_type",
-        "percentage": 58.62848422965388,
+        "observable_count": 1,
+        "observable_type_counts": {
+          "file": 1
+        },
         "queue": "default",
-        "root_uuid": "ce806047-45cc-48a7-afc7-204e6ca75241",
-        "timestamp": "2026-11-11 03:27:32.316538",
-        "total_analysis_time_seconds": 0.011231,
-        "total_time_seconds": 0.019156217575073242
+        "root_uuid": "357abe62-e3fd-474c-b156-8fbf05275793",
+        "timestamp": "2026-11-16 21:34:51.632627",
+        "total_analysis_time_seconds": 0.019851,
+        "total_time_seconds": 0.031346797943115234
+      },
+      "tag": "metrics"
+    },
+    {
+      "record": {
+        "analysis_time_seconds": 0.019851,
+        "event_type": "module",
+        "exec_count": 1,
+        "module": "file_type",
+        "percentage": 63.32704232190937,
+        "root_uuid": "357abe62-e3fd-474c-b156-8fbf05275793",
+        "timestamp": "2026-11-16 21:34:51.632627"
       },
       "tag": "metrics"
     },
     {
       "record": {
         "path": "database.pool.available_count",
-        "timestamp": "2026-11-11T03:27:32.316687",
+        "timestamp": "2026-11-16T21:34:51.633110",
         "value": 0
       },
       "tag": "monitoring"
@@ -65,7 +78,7 @@
     {
       "record": {
         "path": "database.pool.in_use_count",
-        "timestamp": "2026-11-11T03:27:32.316700",
+        "timestamp": "2026-11-16T21:34:51.633127",
         "value": 1
       },
       "tag": "monitoring"

@@ -58,6 +58,10 @@ pub struct OfficeParserSettings {
 
 pub struct OfficeParserAnalyzer;
 
+/// ace3's `timeout` for officeparser3, which its reason for a killed run names. Nothing here waits
+/// that long: the port stops where officeparser3 would never end.
+const ACE3_TIMEOUT_SECONDS: u32 = 90;
+
 /// `is_macro_ext`: `os.path.splitext`'s extension is one of VBA's.
 pub fn is_macro_ext(name: &str) -> bool {
     let (_, ext) = ace_mod_email::naming::splitext(name.rsplit('/').next().unwrap_or(name));
@@ -215,6 +219,11 @@ impl Parser for OfficeParserAnalyzer {
             tracing::warn!("officeparser3 would not have finished");
             result.analyzed.add_tag("officeparser_failed");
             result.analyzed.add_directive(DIRECTIVE_SANDBOX);
+            // what it extracted before it was stopped is still added, and the analysis is marked
+            // failed, with the timeout ace3 ships (`timeout: 90`), which is what would have stopped it
+            result.error = Some(format!(
+                "officeparser timed out after {ACE3_TIMEOUT_SECONDS} seconds"
+            ));
         }
         let mut seen: Vec<String> = Vec::new();
         // a file with the same bytes as one written, which many entries naming one chain have, is

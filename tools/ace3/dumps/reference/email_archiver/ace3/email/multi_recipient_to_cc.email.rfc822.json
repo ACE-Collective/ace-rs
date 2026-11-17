@@ -1,6 +1,6 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "f72f8946",
+  "ace3_commit": "37a765bf",
   "also_enabled": [
     "email_analyzer",
     "file_type",
@@ -93,7 +93,7 @@
             ],
             "compauth_reason": null,
             "compauth_result": null,
-            "date": "2026-11-10 08:30:14.964646 +0000",
+            "date": "2026-11-16 21:29:33.572455 +0000",
             "dkim_result": null,
             "dmarc_result": null,
             "env_mail_from": null,
@@ -432,48 +432,10 @@
   },
   "tree_view": {
     "alert_type": "cli_analysis",
-    "bodies": {},
+    "bodies": {
+      "592af3b0c943dc7535b8a0ffbdbf95b7475f1e66ec933d8f7b2463b63b395012": "VGhpcyBpcyBhIHN5bnRoZXNpemVkIHRlc3QgZW1haWwgZm9yIHRoZSBtdWx0aS1yZWNpcGllbnQgVG8vQ0MgZml4dHVyZS4K"
+    },
     "observables": [
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_conversation",
-        "value": "sender@external.example|carol@company.com"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_conversation",
-        "value": "sender@external.example|bob@company.com"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_cc",
-        "value": "dan@company.com"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_return_path",
-        "value": "sender@external.example"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_conversation",
-        "value": "sender@external.example|outsider@external.example"
-      },
       {
         "detections": [],
         "directives": [],
@@ -498,32 +460,8 @@
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "email_to",
-        "value": "alice@company.com"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_cc",
-        "value": "carol@company.com"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_subject",
-        "value": "Re: Invoices 12927-12929"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_from",
-        "value": "sender@external.example"
+        "type": "email_conversation",
+        "value": "sender@external.example|carol@company.com"
       },
       {
         "detections": [],
@@ -569,8 +507,16 @@
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "email_to",
-        "value": "bob@company.com"
+        "type": "message_id",
+        "value": "<multi-recipient-test-12345@external.example>"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_from",
+        "value": "sender@external.example"
       },
       {
         "detections": [],
@@ -578,7 +524,15 @@
         "paths": [],
         "tags": [],
         "type": "email_conversation",
-        "value": "sender@external.example|dan@company.com"
+        "value": "sender@external.example|alice@company.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_conversation",
+        "value": "sender@external.example|bob@company.com"
       },
       {
         "detections": [],
@@ -605,6 +559,46 @@
         "paths": [],
         "tags": [],
         "type": "email_cc",
+        "value": "dan@company.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_to",
+        "value": "alice@company.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_subject",
+        "value": "Re: Invoices 12927-12929"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_cc",
+        "value": "carol@company.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_return_path",
+        "value": "sender@external.example"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_cc",
         "value": "outsider@external.example"
       },
       {
@@ -612,8 +606,16 @@
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "message_id",
-        "value": "<multi-recipient-test-12345@external.example>"
+        "type": "email_conversation",
+        "value": "sender@external.example|dan@company.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_to",
+        "value": "bob@company.com"
       },
       {
         "detections": [],
@@ -621,7 +623,7 @@
         "paths": [],
         "tags": [],
         "type": "email_conversation",
-        "value": "sender@external.example|alice@company.com"
+        "value": "sender@external.example|outsider@external.example"
       }
     ],
     "results": [
@@ -644,20 +646,35 @@
           "type": "SMTP mail, ASCII text"
         },
         "module": "file_type",
-        "observable": 5,
+        "observable": 0,
         "summary": "File Type Analysis: SMTP mail, ASCII text (message/rfc822) (email)",
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 9
+            "observable": 5
+          },
+          {
+            "observable": 10
           },
           {
             "observable": 6
           },
           {
-            "observable": 17
+            "observable": 16
+          },
+          {
+            "observable": 7
+          },
+          {
+            "observable": 11
+          },
+          {
+            "observable": 4
+          },
+          {
+            "observable": 13
           },
           {
             "observable": 12
@@ -666,42 +683,27 @@
             "observable": 1
           },
           {
-            "observable": 8
+            "observable": 14
           },
           {
-            "observable": 16
+            "observable": 17
           },
           {
-            "observable": 3
-          },
-          {
-            "observable": 7
-          },
-          {
-            "observable": 0
+            "observable": 9
           },
           {
             "observable": 15
           },
           {
-            "observable": 4
-          },
-          {
-            "observable": 2
-          },
-          {
-            "observable": 13
-          },
-          {
-            "observable": 11,
+            "observable": 3,
             "path": "email.rfc822.unknown_text_plain_000.txt"
           },
           {
-            "observable": 5,
+            "observable": 0,
             "path": "email.rfc822.headers"
           },
           {
-            "observable": 14,
+            "observable": 8,
             "path": "email.rfc822.combined"
           }
         ],
@@ -790,7 +792,7 @@
               ],
               "compauth_reason": null,
               "compauth_result": null,
-              "date": "2026-11-10 08:30:14.964646 +0000",
+              "date": "2026-11-16 21:29:33.572455 +0000",
               "dkim_result": null,
               "dmarc_result": null,
               "env_mail_from": null,
@@ -855,7 +857,7 @@
           "parsing_error": null
         },
         "module": "email_analyzer",
-        "observable": 10,
+        "observable": 2,
         "summary": "Email Analysis: From External Sender <sender@external.example> To alice@company.com, Bob <bob@company.com> Subject Re: Invoices 12927-12929",
         "tags": []
       },
@@ -878,7 +880,7 @@
           "type": "SMTP mail, ASCII text"
         },
         "module": "file_type",
-        "observable": 10,
+        "observable": 2,
         "summary": "File Type Analysis: SMTP mail, ASCII text (message/rfc822) (email)",
         "tags": []
       },
@@ -901,7 +903,7 @@
           "type": "ASCII text"
         },
         "module": "file_type",
-        "observable": 11,
+        "observable": 3,
         "summary": "File Type Analysis: ASCII text (text/plain)",
         "tags": []
       },
@@ -913,7 +915,7 @@
           "urls_grouped_by_domain": {}
         },
         "module": "url_extraction",
-        "observable": 11,
+        "observable": 3,
         "summary": null,
         "tags": []
       },
@@ -936,7 +938,7 @@
           "type": "SMTP mail, ASCII text"
         },
         "module": "file_type",
-        "observable": 14,
+        "observable": 8,
         "summary": "File Type Analysis: SMTP mail, ASCII text (message/rfc822) (email)",
         "tags": []
       }

@@ -17,7 +17,7 @@ use ace_sdk::{Module, ModuleError, Outcome, Parser, Resources, TaskContext};
 use schemars::JsonSchema;
 use serde::Deserialize;
 
-use crate::{head, name_fits, stopped_reason};
+use crate::{head, name_fits, stopped_reason, tool_failure_reason};
 
 /// ace3's section of the module.
 #[derive(Debug, Clone, PartialEq, Deserialize, JsonSchema)]
@@ -99,9 +99,10 @@ impl Parser for JavaClassDecompiler {
             .timeout(Duration::from_secs(ctx.settings().timeout));
         let output = ctx.run_tool(run)?;
         let Some(returncode) = output.returncode() else {
+            // java.py raises AnalysisError here and below, which marks its analysis failed
             let reason = format!("cfr did not finish: {}", stopped_reason(&output));
             tracing::warn!(%reason, "the decompiler didn't finish");
-            result.details.stopped = Some(reason);
+            result.error = Some(reason);
             return Ok(Outcome::Done(result));
         };
         let stdout = output.stdout_text();
@@ -128,11 +129,13 @@ impl Parser for JavaClassDecompiler {
         // source
         if returncode != 0 {
             tracing::info!(returncode, "the decompiler failed");
+            result.error = Some(tool_failure_reason("cfr", returncode, &stderr));
             return Ok(Outcome::Done(result));
         }
         let source = strip_banner(&stdout);
         if source.is_empty() {
             tracing::info!("the decompiler returned nothing");
+            result.error = Some("cfr could not decompile the class file".to_owned());
             return Ok(Outcome::Done(result));
         }
         // ace3 counts up from 0 past the names its root already holds; a file is analyzed here once

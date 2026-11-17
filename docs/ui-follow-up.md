@@ -44,6 +44,14 @@ The owner's direction, which every item here is measured against:
 - [ ] **The email and hunt summaries were built from fixtures.** Check them against real alerts of each
   type: which fields analysts read first, and which are noise.
 - [ ] **Ownership-changed notice.** Unassigning shows nothing, as in ace3. Confirm that's wanted.
+- [ ] **Failed analyses.** A result whose module said it failed has an `error` badge in the tree, with
+  the reason beside it when it has no summary, and its page shows the reason above the details; a
+  module whose task failed without a result is listed under its observable (ace3 `2b9fcd2c`). Built
+  from fixtures and not looked at in a browser. Three things to check with real alerts: the badge is
+  the warning colour, not ace3's red, so a failure doesn't read as a detection; the pruned tree shows
+  a failure only on an observable it already draws, so an alert whose modules failed on a branch with
+  no detection says nothing until the whole tree is opened; and the top of the page doesn't count
+  failures.
 
 ## Tables and lists
 
@@ -94,11 +102,10 @@ The pass styled these through the shared foundation but nobody viewed them:
 - [ ] **A `scheduler.runs` page** beyond what `/admin/monitoring` shows.
 - [ ] **Dialogs.** ace4 has none. A reason is a field beside the buttons, and a confirmation is a page.
   Check which of ace3's dialogs analysts miss.
-- [ ] **Three things ace3 gained between `f72f8946` and `37a765bf`** (2026-11-16), each the owner's to
-  want or not: a Sepia theme (`e477e14f`); selecting a range of alerts on the list by shift+click or by
-  dragging over the checkboxes (`5fb36276`); and an `error` badge on a failed analysis, with its
-  message on the analysis page and failed modules listed under their observable (`2b9fcd2c`), which
-  needs ace3's `Analysis.error` ported first.
+- [ ] **Two things ace3 gained between `f72f8946` and `37a765bf`** (2026-11-16), each the owner's to
+  want or not: a Sepia theme (`e477e14f`), and selecting a range of alerts on the list by shift+click
+  or by dragging over the checkboxes (`5fb36276`). The third, the `error` badge on a failed analysis
+  (`2b9fcd2c`), is built: see *The alert page*.
 
 ## How to look at a change
 

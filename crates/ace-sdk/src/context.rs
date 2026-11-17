@@ -239,6 +239,8 @@ pub struct TaskContext<S> {
     writes: Mutex<Vec<WireWrite>>,
     /// The results the observable has from the modules this one depends on, by module.
     dependency_results: BTreeMap<String, serde_json::Value>,
+    /// Why each of those results' modules said it failed, by module, for those that did.
+    dependency_errors: BTreeMap<String, String>,
     observables_below: Vec<ObservableRef>,
     added_by: Vec<String>,
     related_tags: Vec<RelatedTags>,
@@ -284,6 +286,7 @@ impl<S> TaskContext<S> {
             declared_writes: M::WRITES,
             writes: Mutex::new(Vec::new()),
             dependency_results: BTreeMap::new(),
+            dependency_errors: BTreeMap::new(),
             observables_below: Vec::new(),
             added_by: Vec::new(),
             related_tags: Vec::new(),
@@ -411,6 +414,24 @@ impl<S> TaskContext<S> {
                 })
             })
             .transpose()
+    }
+
+    /// The reasons the core sent with the task for the dependency results whose modules said they
+    /// failed, by module.
+    pub fn with_dependency_errors(
+        mut self,
+        errors: impl IntoIterator<Item = (String, String)>,
+    ) -> Self {
+        self.dependency_errors = errors.into_iter().collect();
+        self
+    }
+
+    /// Why the module that writes `D`, which this module depends on, said it failed on the
+    /// observable (`ResultEnvelope::error`). None when it didn't fail or has no result. Its
+    /// details are then a partial result, so a module that needs the whole of them checks this
+    /// first, as ace3's modules check `analysis.error` before trusting another's analysis.
+    pub fn dependency_error<D: AnalysisType>(&self) -> Option<&str> {
+        self.dependency_errors.get(D::MODULE).map(String::as_str)
     }
 
     /// The observables below the task's one, of the types the module reads there

@@ -62,9 +62,20 @@ async fn matches_the_reference_dumps_or_lists_each_difference() {
         if dump.short_name() == "fqdn_example.com" {
             ace_testkit::check_view_fixture("dns_fqdn_example_com", &outcome);
         }
+        // a failed lookup's reason names the nameserver, as dnspython's does: ace3's was its fake,
+        // at 127.0.0.1@5353, and this test's is the replay, on a port of its own. The replay's
+        // address is put as ace3's, and the rest of the text is compared as it is.
+        let mut ours = normal_form(&outcome);
+        if let Some(error) = ours["error"].as_str() {
+            let addr = replay.addr();
+            ours["error"] = json!(error.replace(
+                &format!("Do53:{}@{}", addr.ip(), addr.port()),
+                "Do53:127.0.0.1@5353"
+            ));
+        }
         compared.push((
             dump.short_name().to_owned(),
-            diff(&dump.normal_form("FQDNAnalysis"), &normal_form(&outcome)),
+            diff(&dump.normal_form("FQDNAnalysis"), &ours),
         ));
     }
     if let Err(report) = listed.check(&compared, &[]) {

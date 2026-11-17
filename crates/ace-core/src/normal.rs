@@ -18,6 +18,7 @@
 //!       "results": {
 //!         "<module>": {
 //!           "summary": "...",
+//!           "error": "...",                      only when the module said it failed
 //!           "tags": {"single_file_zip": true},
 //!           "details": {...}                     as the module wrote them, keys sorted
 //!         }
@@ -40,6 +41,10 @@
 //! a result and on the observable it analyzed both sit on that observable, because that's how
 //! the core stores them. Of a detection the form keeps its description and details. The
 //! signature fields name a ruleset commit, which is a fact about the run.
+//!
+//! A result whose module said it failed carries the reason as `error`, as ace3's `Analysis.error`.
+//! A task that failed without a result (a crash, a deadline) is task state, which the form leaves
+//! out, as ace3's form leaves out `root.analysis_failures`.
 //!
 //! Some fields of a result are about the run too. `RUN_FIELDS` lists them, and the form leaves
 //! them out. One more is found by its rule: the `date` meta of a rule the YARA export of the
@@ -155,7 +160,8 @@ pub async fn normal_form(pool: &PgPool, root: Uuid) -> Result<Option<Value>, DbE
 
     let mut results: BTreeMap<ObservableId, Map<String, Value>> = BTreeMap::new();
     for row in sqlx::query!(
-        r#"SELECT observable_id AS "id: ObservableId", module, analysis_type, details, summary, tags
+        r#"SELECT observable_id AS "id: ObservableId", module, analysis_type, details, summary, tags,
+                  error
            FROM analysis.results WHERE root_id = $1"#,
         root,
     )
@@ -164,6 +170,12 @@ pub async fn normal_form(pool: &PgPool, root: Uuid) -> Result<Option<Value>, DbE
     {
         let mut result =
             json!({"summary": row.summary, "tags": set(&row.tags), "details": row.details});
+        // ace3's Analysis.error, which its form (tools/ace3/dumps/run_module.py's tree_form) holds
+        // the same way: on a result whose module failed and on no other, so a tree made before
+        // the mark is still a tree of this form
+        if let Some(error) = row.error {
+            result["error"] = json!(error);
+        }
         remove_run_fields(&row.analysis_type, &mut result);
         results
             .entry(row.id)

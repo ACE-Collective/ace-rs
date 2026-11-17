@@ -1,16 +1,15 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "f72f8946",
+  "ace3_commit": "37a765bf",
   "also_enabled": [],
   "analyses": [
     {
       "class": "PhishkitAnalysis",
       "details": {
-        "error": "phishkit scan failed for url(https://kit.evil.example/start) job ID 00000000-0000-4000-8000-000000000000: scan failed: Traceback (most recent call last):\nselenium.common.exceptions.WebDriverException\n",
         "exit_code": null,
         "job_id": "00000000-0000-4000-8000-000000000000",
         "metrics": null,
-        "output_dir": "<work>/tmp/tmprzsjkayk",
+        "output_dir": "<work>/tmp/tmp0ad8u1gl",
         "output_files": [],
         "proxy_status": null,
         "scan_result": null,
@@ -19,6 +18,7 @@
         "stdout": null
       },
       "detections": [],
+      "error": "phishkit scan failed for url(https://kit.evil.example/start) job ID 00000000-0000-4000-8000-000000000000: scan failed: Traceback (most recent call last):\nselenium.common.exceptions.WebDriverException\n",
       "module_path": "saq.modules.phishkit:PhishkitAnalysis",
       "observables": [],
       "summary": "Phishkit Analysis: failed: phishkit scan failed for url(https://kit.evil.example/start) job ID 00000000-0000-4000-8000-000000000000: scan failed: Traceback (most recent call last):\nselenium.common.exceptions.WebDriverException\n",
@@ -40,7 +40,7 @@
     {
       "record": {
         "path": "database.pool.status",
-        "timestamp": "2026-11-11T03:27:13.942118",
+        "timestamp": "2026-11-16T21:34:30.552850",
         "value": "Pool size: 5  Connections in pool: 0 Current Overflow: -4 Current Checked out connections: 1"
       },
       "tag": "monitoring"
@@ -48,23 +48,36 @@
     {
       "record": {
         "alert_type": "cli_analysis",
-        "analysis_time_seconds": 0.008541,
-        "exec_count": 1,
+        "event_type": "root",
         "is_alert": false,
-        "module": "phishkit_analyzer",
-        "percentage": 53.55271095165486,
+        "observable_count": 1,
+        "observable_type_counts": {
+          "url": 1
+        },
         "queue": "default",
-        "root_uuid": "e4be53da-b3e6-4bae-b7cc-61be1858940b",
-        "timestamp": "2026-11-11 03:27:13.944443",
-        "total_analysis_time_seconds": 0.008541,
-        "total_time_seconds": 0.015948772430419922
+        "root_uuid": "7a3c0420-74ab-4fcf-8025-cde1e52d16c9",
+        "timestamp": "2026-11-16 21:34:30.556127",
+        "total_analysis_time_seconds": 0.01138,
+        "total_time_seconds": 0.021971702575683594
+      },
+      "tag": "metrics"
+    },
+    {
+      "record": {
+        "analysis_time_seconds": 0.01138,
+        "event_type": "module",
+        "exec_count": 1,
+        "module": "phishkit_analyzer",
+        "percentage": 51.7938924432484,
+        "root_uuid": "7a3c0420-74ab-4fcf-8025-cde1e52d16c9",
+        "timestamp": "2026-11-16 21:34:30.556127"
       },
       "tag": "metrics"
     },
     {
       "record": {
         "path": "database.pool.available_count",
-        "timestamp": "2026-11-11T03:27:13.944586",
+        "timestamp": "2026-11-16T21:34:30.556514",
         "value": 0
       },
       "tag": "monitoring"
@@ -72,7 +85,7 @@
     {
       "record": {
         "path": "database.pool.in_use_count",
-        "timestamp": "2026-11-11T03:27:13.944605",
+        "timestamp": "2026-11-16T21:34:30.556538",
         "value": 1
       },
       "tag": "monitoring"
@@ -80,13 +93,13 @@
     {
       "record": {
         "path": "error.report",
-        "timestamp": "2026-11-11T03:27:19.985633",
+        "timestamp": "2026-11-16T21:34:36.601731",
         "value": {
           "exception": "scan failed: Traceback (most recent call last):\nselenium.common.exceptions.WebDriverException\n",
           "exception_source": "",
           "message": "phishkit scan failed for url(https://kit.evil.example/start) job ID 00000000-0000-4000-8000-000000000000: scan failed: Traceback (most recent call last):\nselenium.common.exceptions.WebDriverException\n",
-          "stack_trace": "  File \"/opt/ace/saq/modules/phishkit.py\", line 612, in continue_analysis\n    scan_results = get_async_scan_result(analysis.job_id, analysis.output_dir, timeout=1)\n  File \"<stdin>\", line 1185, in get_async_scan_result\n  File \"<stdin>\", line 1149, in answer\n",
-          "transaction_id": "e4be53da-b3e6-4bae-b7cc-61be1858940b"
+          "stack_trace": "  File \"/opt/ace/saq/modules/phishkit.py\", line 603, in continue_analysis\n    scan_results = get_async_scan_result(analysis.job_id, analysis.output_dir, timeout=1)\n  File \"<stdin>\", line 1284, in get_async_scan_result\n  File \"<stdin>\", line 1248, in answer\n",
+          "transaction_id": "7a3c0420-74ab-4fcf-8025-cde1e52d16c9"
         }
       },
       "tag": "monitoring"
@@ -113,16 +126,29 @@
     {
       "record": {
         "alert_type": "cli_analysis",
-        "analysis_time_seconds": 0.036992,
-        "exec_count": 1,
+        "event_type": "root",
         "is_alert": false,
-        "module": "phishkit_analyzer",
-        "percentage": 98.13769359139785,
+        "observable_count": 1,
+        "observable_type_counts": {
+          "url": 1
+        },
         "queue": "default",
-        "root_uuid": "e4be53da-b3e6-4bae-b7cc-61be1858940b",
-        "timestamp": "2026-11-11 03:27:19.987871",
-        "total_analysis_time_seconds": 0.036992,
-        "total_time_seconds": 0.03769397735595703
+        "root_uuid": "7a3c0420-74ab-4fcf-8025-cde1e52d16c9",
+        "timestamp": "2026-11-16 21:34:36.604682",
+        "total_analysis_time_seconds": 0.044711,
+        "total_time_seconds": 0.04553079605102539
+      },
+      "tag": "metrics"
+    },
+    {
+      "record": {
+        "analysis_time_seconds": 0.044711,
+        "event_type": "module",
+        "exec_count": 1,
+        "module": "phishkit_analyzer",
+        "percentage": 98.19946910195318,
+        "root_uuid": "7a3c0420-74ab-4fcf-8025-cde1e52d16c9",
+        "timestamp": "2026-11-16 21:34:36.604682"
       },
       "tag": "metrics"
     }

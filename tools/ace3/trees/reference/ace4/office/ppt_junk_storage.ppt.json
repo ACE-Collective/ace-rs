@@ -1,6 +1,39 @@
 {
   "form": 1,
   "observables": {
+    "file:17c073320d21653b9028ad03b2a5ff34b9fe67fcea6d42a1c7223e38ea604884": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "ppt_junk_storage.ppt.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:7590c212e4152ea350b0e8f76dbc75fd02729269a8313baa1aba6ee63139c43d": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:2f42b5d33619d0c3b33d9bf636ee54ab1165385b64d3b9e2b3cfa4cfb6721d79": {
       "detections": {},
       "directives": {
@@ -66,39 +99,6 @@
       },
       "tags": {}
     },
-    "file:5d6f3f65011ee791687898d3195c9eb52b03cc59886fea26e23f65ac931d784d": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "ppt_junk_storage.ppt.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:7590c212e4152ea350b0e8f76dbc75fd02729269a8313baa1aba6ee63139c43d": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:7590c212e4152ea350b0e8f76dbc75fd02729269a8313baa1aba6ee63139c43d": {
       "detections": {},
       "directives": {
@@ -117,8 +117,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 14:09:25+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 14:09:25+00:00",
+              "File:FileAccessDate": "2026:11:16 20:18:01+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 20:18:01+00:00",
               "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "ppt_junk_storage.ppt",
               "File:FilePermissions": 100644,
@@ -185,6 +185,7 @@
             "macros": [],
             "type": null
           },
+          "error": "olevba failed: Failed to open file None is not a supported file type, cannot extract VBA Macros.",
           "summary": null,
           "tags": {}
         },

@@ -523,9 +523,10 @@ async fn email_and_office_core() -> Core {
     .await
 }
 
+/// The msoffice result's details, with the result's error beside them as `error`.
 async fn msoffice_details(core: &Core, root: uuid::Uuid) -> serde_json::Value {
     sqlx::query_scalar(
-        "SELECT details FROM analysis.results
+        "SELECT details || jsonb_build_object('error', error) FROM analysis.results
          WHERE root_id = $1 AND analysis_type = 'msoffice_encryption_analysis'",
     )
     .bind(root)

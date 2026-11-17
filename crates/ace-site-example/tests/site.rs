@@ -141,6 +141,7 @@ fn the_site_binary_draws_its_results_with_its_own_view() {
         files: Vec::new(),
         relationships: Vec::new(),
         results: Vec::new(),
+        failed: Some(Vec::new()),
         detections: Vec::new(),
     };
     let links = app.actions().links(Uuid::nil(), &ticket("example_ticket"));
@@ -217,6 +218,7 @@ fn the_site_binary_draws_its_alert_type_s_summary() {
                 files: Vec::new(),
                 relationships: Vec::new(),
                 results: Vec::new(),
+                failed: Some(Vec::new()),
                 detections: Vec::new(),
             })
             .into_iter()
@@ -540,6 +542,9 @@ async fn a_site_module_adds_an_observable_of_the_sites_type() {
             {"type": "fqdn", "value": "example.com",
              "exclude_modules": ["rdap_analyzer", "fqdn_analyzer", "nrd_analyzer", "idna_analyzer",
                                  "observable_detection", "user_defined_tagging"]},
+            // a ticket the site's ticket system doesn't know, so the lookup says it failed
+            {"type": "example_ticket", "value": "LEGACY-7",
+             "exclude_modules": ["observable_detection", "user_defined_tagging"]},
         ],
     });
     let body = format!(
@@ -564,8 +569,8 @@ async fn a_site_module_adds_an_observable_of_the_sites_type() {
         .expect("the root's uuid");
     assert_eq!(
         submitted["queued"].as_array().map(Vec::len),
-        Some(1),
-        "the ticket lookup on the fqdn: {submitted}"
+        Some(2),
+        "the ticket lookup on the fqdn and on the ticket: {submitted}"
     );
 
     wait_for("the root completes", Duration::from_secs(60), || {
@@ -602,19 +607,44 @@ async fn a_site_module_adds_an_observable_of_the_sites_type() {
             "done".to_owned(),
         )
     };
+    // the lookup that failed ran to its end too: its task is done, not failed
     assert_eq!(
         tasks,
         [
             expected("fqdn", "example.com"),
+            expected("example_ticket", "LEGACY-7"),
             expected("example_ticket", "TICKET-example.com"),
         ],
         "pool:\n{pool_log}\ncore:\n{core_log}"
     );
 
+    // a site's module marks its result failed as any module does (`ResultEnvelope::with_error`),
+    // and the core stores the reason beside the result
+    let failed: Vec<(String, Option<String>, Value)> = sqlx::query_as(
+        "SELECT o.value, r.error, r.details FROM analysis.results r
+         JOIN analysis.observables o ON o.id = r.observable_id
+         WHERE r.root_id = $1 AND r.error IS NOT NULL",
+    )
+    .bind(root)
+    .fetch_all(&db)
+    .await
+    .expect("lists the failed results");
+    assert_eq!(
+        failed,
+        [(
+            "LEGACY-7".to_owned(),
+            Some(
+                "the ticket system has no ticket LEGACY-7: its tickets start with TICKET-"
+                    .to_owned()
+            ),
+            json!({"tickets": []}),
+        )]
+    );
+
     let results: Vec<(String, String, String, Value)> = sqlx::query_as(
         "SELECT o.type, o.value, r.analysis_type, r.details FROM analysis.results r
          JOIN analysis.observables o ON o.id = r.observable_id
-         WHERE r.root_id = $1 ORDER BY r.id",
+         WHERE r.root_id = $1 AND r.error IS NULL ORDER BY r.id",
     )
     .bind(root)
     .fetch_all(&db)

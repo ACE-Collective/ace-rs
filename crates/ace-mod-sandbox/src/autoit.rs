@@ -104,8 +104,8 @@ impl Parser for AutoItAnalyzer {
             .timeout(ctx.time_left());
         let output = ctx.run_tool(list)?;
         if let Some(error) = stopped_text("list", &output) {
-            result.details.error = Some(error);
-            result.summary = summary(&result.details);
+            result.summary = summary(&result.details, Some(&error));
+            result.error = Some(error);
             return Ok(Outcome::Done(result));
         }
         // ace3 keeps run_tool's bytes, which its JSON encoder writes as unicode_escape decodes them
@@ -122,8 +122,8 @@ impl Parser for AutoItAnalyzer {
         let output = ctx.run_tool(extract)?;
         if let Some(error) = stopped_text("extract-all", &output) {
             // what it extracted before it was stopped may be cut short
-            result.details.error = Some(error);
-            result.summary = summary(&result.details);
+            result.summary = summary(&result.details, Some(&error));
+            result.error = Some(error);
             return Ok(Outcome::Done(result));
         }
         // the decompiled scripts at the top of the output directory, as ace3's os.listdir sees them
@@ -154,7 +154,7 @@ impl Parser for AutoItAnalyzer {
             new_file.exclude_modules.push("autoit".to_owned());
             result.files.push(new_file);
         }
-        result.summary = summary(&result.details);
+        result.summary = summary(&result.details, None);
         Ok(Outcome::Done(result))
     }
 }
@@ -169,9 +169,9 @@ fn as_ace3_writes_bytes(bytes: &[u8]) -> String {
         .collect()
 }
 
-/// `AutoItAnalysis.generate_summary`.
-fn summary(details: &AutoItAnalysis) -> Option<String> {
-    if let Some(error) = details.error.as_ref().filter(|e| !e.is_empty()) {
+/// `AutoItAnalysis.generate_summary`, with the result's error.
+fn summary(details: &AutoItAnalysis, error: Option<&String>) -> Option<String> {
+    if let Some(error) = error.filter(|e| !e.is_empty()) {
         return Some(format!("AutoIt Analysis: {error}"));
     }
     if details.scripts.is_empty() {

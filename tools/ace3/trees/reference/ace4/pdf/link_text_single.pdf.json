@@ -141,10 +141,10 @@
           "type=document.pdf.text": true
         }
       },
-      "redirection": "file:eee7d6410518de7b789de318ce4e8bcf104412b9f528c16c2a55e644eca89aaa",
+      "redirection": "file:e37709f3ff3a90c19134d4b460b899ef3fdc294bac1cfd048a70e0f8133eeed5",
       "relationships": {
         "extracted_from file:6a1d3505f33e73d1536fd9acfe2b1103f5d73b7ee1a7b3f81bb7643aa71171a6": true,
-        "extracted_from file:eee7d6410518de7b789de318ce4e8bcf104412b9f528c16c2a55e644eca89aaa": true
+        "extracted_from file:e37709f3ff3a90c19134d4b460b899ef3fdc294bac1cfd048a70e0f8133eeed5": true
       },
       "results": {
         "file_type": {
@@ -183,39 +183,6 @@
       },
       "tags": {}
     },
-    "file:636218c99e3cf5e74495c281a49a66267893037340ef749b52c28f2691a8c952": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "link_text_single.pdf.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:6a1d3505f33e73d1536fd9acfe2b1103f5d73b7ee1a7b3f81bb7643aa71171a6": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:6a1d3505f33e73d1536fd9acfe2b1103f5d73b7ee1a7b3f81bb7643aa71171a6": {
       "detections": {},
       "directives": {},
@@ -233,9 +200,9 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 15:13:10+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 15:13:10+00:00",
-              "File:FileModifyDate": "2026:11:16 13:50:16+00:00",
+              "File:FileAccessDate": "2026:11:16 20:48:10+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 20:48:10+00:00",
+              "File:FileModifyDate": "2026:11:16 16:21:04+00:00",
               "File:FileName": "link_text_single.pdf",
               "File:FilePermissions": 100644,
               "File:FileSize": 701,
@@ -335,7 +302,40 @@
         "pdf": true
       }
     },
-    "file:eee7d6410518de7b789de318ce4e8bcf104412b9f528c16c2a55e644eca89aaa": {
+    "file:779fc6265bcfb571869b763383fbbd04ea40361d974655ffd7986321e84dda77": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "link_text_single.pdf.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:6a1d3505f33e73d1536fd9acfe2b1103f5d73b7ee1a7b3f81bb7643aa71171a6": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:e37709f3ff3a90c19134d4b460b899ef3fdc294bac1cfd048a70e0f8133eeed5": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -592,6 +592,7 @@
             "whois_data": null,
             "whois_raw_text": null
           },
+          "error": "rdap: Failed to make a GET request to https://rdap.verisign.com/net/v1/domain/lure-example.net: nothing recorded for GET https://rdap.verisign.com/net/v1/domain/lure-example.net; whois: no WHOIS in a replay",
           "tags": {}
         },
         "user_defined_tagging": {

@@ -44,6 +44,16 @@ fn name_fits(file: &InputFile, suffix: &str) -> bool {
     file.name().len() + suffix.len() <= NAME_MAX_BYTES
 }
 
+/// What ace3's engine marks the analysis with when `open` of `<file><suffix>` raises out of its
+/// module on such a name: the exception as `<type>: <message>`. ace3's goes on with its crash
+/// report's id, and names the file by its path on its node, where this is its path in the alert.
+fn name_too_long(file: &InputFile, suffix: &str) -> String {
+    format!(
+        "OSError: [Errno 36] File name too long: '{}{suffix}'",
+        file.path
+    )
+}
+
 /// `path.lower().endswith(suffix)` for an ASCII suffix. No character outside ASCII lowers to one
 /// in ASCII but the Kelvin sign, to `k`, which none of these suffixes has.
 fn ends_with_lower(path: &str, suffix: &str) -> bool {

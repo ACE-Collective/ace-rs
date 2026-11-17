@@ -18,10 +18,10 @@ pub struct NrdAnalysis {
     pub datetime_created: Option<String>,
     /// Whole days from the registration to the hit.
     pub age_created_in_days: Option<String>,
-    /// `rdap` when RDAP gave the date; ace3's WHOIS fallback isn't ported.
+    /// `rdap` when RDAP gave the date; ace3's WHOIS fallback isn't ported. When the date couldn't
+    /// be found the hit is kept unverified, and why is the result's `error`, as ace3's
+    /// `Analysis.error` (its `lookup_error` until 41d44392).
     pub lookup_protocol: Option<String>,
-    /// Why the registration date couldn't be found, when the hit is kept unverified.
-    pub lookup_error: Option<String>,
 }
 
 impl AnalysisType for NrdAnalysis {
@@ -40,7 +40,7 @@ mod tests {
         let details = json!({
             "is_nrd": true, "matched_at": "2026-11-08T23:04:22.383457+00:00",
             "datetime_created": "2026-11-01 12:30:00+00:00", "age_created_in_days": "7",
-            "lookup_protocol": "rdap", "lookup_error": null,
+            "lookup_protocol": "rdap",
         });
         let read: NrdAnalysis = serde_json::from_value(details.clone()).expect("reads");
         assert_eq!(serde_json::to_value(&read).expect("writes"), details);

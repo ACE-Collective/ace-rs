@@ -54,6 +54,73 @@ In order. Batches 10 to 13 run programs in the sandbox runner, which batch 10 bu
 
 7.4 ports, in this workspace, all done: `fqdn_analyzer`, `nrd_analyzer`, `snort_signature_analysis_v1`, `user_analyzer`, `email_conversation_frequency_analyzer`, `email_thread_analyzer`, `email_logger`, `clicker_detection_splunk`. The brocess modules (`email_logger` writes what `email_conversation_frequency_analyzer` and `email_thread_analyzer` read) go together, after 7.2's endpoints.
 
+## Failed analyses
+
+A module fails in one of two ways, and ace4 keeps them apart.
+
+**A result that says it failed.** The module ran to its end and produced a result, but something it needed failed: a tool exited with an error, a lookup couldn't answer, a file didn't parse. It marks the result with the reason (`ResultEnvelope::error`, set with `with_error`), as ace3's module sets `Analysis.error` (ace3 `2b9fcd2c`, `41d44392`, `eb0d0d42`). ace3 moved each module's own key for the reason (`error`, `query_error`, `lookup_error`) out of its details into that, and so did ace4.
+
+- The task ends `done`. What the result held before the failure is kept as a partial result: its details, its summary, the observables and files it added.
+- The reason is `analysis.results.error` (migration 0065), outside the details, so nothing has to know the analysis type to read it. A reason is required: the result's schema refuses a blank one, as ace3 raises on one.
+- The alert tree shows an `error` badge on the result, with the reason beside it when the result has no summary, and the result's page shows the reason above its details. The API's observables carry it as `results[].error`.
+- The normal form holds it as the result's `error`, on a result that failed and on no other, so the comparison with ace3 checks it (`ace_core::normal`, `tools/ace3/dumps/run_module.py`'s `tree_form`). A reference dump holds it the same way.
+- A module that depends on the result reads it with `TaskContext::dependency_error`, and one that walks the tree with `TreeResult::error`, as ace3's modules check `analysis.error` before they trust another's analysis. The pcap category modules and `pcap_tls_decryption` do, for `pcap_analyzer`.
+
+**A task that failed.** The module didn't run to its end: it crashed, was killed at its deadline (PLAN.md 2.19), returned a `ModuleError`, or wrote a result the core refused. There is no result. The task's row is `failed` with its error and its inputs' hashes, `/api/crashes` lists it, and `ace task replay` runs it again (2.20). ace3 keeps these in `root.analysis_failures`. The alert tree lists each under its observable with the same badge, and the API's observables as `failed_modules`. The AI investigation API's observables leave `failed_modules` out: its database role holds nothing on the task queue (migration 0064).
+
+Where the two systems draw the line differently:
+
+- ace3's engine marks an analysis failed when its module raises after creating it, with the exception as `<type>: <message>` and ` (crash_id <id>)`, its crash report's id. An ace4 module that returns an error has no result, so that is a failed task. Where a port keeps a partial result at a point ace3's module raises, it marks the result with ace3's `<type>: <message>`. The id is new each run, so both normal forms leave it out of ace3's error and summary. The ports that do this are `har_extraction` (`ValueError: Invalid IPv6 URL` from `urlsplit`), `onenote_extraction` (construct's `StreamError: Error in path (parsing) -> FileDataStoreObject -> <field>` and how much the stream was short), and four for a name past 255 bytes, `OSError: [Errno 36] File name too long: '<path>'`: `microsoft_script_encoding_analysis`, `nowhitespace_analyzer`, `har_extraction` and `html_data_url_extraction`. ace3's path there is the file's on its node and the port's is its path in the alert. `clicker_detection_splunk` raises a `TypeError` in ace3 on a multivalue user field, which the port doesn't reproduce. Other ports stop quietly at a name past 255 bytes where ace3's module would raise: no sample or dump reaches those, and they weren't gone through.
+- A delay asked for past its timeout: ace3 closes the analysis with `timed out waiting for delayed analysis to complete`. ace4's task fails with `DelayTimedOut`.
+- ace3 says `<tool> did not finish` when its sandbox stops a tool on a timeout or a limit, and goes on. A module that runs a tool in ace4's sandbox runner says the same, and adds why the runner stopped it. A module whose tool is a library inside the task (libmagic, the ports of officeparser, pdf-parser, rtfobj, John's `*2john`, 7z and unrar) has no such stop: past the task's deadline it is a failed task.
+- ace3 never caches a failed analysis, and runs a module again on one when the module allows it (`allow_reanalysis_on_failure`, once per work item since `907e3b3e`). ace4 has no result cache (PLAN.md 6.7) and never claims a finished task again; a retry isn't built.
+
+What each module says. ace3's column is every place its code sets `Analysis.error` at `37a765bf`; `<e>` is an exception's text, and `<how T exited>` is ace3's `tool_failure_reason`: `T exited with status N` or `T was killed by signal N`, then `: ` and the last line T wrote to stderr.
+
+| Module | Crate | ace3's reason | ace4 |
+|---|---|---|---|
+| `rdap_analyzer` | `ace-mod-rdap` | `rdap: <RDAP's error>; whois: <WHOIS's error>` | `rdap: <RDAP's error>`: WHOIS isn't ported |
+| `nrd_analyzer` | `ace-mod-nrd` | the creation-date lookup's error | the same lookup's, RDAP's alone |
+| `fqdn_analyzer` | `ace-mod-dns` | `A lookup failed: <e>`, `MX lookup failed: <e>`, `wildcard probe failed: <e>`, joined by `; ` | the same, for a resolver that answered with a failure; one that can't be reached fails the task as unavailable |
+| a Splunk instance, such as `proxy_domain_splunk` | `ace-mod-splunk` | `timed out`, or `<e>` | the same; splunkd down fails the task as unavailable |
+| `clicker_detection_splunk` | `ace-mod-splunk` | each failed search's `<name>: <error>`, joined by `; ` | the same |
+| `msoffice_encryption_analyzer` | `ace-mod-msoffice` | `office2john.py failed: <stderr>`, `could not crack password`, `decryption failed: <e>`, `<e>` for msoffcrypto's `Unsupported encryption method`, `office2john.py did not finish` | the first three; msoffcrypto 6.0.0 raises no such thing where ace3 looks for it, and office2john is a library here |
+| `zip_encryption_analyzer` | `ace-mod-encrypted` | `zip2john failed: <stderr>`, `unable to build the password wordlist: <e>`, `ZipEncryptionAnalyzer was unable to crack the password`, `<how 7z exited>` above status 1, and five for a tool that didn't finish or a file that went missing | the first four: 7z is a library here, so its line is written for it, `7z exited with status 2: ERROR: Wrong password : <member>` for the last member the password doesn't open, and the library's words in 7z's place for any other member that doesn't extract |
+| `rar_encryption_analyzer` | `ace-mod-encrypted` | `rar2john failed: <stderr>`, `unable to build the password wordlist: <e>`, `RarEncryptionAnalyzer could not crack password!`, `<how unrar exited>`, `unrar could not write every file`, and three for a tool that didn't finish | the first three, and `unrar could not extract the archive` where libunrar fails |
+| `pdf_encryption_analyzer` | `ace-mod-encrypted` | `pdf2john.pl failed: <stderr>`, `could not crack password`, `decryption failed: <e>`, `pdf2john.pl did not finish` | the first three |
+| `exif` | `ace-mod-sandbox` | `exiftool did not finish`, ExifTool's own error or `<how exiftool exited>`, `unreadable exiftool output: <e>` | the same |
+| `javascript_deobfuscation` | `ace-mod-scanners` | `js deobfuscator call failed: <e>`, the report's error, `<how js deobfuscator exited>` when it reported none | the same |
+| `phishkit_analyzer` | `ace-mod-scanners` | `phishkit scan failed for <observable> job ID <id>: <e>`, the same with `timed out`, `failed to scan URL <url>: <e>`, `no job id: the scan was never dispatched` | the first; the scanner pool always has the scan it was asked for |
+| `pcap_analyzer` | `ace-mod-pcap` | why the capture wasn't dissected | the same |
+| `pcap_tls_decryption` | `ace-mod-pcap` | tshark's failure, or that there isn't time left | the same |
+| `autoit` | `ace-mod-sandbox` | `unautoit list timed out`, `unautoit extract-all timed out`, `<e>` | the two, or `unautoit <step> was stopped: <why>` for another stop |
+| `upx` | `ace-mod-sandbox` | `upx -d did not finish`, `<e>` | the first, and why the runner stopped it |
+| `de4dot` | `ace-mod-sandbox` | `de4dot did not finish`, `<how de4dot exited>, without writing a deobfuscated file` | the same |
+| `ilspy` | `ace-mod-sandbox` | `ilspy did not finish`, `<how ilspy exited>, without writing IL` | the same |
+| `java_class_decompiler` | `ace-mod-sandbox` | `cfr did not finish`, `<how cfr exited>`, `cfr could not decompile the class file`, `class file <path> does not exist` | the first three |
+| `dmg_analyzer` | `ace-mod-sandbox` | `dmg2img did not finish`, `<how dmg2img exited>, without writing an image`, `7z l did not finish, so the image's files are not listed`, `<how 7z l exited>, so the image's file list may be incomplete` | the same |
+| `cve_2021_30657_analyzer` | `ace-mod-sandbox` | `7z did not finish extracting <member>, so it and the files after it were not checked`, `<how 7z exited>, without extracting <member>`, `file did not finish on <member>, ...` | the first two, the first naming the first member of a run of several; and its own, when a member's path is too long for a program's arguments or it has added its 500 files |
+| `pdftotext` | `ace-mod-sandbox` | `pdftotext did not finish` | the same |
+| `pdf_link_text` | `ace-mod-pdf` | `<how pdftotext exited or that it didn't finish>, without the text under the links` | the same |
+| `har_extraction` | `ace-mod-html` | `<n> bytes exceeds max_file_size <m>`, `not valid JSON: <e>`, `no log.entries list` | the same |
+| `html_js_extraction` | `ace-mod-html` | `failed to extract JavaScript: <e>` | the same |
+| `lnk_parser` | `ace-mod-files` | LnkParse3's exception | the port's, with Python's text |
+| `olevba_v1_2` | `ace-mod-oletools` | `olevba failed: <e>`, unless olevba couldn't open a file not named as an Office document | the same |
+| `rtfole` | `ace-mod-oletools` | `<how rtfobj exited>`, `rtfobj did not finish`, `unable to run rtfobj: <e>` | the first: rtfobj is a library here |
+| `xml_plain_text_analyzer`, `xml_binary_analyzer` | `ace-mod-office` | `unable to parse XML: <e>` | the same, with lxml's wording of libxml2's error |
+| `office_xml_rel` | `ace-mod-office` | `unable to parse <file name>: <e>` | the same |
+| `file_type` | `ace-mod-files` | `file did not finish` | never: libmagic runs in the task |
+| `officeparser3` | `ace-mod-office` | `officeparser timed out after <n> seconds` | the same, with ace3's 90, where the port stops because officeparser3 would never end |
+| `pdf_analyzer` | `ace-mod-pdf` | `pdfparser did not finish, so its dump of the objects is incomplete` | never: the port runs in the task |
+| `microsoft_script_encoding_analysis` | `ace-mod-scripts` | `the decoder did not finish` | never: the decoder runs in the task |
+| `archive` | `ace-mod-archive` | `the extractor did not finish`, `the listing was larger than <n> bytes, so the file count is not known`, `unable to create <directory>: <e>` | never: the extractors are libraries, with no listing to cut and no directory to make |
+| `yara_scanner_v3_4` | `ace-mod-yara` | `yara scan failed: <e>`, when the scan raised after the analysis was made | never: a scan that fails fails the task |
+| `snort_signature_analysis_v1` | `ace-mod-snort` | `unable to look up the signature: <e>` | never: a read the core can't answer fails the task as unavailable |
+| `email_conversation_frequency_analyzer` | `ace-mod-brocess` | `unable to query brocess for the conversation count: <e>` | never: one read answers both counts, and fails the task as unavailable |
+| `message_id_analyzer_v2` | `ace-mod-emailarchive` | `<e>`, when adding the file fails after the analysis exists | never: a result adds its file or doesn't land |
+
+ace3's `saq/modules/shodan.py` and `saq/modules/test.py` set it too. Neither has a section in `saq.default.yaml`, so neither is in this inventory.
+
 ## What 7.2 serves
 
 Modules that read or write ACE's own data in ace3, or hold its encryption key, and what serves each in ace4, where workers hold neither. The reads, their scope, their bounds and how they refuse are a contract in `crates/ace-core/src/reads.md`, beside the lease API; each module's port step builds what its module calls. None is built in 7.2: the one ported module here then, `yara_scanner_v3_4`, gets its data on the ruleset, and that waits for 7.6, which brings the list it reads. 7.4 built the first, `snort-signature`, then `smtp-counts`, `email-thread-domains` with the first writes, `email_logger`'s, `email-thread`, and `newly-registered`, which serves `nrd_analyzer` though ace3's module reads no database of ACE's (below). 7.6 built `observable-tags`, over migration 0042's `analysis.observable_tags`, and `observable_detection` reads its list on the lease; the `ruleset` half of `yara_scanner_v3_4`, ace3's export of the detections as YARA rules, isn't built yet (PLAN.md 7.6).
@@ -832,7 +899,7 @@ In the config's order. ace4 is the crate a ported module is in.
 - **Network**: none for misses; on a DB hit with max_registration_age_days set (default 90): IANA RDAP bootstrap, registry RDAP server, WHOIS TCP 43 fallback; tldextract PSL fetch possible on first use..
 - **Reads outside the alert**: data/external/nrd/nrd_index.db (refreshed by saq/nrd/refresh.py, atomically swapped).
 - **Tags and detections**: tag suspect:nrd on the observable; deliberately no detection point (an observable_modifier rule promotes it)
-- **Notes**: Hits for domains registered more than max_registration_age_days ago are dropped silently (no analysis, nrd.py:196-203) because feeds include updated domains. Lookup failure fails open: hit kept and lookup_error recorded. Missing DB file = no hits (fresh deploy). The DB is node-local, so each ace4 node needs its own copy or a shared store.
+- **Notes**: Hits for domains registered more than max_registration_age_days ago are dropped silently (no analysis, nrd.py:196-203) because feeds include updated domains. Lookup failure fails open: the hit is kept and the analysis is marked failed with why (`Analysis.error`, `lookup_error` in its details until ace3 `41d44392`; in ace4 the result's error). Missing DB file = no hits (fresh deploy). The DB is node-local, so each ace4 node needs its own copy or a shared store.
 
 ### snort_signature_analysis_v1
 
@@ -1090,7 +1157,7 @@ In the config's order. ace4 is the crate a ported module is in.
 ### java_class_decompiler
 
 - **Section**: `analysis_module_java_class_decompiler`, class `JavaClassDecompilerAnalysisModule` in `saq/modules/file_analysis/java.py`, enabled by default.
-- **ace4**: ported in `ace-mod-sandbox`. CFR 0.151 on OpenJDK 21.0.13 in the sandbox runner, as the image's `cfr` tool: `java` with ace3's JVM options and CFR's jar as fixed arguments (`ToolSpec::args`), reading the JDK's directory and `/etc/java-21-openjdk`, where its configuration links, as ace3's `jvm_conf_dirs` makes readable. A JVM that can't start (`JVM_STARTUP_ERRORS`) fails the task as the node's fault, where ace3 logs it and records an empty analysis. A run the runner stops is recorded in `stopped`, which ace3 only logs.
+- **ace4**: ported in `ace-mod-sandbox`. CFR 0.151 on OpenJDK 21.0.13 in the sandbox runner, as the image's `cfr` tool: `java` with ace3's JVM options and CFR's jar as fixed arguments (`ToolSpec::args`), reading the JDK's directory and `/etc/java-21-openjdk`, where its configuration links, as ace3's `jvm_conf_dirs` makes readable. A JVM that can't start (`JVM_STARTUP_ERRORS`) fails the task as the node's fault, where ace3 logs it and records an empty analysis. A run the runner stops, a run that exits non-zero and a file CFR can't decompile mark the result failed, as java.py raises `AnalysisError` for each: `cfr did not finish` and here why the runner stopped it, `cfr exited with status <n>: <its last line>`, and `cfr could not decompile the class file`.
 - **Pool**: sandbox. Runs CFR on a JVM in the sandbox runner; no Rust decompiler. The JVM is in the image by decision 18 (*External tools*).
 - **Step**: done (7.5 batch 11).
 - **Does**: Decompiles a Java .class file (CAFEBABE magic) with CFR and adds the Java source as a file observable.
@@ -1371,7 +1438,7 @@ In the config's order. ace4 is the crate a ported module is in.
 ### pdf_link_text
 
 - **Section**: `analysis_module_pdf_link_text`, class `PDFLinkTextAnalyzer` in `saq/modules/file_analysis/pdf.py`, enabled by default. Added by ace3 `b4badb2c`, with `40ee8208`'s fixes.
-- **ace4**: ported in `ace-mod-pdf`. libqpdf reads the link annotations in the task (`crate::objects`, as the PDF module's annotation URIs: each link's URL, page, `/Rect`, `/Contents`, its page's `/Rotate` and media box, as pikepdf hands them over; `tools/library-diff/adapters/pikepdf.py` and its Rust side read the same, for `tools/library-diff/run pikepdf`), and `pdftotext -bbox` runs in the sandbox runner. Its bounds are ace3's settings, with ace3's defaults: `max_links`, `link_text_pages`, `max_page_words`, `max_link_band_words`. `pdftotext_path` is the pool's image's and `cache_ttl` is of ace3's analysis result cache, which ace4 doesn't have (6.7). When pdftotext doesn't finish or exits non-zero, ace3 marks the analysis failed (`Analysis.error`) and keeps the links without their text; ace4 has no such mark yet, so it logs the reason and keeps the links the same way. `crates/ace-mod-sandbox/tests/differences.md` has the rest, and `docs/measurements/pdf-link-text.md` crafted files against its limits.
+- **ace4**: ported in `ace-mod-pdf`. libqpdf reads the link annotations in the task (`crate::objects`, as the PDF module's annotation URIs: each link's URL, page, `/Rect`, `/Contents`, its page's `/Rotate` and media box, as pikepdf hands them over; `tools/library-diff/adapters/pikepdf.py` and its Rust side read the same, for `tools/library-diff/run pikepdf`), and `pdftotext -bbox` runs in the sandbox runner. Its bounds are ace3's settings, with ace3's defaults: `max_links`, `link_text_pages`, `max_page_words`, `max_link_band_words`. `pdftotext_path` is the pool's image's and `cache_ttl` is of ace3's analysis result cache, which ace4 doesn't have (6.7). When pdftotext doesn't finish or exits non-zero, the result is marked failed with ace3's reason (`<how pdftotext exited>, without the text under the links`) and the links are kept without their text, as ace3's are. `crates/ace-mod-sandbox/tests/differences.md` has the rest, and `docs/measurements/pdf-link-text.md` crafted files against its limits.
 - **Pool**: sandbox. libqpdf in the task's process, and pdftotext in the sandbox runner.
 - **Step**: done (ported with the inventory's move to ace3 `37a765bf`, 2026-11-16).
 - **Does**: For a PDF with link annotations, records each link's URL and page with the text the PDF shows under it (the words of `pdftotext -bbox` whose centre is inside the link's `/Rect`) and the text of the line it is on, which the lure module reads as the link's text.
@@ -1393,7 +1460,7 @@ In the config's order. ace4 is the crate a ported module is in.
 ### upx
 
 - **Section**: `analysis_module_upx`, class `UPXAnalyzer` in `saq/modules/file_analysis/upx.py`, enabled by default.
-- **ace4**: ported in `ace-mod-sandbox`. upx 4.2.4 in the sandbox runner, each run given the task's time left, as ace3's run with no timeout of its own is. A `upx -d` the runner stops records why after ace3's `upx -d did not finish`.
+- **ace4**: ported in `ace-mod-sandbox`. upx 4.2.4 in the sandbox runner, each run given the task's time left, as ace3's run with no timeout of its own is. A `upx -d` the runner stops marks the result failed with ace3's `upx -d did not finish` and why the runner stopped it.
 - **Pool**: sandbox. Runs upx in the sandbox runner; no crate unpacks UPX.
 - **Step**: done (7.5 batch 11).
 - **Does**: Tests a PE file with `upx -t` and, if it is UPX packed, unpacks it with `upx -d` and adds the unpacked executable as a file observable.
@@ -1458,7 +1525,7 @@ In the config's order. ace4 is the crate a ported module is in.
 ### de4dot
 
 - **Section**: `analysis_module_de4dot`, class `De4dotAnalyzer` in `saq/modules/file_analysis/dotnet.py`, enabled by default.
-- **ace4**: ported in `ace-mod-sandbox`. de4dotEx 3.10.0, self-contained on .NET 10.0.14, in the sandbox runner, with ace3's heap limit and region range and its 12 GB address-space limit in the tool's spec, and its own `/proc/<pid>` and ICU readable. `file -b -L`'s answer is libmagic's in the task, over the same database. A runtime that can't start (`DOTNET_STARTUP_ERRORS`) fails the task as the node's fault. A cleaning run the runner stops records why after ace3's `de4dot did not finish`.
+- **ace4**: ported in `ace-mod-sandbox`. de4dotEx 3.10.0, self-contained on .NET 10.0.14, in the sandbox runner, with ace3's heap limit and region range and its 12 GB address-space limit in the tool's spec, and its own `/proc/<pid>` and ICU readable. `file -b -L`'s answer is libmagic's in the task, over the same database. A runtime that can't start (`DOTNET_STARTUP_ERRORS`) fails the task as the node's fault. A cleaning run the runner stops marks the result failed with ace3's `de4dot did not finish` and why the runner stopped it, and one that ends without writing the file with `<how de4dot exited>, without writing a deobfuscated file`.
 - **Pool**: sandbox. Runs de4dot on .NET in the sandbox runner. .NET is in the image by decision 18 (*External tools*).
 - **Step**: done (7.5 batch 11).
 - **Does**: For a .NET assembly, checks for a known obfuscator with `de4dot -d` and, if one is detected, deobfuscates it and adds the cleaned assembly as a file observable.
@@ -1480,7 +1547,7 @@ In the config's order. ace4 is the crate a ported module is in.
 ### ilspy
 
 - **Section**: `analysis_module_ilspy`, class `IlspyAnalyzer` in `saq/modules/file_analysis/dotnet.py`, enabled by default.
-- **ace4**: ported in `ace-mod-sandbox`. ilspycmd 11.0.0.9375 on the .NET 10.0.14 runtime in the sandbox runner, given the file under its own name in its working directory, so its IL is named as ace3's, with the same limits as de4dot's. The IL is `<name>_ilspy.il` at the top of the alert; ace3 counts up from `_ilspy_0` past names its root already holds, and ace4 analyzes a file once (decision 15). A run the runner stops records why after ace3's `ilspy did not finish`.
+- **ace4**: ported in `ace-mod-sandbox`. ilspycmd 11.0.0.9375 on the .NET 10.0.14 runtime in the sandbox runner, given the file under its own name in its working directory, so its IL is named as ace3's, with the same limits as de4dot's. The IL is `<name>_ilspy.il` at the top of the alert; ace3 counts up from `_ilspy_0` past names its root already holds, and ace4 analyzes a file once (decision 15). A run the runner stops marks the result failed with ace3's `ilspy did not finish` and why the runner stopped it, and one that ends without writing IL with `<how ilspy exited>, without writing IL`; the summary is then ace3's `Ilspy Analysis: failed: <reason>`.
 - **Pool**: sandbox. Runs ilspycmd on .NET in the sandbox runner; no crate gives ILSpy's output.
 - **Step**: done (7.5 batch 11).
 - **Does**: Disassembles a .NET assembly to IL with ilspycmd and adds the .il file as a file observable.
@@ -1588,7 +1655,7 @@ In the config's order. ace4 is the crate a ported module is in.
 ### dmg_analyzer
 
 - **Section**: `analysis_module_dmg_analyzer`, class `DMGAnalyzer` in `saq/modules/file_analysis/dmg.py`, enabled by default.
-- **ace4**: ported in `ace-mod-sandbox`. dmg2img 1.6.7 and 7-Zip 25.01 in the sandbox runner, each run given the task's time left, as ace3 gives them no timeout of their own; 7z is `/usr/lib/7zip/7z`, which ace3's `/usr/bin/7z` script execs, reading `7z.so` beside it and 7zip-rar's `Codecs/Rar.so`, as ace3's 7z loads them. The image is added under the DMG's alert path with `.img` for `.dmg`, and `image_file` names it so. A run the runner stops is recorded in `stopped`, which ace3 only logs.
+- **ace4**: ported in `ace-mod-sandbox`. dmg2img 1.6.7 and 7-Zip 25.01 in the sandbox runner, each run given the task's time left, as ace3 gives them no timeout of their own; 7z is `/usr/lib/7zip/7z`, which ace3's `/usr/bin/7z` script execs, reading `7z.so` beside it and 7zip-rar's `Codecs/Rar.so`, as ace3's 7z loads them. The image is added under the DMG's alert path with `.img` for `.dmg`, and `image_file` names it so. The result is marked failed with ace3's reasons: `dmg2img did not finish` or `7z l did not finish, so the image's files are not listed`, each with why the runner stopped it, `<how dmg2img exited>, without writing an image`, and `<how 7z l exited>, so the image's file list may be incomplete` when 7z exits above 1.
 - **Pool**: sandbox. Runs dmg2img and 7z in the sandbox runner; the DMG and HFS+ crates are young, and the module keeps 7z's listing as it is.
 - **Step**: done (7.5 batch 12).
 - **Does**: For a file named *.dmg, converts it to a raw .img with dmg2img, adds that image as a file observable, and records the 7z listing of its files.
@@ -1610,7 +1677,7 @@ In the config's order. ace4 is the crate a ported module is in.
 ### cve_2021_30657_analyzer
 
 - **Section**: `analysis_module_cve_2021_30657_analyzer`, class `CVE_2021_30657_Analyzer` in `saq/modules/file_analysis/cve.py`, enabled by default.
-- **ace4**: ported in `ace-mod-sandbox`. 7-Zip 25.01 in the sandbox runner; `file -b --mime-type -L` is libmagic in the task over the same database (`ace_mod_files::libmagic`). A module reads no other observable's result, so it lists the image again with dmg_analyzer's `7z l`, on the same bytes, rather than read the DMG analysis's `file_list`; and it runs on an image dmg_analyzer added (`Module::READS_ADDED_BY`) that redirects, which is what ace3's checks of the `macos` and `dmg` tags and of the redirection's DMG analysis select, since only dmg_analyzer adds them. Each member is extracted with a run of its own, as ace3 does, while the task's 64 runs (`MAX_RUNS`) allow; with more members, the runs share them out in order, so none goes unchecked (66 in `samples/ace4/macos/many_members.dmg` take 33 runs, with ace3's result). A script is added under its name, as ace3's copy in `cve_2021_30657/` is. A run the runner stops, members whose paths are too long to be a run's arguments, or its 500th script (`MAX_FILES`; ace3's root holds 500 files) ends the checks, and why is recorded in `stopped`.
+- **ace4**: ported in `ace-mod-sandbox`. 7-Zip 25.01 in the sandbox runner; `file -b --mime-type -L` is libmagic in the task over the same database (`ace_mod_files::libmagic`). A module reads no other observable's result, so it lists the image again with dmg_analyzer's `7z l`, on the same bytes, rather than read the DMG analysis's `file_list`; and it runs on an image dmg_analyzer added (`Module::READS_ADDED_BY`) that redirects, which is what ace3's checks of the `macos` and `dmg` tags and of the redirection's DMG analysis select, since only dmg_analyzer adds them. Each member is extracted with a run of its own, as ace3 does, while the task's 64 runs (`MAX_RUNS`) allow; with more members, the runs share them out in order, so none goes unchecked (66 in `samples/ace4/macos/many_members.dmg` take 33 runs, with ace3's result). A script is added under its name, as ace3's copy in `cve_2021_30657/` is. A run the runner stops, members whose paths are too long to be a run's arguments, or its 500th script (`MAX_FILES`; ace3's root holds 500 files) ends the checks, and why is the result's error; a member 7z didn't extract is ace3's `<how 7z exited>, without extracting <member>`, and a stopped run its `7z did not finish extracting <member>, so it and the files after it were not checked`, naming the first member of the run.
 - **Pool**: sandbox. Runs 7z on dmg_analyzer's HFS+ image in the sandbox runner; `file` becomes libmagic in the task.
 - **Step**: done (7.5 batch 12).
 - **Does**: For a .img produced by dmg_analyzer, extracts each file under */Contents/MacOS/ with 7z and raises a detection when its mime type is a script (CVE-2021-30657 Gatekeeper bypass).
@@ -2035,7 +2102,7 @@ In the config's order. ace4 is the crate a ported module is in.
 ### rar_encryption_analyzer
 
 - **Section**: `analysis_module_rar_encryption_analyzer`, class `RarEncryptionAnalyzer` in `saq/modules/email/encryption/rar.py`, enabled by default.
-- **ace4**: ported in `ace-mod-encrypted`. No rar2john, John or unrar: the body's candidates are tried with libunrar (the unrar crate, single-threaded), on what rar2john hashes: the headers when they're encrypted, RAR5's first encrypted file by its check value, or the RAR4 file rar2john's rule picks, decrypted, unpacked and its CRC checked. A RAR4 file or zip entry too large for the hash ace3 reads from rar2john or zip2john, 64 MiB, is ace3's `did not finish`. `unrar x` is libunrar's extraction, adding nothing unless every file extracts. A split archive's other volumes aren't there, as a task has one file. `john_bin_path` isn't a setting.
+- **ace4**: ported in `ace-mod-encrypted`. No rar2john, John or unrar: the body's candidates are tried with libunrar (the unrar crate, single-threaded), on what rar2john hashes: the headers when they're encrypted, RAR5's first encrypted file by its check value, or the RAR4 file rar2john's rule picks, decrypted, unpacked and its CRC checked. A RAR4 file or zip entry too large for the hash ace3 reads from rar2john or zip2john, 64 MiB, is ace3's `did not finish`. `unrar x` is libunrar's extraction, adding nothing unless every file extracts; when one doesn't the result is marked failed, where ace3's reason is `unrar exited with status <n>: <unrar's last line>`. A split archive's other volumes aren't there, as a task has one file. `john_bin_path` isn't a setting.
 - **Pool**: parser. ace3 runs rar2john, John and unrar. The unrar crate `ace-mod-archive` uses takes a password, so the task tries the wordlist itself, as 4.11 did. 7.3 drops John: ace3 runs it only with this wordlist.
 - **Step**: done.
 - **Does**: For a RAR that rarfile says needs a password, extracts its hash with rar2john, cracks it with John the Ripper using words from the carrying email, and extracts it with unrar using the cracked password.
@@ -2222,7 +2289,7 @@ In the config's order. ace4 is the crate a ported module is in.
 - **Network**: Splunk REST API (async search jobs: create, poll, fetch, delete), optionally via the configured HTTP CONNECT proxy.
 - **Reads outside the alert**: etc/clicker_detection.yaml (config_path, analyst-edited, source key 'splunk'; mtime-polled via watch_file and reloaded live).
 - **Tags and detections**: detection point 'URL clicker identified via <search> (<users>)' (signature URL_CLICKER a764126b-443d-4991-a554-72d86125382d) when on_hit.add_detection_point; directive crawl on url observables; observables extracted per search's observable_mapping; fqdn hits add clicked url observables (not crawled)
-- **Notes**: Disabled by default. Uses delayed analysis: each search is an async Splunk job; delay_analysis with async_delay until query_timeout, then records 'timed out' in query_error so silence is not read as 'no clicks'. The plan of searches is snapshotted in details (clicker_plan/clicker_index) to survive resumes. custom_requirement makes it a no-op when the config has no enabled search for the source+type. Inherits BaseAPIAnalyzer (saq/modules/api_analysis.py) correlation_delay and max_result_count defaults from api_defaults.
+- **Notes**: Disabled by default. Uses delayed analysis: each search is an async Splunk job; delay_analysis with async_delay until query_timeout, then records 'timed out' as the analysis's error (`Analysis.error`, `query_error` until ace3 `41d44392`) so silence is not read as 'no clicks'. The plan of searches is snapshotted in details (clicker_plan/clicker_index) to survive resumes. custom_requirement makes it a no-op when the config has no enabled search for the source+type. Inherits BaseAPIAnalyzer (saq/modules/api_analysis.py) correlation_delay and max_result_count defaults from api_defaults.
 
 ## site_ace
 

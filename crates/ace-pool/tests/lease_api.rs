@@ -3712,8 +3712,8 @@ async fn a_scan_ends_at_a_cancellation_and_at_a_lost_lease() {
         panic!("a result: {end:?}");
     };
     assert_eq!(
-        result.details["error"],
-        "js deobfuscator call failed: its pool stopped reporting on it before it ended"
+        result.error.as_deref(),
+        Some("js deobfuscator call failed: its pool stopped reporting on it before it ended")
     );
     let scans = ace_core::scans::for_root(db, lost).await.expect("reads");
     assert_eq!(scans[0].state, ace_core::scans::ScanRowState::Abandoned);

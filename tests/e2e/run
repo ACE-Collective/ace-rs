@@ -389,7 +389,7 @@ def check_scanners(failures):
     root = submit_file(page, "phishkit_page.htm", "correlation", ["type=email.attachment"])
     wait_for(f"root {root} to finish", lambda: completed_after(root) is not None, within=240)
     phishkit = sql(
-        f"""SELECT r.details->>'scan_type', r.details->>'exit_code', coalesce(r.details->>'error', ''),
+        f"""SELECT r.details->>'scan_type', r.details->>'exit_code', coalesce(r.error, ''),
                    jsonb_array_length(r.details->'output_files'), r.summary
             FROM analysis.results r WHERE r.root_id = '{root}' AND r.module = 'phishkit_analyzer'"""
     )
@@ -456,7 +456,7 @@ def check_scanners(failures):
     wait_for(f"root {root} to finish", lambda: completed_after(root) is not None, within=240)
     abandoned = sql(f"SELECT state::text, error FROM queue.scans WHERE id = {scan}")
     error = sql(
-        f"""SELECT r.details->>'error' FROM analysis.results r
+        f"""SELECT r.error FROM analysis.results r
             WHERE r.root_id = '{root}' AND r.module = 'phishkit_analyzer'"""
     )
     expect(abandoned and abandoned[0][0] == "abandoned"
@@ -564,14 +564,14 @@ def check_root(root, failures):
     expect(not others, f"the rule matched nothing else: {others}")
 
     rdap = sql(
-        f"""SELECT o.value, r.details->>'lookup_protocol', coalesce(r.details->>'error', '')
+        f"""SELECT o.value, r.details->>'lookup_protocol', coalesce(r.error, '')
             FROM analysis.results r JOIN analysis.observables o ON o.id = r.observable_id
             WHERE r.root_id = '{root}' AND r.module = 'rdap_analyzer'"""
     )
     expect(["example.com", "rdap", ""] in rdap,
            f"RDAP answered for example.com from the recording: {rdap}")
     splunk = sql(
-        f"""SELECT o.value, coalesce(r.details->>'error', ''), t.attempts
+        f"""SELECT o.value, coalesce(r.error, ''), t.attempts
             FROM analysis.results r JOIN analysis.observables o ON o.id = r.observable_id
             JOIN queue.tasks t ON t.root_id = r.root_id AND t.observable_id = r.observable_id
               AND t.module = r.module

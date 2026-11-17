@@ -1,6 +1,39 @@
 {
   "form": 1,
   "observables": {
+    "file:0fcaa23960ca0c058825be6c6629eaa7e6532f4b97aad8ebe23dccfb1045afda": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "encrypted_no_email.docx.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:331bbc4db116c378b57566005a5070982edc6206e29d7dd45e87603efe32936a": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:167181108f6fd083cd67d569e9906a592ca923bc2d4c571ed1242caf92ed48f8": {
       "detections": {},
       "directives": {
@@ -132,6 +165,7 @@
           "details": {
             "xml_plain_text": null
           },
+          "error": "unable to parse XML: Start tag expected, '<' not found, line 1, column 1 (stream_10_0.dat, line 1)",
           "summary": null,
           "tags": {}
         }
@@ -154,8 +188,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 13:56:45+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 13:56:45+00:00",
+              "File:FileAccessDate": "2026:11:16 20:05:30+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 20:05:30+00:00",
               "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "encrypted_no_email.docx",
               "File:FilePermissions": 100644,
@@ -209,6 +243,7 @@
               "/01Hannes Ruescher/01"
             ]
           },
+          "error": "could not crack password",
           "summary": "MSOffice Encryption Analysis: could not crack password",
           "tags": {}
         },
@@ -255,39 +290,6 @@
         "microsoft_office": true,
         "ole": true
       }
-    },
-    "file:35fca6b726dbcfce47812516b5b840d2bc74ae334966413819ae78d1c4d04bf9": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "encrypted_no_email.docx.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:331bbc4db116c378b57566005a5070982edc6206e29d7dd45e87603efe32936a": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
     },
     "file:990349482cd707ba3093d6fff5bb72167a38f0831e58789a92c25cdeb01f7f93": {
       "detections": {},

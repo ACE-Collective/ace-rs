@@ -368,7 +368,7 @@
       },
       "tags": {}
     },
-    "file:9708dd1729b4d22b9433f11ff3b65b24b648f9d8da10ef9a728d6767ae2ddd06": {
+    "file:5eaf2a2c5bfd9057bcca9293173ddbe16845887b0595fa375e4e0b269108c95e": {
       "detections": {},
       "directives": {},
       "excluded_analysis": {
@@ -485,9 +485,9 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 13:41:28+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 13:41:28+00:00",
-              "File:FileModifyDate": "2026:11:16 13:41:28+00:00",
+              "File:FileAccessDate": "2026:11:16 19:45:49+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 19:45:49+00:00",
+              "File:FileModifyDate": "2026:11:16 19:45:49+00:00",
               "File:FileName": "invoice.docx",
               "File:FilePermissions": 100664,
               "File:FileSize": 17920,
@@ -537,6 +537,7 @@
             "password": null,
             "word_list": []
           },
+          "error": "office2john.py failed: invoice.docx uses un-supported hashing algorithm SHA256, please file a bug! \n",
           "summary": "MSOffice Encryption Analysis: office2john.py failed: invoice.docx uses un-supported hashing algorithm SHA256, please file a bug! \n",
           "tags": {}
         },
@@ -977,6 +978,7 @@
           "details": {
             "xml_plain_text": null
           },
+          "error": "unable to parse XML: Start tag expected, '<' not found, line 1, column 1 (stream_10_0.dat, line 1)",
           "summary": null,
           "tags": {}
         }

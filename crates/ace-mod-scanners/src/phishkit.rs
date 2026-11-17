@@ -344,7 +344,7 @@ impl PhishkitAnalyzer {
             ..Default::default()
         });
         let failed = |result: &mut ResultEnvelope<PhishkitAnalysis>, why: &str| {
-            result.details.error = Some(format!(
+            result.error = Some(format!(
                 "phishkit scan failed for {} job ID {}: {why}",
                 py_str(observable),
                 waiting.job
@@ -412,8 +412,9 @@ impl PhishkitAnalyzer {
         mut result: ResultEnvelope<PhishkitAnalysis>,
     ) -> Result<Outcome<PhishkitAnalysis>, ModuleError> {
         let observable = ctx.observable();
+        // the results are in, possibly partial: phishkit.py clears the error here
+        result.error = None;
         let details = &mut result.details;
-        details.error = None;
         details.exit_code = exit_code;
         details.stdout = Some(stdout);
         details.stderr = Some(stderr);
@@ -706,14 +707,15 @@ fn document_url(
 
 /// The result, with ace3's `generate_summary`.
 fn done(mut result: ResultEnvelope<PhishkitAnalysis>) -> Outcome<PhishkitAnalysis> {
-    result.summary = Some(summary(&result.details));
+    result.error = result.error.take().filter(|e| !e.trim().is_empty());
+    result.summary = Some(summary(&result.details, result.error.as_deref()));
     Outcome::Done(result)
 }
 
-/// `generate_summary`.
-pub fn summary(details: &PhishkitAnalysis) -> String {
+/// `generate_summary`, with the result's error.
+pub fn summary(details: &PhishkitAnalysis, error: Option<&str>) -> String {
     const NAME: &str = "Phishkit Analysis";
-    if let Some(error) = details.error.as_ref().filter(|e| !e.is_empty()) {
+    if let Some(error) = error.filter(|e| !e.is_empty()) {
         return format!("{NAME}: failed: {error}");
     }
     let unfinished = details.job_id.is_some()
@@ -818,17 +820,16 @@ mod tests {
             ..Default::default()
         };
         assert_eq!(
-            summary(&details),
+            summary(&details, None),
             "Phishkit Analysis: scan timed out — no content captured"
         );
         details.output_files = vec!["phishkit/j/dom.html".to_owned()];
         details.exit_code = Some(143);
         details.metrics = Some(json!({"total_bytes_downloaded": 1048576}));
         assert_eq!(
-            summary(&details),
+            summary(&details, None),
             "Phishkit Analysis: output files created (phishkit/j/dom.html) - PARTIAL (scanner timed out) - 1.00 MB downloaded"
         );
-        details.error = Some("x".to_owned());
-        assert_eq!(summary(&details), "Phishkit Analysis: failed: x");
+        assert_eq!(summary(&details, Some("x")), "Phishkit Analysis: failed: x");
     }
 }

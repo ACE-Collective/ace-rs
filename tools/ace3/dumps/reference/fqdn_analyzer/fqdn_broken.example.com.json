@@ -1,6 +1,6 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "f72f8946",
+  "ace3_commit": "37a765bf",
   "also_enabled": [],
   "analyses": [
     {
@@ -15,6 +15,7 @@
         "wildcard_dns": null
       },
       "detections": [],
+      "error": "A lookup failed: All nameservers failed to answer the query broken.example.com. IN A: Server Do53:127.0.0.1@5353 answered SERVFAIL",
       "module_path": "saq.modules.dns:FQDNAnalysis",
       "observables": [],
       "summary": "DNS Analysis: lookup failed (no answer from any nameserver)",

@@ -1,6 +1,6 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "844e3584",
+  "ace3_commit": "37a765bf",
   "also_enabled": [],
   "analyses": [
     {
@@ -10,16 +10,16 @@
         "end_time": null,
         "gui_link": null,
         "query": "index=network_proxy_web (transport=HTTPS OR transport=HTTP) hostname=\"www.example.com\"\n| eval full_url = lower(transport) . \"://\" . url\n",
-        "query_error": "timed out",
         "query_results": null,
-        "query_start": 1793642981.0205948,
+        "query_start": 1794862868.837757,
         "query_summary": "Proxy correlation",
         "question": "Was this domain seen in proxy logs?",
-        "running_start_time": "2026-11-02T18:09:42.049-00:00",
+        "running_start_time": "2026-11-16T21:01:09.866-00:00",
         "search_id": "1767225600.1",
-        "start_time": "2026-11-02T18:09:41.020-00:00"
+        "start_time": "2026-11-16T21:01:08.837-00:00"
       },
       "detections": [],
+      "error": "timed out",
       "module_path": "saq.modules.splunk:SplunkAPIAnalysis",
       "observables": [],
       "summary": "Proxy correlation: ERROR: timed out",

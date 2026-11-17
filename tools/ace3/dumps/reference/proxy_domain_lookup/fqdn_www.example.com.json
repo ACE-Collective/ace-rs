@@ -1,16 +1,15 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "844e3584",
+  "ace3_commit": "37a765bf",
   "also_enabled": [],
   "analyses": [
     {
       "class": "SplunkAPIAnalysis",
       "details": {
         "dispatch_state": "DONE",
-        "end_time": "2026-11-02T18:09:38.321-00:00",
+        "end_time": "2026-11-16T21:01:06.012-00:00",
         "gui_link": null,
         "query": "index=network_proxy_web (transport=HTTPS OR transport=HTTP) hostname=\"www.example.com\"\n| eval full_url = lower(transport) . \"://\" . url\n",
-        "query_error": null,
         "query_results": [
           {
             "_time": "2026-10-30T14:02:11.000+00:00",
@@ -35,12 +34,12 @@
             "src_ip": "192.0.2.12"
           }
         ],
-        "query_start": 1793642976.2493017,
+        "query_start": 1794862863.9676409,
         "query_summary": "Proxy correlation",
         "question": "Was this domain seen in proxy logs?",
-        "running_start_time": "2026-11-02T18:09:37.291-00:00",
+        "running_start_time": "2026-11-16T21:01:04.999-00:00",
         "search_id": "1767225600.1",
-        "start_time": "2026-11-02T18:09:36.249-00:00"
+        "start_time": "2026-11-16T21:01:03.967-00:00"
       },
       "detections": [],
       "module_path": "saq.modules.splunk:SplunkAPIAnalysis",

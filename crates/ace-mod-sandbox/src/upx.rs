@@ -71,17 +71,15 @@ impl Parser for UpxAnalyzer {
         let output = ctx.run_tool(unpack)?;
         if output.stopped().is_some() {
             // whatever it wrote is incomplete, and wasn't kept
-            result.details.error = Some(format!(
-                "upx -d did not finish: {}",
-                stopped_reason(&output)
-            ));
-            result.summary = Some(summary(&result.details));
+            let error = format!("upx -d did not finish: {}", stopped_reason(&output));
+            result.summary = Some(summary(&result.details, Some(&error)));
+            result.error = Some(error);
             return Ok(Outcome::Done(result));
         }
         result.details.stdout = Some(output.stdout_text());
         result.details.stderr = Some(output.stderr_text());
         result.details.output_file = Some(format!("{}.upx.exe", file.name()));
-        result.summary = Some(summary(&result.details));
+        result.summary = Some(summary(&result.details, None));
         if let Some(unpacked) = output.output("unpacked.exe")
             && name_fits(&target)
         {
@@ -102,9 +100,9 @@ impl Parser for UpxAnalyzer {
     }
 }
 
-/// `UPXAnalysis.generate_summary`.
-fn summary(details: &UpxAnalysis) -> String {
-    match &details.error {
+/// `UPXAnalysis.generate_summary`, with the result's error.
+fn summary(details: &UpxAnalysis, error: Option<&String>) -> String {
+    match error {
         Some(error) if !error.is_empty() => {
             format!("UPX Analysis: decompression failed: {error}")
         }

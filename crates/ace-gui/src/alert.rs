@@ -266,6 +266,39 @@ pub struct ResultNode {
     pub tags: Vec<String>,
     /// Its page (5.9), which holds only the alert's uuid and the result's id.
     pub href: String,
+    /// Why its module said it failed (`ModuleResult::error`), whole, for the badge's title.
+    pub error: Option<String>,
+    /// The reason as the line shows it beside the badge, cut to `FAILURE_SHOWN` characters: only
+    /// when the result has no summary, since a summary usually says why already, as in ace3.
+    pub error_shown: Option<String>,
+}
+
+/// A module whose task on the observable failed and left no result (`FailedModule`), where the tree
+/// lists it under its observable, as ace3 lists `root.analysis_failures`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FailedNode {
+    pub module: String,
+    /// The task's error, whole, or what ace3 says when there is none.
+    pub reason: String,
+    /// The reason as the line shows it, cut to `FAILURE_SHOWN` characters.
+    pub shown: String,
+}
+
+/// How much of a failure's reason a tree line shows, as ace3's `truncate(200)`. The whole reason is
+/// the badge's title and, for a result, on its page.
+const FAILURE_SHOWN: usize = 200;
+
+/// What ace3 shows for a failure recorded without a reason.
+const FAILED_WITHOUT_REASON: &str = "the analysis module failed";
+
+/// `text` cut to `FAILURE_SHOWN` characters, with an ellipsis when it was longer.
+fn failure_shown(text: &str) -> String {
+    if text.chars().count() <= FAILURE_SHOWN {
+        return text.to_owned();
+    }
+    let mut cut: String = text.chars().take(FAILURE_SHOWN - 1).collect();
+    cut.push('\u{2026}');
+    cut
 }
 
 /// One step of drawing the tree: the template draws these in order, so it needs no recursion.
@@ -274,6 +307,8 @@ pub enum TreeLine {
     /// Opens an item: `<li>` and the node.
     Observable(ObservableNode),
     Result(ResultNode),
+    /// A whole item: a module that failed on the observable above without a result.
+    Failed(FailedNode),
     /// A reference's link to where it's drawn in full.
     Jump(String),
     /// `<ul>` below the item last opened.
@@ -517,8 +552,35 @@ fn walk<'a>(
                 }
                 let anchor = node.anchor.clone();
                 lines.push(TreeLine::Observable(node));
-                if results.is_empty() {
+                // the modules that failed on it without a result, where it's drawn in full, before
+                // its results, as ace3 lists them
+                let failed: Vec<TreeLine> = if reference {
+                    Vec::new()
+                } else {
+                    observable
+                        .failed
+                        .iter()
+                        .flatten()
+                        .map(|failed| {
+                            let reason = failed
+                                .error
+                                .as_deref()
+                                .filter(|error| !error.trim().is_empty())
+                                .unwrap_or(FAILED_WITHOUT_REASON);
+                            TreeLine::Failed(FailedNode {
+                                module: failed.module.clone(),
+                                reason: reason.to_owned(),
+                                shown: failure_shown(reason),
+                            })
+                        })
+                        .collect()
+                };
+                if results.is_empty() && failed.is_empty() {
                     lines.push(TreeLine::EndItem);
+                } else if results.is_empty() {
+                    lines.push(TreeLine::Children);
+                    lines.extend(failed);
+                    lines.extend([TreeLine::EndChildren, TreeLine::EndItem]);
                 } else if reference {
                     lines.extend([
                         TreeLine::Children,
@@ -528,6 +590,7 @@ fn walk<'a>(
                     ]);
                 } else {
                     lines.push(TreeLine::Children);
+                    lines.extend(failed);
                     stack.push(Step::Line(TreeLine::EndItem));
                     stack.push(Step::Line(TreeLine::EndChildren));
                     stack.extend(results.into_iter().rev().map(Step::Result));
@@ -543,6 +606,12 @@ fn walk<'a>(
                         .unwrap_or_else(|| result.module.clone()),
                     tags: result.tags.clone(),
                     href: result_href(alert, result.id),
+                    error: result.error.clone(),
+                    error_shown: result
+                        .error
+                        .as_deref()
+                        .filter(|_| result.summary.is_none())
+                        .map(failure_shown),
                 }));
                 let children: Vec<i64> = added_by
                     .get(&result.id)
@@ -1446,6 +1515,8 @@ pub struct ResultPage {
     pub schema_version: i32,
     pub created_at: String,
     pub tags: Vec<String>,
+    /// Why the module said it failed, shown above its details, as ace3's analysis page does.
+    pub error: Option<String>,
     pub view: DrawnView,
     pub added: Vec<AddedObservable>,
 }
@@ -1498,6 +1569,7 @@ impl ResultPage {
                 .format("%Y-%m-%d %H:%M:%S UTC")
                 .to_string(),
             tags: result.tags.clone(),
+            error: result.error.clone(),
             view: views.draw(
                 &result.analysis_type,
                 result.schema_version,

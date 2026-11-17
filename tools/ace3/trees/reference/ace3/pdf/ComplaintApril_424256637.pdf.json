@@ -129,7 +129,7 @@
         "pdf": true
       }
     },
-    "file:6957f1b828e195dccde8f67117c1a2fdd33de24a0179b01cdcdf6c6fb91cb5ab": {
+    "file:36916f1a4bc0d25128684ebfd380326bb016ae786309e397274a9174108262d3": {
       "detections": {},
       "directives": {},
       "excluded_analysis": {
@@ -162,7 +162,7 @@
       },
       "tags": {}
     },
-    "file:7fb864426e80aa76853a19dbe3bcf644372cfdd992be7bbf37ff58d82fc50384": {
+    "file:5c9b6ef4c5dd681b72eb77c6050606d367576aaf0789fbe6db7da01c67968e06": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -429,9 +429,9 @@
           "type=document.pdf.text": true
         }
       },
-      "redirection": "file:7fb864426e80aa76853a19dbe3bcf644372cfdd992be7bbf37ff58d82fc50384",
+      "redirection": "file:5c9b6ef4c5dd681b72eb77c6050606d367576aaf0789fbe6db7da01c67968e06",
       "relationships": {
-        "extracted_from file:7fb864426e80aa76853a19dbe3bcf644372cfdd992be7bbf37ff58d82fc50384": true,
+        "extracted_from file:5c9b6ef4c5dd681b72eb77c6050606d367576aaf0789fbe6db7da01c67968e06": true,
         "extracted_from file:f68ba01d524f39a2832632eeb77772feb30440d2dbbf92fc83de39494cff4076": true
       },
       "results": {
@@ -549,8 +549,8 @@
               "ExifTool:ExifToolVersion": 13.25,
               "ExifTool:Warning": "[minor] Decryption is very slow for encryption V5.6 or higher",
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 14:53:24+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 14:53:24+00:00",
+              "File:FileAccessDate": "2026:11:16 19:44:51+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 19:44:51+00:00",
               "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "ComplaintApril_424256637.pdf",
               "File:FilePermissions": 100644,
@@ -778,6 +778,7 @@
             "whois_data": null,
             "whois_raw_text": null
           },
+          "error": "rdap: Failed to make a GET request to https://rdap.pandi.id/rdap/domain/12tkj5.my.id: nothing recorded for GET https://rdap.pandi.id/rdap/domain/12tkj5.my.id; whois: no WHOIS in a replay",
           "tags": {}
         },
         "user_defined_tagging": {
@@ -1107,6 +1108,7 @@
             "whois_data": null,
             "whois_raw_text": null
           },
+          "error": "rdap: Failed to make a GET request to https://rdap.verisign.com/com/v1/domain/adobe.com: nothing recorded for GET https://rdap.verisign.com/com/v1/domain/adobe.com; whois: no WHOIS in a replay",
           "tags": {}
         },
         "user_defined_tagging": {

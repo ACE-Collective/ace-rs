@@ -124,18 +124,22 @@ impl Lookup for RdapAnalyzer {
             (_, false) => ace_sdk::domains::registrable_domain(&observable.value),
         };
 
+        let mut failure = None;
         match self.try_rdap(&target, ip, &mut analysis, now).await? {
             Attempt::Done => analysis.lookup_protocol = Some("rdap".to_owned()),
             Attempt::NotFound => {}
             Attempt::Failed(error) => {
-                // ace3 tries WHOIS here, which isn't ported
-                analysis.error = Some(format!("rdap: {error}"));
+                // ace3 tries WHOIS here, which isn't ported, so its reason goes on with `; whois:
+                // <WHOIS's failure>` and this one is RDAP's alone
+                failure = Some(format!("rdap: {error}"));
                 analysis.rdap_attempt_error = Some(error);
             }
         }
-        let summary = summary(&analysis);
+        let summary = summary(&analysis, failure.as_deref());
         let mut result = ResultEnvelope::new(analysis);
         result.summary = summary;
+        // the lookup failed: ace3's `Analysis.error`, which also keeps it out of ace3's cache
+        result.error = failure;
         Ok(Outcome::Done(result))
     }
 }
@@ -452,10 +456,10 @@ fn item_list(items: &[String]) -> String {
     text
 }
 
-/// `RdapAnalysis.generate_summary`.
-fn summary(analysis: &RdapAnalysis) -> Option<String> {
+/// `RdapAnalysis.generate_summary`, with the result's error, which ace3 reads from the analysis.
+fn summary(analysis: &RdapAnalysis, error: Option<&str>) -> Option<String> {
     let mut parts = Vec::new();
-    if let Some(error) = &analysis.error {
+    if let Some(error) = error {
         parts.push(format!("error: {error}"));
     } else if let Some(not_found) = &analysis.not_found {
         parts.push(not_found.clone());

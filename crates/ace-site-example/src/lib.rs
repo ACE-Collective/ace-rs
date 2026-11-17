@@ -3,7 +3,10 @@
 //! type of its own, which that module's results add.
 //!
 //! The ticket lookup stands in for a site's lookup in its own ticket system. For an fqdn it adds
-//! an `example_ticket` observable; for a ticket it records the ticket and adds nothing. Its results
+//! an `example_ticket` observable; for a ticket it records the ticket and adds nothing. A ticket
+//! the system doesn't know is a lookup that failed: its result says so with
+//! `ResultEnvelope::with_error`, as any module's does (ace3's `Analysis.error`), which the alert
+//! view shows as an `error` badge with the reason. Its results
 //! have a view of the site's own, its analysis template (5.9), and a ticket has an observable action
 //! of the site's own that opens it, both named by the binary's list.
 //!
@@ -196,6 +199,22 @@ impl Lookup for TicketLookup {
     ) -> Result<Outcome<TicketAnalysis>, ModuleError> {
         let observable = ctx.observable();
         if observable.kind == TICKET {
+            // The lookup ran to its end and failed: a result with its reason, not a failed task.
+            // An `Err(ModuleError)` here would be a task that didn't finish, which leaves no
+            // result and is tried again only when it says its peer was unavailable.
+            if !observable.value.starts_with(&ctx.settings().prefix) {
+                let unknown = format!(
+                    "the ticket system has no ticket {}: its tickets start with {}",
+                    observable.value,
+                    ctx.settings().prefix
+                );
+                return Ok(Outcome::Done(
+                    ResultEnvelope::new(TicketAnalysis {
+                        tickets: Vec::new(),
+                    })
+                    .with_error(unknown),
+                ));
+            }
             return Ok(Outcome::Done(ResultEnvelope::new(TicketAnalysis {
                 tickets: vec![observable.value.clone()],
             })));

@@ -36,8 +36,17 @@
 {%- endif %}
 {%- when TreeLine::Result(node) %}
 <li class="result" id="{{ node.anchor }}" data-module="{{ node.module }}">
+{%- if let Some(error) = node.error %}
+<span class="failure" title="The analysis module failed: {{ error }}">error</span>
+{%- endif %}
 <a class="summary" href="{{ node.href }}" title="{{ node.module }}">{{ node.title }}</a>
+{%- if let Some(shown) = node.error_shown %} <span class="failure-reason">{{ shown }}</span>{% endif %}
 {%- for tag in node.tags %} <span class="tag">{{ tag }}</span>{% endfor %}
+{%- when TreeLine::Failed(node) %}
+<li class="result failed" data-module="{{ node.module }}">
+<span class="failure" title="The analysis module failed: {{ node.reason }}">error</span>
+<span class="module">{{ node.module }}</span> <span class="failure-reason">{{ node.shown }}</span>
+</li>
 {%- when TreeLine::Jump(anchor) %}
 <li class="jump"><a href="#{{ anchor }}">Jump To Analysis</a></li>
 {%- when TreeLine::Children %}

@@ -1,6 +1,6 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "f72f8946",
+  "ace3_commit": "37a765bf",
   "also_enabled": [],
   "analyses": [
     {
@@ -8,7 +8,6 @@
       "details": {
         "dom_snapshot": false,
         "dom_snapshot_source": null,
-        "error": "evalmachine.<anonymous>:4\nnotDefinedAnywhere(next);\n^\n\nReferenceError: notDefinedAnywhere is not defined\n    at evalmachine.<anonymous>:4:1\n    at Script.runInContext (node:vm:150:12)\n    at file:///opt/app/harness.js:914:12",
         "error_type": "runtime",
         "event_count": 3,
         "exit_code": 0,
@@ -22,6 +21,7 @@
         "webcrack_status": "applied"
       },
       "detections": [],
+      "error": "evalmachine.<anonymous>:4\nnotDefinedAnywhere(next);\n^\n\nReferenceError: notDefinedAnywhere is not defined\n    at evalmachine.<anonymous>:4:1\n    at Script.runInContext (node:vm:150:12)\n    at file:///opt/app/harness.js:914:12",
       "module_path": "saq.modules.file_analysis.js:JavaScriptDeobfuscationAnalysis",
       "observables": [
         {

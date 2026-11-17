@@ -13,11 +13,8 @@ use crate::envelope::AnalysisType;
 #[serde(deny_unknown_fields)]
 pub struct JavaClassDecompilerAnalysis {
     /// The Java source CFR wrote, by its path in the alert: `<file>-0-decompiled.java`. Empty
-    /// when CFR gave nothing.
+    /// when CFR gave nothing, and the result's `error` then says why (ace3's `Analysis.error`).
     pub decompiled_files: Vec<String>,
-    /// Why the runner stopped CFR, which ace3 only logs. Absent when it ran to its end.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub stopped: Option<String>,
 }
 
 impl AnalysisType for JavaClassDecompilerAnalysis {
@@ -33,10 +30,10 @@ pub struct UpxAnalysis {
     /// What `upx -d` wrote to stdout and stderr.
     pub stdout: Option<String>,
     pub stderr: Option<String>,
-    /// The unpacked file's name, `<name>.upx.exe`, set whatever upx's exit status.
+    /// The unpacked file's name, `<name>.upx.exe`, set whatever upx's exit status. When `upx -d`
+    /// gave nothing the result's `error` says why: `upx -d did not finish`, and here why the
+    /// runner stopped it.
     pub output_file: Option<String>,
-    /// Why `upx -d` gave nothing: `upx -d did not finish`, and here why the runner stopped it.
-    pub error: Option<String>,
 }
 
 impl AnalysisType for UpxAnalysis {
@@ -52,9 +49,8 @@ pub struct AutoItAnalysis {
     /// What `unautoit list` wrote to stdout and stderr.
     pub stdout: Option<String>,
     pub stderr: Option<String>,
-    /// Why there are no scripts: a run that didn't finish, and here why the runner stopped it.
-    pub error: Option<String>,
-    /// The names of the `.au3` scripts unautoit extracted.
+    /// The names of the `.au3` scripts unautoit extracted. When there are none because a run
+    /// didn't finish, the result's `error` says so, and here why the runner stopped it.
     pub scripts: Vec<String>,
     /// Where they went, by its path in the alert: `<file>.autoit`.
     pub output_dir: Option<String>,
@@ -73,9 +69,8 @@ pub struct De4dotAnalysis {
     /// What the cleaning run wrote to stdout and stderr, None when it wrote nothing.
     pub stdout: Option<String>,
     pub stderr: Option<String>,
-    /// `de4dot did not finish`, and here why the runner stopped it.
-    pub error: Option<String>,
-    /// Always true once the analysis exists, as ace3 sets it whether or not the run finished.
+    /// Always true once the analysis exists, as ace3 sets it whether or not the run finished. A
+    /// run that didn't finish, or wrote no file, is the result's `error`.
     pub deobfuscated: bool,
 }
 
@@ -89,8 +84,8 @@ impl AnalysisType for De4dotAnalysis {
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct IlspyAnalysis {
-    /// What ilspycmd wrote to stderr, or `ilspy did not finish`, and here why the runner stopped
-    /// it. None when it wrote nothing.
+    /// What ilspycmd wrote to stderr. None when it wrote nothing or was stopped. A run that
+    /// didn't finish, or wrote no IL, is the result's `error`.
     pub stderr: Option<String>,
     /// Its exit status, as ace3's sandbox gives it: 128 plus a signal that killed it. None when it
     /// was stopped.

@@ -1,15 +1,14 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "f72f8946",
+  "ace3_commit": "37a765bf",
   "also_enabled": [],
   "analyses": [
     {
       "class": "De4dotAnalysis",
       "details": {
         "deobfuscated": true,
-        "error": null,
         "stderr": null,
-        "stdout": "\nde4dotEx v3.10.0.0\n\nDetected Unknown Obfuscator (<root>/files/emitted_methods.exe)\nCleaning <root>/files/emitted_methods.exe\nRenaming all obfuscated symbols\nSaving <work>/data/var/tool_sandbox/cmd-fg568oyf/deobfuscated\n"
+        "stdout": "\nde4dotEx v3.10.0.0\n\nDetected Unknown Obfuscator (<root>/files/emitted_methods.exe)\nCleaning <root>/files/emitted_methods.exe\nRenaming all obfuscated symbols\nSaving <work>/data/var/tool_sandbox/cmd-6vpeuxk7/deobfuscated\n"
       },
       "detections": [],
       "module_path": "saq.modules.file_analysis.dotnet:De4dotAnalysis",

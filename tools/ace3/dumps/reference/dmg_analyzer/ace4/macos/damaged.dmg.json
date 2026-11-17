@@ -1,6 +1,6 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "f72f8946",
+  "ace3_commit": "37a765bf",
   "also_enabled": [],
   "analyses": [
     {
@@ -12,6 +12,7 @@
         "stdout": ""
       },
       "detections": [],
+      "error": "7z l exited with status 2: Open ERROR: Cannot open the file as [HFS] archive, so the image's file list may be incomplete",
       "module_path": "saq.modules.file_analysis.dmg:DMGAnalysis",
       "observables": [
         {

@@ -67,6 +67,22 @@ fn stopped_reason(output: &ToolOutput) -> &'static str {
     output.stopped().map_or("", |stop| stop.describe())
 }
 
+/// ace3's `tool_failure_reason` (`saq/sandbox/runner.py`): why a tool failed, for a result's error:
+/// how it exited, and the last line it wrote to stderr, which is where a tool says why it died.
+/// ace3's sandbox exits 128 + N for a command killed by signal N, up to SIGRTMAX.
+fn tool_failure_reason(tool: &str, returncode: i32, stderr: &str) -> String {
+    let mut reason = if 128 < returncode && returncode <= 128 + 64 {
+        format!("{tool} was killed by signal {}", returncode - 128)
+    } else {
+        format!("{tool} exited with status {returncode}")
+    };
+    if let Some(last) = ace_pycompat::pystr::splitlines(ace_pycompat::pystr::strip(stderr)).last() {
+        reason.push_str(": ");
+        reason.extend(last.chars().take(500));
+    }
+    reason
+}
+
 /// ace3's `fixed_directives`, which `copy_directives_to` leaves behind.
 const FIXED_DIRECTIVES: [&str; 1] = ["archive"];
 
@@ -92,4 +108,35 @@ fn item_list(items: &[String]) -> String {
         result.push_str(&format!(" + {} more", items.len() - 20));
     }
     result
+}
+
+#[cfg(test)]
+mod tests {
+    use super::tool_failure_reason;
+
+    #[test]
+    fn a_failed_tool_is_worded_as_ace3_words_it() {
+        assert_eq!(
+            tool_failure_reason("7z", 2, "\nERROR: bad\nArchives with Errors: 1\n\n"),
+            "7z exited with status 2: Archives with Errors: 1"
+        );
+        assert_eq!(
+            tool_failure_reason("ilspy", 1, " \n"),
+            "ilspy exited with status 1"
+        );
+        assert_eq!(
+            tool_failure_reason("cfr", 137, ""),
+            "cfr was killed by signal 9"
+        );
+        // past SIGRTMAX it's a status again
+        assert_eq!(
+            tool_failure_reason("cfr", 193, ""),
+            "cfr exited with status 193"
+        );
+        let long = "x".repeat(600);
+        assert_eq!(
+            tool_failure_reason("t", 1, &long).len(),
+            "t exited with status 1: ".len() + 500
+        );
+    }
 }

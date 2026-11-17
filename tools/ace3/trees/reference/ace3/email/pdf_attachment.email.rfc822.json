@@ -178,6 +178,7 @@
             "whois_data": null,
             "whois_raw_text": null
           },
+          "error": "rdap: Failed to make a GET request to https://rdap.verisign.com/com/v1/domain/gmail.com: nothing recorded for GET https://rdap.verisign.com/com/v1/domain/gmail.com; whois: no WHOIS in a replay",
           "tags": {}
         },
         "user_defined_tagging": {
@@ -286,6 +287,7 @@
             "whois_data": null,
             "whois_raw_text": null
           },
+          "error": "rdap: Failed to make a GET request to https://rdap.arin.net/registry/ip/207.211.31.120: nothing recorded for GET https://rdap.arin.net/registry/ip/207.211.31.120; whois: no WHOIS in a replay",
           "tags": {}
         },
         "user_defined_tagging": {
@@ -479,25 +481,194 @@
         "email": true
       }
     },
-    "file:1ed575c05b6ee9b8117187002330cb2bdbc1bbcc0dbc259ad6c69a2af1d98c2f": {
+    "file:253d56244d51877c3b62589b99046a742f6eae16fe0ce585606b344f96fa9b87": {
       "detections": {},
-      "directives": {},
+      "directives": {
+        "extract_urls": true
+      },
       "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
+        "pdf_analyzer": true
       },
       "paths": {
-        "spectre.pdf.exif/exiftool.out": {
-          "type=metadata.exif": true
+        "spectre.pdf.gs.pdf": {
+          "type=document.pdf": true,
+          "type=document.pdf.rendered": true
         }
       },
+      "redirection": "file:d1a3c8c49faea6321bd01e706e0957012c18a94e1a187f1a5477c0e82270dc51",
       "relationships": {
         "extracted_from file:d1a3c8c49faea6321bd01e706e0957012c18a94e1a187f1a5477c0e82270dc51": true
       },
       "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": true,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/pdf",
+            "type": "PDF document, version 1.7, 16 page(s)"
+          },
+          "summary": "File Type Analysis: PDF document, version 1.7, 16 page(s) (application/pdf) (pdf document)",
+          "tags": {}
+        },
         "observable_detection": {
           "details": {
             "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "pdf_link_text": {
+          "details": {
+            "links": [
+              {
+                "line": null,
+                "page": 12,
+                "text": null,
+                "url": "https://bugs.chromium.org/p/chromium/issues/detail?id=508166"
+              },
+              {
+                "line": null,
+                "page": 12,
+                "text": null,
+                "url": "https://bugs.chromium.org/p/chromium/issues/detail?id=508166"
+              },
+              {
+                "line": null,
+                "page": 13,
+                "text": null,
+                "url": "https://www.amd.com/en-us/press-releases/Pages/amd-takes-computing-2016dec13.aspx"
+              },
+              {
+                "line": null,
+                "page": 13,
+                "text": null,
+                "url": "https://www.amd.com/en-us/press-releases/Pages/amd-takes-computing-2016dec13.aspx"
+              },
+              {
+                "line": null,
+                "page": 13,
+                "text": null,
+                "url": "https://www.youtube.com/watch?v=uZRih6APtiQ"
+              },
+              {
+                "line": null,
+                "page": 13,
+                "text": null,
+                "url": "https://www.youtube.com/watch?v=uZRih6APtiQ"
+              },
+              {
+                "line": null,
+                "page": 13,
+                "text": null,
+                "url": "http://cr.yp.to/papers.html#cachetiming"
+              },
+              {
+                "line": null,
+                "page": 13,
+                "text": null,
+                "url": "http://cr.yp.to/papers.html#cachetiming"
+              },
+              {
+                "line": null,
+                "page": 13,
+                "text": null,
+                "url": "http://eprint.iacr.org/2017/968"
+              },
+              {
+                "line": null,
+                "page": 13,
+                "text": null,
+                "url": "http://eprint.iacr.org/2017/968"
+              },
+              {
+                "line": null,
+                "page": 13,
+                "text": null,
+                "url": "https://cyber.wtf/2017/07/28/negative-result-reading-kernel-memory-from-user-mode/"
+              },
+              {
+                "line": null,
+                "page": 13,
+                "text": null,
+                "url": "https://cyber.wtf/2017/07/28/negative-result-reading-kernel-memory-from-user-mode/"
+              },
+              {
+                "line": null,
+                "page": 13,
+                "text": null,
+                "url": "http://www.cs.vu.nl/~giuffrida/papers/anc-ndss-2017.pdf"
+              },
+              {
+                "line": null,
+                "page": 13,
+                "text": null,
+                "url": "http://www.cs.vu.nl/~giuffrida/papers/anc-ndss-2017.pdf"
+              },
+              {
+                "line": null,
+                "page": 13,
+                "text": null,
+                "url": "https://users.ece.cmu.edu/~yoonguk/papers/kim-isca14.pdf"
+              },
+              {
+                "line": null,
+                "page": 13,
+                "text": null,
+                "url": "https://users.ece.cmu.edu/~yoonguk/papers/kim-isca14.pdf"
+              },
+              {
+                "line": null,
+                "page": 13,
+                "text": null,
+                "url": "http://www.daemonology.net/papers/htt.pdf"
+              },
+              {
+                "line": null,
+                "page": 13,
+                "text": null,
+                "url": "http://www.daemonology.net/papers/htt.pdf"
+              },
+              {
+                "line": null,
+                "page": 14,
+                "text": null,
+                "url": "http://eprint.iacr.org/2015/905"
+              }
+            ]
+          },
+          "summary": "PDF Link Text Analysis: 19 links, 0 with text",
+          "tags": {}
+        },
+        "pdftotext": {
+          "details": {
+            "output_path": "e4051a7f94df4c7cb73292494e66f6a8f878174836b49765ef201cb665ceb277",
+            "stderr": "",
+            "stdout": ""
+          },
+          "summary": "PDF Text Analysis",
+          "tags": {}
+        },
+        "qrcode": {
+          "details": {
+            "extracted_text": null,
+            "inverted": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
           },
           "summary": null,
           "tags": {}
@@ -510,7 +681,9 @@
           "tags": {}
         }
       },
-      "tags": {}
+      "tags": {
+        "pdf": true
+      }
     },
     "file:2e0fe360df9179aea4c2792c019d2d30c6feeffb8073537f0069b68472c207f7": {
       "detections": {},
@@ -1541,210 +1714,6 @@
       },
       "tags": {}
     },
-    "file:8ec431d8ffbafd23efa1ccc47bb58c21dee4a38b7860b43cc527876fe747236b": {
-      "detections": {},
-      "directives": {
-        "extract_urls": true
-      },
-      "excluded_analysis": {
-        "pdf_analyzer": true
-      },
-      "paths": {
-        "spectre.pdf.gs.pdf": {
-          "type=document.pdf": true,
-          "type=document.pdf.rendered": true
-        }
-      },
-      "redirection": "file:d1a3c8c49faea6321bd01e706e0957012c18a94e1a187f1a5477c0e82270dc51",
-      "relationships": {
-        "extracted_from file:d1a3c8c49faea6321bd01e706e0957012c18a94e1a187f1a5477c0e82270dc51": true
-      },
-      "results": {
-        "file_type": {
-          "details": {
-            "is_email_file": false,
-            "is_jar_file": false,
-            "is_lnk_file": false,
-            "is_office_document": false,
-            "is_office_ext": false,
-            "is_ole_file": false,
-            "is_pdf_file": true,
-            "is_pe_file": false,
-            "is_rtf_file": false,
-            "is_x509": false,
-            "is_zip_file": false,
-            "mime": "application/pdf",
-            "type": "PDF document, version 1.7, 16 page(s)"
-          },
-          "summary": "File Type Analysis: PDF document, version 1.7, 16 page(s) (application/pdf) (pdf document)",
-          "tags": {}
-        },
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "pdf_link_text": {
-          "details": {
-            "links": [
-              {
-                "line": null,
-                "page": 12,
-                "text": null,
-                "url": "https://bugs.chromium.org/p/chromium/issues/detail?id=508166"
-              },
-              {
-                "line": null,
-                "page": 12,
-                "text": null,
-                "url": "https://bugs.chromium.org/p/chromium/issues/detail?id=508166"
-              },
-              {
-                "line": null,
-                "page": 13,
-                "text": null,
-                "url": "https://www.amd.com/en-us/press-releases/Pages/amd-takes-computing-2016dec13.aspx"
-              },
-              {
-                "line": null,
-                "page": 13,
-                "text": null,
-                "url": "https://www.amd.com/en-us/press-releases/Pages/amd-takes-computing-2016dec13.aspx"
-              },
-              {
-                "line": null,
-                "page": 13,
-                "text": null,
-                "url": "https://www.youtube.com/watch?v=uZRih6APtiQ"
-              },
-              {
-                "line": null,
-                "page": 13,
-                "text": null,
-                "url": "https://www.youtube.com/watch?v=uZRih6APtiQ"
-              },
-              {
-                "line": null,
-                "page": 13,
-                "text": null,
-                "url": "http://cr.yp.to/papers.html#cachetiming"
-              },
-              {
-                "line": null,
-                "page": 13,
-                "text": null,
-                "url": "http://cr.yp.to/papers.html#cachetiming"
-              },
-              {
-                "line": null,
-                "page": 13,
-                "text": null,
-                "url": "http://eprint.iacr.org/2017/968"
-              },
-              {
-                "line": null,
-                "page": 13,
-                "text": null,
-                "url": "http://eprint.iacr.org/2017/968"
-              },
-              {
-                "line": null,
-                "page": 13,
-                "text": null,
-                "url": "https://cyber.wtf/2017/07/28/negative-result-reading-kernel-memory-from-user-mode/"
-              },
-              {
-                "line": null,
-                "page": 13,
-                "text": null,
-                "url": "https://cyber.wtf/2017/07/28/negative-result-reading-kernel-memory-from-user-mode/"
-              },
-              {
-                "line": null,
-                "page": 13,
-                "text": null,
-                "url": "http://www.cs.vu.nl/~giuffrida/papers/anc-ndss-2017.pdf"
-              },
-              {
-                "line": null,
-                "page": 13,
-                "text": null,
-                "url": "http://www.cs.vu.nl/~giuffrida/papers/anc-ndss-2017.pdf"
-              },
-              {
-                "line": null,
-                "page": 13,
-                "text": null,
-                "url": "https://users.ece.cmu.edu/~yoonguk/papers/kim-isca14.pdf"
-              },
-              {
-                "line": null,
-                "page": 13,
-                "text": null,
-                "url": "https://users.ece.cmu.edu/~yoonguk/papers/kim-isca14.pdf"
-              },
-              {
-                "line": null,
-                "page": 13,
-                "text": null,
-                "url": "http://www.daemonology.net/papers/htt.pdf"
-              },
-              {
-                "line": null,
-                "page": 13,
-                "text": null,
-                "url": "http://www.daemonology.net/papers/htt.pdf"
-              },
-              {
-                "line": null,
-                "page": 14,
-                "text": null,
-                "url": "http://eprint.iacr.org/2015/905"
-              }
-            ]
-          },
-          "summary": "PDF Link Text Analysis: 19 links, 0 with text",
-          "tags": {}
-        },
-        "pdftotext": {
-          "details": {
-            "output_path": "e4051a7f94df4c7cb73292494e66f6a8f878174836b49765ef201cb665ceb277",
-            "stderr": "",
-            "stdout": ""
-          },
-          "summary": "PDF Text Analysis",
-          "tags": {}
-        },
-        "qrcode": {
-          "details": {
-            "extracted_text": null,
-            "inverted": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "url_extraction": {
-          "details": {
-            "urls": [],
-            "urls_grouped_by_domain": {}
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {
-        "pdf": true
-      }
-    },
     "file:a9824e9a088bd0e3b97aef48b8e1ea8a95389d5661abb030b4f73b1e55e03e9f": {
       "detections": {},
       "directives": {
@@ -1962,9 +1931,9 @@
               "ExifTool:ExifToolVersion": 13.25,
               "ExifTool:Warning": "FlateDecode Predictor 2 currently not supported",
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 14:52:52+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 14:52:52+00:00",
-              "File:FileModifyDate": "2026:11:16 14:52:52+00:00",
+              "File:FileAccessDate": "2026:11:16 19:40:54+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 19:40:54+00:00",
+              "File:FileModifyDate": "2026:11:16 19:40:54+00:00",
               "File:FileName": "spectre.pdf",
               "File:FilePermissions": 100664,
               "File:FileSize": 131872,
@@ -2196,9 +2165,9 @@
           "type=document.pdf.text": true
         }
       },
-      "redirection": "file:8ec431d8ffbafd23efa1ccc47bb58c21dee4a38b7860b43cc527876fe747236b",
+      "redirection": "file:253d56244d51877c3b62589b99046a742f6eae16fe0ce585606b344f96fa9b87",
       "relationships": {
-        "extracted_from file:8ec431d8ffbafd23efa1ccc47bb58c21dee4a38b7860b43cc527876fe747236b": true
+        "extracted_from file:253d56244d51877c3b62589b99046a742f6eae16fe0ce585606b344f96fa9b87": true
       },
       "results": {
         "file_type": {
@@ -2220,6 +2189,39 @@
           "summary": "File Type Analysis: Unicode text, UTF-8 text, with very long lines (319) (text/plain)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:e78e7b94128796dd83610e2e51c4470325b33cb38c01f883820d7d691e25b33d": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "spectre.pdf.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:d1a3c8c49faea6321bd01e706e0957012c18a94e1a187f1a5477c0e82270dc51": true
+      },
+      "results": {
         "observable_detection": {
           "details": {
             "for_detection": false
@@ -2321,6 +2323,7 @@
             "whois_data": null,
             "whois_raw_text": null
           },
+          "error": "rdap: Failed to make a GET request to https://rdap.publicinterestregistry.org/rdap/domain/chromium.org: nothing recorded for GET https://rdap.publicinterestregistry.org/rdap/domain/chromium.org; whois: no WHOIS in a replay",
           "tags": {}
         },
         "user_defined_tagging": {
@@ -2419,6 +2422,7 @@
             "whois_data": null,
             "whois_raw_text": null
           },
+          "error": "rdap: Failed to make a GET request to https://rdap.verisign.com/com/v1/domain/company.com: nothing recorded for GET https://rdap.verisign.com/com/v1/domain/company.com; whois: no WHOIS in a replay",
           "tags": {}
         },
         "user_defined_tagging": {
@@ -2519,6 +2523,7 @@
             "whois_data": null,
             "whois_raw_text": null
           },
+          "error": "rdap: Failed to make a GET request to https://rdap.tonicregistry.to/rdap/domain/yp.to: nothing recorded for GET https://rdap.tonicregistry.to/rdap/domain/yp.to; whois: no WHOIS in a replay",
           "tags": {}
         },
         "user_defined_tagging": {
@@ -2617,6 +2622,7 @@
             "whois_data": null,
             "whois_raw_text": null
           },
+          "error": "rdap: Failed to make a GET request to https://rdap.identitydigital.services/rdap/domain/cyber.wtf: nothing recorded for GET https://rdap.identitydigital.services/rdap/domain/cyber.wtf; whois: no WHOIS in a replay",
           "tags": {}
         },
         "user_defined_tagging": {
@@ -2715,6 +2721,7 @@
             "whois_data": null,
             "whois_raw_text": null
           },
+          "error": "rdap: Failed to make a GET request to https://rdap.publicinterestregistry.org/rdap/domain/iacr.org: nothing recorded for GET https://rdap.publicinterestregistry.org/rdap/domain/iacr.org; whois: no WHOIS in a replay",
           "tags": {}
         },
         "user_defined_tagging": {
@@ -3044,6 +3051,7 @@
             "whois_data": null,
             "whois_raw_text": null
           },
+          "error": "rdap: Failed to make a GET request to https://rdap.verisign.com/com/v1/domain/gmail.com: nothing recorded for GET https://rdap.verisign.com/com/v1/domain/gmail.com; whois: no WHOIS in a replay",
           "tags": {}
         },
         "user_defined_tagging": {
@@ -3140,6 +3148,7 @@
             "whois_data": null,
             "whois_raw_text": null
           },
+          "error": "rdap: no RDAP service for TLD: TLD \"edu\" has no known RDAP endpoint and is unsupported. It may be supported by overrides, try using whoisit.bootstrap(overrides=True); whois: no WHOIS in a replay",
           "tags": {}
         },
         "user_defined_tagging": {
@@ -3238,6 +3247,7 @@
             "whois_data": null,
             "whois_raw_text": null
           },
+          "error": "rdap: Failed to make a GET request to https://rdap.verisign.com/com/v1/domain/amd.com: nothing recorded for GET https://rdap.verisign.com/com/v1/domain/amd.com; whois: no WHOIS in a replay",
           "tags": {}
         },
         "user_defined_tagging": {
@@ -3336,6 +3346,7 @@
             "whois_data": null,
             "whois_raw_text": null
           },
+          "error": "rdap: Failed to make a GET request to https://rdap.publicinterestregistry.org/rdap/domain/ams.org: nothing recorded for GET https://rdap.publicinterestregistry.org/rdap/domain/ams.org; whois: no WHOIS in a replay",
           "tags": {}
         },
         "user_defined_tagging": {
@@ -3434,6 +3445,7 @@
             "whois_data": null,
             "whois_raw_text": null
           },
+          "error": "rdap: Failed to make a GET request to https://rdap.sidn.nl/domain/vu.nl: nothing recorded for GET https://rdap.sidn.nl/domain/vu.nl; whois: no WHOIS in a replay",
           "tags": {}
         },
         "user_defined_tagging": {
@@ -3532,6 +3544,7 @@
             "whois_data": null,
             "whois_raw_text": null
           },
+          "error": "rdap: Failed to make a GET request to https://rdap.verisign.com/net/v1/domain/daemonology.net: nothing recorded for GET https://rdap.verisign.com/net/v1/domain/daemonology.net; whois: no WHOIS in a replay",
           "tags": {}
         },
         "user_defined_tagging": {
@@ -3630,6 +3643,7 @@
             "whois_data": null,
             "whois_raw_text": null
           },
+          "error": "rdap: Failed to make a GET request to https://rdap.verisign.com/com/v1/domain/youtube.com: nothing recorded for GET https://rdap.verisign.com/com/v1/domain/youtube.com; whois: no WHOIS in a replay",
           "tags": {}
         },
         "user_defined_tagging": {

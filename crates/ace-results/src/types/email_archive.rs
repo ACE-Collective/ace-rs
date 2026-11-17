@@ -75,10 +75,8 @@ impl AnalysisType for UrlEmailPivotAnalysis {
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct MessageIdAnalysis {
-    /// ace3 sets this only when adding the file fails after the analysis exists, which ace4's
-    /// result can't do.
-    pub error: Option<String>,
-    /// ace3 has this key and never sets it.
+    /// ace3 has this key and never sets it. ace3 marks the analysis failed (`Analysis.error`) only
+    /// when adding the file fails after the analysis exists, which ace4's result can't do.
     pub extracted_email: Option<String>,
 }
 

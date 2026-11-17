@@ -13320,6 +13320,7 @@ fn graph_observable(id: i64, kind: &str, value: &str) -> AlertObservable {
         files: Vec::new(),
         relationships: Vec::new(),
         results: Vec::new(),
+        failed: Some(Vec::new()),
         detections: Vec::new(),
     }
 }
@@ -13331,6 +13332,7 @@ fn graph_result(id: i64, module: &str) -> ModuleResult {
         analysis_type: module.to_owned(),
         schema_version: 1,
         summary: None,
+        error: None,
         tags: Vec::new(),
         details: serde_json::json!({}),
         created_at: chrono::DateTime::from_timestamp(1_793_000_000, 0).expect("a time"),

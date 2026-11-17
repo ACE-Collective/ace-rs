@@ -984,7 +984,7 @@ impl Api {
         } else {
             Vec::new()
         };
-        let (dependency_results, observables_below) = self.tree_reads(&task, runs_last).await?;
+        let (dependencies, observables_below) = self.tree_reads(&task, runs_last).await?;
         let (added_by, related_tags) = self.lineage_reads(&task).await?;
         let tree = self.tree_read(&task).await?;
         let scan = self.task_scan(&task).await?;
@@ -999,7 +999,7 @@ impl Api {
         leased.emails_pending = emails_pending;
         leased.yara_rules_below = yara_rules_below;
         leased.lists = lists;
-        leased.dependency_results = dependency_results;
+        (leased.dependency_results, leased.dependency_errors) = by_module(dependencies);
         leased.observables_below = observables_below;
         leased.scan = scan;
         Ok(Some(leased))
@@ -1012,7 +1012,7 @@ impl Api {
         &self,
         task: &Task,
         runs_last: bool,
-    ) -> Result<(BTreeMap<String, Value>, Vec<ObservableRef>), Failure> {
+    ) -> Result<(Vec<tree::DependencyResult>, Vec<ObservableRef>), Failure> {
         let catalog = self.inner.orchestrator.catalog();
         let Some(manifest) = catalog.get(&task.module) else {
             return Ok(Default::default());
@@ -1029,7 +1029,7 @@ impl Api {
         } else {
             Vec::new()
         };
-        Ok((results.into_iter().collect(), below))
+        Ok((results, below))
     }
 
     /// What a task reads of where its observable came from, for a module that reads it: the modules
@@ -1172,6 +1172,7 @@ impl Api {
             yara_rules_below: Vec::new(),
             lists: Vec::new(),
             dependency_results: Default::default(),
+            dependency_errors: Default::default(),
             observables_below: Vec::new(),
             added_by: Vec::new(),
             related_tags: Vec::new(),
@@ -1312,6 +1313,14 @@ impl Api {
         }
         let mut result: ResultEnvelope<Value> = serde_json::from_value(result)
             .map_err(|e| Failure::BadRequest(format!("the result doesn't read: {e}")))?;
+        if let Some(error) = &result.error {
+            // at INFO, as ace3 logs a failure a module reports itself: the module expected it, so
+            // it is no failed task and leaves no crash to replay
+            tracing::info!(
+                task = %task.id, root = %task.root, module = %task.module,
+                "the module said it failed: {error}"
+            );
+        }
         let bucket = &self.inner.bucket;
         let mut files = Vec::new();
         // what the result stores for its root without adding it (`ResultEnvelope::stored`) must
@@ -2099,6 +2108,22 @@ async fn end_in(
     Ok(StatusCode::NO_CONTENT)
 }
 
+/// A task's dependency results as the lease carries them: each one's details by module, and the
+/// reasons of those whose modules said they failed.
+fn by_module(
+    results: Vec<tree::DependencyResult>,
+) -> (BTreeMap<String, Value>, BTreeMap<String, String>) {
+    let mut details = BTreeMap::new();
+    let mut errors = BTreeMap::new();
+    for result in results {
+        if let Some(error) = result.error {
+            errors.insert(result.module.clone(), error);
+        }
+        details.insert(result.module, result.details);
+    }
+    (details, errors)
+}
+
 /// A task's end can quote a hostile file, and Postgres refuses a NUL in text and in JSONB. Without
 /// this one NUL in, say, an email's subject would stop its result landing on every attempt. Bytes
 /// that matter are base64 in a result (ace3 #999), so nothing is lost but the character itself.
@@ -2185,12 +2210,12 @@ async fn replay(
         .catalog()
         .get(&task.module)
         .is_some_and(|manifest| manifest.runs_last);
-    let (dependency_results, observables_below) = api.tree_reads(&task, runs_last).await?;
+    let (dependencies, observables_below) = api.tree_reads(&task, runs_last).await?;
     let (added_by, related_tags) = api.lineage_reads(&task).await?;
     let tree = api.tree_read(&task).await?;
     let mut leased = api.wire_task(task, file, redirection);
     leased.tree = tree;
-    leased.dependency_results = dependency_results;
+    (leased.dependency_results, leased.dependency_errors) = by_module(dependencies);
     leased.observables_below = observables_below;
     leased.added_by = added_by;
     leased.related_tags = related_tags;

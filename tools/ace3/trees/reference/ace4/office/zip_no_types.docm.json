@@ -155,8 +155,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files/zip_no_types.docm.extracted/word",
-              "File:FileAccessDate": "2026:11:16 14:16:33+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 14:16:32+00:00",
+              "File:FileAccessDate": "2026:11:16 20:24:44+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 20:24:44+00:00",
               "File:FileModifyDate": "2026:01:01 00:00:00+00:00",
               "File:FileName": "vbaProject.bin",
               "File:FilePermissions": 100664,
@@ -349,8 +349,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 14:16:31+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 14:16:31+00:00",
+              "File:FileAccessDate": "2026:11:16 20:24:43+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 20:24:43+00:00",
               "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "zip_no_types.docm",
               "File:FilePermissions": 100644,
@@ -414,6 +414,7 @@
             "macros": [],
             "type": null
           },
+          "error": "olevba failed: \"There is no item named '[Content_Types].xml' in the archive\"",
           "summary": null,
           "tags": {}
         },
@@ -615,40 +616,7 @@
       },
       "tags": {}
     },
-    "file:9ab563d22776dd5fef10f885812af3d46cb56ba57745d209e2f9e41460267b19": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "zip_no_types.docm.extracted/word/vbaProject.bin.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:170b804293599496c29d816cfe408adc5a99e767eb930b0c0cf9e7db62436abe": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
-    "file:c2f2fd44f281218e5524e595229e34a8e655ff9a3e0e35745b50b405a506ef63": {
+    "file:9d5f3953b8a035ae450fc50ef2c9b3a11850595c8c679951961dc8dcfd199189": {
       "detections": {},
       "directives": {},
       "excluded_analysis": {
@@ -804,6 +772,39 @@
         "xml_plain_text_analyzer": {
           "details": {
             "xml_plain_text": null
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:dfa5b079fc0a348f868d70b5137f897e863248387def83f25b7d45c547e8505e": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "zip_no_types.docm.extracted/word/vbaProject.bin.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:170b804293599496c29d816cfe408adc5a99e767eb930b0c0cf9e7db62436abe": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}

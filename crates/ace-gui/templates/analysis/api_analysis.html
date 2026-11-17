@@ -1,14 +1,12 @@
-{#- splunk_api_analysis (src/analysis.rs), from ace3's analysis/api_analysis.html: the question, an error,
-    the query, the rows and the raw details. ace3's inline style block is in the stylesheet, and its jQuery
+{#- splunk_api_analysis (src/analysis.rs), from ace3's analysis/api_analysis.html: the question, the query,
+    the rows and the raw details. A failed search's error is the result's, which the page shows above
+    this, as ace3's does since it moved `query_error` to `Analysis.error`. ace3's inline style block is in the stylesheet, and its jQuery
     sorting and resizing of columns isn't here. -#}
 {%- if analysis.question.is_some() || analysis.query_summary.is_some() %}
 <p class="muted">
 {%- if let Some(question) = analysis.question %}<strong>{{ question }}</strong><br>{% endif %}
 {%- if let Some(summary) = analysis.query_summary %}{{ summary }}{% endif %}
 </p>
-{%- endif %}
-{%- if let Some(error) = analysis.query_error %}
-<p class="error" role="alert"><strong>Query Error:</strong> {{ error }}</p>
 {%- endif %}
 {%- if let Some(query) = self.query() %}
 <details class="block">

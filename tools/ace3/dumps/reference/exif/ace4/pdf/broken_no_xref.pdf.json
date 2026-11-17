@@ -1,6 +1,6 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "f72f8946",
+  "ace3_commit": "37a765bf",
   "also_enabled": [
     "file_type"
   ],
@@ -8,14 +8,13 @@
     {
       "class": "ExifAnalysis",
       "details": {
-        "error": null,
         "exifdata": {
           "ExifTool:ExifToolVersion": 13.25,
           "ExifTool:Warning": "Invalid xref table",
           "File:Directory": "<root>/files",
-          "File:FileAccessDate": "2026:11:10 11:01:12+00:00",
-          "File:FileInodeChangeDate": "2026:11:10 11:01:12+00:00",
-          "File:FileModifyDate": "2026:11:07 04:47:50+00:00",
+          "File:FileAccessDate": "2026:11:16 22:00:06+00:00",
+          "File:FileInodeChangeDate": "2026:11:16 22:00:06+00:00",
+          "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
           "File:FileName": "broken_no_xref.pdf",
           "File:FilePermissions": 100644,
           "File:FileSize": 1014,
@@ -53,7 +52,7 @@
           "size": 674,
           "tags": [],
           "type": "file",
-          "value": "2078aee1f3bcd8bc77faeedb4ec88463d484b114b2464b92f7eaf607720a4690",
+          "value": "86f817886c53c2c7e6aa238099b375501564f228ce9847ce68b1c1c3e4c81d28",
           "yara_meta": [
             "type=metadata.exif"
           ]

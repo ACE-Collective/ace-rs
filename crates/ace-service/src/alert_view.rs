@@ -224,7 +224,7 @@ impl Service {
                 Box::pin(async move {
                     let alert = alert_in(tx, id).await?;
                     let (observables, truncated) =
-                        observables_in(tx, id, None, MAX_TREE_OBSERVABLES).await?;
+                        observables_in(tx, id, None, MAX_TREE_OBSERVABLES, true).await?;
                     let additions = sqlx::query_as!(
                         Addition,
                         "SELECT result_id AS result, observable_id AS observable

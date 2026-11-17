@@ -203,7 +203,7 @@ impl Parser for ExifAnalyzer {
             .timeout(Duration::from_secs(ctx.settings().timeout));
         let output = ctx.run_tool(run)?;
         let Some(returncode) = output.returncode() else {
-            result.details.error = Some("exiftool did not finish".to_owned());
+            result.error = Some("exiftool did not finish".to_owned());
             result.summary = Some(format!("{DISPLAY_NAME}: ⚠ exiftool did not finish"));
             return Ok(Outcome::Done(result));
         };
@@ -211,7 +211,7 @@ impl Parser for ExifAnalyzer {
             let reason = failure_reason(&output, returncode);
             tracing::info!(%reason, "exif data extraction failed");
             result.summary = Some(format!("{DISPLAY_NAME}: ⚠ {reason}"));
-            result.details.error = Some(reason);
+            result.error = Some(reason);
             return Ok(Outcome::Done(result));
         }
         let stdout = output.stdout_text();
@@ -220,7 +220,7 @@ impl Parser for ExifAnalyzer {
             Err(e) => {
                 let reason = format!("unreadable exiftool output: {e}");
                 result.summary = Some(format!("{DISPLAY_NAME}: ⚠ {reason}"));
-                result.details.error = Some(reason);
+                result.error = Some(reason);
                 return Ok(Outcome::Done(result));
             }
         };

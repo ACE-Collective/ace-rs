@@ -74,7 +74,14 @@ pub async fn resolve(
                     ResponseCode::NoError => return Ok(read_answer(name, kind, response)),
                     ResponseCode::NXDomain => return Ok(Reply::NxDomain),
                     code => {
-                        failures.push(format!("Server Do53:{server} answered {code}"));
+                        // as dnspython words it in NoNameservers, which is the module's error:
+                        // `Server Do53:<address>@<port> answered SERVFAIL`
+                        failures.push(format!(
+                            "Server Do53:{}@{} answered {}",
+                            server.ip(),
+                            server.port(),
+                            rcode_text(code)
+                        ));
                         alive.remove(index);
                         continue;
                     }
@@ -111,6 +118,25 @@ pub async fn resolve(
         ));
     }
     Err(ResolveError::NoNameservers(asked, failures.join("; ")))
+}
+
+/// dnspython's `dns.rcode.to_text`: the code's mnemonic, or its number when it has none.
+fn rcode_text(code: ResponseCode) -> String {
+    match u16::from(code) {
+        1 => "FORMERR".to_owned(),
+        2 => "SERVFAIL".to_owned(),
+        3 => "NXDOMAIN".to_owned(),
+        4 => "NOTIMP".to_owned(),
+        5 => "REFUSED".to_owned(),
+        6 => "YXDOMAIN".to_owned(),
+        7 => "YXRRSET".to_owned(),
+        8 => "NXRRSET".to_owned(),
+        9 => "NOTAUTH".to_owned(),
+        10 => "NOTZONE".to_owned(),
+        11 => "DSOTYPENI".to_owned(),
+        16 => "BADVERS".to_owned(),
+        other => other.to_string(),
+    }
 }
 
 enum Exchange {

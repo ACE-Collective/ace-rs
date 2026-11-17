@@ -438,3 +438,113 @@ async fn a_nul_from_a_hostile_file_doesnt_stop_a_task_ending() {
         .expect("the delay lands");
     assert_eq!(task_of(&core, root, "archive").await.0, "delayed");
 }
+
+/// A module that ran to its end and says it failed (ace3's `Analysis.error`): its result lands with
+/// the reason, its task is done and not failed, and the root's normal form holds the reason. A
+/// failure with no reason is no result: it's refused at `/error` and its task fails, as ace3's
+/// module would raise setting an empty one.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_result_that_says_it_failed_lands_with_its_reason_and_its_task_is_done() {
+    let core = Core::start(
+        vec![ace_mod_archive::MANIFEST],
+        &["archive"],
+        Duration::from_secs(30),
+    )
+    .await;
+    let (root, _, zip) = core
+        .root_with_file("file", "ace3/archive/test.zip", "test.zip")
+        .await;
+    let client = LeaseClient::new(&core.url, TOKEN, "checker").expect("a client");
+    let task = client
+        .lease(&[], Duration::ZERO)
+        .await
+        .expect("leases")
+        .expect("the archive task");
+    let failed = json!({
+        "analysis_type": "archive_analysis",
+        "schema_version": 1,
+        "details": {"file_count": 2, "extracted_files": ["a.txt"]},
+        "summary": "Archive Analysis: extracted 1 of 2 files: (a.txt) (the extractor did not finish)",
+        "error": "the extractor did not finish",
+        "observables": [{"type": "fqdn", "value": "kept.example.com"}],
+    });
+    client
+        .end(
+            task.id,
+            &TaskEnd::Done {
+                result: serde_json::from_value(failed).expect("an envelope"),
+                writes: Vec::new(),
+            },
+        )
+        .await
+        .expect("a failed result lands");
+    // what it had before it failed is kept: the result, and the observable it added
+    assert_eq!(written(&core, root).await, (1, 2, 1, 1));
+    let (state, task_error) = task_of(&core, root, "archive").await;
+    assert_eq!((state.as_str(), task_error), ("done", None));
+    let stored: Option<String> =
+        sqlx::query_scalar("SELECT error FROM analysis.results WHERE root_id = $1")
+            .bind(root)
+            .fetch_one(core.test_db.db().pool())
+            .await
+            .expect("the result");
+    assert_eq!(stored.as_deref(), Some("the extractor did not finish"));
+    let form = ace_core::normal::normal_form(core.test_db.db().pool(), root)
+        .await
+        .expect("reads")
+        .expect("the root");
+    let results: Vec<&serde_json::Value> = form["observables"]
+        .as_object()
+        .expect("observables")
+        .values()
+        .filter_map(|o| o["results"].get("archive"))
+        .collect();
+    assert_eq!(results.len(), 1);
+    assert_eq!(results[0]["error"], json!("the extractor did not finish"));
+
+    // a failure with no reason
+    let (root, _, _) = core
+        .root_with_file("file", "ace3/archive/test.zip", "test.zip")
+        .await;
+    let task = client
+        .lease(&[], Duration::ZERO)
+        .await
+        .expect("leases")
+        .expect("the second archive task");
+    let blank = json!({
+        "analysis_type": "archive_analysis",
+        "schema_version": 1,
+        "details": {"file_count": 0, "extracted_files": []},
+        "error": "  ",
+    });
+    let refused = client
+        .end(
+            task.id,
+            &TaskEnd::Done {
+                result: serde_json::from_value(blank).expect("an envelope"),
+                writes: Vec::new(),
+            },
+        )
+        .await;
+    let Err(ClientError::Api { status, error }) = refused else {
+        panic!("expected a refusal, got {refused:?}");
+    };
+    assert_eq!(status, 422);
+    assert!(error.fields.iter().any(|f| f.path == "/error"), "{error:?}");
+    assert_eq!(
+        written(&core, root).await,
+        (0, 1, 1, 1),
+        "nothing was written"
+    );
+    let (state, row) = task_of(&core, root, "archive").await;
+    assert_eq!(state, "failed");
+    assert!(
+        row.as_deref().is_some_and(|row| row.contains("/error")),
+        "{row:?}"
+    );
+    core.bucket
+        .store()
+        .delete(ace_core::bucket::ALERT_FILES, &zip)
+        .await
+        .expect("tidies the bucket");
+}

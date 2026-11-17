@@ -11,11 +11,10 @@ use crate::envelope::AnalysisType;
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct LnkParseAnalysis {
-    /// The exception LnkParse3 raised, as Python's `str()` gives it.
-    pub error: Option<String>,
     /// LnkParse3's `get_json(get_all=True)`: the header, the link target's shell items, the link
     /// info, the string data and the extra blocks, with datetimes as ace3 writes them. `{}` when
-    /// the parse raised.
+    /// the parse raised, and the result's `error` is then the exception, as Python's `str()` gives
+    /// it (ace3's `Analysis.error`).
     pub info: serde_json::Value,
 }
 
@@ -32,12 +31,9 @@ mod tests {
 
     #[test]
     fn details_read_as_written_and_refuse_an_unknown_field() {
-        let details = json!({"error": null, "info": {"data": {"icon_location": "x"}}});
+        let details = json!({"info": {"data": {"icon_location": "x"}}});
         let read: LnkParseAnalysis = serde_json::from_value(details.clone()).expect("reads");
         assert_eq!(serde_json::to_value(&read).expect("writes"), details);
-        assert!(
-            serde_json::from_value::<LnkParseAnalysis>(json!({"error": null, "info": {}, "x": 1}))
-                .is_err()
-        );
+        assert!(serde_json::from_value::<LnkParseAnalysis>(json!({"info": {}, "x": 1})).is_err());
     }
 }

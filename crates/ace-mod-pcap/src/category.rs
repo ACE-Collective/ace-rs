@@ -142,12 +142,12 @@ impl<C: Category> Parser for PcapCategoryAnalyzer<C> {
         if !file.local_path.is_file() || !is_pcap_file(&file.local_path) {
             return Ok(Outcome::Skipped("not a pcap or pcapng file".to_owned()));
         }
-        // pcap_analyzer produced nothing, or the dissection failed and its error is on its result
+        // pcap_analyzer produced nothing, or the dissection failed and its result says so
         let Some(PcapAnalysis {
-            error: None,
-            index: Some(index),
-            ..
-        }) = ctx.dependency_result::<PcapAnalysis>()?
+            index: Some(index), ..
+        }) = ctx
+            .dependency_result::<PcapAnalysis>()?
+            .filter(|_| ctx.dependency_error::<PcapAnalysis>().is_none())
         else {
             return Ok(Outcome::Skipped(
                 "pcap_analyzer has no index of the capture".to_owned(),

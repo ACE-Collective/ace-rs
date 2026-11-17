@@ -154,8 +154,8 @@ fn sha256_hex(text: &str) -> String {
     digest.iter().map(|b| format!("{b:02x}")).collect()
 }
 
-/// Why a document's extraction stopped: what Python raises, which ace3 logs and goes on past,
-/// or a failure of the task itself.
+/// Why a document's extraction stopped: what Python raises, as its `str(e) or type(e).__name__`,
+/// which ace3 logs, keeps as the analysis's error and goes on past, or a failure of the task itself.
 enum Failure {
     Python(String),
     Task(ModuleError),
@@ -301,7 +301,7 @@ impl Run<'_> {
             self.analysis.script_count += 1;
             let is_url = Url::new(source)
                 .is_url()
-                .map_err(|e| Failure::Python(e.to_string()))?;
+                .map_err(|e| Failure::Python(e.str_or_name()))?;
             let kind = if is_url {
                 ObservableKind::Url
             } else {
@@ -551,15 +551,19 @@ impl Parser for HtmlJavaScriptExtractor {
             urls: 0,
             uri_paths: 0,
         };
+        // the last document whose extraction raised: the result's error, ace3's `Analysis.error`
+        let mut failure = None;
         for document in &documents {
             if document.is_empty() {
                 continue;
             }
             match run.extract(document) {
                 Ok(()) => {}
-                // what Python raises is logged and the next document goes on
+                // what Python raises is logged and the next document goes on; what was extracted
+                // from the other documents is kept
                 Err(Failure::Python(message)) => {
                     tracing::warn!("failed to extract JavaScript from {name}: {message}");
+                    failure = Some(format!("failed to extract JavaScript: {message}"));
                 }
                 Err(Failure::Task(error)) => return Err(error),
             }
@@ -575,6 +579,7 @@ impl Parser for HtmlJavaScriptExtractor {
         analysis.dom_snapshots = sidecars.into_files();
         let mut result = ResultEnvelope::new(analysis);
         result.summary = summary;
+        result.error = failure;
         result.files = files;
         result.observables = observables;
         Ok(Outcome::Done(result))

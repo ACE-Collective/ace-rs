@@ -610,6 +610,7 @@ async fn the_entry_names_where_the_archiver_archived_the_email() {
             module: "email_archiver".to_owned(),
             analysis_type: "email_archive_results".to_owned(),
             tags: Vec::new(),
+            error: None,
             added: Vec::new(),
             details: None,
         }],
@@ -849,6 +850,7 @@ async fn emailtree_view(dump: &Dump, this: usize, leave_out: &str) -> ace_sdk::t
             module: EmailConversationFrequencyAnalysis::MODULE.to_owned(),
             analysis_type: EmailConversationFrequencyAnalysis::NAME.to_owned(),
             tags: Vec::new(),
+            error: None,
             added: Vec::new(),
             details: None,
         });

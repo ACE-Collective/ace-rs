@@ -298,6 +298,39 @@
       },
       "tags": {}
     },
+    "file:0e54531d188f75844abf1afc6b6a487c91e6735d626dc708fc59b72eb38edce0": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "invoice.xls.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:8ff8e52eb1b97ac21b0b4348d81f143f6f25d0ea817d7748b7f8ddae27637857": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:18875c0447d54bc222ec7d10817a98d1f56efffa6a3760a5f81d75f2755a4fc7": {
       "detections": {},
       "directives": {
@@ -445,7 +478,7 @@
       },
       "tags": {}
     },
-    "file:1e7bd32ef252ee5f49a1d2a9eed7f68c71e34115ecfdfdd30b295ac45f86f497": {
+    "file:1d2a59b7f60b16398747445261acfecee0c29b6a347181d907f22799da8893e8": {
       "detections": {},
       "directives": {},
       "excluded_analysis": {
@@ -588,39 +621,6 @@
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
-    "file:3c1beac39a9a745d3abc500ce02595dba53e01186e51ce0f0d48ff28c74f127e": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "invoice.xls.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:8ff8e52eb1b97ac21b0b4348d81f143f6f25d0ea817d7748b7f8ddae27637857": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
           },
           "summary": null,
           "tags": {}
@@ -1275,9 +1275,9 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 13:44:20+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 13:44:20+00:00",
-              "File:FileModifyDate": "2026:11:16 13:44:20+00:00",
+              "File:FileAccessDate": "2026:11:16 19:50:01+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 19:50:01+00:00",
+              "File:FileModifyDate": "2026:11:16 19:50:01+00:00",
               "File:FileName": "invoice.xls",
               "File:FilePermissions": 100664,
               "File:FileSize": 69125,
@@ -1538,9 +1538,9 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 13:44:20+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 13:44:20+00:00",
-              "File:FileModifyDate": "2026:11:16 13:44:20+00:00",
+              "File:FileAccessDate": "2026:11:16 19:50:04+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 19:50:04+00:00",
+              "File:FileModifyDate": "2026:11:16 19:50:04+00:00",
               "File:FileName": "invoice.xls.decrypted",
               "File:FilePermissions": 100666,
               "File:FileSize": 69125,
@@ -1871,6 +1871,7 @@
             "whois_data": null,
             "whois_raw_text": null
           },
+          "error": "rdap: Failed to make a GET request to https://rdap.radix.host/rdap/domain/component.pw: nothing recorded for GET https://rdap.radix.host/rdap/domain/component.pw; whois: no WHOIS in a replay",
           "tags": {}
         },
         "user_defined_tagging": {

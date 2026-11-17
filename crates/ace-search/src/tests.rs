@@ -1884,14 +1884,7 @@ async fn documents_cases() {
     .await;
     // test_ocr_extractor_reads_file_observable: the file its yara_meta marks
     let scan = insert_added_file(db, bucket, root, None, "scan.png", b"scan bytes", &[]).await;
-    let ocr = insert_result(
-        db,
-        root,
-        scan,
-        "ocr_analysis",
-        json!({"error": null, "ocr": true}),
-    )
-    .await;
+    let ocr = insert_result(db, root, scan, "ocr_analysis", json!({"ocr": true})).await;
     insert_added_file(
         db,
         bucket,

@@ -290,10 +290,10 @@
           "type=document.pdf.text": true
         }
       },
-      "redirection": "file:8bce365bc4232852d66eed06df9189d1fb5ed93077d9920d5ca380adb9a22db0",
+      "redirection": "file:28a6d1bd4926ccad2480e5a5324beac888d3e175e8b0b6936a192d42b2cbf336",
       "relationships": {
-        "extracted_from file:6a1d3505f33e73d1536fd9acfe2b1103f5d73b7ee1a7b3f81bb7643aa71171a6": true,
-        "extracted_from file:8bce365bc4232852d66eed06df9189d1fb5ed93077d9920d5ca380adb9a22db0": true
+        "extracted_from file:28a6d1bd4926ccad2480e5a5324beac888d3e175e8b0b6936a192d42b2cbf336": true,
+        "extracted_from file:6a1d3505f33e73d1536fd9acfe2b1103f5d73b7ee1a7b3f81bb7643aa71171a6": true
       },
       "results": {
         "file_type": {
@@ -521,6 +521,102 @@
         "email": true
       }
     },
+    "file:28a6d1bd4926ccad2480e5a5324beac888d3e175e8b0b6936a192d42b2cbf336": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {
+        "pdf_analyzer": true
+      },
+      "paths": {
+        "Bid_4471.pdf.gs.pdf": {
+          "type=document.pdf": true,
+          "type=document.pdf.rendered": true
+        }
+      },
+      "redirection": "file:6a1d3505f33e73d1536fd9acfe2b1103f5d73b7ee1a7b3f81bb7643aa71171a6",
+      "relationships": {
+        "extracted_from file:6a1d3505f33e73d1536fd9acfe2b1103f5d73b7ee1a7b3f81bb7643aa71171a6": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": true,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/pdf",
+            "type": "PDF document, version 1.7, 1 page(s)"
+          },
+          "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "pdf_link_text": {
+          "details": {
+            "links": [
+              {
+                "line": "Review bid documents",
+                "page": 1,
+                "text": "Review bid documents",
+                "url": "https://docs.lure-example.net/bid/4471"
+              }
+            ]
+          },
+          "summary": "PDF Link Text Analysis: 1 links, 1 with text",
+          "tags": {}
+        },
+        "pdftotext": {
+          "details": {
+            "output_path": "1e6a0d1e9985823eb9f1c0fb3598285b82a5d3f4774fa339f93433efc766cd38",
+            "stderr": "",
+            "stdout": ""
+          },
+          "summary": "PDF Text Analysis",
+          "tags": {}
+        },
+        "qrcode": {
+          "details": {
+            "extracted_text": null,
+            "inverted": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {
+        "pdf": true
+      }
+    },
     "file:6a1d3505f33e73d1536fd9acfe2b1103f5d73b7ee1a7b3f81bb7643aa71171a6": {
       "detections": {},
       "directives": {
@@ -541,9 +637,9 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 14:54:35+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 14:54:35+00:00",
-              "File:FileModifyDate": "2026:11:16 14:54:35+00:00",
+              "File:FileAccessDate": "2026:11:16 19:51:54+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 19:51:54+00:00",
+              "File:FileModifyDate": "2026:11:16 19:51:54+00:00",
               "File:FileName": "Bid_4471.pdf",
               "File:FilePermissions": 100664,
               "File:FileSize": 701,
@@ -643,102 +739,6 @@
             }
           },
           "summary": "URL Extraction Analysis (docs.lure-example.net)",
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {
-        "pdf": true
-      }
-    },
-    "file:8bce365bc4232852d66eed06df9189d1fb5ed93077d9920d5ca380adb9a22db0": {
-      "detections": {},
-      "directives": {
-        "extract_urls": true
-      },
-      "excluded_analysis": {
-        "pdf_analyzer": true
-      },
-      "paths": {
-        "Bid_4471.pdf.gs.pdf": {
-          "type=document.pdf": true,
-          "type=document.pdf.rendered": true
-        }
-      },
-      "redirection": "file:6a1d3505f33e73d1536fd9acfe2b1103f5d73b7ee1a7b3f81bb7643aa71171a6",
-      "relationships": {
-        "extracted_from file:6a1d3505f33e73d1536fd9acfe2b1103f5d73b7ee1a7b3f81bb7643aa71171a6": true
-      },
-      "results": {
-        "file_type": {
-          "details": {
-            "is_email_file": false,
-            "is_jar_file": false,
-            "is_lnk_file": false,
-            "is_office_document": false,
-            "is_office_ext": false,
-            "is_ole_file": false,
-            "is_pdf_file": true,
-            "is_pe_file": false,
-            "is_rtf_file": false,
-            "is_x509": false,
-            "is_zip_file": false,
-            "mime": "application/pdf",
-            "type": "PDF document, version 1.7, 1 page(s)"
-          },
-          "summary": "File Type Analysis: PDF document, version 1.7, 1 page(s) (application/pdf) (pdf document)",
-          "tags": {}
-        },
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "pdf_link_text": {
-          "details": {
-            "links": [
-              {
-                "line": "Review bid documents",
-                "page": 1,
-                "text": "Review bid documents",
-                "url": "https://docs.lure-example.net/bid/4471"
-              }
-            ]
-          },
-          "summary": "PDF Link Text Analysis: 1 links, 1 with text",
-          "tags": {}
-        },
-        "pdftotext": {
-          "details": {
-            "output_path": "1e6a0d1e9985823eb9f1c0fb3598285b82a5d3f4774fa339f93433efc766cd38",
-            "stderr": "",
-            "stdout": ""
-          },
-          "summary": "PDF Text Analysis",
-          "tags": {}
-        },
-        "qrcode": {
-          "details": {
-            "extracted_text": null,
-            "inverted": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "url_extraction": {
-          "details": {
-            "urls": [],
-            "urls_grouped_by_domain": {}
-          },
-          "summary": null,
           "tags": {}
         },
         "user_defined_tagging": {
@@ -884,7 +884,7 @@
         "email": true
       }
     },
-    "file:ccc79082f8b0ac4903249a300ce4cf483c68c35f50d6226161ad22c2f3fa9c39": {
+    "file:ca9a798adf50d0cbad9700442597834c0988bb2aa88d923c21240f40b60b8e09": {
       "detections": {},
       "directives": {},
       "excluded_analysis": {
@@ -1419,6 +1419,7 @@
             "whois_data": null,
             "whois_raw_text": null
           },
+          "error": "rdap: no RDAP service for TLD: TLD \"example\" has no known RDAP endpoint and is unsupported. It may be supported by overrides, try using whoisit.bootstrap(overrides=True); whois: no WHOIS in a replay",
           "tags": {}
         },
         "user_defined_tagging": {
@@ -1517,6 +1518,7 @@
             "whois_data": null,
             "whois_raw_text": null
           },
+          "error": "rdap: Failed to make a GET request to https://rdap.verisign.com/net/v1/domain/lure-example.net: nothing recorded for GET https://rdap.verisign.com/net/v1/domain/lure-example.net; whois: no WHOIS in a replay",
           "tags": {}
         },
         "user_defined_tagging": {
@@ -1846,6 +1848,7 @@
             "whois_data": null,
             "whois_raw_text": null
           },
+          "error": "rdap: Failed to make a GET request to https://rdap.publicinterestregistry.org/rdap/domain/partner-example.org: nothing recorded for GET https://rdap.publicinterestregistry.org/rdap/domain/partner-example.org; whois: no WHOIS in a replay",
           "tags": {}
         },
         "user_defined_tagging": {

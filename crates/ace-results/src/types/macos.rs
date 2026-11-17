@@ -20,11 +20,8 @@ pub struct DmgAnalysis {
     /// None when it wrote none.
     pub image_file: Option<String>,
     /// The files of `7z l`'s listing of the image, each line as 7z prints it, without the folders.
+    /// When dmg2img or 7z failed or didn't finish, the result's `error` says so.
     pub file_list: Vec<String>,
-    /// Why the runner stopped dmg2img or 7z, which ace3 only logs. Absent when both ran to their
-    /// end.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub stopped: Option<String>,
 }
 
 impl AnalysisType for DmgAnalysis {
@@ -39,11 +36,9 @@ impl AnalysisType for DmgAnalysis {
 pub struct Cve202130657Analysis {
     /// Each script found in an app bundle's `Contents/MacOS/`, by the path it was added under, its
     /// name, with libmagic's mime type for it.
+    /// When the members weren't all checked the result's `error` says why: 7z failed or the
+    /// runner stopped it, or a member couldn't be named to it.
     pub suspect_files: BTreeMap<String, String>,
-    /// Why the members weren't all checked: the runner stopped 7z, which ace3 only logs, or a member
-    /// couldn't be named to it. Absent when every member was.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub stopped: Option<String>,
 }
 
 impl AnalysisType for Cve202130657Analysis {

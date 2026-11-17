@@ -196,6 +196,39 @@
       },
       "tags": {}
     },
+    "file:639470cf6408598e592fa178e79027082d8d212da44bd6770efbc5135ffe9f51": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "encrypted_xor_odd.xls.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:93c2cf0568f10152f37d3ebb83e6bc2b2ddd37cb515d2a08c1671f93dcff7b80": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:7acaa948d63ecb96b9cc8076ff529af7172a96067072bb69bf2ad8b8b0e3a93a": {
       "detections": {},
       "directives": {
@@ -273,8 +306,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 13:57:52+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 13:57:52+00:00",
+              "File:FileAccessDate": "2026:11:16 20:06:42+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 20:06:42+00:00",
               "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "encrypted_xor_odd.xls",
               "File:FilePermissions": 100644,
@@ -348,6 +381,7 @@
             "password": null,
             "word_list": []
           },
+          "error": "office2john.py failed: encrypted_xor_odd.xls : XOR obfuscation detected, key : b'155a', hash : b'8ce1'\n",
           "summary": "MSOffice Encryption Analysis: office2john.py failed: encrypted_xor_odd.xls : XOR obfuscation detected, key : b'155a', hash : b'8ce1'\n",
           "tags": {}
         },
@@ -400,39 +434,6 @@
         "xlm4:error": true,
         "xlm4:no_cells": true
       }
-    },
-    "file:e91adddcb2d5e4a211de36cfeebda8475186b0f931c408f96d6346cb6a0efe56": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "encrypted_xor_odd.xls.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:93c2cf0568f10152f37d3ebb83e6bc2b2ddd37cb515d2a08c1671f93dcff7b80": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
     },
     "md5:5f3ed581cdcb63e20bcdc2a0cf56034f": {
       "detections": {},

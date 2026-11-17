@@ -66,39 +66,6 @@
       },
       "tags": {}
     },
-    "file:2156e3b3292243b6e7d6c958cffd97e3883abb3a52d4a586cb825f46cde09a74": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "encrypted_agile_sha1.docx.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:3c32d3d78324204d11407d30c736a71564c75a9d4582aa6215cac2379ee44cbd": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:3c32d3d78324204d11407d30c736a71564c75a9d4582aa6215cac2379ee44cbd": {
       "detections": {},
       "directives": {},
@@ -115,8 +82,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 13:55:00+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 13:55:00+00:00",
+              "File:FileAccessDate": "2026:11:16 20:03:19+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 20:03:19+00:00",
               "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "encrypted_agile_sha1.docx",
               "File:FilePermissions": 100644,
@@ -170,6 +137,7 @@
               "/01Hannes Ruescher/01"
             ]
           },
+          "error": "could not crack password",
           "summary": "MSOffice Encryption Analysis: could not crack password",
           "tags": {}
         },
@@ -216,6 +184,39 @@
         "microsoft_office": true,
         "ole": true
       }
+    },
+    "file:888cd3777e0b5d8b77c94ff7ace8584ad6ecbe903244b0d713886590d7cf694c": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "encrypted_agile_sha1.docx.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:3c32d3d78324204d11407d30c736a71564c75a9d4582aa6215cac2379ee44cbd": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
     },
     "file:990349482cd707ba3093d6fff5bb72167a38f0831e58789a92c25cdeb01f7f93": {
       "detections": {},
@@ -348,6 +349,7 @@
           "details": {
             "xml_plain_text": null
           },
+          "error": "unable to parse XML: Start tag expected, '<' not found, line 1, column 1 (stream_10_0.dat, line 1)",
           "summary": null,
           "tags": {}
         }

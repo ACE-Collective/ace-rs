@@ -38,6 +38,11 @@ pub struct Entry {
     pub is_dir: bool,
 }
 
+/// What `extract` reports for a zip member the password doesn't open, in 7z's words for it
+/// (`ERROR: Wrong password : <member>`). The member's empty file has been written by then, as 7z
+/// leaves one.
+pub const WRONG_PASSWORD: &str = "Wrong password";
+
 /// Why an archive couldn't be read.
 #[derive(Debug, thiserror::Error)]
 pub enum ArchiveError {
@@ -217,7 +222,10 @@ pub fn extract(
                     // zipfile, which read an xlsx and a JAR, write nothing for one.
                     Err(zip::result::ZipError::InvalidPassword) if format == Format::Zip => {
                         tracing::info!(index, "the password doesn't open this zip entry");
-                        sink(index, &mut io::empty()).map_err(|e| e.to_string())
+                        // 7z reports the member too, and exits 2
+                        sink(index, &mut io::empty())
+                            .map_err(|e| e.to_string())
+                            .and(Err(WRONG_PASSWORD.to_owned()))
                     }
                     entry => entry.map_err(|e| e.to_string()).and_then(|entry| {
                         let mut entry = KeepBadChecksum {

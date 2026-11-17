@@ -1,12 +1,11 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "f72f8946",
+  "ace3_commit": "37a765bf",
   "also_enabled": [],
   "analyses": [
     {
       "class": "PhishkitAnalysis",
       "details": {
-        "error": null,
         "exit_code": 0,
         "job_id": "00000000-0000-4000-8000-000000000000",
         "metrics": {
@@ -22,7 +21,7 @@
           "total_bytes_downloaded": 3145728,
           "url_scanned": "https://kit.evil.example/start"
         },
-        "output_dir": "<work>/tmp/tmp0274pkje",
+        "output_dir": "<work>/tmp/tmpp2j0yccg",
         "output_files": [
           "phishkit/00000000-0000-4000-8000-000000000000/response_bodies.txt",
           "phishkit/00000000-0000-4000-8000-000000000000/requests.json",
@@ -211,7 +210,7 @@
     {
       "record": {
         "path": "database.pool.status",
-        "timestamp": "2026-11-11T03:26:49.957085",
+        "timestamp": "2026-11-16T21:34:04.010521",
         "value": "Pool size: 5  Connections in pool: 0 Current Overflow: -4 Current Checked out connections: 1"
       },
       "tag": "monitoring"
@@ -219,23 +218,36 @@
     {
       "record": {
         "alert_type": "cli_analysis",
-        "analysis_time_seconds": 0.008667,
-        "exec_count": 1,
+        "event_type": "root",
         "is_alert": false,
-        "module": "phishkit_analyzer",
-        "percentage": 52.34500088988725,
+        "observable_count": 1,
+        "observable_type_counts": {
+          "url": 1
+        },
         "queue": "default",
-        "root_uuid": "9c2e8212-13ea-41fb-a361-e5969428aa2d",
-        "timestamp": "2026-11-11 03:26:49.959432",
-        "total_analysis_time_seconds": 0.008667,
-        "total_time_seconds": 0.01655745506286621
+        "root_uuid": "44b97e4b-0734-4bec-84e5-af010403b146",
+        "timestamp": "2026-11-16 21:34:04.013156",
+        "total_analysis_time_seconds": 0.009694,
+        "total_time_seconds": 0.017976760864257812
+      },
+      "tag": "metrics"
+    },
+    {
+      "record": {
+        "analysis_time_seconds": 0.009694,
+        "event_type": "module",
+        "exec_count": 1,
+        "module": "phishkit_analyzer",
+        "percentage": 53.9251763607427,
+        "root_uuid": "44b97e4b-0734-4bec-84e5-af010403b146",
+        "timestamp": "2026-11-16 21:34:04.013156"
       },
       "tag": "metrics"
     },
     {
       "record": {
         "path": "database.pool.available_count",
-        "timestamp": "2026-11-11T03:26:49.959591",
+        "timestamp": "2026-11-16T21:34:04.013405",
         "value": 0
       },
       "tag": "monitoring"
@@ -243,7 +255,7 @@
     {
       "record": {
         "path": "database.pool.in_use_count",
-        "timestamp": "2026-11-11T03:26:49.959604",
+        "timestamp": "2026-11-16T21:34:04.013418",
         "value": 1
       },
       "tag": "monitoring"
@@ -283,16 +295,30 @@
     {
       "record": {
         "alert_type": "cli_analysis",
-        "analysis_time_seconds": 0.02004,
-        "exec_count": 1,
+        "event_type": "root",
         "is_alert": false,
-        "module": "phishkit_analyzer",
-        "percentage": 94.34182856501486,
+        "observable_count": 10,
+        "observable_type_counts": {
+          "file": 5,
+          "url": 5
+        },
         "queue": "default",
-        "root_uuid": "9c2e8212-13ea-41fb-a361-e5969428aa2d",
-        "timestamp": "2026-11-11 03:26:55.985777",
-        "total_analysis_time_seconds": 0.02004,
-        "total_time_seconds": 0.02124190330505371
+        "root_uuid": "44b97e4b-0734-4bec-84e5-af010403b146",
+        "timestamp": "2026-11-16 21:34:10.034393",
+        "total_analysis_time_seconds": 0.016089,
+        "total_time_seconds": 0.017231464385986328
+      },
+      "tag": "metrics"
+    },
+    {
+      "record": {
+        "analysis_time_seconds": 0.016089,
+        "event_type": "module",
+        "exec_count": 1,
+        "module": "phishkit_analyzer",
+        "percentage": 93.36989381520326,
+        "root_uuid": "44b97e4b-0734-4bec-84e5-af010403b146",
+        "timestamp": "2026-11-16 21:34:10.034393"
       },
       "tag": "metrics"
     }

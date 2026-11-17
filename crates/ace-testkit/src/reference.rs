@@ -10,6 +10,7 @@
 //! ```text
 //! {
 //!   "summary": "...",
+//!   "error": "...",                           only when the module said it failed
 //!   "details": {...},                         the analysis details as written
 //!   "tags": {"single_file_zip": true},        tags on the result itself
 //!   "detections": {"<description>": details},
@@ -27,6 +28,11 @@
 //! objects whose keys are the members, so a difference names the member. ace3 keeps `yara_meta`
 //! tags among the directives as `yara_meta:name=value`; the normal form keeps them only under
 //! `yara_meta`.
+//!
+//! When ace3's module raised after it made its analysis, ace3's engine marks the analysis failed
+//! with the exception and ` (crash_id <uuid>)`, the id of the crash report it wrote. That id is
+//! new each run, so the form leaves it out of ace3's `error` and of its `summary`, which often
+//! repeats the error. The exception's type and text stay, and are compared.
 
 use std::collections::BTreeSet;
 use std::fs;
@@ -186,6 +192,7 @@ impl Dump {
                 module: r["module"].as_str().unwrap_or_default().to_owned(),
                 analysis_type: ace3_analysis_type(r["class"].as_str().unwrap_or_default()),
                 tags: strings(&r["tags"]),
+                error: r["error"].as_str().map(str::to_owned),
                 added: r["added"]
                     .as_array()
                     .into_iter()
@@ -288,15 +295,48 @@ impl Dump {
             let (key, normal) = ace3_observable(observable);
             observables.insert(key, normal);
         }
-        json!({
-            "summary": analysis["summary"],
+        let mut normal = json!({
+            "summary": without_crash_id(&analysis["summary"]),
             "details": analysis["details"],
             "tags": set(strings(&analysis["tags"])),
             "detections": ace3_detections(&analysis["detections"]),
             "analyzed": analyzed,
             "observables": observables,
-        })
+        });
+        // ace3's Analysis.error, which run_module.py keeps in a dump only when the module failed
+        if let Some(error) = analysis.get("error").filter(|e| !e.is_null()) {
+            normal["error"] = without_crash_id(error);
+        }
+        normal
     }
+}
+
+/// A text of ace3's without ` (crash_id <uuid>)`, which its engine puts after the reason of an
+/// analysis whose module raised (`AnalysisExecutor._record_module_exception`): the id of that run's
+/// crash report. Anything that isn't a string is left as it is.
+fn without_crash_id(value: &Value) -> Value {
+    const START: &str = " (crash_id ";
+    let Some(text) = value.as_str() else {
+        return value.clone();
+    };
+    let mut out = String::with_capacity(text.len());
+    let mut rest = text;
+    while let Some(at) = rest.find(START) {
+        let id = &rest[at + START.len()..];
+        // a uuid, 36 characters, then the closing parenthesis
+        let is_id = id.len() > 36
+            && id.as_bytes()[36] == b')'
+            && id[..36].bytes().all(|b| b.is_ascii_hexdigit() || b == b'-');
+        out.push_str(&rest[..at]);
+        if is_id {
+            rest = &id[37..];
+        } else {
+            out.push_str(START);
+            rest = id;
+        }
+    }
+    out.push_str(rest);
+    Value::String(out)
 }
 
 /// The ace4 analysis type of an ace3 analysis class, for those the modules that walk the tree look
@@ -557,7 +597,7 @@ pub fn normal_form<D: AnalysisType>(outcome: &Outcome<D>) -> Value {
         let (key, normal) = ace4_file(file);
         observables.insert(key, normal);
     }
-    json!({
+    let mut normal = json!({
         "summary": result.summary,
         "details": serde_json::to_value(&result.details)
             .unwrap_or_else(|e| json!({"unserializable": e.to_string()})),
@@ -565,5 +605,42 @@ pub fn normal_form<D: AnalysisType>(outcome: &Outcome<D>) -> Value {
         "detections": ace4_detections(&result.detections),
         "analyzed": ace4_additions(&result.analyzed),
         "observables": observables,
-    })
+    });
+    if let Some(error) = &result.error {
+        normal["error"] = json!(error);
+    }
+    normal
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_crash_id_is_left_out_of_ace3s_text_and_nothing_else_is() {
+        let id = "c6911af0-ab95-4264-b170-01b34ab127ce";
+        let marked = json!(format!("ValueError: Invalid IPv6 URL (crash_id {id})"));
+        assert_eq!(
+            without_crash_id(&marked),
+            json!("ValueError: Invalid IPv6 URL")
+        );
+        // in the middle of a summary, and twice
+        let summary = json!(format!(
+            "HTTP Archive: failed: x (crash_id {id}), y (crash_id {id})"
+        ));
+        assert_eq!(
+            without_crash_id(&summary),
+            json!("HTTP Archive: failed: x, y")
+        );
+        // text that only looks like one stays, and so does what isn't text
+        for kept in [
+            json!("a (crash_id not-an-id) b"),
+            json!(format!("a (crash_id {id}")),
+            json!("a (crash_id "),
+            json!(null),
+            json!(3),
+        ] {
+            assert_eq!(without_crash_id(&kept), kept);
+        }
+    }
 }

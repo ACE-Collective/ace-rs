@@ -1,6 +1,6 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "f72f8946",
+  "ace3_commit": "37a765bf",
   "also_enabled": [],
   "analyses": [
     {
@@ -11,6 +11,7 @@
         ]
       },
       "detections": [],
+      "error": "unable to parse document.xml.rels: Opening and ending tag mismatch: oops line 2 and Relationships, line 2, column 281 (document.xml.rels, line 2)",
       "module_path": "saq.modules.file_analysis.msoffice:OfficeXMLRelationshipExternalURLAnalysis",
       "observables": [
         {

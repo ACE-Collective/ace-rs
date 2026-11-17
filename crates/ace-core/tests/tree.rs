@@ -240,6 +240,181 @@ async fn one_result_per_module_with_details_under_a_gin_index() {
     assert!(plan.contains("results_details"), "{plan}");
 }
 
+/// A module that ran to its end and says it failed (ace3's `Analysis.error`): the reason is stored
+/// beside the summary, the normal form holds it on that result alone, a module that depends on
+/// the result reads it, and a failure with no reason is refused.
+#[tokio::test]
+async fn a_failed_result_keeps_its_reason_outside_its_details() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let mut tx = db.begin().await.expect("begins");
+    let root = NewRoot::new("analysis");
+    tree::create_root(&mut tx, &root).await.expect("creates");
+    let file = upsert_observable(
+        &mut tx,
+        root.id,
+        &NewObservable::new(ObservableKind::File, ZIP),
+    )
+    .await
+    .expect("adds");
+    let mut failed = result(json!({"lines": 3}));
+    failed.error = Some("the tool exited with status 2: bad header".to_owned());
+    insert_result(&mut tx, root.id, file.id, "failing", &failed)
+        .await
+        .expect("stores");
+    insert_result(
+        &mut tx,
+        root.id,
+        file.id,
+        "fine",
+        &result(json!({"lines": 3})),
+    )
+    .await
+    .expect("stores");
+    tx.commit().await.expect("commits");
+
+    let stored: Vec<(String, Option<String>)> =
+        sqlx::query_as("SELECT module, error FROM analysis.results ORDER BY module")
+            .fetch_all(db.pool())
+            .await
+            .expect("reads");
+    assert_eq!(
+        stored,
+        [
+            (
+                "failing".to_owned(),
+                Some("the tool exited with status 2: bad header".to_owned())
+            ),
+            ("fine".to_owned(), None),
+        ]
+    );
+
+    // the normal form: the reason on the result that failed, and no key on the other, so a tree
+    // made before the mark is still of this form
+    let form = normal_form(db.pool(), root.id)
+        .await
+        .expect("reads")
+        .expect("the root");
+    let results = &form["observables"][format!("file:{ZIP}")]["results"];
+    assert_eq!(
+        results["failing"],
+        json!({
+            "summary": "3 lines",
+            "error": "the tool exited with status 2: bad header",
+            "tags": {},
+            "details": {"lines": 3},
+        })
+    );
+    assert!(results["fine"].get("error").is_none(), "{results}");
+
+    // a module that depends on them gets each one's details, and the failed one's reason
+    let read = tree::results_of(db.pool(), root.id, file.id, &["failing", "fine"])
+        .await
+        .expect("reads");
+    assert_eq!(
+        read,
+        [
+            tree::DependencyResult {
+                module: "failing".to_owned(),
+                details: json!({"lines": 3}),
+                error: Some("the tool exited with status 2: bad header".to_owned()),
+            },
+            tree::DependencyResult {
+                module: "fine".to_owned(),
+                details: json!({"lines": 3}),
+                error: None,
+            },
+        ]
+    );
+
+    // migration 0065 moves the reason a stored result kept in its details: its UPDATE, run here
+    // on rows as the modules wrote them before it
+    let migration = include_str!("../migrations/0065_result_error.sql");
+    let start = migration
+        .find("UPDATE analysis.results r")
+        .expect("the migration's move");
+    let end = start + migration[start..].find(';').expect("its end");
+    let mut tx = db.begin().await.expect("begins");
+    for (module, analysis_type, details) in [
+        (
+            "rdap_analyzer",
+            "rdap_analysis",
+            json!({"error": "rdap: no RDAP service", "lookup_protocol": null}),
+        ),
+        (
+            "nrd_analyzer",
+            "nrd_analysis",
+            json!({"is_nrd": true, "lookup_error": null}),
+        ),
+        (
+            "exif",
+            "exif_analysis",
+            json!({"error": " ", "exifdata": {}}),
+        ),
+        (
+            "java_class_decompiler",
+            "java_class_decompiler_analysis",
+            json!({"decompiled_files": [], "stopped": "cfr did not finish: a timeout"}),
+        ),
+        // another type's key of the same name is its own
+        ("other", "example_line_stats", json!({"error": "kept"})),
+    ] {
+        sqlx::query(
+            "INSERT INTO analysis.results
+                 (root_id, observable_id, module, analysis_type, schema_version, details)
+             VALUES ($1, $2, $3, $4, 1, $5)",
+        )
+        .bind(root.id)
+        .bind(file.id.0)
+        .bind(module)
+        .bind(analysis_type)
+        .bind(details)
+        .execute(tx.conn())
+        .await
+        .expect("an old row");
+    }
+    sqlx::raw_sql(&migration[start..=end])
+        .execute(tx.conn())
+        .await
+        .expect("the move runs");
+    let moved: Vec<(String, Option<String>, Value)> = sqlx::query_as(
+        "SELECT module, error, details FROM analysis.results
+         WHERE module NOT IN ('failing', 'fine') ORDER BY module",
+    )
+    .fetch_all(tx.conn())
+    .await
+    .expect("reads");
+    assert_eq!(
+        moved,
+        [
+            ("exif".to_owned(), None, json!({"exifdata": {}})),
+            (
+                "java_class_decompiler".to_owned(),
+                Some("cfr did not finish: a timeout".to_owned()),
+                json!({"decompiled_files": []})
+            ),
+            ("nrd_analyzer".to_owned(), None, json!({"is_nrd": true})),
+            ("other".to_owned(), None, json!({"error": "kept"})),
+            (
+                "rdap_analyzer".to_owned(),
+                Some("rdap: no RDAP service".to_owned()),
+                json!({"lookup_protocol": null})
+            ),
+        ]
+    );
+    drop(tx);
+
+    // a failure needs a reason: the table refuses a blank one, whatever wrote it
+    for blank in ["", " \n\t"] {
+        let mut tx = db.begin().await.expect("begins");
+        let mut no_reason = result(json!({}));
+        no_reason.error = Some(blank.to_owned());
+        let refused = insert_result(&mut tx, root.id, file.id, "blank", &no_reason).await;
+        let error = refused.expect_err("a blank reason is refused").to_string();
+        assert!(error.contains("results_error_has_a_reason"), "{error}");
+    }
+}
+
 const ZIP: &str = "aa00000000000000000000000000000000000000000000000000000000000000";
 const PART: &str = "bb00000000000000000000000000000000000000000000000000000000000000";
 

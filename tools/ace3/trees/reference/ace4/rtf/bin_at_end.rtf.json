@@ -61,6 +61,7 @@
             "stderr": "Traceback (most recent call last):\n  File \"/venv/bin/rtfobj\", line 6, in <module>\n    sys.exit(main())\n             ~~~~^^\n  File \"/venv/lib/python3.14/site-packages/oletools/rtfobj.py\", line 1079, in main\n    process_file(container, filename, data, output_dir=options.output_dir,\n    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n                 save_object=options.save_object)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/venv/lib/python3.14/site-packages/oletools/rtfobj.py\", line 877, in process_file\n    rtfp.parse()\n    ~~~~~~~~~~^^\n  File \"/venv/lib/python3.14/site-packages/oletools/rtfobj.py\", line 473, in parse\n    self._bin(m, param)\n    ~~~~~~~~~^^^^^^^^^^\n  File \"/venv/lib/python3.14/site-packages/oletools/rtfobj.py\", line 598, in _bin\n    if ord(self.data[self.index:self.index + 1]) == ord(' '):\n       ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nTypeError: ord() expected a character, but string of length 0 found\n",
             "stdout": "rtfobj 0.60.1 on Python 3.14.10 - http://decalage.info/python/oletools\nTHIS IS WORK IN PROGRESS - Check updates regularly!\nPlease report any issue at https://github.com/decalage2/oletools/issues\n\n===============================================================================\nFile: 'bin_at_end.rtf.nowhitespace' - size: 359 bytes\n---+----------+---------------------------------------------------------------\nid |index     |OLE Object                                                     \n---+----------+---------------------------------------------------------------\n"
           },
+          "error": "rtfobj exited with status 1: TypeError: ord() expected a character, but string of length 0 found",
           "summary": null,
           "tags": {}
         },
@@ -77,7 +78,7 @@
         "rtf": true
       }
     },
-    "file:b5b41a37eaeaf9c94c02e5f82f856816942018a2d3876e21706ccd8c4c7a2018": {
+    "file:b30fbe998a4912b1b29e6daca4a9b95c73aa93ff8565fee20218a1031f0ac0c5": {
       "detections": {},
       "directives": {},
       "excluded_analysis": {
@@ -132,8 +133,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 15:07:39+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 15:07:39+00:00",
+              "File:FileAccessDate": "2026:11:16 20:51:43+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 20:51:43+00:00",
               "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "bin_at_end.rtf",
               "File:FilePermissions": 100644,
@@ -197,6 +198,7 @@
             "stderr": "Traceback (most recent call last):\n  File \"/venv/bin/rtfobj\", line 6, in <module>\n    sys.exit(main())\n             ~~~~^^\n  File \"/venv/lib/python3.14/site-packages/oletools/rtfobj.py\", line 1079, in main\n    process_file(container, filename, data, output_dir=options.output_dir,\n    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n                 save_object=options.save_object)\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/venv/lib/python3.14/site-packages/oletools/rtfobj.py\", line 877, in process_file\n    rtfp.parse()\n    ~~~~~~~~~~^^\n  File \"/venv/lib/python3.14/site-packages/oletools/rtfobj.py\", line 473, in parse\n    self._bin(m, param)\n    ~~~~~~~~~^^^^^^^^^^\n  File \"/venv/lib/python3.14/site-packages/oletools/rtfobj.py\", line 598, in _bin\n    if ord(self.data[self.index:self.index + 1]) == ord(' '):\n       ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nTypeError: ord() expected a character, but string of length 0 found\n",
             "stdout": "rtfobj 0.60.1 on Python 3.14.10 - http://decalage.info/python/oletools\nTHIS IS WORK IN PROGRESS - Check updates regularly!\nPlease report any issue at https://github.com/decalage2/oletools/issues\n\n===============================================================================\nFile: 'bin_at_end.rtf' - size: 366 bytes\n---+----------+---------------------------------------------------------------\nid |index     |OLE Object                                                     \n---+----------+---------------------------------------------------------------\n"
           },
+          "error": "rtfobj exited with status 1: TypeError: ord() expected a character, but string of length 0 found",
           "summary": null,
           "tags": {}
         },

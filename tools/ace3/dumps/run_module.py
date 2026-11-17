@@ -73,6 +73,7 @@ import hashlib
 import json
 import logging
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -1203,7 +1204,7 @@ def msoffice_in_alert_paths(result, files_dir):
     office2john.py names the file by the path it was given, on the node, which reaches the summary.
     The port sorts them and writes the path in the alert. Those two things are put the same here.
     ace3 kept office2john.py's failure in the details too until 2b9fcd2c moved it to Analysis.error,
-    which the form doesn't hold."""
+    which tree_form holds as the result's error, with the same path put the same way."""
     details = result["details"]
     details["word_list"] = details["word_list"][:2] + sorted(details["word_list"][2:])
     if isinstance(result["summary"], str):
@@ -1289,6 +1290,10 @@ def fake_scanners(output, scanner_requests):
     phishkit.get_phishkit_scanner_version = lambda: {}
 
 
+# ` (crash_id <uuid>)`, which ace3's engine puts after the reason of an analysis whose module raised
+CRASH_ID = re.compile(r" \(crash_id [0-9a-f-]{36}\)")
+
+
 def tree_form(root):
     def members(items):
         return {item: True for item in items}
@@ -1322,6 +1327,21 @@ def tree_form(root):
                 "tags": members(str(tag) for tag in analysis.tags),
                 "details": json_safe(analysis.details),
             }
+            # ace3's Analysis.error (2b9fcd2c), on a result whose module failed and on no other, as
+            # ace4's form holds a result's error (ace_core::normal). A tool or a library names the
+            # file by the path ace3 gave it, on its node; the port writes the path in the alert, so
+            # the node's directory is taken off the front of it here and nothing else is changed
+            if getattr(analysis, "error", None):
+                result["error"] = analysis.error
+                if observable.type == "file" and observable.file_path:
+                    files_dir = observable.full_path.removesuffix("/" + observable.file_path)
+                    result["error"] = result["error"].replace(files_dir + "/", "")
+                # when the module raised, ace3's engine ends the reason with its crash report's id,
+                # which is new each run, like the fields TREE_RUN_FIELDS names: it's left out here
+                # and of the summary, which often repeats the reason
+                result["error"] = CRASH_ID.sub("", result["error"])
+                if isinstance(result["summary"], str):
+                    result["summary"] = CRASH_ID.sub("", result["summary"])
             for path in TREE_RUN_FIELDS.get(class_name, []):
                 remove_at(result, path.split("/"))
             if class_name == "YaraScanResults_v3_4":
@@ -1444,6 +1464,8 @@ def tree_view(root):
                 "tags": sorted(str(tag) for tag in analysis.tags),
                 "summary": analysis.summary,
                 "details": json_safe(analysis.details),
+                # ace3's Analysis.error, kept only when the module failed (ace_sdk's TreeResult::error)
+                **({"error": analysis.error} if getattr(analysis, "error", None) else {}),
                 "added": [
                     {"observable": observable_index(o)} | ({"path": o.file_path} if o.type == "file" else {})
                     for o in analysis.observables

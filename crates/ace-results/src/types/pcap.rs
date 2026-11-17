@@ -27,12 +27,12 @@ fn present<'de, D: Deserializer<'de>, T: Deserialize<'de>>(
 /// Counts by observable type, as `added` and `omitted`.
 pub type Counts = BTreeMap<String, u64>;
 
-/// The details of a `pcap_analysis` result: the capture's index, or why there is none.
+/// The details of a `pcap_analysis` result: the capture's index. When there is none, the result's
+/// `error` says why the capture wasn't dissected, such as tshark's failure or its size (ace3's
+/// `Analysis.error`).
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct PcapAnalysis {
-    /// Why the capture wasn't dissected, such as tshark's failure or its size.
-    pub error: Option<String>,
     pub index: Option<PcapIndex>,
     /// The host observables (IPs, MACs, hostnames) this result added, and those over the
     /// capture's limit of each type, by type.
@@ -348,7 +348,6 @@ category_type!(
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct PcapTlsDecryptionAnalysis {
-    pub error: Option<String>,
     /// Each key log applied, by its sha256 and name, with its labels' counts. Never its lines.
     pub keylogs: Vec<KeylogSource>,
     /// The capture's TLS sessions, and those any key, embedded or logged, is for.

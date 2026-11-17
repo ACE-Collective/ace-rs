@@ -152,9 +152,9 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files/objects.rtf.rtfobj",
-              "File:FileAccessDate": "2026:11:16 15:08:53+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 15:08:53+00:00",
-              "File:FileModifyDate": "2026:11:16 15:08:53+00:00",
+              "File:FileAccessDate": "2026:11:16 20:52:59+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 20:52:59+00:00",
+              "File:FileModifyDate": "2026:11:16 20:52:59+00:00",
               "File:FileName": "objects.rtf_inner.rtf",
               "File:FilePermissions": 100666,
               "File:FileSize": 284,
@@ -385,8 +385,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 15:08:53+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 15:08:53+00:00",
+              "File:FileAccessDate": "2026:11:16 20:52:58+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 20:52:58+00:00",
               "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "objects.rtf",
               "File:FilePermissions": 100644,
@@ -1485,6 +1485,39 @@
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:40fe22b06a32fe85af7e619c806001b170276b0f0d6fbdfcf426c4ec7e1b4c2a": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "objects.rtf.rtfobj/objects.rtf_object_00000C9B.doc.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:a363fb24edce3162326238d0152b99845d0dd0be53191183aad2ceba2d168a2a": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
           },
           "summary": null,
           "tags": {}
@@ -3748,9 +3781,9 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files/objects.rtf.rtfobj",
-              "File:FileAccessDate": "2026:11:16 15:08:53+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 15:08:53+00:00",
-              "File:FileModifyDate": "2026:11:16 15:08:53+00:00",
+              "File:FileAccessDate": "2026:11:16 20:52:59+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 20:52:59+00:00",
+              "File:FileModifyDate": "2026:11:16 20:52:59+00:00",
               "File:FileName": "objects.rtf_object_00000C9B.doc",
               "File:FilePermissions": 100666,
               "File:FileSize": 219648,
@@ -4589,6 +4622,72 @@
       "tags": {
         "extracted_rtf": true
       }
+    },
+    "file:bcf1f8c2566ad2fa0afc61b28a149c969624706b68468d9d366763b05fe225bd": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "objects.rtf.rtfobj/objects.rtf_inner.rtf.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:03ba05db6317fd6bd7227583402ca28e41454fb99641e279bf19404d5dd00ba7": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:c01f4c3f66e24e509469feabe8ae76e213bddda495e76b3ab7550847f7d24ee4": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "objects.rtf.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:0d652dc8b0cc3ecb9d3111ea218e2f1f78fbe553fac50594a1aafc80e81a000b": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
     },
     "file:c30186bcfe6ce894da77cea466ebabc941b25ff9a2330120d9fb39ccb2863b5c": {
       "detections": {
@@ -5897,39 +5996,6 @@
         "extracted_rtf": true
       }
     },
-    "file:f12435b5a973279a008885527c2a2577d558bf9c14f2fe66e235f56ecfba0b4c": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "objects.rtf.rtfobj/objects.rtf_inner.rtf.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:03ba05db6317fd6bd7227583402ca28e41454fb99641e279bf19404d5dd00ba7": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:f3a156151f2407e1d07c8f2eaac7d5076dd7ece449e28278a00d758e605bf5ba": {
       "detections": {},
       "directives": {
@@ -5981,72 +6047,6 @@
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
-    "file:f58e73bab89bbec31d9393f22a2ac7ca1701d20af148e68bb2308a1d4c6e6e91": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "objects.rtf.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:0d652dc8b0cc3ecb9d3111ea218e2f1f78fbe553fac50594a1aafc80e81a000b": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
-    "file:f5f5194eac82e14a4ae36966b2287ed437d9b325896a94f311c906848c729441": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "objects.rtf.rtfobj/objects.rtf_object_00000C9B.doc.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:a363fb24edce3162326238d0152b99845d0dd0be53191183aad2ceba2d168a2a": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
           },
           "summary": null,
           "tags": {}
@@ -6489,6 +6489,7 @@
             "whois_data": null,
             "whois_raw_text": null
           },
+          "error": "rdap: Failed to make a GET request to https://rdap.nic.re/domain/lmm.re: nothing recorded for GET https://rdap.nic.re/domain/lmm.re; whois: no WHOIS in a replay",
           "tags": {}
         },
         "user_defined_tagging": {
@@ -6587,6 +6588,7 @@
             "whois_data": null,
             "whois_raw_text": null
           },
+          "error": "rdap: no RDAP service for TLD: TLD \"km\" has no known RDAP endpoint and is unsupported. It may be supported by overrides, try using whoisit.bootstrap(overrides=True); whois: no WHOIS in a replay",
           "tags": {}
         },
         "user_defined_tagging": {

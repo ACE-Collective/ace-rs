@@ -88,7 +88,7 @@ async fn a_search_is_delayed_while_it_runs_and_then_gives_its_rows() {
     );
     assert_eq!(result.details.search_id.as_deref(), Some("1767225600.1"));
     assert_eq!(result.details.dispatch_state.as_deref(), Some("DONE"));
-    assert_eq!(result.details.query_error, None);
+    assert_eq!(result.error, None);
     assert_eq!(result.details.query_results.as_ref().map(Vec::len), Some(3));
     let observables: Vec<String> = result
         .observables
@@ -195,7 +195,7 @@ async fn a_search_that_never_finishes_times_out() {
         result.summary.as_deref(),
         Some("Proxy correlation: ERROR: timed out")
     );
-    assert_eq!(result.details.query_error.as_deref(), Some("timed out"));
+    assert_eq!(result.error.as_deref(), Some("timed out"));
     assert_eq!(result.details.query_results, None);
     assert_eq!(result.details.dispatch_state.as_deref(), Some("RUNNING"));
     assert_eq!(result.details.end_time, None);
@@ -423,7 +423,7 @@ async fn a_search_splunkd_refuses_ends_with_its_message_as_the_error() {
         panic!("expected a result, got {outcome:?}");
     };
     let error = "HTTP 500: Splunk search failed: HTTP 400 Bad Request -- Unknown search command 'nosuchcommand'.";
-    assert_eq!(result.details.query_error.as_deref(), Some(error));
+    assert_eq!(result.error.as_deref(), Some(error));
     assert_eq!(
         result.summary,
         Some(format!("Proxy correlation: ERROR: {error}"))

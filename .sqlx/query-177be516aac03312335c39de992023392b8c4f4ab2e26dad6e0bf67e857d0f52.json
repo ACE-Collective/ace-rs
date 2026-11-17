@@ -1,0 +1,36 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO analysis.results\n               (root_id, observable_id, module, analysis_type, schema_version, details, summary,\n                tags, error)\n           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)\n           RETURNING id AS \"id: ResultId\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id: ResultId",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "analysis.results",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Int8",
+        "Text",
+        "Text",
+        "Int4",
+        "Jsonb",
+        "Text",
+        "TextArray",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "177be516aac03312335c39de992023392b8c4f4ab2e26dad6e0bf67e857d0f52"
+}

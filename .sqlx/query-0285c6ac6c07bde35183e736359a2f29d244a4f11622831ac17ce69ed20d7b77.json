@@ -1,0 +1,65 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT t.id, t.observable_id, t.module, t.error\n         FROM queue.tasks t\n         WHERE t.root_id = $1 AND t.observable_id = ANY($2) AND t.state = 'failed'\n           AND NOT EXISTS (SELECT FROM analysis.results r\n                           WHERE r.root_id = t.root_id AND r.observable_id = t.observable_id\n                             AND r.module = t.module)\n         ORDER BY t.observable_id, t.module",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "queue.tasks",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "observable_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "queue.tasks",
+            "name": "observable_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "module",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "queue.tasks",
+            "name": "module"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "error",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "queue.tasks",
+            "name": "error"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Int8Array"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "0285c6ac6c07bde35183e736359a2f29d244a4f11622831ac17ce69ed20d7b77"
+}

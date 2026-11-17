@@ -208,10 +208,10 @@ pub fn crack<R: Read + io::Seek>(
     }
 }
 
-fn summary(details: &ZipEncryptionAnalysis) -> String {
+fn summary(details: &ZipEncryptionAnalysis, error: Option<&str>) -> String {
     summarize(
         DISPLAY_NAME,
-        details.error.as_deref(),
+        error,
         details.password.as_deref(),
         details.email,
         details.email_body.as_deref(),
@@ -219,14 +219,17 @@ fn summary(details: &ZipEncryptionAnalysis) -> String {
     )
 }
 
-/// 7z's `x -y -p<password> -o<file>.decrypted`: every file, where 7z writes it.
+/// 7z's `x -y -p<password> -o<file>.decrypted`: every file, where 7z writes it, and the last line
+/// 7z writes to stderr when a member doesn't extract, which makes it exit 2: `ERROR: Wrong password
+/// : <member>` for one the password doesn't open, in archive order. For any other failure the
+/// line has the library's words for it in 7z's place.
 pub(crate) fn extract_all(
     ctx: &TaskContext<ArchiveSettings>,
     format: Format,
     path: &Path,
     base: &str,
     password: &str,
-) -> Result<Vec<NewFile>, ModuleError> {
+) -> Result<(Vec<NewFile>, Option<String>), ModuleError> {
     let entries = formats::list(format, path, password).map_err(ModuleError::other)?;
     let mut by_path: BTreeMap<String, usize> = BTreeMap::new();
     for entry in entries.iter().filter(|e| !e.is_dir) {
@@ -238,6 +241,7 @@ pub(crate) fn extract_all(
     let wanted: Vec<usize> = by_path.values().copied().collect();
     let mut written: BTreeMap<usize, NewFile> = BTreeMap::new();
     let mut failure: Option<ModuleError> = None;
+    let mut not_extracted: BTreeMap<usize, String> = BTreeMap::new();
     formats::extract(
         format,
         path,
@@ -262,14 +266,24 @@ pub(crate) fn extract_all(
                 }
             }
         },
-        &mut |index, error| tracing::warn!(index, %error, "an entry didn't extract"),
+        &mut |index, error| {
+            tracing::warn!(index, %error, "an entry didn't extract");
+            not_extracted.insert(index, error);
+        },
     )
     .map_err(ModuleError::other)?;
     ctx.check_cancelled()?;
     if let Some(failure) = failure {
         return Err(failure);
     }
-    Ok(written.into_values().collect())
+    let last_error = not_extracted.iter().next_back().map(|(index, error)| {
+        let name = entries
+            .iter()
+            .find(|entry| entry.index == *index)
+            .map_or("", |entry| entry.name.as_str());
+        format!("ERROR: {error} : {name}")
+    });
+    Ok((written.into_values().collect(), last_error))
 }
 
 impl Parser for ZipEncryptionAnalyzer {
@@ -285,19 +299,18 @@ impl Parser for ZipEncryptionAnalyzer {
             return Ok(Outcome::Delay(delay));
         }
         let mut details = ZipEncryptionAnalysis::default();
-        let done = |details: ZipEncryptionAnalysis, files: Vec<NewFile>| {
+        // `error` is why nothing was extracted, or not everything: ace3's `Analysis.error`
+        let done = |details: ZipEncryptionAnalysis, files: Vec<NewFile>, error: Option<String>| {
             let mut result = ResultEnvelope::new(details);
-            result.summary = Some(summary(&result.details));
+            result.summary = Some(summary(&result.details, error.as_deref()));
+            result.error = error.filter(|e| !e.trim().is_empty());
             result.analyzed.tags.push("encrypted_zip".to_owned());
             result.files = files;
             Ok(Outcome::Done(result))
         };
         let hashes = match hashes(&mut archive) {
             Ok(hashes) => hashes,
-            Err(error) => {
-                details.error = Some(error);
-                return done(details, Vec::new());
-            }
+            Err(error) => return done(details, Vec::new(), Some(error)),
         };
         // zip.py reads the body only when the email has one
         match carried(ctx)? {
@@ -305,7 +318,9 @@ impl Parser for ZipEncryptionAnalyzer {
             Carried::Raised(message) => {
                 tracing::warn!("building the wordlist raised: {message}");
                 details.email = true;
-                return done(details, Vec::new());
+                // zip.py's except Exception around the wordlist (its 41d44392)
+                let error = format!("unable to build the password wordlist: {message}");
+                return done(details, Vec::new(), Some(error));
             }
             Carried::Body { text, words } => {
                 details.email = true;
@@ -319,17 +334,20 @@ impl Parser for ZipEncryptionAnalyzer {
         }
         drop(archive);
         let Some(password) = details.password.clone().filter(|p| !p.is_empty()) else {
-            details.error =
-                Some("ZipEncryptionAnalyzer was unable to crack the password".to_owned());
-            return done(details, Vec::new());
+            let error = "ZipEncryptionAnalyzer was unable to crack the password".to_owned();
+            return done(details, Vec::new(), Some(error));
         };
         let base = format!("{}.decrypted", file.path.as_str());
-        let mut files = extract_all(ctx, Format::Zip, &file.local_path, &base, &password)?;
+        let (mut files, last_error) =
+            extract_all(ctx, Format::Zip, &file.local_path, &base, &password)?;
         for file in &mut files {
             file.detections.push(decrypted_detection());
             file.add_directive(DIRECTIVE_EXTRACT_URLS);
         }
-        done(details, files)
+        // 7z exits 1 for a warning and 2 when a member didn't extract; what it extracted before
+        // is still added. ace3's reason is `tool_failure_reason`: the status and 7z's last line
+        let error = last_error.map(|line| format!("7z exited with status 2: {line}"));
+        done(details, files, error)
     }
 }
 

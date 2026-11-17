@@ -316,6 +316,7 @@ impl Parser for Olevba {
         let scan = olevba_scan(file, data, &mut run, &mut details, &mut kinds);
         let OlevbaRun { files, .. } = run;
         let mut tags_and_directive = None;
+        let mut failure = None;
         match scan {
             Ok(()) => {
                 let thresholds = &ctx.settings().thresholds;
@@ -332,6 +333,19 @@ impl Parser for Olevba {
             Err(ScanFailure::Task(error)) => return Err(error),
             Err(ScanFailure::Raised(error)) => {
                 tracing::warn!(%error, %path, "olevba execution error");
+                // olevba can't open a zip or OLE file that isn't an Office document, such as an
+                // encrypted zip, and that's a failure only when the file's name says it is one.
+                // What it found before it failed is kept. `str(e) or type(e).__name__`
+                if is_office_extension(path) || error.kind != "FileOpenError" {
+                    failure = Some(format!(
+                        "olevba failed: {}",
+                        if error.message.is_empty() {
+                            &error.kind
+                        } else {
+                            &error.message
+                        }
+                    ));
+                }
                 if is_office_extension(path) {
                     tags_and_directive = Some("olevba_failed");
                 }
@@ -350,6 +364,7 @@ impl Parser for Olevba {
         };
         let mut result = ResultEnvelope::new(details);
         result.summary = summary;
+        result.error = failure.filter(|e| !e.trim().is_empty());
         result.files = files;
         if let Some(tag) = tags_and_directive {
             result.analyzed.add_tag(tag);
@@ -435,6 +450,18 @@ impl Parser for RtfOle {
             .replace("\r\n", "\n")
             .replace('\r', "\n");
         let summary = rtf_summary(&extracted_files);
+        // rtfobj exits 0 whatever it found, so anything else is a crash; what it extracted is still
+        // added. ace3's `tool_failure_reason`: how it exited and the last line of its stderr
+        let error = (return_code != 0).then(|| {
+            let mut reason = format!("rtfobj exited with status {return_code}");
+            if let Some(last) =
+                ace_pycompat::pystr::splitlines(ace_pycompat::pystr::strip(&stderr)).last()
+            {
+                reason.push_str(": ");
+                reason.extend(last.chars().take(500));
+            }
+            reason
+        });
         let mut result = ResultEnvelope::new(RtfOleObjectAnalysis {
             stdout,
             stderr,
@@ -442,6 +469,7 @@ impl Parser for RtfOle {
             extracted_files,
         });
         result.summary = summary;
+        result.error = error;
         result.files = files;
         Ok(Outcome::Done(result))
     }

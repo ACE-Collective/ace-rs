@@ -1,6 +1,6 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "f72f8946",
+  "ace3_commit": "37a765bf",
   "also_enabled": [
     "file_type"
   ],
@@ -8,14 +8,13 @@
     {
       "class": "ExifAnalysis",
       "details": {
-        "error": null,
         "exifdata": {
           "ExifTool:ExifToolVersion": 13.25,
           "ExifTool:Warning": "[minor] Decryption is very slow for encryption V5.6 or higher",
           "File:Directory": "<root>/files",
-          "File:FileAccessDate": "2026:11:10 11:02:20+00:00",
-          "File:FileInodeChangeDate": "2026:11:10 11:02:20+00:00",
-          "File:FileModifyDate": "2026:11:07 04:47:50+00:00",
+          "File:FileAccessDate": "2026:11:16 22:01:46+00:00",
+          "File:FileInodeChangeDate": "2026:11:16 22:01:46+00:00",
+          "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
           "File:FileName": "encrypted_with_xmp.pdf",
           "File:FilePermissions": 100644,
           "File:FileSize": 2916,
@@ -58,7 +57,7 @@
           "size": 900,
           "tags": [],
           "type": "file",
-          "value": "4d396274519053c5c0133058a759966d0f6da3fff8fe96fa0f3bca3658fd3ae5",
+          "value": "9e87f6889ff1b4fd34ea6c5fa9d3e2f769f32cd2f8f9834a98c5727fff5dcf31",
           "yara_meta": [
             "type=metadata.exif"
           ]

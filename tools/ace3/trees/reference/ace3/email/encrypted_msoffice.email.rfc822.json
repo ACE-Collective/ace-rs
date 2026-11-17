@@ -178,6 +178,7 @@
             "whois_data": null,
             "whois_raw_text": null
           },
+          "error": "rdap: Failed to make a GET request to https://rdap.radix.host/rdap/domain/tovarioseni9.fun: nothing recorded for GET https://rdap.radix.host/rdap/domain/tovarioseni9.fun; whois: no WHOIS in a replay",
           "tags": {}
         },
         "user_defined_tagging": {
@@ -363,7 +364,7 @@
       },
       "tags": {}
     },
-    "file:12d62047f06803923d2236f3600b80202a42e1bf976338c77b4c759125e553fd": {
+    "file:0d32282c1dfbe9189ca897b043f199e088cd8494c17d186ce04bfaab1b8ece03": {
       "detections": {},
       "directives": {},
       "excluded_analysis": {
@@ -922,39 +923,6 @@
       },
       "tags": {}
     },
-    "file:4f61b1c457d034599d982450b47598d50919fbd65e81e2ab690f254ed876c7c6": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "info_3805.xls.decrypted.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:ce3af53d22189d65f561fa45ff655a020c9ef96c17c83e748cd773eff8ef96e8": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:5afdbe5aa42339a6936769e916c7094d70eb370458480dcd1e36de8ce99106d6": {
       "detections": {},
       "directives": {
@@ -1009,6 +977,39 @@
             }
           },
           "summary": "URL Extraction Analysis (component.pw)",
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:696cfbc3b444e44b8d7ef323b404d0ed773dab975402479297a8a2459970b54e": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "info_3805.xls.decrypted.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:ce3af53d22189d65f561fa45ff655a020c9ef96c17c83e748cd773eff8ef96e8": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
           "tags": {}
         },
         "user_defined_tagging": {
@@ -1599,9 +1600,9 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 13:35:59+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 13:35:59+00:00",
-              "File:FileModifyDate": "2026:11:16 13:35:59+00:00",
+              "File:FileAccessDate": "2026:11:16 19:39:25+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 19:39:25+00:00",
+              "File:FileModifyDate": "2026:11:16 19:39:25+00:00",
               "File:FileName": "info_3805.xls.decrypted",
               "File:FilePermissions": 100666,
               "File:FileSize": 69125,
@@ -1792,9 +1793,9 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 13:35:58+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 13:35:58+00:00",
-              "File:FileModifyDate": "2026:11:16 13:35:58+00:00",
+              "File:FileAccessDate": "2026:11:16 19:39:17+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 19:39:17+00:00",
+              "File:FileModifyDate": "2026:11:16 19:39:17+00:00",
               "File:FileName": "info_3805.xls",
               "File:FilePermissions": 100664,
               "File:FileSize": 69125,
@@ -3021,6 +3022,7 @@
             "whois_data": null,
             "whois_raw_text": null
           },
+          "error": "rdap: Failed to make a GET request to https://rdap.radix.host/rdap/domain/component.pw: nothing recorded for GET https://rdap.radix.host/rdap/domain/component.pw; whois: no WHOIS in a replay",
           "tags": {}
         },
         "user_defined_tagging": {
@@ -3351,6 +3353,7 @@
             "whois_data": null,
             "whois_raw_text": null
           },
+          "error": "rdap: Failed to make a GET request to https://rdap.radix.host/rdap/domain/tovarioseni9.fun: nothing recorded for GET https://rdap.radix.host/rdap/domain/tovarioseni9.fun; whois: no WHOIS in a replay",
           "tags": {}
         },
         "user_defined_tagging": {
@@ -3447,6 +3450,7 @@
             "whois_data": null,
             "whois_raw_text": null
           },
+          "error": "rdap: Failed to make a GET request to https://rdap.verisign.com/com/v1/domain/user.com: nothing recorded for GET https://rdap.verisign.com/com/v1/domain/user.com; whois: no WHOIS in a replay",
           "tags": {}
         },
         "user_defined_tagging": {

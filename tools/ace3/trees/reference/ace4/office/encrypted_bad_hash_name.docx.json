@@ -66,6 +66,39 @@
       },
       "tags": {}
     },
+    "file:38fdf7e2431d2236d3fb1b2854e9c1368ab945dd7c4bc94042a84666f0cd94bb": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "encrypted_bad_hash_name.docx.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:b9bc3f38d05479fe01fcab2ef38311388c1f115a621dacfeb9135c261d53f56d": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:990349482cd707ba3093d6fff5bb72167a38f0831e58789a92c25cdeb01f7f93": {
       "detections": {},
       "directives": {
@@ -117,39 +150,6 @@
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
-    "file:a8cbc1e0dcd5984bad8941c6dc26d3afa0ebd4f2d5e67b97a40dc07d332a2169": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "encrypted_bad_hash_name.docx.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:b9bc3f38d05479fe01fcab2ef38311388c1f115a621dacfeb9135c261d53f56d": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
           },
           "summary": null,
           "tags": {}
@@ -310,8 +310,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 13:55:12+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 13:55:12+00:00",
+              "File:FileAccessDate": "2026:11:16 20:03:33+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 20:03:33+00:00",
               "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "encrypted_bad_hash_name.docx",
               "File:FilePermissions": 100644,
@@ -362,6 +362,7 @@
             "password": null,
             "word_list": []
           },
+          "error": "office2john.py failed: encrypted_bad_hash_name.docx uses un-supported hashing algorithm WHIRLPOOL, please file a bug! \n",
           "summary": "MSOffice Encryption Analysis: office2john.py failed: encrypted_bad_hash_name.docx uses un-supported hashing algorithm WHIRLPOOL, please file a bug! \n",
           "tags": {}
         },
@@ -475,6 +476,7 @@
           "details": {
             "xml_plain_text": null
           },
+          "error": "unable to parse XML: Start tag expected, '<' not found, line 1, column 1 (stream_10_0.dat, line 1)",
           "summary": null,
           "tags": {}
         }

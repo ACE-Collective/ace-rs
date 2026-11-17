@@ -248,10 +248,10 @@ fn is_pdf_file(path: &std::path::Path, alert_path: &str) -> bool {
         .is_ok_and(|_| head.windows(5).any(|w| w == b"%PDF-"))
 }
 
-fn summary(details: &PdfEncryptionAnalysis) -> String {
+fn summary(details: &PdfEncryptionAnalysis, error: Option<&str>) -> String {
     summarize(
         DISPLAY_NAME,
-        details.error.as_deref(),
+        error,
         details.password.as_deref(),
         details.email,
         details.email_body.as_deref(),
@@ -305,13 +305,15 @@ impl Parser for PdfEncryptionAnalyzer {
             return Ok(Outcome::Delay(delay));
         }
         let mut details = PdfEncryptionAnalysis::default();
+        // why no copy was written: ace3's `Analysis.error`
+        let mut failure: Option<String> = None;
         let mut files = Vec::new();
         match carried(ctx)? {
             Carried::Absent => {}
             Carried::NoBody => details.email = true,
             Carried::Raised(message) => {
                 // pdf.py's except Exception: the error, and the engine logs the exception
-                details.error = Some(format!("decryption failed: {message}"));
+                failure = Some(format!("decryption failed: {message}"));
             }
             Carried::Body { text, words } => {
                 details.email = true;
@@ -320,17 +322,16 @@ impl Parser for PdfEncryptionAnalyzer {
                 if !words.is_empty() {
                     match Hash::of(&locked) {
                         Err(complaint) => {
-                            details.error = Some(format!("pdf2john.pl failed: {complaint}\n"));
+                            failure = Some(format!("pdf2john.pl failed: {complaint}\n"));
                         }
                         Ok(hash) => {
                             details.password = crack(&hash, &words, cracking_deadline(ctx));
                             match &details.password {
-                                None => details.error = Some("could not crack password".to_owned()),
+                                None => failure = Some("could not crack password".to_owned()),
                                 Some(password) => match Self::decrypt(ctx, password)? {
                                     Ok(record) => files.push(record),
                                     Err(message) => {
-                                        details.error =
-                                            Some(format!("decryption failed: {message}"));
+                                        failure = Some(format!("decryption failed: {message}"));
                                     }
                                 },
                             }
@@ -340,7 +341,8 @@ impl Parser for PdfEncryptionAnalyzer {
             }
         }
         let mut result = ResultEnvelope::new(details);
-        result.summary = Some(summary(&result.details));
+        result.summary = Some(summary(&result.details, failure.as_deref()));
+        result.error = failure.filter(|e| !e.trim().is_empty());
         result.analyzed.tags.push("encrypted_pdf".to_owned());
         result.files = files;
         Ok(Outcome::Done(result))

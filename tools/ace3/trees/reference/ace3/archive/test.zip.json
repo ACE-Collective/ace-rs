@@ -144,6 +144,7 @@
             "webcrack_error": null,
             "webcrack_status": "applied (cosmetic only)"
           },
+          "error": "<anonymous_script>:1\nWScript\n^\n\nReferenceError: WScript is not defined\n    at eval (eval at <anonymous> (evalmachine.<anonymous>:434:32), <anonymous>:1:1)\n    at evalmachine.<anonymous>:434:32\n    at Script.runInContext (node:vm:150:12)\n    at file:///opt/app/harness.js:914:12",
           "summary": "JavaScript Deobfuscation: failed: <anonymous_script>:1\nWScript\n^\n\nReferenceError: WScript is not defined\n    at eval (eval at <anonymous> (evalmachine.<anonymous>:434:32), <anonymous>:1:1)\n    at evalmachine.<anonymous>:434:32\n    at Script.runInContext (node:vm:150:12)\n    at file:///opt/app/harness.js:914:12",
           "tags": {}
         },
@@ -166,7 +167,7 @@
         "js": true
       }
     },
-    "file:90b2cc388a735f9075165b94884e8b7b73f99105daa98a130bf0882a47d967df": {
+    "file:5acd46b9155c13d3d6542442682855992a0543244957f866300be0711f70b663": {
       "detections": {},
       "directives": {
         "extract_urls": true

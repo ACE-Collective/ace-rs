@@ -16,9 +16,8 @@
 //! words covers a page, not a line, and gets no text; and pdftotext has 10 seconds and the runner's
 //! 64 MiB of output. `docs/measurements/pdf-link-text.md` has crafted files against those.
 //!
-//! ace3 marks the analysis failed (`Analysis.error`) when pdftotext doesn't finish or exits
-//! non-zero, and keeps the links without their text. ace4 has no such mark yet, so the reason is
-//! logged and the links are kept the same way.
+//! When pdftotext doesn't finish or exits non-zero the result is marked failed with the reason
+//! (`ResultEnvelope::error`, ace3's `Analysis.error`), and the links are kept without their text.
 
 use std::collections::{BTreeMap, HashSet};
 use std::fs::File;
@@ -558,6 +557,7 @@ impl Parser for PdfLinkTextAnalyzer {
         }
         ctx.check_cancelled()?;
 
+        let mut error = None;
         let placeable = placeable(&links, settings.link_text_pages);
         if let (Some(first), Some(last)) = (
             placeable.iter().map(|&at| links[at].page).min(),
@@ -580,12 +580,10 @@ impl Parser for PdfLinkTextAnalyzer {
             .timeout(PDFTOTEXT_TIMEOUT);
             let output = ctx.run_tool(run)?;
             if let Some(failure) = place_words(&mut links, &placeable, first, &output, settings) {
-                // ace3's Analysis.error, which ace4 doesn't have: the links are kept without the
-                // text under them, as ace3 keeps them
-                tracing::warn!(
-                    stopped = ?output.stopped(),
-                    "{failure}, without the text under the links"
-                );
+                // the links are kept without the text under them, as ace3 keeps them
+                let failure = format!("{failure}, without the text under the links");
+                tracing::warn!(stopped = ?output.stopped(), "{failure}");
+                error = Some(failure);
             }
         }
 
@@ -599,9 +597,9 @@ impl Parser for PdfLinkTextAnalyzer {
             })
             .collect();
         let summary = summary(&links);
-        Ok(Outcome::Done(
-            ResultEnvelope::new(PdfLinkTextAnalysis { links }).with_summary(summary),
-        ))
+        let mut result = ResultEnvelope::new(PdfLinkTextAnalysis { links }).with_summary(summary);
+        result.error = error;
+        Ok(Outcome::Done(result))
     }
 }
 

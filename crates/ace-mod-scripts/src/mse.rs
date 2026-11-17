@@ -21,7 +21,7 @@ use ace_results::types::scripts::MicrosoftScriptEncodingAnalysis;
 use ace_results::{AnalysisType, ObservableKind, ResultEnvelope, YaraMeta};
 use ace_sdk::{Manifest, Module, ModuleError, Outcome, Parser, Resources, TaskContext};
 
-use crate::{DIRECTIVE_SANDBOX, ends_with_lower, name_fits, source};
+use crate::{DIRECTIVE_SANDBOX, ends_with_lower, name_fits, name_too_long, source};
 
 /// The module's manifest.
 pub const MANIFEST: Manifest = Manifest::parser::<MicrosoftScriptEncodingAnalyzer>();
@@ -214,9 +214,13 @@ impl Parser for MicrosoftScriptEncodingAnalyzer {
 
         let path = file.path.as_str();
         let suffix = output_suffix(path);
-        if name_fits(file, suffix)
-            && name_fits(file, STDERR_SUFFIX)
-            && let Ok(decoded) = decode(&data)
+        // mse.py opens the output, then the decoder's stderr beside it; a name the file system
+        // can't hold raises out of the module there, and ace3's engine marks the analysis failed
+        if !name_fits(file, suffix) {
+            result.error = Some(name_too_long(file, suffix));
+        } else if !name_fits(file, STDERR_SUFFIX) {
+            result.error = Some(name_too_long(file, STDERR_SUFFIX));
+        } else if let Ok(decoded) = decode(&data)
             && !decoded.is_empty()
         {
             let output_path = format!("{path}{suffix}");
@@ -229,11 +233,15 @@ impl Parser for MicrosoftScriptEncodingAnalyzer {
             result.files.push(output);
             result.details.analysis_output = Some(output_path);
         }
-        // ace3's summary prints the details' value, None when there's no output
-        result.summary = Some(format!(
-            "{DISPLAY_NAME}: {}",
-            result.details.analysis_output.as_deref().unwrap_or("None")
-        ));
+        // ace3's summary is the failure when there is one, else it prints the details' value, None
+        // when there's no output
+        result.summary = Some(match &result.error {
+            Some(error) => format!("{DISPLAY_NAME}: failed: {error}"),
+            None => format!(
+                "{DISPLAY_NAME}: {}",
+                result.details.analysis_output.as_deref().unwrap_or("None")
+            ),
+        });
         Ok(Outcome::Done(result))
     }
 }

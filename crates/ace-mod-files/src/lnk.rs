@@ -137,10 +137,10 @@ pub fn target_path(info: &Value) -> Option<String> {
     (!parts.is_empty()).then(|| ntpath_join(&parts))
 }
 
-/// `generate_summary`.
-pub fn summary(details: &LnkParseAnalysis) -> Option<String> {
+/// `generate_summary`, with the result's error.
+pub fn summary(details: &LnkParseAnalysis, error: Option<&str>) -> Option<String> {
     const NAME: &str = "LnkParse Analysis";
-    if let Some(error) = details.error.as_deref().filter(|e| !e.is_empty()) {
+    if let Some(error) = error.filter(|e| !e.is_empty()) {
         return Some(format!("{NAME}: {error}"));
     }
     let info = &details.info;
@@ -171,12 +171,20 @@ impl Parser for LnkParseAnalyzer {
         ctx.check_cancelled()?;
         let parsed = ace_lnkparse::analyze(&data);
         let details = LnkParseAnalysis {
-            error: parsed.error.as_ref().map(|e| e.message.clone()),
             info: ace_lnkparse::to_ace3_json(&parsed.info),
         };
-        let summary = summary(&details);
+        // lnk_parser.py's `str(e) or type(e).__name__` of what LnkParse3 raised
+        let error = parsed.error.as_ref().map(|e| {
+            if e.message.trim().is_empty() {
+                e.kind.to_owned()
+            } else {
+                e.message.clone()
+            }
+        });
+        let summary = summary(&details, error.as_deref());
         let mut result = ResultEnvelope::new(details);
         result.summary = summary;
+        result.error = error;
         result.analyzed.add_tag("lnk");
         if let Some(text) = parsed.lnkparser_json {
             let path = format!("{}.lnkparser.json", file.path.as_str());

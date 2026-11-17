@@ -112,6 +112,7 @@ impl Lookup for NrdAnalyzer {
             matched_at: Some(isoformat(now)),
             ..NrdAnalysis::default()
         };
+        let mut failure = None;
         if let Some(max_age) = ctx.settings().max_registration_age_days.filter(|d| *d != 0) {
             let domain = ace_sdk::nrd::registrable_domain(&ctx.observable().value);
             let lookup = self.dates.lookup(&domain).await?;
@@ -132,13 +133,15 @@ impl Lookup for NrdAnalyzer {
                     analysis.age_created_in_days = Some(created.age_in_days(now));
                     analysis.lookup_protocol = lookup.protocol.map(str::to_owned);
                 }
-                // fail open: keep the hit, and say why it couldn't be verified
-                None => analysis.lookup_error = lookup.error,
+                // fail open: keep the hit, and say why it couldn't be verified. As an error it
+                // isn't an answer: ace3 doesn't cache it, so the next alert asks again
+                None => failure = lookup.error.filter(|e| !e.trim().is_empty()),
             }
         }
-        let summary = summary(&analysis);
+        let summary = summary(&analysis, failure.as_deref());
         let mut result = ResultEnvelope::new(analysis);
         result.summary = summary;
+        result.error = failure;
         result.analyzed.tags = vec![TAG.to_owned()];
         Ok(Outcome::Done(result))
     }
@@ -161,21 +164,19 @@ fn isoformat(now: DateTime<Utc>) -> String {
     format!("{}{fraction}+00:00", now.format("%Y-%m-%dT%H:%M:%S"))
 }
 
-/// `NRDAnalysis.generate_summary`.
-fn summary(analysis: &NrdAnalysis) -> Option<String> {
+/// `NRDAnalysis.generate_summary`, with the result's error.
+fn summary(analysis: &NrdAnalysis, error: Option<&str>) -> Option<String> {
     if analysis.is_nrd != Some(true) {
         return None;
     }
     let base = "Newly Registered Domain: present in local NRD list";
-    Some(
-        match (&analysis.age_created_in_days, &analysis.lookup_error) {
-            (Some(age), _) => format!("{base} (registered {age} day(s) ago)"),
-            (None, Some(error)) if !error.is_empty() => {
-                format!("{base} (registration age unverified: {error})")
-            }
-            _ => base.to_owned(),
-        },
-    )
+    Some(match (&analysis.age_created_in_days, error) {
+        (Some(age), _) => format!("{base} (registered {age} day(s) ago)"),
+        (None, Some(error)) if !error.is_empty() => {
+            format!("{base} (registration age unverified: {error})")
+        }
+        _ => base.to_owned(),
+    })
 }
 
 #[cfg(test)]

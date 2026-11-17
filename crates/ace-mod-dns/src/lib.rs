@@ -96,12 +96,16 @@ impl Lookup for FqdnAnalyzer {
         let nameservers = nameservers(&ctx.settings().nameservers).await?;
         let mut analysis = FqdnAnalysis::default();
         let mut result_observables = Vec::new();
+        // each lookup that failed, joined by `; `: the result's error (dns.py's `_add_error`). A
+        // lookup that failed is not an answer about the name
+        let mut failures: Vec<String> = Vec::new();
 
         let name = match name_of(&fqdn) {
             Ok(name) => Some(name),
             Err(e) => {
                 tracing::warn!("Problem resolving FQDN {fqdn}: {e}");
                 analysis.status = Some(STATUS_DNS_ERROR.to_owned());
+                failures.push(format!("A lookup failed: {e}"));
                 None
             }
         };
@@ -112,7 +116,7 @@ impl Lookup for FqdnAnalyzer {
                     // the name exists with no A record: a domain with MX and no A is a mail-only
                     // domain, one with neither a shell
                     analysis.status = Some(STATUS_NO_ANSWER.to_owned());
-                    self.analyze_apex(&mut analysis, &nameservers, &fqdn, &name)
+                    self.analyze_apex(&mut analysis, &mut failures, &nameservers, &fqdn, &name)
                         .await?;
                 }
                 Ok(Reply::Records(records, response)) => {
@@ -133,12 +137,13 @@ impl Lookup for FqdnAnalyzer {
                         result_observables.push(NewObservable::new(ObservableKind::Ip, first));
                     }
                     analysis.all_resolutions = addresses;
-                    self.analyze_apex(&mut analysis, &nameservers, &fqdn, &name)
+                    self.analyze_apex(&mut analysis, &mut failures, &nameservers, &fqdn, &name)
                         .await?;
                 }
                 Err(e) => {
                     tracing::warn!("Problem resolving FQDN {fqdn}: {e}");
                     analysis.status = Some(STATUS_DNS_ERROR.to_owned());
+                    failures.push(format!("A lookup failed: {e}"));
                 }
             }
         }
@@ -146,6 +151,9 @@ impl Lookup for FqdnAnalyzer {
         let summary = summary(&analysis);
         let mut result = ResultEnvelope::new(analysis);
         result.summary = summary;
+        if !failures.is_empty() {
+            result.error = Some(failures.join("; "));
+        }
         result.observables = result_observables;
         Ok(Outcome::Done(result))
     }
@@ -170,6 +178,7 @@ impl FqdnAnalyzer {
     async fn analyze_apex(
         &self,
         analysis: &mut FqdnAnalysis,
+        failures: &mut Vec<String>,
         nameservers: &[SocketAddr],
         fqdn: &str,
         name: &Name,
@@ -193,7 +202,10 @@ impl FqdnAnalyzer {
                 analysis.mx = Some(exchanges);
             }
             Ok(Reply::NxDomain | Reply::NoAnswer) => analysis.mx = Some(Vec::new()),
-            Err(e) => tracing::warn!("Problem resolving MX for {fqdn}: {e}"),
+            Err(e) => {
+                tracing::warn!("Problem resolving MX for {fqdn}: {e}");
+                failures.push(format!("MX lookup failed: {e}"));
+            }
         }
         let probe = Name::from_labels([WILDCARD_PROBE_LABEL.as_bytes()])
             .and_then(|label| label.append_domain(name));
@@ -202,9 +214,15 @@ impl FqdnAnalyzer {
                 // a name that can't exist resolving at all means a wildcard record
                 Ok(Reply::Records(..)) => analysis.wildcard_dns = Some(true),
                 Ok(Reply::NxDomain | Reply::NoAnswer) => analysis.wildcard_dns = Some(false),
-                Err(e) => tracing::warn!("Problem probing {fqdn} for wildcard DNS: {e}"),
+                Err(e) => {
+                    tracing::warn!("Problem probing {fqdn} for wildcard DNS: {e}");
+                    failures.push(format!("wildcard probe failed: {e}"));
+                }
             },
-            Err(e) => tracing::warn!("Problem probing {fqdn} for wildcard DNS: {e}"),
+            Err(e) => {
+                tracing::warn!("Problem probing {fqdn} for wildcard DNS: {e}");
+                failures.push(format!("wildcard probe failed: {e}"));
+            }
         }
         Ok(())
     }

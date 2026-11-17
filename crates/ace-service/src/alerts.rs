@@ -314,9 +314,25 @@ pub struct ModuleResult {
     pub analysis_type: String,
     pub schema_version: i32,
     pub summary: Option<String>,
+    /// Why the module said it failed, when it did (`ResultEnvelope::error`, ace3's
+    /// `Analysis.error`). The rest of the result is then what it had before it failed.
+    pub error: Option<String>,
     pub tags: Vec<String>,
     pub details: Value,
     pub created_at: DateTime<Utc>,
+}
+
+/// A module whose task on an observable failed and left no result: it crashed, was killed at its
+/// deadline or returned an error (PLAN.md 2.19). ace3 keeps these in `root.analysis_failures` and
+/// lists them under the observable; a module that ran to its end and says it failed has a result,
+/// with `ModuleResult::error`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FailedModule {
+    pub module: String,
+    /// The task's error, or None when it recorded none.
+    pub error: Option<String>,
+    /// The failed task, which `crash:read` reads with its inputs.
+    pub task: i64,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -350,6 +366,10 @@ pub struct AlertObservable {
     pub files: Vec<AlertFile>,
     pub relationships: Vec<Relationship>,
     pub results: Vec<ModuleResult>,
+    /// The modules whose tasks on it failed without a result, by module. None when the read
+    /// didn't look: the AI investigation API's database role holds nothing on the task queue
+    /// (migration 0064), so its observables don't say.
+    pub failed: Option<Vec<FailedModule>>,
     pub detections: Vec<AlertDetection>,
 }
 
@@ -995,6 +1015,20 @@ impl Service {
         limit: Option<u32>,
         after: Option<i64>,
     ) -> Result<ObservablePage, ServiceError> {
+        self.observables_page(actor, id, limit, after, true).await
+    }
+
+    /// `alert_observables`, reading the modules whose tasks failed (`AlertObservable::failed`) only
+    /// when `failed` says so: that read is of the task queue, which not every caller's database
+    /// role may read.
+    pub(crate) async fn observables_page(
+        &self,
+        actor: &crate::Actor,
+        id: Uuid,
+        limit: Option<u32>,
+        after: Option<i64>,
+        failed: bool,
+    ) -> Result<ObservablePage, ServiceError> {
         let limit = page_limit(limit, MAX_OBSERVABLES_PAGE)?;
         self.gate
             .read(actor, "alert_observables", &ALERT_READ, &|tx| {
@@ -1009,7 +1043,7 @@ impl Service {
                     if alert != Some(true) {
                         return Err(no_alert(id));
                     }
-                    let (observables, more) = observables_in(tx, id, after, limit).await?;
+                    let (observables, more) = observables_in(tx, id, after, limit, failed).await?;
                     let next = if more {
                         observables.last().map(|observable| observable.id)
                     } else {
@@ -1121,12 +1155,14 @@ pub(crate) async fn alert_in(
 }
 
 /// Up to `limit` of an alert's observables after `after`, in the order they were added, each with its
-/// files, relationships, results and detections, and whether there are more.
+/// files, relationships, results and detections, and whether there are more. With `failed`, each
+/// also has the modules whose tasks on it failed without a result, read from the task queue.
 pub(crate) async fn observables_in(
     tx: &mut ace_core::db::Tx<'_>,
     id: Uuid,
     after: Option<i64>,
     limit: i64,
+    failed: bool,
 ) -> Result<(Vec<AlertObservable>, bool), ServiceError> {
     let mut rows = sqlx::query!(
         "SELECT id, type, value, time, tags, directives, exclude_modules,
@@ -1160,6 +1196,7 @@ pub(crate) async fn observables_in(
             files: Vec::new(),
             relationships: Vec::new(),
             results: Vec::new(),
+            failed: failed.then(Vec::new),
             detections: Vec::new(),
         })
         .collect();
@@ -1202,7 +1239,7 @@ pub(crate) async fn observables_in(
         }
     }
     for row in sqlx::query!(
-        "SELECT id, observable_id, module, analysis_type, schema_version, summary, tags,
+        "SELECT id, observable_id, module, analysis_type, schema_version, summary, error, tags,
                 details, created_at
          FROM analysis.results
          WHERE root_id = $1 AND observable_id = ANY($2)
@@ -1220,9 +1257,41 @@ pub(crate) async fn observables_in(
                 analysis_type: row.analysis_type,
                 schema_version: row.schema_version,
                 summary: row.summary,
+                error: row.error,
                 tags: row.tags,
                 details: row.details,
                 created_at: row.created_at,
+            });
+        }
+    }
+    // a failed task has no result: the unique key is one task and one result per module, and a
+    // result lands only with a task that ends done. The join says so anyway, as ace3 lists a
+    // failure only where the module left no analysis to show it.
+    let failed_tasks = if failed {
+        sqlx::query!(
+            "SELECT t.id, t.observable_id, t.module, t.error
+         FROM queue.tasks t
+         WHERE t.root_id = $1 AND t.observable_id = ANY($2) AND t.state = 'failed'
+           AND NOT EXISTS (SELECT FROM analysis.results r
+                           WHERE r.root_id = t.root_id AND r.observable_id = t.observable_id
+                             AND r.module = t.module)
+         ORDER BY t.observable_id, t.module",
+            id,
+            &ids,
+        )
+        .fetch_all(tx.conn())
+        .await?
+    } else {
+        Vec::new()
+    };
+    for row in failed_tasks {
+        if let Some(i) = at(row.observable_id)
+            && let Some(failed) = &mut observables[i].failed
+        {
+            failed.push(FailedModule {
+                module: row.module,
+                error: row.error,
+                task: row.id,
             });
         }
     }

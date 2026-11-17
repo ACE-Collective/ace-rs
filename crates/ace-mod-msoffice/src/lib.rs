@@ -224,8 +224,8 @@ pub fn wait_for_emails<S>(ctx: &TaskContext<S>) -> Option<Delay> {
     Some(Delay::new(after, Duration::MAX))
 }
 
-fn summarize(details: &MsofficeEncryptionAnalysis) -> String {
-    if let Some(error) = &details.error {
+fn summarize(details: &MsofficeEncryptionAnalysis, error: Option<&str>) -> String {
+    if let Some(error) = error {
         return format!("{DISPLAY_NAME}: {error}");
     }
     if let Some(password) = &details.password {
@@ -253,13 +253,14 @@ fn decryption_failed(kind: &str, message: &str) -> String {
 }
 
 impl MsofficeEncryption {
-    /// Fills in the details and returns the decrypted file, if it got that far. A Python exception
-    /// past here is ace3's `except Exception`, which logs, records that decryption failed and keeps
-    /// what the result has.
+    /// Fills in the details and returns the decrypted file, if it got that far, or sets `failure` to
+    /// why it didn't (ace3's `Analysis.error`). A Python exception past here is ace3's `except
+    /// Exception`, which logs, records that decryption failed and keeps what the result has.
     fn decrypt(
         ctx: &TaskContext<MsofficeEncryptionSettings>,
         office: &mut OfficeFile,
         details: &mut MsofficeEncryptionAnalysis,
+        failure: &mut Option<String>,
     ) -> Result<Option<ace_results::NewFile>, ModuleError> {
         let file = ctx.input_file()?;
         details
@@ -282,7 +283,7 @@ impl MsofficeEncryption {
                     }
                     Err(error) => {
                         tracing::warn!("reading the email's body raised: {}", error.message);
-                        details.error = Some(decryption_failed(&error.kind, &error.message));
+                        *failure = Some(decryption_failed(&error.kind, &error.message));
                         return Ok(None);
                     }
                 }
@@ -300,7 +301,7 @@ impl MsofficeEncryption {
             stop,
         );
         if details.password.is_none() {
-            details.error = Some("could not crack password".to_owned());
+            *failure = Some("could not crack password".to_owned());
             return Ok(None);
         }
         let plain = match office.decrypt() {
@@ -308,7 +309,7 @@ impl MsofficeEncryption {
             Err(error) => {
                 // a file that broke the port, or one too large for it. It keeps its password
                 tracing::warn!("decryption raised {}: {}", error.kind, error.message);
-                details.error = Some(decryption_failed(&error.kind, &error.message));
+                *failure = Some(decryption_failed(&error.kind, &error.message));
                 return Ok(None);
             }
         };
@@ -349,8 +350,10 @@ impl Parser for MsofficeEncryption {
         }
         let mut details = MsofficeEncryptionAnalysis::default();
         let mut decrypted = None;
+        // why the file wasn't decrypted: ace3's `Analysis.error`
+        let mut failure: Option<String> = None;
         if let Some(complaint) = office.john_complaint(file.path.as_str()) {
-            details.error = Some(format!("office2john.py failed: {complaint}"));
+            failure = Some(format!("office2john.py failed: {complaint}"));
         } else {
             // An outer email adds a nested email's attachments too, before the nested one has been
             // parsed, and that's the email whose body has the password. ace3 analyzes the attachment
@@ -359,10 +362,11 @@ impl Parser for MsofficeEncryption {
             if let Some(delay) = wait_for_emails(ctx) {
                 return Ok(Outcome::Delay(delay));
             }
-            decrypted = Self::decrypt(ctx, &mut office, &mut details)?;
+            decrypted = Self::decrypt(ctx, &mut office, &mut details, &mut failure)?;
         }
         let mut result = ResultEnvelope::new(details);
-        result.summary = Some(summarize(&result.details));
+        result.summary = Some(summarize(&result.details, failure.as_deref()));
+        result.error = failure.filter(|e| !e.trim().is_empty());
         result.analyzed.tags.push("encrypted_msoffice".to_owned());
         if let Some(record) = decrypted {
             result.files.push(record);
@@ -492,7 +496,7 @@ mod tests {
             .expect("a sample");
         let result = done(harness.run_parser(input).expect("runs"));
         assert_eq!(
-            result.details.error.as_deref(),
+            result.error.as_deref(),
             Some(
                 "office2john.py failed: encrypted_agile_sha256.docx uses un-supported hashing \
                  algorithm SHA256, please file a bug! \n"
@@ -515,10 +519,7 @@ mod tests {
         let harness = harness().carrying_email(body_file(dir.path(), b"The password is wrong\n"));
         let input = harness.sample(NO_EMAIL).expect("a sample");
         let result = done(harness.run_parser(input).expect("runs"));
-        assert_eq!(
-            result.details.error.as_deref(),
-            Some("could not crack password")
-        );
+        assert_eq!(result.error.as_deref(), Some("could not crack password"));
         assert_eq!(result.details.password, None);
         assert!(result.files.is_empty());
         assert_eq!(
@@ -551,7 +552,7 @@ mod tests {
         assert_eq!(result.details.word_list, DEFAULT_PASSWORDS);
         // ace3's `except Exception`, since its 41d44392: the exception's own text
         assert_eq!(
-            result.details.error.as_deref(),
+            result.error.as_deref(),
             Some("decryption failed: invalid literal for int() with base 10: '1a after\\n'")
         );
         assert_eq!(
@@ -576,7 +577,7 @@ mod tests {
         assert!(result.files.is_empty());
         // msoffcrypto's exception, which ace3 records since its 41d44392
         assert_eq!(
-            result.details.error.as_deref(),
+            result.error.as_deref(),
             Some("decryption failed: The file could not be decrypted with this password")
         );
     }
@@ -635,7 +636,7 @@ mod tests {
                 .and_then(|n| n.to_str())
                 .expect("a name");
             assert_eq!(
-                result.details.error,
+                result.error,
                 Some(format!(
                     "office2john.py failed: {name} : XOR obfuscation detected, {verifier}\n"
                 ))
@@ -680,10 +681,7 @@ mod tests {
             "{:?}",
             started.elapsed()
         );
-        assert_eq!(
-            result.details.error.as_deref(),
-            Some("could not crack password")
-        );
+        assert_eq!(result.error.as_deref(), Some("could not crack password"));
         assert!(
             result
                 .details

@@ -203,7 +203,12 @@ pub trait Lookup: Module {
 #[allow(clippy::large_enum_variant)]
 #[derive(Debug, Clone, PartialEq)]
 pub enum Outcome<D> {
-    /// The result, which the core checks against its schema and stores.
+    /// The result, which the core checks against its schema and stores. A module that ran to its
+    /// end and failed (a tool that exited with an error, a lookup that couldn't answer, a file
+    /// that didn't read) still returns its result here, marked with why
+    /// (`ResultEnvelope::with_error`, ace3's `Analysis.error`): the alert shows it with an
+    /// `error` badge, and what the module had before it failed is kept. An `Err(ModuleError)` is
+    /// for a task that couldn't run to its end.
     Done(ResultEnvelope<D>),
     /// Run the task again later, as ace3's `delay_analysis`.
     Delay(Delay),
@@ -254,7 +259,12 @@ impl Delay {
 
 pub type BoxError = Box<dyn std::error::Error + Send + Sync + 'static>;
 
-/// Why a task failed.
+/// Why a task failed: it couldn't run to its end, so it has no result, its row in the queue is
+/// `failed` with this as its error (PLAN.md 2.19), and the alert lists the module under its
+/// observable. ace3 keeps the same in `root.analysis_failures`. This is not a module saying its
+/// analysis failed, which is a result with an error (`Outcome::Done`): return this for what the
+/// module can't answer for (its peer is down, its secret is missing, its own bug), and that for
+/// what the input or a tool did.
 #[derive(Debug, thiserror::Error)]
 pub enum ModuleError {
     /// The task was cancelled.

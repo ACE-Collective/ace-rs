@@ -10,7 +10,7 @@
 //! for a delay while a job runs, and each run after reads its status once. The plan of searches is
 //! fixed at the first run, as ace3 keeps it in the analysis's details, and the searches' state goes
 //! from run to run in the delay's state. Past `query_timeout` from the first run, a search that
-//! hasn't finished is `timed out` in `query_error`, so silence doesn't read as "no clicks"; the
+//! hasn't finished is `timed out` in the result's error, so silence doesn't read as "no clicks"; the
 //! searches after it then time out too, as in ace3, whose clock is the analysis's.
 //!
 //! A search's rows become `clicker_events` and the observables its `observable_mapping` names. A
@@ -564,7 +564,6 @@ impl Lookup for ClickerDetection {
         let details = SplunkClickerDetectionAnalysis {
             query: None,
             query_results: None,
-            query_error: progress.error.clone(),
             question: Some(settings.question.clone()),
             query_summary: Some(settings.summary.clone()),
             query_start: Some(
@@ -586,9 +585,11 @@ impl Lookup for ClickerDetection {
             clicker_events: Some(progress.events.clone()),
             matched_url_count: Some(1),
         };
-        let summary = summary(&details);
+        let summary = summary(&details, progress.error.as_deref());
         let mut result = ResultEnvelope::new(details);
         result.summary = Some(summary);
+        // a search that never answered: the clicks the others found are kept beside it
+        result.error = progress.error.clone().filter(|e| !e.trim().is_empty());
         result.observables = progress.observables;
         result.detections = progress.detections;
         if progress.crawl {
@@ -722,8 +723,8 @@ fn capitalize(text: &str) -> String {
     }
 }
 
-/// `ClickerDetectionAnalysisMixin.generate_summary`.
-fn summary(details: &SplunkClickerDetectionAnalysis) -> String {
+/// `ClickerDetectionAnalysisMixin.generate_summary`, with the result's error.
+fn summary(details: &SplunkClickerDetectionAnalysis, error: Option<&str>) -> String {
     let mut label = details
         .query_summary
         .clone()
@@ -738,7 +739,7 @@ fn summary(details: &SplunkClickerDetectionAnalysis) -> String {
         1 => "1 click found".to_owned(),
         n => format!("{n} clicks found"),
     };
-    match details.query_error.as_deref().filter(|e| !e.is_empty()) {
+    match error.filter(|e| !e.is_empty()) {
         Some(error) => {
             let prefix = if count > 0 {
                 format!("{found}, ")
@@ -809,15 +810,18 @@ mod tests {
             clicker_events: Some(vec![ClickerEvent::default()]),
             ..SplunkClickerDetectionAnalysis::default()
         };
-        assert_eq!(summary(&details), "URL Clicks (Splunk): 1 click found");
-        details.query_error = Some("proxy: timed out".into());
         assert_eq!(
-            summary(&details),
+            summary(&details, None),
+            "URL Clicks (Splunk): 1 click found"
+        );
+        let error = Some("proxy: timed out");
+        assert_eq!(
+            summary(&details, error),
             "URL Clicks (Splunk): 1 click found, ERROR: proxy: timed out"
         );
         details.clicker_events = Some(vec![]);
         assert_eq!(
-            summary(&details),
+            summary(&details, error),
             "URL Clicks (Splunk): ERROR: proxy: timed out"
         );
     }

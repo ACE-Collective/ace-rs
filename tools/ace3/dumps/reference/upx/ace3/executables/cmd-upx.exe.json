@@ -1,12 +1,11 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "f72f8946",
+  "ace3_commit": "37a765bf",
   "also_enabled": [],
   "analyses": [
     {
       "class": "UPXAnalysis",
       "details": {
-        "error": null,
         "output_file": "cmd-upx.exe.upx.exe",
         "stderr": "",
         "stdout": "                       Ultimate Packer for eXecutables\n                          Copyright (C) 1996 - 2024\nUPX 4.2.4       Markus Oberhumer, Laszlo Molnar & John Reiser    May 9th 2024\n\n        File size         Ratio      Format      Name\n   --------------------   ------   -----------   -----------\n    357376 <-    161280   45.13%    win64/pe     unpacked.exe\n\nUnpacked 1 file.\n"

@@ -1045,7 +1045,11 @@ impl Service {
     }
 
     /// A page of an alert's observables, each with its results and detections: the alert's analysis,
-    /// which ace3's alert read returns whole. Needs `ai:alert`, and records the read.
+    /// which ace3's alert read returns whole. A result whose module said it failed carries its
+    /// error. The modules whose tasks failed without a result aren't listed
+    /// (`AlertObservable::failed` is None): they are rows of the task queue, which this API's
+    /// database role holds nothing on, where ace3's alert read returns `analysis_failures`. Needs
+    /// `ai:alert`, and records the read.
     pub async fn ai_alert_observables(
         &self,
         actor: &Actor,
@@ -1056,7 +1060,7 @@ impl Service {
         self.ai_gate(actor, "ai_alert_observables", &AI_ALERT)
             .await?;
         let page = self
-            .alert_observables(&component(), id, limit, after)
+            .observables_page(&component(), id, limit, after, false)
             .await?;
         self.ai_record(
             actor,

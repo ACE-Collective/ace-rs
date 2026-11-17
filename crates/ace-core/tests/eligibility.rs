@@ -1160,7 +1160,11 @@ async fn a_task_reads_what_is_below_its_observable_and_what_it_depends_on() {
         .expect("reads");
     assert_eq!(
         results,
-        [("email_analyzer".to_owned(), json!({"first": true}))]
+        [tree::DependencyResult {
+            module: "email_analyzer".to_owned(),
+            details: json!({"first": true}),
+            error: None,
+        }]
     );
 }
 

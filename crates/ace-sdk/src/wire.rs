@@ -185,6 +185,11 @@ pub struct LeasedTask {
     /// (`Module::DEPENDS_ON`): each one's details, by module.
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub dependency_results: BTreeMap<String, Value>,
+    /// Of those results, the ones whose module said it failed (`ResultEnvelope::error`): each
+    /// one's reason, by module. A module that trusts a dependency's details checks this first, as
+    /// ace3's check `analysis.error`.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub dependency_errors: BTreeMap<String, String>,
     /// For a module that runs last, the observables below the task's of the types it reads there
     /// (`Module::READS_BELOW`), in the order they were added.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]

@@ -1588,6 +1588,31 @@
           }
         }
       },
+      "FailedModuleBody": {
+        "type": "object",
+        "description": "A module whose task on the observable failed and left no result: it crashed, was stopped at\nits deadline or returned an error. A module that ran to its end and says it failed has a\nresult instead, with its `error`.",
+        "required": [
+          "module",
+          "task"
+        ],
+        "properties": {
+          "error": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The task's error, or null when it recorded none."
+          },
+          "module": {
+            "type": "string"
+          },
+          "task": {
+            "type": "integer",
+            "format": "int64",
+            "description": "The failed task's id, which `/api/crashes/v1/crashes/{id}` reads with `crash:read`."
+          }
+        }
+      },
       "FileBody": {
         "type": "object",
         "required": [
@@ -1647,6 +1672,16 @@
             "items": {
               "type": "string"
             }
+          },
+          "failed_modules": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/FailedModuleBody"
+            },
+            "description": "The modules whose tasks on it failed without a result. Absent from the AI investigation\nAPI's observables, which can't read the task queue."
           },
           "files": {
             "type": "array",
@@ -1922,6 +1957,13 @@
           },
           "details": {
             "description": "The result's details, as the analysis type's JSON Schema (`ace schema export`) says."
+          },
+          "error": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Why the module said it failed, or null when it didn't. A failed result keeps what the\nmodule had before it failed, as a partial result."
           },
           "module": {
             "type": "string"

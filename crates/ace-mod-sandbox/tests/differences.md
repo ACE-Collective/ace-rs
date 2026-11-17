@@ -24,9 +24,10 @@ In the Dumps column, `*` matches any text in a dump's name. In the Path column, 
 
 ## Behaviour the dumps don't compare
 
+When pdftotext doesn't finish or exits non-zero, both systems mark `pdf_link_text`'s result failed with the same reason, such as `pdftotext exited with status 99: Command Line Error: Wrong page range given ..., without the text under the links` on `link_text_page_count.pdf`, and keep the links without their text. The dumps compare both.
+
 `pdf_link_text` departs from ace3 in these, which the normal form doesn't hold:
 
-- When pdftotext doesn't finish or exits non-zero, ace3 marks the analysis failed with the reason (`Analysis.error`, since its `2b9fcd2c`), such as `pdftotext exited with status 99: Command Line Error: Wrong page range given ..., without the text under the links` on `link_text_page_count.pdf` and `pdftotext exited with status 1: Syntax Error: Couldn't read xref table, ...` on `encrypted_truncated.pdf` (the dumps keep it as `error`). ace4 has no such mark yet, so the task logs the reason. The links are kept without their text on both sides, which the dumps compare.
 - ace3 doesn't cache a failed result, and caches the others for 30 days by the PDF, the settings and pdftotext's version. ace4 has no analysis result cache (PLAN.md 6.7).
 - A node that can't start the sandbox makes ace3 keep the links without text, as a failure; in ace4 a tool that can't start fails the task, as for every module that runs one.
 - ace3 has a result for each path of a PDF; ace4 analyzes a file once.

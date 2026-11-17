@@ -1,6 +1,6 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "f72f8946",
+  "ace3_commit": "37a765bf",
   "also_enabled": [],
   "analyses": [
     {
@@ -8,7 +8,6 @@
       "details": {
         "dom_snapshot": false,
         "dom_snapshot_source": null,
-        "error": "evalmachine.<anonymous>:1\nfunction (\n^^^^^^^^\n\nSyntaxError: Function statements require a function name\n    at new Script (node:vm:118:7)\n    at file:///opt/app/harness.js:907:12",
         "error_type": "compile",
         "event_count": 0,
         "exit_code": 0,
@@ -22,6 +21,7 @@
         "webcrack_status": "failed: Unexpected token (1:9)"
       },
       "detections": [],
+      "error": "evalmachine.<anonymous>:1\nfunction (\n^^^^^^^^\n\nSyntaxError: Function statements require a function name\n    at new Script (node:vm:118:7)\n    at file:///opt/app/harness.js:907:12",
       "module_path": "saq.modules.file_analysis.js:JavaScriptDeobfuscationAnalysis",
       "observables": [
         {

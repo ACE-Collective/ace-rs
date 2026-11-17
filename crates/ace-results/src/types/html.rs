@@ -132,9 +132,9 @@ pub struct HarAnalysis {
     pub creator: Option<String>,
     pub entry_count: u64,
     pub responses: Vec<HarResponse>,
-    /// Responses past `max_extracted_files`.
+    /// Responses past `max_extracted_files`. Why nothing was extracted, when nothing was, is the
+    /// result's `error` (ace3's `Analysis.error`).
     pub skipped_count: u64,
-    pub error: Option<String>,
     /// ace4's: the snapshots ace3 writes as files beside the scripts a page loads.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub dom_snapshots: Vec<DomSnapshotFile>,
@@ -165,7 +165,7 @@ mod tests {
             serde_json::from_value(details.clone()).expect("reads");
         assert_eq!(serde_json::to_value(&read).expect("writes"), details);
         let har = json!({
-            "creator": "Firefox 140", "entry_count": 2, "skipped_count": 0, "error": null,
+            "creator": "Firefox 140", "entry_count": 2, "skipped_count": 0,
             "responses": [{"url": "https://x.example/", "status": 200, "mime_type": "text/html",
                 "file_path": "s.har.extracted/000_x.example.html", "truncated": false}],
         });

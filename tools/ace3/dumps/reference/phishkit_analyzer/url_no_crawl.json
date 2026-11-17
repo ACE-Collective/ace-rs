@@ -1,13 +1,30 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "f72f8946",
+  "ace3_commit": "37a765bf",
   "also_enabled": [],
   "analyses": [],
   "fluent_bit": [
     {
       "record": {
+        "alert_type": "cli_analysis",
+        "event_type": "root",
+        "is_alert": false,
+        "observable_count": 1,
+        "observable_type_counts": {
+          "url": 1
+        },
+        "queue": "default",
+        "root_uuid": "92dbf3d8-c701-4b93-99e0-6c08986ab655",
+        "timestamp": "2026-11-16 21:34:39.508548",
+        "total_analysis_time_seconds": 0,
+        "total_time_seconds": 0.007797956466674805
+      },
+      "tag": "metrics"
+    },
+    {
+      "record": {
         "path": "database.pool.available_count",
-        "timestamp": "2026-11-11T03:27:21.954325",
+        "timestamp": "2026-11-16T21:34:39.508949",
         "value": 0
       },
       "tag": "monitoring"
@@ -15,7 +32,7 @@
     {
       "record": {
         "path": "database.pool.in_use_count",
-        "timestamp": "2026-11-11T03:27:21.954347",
+        "timestamp": "2026-11-16T21:34:39.508969",
         "value": 1
       },
       "tag": "monitoring"

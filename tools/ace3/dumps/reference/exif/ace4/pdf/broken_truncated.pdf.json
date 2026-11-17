@@ -1,6 +1,6 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "f72f8946",
+  "ace3_commit": "37a765bf",
   "also_enabled": [
     "file_type"
   ],
@@ -8,14 +8,13 @@
     {
       "class": "ExifAnalysis",
       "details": {
-        "error": null,
         "exifdata": {
           "ExifTool:ExifToolVersion": 13.25,
           "ExifTool:Warning": "Invalid xref table",
           "File:Directory": "<root>/files",
-          "File:FileAccessDate": "2026:11:10 11:01:21+00:00",
-          "File:FileInodeChangeDate": "2026:11:10 11:01:21+00:00",
-          "File:FileModifyDate": "2026:11:07 04:47:50+00:00",
+          "File:FileAccessDate": "2026:11:16 22:00:19+00:00",
+          "File:FileInodeChangeDate": "2026:11:16 22:00:19+00:00",
+          "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
           "File:FileName": "broken_truncated.pdf",
           "File:FilePermissions": 100644,
           "File:FileSize": 783,
@@ -53,7 +52,7 @@
           "size": 681,
           "tags": [],
           "type": "file",
-          "value": "e56ca4a4946190cb94af7bbb43a9b907db9e916d4f06a6ee286fbc060ade4c5d",
+          "value": "de100654b2b7f010a6a637b805e67d1e79c1f7ce099e94648022e050e96fc560",
           "yara_meta": [
             "type=metadata.exif"
           ]

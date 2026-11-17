@@ -1454,6 +1454,7 @@ fn observable(id: i64, kind: &str, value: &str) -> AlertObservable {
         files: Vec::new(),
         relationships: Vec::new(),
         results: Vec::new(),
+        failed: Some(Vec::new()),
         detections: Vec::new(),
     }
 }
@@ -1465,6 +1466,7 @@ fn module_result(id: i64, module: &str, summary: Option<&str>) -> ModuleResult {
         analysis_type: format!("{module}_analysis"),
         schema_version: 1,
         summary: summary.map(str::to_owned),
+        error: None,
         tags: Vec::new(),
         details: serde_json::json!({}),
         created_at: chrono::DateTime::from_timestamp(1_793_000_000, 0).expect("a time"),
@@ -1540,6 +1542,100 @@ fn fixture_tree() -> (AlertTree, Vec<ObservableComment>) {
         edited_at: None,
     }];
     (tree, comments)
+}
+
+/// A failed analysis (ace3's `Analysis.error`, its 2b9fcd2c): a result whose module said it failed has
+/// an `error` badge with the reason as its title, and the reason beside it when it has no summary; a
+/// module whose task failed without a result is listed under its observable; and the result's page
+/// shows the reason above the details. All of it is a module's text, so all of it is escaped.
+#[test]
+fn a_failed_analysis_has_a_badge_its_reason_and_its_place_under_the_observable() {
+    let (mut tree, comments) = fixture_tree();
+    let hostile = "exited 2: <img src=x onerror=alert(1)>";
+    // the email's result has a summary, so the badge alone; the IP's has none, so the reason too
+    tree.observables[0].results[0].error = Some(hostile.to_owned());
+    let long = format!("{}<b>", "x".repeat(250));
+    tree.observables[2].results[0].error = Some(long.clone());
+    // on the fqdn: one module killed at its deadline, and one that recorded no reason
+    tree.observables[3].failed = Some(vec![
+        ace_service::FailedModule {
+            module: "fqdn_analyzer".to_owned(),
+            error: Some("the task ran past its <deadline>".to_owned()),
+            task: 7,
+        },
+        ace_service::FailedModule {
+            module: "nrd_analyzer".to_owned(),
+            error: None,
+            task: 8,
+        },
+    ]);
+    let view = tree_view(&tree, &comments, &ObservableActions::empty());
+    let html = AlertTreeFragment { tree: view }.render().expect("renders");
+    let compact: String = html.lines().map(str::trim).collect();
+    let escaped = "exited 2: &#60;img src=x onerror=alert(1)&#62;";
+    let order = [
+        // a summary says why already: the badge, whose title is the whole reason
+        format!(
+            r#"<li class="result" id="r10" data-module="email_analyzer"><span class="failure" title="The analysis module failed: {escaped}">error</span><a class="summary" href="/alerts/00000000-0000-0000-0000-000000005800/results/10" title="email_analyzer">Email &#60;b&#62;Analysis&#60;/b&#62;</a> <span class="tag">"#
+        ),
+        // no summary: the module's name, and the reason, cut to 200 characters
+        format!(
+            r#"<li class="result" id="r11" data-module="rdap_analyzer"><span class="failure" title="The analysis module failed: {}&#60;b&#62;">error</span><a class="summary" href="/alerts/00000000-0000-0000-0000-000000005800/results/11" title="rdap_analyzer">rdap_analyzer</a> <span class="failure-reason">{}…</span>"#,
+            "x".repeat(250),
+            "x".repeat(199)
+        ),
+        // the modules that failed on the fqdn without a result, under it
+        r#"<li class="observable" id="o4"><b class="type">fqdn</b> : <span class="value">evil.example.com&#39;&#62;&#60;img src=x&#62;</span><ul><li class="result failed" data-module="fqdn_analyzer"><span class="failure" title="The analysis module failed: the task ran past its &#60;deadline&#62;">error</span><span class="module">fqdn_analyzer</span> <span class="failure-reason">the task ran past its &#60;deadline&#62;</span></li><li class="result failed" data-module="nrd_analyzer"><span class="failure" title="The analysis module failed: the analysis module failed">error</span><span class="module">nrd_analyzer</span> <span class="failure-reason">the analysis module failed</span></li></ul></li>"#.to_owned(),
+    ];
+    let mut at = 0;
+    for part in &order {
+        let found = compact[at..]
+            .find(part.as_str())
+            .unwrap_or_else(|| panic!("{part}\nisn't after byte {at} of\n{compact}"));
+        at += found + part.len();
+    }
+    assert_eq!(
+        compact.matches("<li").count(),
+        compact.matches("</li>").count()
+    );
+    assert_eq!(
+        compact.matches("<ul").count(),
+        compact.matches("</ul>").count()
+    );
+    for raw in ["<img src=x onerror", "<deadline>", "x<b>"] {
+        assert!(!html.contains(raw), "{raw} unescaped in {html}");
+    }
+    // a result that didn't fail has no badge, and an observable nothing failed on no such line
+    let (clean, comments) = fixture_tree();
+    let html = AlertTreeFragment {
+        tree: tree_view(&clean, &comments, &ObservableActions::empty()),
+    }
+    .render()
+    .expect("renders");
+    assert!(!html.contains("failure"), "{html}");
+
+    // the result's page: the reason above the details, whole, and none on a result that didn't fail
+    let layout = || Layout::new("n0nce", Theme::Light, Some("alice".to_owned()), "/alerts/x");
+    let page = ace_gui::alert::ResultPage::new(layout(), &tree, 11, &Views::builtin())
+        .expect("the result")
+        .render()
+        .expect("renders");
+    let compact: String = page.lines().map(str::trim).collect();
+    let message = format!(
+        r#"<p class="warning failure-message" role="alert"><b>rdap_analyzer failed:</b> <span class="failure-text">{}&#60;b&#62;</span></p>"#,
+        "x".repeat(250)
+    );
+    assert!(compact.contains(&message), "{compact}");
+    assert!(
+        compact.find(&message) < compact.find(r#"<div class="analysis-view">"#),
+        "the reason comes before the details: {compact}"
+    );
+    assert!(!page.contains("x<b>"), "{page}");
+    let page = ace_gui::alert::ResultPage::new(layout(), &clean, 11, &Views::builtin())
+        .expect("the result")
+        .render()
+        .expect("renders");
+    assert!(!page.contains("failure-message"), "{page}");
 }
 
 /// PLAN.md 5.8's Done check, its first part: the view function, called directly, draws a fixture tree as
@@ -3341,7 +3437,7 @@ fn each_module_s_view_draws_its_fixture() {
                 &[
                     "<tr><th>is_nrd</th><td>true</td></tr>",
                     "<tr><th>datetime_created</th><td>2026-11-01 12:30:00+00:00</td></tr>",
-                    "<tr><th>age_created_in_days</th><td>7</td></tr>",
+                    "<tr><th>age_created_in_days</th><td>15</td></tr>",
                     "<tr><th>lookup_protocol</th><td>rdap</td></tr>",
                 ],
             ),
@@ -11133,7 +11229,9 @@ async fn the_cli_starts_follows_and_cancels_a_command() {
 }
 
 /// PLAN.md 7.4's three views draw hostile text escaped: the user's attributes and groups, the
-/// newly registered domain's error, and the clicker's clicks, with a link that isn't HTTPS left out.
+/// newly registered domain's fields, and the clicker's clicks, with a link that isn't HTTPS left out.
+/// A failed lookup or search is the result's error, which the result's page draws, escaped
+/// (`a_failed_analysis_has_a_badge_its_reason_and_its_place_under_the_observable`).
 #[test]
 fn the_network_pool_s_new_views_escape_what_a_module_wrote() {
     let views = Views::builtin();
@@ -11161,12 +11259,12 @@ fn the_network_pool_s_new_views_escape_what_a_module_wrote() {
     let nrd = draw(
         "nrd_analysis",
         serde_json::json!({"is_nrd": true, "matched_at": null, "datetime_created": null,
-            "age_created_in_days": null, "lookup_protocol": null, "lookup_error": hostile}),
+            "age_created_in_days": null, "lookup_protocol": hostile}),
     );
     assert!(nrd.contains("&#60;script&#62;"), "{nrd}");
     let clicker = draw(
         "splunk_clicker_detection_analysis",
-        serde_json::json!({"query": null, "query_results": null, "query_error": hostile,
+        serde_json::json!({"query": null, "query_results": null,
             "question": hostile, "query_summary": null, "query_start": null,
             "gui_link": "javascript:alert(1)", "gui_link_label": hostile,
             "search_id": null, "dispatch_state": null, "start_time": null,

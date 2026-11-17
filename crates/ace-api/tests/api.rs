@@ -1937,6 +1937,21 @@ async fn reads_observables(client: &mut Client<'_>, token: &str, id: Uuid, file:
     .bind(id).bind(fqdn).fetch_one(db).await.expect("a result");
     sqlx::query("INSERT INTO analysis.detections (root_id, observable_id, result_id, description) VALUES ($1, $2, $3, 'bad')")
         .bind(id).bind(fqdn).bind(result).execute(db).await.expect("a detection");
+    // a module that ran to its end and says it failed, and one whose task failed with no result
+    sqlx::query(
+        "INSERT INTO analysis.results (root_id, observable_id, module, analysis_type, schema_version, details, error)
+         VALUES ($1, $2, 'nrd_analyzer', 'test_stub', 1, '{}', 'rdap: no answer')",
+    )
+    .bind(id).bind(fqdn).execute(db).await.expect("a failed result");
+    let failed_task: i64 = sqlx::query_scalar(
+        "INSERT INTO queue.tasks (root_id, observable_id, module, state, error)
+         VALUES ($1, $2, 'fqdn_analyzer', 'failed', 'killed at its deadline') RETURNING id",
+    )
+    .bind(id)
+    .bind(fqdn)
+    .fetch_one(db)
+    .await
+    .expect("a failed task");
 
     let page = client
         .json(
@@ -1952,10 +1967,19 @@ async fn reads_observables(client: &mut Client<'_>, token: &str, id: Uuid, file:
     assert_eq!(observables.len(), 1);
     assert_eq!(observables[0]["id"], fqdn, "in the order they were added");
     assert_eq!(
-        observables[0]["results"][0]["details"],
+        observables[0]["results"][1]["details"],
         json!({"note": "found"})
     );
-    assert_eq!(observables[0]["results"][0]["summary"], "a summary");
+    // in the module's order: nrd_analyzer, which said it failed, then rdap_analyzer
+    assert_eq!(observables[0]["results"][0]["module"], "nrd_analyzer");
+    assert_eq!(observables[0]["results"][0]["error"], "rdap: no answer");
+    assert_eq!(observables[0]["results"][1]["summary"], "a summary");
+    assert_eq!(observables[0]["results"][1]["error"], Value::Null);
+    // the module whose task failed left no result, so it's listed apart, by its task
+    assert_eq!(
+        observables[0]["failed_modules"],
+        json!([{"module": "fqdn_analyzer", "error": "killed at its deadline", "task": failed_task}])
+    );
     assert_eq!(
         observables[0]["detections"][0],
         json!({"description": "bad", "details": null, "module": "rdap_analyzer"})
@@ -1976,6 +2000,7 @@ async fn reads_observables(client: &mut Client<'_>, token: &str, id: Uuid, file:
         rest["observables"][0]["files"][0]["path"],
         "mail/invoice.zip"
     );
+    assert_eq!(rest["observables"][0]["failed_modules"], json!([]));
     assert_eq!(rest["next"], Value::Null);
     for bad in ["?limit=501", "?limit=0", "?after=x"] {
         client
@@ -18435,6 +18460,12 @@ async fn ai_reads(client: &mut Client<'_>) {
         1
     );
     assert_eq!(page["observables"][0]["value"], "ai.example");
+    // the modules whose tasks failed are rows of the task queue, which this API's role can't read,
+    // so its observables don't say, rather than say there are none
+    assert!(
+        page["observables"][0].get("failed_modules").is_none(),
+        "{page}"
+    );
     let next = page["next"].as_i64().expect("more");
     let row = last_ai_audit(stack).await;
     assert_eq!(

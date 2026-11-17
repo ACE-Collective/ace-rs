@@ -1157,39 +1157,6 @@
       },
       "tags": {}
     },
-    "file:758e72dd8269ff0fcd17e35224cb39ec267a5bf594a52c1d0fc76252be71e247": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "Past Due Invoices.doc.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:794700af5b1f1d032372ffa72482f6908eda7360f42b48134b881f91b8ea2902": {
       "detections": {},
       "directives": {
@@ -1403,8 +1370,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 13:38:40+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 13:38:40+00:00",
+              "File:FileAccessDate": "2026:11:16 19:43:00+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 19:43:00+00:00",
               "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "Past Due Invoices.doc",
               "File:FilePermissions": 100644,
@@ -1635,6 +1602,39 @@
       "tags": {
         "macro": true
       }
+    },
+    "file:b644fd25ff1aa24b5011769af392b7365cdcd52b2ad7bf13b38309b1853d76b2": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "Past Due Invoices.doc.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:b12749ad0e060ae0b715a83ebd1bfea23e0b9f4968dac80cc604fc229c55052f": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
     },
     "file:c45c1f0bd17eb1b2d4c6b01c32272f40d762bb12825d812dea80a4bc3a6496e9": {
       "detections": {},
@@ -2451,6 +2451,7 @@
             "whois_data": null,
             "whois_raw_text": null
           },
+          "error": "rdap: Failed to make a GET request to https://rdap.verisign.com/com/v1/domain/yrbfrviqrolaijq.com: nothing recorded for GET https://rdap.verisign.com/com/v1/domain/yrbfrviqrolaijq.com; whois: no WHOIS in a replay",
           "tags": {}
         },
         "user_defined_tagging": {

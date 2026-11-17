@@ -26,9 +26,9 @@ pub struct JavaScriptDeobfuscationAnalysis {
     /// The report's `event_count` and `secondary_script_count`.
     pub event_count: i64,
     pub secondary_script_count: i64,
-    /// The report's `error`, or why the scan couldn't run.
-    pub error: Option<Value>,
-    /// `compile` when the source never parsed, `runtime` when it failed while it ran.
+    /// `compile` when the source never parsed, `runtime` when it failed while it ran. The report's
+    /// `error` itself, or why the scan couldn't run or how it died, is the result's `error` (ace3's
+    /// `Analysis.error`).
     pub error_type: Option<Value>,
     /// The webcrack static pass's status and error.
     pub webcrack_status: Option<Value>,
@@ -64,8 +64,8 @@ pub struct PhishkitAnalysis {
     /// `successfully scanned <observable>`, or `partial scan of <observable>: scanner timed out`.
     pub scan_result: Option<String>,
     /// The files added, by their paths in the alert, `phishkit/<job_id>/<path>`.
+    /// Why a scan failed is the result's `error` (ace3's `Analysis.error`).
     pub output_files: Vec<String>,
-    pub error: Option<String>,
     /// The scanner's `metrics.json`: bytes downloaded, domains, the document's URL and so on.
     pub metrics: Option<Value>,
     /// Whether the scan went through a proxy, as ace3's manager writes it to `proxy.json`.
@@ -87,7 +87,7 @@ mod tests {
     fn details_read_as_written_and_refuse_an_unknown_field() {
         let js = json!({
             "extracted_files": ["deobfuscated-a.js"], "stdout": "{}", "stderr": "", "exit_code": 0,
-            "event_count": 3, "secondary_script_count": 0, "error": null, "error_type": null,
+            "event_count": 3, "secondary_script_count": 0, "error_type": null,
             "webcrack_status": "applied", "webcrack_error": null, "dom_snapshot": true,
             "dom_snapshot_source": null,
         });
@@ -97,7 +97,7 @@ mod tests {
         let pk = json!({
             "exit_code": 0, "stdout": "", "stderr": "", "output_dir": "phishkit/x", "job_id": "x",
             "scan_type": "url", "scan_result": "successfully scanned url:https://a.example/",
-            "output_files": ["phishkit/x/dom.html"], "error": null,
+            "output_files": ["phishkit/x/dom.html"],
             "metrics": {"total_bytes_downloaded": 10}, "proxy_status": {"configured": false},
         });
         let read: PhishkitAnalysis = serde_json::from_value(pk.clone()).expect("reads");

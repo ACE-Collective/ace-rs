@@ -1,5 +1,6 @@
 {#- splunk_clicker_detection_analysis (src/analysis.rs), from ace3's analysis/api_analysis.html, which ace3
-    draws this type with: the link to the search, the question, an error and the raw details. ace3 shows
+    draws this type with: the link to the search, the question and the raw details (a failed search's error is the result's, which
+    the page shows above this). ace3 shows
     the clicks in the alert's URL Clicks panel; here they're a table of their own. -#}
 {%- if let Some(link) = self.link() %}
 <p><a href="{{ link }}" rel="noopener noreferrer">{{ self.link_label() }}</a></p>
@@ -9,9 +10,6 @@
 {%- if let Some(question) = analysis.question %}<strong>{{ question }}</strong><br>{% endif %}
 {%- if let Some(summary) = analysis.query_summary %}{{ summary }}{% endif %}
 </p>
-{%- endif %}
-{%- if let Some(error) = analysis.query_error %}
-<p class="error" role="alert"><strong>Query Error:</strong> {{ error }}</p>
 {%- endif %}
 {%- let clicks = self.clicks() %}
 {%- if !clicks.items.is_empty() %}

@@ -162,6 +162,7 @@ impl<M: ace_sdk::Module> Entry<M> {
         .with_lists(run.task.lists.clone())
         .with_reader(run.reader.clone())
         .with_dependency_results(run.task.dependency_results.clone())
+        .with_dependency_errors(run.task.dependency_errors.clone())
         .with_observables_below(run.task.observables_below.clone())
         .with_added_by(run.task.added_by.clone())
         .with_related_tags(run.task.related_tags.clone())
@@ -463,6 +464,7 @@ mod tests {
             yara_rules_below: Vec::new(),
             lists: Vec::new(),
             dependency_results: Default::default(),
+            dependency_errors: Default::default(),
             observables_below: Vec::new(),
             added_by: Vec::new(),
             related_tags: Vec::new(),

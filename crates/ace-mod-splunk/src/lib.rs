@@ -222,7 +222,7 @@ enum Ending {
 pub(crate) enum Failure {
     /// The task fails, such as when splunkd can't be reached, so it runs again later.
     Task(ModuleError),
-    /// The search failed. As in ace3, the analysis ends with this as its `query_error`.
+    /// The search failed. As in ace3, the analysis ends with this as its error.
     Search(String),
 }
 
@@ -391,11 +391,12 @@ impl SplunkAnalyzer {
             ..SplunkApiAnalysis::default()
         };
         let mut observables = Vec::new();
+        let mut failure = None;
         // BaseAPIAnalysis.generate_summary: no summary for no rows
         let summary = match ending {
             Ending::Error(error) => {
                 let summary = format!("{}: ERROR: {error}", settings.summary);
-                details.query_error = Some(error);
+                failure = Some(error);
                 Some(summary)
             }
             Ending::Rows(rows) => {
@@ -417,6 +418,7 @@ impl SplunkAnalyzer {
         };
         let mut result = ResultEnvelope::new(details);
         result.summary = summary;
+        result.error = failure;
         result.observables = observables;
         result
     }

@@ -170,24 +170,22 @@ impl Parser for PcapAnalyzer {
         result.details.index = Some(index);
         result.details.added = node.added;
         result.details.omitted = node.omitted;
-        result.summary = summary(&result.details);
+        result.summary = summary(&result.details, None);
         Ok(Outcome::Done(result))
     }
 }
 
-/// `_failed`: an analysis with the error alone.
+/// `_failed`: an analysis with the error alone, which is the result's (ace3's `Analysis.error`).
 fn failed(error: String) -> Outcome<PcapAnalysis> {
-    let mut result = ResultEnvelope::new(PcapAnalysis {
-        error: Some(error),
-        ..PcapAnalysis::default()
-    });
-    result.summary = summary(&result.details);
+    let mut result = ResultEnvelope::new(PcapAnalysis::default());
+    result.summary = summary(&result.details, Some(&error));
+    result.error = Some(error);
     Outcome::Done(result)
 }
 
-/// `PcapAnalysis.generate_summary`.
-pub fn summary(details: &PcapAnalysis) -> Option<String> {
-    if let Some(error) = &details.error {
+/// `PcapAnalysis.generate_summary`, with the result's error.
+pub fn summary(details: &PcapAnalysis, error: Option<&str>) -> Option<String> {
+    if let Some(error) = error {
         return Some(format!("PCAP Analysis: failed: {error}"));
     }
     let index = details.index.as_ref()?;

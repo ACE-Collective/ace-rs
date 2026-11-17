@@ -6,7 +6,9 @@
 //! last, the object is read as construct reads it: the GUID, a 64-bit length, 12 bytes and that
 //! many bytes of data, written to `<file>.extracted-<first 6 hex of its sha256>`, `extracted_from`
 //! the file and typed `document.onenote.embedded`. An object that runs past the bytes read raises
-//! out of ace3's module, which keeps what it wrote before, so the result here stops there too.
+//! out of ace3's module, which keeps what it wrote before, so the result here stops there too. ace3's
+//! engine marks that analysis failed with the exception, construct's `StreamError`, and so is the
+//! result here (`ResultEnvelope::error`), in ace3's words without its crash report's id.
 //!
 //! Where ace4 departs: ace3's root takes at most 500 files, the file itself one of them, so this writes at most 499. Two
 //! payloads whose sha256 start alike overwrite one file in ace3, with both observables naming it;
@@ -54,28 +56,56 @@ pub fn is_onenote_file(name: &str, data: &[u8]) -> bool {
     ace_pycompat::pystr::lower(name).ends_with(".one") || data.get(..16) == Some(&ONENOTE_HEADER)
 }
 
-/// The payloads of the objects found in `data`, in order, and whether reading one raised.
-pub fn payloads(data: &[u8]) -> (Vec<&[u8]>, bool) {
+/// The payloads of the objects found in `data`, in order, and what construct raised reading one
+/// that runs past the bytes: `str()` of its `StreamError`, which names the struct's field.
+pub fn payloads(data: &[u8]) -> (Vec<&[u8]>, Option<String>) {
     let mut found = Vec::new();
     let mut at = 0;
+    // construct's stream_read: `Error in path <path>` and how much the stream was short by
+    let short = |field: &str, expected: u64, left: usize| {
+        format!(
+            "Error in path (parsing) -> FileDataStoreObject{field}\nstream read less than \
+             specified amount, expected {expected}, found {left}"
+        )
+    };
     while let Some(offset) = memchr::memmem::find(&data[at..], &FILE_DATA_STORE_OBJECT) {
         let start = at + offset;
-        // guidHeader, cbLength, 4 and 8 unused bytes, FileData
+        // guidHeader, cbLength, 4 and 8 unnamed bytes, FileData
         let object = &data[start..];
         let Some(length) = object.get(16..24) else {
-            return (found, true);
+            return (found, Some(short(" -> cbLength", 8, object.len() - 16)));
         };
         let length = u64::from_le_bytes(length.try_into().expect("8 bytes"));
+        // the two unnamed fields, which construct's path doesn't name
+        if object.len() < 28 {
+            return (found, Some(short("", 4, object.len() - 24)));
+        }
+        if object.len() < 36 {
+            return (found, Some(short("", 8, object.len() - 28)));
+        }
         let end = usize::try_from(length)
             .ok()
             .and_then(|length| length.checked_add(36));
         match end.and_then(|end| object.get(36..end)) {
             Some(payload) => found.push(payload),
-            None => return (found, true),
+            // Python's read() takes no length past a ssize_t, which construct reports as its own
+            None if length > i64::MAX as u64 => {
+                let raised = format!(
+                    "Error in path (parsing) -> FileDataStoreObject -> FileData\nstream.read() \
+                     failed, requested {length} bytes"
+                );
+                return (found, Some(raised));
+            }
+            None => {
+                return (
+                    found,
+                    Some(short(" -> FileData", length, object.len() - 36)),
+                );
+            }
         }
         at = start + FILE_DATA_STORE_OBJECT.len();
     }
-    (found, false)
+    (found, None)
 }
 
 impl Module for OneNoteAnalyzer {
@@ -115,8 +145,8 @@ impl Parser for OneNoteAnalyzer {
         let meta =
             YaraMeta::new("type", "document.onenote.embedded").map_err(ModuleError::other)?;
         let (found, raised) = payloads(&data);
-        if raised {
-            tracing::info!("a FileDataStoreObject runs past the bytes read");
+        if let Some(raised) = &raised {
+            tracing::info!("a FileDataStoreObject runs past the bytes read: {raised}");
         }
         let mut analysis = OneNoteFileAnalysis::default();
         let mut files = Vec::new();
@@ -150,6 +180,8 @@ impl Parser for OneNoteAnalyzer {
         });
         let mut result = ResultEnvelope::new(analysis);
         result.summary = summary;
+        // as ace3's engine marks the analysis its module raised out of: `<type>: <message>`
+        result.error = raised.map(|raised| format!("StreamError: {raised}"));
         result.analyzed.add_tag("onenote");
         result.files = files;
         Ok(Outcome::Done(result))
@@ -176,7 +208,7 @@ mod tests {
         let mut data = b"junk".to_vec();
         data.extend(object(&outer_payload, outer_payload.len() as u64));
         let (found, raised) = payloads(&data);
-        assert!(!raised);
+        assert_eq!(raised, None);
         assert_eq!(found, vec![&outer_payload[..], b"inner"]);
     }
 
@@ -185,10 +217,52 @@ mod tests {
         let mut data = object(b"one", 3);
         data.extend(object(b"short", 1000));
         let (found, raised) = payloads(&data);
-        assert!(raised);
+        // construct's StreamError, naming the field it was reading
+        let in_path = "Error in path (parsing) -> FileDataStoreObject";
+        let short = "stream read less than specified amount";
+        assert_eq!(
+            raised,
+            Some(format!(
+                "{in_path} -> FileData\n{short}, expected 1000, found 5"
+            ))
+        );
         assert_eq!(found, vec![&b"one"[..]]);
-        assert_eq!(payloads(&FILE_DATA_STORE_OBJECT[..]), (vec![], true));
-        assert_eq!(payloads(&object(b"", u64::MAX)), (vec![], true));
+        assert_eq!(
+            payloads(&FILE_DATA_STORE_OBJECT[..]),
+            (
+                vec![],
+                Some(format!(
+                    "{in_path} -> cbLength\n{short}, expected 8, found 0"
+                ))
+            )
+        );
+        // the 4 and 8 bytes the struct doesn't name, so the path doesn't either
+        let whole = object(b"", 0);
+        assert_eq!(
+            payloads(&whole[..26]),
+            (
+                vec![],
+                Some(format!("{in_path}\n{short}, expected 4, found 2"))
+            )
+        );
+        assert_eq!(
+            payloads(&whole[..33]),
+            (
+                vec![],
+                Some(format!("{in_path}\n{short}, expected 8, found 5"))
+            )
+        );
+        // a length Python's read() can't take
+        assert_eq!(
+            payloads(&object(b"", u64::MAX)),
+            (
+                vec![],
+                Some(format!(
+                    "{in_path} -> FileData\nstream.read() failed, requested {} bytes",
+                    u64::MAX
+                ))
+            )
+        );
     }
 
     #[test]

@@ -20,7 +20,7 @@ use ace_results::{ObservableKind, Relationship, RelationshipKind, ResultEnvelope
 use ace_sdk::tools::{ToolOutput, ToolRun, is_plain_name};
 use ace_sdk::{Module, ModuleError, Outcome, Parser, Resources, TaskContext};
 
-use crate::{head, name_fits, source, stopped_reason};
+use crate::{head, name_fits, source, stopped_reason, tool_failure_reason};
 
 /// ace3's `DE4DOT_TIMEOUT_SECONDS` and `ILSPY_TIMEOUT_SECONDS`.
 const TIMEOUT: Duration = Duration::from_secs(10);
@@ -138,18 +138,31 @@ impl Parser for De4dotAnalyzer {
             .timeout(TIMEOUT);
         let output = ctx.run_tool(clean)?;
         check_started("de4dot", &output)?;
-        if output.stopped().is_some() {
-            result.details.error = Some(format!(
-                "de4dot did not finish: {}",
-                stopped_reason(&output)
-            ));
-        } else {
-            result.details.stdout = Some(output.stdout_text()).filter(|s| !s.is_empty());
-            result.details.stderr = Some(output.stderr_text()).filter(|s| !s.is_empty());
+        match output.returncode() {
+            None => {
+                result.error = Some(format!(
+                    "de4dot did not finish: {}",
+                    stopped_reason(&output)
+                ));
+            }
+            Some(returncode) => {
+                let stderr = output.stderr_text();
+                // a run that ended without writing the file failed, however it exited
+                if output.output("deobfuscated").is_none() {
+                    let error = format!(
+                        "{}, without writing a deobfuscated file",
+                        tool_failure_reason("de4dot", returncode, &stderr)
+                    );
+                    tracing::info!("de4dot failed: {error}");
+                    result.error = Some(error);
+                }
+                result.details.stdout = Some(output.stdout_text()).filter(|s| !s.is_empty());
+                result.details.stderr = Some(stderr).filter(|s| !s.is_empty());
+            }
         }
         // ace3 sets it whether or not the run finished (dotnet.py:146)
         result.details.deobfuscated = true;
-        result.summary = Some(match &result.details.error {
+        result.summary = Some(match &result.error {
             Some(error) => format!("De4dot Analysis error: {error}"),
             None => "De4dot Analysis: deobfuscated".to_owned(),
         });
@@ -234,17 +247,26 @@ impl Parser for IlspyAnalyzer {
         let output = ctx.run_tool(run)?;
         check_started("ilspycmd", &output)?;
         let Some(code) = output.returncode() else {
-            result.details.stderr =
-                Some(format!("ilspy did not finish: {}", stopped_reason(&output)));
-            result.summary = Some(summary(&result.details));
+            let error = format!("ilspy did not finish: {}", stopped_reason(&output));
+            result.summary = Some(summary(&result.details, Some(&error)));
+            result.error = Some(error);
             return Ok(Outcome::Done(result));
         };
         result.details.exit_code = Some(code);
-        result.details.stderr = Some(output.stderr_text()).filter(|s| !s.is_empty());
-        result.summary = Some(summary(&result.details));
-        if let Some(il) = output.output(&il_name)
-            && name_fits(&target)
-        {
+        let stderr = output.stderr_text();
+        result.details.stderr = Some(stderr.clone()).filter(|s| !s.is_empty());
+        let Some(il) = output.output(&il_name) else {
+            let error = format!(
+                "{}, without writing IL",
+                tool_failure_reason("ilspy", code, &stderr)
+            );
+            tracing::info!("ilspy failed: {error}");
+            result.summary = Some(summary(&result.details, Some(&error)));
+            result.error = Some(error);
+            return Ok(Outcome::Done(result));
+        };
+        result.summary = Some(summary(&result.details, None));
+        if name_fits(&target) {
             let mut new_file =
                 ctx.write_file_from(
                     &target,
@@ -266,9 +288,12 @@ impl Parser for IlspyAnalyzer {
     }
 }
 
-/// `IlspyAnalysis.generate_summary`.
-fn summary(details: &IlspyAnalysis) -> String {
+/// `IlspyAnalysis.generate_summary`, with the result's error.
+fn summary(details: &IlspyAnalysis, error: Option<&String>) -> String {
     let mut summary = "Ilspy Analysis".to_owned();
+    if let Some(error) = error.filter(|e| !e.is_empty()) {
+        return format!("{summary}: failed: {error}");
+    }
     if let Some(code) = details.exit_code {
         summary.push_str(&format!(": exit code {code}"));
     }

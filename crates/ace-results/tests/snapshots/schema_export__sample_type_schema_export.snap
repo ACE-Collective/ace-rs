@@ -580,6 +580,14 @@ expression: text
       },
       "type": "array"
     },
+    "error": {
+      "description": "Why the module failed, when it ran to its end and says it failed, as ace3's\n`Analysis.error`: a tool that exited with an error, a lookup that couldn't answer, a file it\ncouldn't read. None for a module that didn't fail. Whatever else the result holds is kept\nand shown as a partial result. A failure needs a reason, so the core refuses a result\nwhose `error` is blank. A task that never produced a result (a crash, a deadline, a\n`ModuleError`) is a failed task, not this.",
+      "pattern": "\\S",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
     "files": {
       "description": "Files the result adds to the alert.",
       "items": {

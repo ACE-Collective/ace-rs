@@ -61,73 +61,6 @@
       },
       "tags": {}
     },
-    "file:5b06dfb24dfc3c1849c6ffc19c5d5f82bf6e9934a2baba3a663431046fca83c9": {
-      "detections": {},
-      "directives": {
-        "extract_urls": true
-      },
-      "excluded_analysis": {
-        "javascript_deobfuscation": true
-      },
-      "paths": {
-        "deobfuscated-invoice.one_js_inline_0_8cf6542a.js": {
-          "type=script.javascript": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:8cf6542ab41f3d900a93a99de2c245dee92f2adef222005e43561277a3e98647": true
-      },
-      "results": {
-        "file_type": {
-          "details": {
-            "is_email_file": false,
-            "is_jar_file": false,
-            "is_lnk_file": false,
-            "is_office_document": false,
-            "is_office_ext": false,
-            "is_ole_file": false,
-            "is_pdf_file": false,
-            "is_pe_file": false,
-            "is_rtf_file": false,
-            "is_x509": false,
-            "is_zip_file": false,
-            "mime": "text/plain",
-            "type": "ASCII text"
-          },
-          "summary": "File Type Analysis: ASCII text (text/plain)",
-          "tags": {}
-        },
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "url_extraction": {
-          "details": {
-            "urls": [
-              "http://onenote.example.com/p.exe"
-            ],
-            "urls_grouped_by_domain": {
-              "example.com": [
-                "http://onenote.example.com/p.exe"
-              ]
-            }
-          },
-          "summary": "URL Extraction Analysis (onenote.example.com)",
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:6ac60d7880f05e06a90757b7bce30951bb020b14f935509e6ef1af0c1e96b9d1": {
       "detections": {},
       "directives": {},
@@ -247,6 +180,7 @@
             "webcrack_error": null,
             "webcrack_status": "applied"
           },
+          "error": "evalmachine.<anonymous>:1\nCreateObject(\"WScript.Shell\").Run;\n^\n\nReferenceError: CreateObject is not defined\n    at evalmachine.<anonymous>:1:1\n    at Script.runInContext (node:vm:150:12)\n    at file:///opt/app/harness.js:914:12",
           "summary": "JavaScript Deobfuscation: failed: evalmachine.<anonymous>:1\nCreateObject(\"WScript.Shell\").Run;\n^\n\nReferenceError: CreateObject is not defined\n    at evalmachine.<anonymous>:1:1\n    at Script.runInContext (node:vm:150:12)\n    at file:///opt/app/harness.js:914:12",
           "tags": {}
         },
@@ -336,6 +270,73 @@
       "tags": {
         "onenote": true
       }
+    },
+    "file:b675dd56dbc62de0206671c1e076778b67a4a7301ae54258ec81de7261c98195": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {
+        "javascript_deobfuscation": true
+      },
+      "paths": {
+        "deobfuscated-invoice.one_js_inline_0_8cf6542a.js": {
+          "type=script.javascript": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:8cf6542ab41f3d900a93a99de2c245dee92f2adef222005e43561277a3e98647": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": false,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "text/plain",
+            "type": "ASCII text"
+          },
+          "summary": "File Type Analysis: ASCII text (text/plain)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [
+              "http://onenote.example.com/p.exe"
+            ],
+            "urls_grouped_by_domain": {
+              "example.com": [
+                "http://onenote.example.com/p.exe"
+              ]
+            }
+          },
+          "summary": "URL Extraction Analysis (onenote.example.com)",
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
     },
     "file:e9b4ff075e05eb59b9ff8037003dbf17321d0eb75b9a56b738c6789fee69ee5b": {
       "detections": {},

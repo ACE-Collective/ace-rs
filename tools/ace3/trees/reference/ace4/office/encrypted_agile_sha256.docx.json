@@ -66,7 +66,7 @@
       },
       "tags": {}
     },
-    "file:705ed591e702cf1f85bb4c594bcc7a216109555acdc3f0accfcd8484946e7212": {
+    "file:1a86947f67e30531bfa244dc09820b1cab96a88a945fcebc0e55734caf936338": {
       "detections": {},
       "directives": {},
       "excluded_analysis": {
@@ -180,8 +180,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 13:55:05+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 13:55:05+00:00",
+              "File:FileAccessDate": "2026:11:16 20:03:25+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 20:03:25+00:00",
               "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "encrypted_agile_sha256.docx",
               "File:FilePermissions": 100644,
@@ -232,6 +232,7 @@
             "password": null,
             "word_list": []
           },
+          "error": "office2john.py failed: encrypted_agile_sha256.docx uses un-supported hashing algorithm SHA256, please file a bug! \n",
           "summary": "MSOffice Encryption Analysis: office2john.py failed: encrypted_agile_sha256.docx uses un-supported hashing algorithm SHA256, please file a bug! \n",
           "tags": {}
         },
@@ -475,6 +476,7 @@
           "details": {
             "xml_plain_text": null
           },
+          "error": "unable to parse XML: Start tag expected, '<' not found, line 1, column 1 (stream_10_0.dat, line 1)",
           "summary": null,
           "tags": {}
         }

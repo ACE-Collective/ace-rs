@@ -812,7 +812,6 @@ impl RdapView<'_> {
         let a = self.analysis;
         let names = |list: &Option<Vec<String>>| list.as_deref().map(list_text);
         [
-            field("error", a.error.as_ref()),
             field("lookup_protocol", a.lookup_protocol.as_ref()),
             field("rdap_attempt_error", a.rdap_attempt_error.as_ref()),
             field("not_found", a.not_found.as_ref()),
@@ -974,7 +973,7 @@ impl AnalysisView for EmailConversationFrequencyAnalysis {
 // ---- newly registered domains: ace3's default_template.html ----
 
 /// `nrd_analysis`. ace3 prints its details with `default_template.html`: the hit, when it was
-/// found, and the registration RDAP gave or why there's none.
+/// found, and the registration RDAP gave. Why there's none is the result's error, above the view.
 #[derive(Debug, Template)]
 #[template(path = "analysis/nrd.html")]
 pub struct NrdView<'a> {
@@ -990,7 +989,6 @@ impl NrdView<'_> {
             field("datetime_created", a.datetime_created.as_deref()),
             field("age_created_in_days", a.age_created_in_days.as_deref()),
             field("lookup_protocol", a.lookup_protocol.as_deref()),
-            field("lookup_error", a.lookup_error.as_deref()),
         ]
         .into_iter()
         .flatten()
@@ -1548,7 +1546,6 @@ pub struct MsofficeView<'a> {
 #[derive(Debug)]
 pub struct PasswordFields<'a> {
     pub password: &'a Option<String>,
-    pub error: &'a Option<String>,
     pub email: &'a bool,
     pub encryption_info: &'a Option<String>,
     pub word_list: &'a [String],
@@ -1579,7 +1576,6 @@ macro_rules! password_view {
                 MsofficeView {
                     analysis: PasswordFields {
                         password: &self.password,
-                        error: &self.error,
                         email: &self.email,
                         encryption_info,
                         word_list: &self.word_list,
@@ -1754,7 +1750,6 @@ impl AnalysisView for LnkParseAnalysis {
             })
             .filter(|t| !t.is_empty());
         let fields = [
-            field("error", self.error.as_ref()),
             field("target", target),
             field("command_line_arguments", text("command_line_arguments")),
             field("icon_location", text("icon_location")),
@@ -1851,10 +1846,7 @@ impl AnalysisView for UrlEmailPivotAnalysis {
 impl AnalysisView for MessageIdAnalysis {
     type View<'a> = FieldsView;
     fn view(&self) -> FieldsView {
-        fields_view([
-            field("error", self.error.as_ref()),
-            field("extracted_email", self.extracted_email.as_ref()),
-        ])
+        fields_view([field("extracted_email", self.extracted_email.as_ref())])
     }
 }
 
@@ -1895,7 +1887,7 @@ impl AnalysisView for PdfLinkTextAnalysis {
 impl AnalysisView for ExifAnalysis {
     type View<'a> = FieldsView;
     fn view(&self) -> FieldsView {
-        let mut fields = vec![field("error", self.error.as_ref())];
+        let mut fields = Vec::new();
         for (name, value) in &self.exifdata {
             let text = match value {
                 serde_json::Value::String(text) => text.clone(),
@@ -1925,10 +1917,7 @@ impl AnalysisView for QrCodeAnalysis {
 impl AnalysisView for OcrAnalysis {
     type View<'a> = FieldsView;
     fn view(&self) -> FieldsView {
-        fields_view([
-            field("error", self.error.as_ref()),
-            field("ocr", self.ocr.then_some("text found")),
-        ])
+        fields_view([field("ocr", self.ocr.then_some("text found"))])
     }
 }
 
@@ -2019,12 +2008,11 @@ impl AnalysisView for SsdeepAnalysis {
 impl AnalysisView for JavaClassDecompilerAnalysis {
     type View<'a> = FieldsView;
     fn view(&self) -> FieldsView {
-        let mut fields: Vec<Option<Field>> = self
+        let fields: Vec<Option<Field>> = self
             .decompiled_files
             .iter()
             .map(|file| field("decompiled_file", Some(file)))
             .collect();
-        fields.push(field("stopped", self.stopped.as_ref()));
         fields_view(fields)
     }
 }
@@ -2035,7 +2023,6 @@ impl AnalysisView for UpxAnalysis {
     fn view(&self) -> FieldsView {
         fields_view([
             field("output_file", self.output_file.as_ref()),
-            field("error", self.error.as_ref()),
             field("stdout", self.stdout.as_ref().filter(|s| !s.is_empty())),
             field("stderr", self.stderr.as_ref().filter(|s| !s.is_empty())),
         ])
@@ -2046,10 +2033,7 @@ impl AnalysisView for UpxAnalysis {
 impl AnalysisView for AutoItAnalysis {
     type View<'a> = FieldsView;
     fn view(&self) -> FieldsView {
-        let mut fields = vec![
-            field("error", self.error.as_ref()),
-            field("output_dir", self.output_dir.as_ref()),
-        ];
+        let mut fields = vec![field("output_dir", self.output_dir.as_ref())];
         fields.extend(self.scripts.iter().map(|s| field("script", Some(s))));
         fields.push(field(
             "stdout",
@@ -2068,7 +2052,6 @@ impl AnalysisView for De4dotAnalysis {
     type View<'a> = FieldsView;
     fn view(&self) -> FieldsView {
         fields_view([
-            field("error", self.error.as_ref()),
             field("deobfuscated", self.deobfuscated.then_some("yes")),
             field("stdout", self.stdout.as_ref()),
             field("stderr", self.stderr.as_ref()),
@@ -2104,7 +2087,6 @@ impl AnalysisView for JavaScriptDeobfuscationAnalysis {
     type View<'a> = FieldsView;
     fn view(&self) -> FieldsView {
         let mut fields = vec![
-            field("error", value_text(self.error.as_ref())),
             field("error_type", value_text(self.error_type.as_ref())),
             field("exit_code", self.exit_code.as_ref()),
             field("event_count", Some(self.event_count)),
@@ -2146,7 +2128,6 @@ impl AnalysisView for PhishkitAnalysis {
     type View<'a> = FieldsView;
     fn view(&self) -> FieldsView {
         let mut fields = vec![
-            field("error", self.error.as_ref()),
             field("scan_type", self.scan_type.as_ref()),
             field("job_id", self.job_id.as_ref()),
             field("scan_result", self.scan_result.as_ref()),
@@ -2200,10 +2181,7 @@ fn clipped(text: &str) -> String {
 impl AnalysisView for DmgAnalysis {
     type View<'a> = FieldsView;
     fn view(&self) -> FieldsView {
-        let mut fields = vec![
-            field("image_file", self.image_file.as_ref()),
-            field("stopped", self.stopped.as_ref()),
-        ];
+        let mut fields = vec![field("image_file", self.image_file.as_ref())];
         fields.extend(self.file_list.iter().map(|line| field("file", Some(line))));
         fields.push(field(
             "stdout",
@@ -2222,12 +2200,11 @@ impl AnalysisView for DmgAnalysis {
 impl AnalysisView for Cve202130657Analysis {
     type View<'a> = FieldsView;
     fn view(&self) -> FieldsView {
-        let mut fields: Vec<Option<Field>> = self
+        let fields: Vec<Option<Field>> = self
             .suspect_files
             .iter()
             .map(|(path, mime)| field("suspect_file", Some(format!("{path} ({mime})"))))
             .collect();
-        fields.push(field("stopped", self.stopped.as_ref()));
         fields_view(fields)
     }
 }
@@ -2437,7 +2414,6 @@ impl AnalysisView for HarAnalysis {
             .collect();
         fields_view(
             [
-                field("error", self.error.as_ref()),
                 field("creator", self.creator.as_ref()),
                 field("entry_count", Some(self.entry_count)),
                 field("skipped_count", Some(self.skipped_count)),

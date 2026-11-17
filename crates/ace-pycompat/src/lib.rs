@@ -99,6 +99,23 @@ impl PyErr {
         false
     }
 
+    /// Python's `str(e) or type(e).__name__`, which ace3's modules write as the reason of a failed
+    /// analysis (`Analysis.error`), since an exception's text can be empty and a reason can't.
+    pub fn str_or_name(&self) -> String {
+        if self.message.is_empty() {
+            self.kind.to_owned()
+        } else {
+            self.message.clone()
+        }
+    }
+
+    /// `f"{type(e).__name__}: {e}"`: what ace3's engine marks an analysis with when its module
+    /// raised after creating it (`AnalysisExecutor._record_module_exception`). ace3 goes on with
+    /// ` (crash_id <id>)`, its crash report's id, which is a fact about the run.
+    pub fn as_engine_marks(&self) -> String {
+        format!("{}: {}", self.kind, self.message)
+    }
+
     /// The class's name as a traceback prints it: `ValueError`, or `binascii.Error`.
     pub fn qualified_name(&self) -> String {
         if self.module == "builtins" {

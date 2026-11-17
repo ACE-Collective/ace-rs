@@ -132,39 +132,7 @@
           "details": {
             "xml_plain_text": null
           },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
-    "file:4be24da3d1d21ee668cc447c2c099a71a4938287fc5686a1acc6fd17d982014a": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "encrypted_bad_salt.docx.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:ddb6c71704f1015796b5d5ac67a837abdbaeb9b978701079cc9d22bc3df93909": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
+          "error": "unable to parse XML: Start tag expected, '<' not found, line 1, column 1 (stream_10_0.dat, line 1)",
           "summary": null,
           "tags": {}
         }
@@ -366,6 +334,39 @@
       },
       "tags": {}
     },
+    "file:c784225ba1cd0ba3cedcb99e24143254d609bc1ae4261062fd3ed84bac1a85b5": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "encrypted_bad_salt.docx.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:ddb6c71704f1015796b5d5ac67a837abdbaeb9b978701079cc9d22bc3df93909": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:ddb6c71704f1015796b5d5ac67a837abdbaeb9b978701079cc9d22bc3df93909": {
       "detections": {},
       "directives": {},
@@ -382,8 +383,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 13:55:40+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 13:55:40+00:00",
+              "File:FileAccessDate": "2026:11:16 20:04:00+00:00",
+              "File:FileInodeChangeDate": "2026:11:16 20:04:00+00:00",
               "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "encrypted_bad_salt.docx",
               "File:FilePermissions": 100644,
@@ -437,6 +438,7 @@
               "/01Hannes Ruescher/01"
             ]
           },
+          "error": "could not crack password",
           "summary": "MSOffice Encryption Analysis: could not crack password",
           "tags": {}
         },

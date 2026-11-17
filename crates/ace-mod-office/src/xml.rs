@@ -31,7 +31,7 @@
 
 use std::collections::BTreeSet;
 
-use ace_lxml::target::{Target, parse};
+use ace_lxml::target::{Target, XmlSyntaxError, parse};
 use ace_mod_email::naming::clean_file_name;
 use ace_mod_urls::url_extraction::names_a_host;
 use ace_results::types::office::{
@@ -89,11 +89,12 @@ impl Target for Relationships {
     fn data(&mut self, _: &str) {}
 }
 
-/// The external `oleObject` targets of a relationships part, and whether it parsed.
-pub fn external_ole_objects(data: &[u8]) -> (Vec<String>, bool) {
+/// The external `oleObject` targets of a relationships part, and what lxml raised when it didn't
+/// parse; the targets read before the error are kept.
+pub fn external_ole_objects(data: &[u8]) -> (Vec<String>, Option<XmlSyntaxError>) {
     let mut target = Relationships::default();
-    let parsed = parse(data, &mut target).is_ok();
-    (target.urls, parsed)
+    let raised = parse(data, &mut target).err();
+    (target.urls, raised)
 }
 
 /// `generate_summary`: the targets' hosts, sorted.
@@ -134,13 +135,20 @@ impl Parser for OfficeXmlRelAnalyzer {
             return Ok(Outcome::Skipped("not document.xml.rels".to_owned()));
         }
         let data = std::fs::read(&file.local_path)?;
-        let (urls, parsed) = external_ole_objects(&data);
-        if !parsed {
-            tracing::warn!("unable to parse the relationships XML");
-        }
+        let (urls, raised) = external_ole_objects(&data);
         let summary = relationship_summary(&urls);
         let mut result = ResultEnvelope::new(OfficeXmlRelationshipAnalysis { urls: urls.clone() });
         result.summary = summary;
+        if let Some(raised) = raised {
+            // the targets read before the error are still added
+            let error = format!(
+                "unable to parse {}: {}",
+                file.name(),
+                raised.python_str(file.name())
+            );
+            tracing::warn!("{error}");
+            result.error = Some(error);
+        }
         for url in &urls {
             // a target that isn't a URL adds no observable, but the external link still alerts
             // ace3's root takes no more URLs
@@ -222,9 +230,9 @@ impl Target for Package<'_> {
     }
 }
 
-/// The parts of a Word 2003 XML package at `path`, with their paths in the alert, or `None` when
-/// the parse raised.
-pub fn package_parts(path: &str, data: &[u8]) -> Option<Vec<(String, Vec<u8>)>> {
+/// The parts of a Word 2003 XML package at `path`, with their paths in the alert, or what lxml
+/// raised when the parse did.
+pub fn package_parts(path: &str, data: &[u8]) -> Result<Vec<(String, Vec<u8>)>, XmlSyntaxError> {
     let mut names = OutputFiles::new(path);
     let mut package = Package {
         output_dir: format!("{path}.xml"),
@@ -233,8 +241,8 @@ pub fn package_parts(path: &str, data: &[u8]) -> Option<Vec<(String, Vec<u8>)>> 
         data: Vec::new(),
         extracted: Vec::new(),
     };
-    parse(data, &mut package).ok()?;
-    Some(package.extracted)
+    parse(data, &mut package)?;
+    Ok(package.extracted)
 }
 
 pub struct XmlBinaryAnalyzer;
@@ -265,9 +273,14 @@ impl Parser for XmlBinaryAnalyzer {
         }
         let mut analysis = XmlBinaryDataAnalysis::default();
         let mut files = Vec::new();
+        let mut error = None;
         match package_parts(file.path.as_str(), &data) {
-            None => tracing::info!("xml parsing failed"),
-            Some(parts) => {
+            Err(raised) => {
+                let reason = format!("unable to parse XML: {}", raised.python_str(file.name()));
+                tracing::info!("{reason}");
+                error = Some(reason);
+            }
+            Ok(parts) => {
                 for (path, bytes) in parts.into_iter().take(MAX_FILES) {
                     ctx.check_cancelled()?;
                     files.push(ctx.write_file(&path, &bytes, &[])?);
@@ -283,6 +296,7 @@ impl Parser for XmlBinaryAnalyzer {
         });
         let mut result = ResultEnvelope::new(analysis);
         result.summary = summary;
+        result.error = error;
         result.files = files;
         Ok(Outcome::Done(result))
     }
@@ -315,11 +329,11 @@ impl Target for PlainText {
     }
 }
 
-/// The text the dumper writes for an XML document, or `None` when the parse raised.
-pub fn plain_text(data: &[u8]) -> Option<String> {
+/// The text the dumper writes for an XML document, or what lxml raised when the parse did.
+pub fn plain_text(data: &[u8]) -> Result<String, XmlSyntaxError> {
     let mut dumper = PlainText::default();
-    parse(data, &mut dumper).ok()?;
-    Some(dumper.out)
+    parse(data, &mut dumper)?;
+    Ok(dumper.out)
 }
 
 /// ace3's settings of the module.
@@ -384,16 +398,22 @@ impl Parser for XmlPlainTextAnalyzer {
         }
         let mut analysis = XmlPlainTextAnalysis::default();
         let mut files = Vec::new();
+        let mut error = None;
         match plain_text(&data) {
-            None => tracing::info!("unable to parse the XML file"),
-            Some(text) if text.is_empty() => {}
-            Some(text) => {
+            Err(raised) => {
+                let reason = format!("unable to parse XML: {}", raised.python_str(file.name()));
+                tracing::info!("{reason}");
+                error = Some(reason);
+            }
+            Ok(text) if text.is_empty() => {}
+            Ok(text) => {
                 let path = format!("{}.noxml", file.path);
                 files.push(ctx.write_file(&path, text.as_bytes(), &[])?);
                 analysis.xml_plain_text = Some(path);
             }
         }
         let mut result = ResultEnvelope::new(analysis);
+        result.error = error;
         result.files = files;
         Ok(Outcome::Done(result))
     }
@@ -408,19 +428,27 @@ mod tests {
         let rels = br#"<?xml version="1.0"?><Relationships xmlns="urn:r"><Relationship Type="x/oleObject" TargetMode="External" Target="http://a/"/><Relationship Type="x/oleObject" Target="b"/><Relationship Type="x/image" TargetMode="External" Target="c"/></Relationships>"#;
         assert_eq!(
             external_ole_objects(rels),
-            (vec!["http://a/".to_owned()], true)
+            (vec!["http://a/".to_owned()], None)
         );
-        let (urls, parsed) = external_ole_objects(
+        // the targets read before the error are kept, and the error is lxml's
+        let (urls, raised) = external_ole_objects(
             b"<r><Relationship Type='/oleObject' TargetMode='External' Target='x'/><oops></r>",
         );
-        assert_eq!((urls, parsed), (vec!["x".to_owned()], false));
+        assert_eq!(urls, ["x"]);
+        assert_eq!(
+            raised
+                .expect("the parse raised")
+                .python_str("word/_rels/document.xml.rels"),
+            "Opening and ending tag mismatch: oops line 1 and r, line 1, column 80 \
+             (document.xml.rels, line 1)"
+        );
     }
 
     #[test]
     fn plain_text_is_text_and_instr_attributes() {
         let text = plain_text(br#"<?xml version="1.0"?><r xmlns:i="urn:instructions"><a i:x="1" instrument="2" no="3">t<b>u</b>v</a>w</r>"#);
-        assert_eq!(text.as_deref(), Some("12tuvw"));
-        assert_eq!(plain_text(b"<r><a>t</b></r>"), None);
+        assert_eq!(text.as_deref(), Ok("12tuvw"));
+        assert!(plain_text(b"<r><a>t</b></r>").is_err());
     }
 
     #[test]

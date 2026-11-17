@@ -347,10 +347,25 @@ pub(crate) struct ResultBody {
     analysis_type: String,
     schema_version: i32,
     summary: Option<String>,
+    /// Why the module said it failed, or null when it didn't. A failed result keeps what the
+    /// module had before it failed, as a partial result.
+    error: Option<String>,
     tags: Vec<String>,
     /// The result's details, as the analysis type's JSON Schema (`ace schema export`) says.
     details: Value,
     created_at: DateTime<Utc>,
+}
+
+/// A module whose task on the observable failed and left no result: it crashed, was stopped at
+/// its deadline or returned an error. A module that ran to its end and says it failed has a
+/// result instead, with its `error`.
+#[derive(Debug, Serialize, ToSchema)]
+pub(crate) struct FailedModuleBody {
+    module: String,
+    /// The task's error, or null when it recorded none.
+    error: Option<String>,
+    /// The failed task's id, which `/api/crashes/v1/crashes/{id}` reads with `crash:read`.
+    task: i64,
 }
 
 #[derive(Debug, Serialize, ToSchema)]
@@ -388,6 +403,10 @@ pub(crate) struct ObservableBody {
     files: Vec<FileBody>,
     relationships: Vec<RelationshipBody>,
     results: Vec<ResultBody>,
+    /// The modules whose tasks on it failed without a result. Absent from the AI investigation
+    /// API's observables, which can't read the task queue.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    failed_modules: Option<Vec<FailedModuleBody>>,
     detections: Vec<DetectionBody>,
 }
 
@@ -433,11 +452,22 @@ impl From<AlertObservable> for ObservableBody {
                     analysis_type: result.analysis_type,
                     schema_version: result.schema_version,
                     summary: result.summary,
+                    error: result.error,
                     tags: result.tags,
                     details: result.details,
                     created_at: result.created_at,
                 })
                 .collect(),
+            failed_modules: observable.failed.map(|failed| {
+                failed
+                    .into_iter()
+                    .map(|failed| FailedModuleBody {
+                        module: failed.module,
+                        error: failed.error,
+                        task: failed.task,
+                    })
+                    .collect()
+            }),
             detections: observable
                 .detections
                 .into_iter()

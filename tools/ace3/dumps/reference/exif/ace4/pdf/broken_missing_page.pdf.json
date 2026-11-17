@@ -1,6 +1,6 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "f72f8946",
+  "ace3_commit": "37a765bf",
   "also_enabled": [
     "file_type"
   ],
@@ -8,14 +8,13 @@
     {
       "class": "ExifAnalysis",
       "details": {
-        "error": null,
         "exifdata": {
           "ExifTool:ExifToolVersion": 13.25,
           "ExifTool:Warning": "Bad Kids reference",
           "File:Directory": "<root>/files",
-          "File:FileAccessDate": "2026:11:10 11:01:03+00:00",
-          "File:FileInodeChangeDate": "2026:11:10 11:01:03+00:00",
-          "File:FileModifyDate": "2026:11:07 04:47:50+00:00",
+          "File:FileAccessDate": "2026:11:16 21:59:53+00:00",
+          "File:FileInodeChangeDate": "2026:11:16 21:59:53+00:00",
+          "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
           "File:FileName": "broken_missing_page.pdf",
           "File:FilePermissions": 100644,
           "File:FileSize": 303,
@@ -54,7 +53,7 @@
           "size": 714,
           "tags": [],
           "type": "file",
-          "value": "8831b6e9a08b64d78432ad1c29f376a607cb7f57e31f6ff8e2c77ec4fac4f2f7",
+          "value": "1a5c4190e20a67b03ffb04001c3555c554319b822286ebe83c42014193f63b48",
           "yara_meta": [
             "type=metadata.exif"
           ]

@@ -21,10 +21,9 @@ pub struct ZipEncryptionAnalysis {
     pub email_body: Option<String>,
     /// The passwords tried, from the body, sorted.
     pub word_list: Vec<String>,
-    /// The password John would have found, as ace3 reads it from John's answer: up to a `:`.
+    /// The password John would have found, as ace3 reads it from John's answer: up to a `:`. Why
+    /// nothing was extracted, or not everything, is the result's `error` (ace3's `Analysis.error`).
     pub password: Option<String>,
-    /// Why nothing was extracted.
-    pub error: Option<String>,
 }
 
 impl AnalysisType for ZipEncryptionAnalysis {
@@ -45,10 +44,9 @@ pub struct RarEncryptionAnalysis {
     pub email_body: Option<String>,
     /// The passwords tried, from the body, sorted.
     pub word_list: Vec<String>,
-    /// The password John would have found, as ace3 reads it from John's answer: up to a `:`.
+    /// The password John would have found, as ace3 reads it from John's answer: up to a `:`. Why
+    /// nothing was extracted, or not everything, is the result's `error` (ace3's `Analysis.error`).
     pub password: Option<String>,
-    /// Why nothing was extracted.
-    pub error: Option<String>,
 }
 
 impl AnalysisType for RarEncryptionAnalysis {
@@ -67,10 +65,9 @@ pub struct PdfEncryptionAnalysis {
     pub email_body: Option<String>,
     /// The passwords tried, from the body, sorted.
     pub word_list: Vec<String>,
-    /// The user password that opened it.
+    /// The user password that opened it. Why no copy was written is the result's `error` (ace3's
+    /// `Analysis.error`).
     pub password: Option<String>,
-    /// Why no copy was written.
-    pub error: Option<String>,
 }
 
 impl AnalysisType for PdfEncryptionAnalysis {
@@ -92,7 +89,6 @@ mod tests {
             "email_body": "the password is Secr3tPw\n\n",
             "word_list": ["Secr3tPw", "pass"],
             "password": "Secr3tPw",
-            "error": null,
         });
         let zip: ZipEncryptionAnalysis = serde_json::from_value(archive.clone()).expect("reads");
         assert_eq!(serde_json::to_value(&zip).expect("writes"), archive);

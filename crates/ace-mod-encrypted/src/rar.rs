@@ -297,10 +297,10 @@ fn extract_all(
     Ok(Some(by_path.into_values().collect()))
 }
 
-fn summary(details: &RarEncryptionAnalysis) -> String {
+fn summary(details: &RarEncryptionAnalysis, error: Option<&str>) -> String {
     summarize(
         DISPLAY_NAME,
-        details.error.as_deref(),
+        error,
         details.password.as_deref(),
         details.email,
         details.email_body.as_deref(),
@@ -323,26 +323,27 @@ impl Parser for RarEncryptionAnalyzer {
             return Ok(Outcome::Delay(delay));
         }
         let mut details = RarEncryptionAnalysis::default();
-        let done = |details: RarEncryptionAnalysis, files: Vec<NewFile>| {
+        // `error` is why nothing was extracted: ace3's `Analysis.error`
+        let done = |details: RarEncryptionAnalysis, files: Vec<NewFile>, error: Option<String>| {
             let mut result = ResultEnvelope::new(details);
-            result.summary = Some(summary(&result.details));
+            result.summary = Some(summary(&result.details, error.as_deref()));
+            result.error = error.filter(|e| !e.trim().is_empty());
             result.analyzed.tags.push("encrypted_rar".to_owned());
             result.files = files;
             Ok(Outcome::Done(result))
         };
         let hash = match hash {
             Ok(hash) => hash,
-            Err(error) => {
-                details.error = Some(error);
-                return done(details, Vec::new());
-            }
+            Err(error) => return done(details, Vec::new(), Some(error)),
         };
         match carried(ctx)? {
             Carried::Absent | Carried::NoBody => {}
             Carried::Raised(message) => {
                 tracing::warn!("building the wordlist raised: {message}");
                 details.email = true;
-                return done(details, Vec::new());
+                // rar.py's except Exception around the wordlist (its 41d44392)
+                let error = format!("unable to build the password wordlist: {message}");
+                return done(details, Vec::new(), Some(error));
             }
             Carried::Body { text, words } => {
                 details.email = true;
@@ -355,18 +356,21 @@ impl Parser for RarEncryptionAnalyzer {
             }
         }
         let Some(password) = details.password.clone().filter(|p| !p.is_empty()) else {
-            details.error = Some("RarEncryptionAnalyzer could not crack password!".to_owned());
-            return done(details, Vec::new());
+            let error = "RarEncryptionAnalyzer could not crack password!".to_owned();
+            return done(details, Vec::new(), Some(error));
         };
         let base = format!("{}.decrypted", file.path.as_str());
         let Some(mut files) = extract_all(ctx, &file.local_path, &base, &password)? else {
-            return done(details, Vec::new());
+            // ace3's is `unrar exited with status <n>: <the last line unrar wrote>`, which the
+            // library this links doesn't write
+            let error = "unrar could not extract the archive".to_owned();
+            return done(details, Vec::new(), Some(error));
         };
         for file in &mut files {
             file.detections.push(decrypted_detection());
             file.add_directive(DIRECTIVE_EXTRACT_URLS);
         }
-        done(details, files)
+        done(details, files, None)
     }
 }
 

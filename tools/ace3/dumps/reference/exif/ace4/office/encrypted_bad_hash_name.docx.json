@@ -1,6 +1,6 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "f72f8946",
+  "ace3_commit": "37a765bf",
   "also_enabled": [
     "file_type"
   ],
@@ -8,13 +8,12 @@
     {
       "class": "ExifAnalysis",
       "details": {
-        "error": null,
         "exifdata": {
           "ExifTool:ExifToolVersion": 13.25,
           "File:Directory": "<root>/files",
-          "File:FileAccessDate": "2026:11:10 10:55:05+00:00",
-          "File:FileInodeChangeDate": "2026:11:10 10:55:05+00:00",
-          "File:FileModifyDate": "2026:11:07 10:46:15+00:00",
+          "File:FileAccessDate": "2026:11:16 21:51:19+00:00",
+          "File:FileInodeChangeDate": "2026:11:16 21:51:19+00:00",
+          "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
           "File:FileName": "encrypted_bad_hash_name.docx",
           "File:FilePermissions": 100644,
           "File:FileSize": 9216,
@@ -50,7 +49,7 @@
           "size": 685,
           "tags": [],
           "type": "file",
-          "value": "aaa744d2f10f6ae21c8eab086004f1a0ec1542dba7bc8d9c845b234badee61ac",
+          "value": "80fdc0b2220b3ff40f37b0eb32303fccfb0a2a8386ee3e7abfbeccb147b9a044",
           "yara_meta": [
             "type=metadata.exif"
           ]

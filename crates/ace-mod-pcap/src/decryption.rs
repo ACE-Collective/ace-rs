@@ -101,11 +101,13 @@ impl Parser for PcapTlsDecryptor {
         if !file.local_path.is_file() || !is_pcap_file(&file.local_path) {
             return Ok(Outcome::Skipped("not a pcap or pcapng file".to_owned()));
         }
+        // pcap_analyzer produced nothing, or the dissection failed and its result says so
         let Some(PcapAnalysis {
-            error: None,
             index: Some(plaintext),
             ..
-        }) = ctx.dependency_result::<PcapAnalysis>()?
+        }) = ctx
+            .dependency_result::<PcapAnalysis>()?
+            .filter(|_| ctx.dependency_error::<PcapAnalysis>().is_none())
         else {
             return Ok(Outcome::Skipped(
                 "pcap_analyzer has no index of the capture".to_owned(),
@@ -121,8 +123,9 @@ impl Parser for PcapTlsDecryptor {
                 "not decrypting the capture: {:?} needed, {left:?} left",
                 run_seconds()
             );
-            result.details.error = Some(out_of_time(run_seconds(), left));
-            result.summary = Some(summary(&result.details));
+            let error = out_of_time(run_seconds(), left);
+            result.summary = Some(summary(&result.details, Some(&error)));
+            result.error = Some(error);
             return Ok(Outcome::Done(result));
         }
         let keylogs = find_keylogs(ctx);
@@ -172,7 +175,7 @@ impl Parser for PcapTlsDecryptor {
             .iter()
             .any(|r| client_randoms.contains(r) && !embedded.contains(r));
         if lines.is_empty() || !(new_sessions || has_rsa_keys) {
-            result.summary = Some(summary(&result.details));
+            result.summary = Some(summary(&result.details, None));
             return Ok(Outcome::Done(result));
         }
 
@@ -204,14 +207,13 @@ impl Parser for PcapTlsDecryptor {
             Err(e) => {
                 // like a capture that cannot be dissected: the analyst sees it in the analysis
                 tracing::info!("unable to decrypt the capture: {}", e.0);
-                details.error = Some(e.0);
-                result.summary = Some(summary(&result.details));
+                result.summary = Some(summary(&result.details, Some(&e.0)));
+                result.error = Some(e.0);
                 return Ok(Outcome::Done(result));
             }
         };
         let mut index = dissection.index;
         index.tls_client_randoms = None;
-        details.error = None;
         let capture = CaptureFile {
             sha256: &file.sha256.to_hex(),
             path: &alert_path,
@@ -253,14 +255,14 @@ impl Parser for PcapTlsDecryptor {
             result.details.sessions,
             format_counts(&result.details.added)
         );
-        result.summary = Some(summary(&result.details));
+        result.summary = Some(summary(&result.details, None));
         Ok(Outcome::Done(result))
     }
 }
 
-/// `PcapTlsDecryptionAnalysis.generate_summary`.
-fn summary(details: &PcapTlsDecryptionAnalysis) -> String {
-    if let Some(error) = &details.error {
+/// `PcapTlsDecryptionAnalysis.generate_summary`, with the result's error.
+fn summary(details: &PcapTlsDecryptionAnalysis, error: Option<&str>) -> String {
+    if let Some(error) = error {
         return format!("PCAP TLS Decryption: failed: {error}");
     }
     let mut sources = Vec::new();

@@ -44,9 +44,47 @@ pub trait Target {
 }
 
 /// `XMLSyntaxError`: the document wasn't well-formed, or libxml2 refused it. The text is
-/// libxml2's first error message, for logs.
+/// libxml2's last error message, for logs.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct XmlSyntaxError(pub String);
+pub struct XmlSyntaxError(pub String, Option<FirstError>);
+
+/// The first error libxml2 reported, which is the one lxml's exception is built from
+/// (`_ErrorLog._buildParseException`).
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct FirstError {
+    message: String,
+    line: i64,
+    column: i64,
+}
+
+impl XmlSyntaxError {
+    fn new(message: impl Into<String>) -> XmlSyntaxError {
+        XmlSyntaxError(message.into(), None)
+    }
+
+    /// What Python's `str()` gives for the exception lxml raises parsing the file named
+    /// `file_name`: libxml2's first error, lxml's `, line L, column C` after it, and
+    /// `SyntaxError`'s `(<file name>, line L)` after that, such as `Start tag expected, '<' not
+    /// found, line 1, column 1 (document.xml, line 1)`.
+    pub fn python_str(&self, file_name: &str) -> String {
+        let name = file_name.rsplit('/').next().unwrap_or(file_name);
+        match &self.1 {
+            Some(first) => {
+                let mut message = first.message.clone();
+                if first.line > 0 {
+                    message.push_str(&format!(", line {}", first.line));
+                    if first.column > 0 {
+                        message.push_str(&format!(", column {}", first.column));
+                    }
+                }
+                format!("{message} ({name}, line {})", first.line)
+            }
+            // nothing in the error log: the context's last message, or lxml's default
+            None if self.0.is_empty() => "Document is not well formed".to_owned(),
+            None => self.0.clone(),
+        }
+    }
+}
 
 impl fmt::Display for XmlSyntaxError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -130,19 +168,32 @@ struct XmlParserCtxtHead {
     well_formed: c_int,
 }
 
-/// The head of `xmlerror.h`'s `xmlError`, up to its message.
+/// The head of `xmlerror.h`'s `xmlError`, up to `int2`, which holds the column.
 #[repr(C)]
 struct XmlErrorHead {
     domain: c_int,
     code: c_int,
     message: *const c_char,
+    level: c_int,
+    file: *const c_char,
+    line: c_int,
+    str1: *const c_char,
+    str2: *const c_char,
+    str3: *const c_char,
+    int1: c_int,
+    int2: c_int,
 }
+
+/// `XML_ERR_ERROR`: lxml's log keeps the first entry at this level or above as its first error.
+const XML_ERR_ERROR: c_int = 2;
 
 /// The target of the parse running on this thread, and whether lxml would have marked the
 /// document not well-formed.
 struct Running<'t> {
     target: &'t mut dyn Target,
     refused_external: bool,
+    /// The first error libxml2 reported at `XML_ERR_ERROR` or above.
+    first_error: Option<FirstError>,
 }
 
 thread_local! {
@@ -263,7 +314,44 @@ unsafe extern "C" fn on_get_entity(ctx: *mut c_void, name: *const xmlChar) -> *m
     ptr::null_mut()
 }
 
-unsafe extern "C" fn ignore_error(_: *mut c_void, _: *const xmlError) {}
+/// libxml2's structured error handler: nothing is printed, and the first error is kept, as lxml's
+/// error log keeps it for the exception's text.
+unsafe extern "C" fn keep_first_error(_: *mut c_void, error: *const xmlError) {
+    let error = error.cast::<XmlErrorHead>();
+    if error.is_null() {
+        return;
+    }
+    // SAFETY: libxml2 hands the handler a valid xmlError for the length of the call.
+    let (level, line, column, message) = unsafe {
+        let message = if (*error).message.is_null() {
+            String::new()
+        } else {
+            CStr::from_ptr((*error).message)
+                .to_string_lossy()
+                .into_owned()
+        };
+        ((*error).level, (*error).line, (*error).int2, message)
+    };
+    if level < XML_ERR_ERROR {
+        return;
+    }
+    with_running(|running| {
+        if running.first_error.is_none() {
+            // lxml's log entry drops the message's one trailing newline, and calls an empty
+            // message `unknown error`
+            let message = message.strip_suffix('\n').unwrap_or(&message);
+            running.first_error = Some(FirstError {
+                message: if message.is_empty() {
+                    "unknown error".to_owned()
+                } else {
+                    message.to_owned()
+                },
+                line: i64::from(line),
+                column: i64::from(column),
+            });
+        }
+    });
+}
 
 /// What `gzread` gives for a file: its gzip members' contents, or the bytes themselves when it
 /// doesn't start like gzip.
@@ -343,6 +431,7 @@ pub fn parse(bytes: &[u8], target: &mut dyn Target) -> Result<(), XmlSyntaxError
     let mut running = Running {
         target,
         refused_external: false,
+        first_error: None,
     };
     // SAFETY: the pointer is cleared by `Clear` before `running` goes out of scope; the lifetime is
     // erased only for the thread-local's type.
@@ -365,12 +454,12 @@ pub fn parse(bytes: &[u8], target: &mut dyn Target) -> Result<(), XmlSyntaxError
         // lxml gives parameter entities the same lookup, in the general entities, so a reference to
         // one finds nothing unless a general entity has its name
         sax.getParameterEntity = on_get_entity as GetEntity as *mut c_void;
-        sax.serror = Some(ignore_error);
+        sax.serror = Some(keep_first_error);
         let ctxt = xmlNewSAXParserCtxt(&sax, ptr::null_mut());
         if ctxt.is_null() {
-            return Err(XmlSyntaxError("out of memory".to_owned()));
+            return Err(XmlSyntaxError::new("out of memory"));
         }
-        xmlCtxtSetErrorHandler(ctxt, Some(ignore_error), ptr::null_mut());
+        xmlCtxtSetErrorHandler(ctxt, Some(keep_first_error), ptr::null_mut());
         xmlResetLastError();
         let doc = xmlCtxtReadIO(
             ctxt,
@@ -402,11 +491,11 @@ pub fn parse(bytes: &[u8], target: &mut dyn Target) -> Result<(), XmlSyntaxError
     };
     drop(_clear);
     if !well_formed {
-        return Err(XmlSyntaxError(message));
+        return Err(XmlSyntaxError(message, running.first_error.take()));
     }
     if running.refused_external {
-        return Err(XmlSyntaxError(
-            "External entity resolution is disabled for security reasons".to_owned(),
+        return Err(XmlSyntaxError::new(
+            "External entity resolution is disabled for security reasons",
         ));
     }
     Ok(())
@@ -458,6 +547,16 @@ mod tests {
         let error = parse(b"<a><b>t</c></a>", &mut events).unwrap_err();
         assert!(!error.0.is_empty());
         assert_eq!(events.0, ["start a []", "start b []", "data t"]);
+        // Python's str() of what lxml raises: libxml2's first error, where it was, and the file
+        assert_eq!(
+            error.python_str("word/document.xml"),
+            "Opening and ending tag mismatch: b line 1 and c, line 1, column 12 (document.xml, line 1)"
+        );
+        let not_xml = parse(b"PK\x03\x04 not xml", &mut Events::default()).unwrap_err();
+        assert_eq!(
+            not_xml.python_str("stream_10_0.dat"),
+            "Start tag expected, '<' not found, line 1, column 1 (stream_10_0.dat, line 1)"
+        );
         assert!(parse(b"", &mut Events::default()).is_err());
     }
 

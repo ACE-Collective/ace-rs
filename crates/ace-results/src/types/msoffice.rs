@@ -18,10 +18,9 @@ pub struct MsofficeEncryptionAnalysis {
     pub email_body: Option<String>,
     /// The passwords to try: the two Office's own defaults, then those from the body, sorted.
     pub word_list: Vec<String>,
-    /// The password that opened it.
+    /// The password that opened it. Why the file wasn't decrypted is the result's `error` (ace3's
+    /// `Analysis.error`).
     pub password: Option<String>,
-    /// Why the file wasn't decrypted.
-    pub error: Option<String>,
     /// ace3 has this key and never sets it.
     pub encryption_info: Option<String>,
 }
@@ -44,7 +43,6 @@ mod tests {
             "email_body": "the password is Secr3tPw\n",
             "word_list": ["VelvetSweatshop", "/01Hannes Ruescher/01", "Secr3tPw"],
             "password": "Secr3tPw",
-            "error": null,
             "encryption_info": null,
         });
         let read: MsofficeEncryptionAnalysis =

@@ -1416,6 +1416,30 @@ span.detection {
   font-weight: 650;
 }
 
+/* A failed analysis (ace3's Analysis.error): the badge on a result whose module said it failed and on a
+   module whose task failed without one. Not the detection's colour: a failure says nothing was found
+   out, not that something bad was. */
+span.failure {
+  display: inline-block;
+  padding: 0 0.4rem;
+  border: 1px solid var(--warn-edge);
+  border-radius: var(--radius-sm);
+  background: var(--warn-bg);
+  color: var(--warn-fg);
+  font-size: var(--text-xs);
+  font-weight: 650;
+}
+
+.failure-reason {
+  color: var(--warn-fg);
+  font-size: var(--text-sm);
+}
+
+.failure-message .failure-text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
 .tree .time {
   color: var(--muted);
   font-size: var(--text-sm);
