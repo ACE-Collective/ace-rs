@@ -24,15 +24,22 @@ decisions other than those of the "Tools" rows that name it, when a decision doe
 module's pool (the sandbox runner needs the sandbox pool, or a ported module whose tool comes
 later; a scanner the scanner pool), or when a tool has no decision or names a module with no row.
 
-    tools/ace3/modules/check                  ace3's checkout at HEAD
+    tools/ace3/modules/check                  at the commit ace4 follows
+    tools/ace3/modules/check --commit HEAD    at ace3's head, when a checkpoint brings ace4 up to it
     tools/ace3/modules/check --commit f72f894 at another commit
     tools/ace3/modules/check --allow-absent   exits 0 with a SKIP when there's no checkout (CI)
+
+ace4 follows ace3 at checkpoints, not at every commit (PLAN.md decision 14): the commit it follows
+is the one the trees were made at, tools/ace3/trees/reference/index.json's `ace3_commit`. Checked
+there, ace3's checkout moving doesn't fail a step that changed nothing ace3 has. When the checkout
+is past that commit, a note says by how many commits.
 
 ACE4_ACE3_CHECKOUT is ace3's checkout on the host (default: ../ace3 beside this checkout, or
 ~/Development/public/ace3). Exits 0 when every check passes. Needs only python3 and git.
 """
 
 import argparse
+import json
 import ast
 import collections
 import os
@@ -44,6 +51,8 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[3]
 DOC = REPO / "docs" / "modules.md"
 READS = REPO / "crates" / "ace-core" / "src" / "reads.md"
+# the ace3 commit ace4 follows: the one tools/ace3/trees/make-trees made the trees at
+FOLLOWED = REPO / "tools" / "ace3" / "trees" / "reference" / "index.json"
 POOLS = ["parser", "lookup", "core", "sandbox", "scanner"]
 STEPS = ["done", "7.4", "7.5", "7.6", "7.7", "7.8", "7.9", "7.10", "owner"]
 # ace3's SplunkAPIAnalyzer has no section of its own in saq.default.yaml: sites run it as
@@ -535,7 +544,7 @@ def check_reads(doc, reads_doc, rows, found, failures):
 
 def main(argv):
     parser = argparse.ArgumentParser(description=__doc__.split("\n", 1)[0])
-    parser.add_argument("--commit", default="HEAD")
+    parser.add_argument("--commit", help="default: the commit the trees were made at")
     parser.add_argument("--allow-absent", action="store_true")
     parser.add_argument("--doc", type=Path, default=DOC, help=argparse.SUPPRESS)
     parser.add_argument("--reads", type=Path, default=READS, help=argparse.SUPPRESS)
@@ -546,7 +555,18 @@ def main(argv):
             print("SKIP  the module inventory: no ace3 checkout")
             return 0
         sys.exit("modules: no ace3 checkout; set ACE4_ACE3_CHECKOUT")
+    followed = args.commit is None
+    if followed:
+        args.commit = json.loads(FOLLOWED.read_text())["ace3_commit"]
     commit = git(ace3, "rev-parse", "--short=8", args.commit).strip()
+    if followed:
+        # how far ace3's checkout is past the commit ace4 follows: for a checkpoint to bring ace4
+        # up to, and nothing a step fails on
+        ahead = int(git(ace3, "rev-list", "--count", f"{commit}..HEAD").strip())
+        if ahead:
+            head = git(ace3, "rev-parse", "--short=8", "HEAD").strip()
+            print(f"note  ace3's checkout is at {head}, {ahead} commits past {commit}, the commit "
+                  "ace4 follows; a checkpoint brings ace4 up to it (PLAN.md decision 14)")
     text = git(ace3, "show", f"{commit}:etc/saq.default.yaml")
     sections_ = config(text)
     doc = args.doc.read_text()

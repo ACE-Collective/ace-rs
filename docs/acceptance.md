@@ -25,7 +25,7 @@ A row says a difference is fine, so it needs a reason someone verified: read ace
 
 - Keep a row as narrow as what was verified: the sample, the path and a condition if the values can tell a real failure apart.
 - A row that matches nothing fails the threshold, so the list can't go stale. Rows that only cover samples this run didn't compare are left out of that check.
-- `ace3`'s newest commit is what the trees follow (`PLAN.md` decision 14). After `tools/ace3/trees/make-trees`, port or list whatever moved.
+- The trees follow ace3 at checkpoints, not at every commit (`PLAN.md` decision 14). Between checkpoints the trees, the dumps and the module inventory stay at the commit `tools/ace3/trees/reference/index.json` names, and `tools/ace3/modules/check` checks the inventory there and says how far ace3's checkout has moved past it. `make-trees` and `make-dumps` run ace3's code as it stands, so they are run at a checkpoint only, on the whole set, so that no reference mixes commits. At a checkpoint, port or list whatever moved.
 - A row that covers only samples under `local/` has to name them, because CI doesn't have them and would call a `*` row stale.
 
 ## What enforces it
