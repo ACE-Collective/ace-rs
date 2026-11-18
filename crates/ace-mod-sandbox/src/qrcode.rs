@@ -14,8 +14,9 @@
 use std::time::Duration;
 
 use ace_mod_files::checks::is_pdf_file;
+use ace_results::FileRole;
 use ace_results::types::sandbox::QrCodeAnalysis;
-use ace_results::{ObservableKind, Relationship, RelationshipKind, ResultEnvelope, YaraMeta};
+use ace_results::{ObservableKind, Relationship, RelationshipKind, ResultEnvelope};
 use ace_sdk::takes::{Condition, Takes};
 use ace_sdk::tools::ToolRun;
 use ace_sdk::{List, ListSpec, Module, ModuleError, Outcome, Parser, Resources, TaskContext};
@@ -433,11 +434,8 @@ impl Parser for QrCodeAnalyzer {
         let target = format!("{}.qrcode", file.path.as_str());
         if name_fits(&target) {
             let text: String = urls.iter().map(|url| format!("{url}\n")).collect();
-            let mut new_file = ctx.write_file(
-                &target,
-                text.as_bytes(),
-                &[YaraMeta::new("type", "document.text.qrcode").map_err(ModuleError::other)?],
-            )?;
+            let mut new_file =
+                ctx.write_file(&target, text.as_bytes(), FileRole::DOCUMENT_TEXT_QRCODE)?;
             new_file.relationships.push(Relationship::new(
                 RelationshipKind::ExtractedFrom,
                 source(file),

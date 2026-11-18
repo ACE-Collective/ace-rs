@@ -4,7 +4,7 @@
 use std::io::Read;
 use std::sync::Arc;
 
-use ace_results::{ObservableKind, YaraMeta};
+use ace_results::{FileRole, ObservableKind, YaraMeta};
 use ace_sdk::example::{LineCounter, LineCounterSettings};
 use ace_sdk::{FileOutputError, FileStore, LocalFileStore, Observable, TaskContext};
 use uuid::Uuid;
@@ -47,7 +47,7 @@ fn an_escaping_path_fails_and_stores_nothing() {
         "",
     ] {
         let err = ctx
-            .write_file(path, b"root:x:0:0::/root:/bin/sh\n", &[])
+            .write_file(path, b"root:x:0:0::/root:/bin/sh\n", None)
             .expect_err("an escaping path must fail");
         println!("{path:?}: {err}");
         assert!(matches!(err, FileOutputError::InvalidPath(_)), "{err}");
@@ -60,13 +60,12 @@ fn a_normal_file_records_its_name_path_tags_and_sha256() {
     let dir = tempfile::tempdir().expect("temp dir");
     let store = Arc::new(LocalFileStore::new(dir.path().join("store")).expect("store"));
     let ctx = context(&store);
-    let tags = [
-        YaraMeta::new("type", "email.attachment").expect("valid tag"),
-        YaraMeta::new("archive", "zip").expect("valid tag"),
-    ];
-
     let file = ctx
-        .write_file("evil.zip.extracted/docs/invoice.doc", b"hello", &tags)
+        .write_file(
+            "evil.zip.extracted/docs/invoice.doc",
+            b"hello",
+            FileRole::EMAIL_ATTACHMENT,
+        )
         .expect("a normal path writes");
     println!(
         "{}",
@@ -80,8 +79,9 @@ fn a_normal_file_records_its_name_path_tags_and_sha256() {
             .iter()
             .map(YaraMeta::as_str)
             .collect::<Vec<_>>(),
-        ["type=email.attachment", "archive=zip"]
+        ["type=email.attachment"]
     );
+    assert_eq!(file.role, Some(FileRole::EMAIL_ATTACHMENT));
     // sha256("hello")
     let hello = "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824";
     assert_eq!(file.sha256.to_hex(), hello);
@@ -98,7 +98,7 @@ fn a_normal_file_records_its_name_path_tags_and_sha256() {
     assert_eq!(stored, b"hello");
 
     // the same bytes under another path share one stored copy
-    let again = ctx.write_file("copy.txt", b"hello", &[]).expect("writes");
+    let again = ctx.write_file("copy.txt", b"hello", None).expect("writes");
     assert_eq!(again.sha256, file.sha256);
     assert_eq!(stored_files(&store), [hello]);
 }
@@ -111,7 +111,7 @@ fn a_reader_streams_into_the_store() {
     // larger than the store's copy buffer
     let bytes: Vec<u8> = (0..200_000u32).map(|i| (i % 251) as u8).collect();
     let file = ctx
-        .write_file_from("big.bin", &mut bytes.as_slice(), &[])
+        .write_file_from("big.bin", &mut bytes.as_slice(), None)
         .expect("writes");
     assert_eq!(file.size, bytes.len() as u64);
     let mut stored = Vec::new();
@@ -131,7 +131,7 @@ fn a_task_without_a_store_cannot_write() {
         Arc::new(LineCounterSettings::default()),
     );
     assert!(matches!(
-        ctx.write_file("a.txt", b"x", &[]),
+        ctx.write_file("a.txt", b"x", None),
         Err(FileOutputError::NoStore)
     ));
 }

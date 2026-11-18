@@ -23,6 +23,7 @@
 
 use std::time::Duration;
 
+use ace_results::FileRole;
 use ace_results::types::file_type::FileTypeAnalysis;
 use ace_results::types::html::DomSnapshot;
 use ace_results::types::scanners::JavaScriptDeobfuscationAnalysis;
@@ -355,7 +356,7 @@ fn finish(
     new_file
         .exclude_modules
         .push(JavaScriptDeobfuscationAnalysis::MODULE.to_owned());
-    new_file.yara_meta.push(meta()?);
+    new_file.set_role(FileRole::SCRIPT_JAVASCRIPT);
     new_file.directives.push(EXTRACT_URLS.to_owned());
     result.details.extracted_files.push(target);
     result.files.push(new_file);

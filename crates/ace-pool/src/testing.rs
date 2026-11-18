@@ -439,7 +439,7 @@ impl ace_sdk::Parser for WritesFiles {
         });
         for index in 0..count {
             let file = ctx
-                .write_file(&format!("file-{index}"), index.to_string().as_bytes(), &[])
+                .write_file(&format!("file-{index}"), index.to_string().as_bytes(), None)
                 .map_err(|e| ModuleError::other(e.to_string()))?;
             result = result.with_file(file);
         }

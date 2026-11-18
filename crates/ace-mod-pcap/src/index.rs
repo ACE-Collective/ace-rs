@@ -211,7 +211,7 @@ fn collect_carved_files<S>(
                 if let Ok(file) = ctx.write_file_from(
                     &format!("{alert_base}{relative}"),
                     &mut File::open(source)?,
-                    &[],
+                    None,
                 ) {
                     carved.push(file);
                     row.path = Some(relative);
@@ -237,7 +237,7 @@ fn collect_carved_files<S>(
             row.sha256 = sha256.clone();
             if !known_sha256.contains(&sha256) && remaining > 0 {
                 let relative = format!("{dir}/certificates/{sha256}.der");
-                let file = ctx.write_file(&format!("{alert_base}{relative}"), &der, &[])?;
+                let file = ctx.write_file(&format!("{alert_base}{relative}"), &der, None)?;
                 carved.push(file);
                 row.path = Some(relative);
                 remaining -= 1;

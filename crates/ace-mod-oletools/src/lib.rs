@@ -25,19 +25,20 @@ use std::fs;
 use std::path::Path;
 use std::time::Duration;
 
+use ace_results::FileRole;
 use ace_results::types::olevba::{OlevbaAnalysis, OlevbaMacro};
 use ace_results::types::rtf::RtfOleObjectAnalysis;
 use ace_results::{
     AnalysisType, NewFile, ObservableKind, ObservableRef, Relationship, RelationshipKind,
-    ResultEnvelope, YaraMeta,
+    ResultEnvelope,
 };
-use ace_sdk::takes::{Condition, Takes};
 use ace_sdk::{InputFile, Manifest, Module, ModuleError, Outcome, Parser, Resources, TaskContext};
 use schemars::JsonSchema;
 use serde::Deserialize;
 
 use crate::olevba::VbaParser;
 use crate::py::{PyErr, strip};
+use ace_sdk::takes::{Case, Condition, Match, Takes, Text, TypeFact};
 
 /// The olevba module's manifest.
 pub const OLEVBA_MANIFEST: Manifest = Manifest::parser::<Olevba>();
@@ -75,20 +76,6 @@ fn is_office_extension(path: &str) -> bool {
         .1
         .strip_prefix('.')
         .is_some_and(|extension| OFFICE_EXTENSIONS.contains(&extension))
-}
-
-fn is_rtf_file(data: &[u8]) -> bool {
-    data.starts_with(b"\\rt") || data.starts_with(b"{\\rt")
-}
-
-fn is_zip_file(data: &[u8]) -> bool {
-    pyzip::ZipFile::new(data).is_ok_and(|zip| !zip.namelist().is_empty())
-}
-
-fn yara_type(kind: &str) -> Result<Vec<YaraMeta>, ModuleError> {
-    Ok(vec![
-        YaraMeta::new("type", kind).map_err(ModuleError::other)?,
-    ])
 }
 
 fn read_input(local_path: &Path) -> Result<Vec<u8>, ModuleError> {
@@ -129,28 +116,40 @@ impl Module for Olevba {
     fn init(_: &OlevbaSettings) -> Result<Self, ModuleError> {
         Ok(Olevba)
     }
-}
 
-/// Why ace3's checks would leave this file alone, if they would.
-fn olevba_skip_reason(file: &InputFile, data: &[u8]) -> Option<String> {
-    let path = file.path.as_str();
-    if is_rtf_file(data) {
-        return Some("an RTF file".to_owned());
+    fn takes(_: &OlevbaSettings) -> Takes {
+        // ace3's checks before it opens a file, in its order, over the file's type and its path
+        // (PLAN.md decision 25): each as the function it called on the bytes said it
+        let office = Condition::Extension(Text::exact(Match::OneOf(
+            OFFICE_EXTENSIONS.iter().map(|e| format!(".{e}")).collect(),
+        )));
+        Takes::everything()
+            .and(
+                Condition::type_fact(TypeFact::IsRtfFile).negated(),
+                "an RTF file",
+            )
+            .and(
+                Condition::Path(Text::ends_with(".msi", Case::Lower)).negated(),
+                "an MSI file",
+            )
+            .and(
+                Condition::Any(vec![
+                    office,
+                    Condition::type_fact(TypeFact::IsOleFile),
+                    Condition::type_fact(TypeFact::IsZipFile),
+                ]),
+                "not an Office, OLE or zip file",
+            )
+            .and(Condition::at_most(OLEVBA_MAX_SIZE), "larger than 4 MB")
+            .and(
+                Condition::Any(vec![
+                    Condition::Mime(Text::contains("html")),
+                    Condition::Mime(Text::equals("text/plain")),
+                ])
+                .negated(),
+                "its mime type is html or text/plain",
+            )
     }
-    if path.to_lowercase().ends_with(".msi") {
-        return Some("an MSI file".to_owned());
-    }
-    if !(is_office_extension(path) || ole::has_magic(data) || is_zip_file(data)) {
-        return Some("not an Office, OLE or zip file".to_owned());
-    }
-    if file.size > OLEVBA_MAX_SIZE {
-        return Some("larger than 4 MB".to_owned());
-    }
-    let mime = file.mime_type.as_deref().unwrap_or_default();
-    if mime.contains("html") || mime == "text/plain" {
-        return Some(format!("its mime type is {mime}"));
-    }
-    None
 }
 
 /// As ace3 counts them, in its first-seen order. It looks up the kind before lowercasing it, so it
@@ -179,9 +178,9 @@ impl OlevbaRun<'_> {
         path: &str,
         code: &str,
     ) -> Result<ace_results::Sha256, ModuleError> {
-        let mut file =
-            self.ctx
-                .write_file(path, code.as_bytes(), &yara_type("script.macro.vba")?)?;
+        let mut file = self
+            .ctx
+            .write_file(path, code.as_bytes(), FileRole::SCRIPT_MACRO_VBA)?;
         file.add_tag("macro");
         file.add_directive(SANDBOX);
         file.exclude_modules.push(Olevba::NAME.to_owned());
@@ -303,9 +302,6 @@ impl Parser for Olevba {
     ) -> Result<Outcome<OlevbaAnalysis>, ModuleError> {
         let file = ctx.input_file()?;
         let data = read_input(&file.local_path)?;
-        if let Some(reason) = olevba_skip_reason(file, &data) {
-            return Ok(Outcome::Skipped(reason));
-        }
         let path = file.path.as_str();
         let mut details = OlevbaAnalysis::default();
         let mut kinds = Vec::new();
@@ -393,7 +389,10 @@ impl Module for RtfOle {
     }
 
     fn takes(_: &()) -> Takes {
-        Takes::everything().and(Condition::not_empty(), "an empty file")
+        Takes::everything()
+            .and(Condition::not_empty(), "an empty file")
+            // `\rt` or `{\rt` first, from the file's type (PLAN.md decision 25)
+            .and(Condition::type_fact(TypeFact::IsRtfFile), "not an RTF file")
     }
 }
 
@@ -417,9 +416,6 @@ impl Parser for RtfOle {
     fn analyze(&self, ctx: &TaskContext<()>) -> Result<Outcome<RtfOleObjectAnalysis>, ModuleError> {
         let file = ctx.input_file()?;
         let data = read_input(&file.local_path)?;
-        if !is_rtf_file(&data) {
-            return Ok(Outcome::Skipped("not an RTF file".to_owned()));
-        }
         let path = file.path.as_str();
         let alert_dir = format!("{path}.rtfobj");
         let mut report = rtf::process_file(path, &data, &alert_dir, rtf::Limits::TASK);
@@ -431,7 +427,7 @@ impl Parser for RtfOle {
         for (name, bytes) in &report.files {
             let object_path = format!("{alert_dir}/{name}");
             let mut new_file =
-                ctx.write_file(&object_path, bytes, &yara_type("document.rtf.object")?)?;
+                ctx.write_file(&object_path, bytes, FileRole::DOCUMENT_RTF_OBJECT)?;
             new_file.add_tag("extracted_rtf");
             new_file.redirection = Some(source.clone());
             new_file.relationships.push(Relationship::new(
@@ -488,7 +484,9 @@ mod tests {
 
     fn olevba(sample: &str, settings: OlevbaSettings) -> Outcome<OlevbaAnalysis> {
         let block = serde_json::json!({"merge_macros": settings.merge_macros, "thresholds": settings.thresholds});
-        let harness = Harness::<Olevba>::with_settings(block).expect("harness");
+        let harness = Harness::<Olevba>::with_settings(block)
+            .expect("harness")
+            .with_typer(typed);
         let input = harness.sample(sample).expect("a sample");
         harness.run_parser(input).expect("runs")
     }
@@ -501,7 +499,7 @@ mod tests {
     }
 
     fn rtfole(sample: &str) -> Outcome<RtfOleObjectAnalysis> {
-        let harness = Harness::<RtfOle>::new().expect("harness");
+        let harness = Harness::<RtfOle>::new().expect("harness").with_typer(typed);
         let input = harness.sample(sample).expect("a sample");
         harness.run_parser(input).expect("runs")
     }
@@ -601,6 +599,19 @@ mod tests {
         assert_eq!(result.details.macros.len(), 5);
     }
 
+    /// The facts of the type step the declarations here read, from the bytes as its checks read
+    /// them; libmagic's answers aren't here, so the mime type is a neutral one.
+    fn typed(_: &str, local: &std::path::Path) -> Option<ace_results::types::file_type::TypeFacts> {
+        let data = std::fs::read(local).ok()?;
+        Some(ace_results::types::file_type::TypeFacts {
+            mime: "application/octet-stream".to_owned(),
+            is_ole_file: ole::has_magic(&data),
+            is_rtf_file: data.starts_with(b"\\rt") || data.starts_with(b"{\\rt"),
+            is_zip_file: pyzip::ZipFile::new(&data).is_ok_and(|zip| !zip.namelist().is_empty()),
+            ..Default::default()
+        })
+    }
+
     fn input(path: &str, size: u64, mime: Option<&str>) -> InputFile {
         InputFile {
             path: ace_results::AlertPath::new(path).expect("a path"),
@@ -608,28 +619,61 @@ mod tests {
             size,
             yara_meta: Vec::new(),
             mime_type: mime.map(str::to_owned),
+            facts: None,
+            role: None,
             local_path: Default::default(),
         }
     }
 
     #[test]
     fn what_ace3_checks_before_it_opens_a_file() {
-        let ole = crate::ole::MAGIC;
-        for (file, data) in [
-            (input("a.doc", 8, None), &b"{\\rtf1 x}"[..]),
-            (input("A.MSI", 8, None), &ole[..]),
-            (input("a.txt", 8, None), &b"just text"[..]),
-            (input("a.doc", OLEVBA_MAX_SIZE + 1, None), &ole[..]),
-            (input("a.doc", 8, Some("text/html")), &b"<html>"[..]),
-            (input("a.doc", 8, Some("text/plain")), &b"text"[..]),
-        ] {
-            assert!(
-                olevba_skip_reason(&file, data).is_some(),
-                "{}",
-                file.path.as_str()
+        use ace_results::types::file_type::TypeFacts;
+        let typed = |f: fn(&mut TypeFacts), mime: &str| {
+            let mut facts = TypeFacts {
+                mime: mime.to_owned(),
+                ..TypeFacts::default()
+            };
+            f(&mut facts);
+            facts
+        };
+        let ole = typed(|t| t.is_ole_file = true, "application/x-ole-storage");
+        let declined = |path: &str, size: u64, facts: &TypeFacts| {
+            let file = input(path, size, Some(&facts.mime));
+            let observable = ace_sdk::Observable::file(InputFile {
+                facts: Some(facts.clone()),
+                ..file
+            });
+            let ctx = TaskContext::new::<Olevba>(
+                Default::default(),
+                observable,
+                std::sync::Arc::new(OlevbaSettings::default()),
             );
-        }
-        assert!(olevba_skip_reason(&input("a.doc", 8, Some("application/x")), b"x").is_none());
+            let none = std::collections::BTreeMap::new();
+            Olevba::takes(&OlevbaSettings::default())
+                .check(&ctx.facts(&none))
+                .err()
+                .map(str::to_owned)
+        };
+        let rtf = typed(|t| t.is_rtf_file = true, "text/rtf");
+        let text = typed(|_| {}, "text/plain");
+        let html = typed(|t| t.is_ole_file = true, "text/html");
+        let other = typed(|_| {}, "application/x");
+        assert_eq!(declined("a.doc", 8, &rtf).as_deref(), Some("an RTF file"));
+        assert_eq!(declined("A.MSI", 8, &ole).as_deref(), Some("an MSI file"));
+        assert_eq!(
+            declined("a.txt", 8, &other).as_deref(),
+            Some("not an Office, OLE or zip file")
+        );
+        assert_eq!(
+            declined("a.bin", OLEVBA_MAX_SIZE + 1, &ole).as_deref(),
+            Some("larger than 4 MB")
+        );
+        assert!(declined("a.doc", 8, &html).is_some());
+        assert!(declined("a.doc", 8, &text).is_some());
+        assert_eq!(declined("a.doc", 8, &other), None);
+        assert_eq!(declined("a.bin", 8, &ole), None);
+        // the case of the extension is as written
+        assert!(declined("a.DOC", 8, &other).is_some());
     }
 
     #[test]

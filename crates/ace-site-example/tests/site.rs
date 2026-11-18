@@ -99,6 +99,22 @@ async fn wait_for<T, F: std::future::Future<Output = Option<T>>>(
     }
 }
 
+/// PLAN.md decision 25: the site's binary lists its file role beside ace3's, and a result naming it
+/// reads once the binary's list is installed, while one naming a role no binary lists doesn't.
+#[test]
+fn the_site_binary_lists_its_file_roles() {
+    let roles = ace_site_example::app().roles().expect("a valid list");
+    assert!(roles.contains(&ace_site_example::TICKET_EXPORT));
+    assert!(roles.contains(&ace_results::FileRole::EMAIL_ATTACHMENT));
+    let duplicate = ace_site_example::app().file_roles(&[ace_results::FileRole::EMAIL]);
+    assert!(duplicate.roles().is_err());
+    ace_results::install_roles(ace_site_example::FILE_ROLES).expect("installs");
+    let read: ace_results::FileRole =
+        serde_json::from_value(json!("example.ticket_export")).expect("the site's role reads");
+    assert_eq!(read, ace_site_example::TICKET_EXPORT);
+    assert!(serde_json::from_value::<ace_results::FileRole>(json!("example.nothing")).is_err());
+}
+
 /// PLAN.md 5.9: the site's binary list names its analysis view, so its GUI draws the ticket lookup's
 /// results with the site's template, beside the open-source views, and every module has one.
 #[test]
@@ -139,6 +155,7 @@ fn the_site_binary_draws_its_results_with_its_own_view() {
         display_value: None,
         ignored: false,
         files: Vec::new(),
+        file_type: None,
         relationships: Vec::new(),
         results: Vec::new(),
         failed: Some(Vec::new()),
@@ -216,6 +233,7 @@ fn the_site_binary_draws_its_alert_type_s_summary() {
                 display_value: None,
                 ignored: false,
                 files: Vec::new(),
+                file_type: None,
                 relationships: Vec::new(),
                 results: Vec::new(),
                 failed: Some(Vec::new()),
@@ -1047,7 +1065,10 @@ fn task_request(
                 "path": "notes.txt",
                 "sha256": sha256,
                 "size": bytes.len(),
-                "mime_type": "text/plain",
+                "facts": {"description": "ASCII text", "mime": "text/plain",
+                          "is_ole_file": false, "is_rtf_file": false, "has_pdf_marker": false,
+                          "is_pe_file": false, "is_zip_file": false, "is_jar_file": false,
+                          "is_x509": false, "is_lnk_file": false, "is_email_file": false},
                 "download": {"url": "http://unused.invalid/"},
             },
         },
@@ -1183,7 +1204,8 @@ fn a_site_s_parser_is_built_alone_in_its_task_process() {
         file: Some(ace_sdk::takes::FileFacts {
             path,
             size: Some(10),
-            mime: None,
+            facts: None,
+            role: None,
             yara_meta: Some(&[]),
         }),
         results: Box::leak(Box::default()),

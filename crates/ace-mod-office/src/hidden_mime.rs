@@ -172,7 +172,7 @@ impl Parser for HiddenMimeAnalyzer {
             }
             ctx.check_cancelled()?;
             let path = format!("{}.mime/extracted-{index}", file.path);
-            let mut new_file = ctx.write_file(&path, payload, &[])?;
+            let mut new_file = ctx.write_file(&path, payload, None)?;
             new_file.relationships.push(extracted_from(file));
             analysis.extracted_files.push(path);
             files.push(new_file);

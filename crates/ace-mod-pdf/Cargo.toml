@@ -34,6 +34,8 @@ tracing = "0.1.44"
 zip = { version = "9.2.2", default-features = false, features = ["aes-crypto", "bzip2", "deflate-flate2", "lzma"] }
 
 [dev-dependencies]
+# the type step's answer for a harness's files (PLAN.md decision 25)
+ace-mod-files = { path = "../ace-mod-files" }
 ace-testkit = { path = "../ace-testkit" }
 
 [lints]

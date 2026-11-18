@@ -10,10 +10,10 @@
 
 use std::sync::LazyLock;
 
+use ace_results::FileRole;
 use ace_results::types::html::HtmlDataUrlAnalysis;
 use ace_results::{
     AnalysisType, ObservableKind, ObservableRef, Relationship, RelationshipKind, ResultEnvelope,
-    YaraMeta,
 };
 use ace_sdk::takes::{Condition, Takes};
 use ace_sdk::{Manifest, Module, ModuleError, Outcome, Parser, TaskContext};
@@ -81,7 +81,6 @@ impl Parser for HtmlDataUrlAnalyzer {
             &mut data,
         )?;
         let source = ObservableRef::new(ObservableKind::File, file.sha256.to_hex());
-        let meta = YaraMeta::new("type", "document.html.embedded").map_err(ModuleError::other)?;
         let mut analysis: Option<HtmlDataUrlAnalysis> = None;
         let mut files = Vec::new();
         let mut count = 0usize;
@@ -111,7 +110,7 @@ impl Parser for HtmlDataUrlAnalyzer {
                 Some((dir, _)) => format!("{dir}/{name}"),
                 None => name,
             };
-            let mut new_file = ctx.write_file(&path, &decoded, std::slice::from_ref(&meta))?;
+            let mut new_file = ctx.write_file(&path, &decoded, FileRole::DOCUMENT_HTML_EMBEDDED)?;
             new_file.relationships.push(Relationship::new(
                 RelationshipKind::ExtractedFrom,
                 source.clone(),

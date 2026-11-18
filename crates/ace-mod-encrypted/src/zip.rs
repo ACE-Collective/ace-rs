@@ -254,7 +254,7 @@ pub(crate) fn extract_all(
             let Some((path, _)) = by_path.iter().find(|(_, i)| **i == index) else {
                 return Ok(());
             };
-            match ctx.write_file_from(path, reader, &[]) {
+            match ctx.write_file_from(path, reader, None) {
                 Ok(file) => {
                     written.insert(index, file);
                     Ok(())

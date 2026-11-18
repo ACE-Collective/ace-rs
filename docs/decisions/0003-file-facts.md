@@ -1,6 +1,6 @@
 # 0003: What a file is, known when it is added
 
-Status: decided on 2026-11-17, not yet built. The owner chose option 2 (the byte facts as each file's first, contained task) and accepted that `file_type`'s result leaves the tree. The owner kept the distinction this design draws between a file's *type* (what its bytes are, such as `text/plain`) and its *role* (what its producer made it, such as an email's text body); the two are named so from here on. The role is a field of its own on the file, with ace3's values (today's `type=` names); `yara_meta`'s `type=` tag is built from it, so YARA rules and the signatures see what they see today.
+Status: decided on 2026-11-17, built on 2026-11-18 as PLAN.md decision 25; *As built* at the end says what the build chose where this left it open. The owner chose option 2 (the byte facts as each file's first, contained task) and accepted that `file_type`'s result leaves the tree. The owner kept the distinction this design draws between a file's *type* (what its bytes are, such as `text/plain`) and its *role* (what its producer made it, such as an email's text body); the two are named so from here on. The role is a field of its own on the file, with ace3's values (today's `type=` names); `yara_meta`'s `type=` tag is built from it, so YARA rules and the signatures see what they see today.
 
 ## The problem
 
@@ -43,3 +43,13 @@ Of the 98,164 first-byte tasks, 68,035 compare fixed bytes and about 30,000 more
 1. Option 2 (the facts as the file's first task) or option 1 (in the producer).
 2. Whether the role vocabulary is `yara_meta`'s `type=` values as they are, or a field of its own that `yara_meta` is then built from.
 3. Whether `file_type`'s result leaving the tree, and being rebuilt only for the comparison, is acceptable for the GUI's analysis view and the API, which show it today.
+
+## As built
+
+PLAN.md decision 25 has the whole of it; `docs/measurements/task-start.md` (*The file's type, built*) has the measurements.
+
+- **The type step.** `file_type` is queued first on every file that any module of the root's mode would take, by the core's own rules, and nothing else on the file is queued until it has ended (`ace_core::type_step`). It runs once a file in each root, as `file_type` did, and its facts are kept once a sha256 (`store.file_types`). A binary without `file_type` types nothing and nothing waits.
+- **A failed step.** However it fails (the module, its deadline, its lease run out on its last attempt), the file's other tasks are queued in the same transaction. The file then has no type, unless the same bytes were typed in another root, and every declaration's condition on the type is unknown and holds, so the modules whose checks moved run and their own parse decides. A failure can start modules that would have declined the file; it can't keep one off.
+- **ace3's result.** Where ace3's `file_type` would have run, by the core's rules for the `file_type` component, the file gets that module's tags and `yara_meta` types from its facts and analysis path, and is marked (`analysis.observables.type_result`). The comparison's normal form, the modules ace3 makes depend on `file_type`, the declarations that read its result and the hooks' tree conditions get ace3's result built the same way.
+- **The role** is `analysis.files.role`, from `ace_results::FileRole`: ace3's 37 `type=` values, and a site's through `App::file_roles`. A module gives it with `TaskContext::write_file`, which adds the `type=` tag built from it; a submission's role is its first `type=` tag that names one.
+- **The store** reads no bytes: `mime_type_of` and `store.objects.mime_type` are gone, and a lease's mime type is the type's.

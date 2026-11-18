@@ -11,13 +11,12 @@
 //! pikepdf makes from the clock and this from the content (`Document::save_as_pikepdf_saves`).
 
 use std::ffi::CString;
-use std::fs::File;
-use std::io::Read;
 use std::time::{Duration, Instant};
 
 use ace_mod_pdf::qpdf::{Document, Locked};
+use ace_results::FileRole;
 use ace_results::types::encrypted::PdfEncryptionAnalysis;
-use ace_results::{AnalysisType, NewFile, ObservableKind, ResultEnvelope, YaraMeta};
+use ace_results::{AnalysisType, NewFile, ObservableKind, ResultEnvelope};
 use ace_sdk::{Manifest, Module, ModuleError, Outcome, Parser, Resources, TaskContext};
 use aes::Aes128;
 use cipher::common::array::Array;
@@ -27,6 +26,7 @@ use rc4::{KeyInit, Rc4};
 use sha2::{Sha256, Sha384, Sha512};
 
 use crate::{Carried, PdfSettings, carried, cracking_deadline, decrypted_detection, summarize};
+use ace_sdk::takes::{Condition, Takes, TypeFact};
 
 /// The module's manifest.
 pub const MANIFEST: Manifest = Manifest::parser::<PdfEncryptionAnalyzer>();
@@ -59,6 +59,11 @@ impl Module for PdfEncryptionAnalyzer {
 
     fn init(_: &PdfSettings) -> Result<Self, ModuleError> {
         Ok(PdfEncryptionAnalyzer)
+    }
+
+    fn takes(_: &PdfSettings) -> Takes {
+        // ace3's is_pdf_file, which the file's type and its path state (PLAN.md decision 25)
+        Takes::everything().and(Condition::type_fact(TypeFact::IsPdfFile), "not a PDF")
     }
 }
 
@@ -235,17 +240,6 @@ pub fn crack(hash: &Hash, candidates: &[String], deadline: Instant) -> Option<St
     None
 }
 
-/// `is_pdf_file`: `%PDF-` in the first 1,024 bytes, and not pdf_analyzer's dump.
-fn is_pdf_file(path: &std::path::Path, alert_path: &str) -> bool {
-    if alert_path.ends_with(".pdfparser") {
-        return false;
-    }
-    let mut head = Vec::new();
-    File::open(path)
-        .and_then(|f| f.take(1024).read_to_end(&mut head))
-        .is_ok_and(|_| head.windows(5).any(|w| w == b"%PDF-"))
-}
-
 fn summary(details: &PdfEncryptionAnalysis, error: Option<&str>) -> String {
     summarize(
         DISPLAY_NAME,
@@ -277,7 +271,7 @@ impl PdfEncryptionAnalyzer {
         let mut record = ctx.write_file(
             &format!("{}.decrypted", file.name()),
             &copy,
-            &[YaraMeta::new("type", "document.pdf").map_err(ModuleError::other)?],
+            FileRole::DOCUMENT_PDF,
         )?;
         record.tags.push("decrypted_pdf".to_owned());
         record.detections.push(decrypted_detection());
@@ -291,9 +285,6 @@ impl Parser for PdfEncryptionAnalyzer {
         ctx: &TaskContext<PdfSettings>,
     ) -> Result<Outcome<PdfEncryptionAnalysis>, ModuleError> {
         let file = ctx.input_file()?;
-        if !is_pdf_file(&file.local_path, file.path.as_str()) {
-            return Ok(Outcome::Skipped("not a PDF".to_owned()));
-        }
         let locked = match Document::locked(&file.local_path) {
             Ok(Some(locked)) => locked,
             Ok(None) => return Ok(Outcome::Skipped("opens without a password".to_owned())),

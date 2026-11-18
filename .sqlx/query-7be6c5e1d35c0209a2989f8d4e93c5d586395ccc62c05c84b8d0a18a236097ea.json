@@ -1,0 +1,53 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT size, created_at, last_held_at FROM store.objects\n             WHERE pool = $1 AND sha256 = $2 AND state = 'present'",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "size",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "store.objects",
+            "name": "size"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "store.objects",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "last_held_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "store.objects",
+            "name": "last_held_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "7be6c5e1d35c0209a2989f8d4e93c5d586395ccc62c05c84b8d0a18a236097ea"
+}

@@ -8,19 +8,21 @@
 
 use std::time::Duration;
 
-use ace_mod_files::checks::{is_office_ext, is_ole_file, is_pdf_file};
+use ace_mod_files::checks::KNOWN_OFFICE_EXTENSIONS;
 use ace_pycompat::json::{Value, loads};
+use ace_results::AnalysisType;
+use ace_results::FileRole;
 use ace_results::types::file_type::FileTypeAnalysis;
 use ace_results::types::sandbox::ExifAnalysis;
-use ace_results::{ObservableKind, Relationship, RelationshipKind, ResultEnvelope, YaraMeta};
-use ace_sdk::takes::{Case, Condition, Takes, Text};
+use ace_results::{ObservableKind, Relationship, RelationshipKind, ResultEnvelope};
+use ace_sdk::takes::{Case, Condition, Match, Takes, Text, TypeFact};
 use ace_sdk::tools::{ToolOutput, ToolRun, is_plain_name};
-use ace_sdk::{InputFile, Module, ModuleError, Outcome, Parser, Resources, TaskContext};
+use ace_sdk::{Module, ModuleError, Outcome, Parser, Resources, TaskContext};
 use schemars::JsonSchema;
 use serde::Deserialize;
 
+use crate::name_fits;
 use crate::pprint::{pformat, py_str, repr};
-use crate::{head, name_fits};
 
 /// ace3's section of the module.
 #[derive(Debug, Clone, PartialEq, Deserialize, JsonSchema)]
@@ -75,32 +77,44 @@ impl Module for ExifAnalyzer {
                 "Ghostscript output",
             );
         // a limit of 0 is none
-        if settings.file_size_limit > 0 {
-            return takes.and(
+        let takes = if settings.file_size_limit > 0 {
+            takes.and(
                 Condition::at_most(settings.file_size_limit),
                 "larger than file_size_limit",
-            );
-        }
-        takes
+            )
+        } else {
+            takes
+        };
+        takes.and(office_or_pdf(), "not an Office document or a PDF")
     }
 }
 
-/// `is_office_file`: an Office extension, or file_type's description naming an Office format.
-fn is_office_file(file: &InputFile, file_type: Option<&FileTypeAnalysis>) -> bool {
-    let mut result = is_office_ext(file.name());
-    if let Some(analysis) = file_type {
-        let description = analysis.file_type.to_lowercase();
-        result |= [
-            "microsoft powerpoint",
-            "microsoft excel",
-            "microsoft word",
-            "microsoft ooxml",
-            "opendocument",
-        ]
-        .iter()
-        .any(|kind| description.contains(kind));
+/// ace3's test: `is_office_file` (an Office extension on the name, or file_type's description, if
+/// it has a result, naming an Office format), or the OLE signature, or `is_pdf_file`, the last two
+/// from the file's type (PLAN.md decision 25).
+fn office_or_pdf() -> Condition {
+    let mut any = vec![Condition::Extension(Text::exact(Match::OneOf(
+        KNOWN_OFFICE_EXTENSIONS
+            .iter()
+            .map(|e| format!(".{e}"))
+            .collect(),
+    )))];
+    for kind in [
+        "microsoft powerpoint",
+        "microsoft excel",
+        "microsoft word",
+        "microsoft ooxml",
+        "opendocument",
+    ] {
+        any.push(Condition::result_text(
+            FileTypeAnalysis::MODULE,
+            "type",
+            Text::new(Match::Contains(kind.to_owned()), Case::Lower),
+        ));
     }
-    result
+    any.push(Condition::type_fact(TypeFact::IsOleFile));
+    any.push(Condition::type_fact(TypeFact::IsPdfFile));
+    Condition::Any(any)
 }
 
 /// `_read_metadata`: exiftool's one object, or why its output isn't one.
@@ -193,16 +207,6 @@ impl Parser for ExifAnalyzer {
     ) -> Result<Outcome<ExifAnalysis>, ModuleError> {
         let file = ctx.input_file()?;
         let path = file.path.as_str();
-        let file_type = ctx.dependency_result::<FileTypeAnalysis>()?;
-        let start = head(&file.local_path, 1024)?;
-        if !is_office_file(file, file_type.as_ref())
-            && !is_ole_file(&start)
-            && !is_pdf_file(path, &start)
-        {
-            return Ok(Outcome::Skipped(
-                "not an Office document or a PDF".to_owned(),
-            ));
-        }
         let mut result = ResultEnvelope::new(ExifAnalysis::default());
         let name = if is_plain_name(file.name()) {
             file.name()
@@ -252,11 +256,7 @@ impl Parser for ExifAnalyzer {
         result.summary = Some(summary(&metadata));
         if name_fits(&target_dir) {
             result.details.output_dir = Some(target_dir);
-            let mut new_file = ctx.write_file(
-                &target,
-                text.as_bytes(),
-                &[YaraMeta::new("type", "metadata.exif").map_err(ModuleError::other)?],
-            )?;
+            let mut new_file = ctx.write_file(&target, text.as_bytes(), FileRole::METADATA_EXIF)?;
             new_file.relationships.push(Relationship::new(
                 RelationshipKind::ExtractedFrom,
                 crate::source(file),

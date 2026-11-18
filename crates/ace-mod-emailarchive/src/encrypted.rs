@@ -10,8 +10,9 @@
 //! ace3 also leaves the decrypted gzip, `<name>.rfc822.gz`, in the alert's directory, not added as
 //! an observable. ace4 keeps no file outside the tree, so there's none.
 
+use ace_results::FileRole;
 use ace_results::types::email_archive::EncryptedArchiveAnalysis;
-use ace_results::{AlertPath, NewFile, ObservableKind, ResultEnvelope, Sha256, YaraMeta};
+use ace_results::{AlertPath, NewFile, ObservableKind, ResultEnvelope, Sha256};
 use ace_sdk::reads::{DecryptedArchive, DecryptedArchiveRequest, Read, ReadKind};
 use ace_sdk::takes::{Case, Condition, Takes, Text};
 use ace_sdk::{Lookup, Manifest, Module, ModuleError, Outcome, TaskContext};
@@ -79,8 +80,7 @@ impl Lookup for EncryptedArchiveAnalyzer {
         let sha256: Sha256 = email.sha256.parse().map_err(ModuleError::other)?;
         let mut file = NewFile::new(path.clone(), sha256, email.size);
         file.add_tag(DECRYPTED_EMAIL);
-        file.yara_meta
-            .push(YaraMeta::new("type", "email").map_err(ModuleError::other)?);
+        file.set_role(FileRole::EMAIL);
         // ace3 names it from the root's storage directory, whose files are under `files/`
         let decrypted_file = format!("files/{}", path.as_str());
         let mut result = ResultEnvelope::new(EncryptedArchiveAnalysis {

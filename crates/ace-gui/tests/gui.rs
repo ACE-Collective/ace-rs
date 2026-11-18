@@ -1451,6 +1451,7 @@ fn observable(id: i64, kind: &str, value: &str) -> AlertObservable {
         display_value: None,
         ignored: false,
         files: Vec::new(),
+        file_type: None,
         relationships: Vec::new(),
         results: Vec::new(),
         failed: Some(Vec::new()),
@@ -1483,6 +1484,7 @@ fn fixture_tree() -> (AlertTree, Vec<ObservableComment>) {
     email.files.push(AlertFile {
         path: "email.rfc822".to_owned(),
         yara_meta: Vec::new(),
+        role: None,
     });
     let mut parsed = module_result(10, "email_analyzer", Some("Email <b>Analysis</b>"));
     parsed.tags = vec!["x\"onmouseover=\"y".to_owned()];
@@ -2096,6 +2098,7 @@ fn an_alert_s_summary_is_chosen_by_its_type() {
     body.files.push(AlertFile {
         path: "email.rfc822.unknown_text_html_000.html".to_owned(),
         yara_meta: Vec::new(),
+        role: None,
     });
     mail.observables.push(body);
     mail.additions.push(ace_service::Addition {
@@ -13555,13 +13558,11 @@ async fn gui_sample(stack: &Stack) -> uuid::Uuid {
         .expect("a capture");
     }
     // the samples pool's index row, which a deletion purges; the bucket goes by the index
-    sqlx::query(
-        "INSERT INTO store.objects (pool, sha256, size, mime_type) VALUES ('svs_samples', $1, 1, 'x')",
-    )
-    .bind(SVS_SHA)
-    .execute(db.pool())
-    .await
-    .expect("an object");
+    sqlx::query("INSERT INTO store.objects (pool, sha256, size) VALUES ('svs_samples', $1, 1)")
+        .bind(SVS_SHA)
+        .execute(db.pool())
+        .await
+        .expect("an object");
     sqlx::query(
         "UPDATE analysis.roots SET alerted_at = now(), disposition = 'DELIVERY',
              dispositioned_by = '{\"kind\": \"internal\", \"id\": \"test\"}' WHERE id = $1",

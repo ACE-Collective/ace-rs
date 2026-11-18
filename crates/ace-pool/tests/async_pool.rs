@@ -247,6 +247,7 @@ async fn a_killed_pool_takes_as_many_tasks_with_it_as_it_has_slots_and_they_come
         db.clone(),
         Duration::from_millis(200),
         stop.clone(),
+        None,
     ));
     let killed = std::time::Instant::now();
     let mut second = PoolProcess::start(test_pool(&core, &["lookups", "--concurrency", "3"]));

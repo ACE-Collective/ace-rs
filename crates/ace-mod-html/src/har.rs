@@ -344,7 +344,7 @@ impl Run<'_> {
             Err(error) => return Ok(Err(error)),
         };
         let path = format!("{}/{name}", self.extracted_dir);
-        let mut new_file = self.ctx.write_file(&path, &response.body, &[])?;
+        let mut new_file = self.ctx.write_file(&path, &response.body, None)?;
         new_file.relationships.push(Relationship::new(
             RelationshipKind::ExtractedFrom,
             self.source.clone(),

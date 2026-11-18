@@ -22,11 +22,20 @@
 //! observable's own type, its directives and relationships and whether it redirects; which
 //! modules' results added it (a declaration that reads it needs `Module::READS_ADDED_BY`); the
 //! root's analysis mode (needs `Module::READS_TREE`); a file's analysis path (its name, its
-//! extension, the whole path), its size, the mime type the store recorded for its bytes and its
-//! `yara_meta` tags; and the details of the observable's results from the modules it depends on
-//! (needs the module in `Module::DEPENDS_ON`). `Manifest::declaration` refuses one that names a
-//! fact its module's lease wouldn't carry, so the pool can always check what the core checked.
-//! Nothing here reads a file's bytes: a check on those stays in `analyze`.
+//! extension, the whole path), its size, its role and its `yara_meta` tags; a file's type, what the
+//! type step found in its bytes (`TypeFacts`, PLAN.md decision 25: libmagic's description and mime
+//! type and file_type's checks, as `Condition::Type` and `Condition::Mime`); and the details of the
+//! observable's results from the modules it depends on (needs the module in `Module::DEPENDS_ON`).
+//! `Manifest::declaration` refuses one that names a fact its module's lease wouldn't carry, so the
+//! pool can always check what the core checked. Nothing here reads a file's bytes: the type step
+//! read them, contained, before any other task on the file was queued, and a check the type doesn't
+//! state stays in `analyze`.
+//!
+//! **A file whose type is unknown.** A file's type step can fail (a crash, its deadline), and the
+//! file's other tasks are queued anyway. A condition on its type is then unknown, and a rule whose
+//! condition is unknown holds (`Condition::value`): the module runs on the file, as it did when the
+//! check was its own, and its own parse decides. So a failed type step never keeps a module off a
+//! file it would have run on; it can only start modules that would have declined it.
 //!
 //! **Exactness.** A rule says what the module's own check said, never a looser or tighter guess:
 //! the same subject, the same comparison, the same case rule. Each `Case` names the function a
@@ -36,11 +45,17 @@
 //! **Writing one.** Move the checks from the top of `analyze` into `Module::takes`, in the order
 //! `analyze` made them, each as a rule with the reason `analyze` gave, and delete them from
 //! `analyze`. Only a check that ends the task with `Outcome::Skipped` whatever comes after it can
-//! move: one that reads the bytes, delays, fails or writes something stays. Part of a check can
+//! move: one that delays, fails or writes something stays. A check of the bytes moves when a fact
+//! of the file's type states it exactly: `TypeFact` names each with the function that computes it
+//! (`ace_mod_files::checks`, libmagic's description), and a check that is that function on the
+//! same bytes, or that function and the file's name as ace3's `is_pdf_file` and
+//! `is_office_document` are, is `Condition::Type`. One that needs a parse of its own (a format's
+//! structure, a magic number file_type doesn't check) stays in `analyze`. A file's role, what the
+//! module that wrote it made it, is `Condition::Role`. Part of a check can
 //! move when the part declines on its own, as the email module's "file_type calls it an email or it
 //! has `original_email`". A rule that reads which modules added the observable needs
 //! `READS_ADDED_BY`, the mode `READS_TREE`, a dependency's result the dependency in `DEPENDS_ON`; a
-//! lookup's rules can read a file's path but not its size, mime type or `yara_meta`, which only a
+//! lookup's rules can read a file's path but not its size, type, role or `yara_meta`, which only a
 //! parser's lease carries. A pool refuses to start with a declaration that breaks these, and
 //! `ace_app::App::modules_with_unusable_declarations` lists them for a binary's test.
 //!
@@ -65,7 +80,8 @@ use std::fmt;
 
 use ace_pycompat::fnmatch::fnmatch;
 use ace_pycompat::pystr;
-use ace_results::{ObservableKind, Relationship, RelationshipKind, YaraMeta};
+use ace_results::types::file_type::{self, TypeFacts};
+use ace_results::{FileRole, ObservableKind, Relationship, RelationshipKind, YaraMeta};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
@@ -116,8 +132,15 @@ pub enum Condition {
     /// The file's extension as Python's `os.path.splitext` gives it for the name: from its last
     /// dot that isn't a leading one, with the dot; empty when there is none.
     Extension(Text),
-    /// The mime type the store recorded for the file's bytes (`InputFile::mime_type`).
+    /// The file's mime type: libmagic's, as the type step found it (`TypeFacts::mime`). Unknown
+    /// when the file's type is.
     Mime(Text),
+    /// A fact of the file's type, what its bytes are (`TypeFacts`, PLAN.md decision 25). Unknown
+    /// when the type step failed.
+    Type(TypeFact),
+    /// The file's role under its analysis path is one of these: what its producer made it, such
+    /// as `email.attachment` (`FileRole`). False for a file no producer gave a role.
+    Role(Vec<FileRole>),
     /// The file has this `yara_meta` tag.
     YaraMeta {
         name: String,
@@ -139,6 +162,63 @@ pub enum Condition {
         field: String,
         test: Field,
     },
+}
+
+/// A fact of a file's type, as `TypeFacts` holds it or as ace3's `file_type` computed it from the
+/// facts and the file's name. Each is the function the modules called on the bytes, so a rule on
+/// one says exactly what the module's own check said.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case", deny_unknown_fields)]
+pub enum TypeFact {
+    /// libmagic's description passes the test.
+    Description(Text),
+    /// The OLE compound file signature at the start (`checks::is_ole_file`).
+    IsOleFile,
+    /// `\rt` or `{\rt` at the start (`checks::is_rtf_file`).
+    IsRtfFile,
+    /// `%PDF-` in the first 1024 bytes, whatever the name.
+    HasPdfMarker,
+    /// ace3's `is_pdf_file`: the marker, for a name not ending in `.pdfparser`.
+    IsPdfFile,
+    /// `MZ` at the start (`checks::is_pe_file`).
+    IsPeFile,
+    /// Python's `zipfile` lists at least one name.
+    IsZipFile,
+    /// A zip with `META-INF/MANIFEST.MF`.
+    IsJarFile,
+    /// A certificate cryptography loads.
+    IsX509,
+    /// The Windows shortcut header at the start (`checks::is_lnk_file`).
+    IsLnkFile,
+    /// ace3's `is_email_file`, or the mime type `message/rfc822`.
+    IsEmailFile,
+    /// ace3's `is_office_document`: an Office extension on the name, an Office format in the
+    /// description, or an OLE or RTF file.
+    IsOfficeDocument,
+    /// What ace3's file_type tags `script.javascript`: the mime type or the name says JavaScript and
+    /// node parses it with a keyword in it.
+    IsJavascript,
+}
+
+impl TypeFact {
+    /// Its value for a file at `path` with these facts.
+    pub fn of(&self, facts: &TypeFacts, path: &str) -> bool {
+        match self {
+            TypeFact::Description(text) => text.matches(&facts.description),
+            TypeFact::IsOleFile => facts.is_ole_file,
+            TypeFact::IsRtfFile => facts.is_rtf_file,
+            TypeFact::HasPdfMarker => facts.has_pdf_marker,
+            TypeFact::IsPdfFile => file_type::is_pdf_file(path, facts.has_pdf_marker),
+            TypeFact::IsPeFile => facts.is_pe_file,
+            TypeFact::IsZipFile => facts.is_zip_file,
+            TypeFact::IsJarFile => facts.is_jar_file,
+            TypeFact::IsX509 => facts.is_x509,
+            TypeFact::IsLnkFile => facts.is_lnk_file,
+            TypeFact::IsEmailFile => facts.is_email_file,
+            TypeFact::IsOfficeDocument => facts.is_office_document(path),
+            TypeFact::IsJavascript => facts.is_javascript(path),
+        }
+    }
 }
 
 /// What a field of a dependency's result must be.
@@ -165,6 +245,7 @@ pub struct Text {
 #[serde(rename_all = "snake_case", deny_unknown_fields)]
 pub enum Match {
     Equals(String),
+    StartsWith(String),
     EndsWith(String),
     Contains(String),
     /// Equal to one of these.
@@ -216,11 +297,13 @@ pub struct Facts<'a> {
 pub struct FileFacts<'a> {
     /// The path it is analyzed under (PLAN.md decision 15).
     pub path: &'a str,
-    /// Its size, the store's mime type for its bytes and its `yara_meta` tags: what a parser's
-    /// lease carries with the bytes. A lookup's lease carries the path alone, so these are None for
-    /// a lookup, and `Manifest::declaration` refuses a lookup's rule that reads them.
+    /// Its size, its type, its role and its `yara_meta` tags: what a parser's lease carries with
+    /// the bytes. A lookup's lease carries the path alone, so these are None for a lookup, and
+    /// `Manifest::declaration` refuses a lookup's rule that reads them.
     pub size: Option<u64>,
-    pub mime: Option<&'a str>,
+    /// What its bytes are, as the type step found them; None when its type is unknown.
+    pub facts: Option<&'a TypeFacts>,
+    pub role: Option<FileRole>,
     pub yara_meta: Option<&'a [YaraMeta]>,
 }
 
@@ -303,6 +386,14 @@ impl Condition {
     }
 
     /// The file isn't empty.
+    pub fn type_fact(fact: TypeFact) -> Condition {
+        Condition::Type(fact)
+    }
+
+    pub fn role(role: FileRole) -> Condition {
+        Condition::Role(vec![role])
+    }
+
     pub fn not_empty() -> Condition {
         Condition::Size {
             min: Some(1),
@@ -336,12 +427,50 @@ impl Condition {
         }
     }
 
-    /// Whether it holds for these facts.
+    /// Whether it holds for these facts. A condition whose value is unknown, one on the type of a
+    /// file whose type step failed, holds, so a failure never keeps a module off a file
+    /// (`Condition::value`).
     pub fn holds(&self, facts: &Facts<'_>) -> bool {
+        self.value(facts) != Some(false)
+    }
+
+    /// Its value for these facts, or None when it reads a file's type and that is unknown. `All`,
+    /// `Any` and `Not` follow: all known and true, one true, or the negation, with an unknown part
+    /// unknown unless the rest decides it.
+    pub fn value(&self, facts: &Facts<'_>) -> Option<bool> {
         match self {
-            Condition::All(all) => all.iter().all(|c| c.holds(facts)),
-            Condition::Any(any) => any.iter().any(|c| c.holds(facts)),
-            Condition::Not(inner) => !inner.holds(facts),
+            Condition::All(all) => {
+                let mut unknown = false;
+                for c in all {
+                    match c.value(facts) {
+                        Some(false) => return Some(false),
+                        None => unknown = true,
+                        Some(true) => {}
+                    }
+                }
+                (!unknown).then_some(true)
+            }
+            Condition::Any(any) => {
+                let mut unknown = false;
+                for c in any {
+                    match c.value(facts) {
+                        Some(true) => return Some(true),
+                        None => unknown = true,
+                        Some(false) => {}
+                    }
+                }
+                (!unknown).then_some(false)
+            }
+            Condition::Not(inner) => inner.value(facts).map(|v| !v),
+            Condition::Mime(text) => type_value(facts, |t, _| text.matches(&t.mime)),
+            Condition::Type(fact) => type_value(facts, |t, path| fact.of(t, path)),
+            other => Some(other.known(facts)),
+        }
+    }
+
+    /// The value of a condition that reads nothing that can be unknown.
+    fn known(&self, facts: &Facts<'_>) -> bool {
+        match self {
             Condition::Kind(kinds) => kinds.contains(&facts.kind),
             Condition::Directive(name) => facts.directives.iter().any(|d| d == name),
             Condition::Relationship(kind) => facts.relationships.iter().any(|r| r.kind == *kind),
@@ -353,9 +482,9 @@ impl Condition {
             Condition::Extension(text) => facts
                 .file
                 .is_some_and(|f| text.matches(splitext(name(f.path)).1)),
-            Condition::Mime(text) => facts
+            Condition::Role(roles) => facts
                 .file
-                .is_some_and(|f| f.mime.is_some_and(|m| text.matches(m))),
+                .is_some_and(|f| f.role.is_some_and(|role| roles.contains(&role))),
             Condition::YaraMeta { name, value } => facts.file.is_some_and(|f| {
                 f.yara_meta
                     .unwrap_or_default()
@@ -379,6 +508,11 @@ impl Condition {
                     (Field::Text(text), Value::String(s)) => text.matches(s),
                     _ => false,
                 }),
+            Condition::All(_)
+            | Condition::Any(_)
+            | Condition::Not(_)
+            | Condition::Mime(_)
+            | Condition::Type(_) => self.value(facts) == Some(true),
         }
     }
 
@@ -390,7 +524,11 @@ impl Condition {
             Condition::Not(inner) => inner.collect_reads(reads),
             Condition::AddedBy(_) => reads.added_by = true,
             Condition::Mode(_) => reads.mode = true,
-            Condition::Mime(_) | Condition::YaraMeta { .. } | Condition::Size { .. } => {
+            Condition::Mime(_)
+            | Condition::Type(_)
+            | Condition::Role(_)
+            | Condition::YaraMeta { .. }
+            | Condition::Size { .. } => {
                 reads.file_record = true;
             }
             Condition::HasResult(module) | Condition::Result { module, .. } => {
@@ -441,6 +579,11 @@ impl Match {
         };
         match self {
             Match::Equals(value) => same(subject, value),
+            Match::StartsWith(value) => {
+                subject.len() >= value.len()
+                    && subject.is_char_boundary(value.len())
+                    && same(&subject[..value.len()], value)
+            }
             Match::EndsWith(value) => suffix(value),
             Match::Contains(value) => {
                 if value.is_empty() {
@@ -462,6 +605,15 @@ impl Match {
 impl fmt::Display for Takes {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.describe())
+    }
+}
+
+/// A condition on a file's type: false for an observable that isn't a file, unknown for a file
+/// whose type is.
+fn type_value(facts: &Facts<'_>, of: impl Fn(&TypeFacts, &str) -> bool) -> Option<bool> {
+    match facts.file {
+        Some(file) => file.facts.map(|t| of(t, file.path)),
+        None => Some(false),
     }
 }
 
@@ -501,7 +653,8 @@ mod tests {
             file: Some(FileFacts {
                 path,
                 size: Some(size),
-                mime: Some("text/plain"),
+                facts: None,
+                role: None,
                 yara_meta: Some(yara_meta),
             }),
             results,
@@ -553,6 +706,9 @@ mod tests {
         // a suffix that starts inside a character never matches
         assert!(!Text::ends_with("\u{80}", Case::Exact).matches("\u{100}"));
         assert!(Text::contains("rfc822").matches("message/rfc822"));
+        let image = Text::new(Match::StartsWith("image/".to_owned()), Case::Lower);
+        assert!(image.matches("IMAGE/png") && !image.matches("x-image/png"));
+        assert!(!Text::new(Match::StartsWith("\u{80}".to_owned()), Case::Exact).matches("\u{100}"));
         assert!(!Text::contains("rfc822").matches("message/rfc82"));
         assert!(
             Text::exact(Match::Glob {
@@ -611,6 +767,85 @@ mod tests {
                 .holds(&facts)
         );
         assert!(Condition::HasResult("file_type".to_owned()).holds(&facts));
+    }
+
+    #[test]
+    fn a_type_condition_reads_the_facts_and_holds_when_the_type_is_unknown() {
+        let none = BTreeMap::new();
+        let pdf = TypeFacts {
+            description: "PDF document, version 1.4".to_owned(),
+            mime: "application/pdf".to_owned(),
+            has_pdf_marker: true,
+            ..TypeFacts::default()
+        };
+        let mut facts = file_facts("a/b.pdf", 3, &none, &[]);
+        let is_pdf = Condition::type_fact(TypeFact::IsPdfFile);
+        let is_pe = Condition::type_fact(TypeFact::IsPeFile);
+        let mime = Condition::Mime(Text::equals("application/pdf"));
+        // unknown: every type condition holds, negated or not, alone or among others
+        for c in [&is_pdf, &is_pe, &mime] {
+            assert_eq!(c.value(&facts), None);
+            assert!(
+                c.holds(&facts) && c.clone().negated().holds(&facts),
+                "{c:?}"
+            );
+        }
+        assert!(Condition::All(vec![is_pe.clone(), Condition::not_empty()]).holds(&facts));
+        // ...unless a known part decides it
+        assert!(!Condition::All(vec![is_pe.clone(), Condition::at_most(1)]).holds(&facts));
+        assert!(Condition::Any(vec![is_pe.clone(), Condition::not_empty()]).holds(&facts));
+        if let Some(file) = facts.file.as_mut() {
+            file.facts = Some(&pdf);
+        }
+        assert!(is_pdf.holds(&facts) && mime.holds(&facts) && !is_pe.holds(&facts));
+        assert!(
+            Condition::type_fact(TypeFact::Description(Text::new(
+                Match::Contains("pdf".to_owned()),
+                Case::Lower
+            )))
+            .holds(&facts)
+        );
+        // is_pdf_file reads the name
+        let parsed = FileFacts {
+            path: "a/b.pdfparser",
+            ..facts.file.expect("a file")
+        };
+        let parsed = Facts {
+            file: Some(parsed),
+            ..facts
+        };
+        assert!(!is_pdf.holds(&parsed));
+        assert!(Condition::type_fact(TypeFact::HasPdfMarker).holds(&parsed));
+        // a type condition on something that isn't a file is false, as other file conditions are
+        let fqdn = Facts {
+            kind: ObservableKind::Fqdn,
+            file: None,
+            ..facts
+        };
+        assert!(!is_pdf.holds(&fqdn) && is_pdf.clone().negated().holds(&fqdn));
+        assert!(
+            Takes::everything()
+                .and(is_pe, "not a PE")
+                .reads()
+                .file_record
+        );
+    }
+
+    #[test]
+    fn a_role_condition_reads_the_path_s_role() {
+        let none = BTreeMap::new();
+        let mut facts = file_facts("a/b", 1, &none, &[]);
+        let attachment = Condition::role(FileRole::EMAIL_ATTACHMENT);
+        assert!(!attachment.holds(&facts));
+        if let Some(file) = facts.file.as_mut() {
+            file.role = Some(FileRole::EMAIL_ATTACHMENT);
+        }
+        assert!(attachment.holds(&facts));
+        assert!(!Condition::role(FileRole::EMAIL).holds(&facts));
+        let back: Condition =
+            serde_json::from_value(serde_json::to_value(&attachment).expect("writes"))
+                .expect("reads");
+        assert_eq!(back, attachment);
     }
 
     #[test]

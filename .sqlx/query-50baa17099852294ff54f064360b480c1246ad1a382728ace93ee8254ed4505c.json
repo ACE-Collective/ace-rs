@@ -1,0 +1,185 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT o.id AS \"id: ObservableId\", f.path AS \"path!\",\n                  t.description, t.mime, t.is_ole_file, t.is_rtf_file, t.has_pdf_marker,\n                  t.is_pe_file, t.is_zip_file, t.is_jar_file, t.is_x509, t.is_lnk_file,\n                  t.is_email_file, t.javascript\n           FROM analysis.observables o\n           JOIN store.file_types t ON t.sha256 = o.value\n           JOIN LATERAL (\n               SELECT path FROM analysis.files\n               WHERE root_id = o.root_id AND observable_id = o.id\n               ORDER BY analyzed DESC, depth, path COLLATE \"C\" LIMIT 1\n           ) f ON true\n           WHERE o.root_id = $1 AND o.type = 'file' AND o.type_result\n             AND ($2::bigint[] IS NULL OR o.id = ANY($2))",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id: ObservableId",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "analysis.observables",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "path!",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "analysis.files",
+            "name": "path"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "description",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "store.file_types",
+            "name": "description"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "mime",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "store.file_types",
+            "name": "mime"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "is_ole_file",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "store.file_types",
+            "name": "is_ole_file"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "is_rtf_file",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "store.file_types",
+            "name": "is_rtf_file"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "has_pdf_marker",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "store.file_types",
+            "name": "has_pdf_marker"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "is_pe_file",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "store.file_types",
+            "name": "is_pe_file"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "is_zip_file",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "store.file_types",
+            "name": "is_zip_file"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "is_jar_file",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "store.file_types",
+            "name": "is_jar_file"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "is_x509",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "store.file_types",
+            "name": "is_x509"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "is_lnk_file",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "store.file_types",
+            "name": "is_lnk_file"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "is_email_file",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "store.file_types",
+            "name": "is_email_file"
+          }
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "javascript",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "store.file_types",
+            "name": "javascript"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Int8Array"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "50baa17099852294ff54f064360b480c1246ad1a382728ace93ee8254ed4505c"
+}

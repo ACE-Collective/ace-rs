@@ -14,8 +14,9 @@
 //! payloads whose sha256 start alike overwrite one file in ace3, with both observables naming it;
 //! here the first is written and the second is only listed.
 
+use ace_results::FileRole;
 use ace_results::types::office::OneNoteFileAnalysis;
-use ace_results::{AnalysisType, ObservableKind, ResultEnvelope, YaraMeta};
+use ace_results::{AnalysisType, ObservableKind, ResultEnvelope};
 use ace_sdk::takes::{Condition, Takes};
 use ace_sdk::{Manifest, Module, ModuleError, Outcome, Parser, TaskContext};
 use schemars::JsonSchema;
@@ -144,8 +145,6 @@ impl Parser for OneNoteAnalyzer {
         if !is_onenote_file(file.name(), &header) {
             return Ok(Outcome::Skipped("not a OneNote file".to_owned()));
         }
-        let meta =
-            YaraMeta::new("type", "document.onenote.embedded").map_err(ModuleError::other)?;
         let (found, raised) = payloads(&data);
         if let Some(raised) = &raised {
             tracing::info!("a FileDataStoreObject runs past the bytes read: {raised}");
@@ -170,7 +169,8 @@ impl Parser for OneNoteAnalyzer {
             {
                 continue;
             }
-            let mut new_file = ctx.write_file(&path, payload, std::slice::from_ref(&meta))?;
+            let mut new_file =
+                ctx.write_file(&path, payload, FileRole::DOCUMENT_ONENOTE_EMBEDDED)?;
             new_file.relationships.push(extracted_from(file));
             files.push(new_file);
         }

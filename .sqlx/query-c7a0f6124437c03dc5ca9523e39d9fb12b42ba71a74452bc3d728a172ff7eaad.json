@@ -1,0 +1,172 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT sha256, description, mime, is_ole_file, is_rtf_file, has_pdf_marker, is_pe_file,\n                is_zip_file, is_jar_file, is_x509, is_lnk_file, is_email_file, javascript\n         FROM store.file_types WHERE sha256 = ANY($1)",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "sha256",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "store.file_types",
+            "name": "sha256"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "description",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "store.file_types",
+            "name": "description"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "mime",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "store.file_types",
+            "name": "mime"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "is_ole_file",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "store.file_types",
+            "name": "is_ole_file"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "is_rtf_file",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "store.file_types",
+            "name": "is_rtf_file"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "has_pdf_marker",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "store.file_types",
+            "name": "has_pdf_marker"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "is_pe_file",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "store.file_types",
+            "name": "is_pe_file"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "is_zip_file",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "store.file_types",
+            "name": "is_zip_file"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "is_jar_file",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "store.file_types",
+            "name": "is_jar_file"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "is_x509",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "store.file_types",
+            "name": "is_x509"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "is_lnk_file",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "store.file_types",
+            "name": "is_lnk_file"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "is_email_file",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "store.file_types",
+            "name": "is_email_file"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "javascript",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "store.file_types",
+            "name": "javascript"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "TextArray"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "c7a0f6124437c03dc5ca9523e39d9fb12b42ba71a74452bc3d728a172ff7eaad"
+}

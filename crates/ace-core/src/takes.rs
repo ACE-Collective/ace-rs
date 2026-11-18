@@ -6,10 +6,11 @@
 //! allow the task, and doesn't queue a task it declines. It asks again whenever it reruns for the
 //! observable, which it does when a result adds to it or adds it again, when a hook changes it, and
 //! over the whole root when the mode changes; so a fact that arrives later (a nearer path, a
-//! directive, the module that adds a file, `file_type`'s result) queues the task then. The facts
-//! here are the ones a leased task carries, read the same way: a file's path is the one it is
-//! analyzed under (`tree::analysis_file`, settled or the one it would settle on now), its size and
-//! mime type the store's for its bytes.
+//! directive, the module that adds a file, ace3's `file_type` result) queues the task then. The
+//! facts here are the ones a leased task carries, read the same way: a file's path is the one it is
+//! analyzed under (`tree::analysis_file`, settled or the one it would settle on now), its role the
+//! one on that path, its size the store's for its bytes and its type what the type step found in
+//! them (`crate::type_step`), which is known before any task but the type step is queued.
 //!
 //! **The audit setting**, `ACE4_TAKES_AUDIT=1` for `ace serve` and the hunter: the core queues
 //! every task as it did before declarations, and marks the ones a declaration would have declined
@@ -24,7 +25,8 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use ace_results::{ObservableKind, Relationship, YaraMeta};
+use ace_results::types::file_type::TypeFacts;
+use ace_results::{FileRole, ObservableKind, Relationship, YaraMeta};
 use ace_sdk::Component;
 use ace_sdk::takes::{Facts, FileFacts};
 use serde_json::Value;
@@ -33,6 +35,7 @@ use uuid::Uuid;
 use crate::bucket::ALERT_FILES;
 use crate::db::{DbError, Tx};
 use crate::tree::ObservableId;
+use crate::type_step::{self, TYPE_STEP};
 
 /// Whether the core applies the modules' declarations or only audits them.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
@@ -69,7 +72,9 @@ pub struct Held {
 pub struct HeldFile {
     pub path: String,
     pub size: Option<u64>,
-    pub mime: Option<String>,
+    /// None when the file's type is unknown.
+    pub facts: Option<TypeFacts>,
+    pub role: Option<FileRole>,
     pub yara_meta: Vec<YaraMeta>,
 }
 
@@ -91,7 +96,8 @@ impl Held {
             file: self.file.as_ref().map(|file| FileFacts {
                 path: &file.path,
                 size: file.size,
-                mime: file.mime.as_deref(),
+                facts: file.facts.as_ref(),
+                role: file.role,
                 yara_meta: Some(&file.yara_meta),
             }),
             results: &self.results,
@@ -132,13 +138,12 @@ pub async fn held(
     let ids: Vec<i64> = observables.iter().map(|o| o.0).collect();
     let mut held: BTreeMap<ObservableId, Held> =
         observables.iter().map(|o| (*o, Held::default())).collect();
-    for row in sqlx::query!(
+    let rows = sqlx::query!(
         r#"SELECT o.id AS "id: ObservableId", (o.redirection_type IS NOT NULL) AS "redirected!",
-                  f.path AS "path?", f.yara_meta AS "yara_meta?", s.size AS "size?",
-                  s.mime_type AS "mime?"
+                  o.value, f.path AS "path?", f.yara_meta AS "yara_meta?", f.role, s.size AS "size?"
            FROM analysis.observables o
            LEFT JOIN LATERAL (
-               SELECT path, yara_meta FROM analysis.files
+               SELECT path, yara_meta, role FROM analysis.files
                WHERE root_id = o.root_id AND observable_id = o.id
                ORDER BY analyzed DESC, depth, path COLLATE "C" LIMIT 1
            ) f ON o.type = 'file'
@@ -149,15 +154,22 @@ pub async fn held(
         ALERT_FILES,
     )
     .fetch_all(tx.conn())
-    .await?
-    {
+    .await?;
+    let files: Vec<String> = rows
+        .iter()
+        .filter(|row| row.path.is_some())
+        .map(|row| row.value.clone())
+        .collect();
+    let mut types = type_step::facts_of(tx.conn(), &files).await?;
+    for row in rows {
         let entry = held.entry(row.id).or_default();
         entry.redirected = row.redirected;
         if let Some(path) = row.path {
             entry.file = Some(HeldFile {
                 path,
                 size: row.size.and_then(|s| u64::try_from(s).ok()),
-                mime: row.mime,
+                facts: types.remove(&row.value),
+                role: row.role.and_then(|role| role.parse().ok()),
                 // as the lease reads them
                 yara_meta: row
                     .yara_meta
@@ -208,6 +220,15 @@ pub async fn held(
         .await?
         {
             held.entry(row.id).or_default().added_by.push(row.module);
+        }
+    }
+    // ace3's file_type result is built from the file's type where the file shows it
+    if needs.results.iter().any(|module| module == TYPE_STEP) {
+        for (id, typed) in type_step::results_of(tx.conn(), root, Some(observables)).await? {
+            held.entry(id)
+                .or_default()
+                .results
+                .insert(TYPE_STEP.to_owned(), typed.details());
         }
     }
     if !needs.results.is_empty() {

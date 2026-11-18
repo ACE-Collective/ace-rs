@@ -19,8 +19,9 @@
 
 use std::collections::{BTreeSet, HashSet};
 
+use ace_results::FileRole;
 use ace_results::types::values::{Base64Payload, CommandLineAnalysis};
-use ace_results::{AnalysisType, ObservableKind, RelationshipKind, ResultEnvelope, YaraMeta};
+use ace_results::{AnalysisType, ObservableKind, RelationshipKind, ResultEnvelope};
 use ace_sdk::{Manifest, Module, ModuleError, Outcome, Parser, TaskContext};
 use schemars::JsonSchema;
 use serde::Deserialize;
@@ -133,12 +134,9 @@ impl Output<'_> {
         };
         self.payload_names += 1;
         if self.result.files.len() < MAX_PAYLOAD_FILES {
-            let meta: YaraMeta = "type=payload.base64"
-                .parse()
-                .map_err(|e| ModuleError::other(format!("{e}")))?;
             let mut file = self
                 .ctx
-                .write_file(&path, decoded, &[meta])
+                .write_file(&path, decoded, FileRole::PAYLOAD_BASE64)
                 .map_err(|e| ModuleError::other(e.to_string()))?;
             file.tags.push("base64".to_owned());
             self.result.files.push(file);

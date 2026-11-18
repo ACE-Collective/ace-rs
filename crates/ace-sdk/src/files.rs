@@ -1,6 +1,7 @@
 //! Writing the files a module produces.
 //!
-//! A module hands the SDK a file's bytes, its path inside the alert and its `yara_meta` tags. The
+//! A module hands the SDK a file's bytes, its path inside the alert and its role, what the module
+//! made it (`FileRole`), from which its `yara_meta` tag `type=<role>` is built. The
 //! bytes go into a file store under their sha256, and the module gets back the `NewFile` record
 //! to put in its result. Names often come from inside hostile files, so the path is checked
 //! first: an absolute path or a `..` part fails and nothing is stored (ace3 #829).
@@ -11,7 +12,7 @@ use std::fs;
 use std::io::{self, Read, Write};
 use std::path::{Path, PathBuf};
 
-use ace_results::{AlertPath, InvalidAlertPath, NewFile, Sha256, YaraMeta};
+use ace_results::{AlertPath, FileRole, InvalidAlertPath, NewFile, Sha256};
 use sha2::Digest;
 
 /// Where a module's output files go: bytes stored by their sha256.
@@ -97,12 +98,13 @@ pub enum FileOutputError {
     },
 }
 
-/// Checks `path`, stores the bytes `reader` yields, and returns the file's record.
+/// Checks `path`, stores the bytes `reader` yields, and returns the file's record, with `role` and
+/// the `type=` tag built from it.
 pub fn write_file(
     store: &dyn FileStore,
     path: &str,
     reader: &mut dyn Read,
-    yara_meta: &[YaraMeta],
+    role: Option<FileRole>,
 ) -> Result<NewFile, FileOutputError> {
     let path = AlertPath::new(path)?;
     let (sha256, size) = store.put(reader).map_err(|source| FileOutputError::Io {
@@ -110,6 +112,8 @@ pub fn write_file(
         source,
     })?;
     let mut file = NewFile::new(path, sha256, size);
-    file.yara_meta = yara_meta.to_vec();
+    if let Some(role) = role {
+        file.set_role(role);
+    }
     Ok(file)
 }

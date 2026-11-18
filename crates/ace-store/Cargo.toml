@@ -9,8 +9,6 @@ publish.workspace = true
 
 [dependencies]
 ace-results = { path = "../ace-results" }
-# libmagic's mime type for each put (PLAN.md 1.7).
-ace-yara = { path = "../ace-yara" }
 # Without aws-config, which reads credentials and regions from places other than the config
 # given here; without sigv4a and the legacy hyper 0.14 client.
 aws-sdk-s3 = { version = "1.157.0", default-features = false, features = ["default-https-client", "http-1x", "rt-tokio"] }

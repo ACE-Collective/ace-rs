@@ -10,8 +10,9 @@
 use std::time::Duration;
 
 use ace_pycompat::pystr::{lstrip, splitlines_keepends, strip};
+use ace_results::FileRole;
 use ace_results::types::executables::JavaClassDecompilerAnalysis;
-use ace_results::{ObservableKind, ResultEnvelope, YaraMeta};
+use ace_results::{ObservableKind, ResultEnvelope};
 use ace_sdk::takes::{Condition, Takes};
 use ace_sdk::tools::ToolRun;
 use ace_sdk::{Module, ModuleError, Outcome, Parser, Resources, TaskContext};
@@ -145,11 +146,8 @@ impl Parser for JavaClassDecompiler {
         if !name_fits(&target) {
             return Ok(Outcome::Done(result));
         }
-        let mut new_file = ctx.write_file(
-            &target,
-            source.as_bytes(),
-            &[YaraMeta::new("type", "script.java.decompiled").map_err(ModuleError::other)?],
-        )?;
+        let mut new_file =
+            ctx.write_file(&target, source.as_bytes(), FileRole::SCRIPT_JAVA_DECOMPILED)?;
         new_file.tags.push("decompiled".to_owned());
         result.details.decompiled_files.push(target);
         result.files.push(new_file);

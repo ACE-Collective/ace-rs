@@ -80,6 +80,9 @@ pub struct YaraScanner {
     /// None in a pool whose first ruleset hasn't arrived: the supervisor builds its modules
     /// before it has one, and runs no task until it does.
     ruleset: Option<Loaded>,
+    /// libmagic's database, read before containment, for a file whose type step failed and so has
+    /// no mime type (PLAN.md decision 25).
+    magic: Result<Vec<u8>, String>,
 }
 
 /// A ruleset and where it came from.
@@ -121,7 +124,10 @@ impl Module for YaraScanner {
             let Some(current) = generation::current(dir)
                 .map_err(|e| ModuleError::other(format!("the ruleset directory: {e}")))?
             else {
-                return Ok(YaraScanner { ruleset: None });
+                return Ok(YaraScanner {
+                    ruleset: None,
+                    magic: magic_database(),
+                });
             };
             let bytes = std::fs::read(current.data())
                 .map_err(|e| ModuleError::other(format!("reading the ruleset: {e}")))?;
@@ -133,6 +139,7 @@ impl Module for YaraScanner {
                     ruleset,
                     built: Some(current.info),
                 }),
+                magic: magic_database(),
             });
         }
         let loaded = ace_yara::load_dir(&settings.signature_dir, &options)
@@ -145,6 +152,7 @@ impl Module for YaraScanner {
                 ruleset: loaded.ruleset,
                 built: None,
             }),
+            magic: magic_database(),
         })
     }
 }
@@ -193,6 +201,11 @@ pub fn hexdump(data: &[u8]) -> String {
     out
 }
 
+/// libmagic's database, read before containment, which can't open it.
+fn magic_database() -> Result<Vec<u8>, String> {
+    std::fs::read(DEFAULT_DATABASE).map_err(|e| e.to_string())
+}
+
 impl Parser for YaraScanner {
     fn analyze(
         &self,
@@ -216,10 +229,16 @@ impl Parser for YaraScanner {
         let data = std::fs::read(&file.local_path)?;
         let mime_type = match &file.mime_type {
             Some(mime) => mime.clone(),
-            // the core stores libmagic's answer with each file; one without it gets it here
-            None => MimeTyper::open(std::path::Path::new(DEFAULT_DATABASE))
-                .and_then(|typer| typer.mime_type(&data))
-                .map_err(ModuleError::other)?,
+            // the file's type holds libmagic's answer; a file whose type step failed gets it here
+            None => {
+                let database = self
+                    .magic
+                    .as_ref()
+                    .map_err(|e| ModuleError::other(format!("{DEFAULT_DATABASE}: {e}")))?;
+                MimeTyper::from_bytes(database.clone(), Path::new(DEFAULT_DATABASE))
+                    .and_then(|typer| typer.mime_type_of_path(&file.local_path))
+                    .map_err(ModuleError::other)?
+            }
         };
         let meta_tags: Vec<String> = file.yara_meta.iter().map(|t| t.to_string()).collect();
         ctx.check_cancelled()?;

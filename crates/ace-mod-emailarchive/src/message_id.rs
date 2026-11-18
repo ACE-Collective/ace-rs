@@ -9,11 +9,10 @@
 //! would be the email that added the observable. Here that's whether the email module's result added
 //! it (`Module::READS_ADDED_BY`), which also excludes this module on it, as ace3's does.
 
+use ace_results::FileRole;
 use ace_results::types::email::EmailAnalysis;
 use ace_results::types::email_archive::MessageIdAnalysis;
-use ace_results::{
-    AlertPath, AnalysisType, NewFile, ObservableKind, ResultEnvelope, Sha256, YaraMeta,
-};
+use ace_results::{AlertPath, AnalysisType, NewFile, ObservableKind, ResultEnvelope, Sha256};
 use ace_sdk::reads::{ArchivedEmail, ArchivedEmailRequest, Read, ReadKind};
 use ace_sdk::{Lookup, Manifest, Module, ModuleError, Outcome, TaskContext};
 use sha2::{Digest, Sha256 as Sha256Hasher};
@@ -85,8 +84,7 @@ impl Lookup for MessageIdAnalyzer {
         let sha256: Sha256 = email.sha256.parse().map_err(ModuleError::other)?;
         let mut file = NewFile::new(path, sha256, email.size);
         file.add_tag(DECRYPTED_EMAIL);
-        file.yara_meta
-            .push(YaraMeta::new("type", "email").map_err(ModuleError::other)?);
+        file.set_role(FileRole::EMAIL);
         let mut result = ResultEnvelope::new(MessageIdAnalysis::default());
         result.files.push(file);
         Ok(Outcome::Done(result))

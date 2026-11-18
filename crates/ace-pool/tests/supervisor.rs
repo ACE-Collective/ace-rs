@@ -1079,6 +1079,7 @@ async fn a_result_whose_uploads_outlast_the_lease_lands_on_its_first_attempt() {
         core.test_db.db().clone(),
         Duration::from_millis(200),
         reaper_stop.clone(),
+        None,
     ));
     let root = root_with_tasks(&core, &["1500.example.com".to_owned()], "test_writes_files").await;
     let mut pool = supervisor(&core, &[]);

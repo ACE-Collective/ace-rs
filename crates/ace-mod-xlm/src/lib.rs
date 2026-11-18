@@ -16,12 +16,12 @@ use std::time::{Duration, Instant};
 
 use ace_mod_oletools::olevba::pcodedmp_process_file;
 use ace_mod_oletools::xlmdeob::run_command;
+use ace_results::FileRole;
 use ace_results::types::file_type::FileTypeAnalysis;
 use ace_results::types::pcode::PCodeAnalysis;
 use ace_results::types::xlm::XlmDeobfuscatorAnalysis;
 use ace_results::{
     AnalysisType, Detection, NewFile, NewObservable, ObservableKind, ObservableRef, ResultEnvelope,
-    YaraMeta,
 };
 use ace_sdk::takes::{Case, Condition, Match, Takes, Text};
 use ace_sdk::{InputFile, Manifest, Module, ModuleError, Outcome, Parser, Resources, TaskContext};
@@ -46,12 +46,6 @@ const RULES: &str = include_str!("xlmdeobfuscator.yar");
 fn read_input(path: &Path) -> Result<Vec<u8>, ModuleError> {
     std::fs::read(path)
         .map_err(|error| ModuleError::other(format!("unable to read {}: {error}", path.display())))
-}
-
-fn yara_type(kind: &str) -> Result<Vec<YaraMeta>, ModuleError> {
-    Ok(vec![
-        YaraMeta::new("type", kind).map_err(ModuleError::other)?,
-    ])
 }
 
 pub struct XlmDeobfuscator;
@@ -280,9 +274,9 @@ impl Passes<'_> {
 
     fn add_output(&mut self, name: &str, stdout: &str) -> Result<(), ModuleError> {
         let path = format!("{}.xlmdeobfuscator/{name}", self.path);
-        let mut file =
-            self.ctx
-                .write_file(&path, stdout.as_bytes(), &yara_type("script.macro.xlm")?)?;
+        let mut file = self
+            .ctx
+            .write_file(&path, stdout.as_bytes(), FileRole::SCRIPT_MACRO_XLM)?;
         file.add_directive("extract_urls");
         file.add_directive("crawl_extracted_urls");
         self.files.push(file);
@@ -472,7 +466,7 @@ impl Parser for PCode {
         }
         let line_count = code.matches('\n').count() as u64;
         let path = format!("{}.pcode.bas", file.path.as_str());
-        let mut output = ctx.write_file(&path, code.as_bytes(), &yara_type("script.vbscript")?)?;
+        let mut output = ctx.write_file(&path, code.as_bytes(), FileRole::SCRIPT_VBSCRIPT)?;
         output.redirection = Some(ObservableRef::new(
             ObservableKind::File,
             file.sha256.to_hex(),
@@ -675,7 +669,8 @@ mod tests {
                 file: Some(ace_sdk::takes::FileFacts {
                     path,
                     size: Some(1),
-                    mime: None,
+                    facts: None,
+                    role: None,
                     yara_meta: Some(&[]),
                 }),
                 results: &results,

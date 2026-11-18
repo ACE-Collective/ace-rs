@@ -312,7 +312,13 @@ async fn serve(app: &App) -> Result<ExitCode> {
     eprintln!("ace: the JSON API and the GUI listen on {web_listen}");
 
     let stop = CancellationToken::new();
-    let reaper = tokio::spawn(run_reaper(db.clone(), Duration::from_secs(5), stop.clone()));
+    // a file's type step whose lease runs out on its last attempt ends as any other end of it does
+    let reaper = tokio::spawn(run_reaper(
+        db.clone(),
+        Duration::from_secs(5),
+        stop.clone(),
+        Some(api.type_step_ended()),
+    ));
     let recorder = tokio::spawn(ace_core::yara_qa::run_recorder(
         ace_core::yara_qa::recorder_worker(db.clone()),
         bucket.clone(),

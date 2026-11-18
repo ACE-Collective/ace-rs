@@ -65,8 +65,6 @@ async fn two_puts_leave_one_object_and_a_get_on_another_node_fills_its_cache() {
     assert!(first.uploaded);
     assert!(!second.uploaded);
     assert_eq!(first.object.sha256, second.object.sha256);
-    // libmagic, as `file` would: the headers make it a message
-    assert_eq!(first.object.mime_type, "message/rfc822");
     let sha256 = first.object.sha256;
 
     // one object in the bucket and in the index, with both holds

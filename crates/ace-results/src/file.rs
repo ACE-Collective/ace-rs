@@ -12,6 +12,7 @@ use schemars::{JsonSchema, Schema, SchemaGenerator, json_schema};
 use serde::{Deserialize, Serialize};
 
 use crate::links::{Detection, ObservableRef, Relationship};
+use crate::role::FileRole;
 
 /// A string type's schema, for the newtypes below.
 macro_rules! string_schema {
@@ -323,6 +324,10 @@ pub struct NewFile {
     pub path: AlertPath,
     pub sha256: Sha256,
     pub size: u64,
+    /// What the producer made it, such as an email's attachment (`FileRole`). Its `type=` tag is
+    /// among `yara_meta`, built from it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub role: Option<FileRole>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub yara_meta: Vec<YaraMeta>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -352,6 +357,7 @@ impl NewFile {
             path,
             sha256,
             size,
+            role: None,
             yara_meta: Vec::new(),
             tags: Vec::new(),
             directives: Vec::new(),
@@ -365,6 +371,15 @@ impl NewFile {
     /// The file's name: the last part of its path.
     pub fn name(&self) -> &str {
         self.path.name()
+    }
+
+    /// Gives the file its role, and the `type=` tag built from it.
+    pub fn set_role(&mut self, role: FileRole) {
+        self.role = Some(role);
+        let tag = role.yara_meta();
+        if !self.yara_meta.contains(&tag) {
+            self.yara_meta.push(tag);
+        }
     }
 
     /// The file as a reference, for a relationship or a redirection to it.

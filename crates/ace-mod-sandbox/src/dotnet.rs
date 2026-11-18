@@ -3,24 +3,23 @@
 //! on .NET 10 in the sandbox runner.
 //!
 //! ace3 tells a .NET assembly by `file -b -L` naming one (`is_dotnet`), running `file` as a plain
-//! process; here libmagic runs in the task over the same database (`ace_mod_files::libmagic`). The
+//! process; here the file's type holds that description, which the type step found with libmagic over
+//! the same database, and each module declares the check (`dotnet_assembly`, PLAN.md decision 25). The
 //! tools' heap limit, region range and memory limit are their specs' (`ace_sdk::tools`), ace3's
 //! `DOTNET_ENV` and `DOTNET_MEMORY_LIMIT`. ace3 reports a runtime that couldn't start in the sandbox
 //! (`DOTNET_STARTUP_ERRORS`) as the node's failure; here the task fails.
 
 use std::fs;
-use std::path::Path;
 use std::time::Duration;
 
-use ace_mod_files::checks::is_pe_file;
-use ace_mod_files::libmagic::{self, Answer, Magic};
 use ace_pycompat::pystr::{lstrip, strip};
 use ace_results::types::executables::{De4dotAnalysis, IlspyAnalysis};
-use ace_results::{ObservableKind, Relationship, RelationshipKind, ResultEnvelope, YaraMeta};
+use ace_results::{FileRole, ObservableKind, Relationship, RelationshipKind, ResultEnvelope};
 use ace_sdk::tools::{ToolOutput, ToolRun, is_plain_name};
 use ace_sdk::{Module, ModuleError, Outcome, Parser, Resources, TaskContext};
 
-use crate::{head, name_fits, source, stopped_reason, tool_failure_reason};
+use crate::{name_fits, source, stopped_reason, tool_failure_reason};
+use ace_sdk::takes::{Case, Condition, Match, Takes, Text, TypeFact};
 
 /// ace3's `DE4DOT_TIMEOUT_SECONDS` and `ILSPY_TIMEOUT_SECONDS`.
 const TIMEOUT: Duration = Duration::from_secs(10);
@@ -37,28 +36,19 @@ const RESOURCES: Resources = Resources {
     cpu_seconds: 60,
 };
 
-/// libmagic's database, read before containment.
-struct Database(Result<Vec<u8>, String>);
-
-impl Database {
-    fn read() -> Database {
-        Database(fs::read(libmagic::DATABASE).map_err(|e| e.to_string()))
-    }
-
-    /// `is_dotnet`: a PE file that `file -b -L` calls a .NET assembly.
-    fn is_dotnet(&self, local: &Path) -> Result<bool, ModuleError> {
-        if !is_pe_file(&head(local, 2)?) {
-            return Ok(false);
-        }
-        let database = self
-            .0
-            .as_ref()
-            .map_err(|e| ModuleError::other(format!("{}: {e}", libmagic::DATABASE)))?;
-        let magic = Magic::load(database, Answer::Description).map_err(ModuleError::other)?;
-        let description = magic.file(local);
-        // `file` writes its own errors to stdout, which ace3 reads as an answer like any other
-        Ok(description.to_lowercase().contains(".net assembly"))
-    }
+/// `is_dotnet`: a PE file that `file -b -L` calls a .NET assembly, from the file's type, which
+/// holds libmagic's description as `file` prints it, stripped, which a substring doesn't see.
+fn dotnet_assembly() -> Takes {
+    Takes::everything().and(
+        Condition::All(vec![
+            Condition::type_fact(TypeFact::IsPeFile),
+            Condition::type_fact(TypeFact::Description(Text::new(
+                Match::Contains(".net assembly".to_owned()),
+                Case::Lower,
+            ))),
+        ]),
+        "not a .NET assembly",
+    )
 }
 
 /// Fails the task when the runtime couldn't start, as ace3 reports such a tool as the node's.
@@ -88,9 +78,7 @@ fn check_started(tool: &str, output: &ToolOutput) -> Result<(), ModuleError> {
 }
 
 /// The de4dot module.
-pub struct De4dotAnalyzer {
-    database: Database,
-}
+pub struct De4dotAnalyzer;
 
 impl Module for De4dotAnalyzer {
     const NAME: &'static str = "de4dot";
@@ -101,18 +89,17 @@ impl Module for De4dotAnalyzer {
     type Settings = ();
 
     fn init(_: &()) -> Result<Self, ModuleError> {
-        Ok(De4dotAnalyzer {
-            database: Database::read(),
-        })
+        Ok(De4dotAnalyzer)
+    }
+
+    fn takes(_: &()) -> Takes {
+        dotnet_assembly()
     }
 }
 
 impl Parser for De4dotAnalyzer {
     fn analyze(&self, ctx: &TaskContext<()>) -> Result<Outcome<De4dotAnalysis>, ModuleError> {
         let file = ctx.input_file()?;
-        if !self.database.is_dotnet(&file.local_path)? {
-            return Ok(Outcome::Skipped("not a .NET assembly".to_owned()));
-        }
         let local = file.local_path.display().to_string();
         // check for obfuscation with -d first; de4dot's dynamic string decrypters can call the
         // sample's own methods, which is why it runs in the runner at all
@@ -173,7 +160,7 @@ impl Parser for De4dotAnalyzer {
             let mut new_file = ctx.write_file_from(
                 &target,
                 &mut fs::File::open(cleaned)?,
-                &[YaraMeta::new("type", "executable.dotnet").map_err(ModuleError::other)?],
+                FileRole::EXECUTABLE_DOTNET,
             )?;
             new_file.relationships.push(Relationship::new(
                 RelationshipKind::ExtractedFrom,
@@ -190,9 +177,7 @@ impl Parser for De4dotAnalyzer {
 }
 
 /// The ilspy module.
-pub struct IlspyAnalyzer {
-    database: Database,
-}
+pub struct IlspyAnalyzer;
 
 impl Module for IlspyAnalyzer {
     const NAME: &'static str = "ilspy";
@@ -203,9 +188,11 @@ impl Module for IlspyAnalyzer {
     type Settings = ();
 
     fn init(_: &()) -> Result<Self, ModuleError> {
-        Ok(IlspyAnalyzer {
-            database: Database::read(),
-        })
+        Ok(IlspyAnalyzer)
+    }
+
+    fn takes(_: &()) -> Takes {
+        dotnet_assembly()
     }
 }
 
@@ -222,9 +209,6 @@ fn stem(name: &str) -> &str {
 impl Parser for IlspyAnalyzer {
     fn analyze(&self, ctx: &TaskContext<()>) -> Result<Outcome<IlspyAnalysis>, ModuleError> {
         let file = ctx.input_file()?;
-        if !self.database.is_dotnet(&file.local_path)? {
-            return Ok(Outcome::Skipped("not a .NET assembly".to_owned()));
-        }
         // ace3 writes it at the top of the root, counting up from _ilspy_0 past the names the root
         // already holds; a file is analyzed here once
         let target = format!("{}_ilspy.il", file.name());
@@ -267,13 +251,11 @@ impl Parser for IlspyAnalyzer {
         };
         result.summary = Some(summary(&result.details, None));
         if name_fits(&target) {
-            let mut new_file =
-                ctx.write_file_from(
-                    &target,
-                    &mut fs::File::open(il)?,
-                    &[YaraMeta::new("type", "script.dotnet.decompiled")
-                        .map_err(ModuleError::other)?],
-                )?;
+            let mut new_file = ctx.write_file_from(
+                &target,
+                &mut fs::File::open(il)?,
+                FileRole::SCRIPT_DOTNET_DECOMPILED,
+            )?;
             new_file.relationships.push(Relationship::new(
                 RelationshipKind::ExtractedFrom,
                 source(file),

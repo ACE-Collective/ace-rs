@@ -23,9 +23,10 @@
 //!   from a part carries depends on which finished first.
 
 use ace_mod_oletools::pyemail::{self, Setup, WalkedPart};
+use ace_results::FileRole;
 use ace_results::types::file_type::FileTypeAnalysis;
 use ace_results::types::html::MhtmlAnalysis;
-use ace_results::{AnalysisType, ObservableKind, ResultEnvelope, YaraMeta};
+use ace_results::{AnalysisType, ObservableKind, ResultEnvelope};
 use ace_sdk::takes::{Case, Condition, Takes, Text};
 use ace_sdk::{Manifest, Module, ModuleError, Outcome, Parser, TaskContext};
 
@@ -143,7 +144,6 @@ impl Parser for MhtmlAnalyzer {
             ));
         }
         let (directives, copied_meta) = copied_directives(ctx.observable(), file);
-        let part_meta = YaraMeta::new("type", "document.mhtml.part").map_err(ModuleError::other)?;
         let mut analysis = MhtmlAnalysis::default();
         let mut files = Vec::new();
         let mut part_id = 0usize;
@@ -162,14 +162,12 @@ impl Parser for MhtmlAnalyzer {
             }
             ctx.check_cancelled()?;
             let path = format!("{}.extracted/{name}", file.path);
-            let mut new_file = ctx.write_file(&path, &payload, &[])?;
+            let mut new_file = ctx.write_file(&path, &payload, None)?;
             for directive in &directives {
                 new_file.add_directive(directive.clone());
             }
             new_file.yara_meta = copied_meta.clone();
-            if !new_file.yara_meta.contains(&part_meta) {
-                new_file.yara_meta.push(part_meta.clone());
-            }
+            new_file.set_role(FileRole::DOCUMENT_MHTML_PART);
             analysis.extracted_files.push(new_file.sha256.to_hex());
             files.push(new_file);
         }

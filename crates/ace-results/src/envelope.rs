@@ -360,6 +360,7 @@ mod tests {
                 .parse()
                 .expect("valid sha256"),
             size: 0,
+            role: Some(crate::FileRole::EMAIL_HEADERS),
             yara_meta: vec![YaraMeta::new("type", "email.headers").expect("valid tag")],
             tags: vec![],
             directives: vec![],
@@ -437,6 +438,7 @@ mod tests {
                     "path": "email.rfc822.headers",
                     "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
                     "size": 0,
+                    "role": "email.headers",
                     "yara_meta": ["type=email.headers"],
                     "exclude_modules": ["email_analyzer"],
                     "relationships": [{

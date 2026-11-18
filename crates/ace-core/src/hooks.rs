@@ -481,6 +481,30 @@ async fn load(tx: &mut Tx<'_>, root: Uuid, rules: &Rules) -> Result<Tree, DbErro
             details: row.details,
         });
     }
+    // ace3's file_type result, built from each file's type where the file shows it
+    // (`crate::type_step`); it adds nothing, and its id is no row's
+    let type_step = crate::type_step::TYPE_STEP;
+    let type_details = every || details_of.iter().any(|m| m == type_step);
+    for (id, typed) in crate::type_step::results_of(tx.conn(), root, None).await? {
+        let Some(&observable) = index.get(&id.0) else {
+            continue;
+        };
+        if tree.nodes[observable]
+            .results
+            .iter()
+            .any(|r| tree.results[*r].module == type_step)
+        {
+            continue;
+        }
+        tree.nodes[observable].results.push(tree.results.len());
+        tree.results.push(rules::Analysis {
+            id: -id.0,
+            observable,
+            module: type_step.to_owned(),
+            added: Vec::new(),
+            details: type_details.then(|| typed.details()),
+        });
+    }
     for row in sqlx::query!(
         r#"SELECT id, result_id, observable_id FROM analysis.result_additions
            WHERE root_id = $1 AND NOT ignored ORDER BY id"#,
@@ -500,12 +524,13 @@ async fn load(tx: &mut Tx<'_>, root: Uuid, rules: &Rules) -> Result<Tree, DbErro
     }
     for row in sqlx::query!(
         r#"SELECT t.observable_id AS "id: ObservableId", t.module FROM queue.tasks t
-           WHERE t.root_id = $1 AND t.state = 'done'
+           WHERE t.root_id = $1 AND t.state = 'done' AND t.module <> $2
              AND NOT EXISTS (SELECT 1 FROM analysis.results r
                              WHERE r.root_id = t.root_id AND r.observable_id = t.observable_id
                                AND r.module = t.module)
            ORDER BY t.id"#,
         root,
+        type_step,
     )
     .fetch_all(tx.conn())
     .await?

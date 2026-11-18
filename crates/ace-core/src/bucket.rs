@@ -140,7 +140,6 @@ pub struct ObjectInfo {
     pub pool: String,
     pub sha256: Sha256,
     pub size: u64,
-    pub mime_type: String,
     pub created_at: DateTime<Utc>,
     pub last_held_at: DateTime<Utc>,
 }
@@ -345,12 +344,11 @@ impl Bucket {
         self.pool(pool)?;
         let sha256 = spooled.sha256.to_hex();
         sqlx::query!(
-            "INSERT INTO store.objects (pool, sha256, size, mime_type) VALUES ($1, $2, $3, $4)
+            "INSERT INTO store.objects (pool, sha256, size) VALUES ($1, $2, $3)
              ON CONFLICT (pool, sha256) DO NOTHING",
             pool,
             sha256,
             i64::try_from(spooled.size).unwrap_or(i64::MAX),
-            spooled.mime_type,
         )
         .execute(tx.conn())
         .await?;
@@ -476,7 +474,7 @@ impl Bucket {
         sha256: &Sha256,
     ) -> Result<Option<ObjectInfo>, BucketError> {
         let row = sqlx::query!(
-            "SELECT size, mime_type, created_at, last_held_at FROM store.objects
+            "SELECT size, created_at, last_held_at FROM store.objects
              WHERE pool = $1 AND sha256 = $2 AND state = 'present'",
             pool,
             sha256.to_hex(),
@@ -487,7 +485,6 @@ impl Bucket {
             pool: pool.to_owned(),
             sha256: *sha256,
             size: u64::try_from(row.size).unwrap_or_default(),
-            mime_type: row.mime_type,
             created_at: row.created_at,
             last_held_at: row.last_held_at,
         }))

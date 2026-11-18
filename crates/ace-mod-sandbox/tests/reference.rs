@@ -66,7 +66,9 @@ fn compare_with<M: Parser>(
             // a git-ignored sample this checkout doesn't have
             continue;
         }
-        let mut harness = Harness::<M>::with_settings(settings(&dump)).expect("harness");
+        let mut harness = Harness::<M>::with_settings(settings(&dump))
+            .expect("harness")
+            .with_typer(ace_mod_files::file_type::type_of);
         if let Some(file_type) = dump.file_type() {
             harness = harness.dependency_result("file_type", file_type.clone());
         }
@@ -125,7 +127,9 @@ fn compare_with<M: Parser>(
 fn compare_cve(view: (&str, &str)) -> Vec<(String, Vec<Difference>)> {
     let mut compared = Vec::new();
     for dump in Dump::all("cve_2021_30657_analyzer").expect("the dumps read") {
-        let dmg = Harness::<DmgAnalyzer>::new().expect("harness");
+        let dmg = Harness::<DmgAnalyzer>::new()
+            .expect("harness")
+            .with_typer(ace_mod_files::file_type::type_of);
         let label = dump.value["input"]["label"].as_str().expect("a label");
         let observable = dmg.sample(label).expect("the sample");
         let image = match dmg

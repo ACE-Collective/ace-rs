@@ -4,11 +4,12 @@
 
 use std::path::{Path, PathBuf};
 
+use ace_mod_files::file_type::as_ace3;
 use ace_mod_files::{
     BinaryFileAnalyzer, DHashImageAnalyzer, FileHashAnalyzer, FileType, LnkParseAnalyzer,
     SsdeepAnalyzer, X509Analyzer,
 };
-use ace_sdk::Parser;
+use ace_sdk::{Outcome, Parser};
 use ace_testkit::Harness;
 use ace_testkit::reference::{Difference, Dump, ListedDifferences, diff, normal_form};
 
@@ -48,6 +49,37 @@ fn file_of(dump: &Dump) -> (PathBuf, String) {
     }
 }
 
+/// Runs file_type, the type step, and turns what it found into ace3's result for the dump's path.
+fn compare_file_type() -> Vec<(String, Vec<Difference>)> {
+    let mut compared = Vec::new();
+    for dump in Dump::all("file_type").expect("the dumps read") {
+        let harness = Harness::<FileType>::new()
+            .map(|h| h.with_typer(ace_mod_files::file_type::type_of))
+            .expect("harness");
+        let (fixture, alert_path) = file_of(&dump);
+        let observable = harness
+            .file(&alert_path, &fixture, &[])
+            .unwrap_or_else(|e| panic!("{}: {e}", dump.name));
+        let outcome = harness
+            .run_parser(observable)
+            .unwrap_or_else(|e| panic!("{}: {e}", dump.name));
+        let Outcome::Done(facts) = outcome else {
+            panic!("{}: the type step found nothing", dump.name);
+        };
+        let outcome = Outcome::Done(as_ace3(&facts.details, &alert_path));
+        if dump.short_name() == "script.js" {
+            // the fixture ace-gui's analysis view test draws (PLAN.md 5.9)
+            ace_testkit::check_view_fixture("file_type_script_js", &outcome);
+        }
+        let differences = diff(
+            &dump.normal_form("FileTypeAnalysis"),
+            &normal_form(&outcome),
+        );
+        compared.push((format!("file_type/{}", dump.short_name()), differences));
+    }
+    compared
+}
+
 fn compare<M: Parser>(
     module: &str,
     class: &str,
@@ -65,9 +97,10 @@ fn compare_with<M: Parser>(
     let mut compared = Vec::new();
     for dump in Dump::all(module).expect("the dumps read") {
         let mut harness = if settings.is_null() {
-            Harness::<M>::new()
+            Harness::<M>::new().map(|h| h.with_typer(ace_mod_files::file_type::type_of))
         } else {
             Harness::<M>::with_settings(settings.clone())
+                .map(|h| h.with_typer(ace_mod_files::file_type::type_of))
         }
         .expect("harness");
         if let Some(file_type) = dump.file_type() {
@@ -111,11 +144,7 @@ fn matches_the_reference_dumps_or_lists_each_difference() {
         &Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/differences.md"),
     )
     .expect("differences.md reads");
-    let mut compared = compare::<FileType>(
-        "file_type",
-        "FileTypeAnalysis",
-        Some(("script.js", "file_type_script_js")),
-    );
+    let mut compared = compare_file_type();
     compared.extend(compare::<FileHashAnalyzer>(
         "file_hash_analyzer",
         "FileHashAnalysis",

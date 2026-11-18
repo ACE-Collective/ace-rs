@@ -32,9 +32,10 @@ pub mod tool;
 use std::collections::BTreeMap;
 use std::rc::Rc;
 
+use ace_results::FileRole;
 use ace_results::types::file_type::FileTypeAnalysis;
 use ace_results::types::office::OfficeParserAnalysis;
-use ace_results::{AnalysisType, NewFile, ObservableKind, ResultEnvelope, YaraMeta};
+use ace_results::{AnalysisType, NewFile, ObservableKind, ResultEnvelope};
 use ace_sdk::{InputFile, Manifest, Module, ModuleError, Outcome, Parser, TaskContext};
 use schemars::JsonSchema;
 use serde::Deserialize;
@@ -42,6 +43,7 @@ use serde::Deserialize;
 use crate::{
     DIRECTIVE_EXTRACT_URLS, DIRECTIVE_SANDBOX, MAX_FILES, dir_name_fits, extracted_from, source,
 };
+use ace_sdk::takes::{Case, Condition, Match, Takes, Text, TypeFact};
 
 /// The module's manifest.
 pub const MANIFEST: Manifest = Manifest::parser::<OfficeParserAnalyzer>();
@@ -139,6 +141,32 @@ impl Module for OfficeParserAnalyzer {
     fn init(_: &OfficeParserSettings) -> Result<Self, ModuleError> {
         Ok(OfficeParserAnalyzer)
     }
+
+    fn takes(_: &OfficeParserSettings) -> Takes {
+        // its checks before it runs, in its order: file_type's result, the OLE signature from the
+        // file's type, and an installer by its name or file_type's description (PLAN.md decision 25)
+        Takes::everything()
+            .and(
+                Condition::HasResult(FileTypeAnalysis::MODULE.to_owned()),
+                "no file type analysis",
+            )
+            .and(
+                Condition::type_fact(TypeFact::IsOleFile),
+                "not an OLE compound document",
+            )
+            .and(
+                Condition::Any(vec![
+                    Condition::Path(Text::ends_with(".msi", Case::Lower)),
+                    Condition::result_text(
+                        FileTypeAnalysis::MODULE,
+                        "type",
+                        Text::new(Match::Contains("windows installer".to_owned()), Case::Lower),
+                    ),
+                ])
+                .negated(),
+                "a Windows installer",
+            )
+    }
 }
 
 /// `_add_extracted_file`: the file at `path`, written unless `written` already holds its bytes, in
@@ -151,11 +179,7 @@ fn extracted_file(
     written: &mut Vec<(Rc<Vec<u8>>, NewFile)>,
 ) -> Result<NewFile, ModuleError> {
     let macro_file = is_macro_ext(path);
-    let meta = if macro_file {
-        vec![YaraMeta::new("type", "script.macro").map_err(ModuleError::other)?]
-    } else {
-        Vec::new()
-    };
+    let role = macro_file.then_some(FileRole::SCRIPT_MACRO);
     let mut new_file = match written.iter().find(|(b, _)| Rc::ptr_eq(b, data)) {
         Some((_, first)) => {
             let mut again = NewFile::new(
@@ -163,11 +187,13 @@ fn extracted_file(
                 first.sha256,
                 first.size,
             );
-            again.yara_meta = meta;
+            if let Some(role) = role {
+                again.set_role(role);
+            }
             again
         }
         None => {
-            let new_file = ctx.write_file(path, data, &meta)?;
+            let new_file = ctx.write_file(path, data, role)?;
             written.push((data.clone(), new_file.clone()));
             new_file
         }
@@ -188,18 +214,7 @@ impl Parser for OfficeParserAnalyzer {
         ctx: &TaskContext<OfficeParserSettings>,
     ) -> Result<Outcome<OfficeParserAnalysis>, ModuleError> {
         let file = ctx.input_file()?;
-        let Some(file_type) = ctx.dependency_result::<FileTypeAnalysis>()? else {
-            return Ok(Outcome::Skipped("no file type analysis".to_owned()));
-        };
         let data = std::fs::read(&file.local_path)?;
-        if !tool::is_ole(&data) {
-            return Ok(Outcome::Skipped("not an OLE compound document".to_owned()));
-        }
-        if ace_pycompat::pystr::lower(file.path.as_str()).ends_with(".msi")
-            || ace_pycompat::pystr::lower(&file_type.file_type).contains("windows installer")
-        {
-            return Ok(Outcome::Skipped("a Windows installer".to_owned()));
-        }
         if !dir_name_fits(file, ".officeparser") {
             return Ok(Outcome::Skipped(
                 "the output directory's name is too long".to_owned(),

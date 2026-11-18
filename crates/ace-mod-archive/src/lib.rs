@@ -30,7 +30,7 @@ use ace_results::{
     Detection, NewFile, ObservableKind, ObservableRef, Relationship, RelationshipKind,
     ResultEnvelope,
 };
-use ace_sdk::takes::{Condition, Takes, Text};
+use ace_sdk::takes::{Case, Condition, Match, Takes, Text, TypeFact};
 use ace_sdk::{InputFile, Manifest, Module, ModuleError, Outcome, Parser, TaskContext};
 use schemars::JsonSchema;
 use serde::Deserialize;
@@ -89,11 +89,32 @@ impl Module for ArchiveAnalyzer {
         Ok(ArchiveAnalyzer)
     }
 
-    fn takes(_: &ArchiveSettings) -> Takes {
+    fn takes(settings: &ArchiveSettings) -> Takes {
         // an email's archive members are the email module's business (ace3, 10/19/2021)
-        Takes::everything().and(
+        let mut takes = Takes::everything().and(
             Condition::Path(Text::contains("email.rfc822")).negated(),
             "a file of an email",
+        );
+        // the mime types it leaves alone and OLE documents, which ace3 leaves to the Office
+        // modules, from the file's type (PLAN.md decision 25); a packet capture is still told by
+        // its bytes, in `analyze`, which says so first where both hold
+        for excluded in settings
+            .excluded_mime_types
+            .iter()
+            .filter(|m| !m.is_empty())
+        {
+            takes = takes.and(
+                Condition::Mime(Text::new(
+                    Match::StartsWith(excluded.to_lowercase()),
+                    Case::Lower,
+                ))
+                .negated(),
+                format!("{excluded} is excluded"),
+            );
+        }
+        takes.and(
+            Condition::type_fact(TypeFact::IsOleFile).negated(),
+            "an OLE compound file",
         )
     }
 }
@@ -285,19 +306,6 @@ impl Parser for ArchiveAnalyzer {
         if is_pcap(&head) {
             return Ok(Outcome::Skipped("a packet capture".to_owned()));
         }
-        let mime = file.mime_type.as_deref().unwrap_or_default().to_lowercase();
-        if let Some(excluded) = settings
-            .excluded_mime_types
-            .iter()
-            .find(|m| !m.is_empty() && mime.starts_with(&m.to_lowercase()))
-        {
-            return Ok(Outcome::Skipped(format!("{excluded} is excluded")));
-        }
-        // ace3 leaves OLE documents to the Office modules, and extracts MSI installers with 7z,
-        // which no crate here reads
-        if head.starts_with(b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1") {
-            return Ok(Outcome::Skipped("an OLE compound file".to_owned()));
-        }
         let has_manifest = || {
             formats::list(Format::Zip, &file.local_path, &settings.password)
                 .map(|entries| entries.iter().any(|e| e.name == "META-INF/MANIFEST.MF"))
@@ -390,7 +398,7 @@ impl Parser for ArchiveAnalyzer {
                     inner: reader,
                     failed: false,
                 };
-                match ctx.write_file_from(path, &mut reader, &[]) {
+                match ctx.write_file_from(path, &mut reader, None) {
                     Ok(new_file) => {
                         written.insert(index, new_file);
                         Ok(())

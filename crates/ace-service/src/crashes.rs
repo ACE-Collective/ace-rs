@@ -77,6 +77,7 @@ pub struct CrashInput {
     pub sha256: String,
     /// None when the bucket no longer has it, as after its alert's retention.
     pub size: Option<i64>,
+    /// Its type's mime type, when the type step found it (PLAN.md decision 25).
     pub mime_type: Option<String>,
 }
 
@@ -132,10 +133,11 @@ async fn detail_in(tx: &mut Tx<'_>, id: i64) -> Result<CrashDetail, ServiceError
     .fetch_all(tx.conn())
     .await?;
     let inputs = sqlx::query!(
-        r#"SELECT h.sha256 AS "sha256!", s.size AS "size?", s.mime_type AS "mime_type?"
+        r#"SELECT h.sha256 AS "sha256!", s.size AS "size?", t.mime AS "mime_type?"
            FROM unnest($1::text[]) WITH ORDINALITY AS h(sha256, n)
            LEFT JOIN store.objects s
              ON s.pool = $2 AND s.sha256 = h.sha256 AND s.state = 'present'
+           LEFT JOIN store.file_types t ON t.sha256 = h.sha256
            ORDER BY h.n"#,
         &row.input_hashes,
         ALERT_FILES,

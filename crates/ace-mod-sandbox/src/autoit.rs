@@ -8,8 +8,9 @@ use std::path::Path;
 use std::time::Duration;
 
 use ace_mod_files::checks::is_pe_file;
+use ace_results::FileRole;
 use ace_results::types::executables::AutoItAnalysis;
-use ace_results::{ObservableKind, Relationship, RelationshipKind, ResultEnvelope, YaraMeta};
+use ace_results::{ObservableKind, Relationship, RelationshipKind, ResultEnvelope};
 use ace_sdk::tools::{ToolOutput, ToolRun, ToolStop};
 use ace_sdk::{Module, ModuleError, Outcome, Parser, Resources, TaskContext};
 
@@ -127,7 +128,6 @@ impl Parser for AutoItAnalyzer {
             return Ok(Outcome::Done(result));
         }
         // the decompiled scripts at the top of the output directory, as ace3's os.listdir sees them
-        let autoit_meta = YaraMeta::new("type", "script.autoit").map_err(ModuleError::other)?;
         for (name, path) in &output.outputs {
             let Some(script) = name.strip_prefix("out/") else {
                 continue;
@@ -140,11 +140,8 @@ impl Parser for AutoItAnalyzer {
             if result.files.len() >= MAX_FILES || !name_fits(&target) {
                 continue;
             }
-            let mut new_file = ctx.write_file_from(
-                &target,
-                &mut File::open(path)?,
-                std::slice::from_ref(&autoit_meta),
-            )?;
+            let mut new_file =
+                ctx.write_file_from(&target, &mut File::open(path)?, FileRole::SCRIPT_AUTOIT)?;
             new_file.relationships.push(Relationship::new(
                 RelationshipKind::ExtractedFrom,
                 source(file),

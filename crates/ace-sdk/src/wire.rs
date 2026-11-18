@@ -8,8 +8,10 @@
 use std::collections::BTreeMap;
 use std::path::Path;
 
+use ace_results::types::file_type::TypeFacts;
 use ace_results::{
-    AlertPath, ObservableKind, ObservableRef, Relationship, ResultEnvelope, Sha256, YaraMeta,
+    AlertPath, FileRole, ObservableKind, ObservableRef, Relationship, ResultEnvelope, Sha256,
+    YaraMeta,
 };
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -103,7 +105,13 @@ pub struct TaskFile {
     pub path: AlertPath,
     pub sha256: Sha256,
     pub size: u64,
-    pub mime_type: String,
+    /// The file's type: what the type step found in its bytes (PLAN.md decision 25). None while
+    /// the type step hasn't run, which only its own task sees, or when it failed.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub facts: Option<TypeFacts>,
+    /// What its producer made it, under its analysis path.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub role: Option<FileRole>,
     #[serde(default)]
     pub yara_meta: Vec<YaraMeta>,
     pub download: Presigned,
@@ -140,7 +148,9 @@ impl TaskObservable {
                 sha256: file.sha256,
                 size: file.size,
                 yara_meta: file.yara_meta.clone(),
-                mime_type: Some(file.mime_type.clone()),
+                mime_type: file.facts.as_ref().map(|facts| facts.mime.clone()),
+                facts: file.facts.clone(),
+                role: file.role,
                 local_path: local_path.to_owned(),
             }),
             _ => None,

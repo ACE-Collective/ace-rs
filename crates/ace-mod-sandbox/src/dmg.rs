@@ -18,8 +18,9 @@ use std::time::Duration;
 
 use ace_mod_files::libmagic::{self, Answer, Magic};
 use ace_pycompat::pystr::strip;
+use ace_results::FileRole;
 use ace_results::types::macos::{Cve202130657Analysis, DmgAnalysis};
-use ace_results::{Detection, ObservableKind, ResultEnvelope, YaraMeta};
+use ace_results::{Detection, ObservableKind, ResultEnvelope};
 use ace_sdk::takes::{Case, Condition, Takes, Text};
 use ace_sdk::tools::{MAX_RUNS, ToolOutput, ToolRun};
 use ace_sdk::{Module, ModuleError, Outcome, Parser, Resources, TaskContext};
@@ -111,7 +112,7 @@ impl Parser for DmgAnalyzer {
             let mut new_file = ctx.write_file_from(
                 &image_path,
                 &mut fs::File::open(image)?,
-                &[YaraMeta::new("type", "archive.dmg").map_err(ModuleError::other)?],
+                FileRole::ARCHIVE_DMG,
             )?;
             new_file.tags.push("macos".to_owned());
             new_file.tags.push("dmg".to_owned());
@@ -388,7 +389,7 @@ impl Cve202130657Analyzer {
         if name.is_empty() || !name_fits(&target) {
             return Ok(());
         }
-        let mut new_file = ctx.write_file_from(&target, &mut fs::File::open(path)?, &[])?;
+        let mut new_file = ctx.write_file_from(&target, &mut fs::File::open(path)?, None)?;
         new_file.detections.push(
             Detection::new(format!(
                 "Possible CVE-2021-30657 attack: a file in DMG format file {} is a script",

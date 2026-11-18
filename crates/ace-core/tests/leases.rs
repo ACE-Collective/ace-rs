@@ -81,7 +81,7 @@ async fn killing_a_worker_mid_task_reruns_the_task_after_its_lease_expires() {
     // while it lives, its renewals keep the task through two lease lengths
     tokio::time::sleep(LEASE * 2).await;
     assert_eq!(
-        reap_expired_leases(db).await.expect("reaps"),
+        reap_expired_leases(db, None).await.expect("reaps"),
         Default::default()
     );
     assert_eq!(
@@ -109,6 +109,7 @@ async fn killing_a_worker_mid_task_reruns_the_task_after_its_lease_expires() {
         db.clone(),
         Duration::from_millis(100),
         stop.clone(),
+        None,
     ));
     let rerun = tokio::time::timeout(Duration::from_secs(10), async {
         loop {
@@ -155,7 +156,7 @@ async fn a_task_whose_lease_keeps_expiring_fails_at_its_attempt_limit() {
         assert_eq!(claimed.attempts, attempt);
         // the worker dies without renewing; a renewal after the reaper is too late
         tokio::time::sleep(short + Duration::from_millis(200)).await;
-        let reaped = reap_expired_leases(db).await.expect("reaps");
+        let reaped = reap_expired_leases(db, None).await.expect("reaps");
         if attempt < queue::DEFAULT_MAX_ATTEMPTS {
             assert_eq!(reaped.requeued, [task]);
         } else {
@@ -204,7 +205,7 @@ async fn renewing_extends_the_lease_and_the_keeper_fires_when_the_task_is_lost()
     let keeper = holder.keep_lease(task);
     tokio::time::sleep(lease * 3).await;
     assert!(
-        reap_expired_leases(db)
+        reap_expired_leases(db, None)
             .await
             .expect("reaps")
             .requeued

@@ -28,10 +28,10 @@ use std::time::Duration;
 
 use crate::pyre::Pattern;
 use ace_pycompat::pystr;
+use ace_results::FileRole;
 use ace_results::types::ioc_extraction::IocExtractionAnalysis;
 use ace_results::{
     AnalysisType, NewObservable, ObservableKind, Relationship, RelationshipKind, ResultEnvelope,
-    YaraMeta,
 };
 use ace_sdk::{Manifest, Module, ModuleError, Outcome, Parser, Resources, TaskContext};
 use ace_urlfinder::{Finder, Magic};
@@ -453,9 +453,8 @@ impl Parser for IocExtraction {
         let mut files = Vec::new();
         if text != original {
             let path = format!("{}.refanged.txt", file.path.as_str());
-            let meta =
-                vec![YaraMeta::new("type", "document.text.refanged").map_err(ModuleError::other)?];
-            let mut new_file = ctx.write_file(&path, text.as_bytes(), &meta)?;
+            let mut new_file =
+                ctx.write_file(&path, text.as_bytes(), FileRole::DOCUMENT_TEXT_REFANGED)?;
             new_file.relationships.push(Relationship::new(
                 RelationshipKind::ExtractedFrom,
                 file_ref(file),

@@ -27,8 +27,11 @@ pub const DEFAULT_DATABASE: &str = "/usr/lib/file/magic.mgc";
 /// libmagic with one database loaded. A libmagic cookie isn't safe to share between threads,
 /// so each thread opens its own.
 pub struct MimeTyper {
+    // dropped before the buffer it may point into
     cookie: magic::Cookie<Load>,
     database: PathBuf,
+    /// The database's bytes, for a typer made from them: libmagic keeps pointers into them.
+    _buffer: Option<Box<[u8]>>,
 }
 
 #[derive(Debug)]
@@ -64,6 +67,26 @@ impl MimeTyper {
         Ok(MimeTyper {
             cookie,
             database: database.to_path_buf(),
+            _buffer: None,
+        })
+    }
+
+    /// libmagic with a database read beforehand, as a contained task, which can't open the file,
+    /// reads it before it contains itself. `database` names where it was read from.
+    pub fn from_bytes(bytes: Vec<u8>, database: &Path) -> Result<Self, MimeError> {
+        let cookie = magic::Cookie::open(Flags::MIME_TYPE | Flags::SYMLINK)
+            .map_err(|e| MimeError(format!("unable to open libmagic: {e}")))?;
+        let buffer: Box<[u8]> = bytes.into();
+        let cookie = cookie.load_buffers(&[&buffer]).map_err(|e| {
+            MimeError(format!(
+                "unable to load magic database {}: {e}",
+                database.display()
+            ))
+        })?;
+        Ok(MimeTyper {
+            cookie,
+            database: database.to_path_buf(),
+            _buffer: Some(buffer),
         })
     }
 

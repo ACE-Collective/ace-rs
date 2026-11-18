@@ -1,0 +1,48 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT h.sha256 AS \"sha256!\", s.size AS \"size?\", t.mime AS \"mime_type?\"\n           FROM unnest($1::text[]) WITH ORDINALITY AS h(sha256, n)\n           LEFT JOIN store.objects s\n             ON s.pool = $2 AND s.sha256 = h.sha256 AND s.state = 'present'\n           LEFT JOIN store.file_types t ON t.sha256 = h.sha256\n           ORDER BY h.n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "sha256!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "size?",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "store.objects",
+            "name": "size"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "mime_type?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "store.file_types",
+            "name": "mime"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "TextArray",
+        "Text"
+      ]
+    },
+    "nullable": [
+      null,
+      false,
+      false
+    ]
+  },
+  "hash": "20faa700a57d26a7b0c4d17360720a28ab79c5fe867eba3c75143e6457517046"
+}

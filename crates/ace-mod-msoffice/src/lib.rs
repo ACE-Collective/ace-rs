@@ -23,8 +23,9 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use ace_mod_oletools::py::is_space;
+use ace_results::FileRole;
 use ace_results::types::msoffice::MsofficeEncryptionAnalysis;
-use ace_results::{AnalysisType, Detection, ObservableKind, ResultEnvelope, YaraMeta};
+use ace_results::{AnalysisType, Detection, ObservableKind, ResultEnvelope};
 use ace_sdk::{
     CarryingEmail, Delay, EmailBodyPart, Manifest, Module, ModuleError, Outcome, Parser, Resources,
     TaskContext,
@@ -359,7 +360,7 @@ impl MsofficeEncryption {
         let mut record = ctx.write_file(
             &format!("{}.decrypted", file.path),
             &plain,
-            &[YaraMeta::new("type", "document.office").map_err(ModuleError::other)?],
+            FileRole::DOCUMENT_OFFICE,
         )?;
         record.tags.push("decrypted_msoffice".to_owned());
         record.detections.push(Detection {

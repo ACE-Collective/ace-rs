@@ -67,6 +67,7 @@ use ace_sdk::{Lookup, Manifest, Parser};
 #[derive(Default)]
 pub struct App {
     observable_types: Vec<ObservableKind>,
+    file_roles: Vec<ace_results::FileRole>,
     parser_pools: Vec<ParserPool>,
     lookup_pools: Vec<LookupPool>,
     scanner_pools: Vec<ScannerPool>,
@@ -175,6 +176,21 @@ impl App {
     pub fn observable_types(mut self, kinds: &[ObservableKind]) -> App {
         self.observable_types.extend_from_slice(kinds);
         self
+    }
+
+    /// Adds a site's file roles to the binary's list, beside the open-source ones
+    /// (`FileRole::BUILTIN`): what a site's module may say a file it writes is, and so the `type=`
+    /// tags its YARA rules may scan by (PLAN.md decision 25). Every binary a site builds should list
+    /// the same roles; a result naming a role the binary doesn't list is refused.
+    pub fn file_roles(mut self, roles: &[ace_results::FileRole]) -> App {
+        self.file_roles.extend_from_slice(roles);
+        self
+    }
+
+    /// The binary's file roles: the built-in ones and the site's, checked
+    /// (`ace_results::role_list`).
+    pub fn roles(&self) -> Result<Vec<ace_results::FileRole>, ace_results::RoleListError> {
+        ace_results::role_list(&self.file_roles)
     }
 
     pub fn parser_pool(mut self, pool: ParserPool) -> App {
@@ -471,7 +487,9 @@ impl App {
         self.registry()
             .manifests()
             .iter()
-            // a module that never stores a result has nothing to draw
+            // a module that never stores a result has nothing to draw, and nor has a file's type
+            // step, whose output is the file's type, not a result (PLAN.md decision 25)
+            .filter(|m| m.name != ace_core::type_step::TYPE_STEP)
             .filter(|m| m.stores_results && !self.views.has(m.output.name, m.output.version))
             .map(|m| (m.name, m.output.name, m.output.version))
             .collect()
@@ -515,10 +533,15 @@ impl App {
         ExitCode::from(2)
     }
 
-    /// Makes this process's observable types the binary's list, before anything reads a type.
+    /// Makes this process's observable types and file roles the binary's lists, before anything
+    /// reads a type or a role.
     fn install_types(&self) -> Result<(), ExitCode> {
         ace_results::install_types(&self.observable_types).map_err(|e| {
             eprintln!("the binary's observable types: {e}");
+            ExitCode::from(2)
+        })?;
+        ace_results::install_roles(&self.file_roles).map_err(|e| {
+            eprintln!("the binary's file roles: {e}");
             ExitCode::from(2)
         })
     }

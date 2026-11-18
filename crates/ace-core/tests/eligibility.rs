@@ -1689,12 +1689,14 @@ async fn a_task_walks_its_roots_tree_and_a_result_changes_others_and_its_root() 
     .await
     .expect("sets the origin");
     for (sha256, size) in [(&body, 10i64), (&big, 11)] {
-        sqlx::query("INSERT INTO store.objects (pool, sha256, size, mime_type) VALUES ('alert_files', $1, $2, 'text/html')")
-            .bind(sha256)
-            .bind(size)
-            .execute(db.pool())
-            .await
-            .expect("records the object");
+        sqlx::query(
+            "INSERT INTO store.objects (pool, sha256, size) VALUES ('alert_files', $1, $2)",
+        )
+        .bind(sha256)
+        .bind(size)
+        .execute(db.pool())
+        .await
+        .expect("records the object");
     }
 
     let files = TreeFiles {
@@ -2737,4 +2739,325 @@ async fn the_audit_queues_every_task_and_reports_a_declined_one_that_stored_a_re
     assert_eq!(report[0].module, "test_takes_name");
     assert_eq!(report[0].declined, "not named .dmg");
     assert_eq!(report[0].ended, "result");
+}
+
+/// A file's type step and modules that read its type (PLAN.md decision 25): `file_type`'s
+/// stand-in, which writes `TypeFacts`, a module that takes PDFs, one that takes `.dmg` names, one
+/// that takes everything, and one that depends on file_type and reads ace3's result.
+mod typed {
+    use ace_results::ObservableKind;
+    use ace_results::types::file_type::TypeFacts;
+    use ace_sdk::takes::{Case, Condition, Takes, Text, TypeFact};
+    use ace_sdk::{Manifest, Module, ModuleError, Outcome, Parser, TaskContext};
+
+    use crate::common::stubs::StubOutput;
+
+    pub struct TypeStep;
+
+    impl Module for TypeStep {
+        const NAME: &'static str = "file_type";
+        const INPUTS: &'static [ObservableKind] = &[ObservableKind::File];
+        type Output = TypeFacts;
+        type Settings = ();
+        fn init(_: &()) -> Result<Self, ModuleError> {
+            Ok(TypeStep)
+        }
+    }
+
+    impl Parser for TypeStep {
+        fn analyze(&self, _: &TaskContext<()>) -> Result<Outcome<TypeFacts>, ModuleError> {
+            Ok(Outcome::Skipped("a stub".to_owned()))
+        }
+    }
+
+    macro_rules! reader {
+        ($ty:ident, $name:literal, { $($extra:tt)* }, $takes:expr) => {
+            pub struct $ty;
+
+            impl Module for $ty {
+                const NAME: &'static str = $name;
+                const INPUTS: &'static [ObservableKind] = &[ObservableKind::File];
+                $($extra)*
+                type Output = StubOutput;
+                type Settings = ();
+                fn init(_: &()) -> Result<Self, ModuleError> {
+                    Ok($ty)
+                }
+                fn takes(_: &()) -> Takes {
+                    $takes
+                }
+            }
+
+            impl Parser for $ty {
+                fn analyze(&self, _: &TaskContext<()>) -> Result<Outcome<StubOutput>, ModuleError> {
+                    Ok(Outcome::Skipped("a stub".to_owned()))
+                }
+            }
+        };
+    }
+
+    reader!(
+        Pdfs,
+        "test_wants_pdf",
+        {},
+        Takes::everything().and(Condition::type_fact(TypeFact::IsPdfFile), "not a PDF")
+    );
+    reader!(
+        Dmgs,
+        "test_wants_dmg",
+        {},
+        Takes::everything().and(
+            Condition::Name(Text::ends_with(".dmg", Case::Lower)),
+            "not named .dmg"
+        )
+    );
+    reader!(Everything, "test_wants_all", {}, Takes::everything());
+    reader!(
+        Ace3s,
+        "test_reads_file_type",
+        {
+            const DEPENDS_ON: &'static [&'static str] = &["file_type"];
+        },
+        Takes::everything().and(Condition::result_true("file_type", "is_pdf_file"), "no PDF")
+    );
+
+    pub fn manifests() -> Vec<Manifest> {
+        vec![
+            Manifest::parser::<TypeStep>(),
+            Manifest::parser::<Pdfs>(),
+            Manifest::parser::<Dmgs>(),
+            Manifest::parser::<Everything>(),
+            Manifest::parser::<Ace3s>(),
+        ]
+    }
+}
+
+/// A mode that runs the type step and its readers, and one that runs the readers alone.
+fn typed_orchestrator() -> Orchestrator {
+    let mode = |name: &str, step: bool| AnalysisMode {
+        name: name.to_owned(),
+        module_groups: Vec::new(),
+        enabled_modules: typed::manifests()
+            .iter()
+            .map(|m| m.name.to_owned())
+            .filter(|m| step || m != "file_type")
+            .collect(),
+        disabled_modules: Vec::new(),
+    };
+    let modes = Modes::ace3()
+        .with_mode(mode("typed", true))
+        .with_mode(mode("untyped", false));
+    Orchestrator::new(Catalog::new(typed::manifests()), modes)
+}
+
+/// A root in `mode` with one file at `path`, started: what the core queued.
+async fn typed_root(
+    test_db: &TestDb,
+    orchestrator: &Orchestrator,
+    mode: &str,
+    sha256: &str,
+    path: &str,
+) -> (uuid::Uuid, ace_core::tree::ObservableId) {
+    let db = test_db.db();
+    let (root, ids) = root_with(db, mode, &[(ObservableKind::File, sha256)]).await;
+    let mut tx = db.begin().await.expect("begins");
+    tree::add_file(&mut tx, root, ids[0], path, &[])
+        .await
+        .expect("adds");
+    orchestrator.start(&mut tx, root).await.expect("starts");
+    tx.commit().await.expect("commits");
+    (root, ids[0])
+}
+
+/// The type step's worker, which ends it as the lease API's does (`queue::TypeStepEnded`).
+async fn type_worker(test_db: &TestDb, orchestrator: &Orchestrator) -> ace_core::queue::Worker {
+    worker(test_db, "typer", &["file_type"], Duration::from_secs(60))
+        .await
+        .with_type_step(std::sync::Arc::new(orchestrator.clone()))
+}
+
+fn modules(tasks: &[(String, String, String)]) -> Vec<&str> {
+    tasks.iter().map(|(module, _, _)| module.as_str()).collect()
+}
+
+/// PLAN.md decision 25: a new file's first task is its type step, alone; what it finds is kept by
+/// sha256 and the file's other tasks are queued when it ends, the declarations reading the type;
+/// where ace3's file_type would have run, the file has its tags, `yara_meta` types and result.
+#[tokio::test]
+async fn a_file_s_type_step_comes_first_and_its_end_queues_the_rest() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let orchestrator = typed_orchestrator();
+    let sha256 = "a1".repeat(32);
+    let (root, _) = typed_root(&test_db, &orchestrator, "typed", &sha256, "doc.pdf").await;
+    assert_eq!(modules(&tasks_of(db, root).await), ["file_type"]);
+
+    let typer = type_worker(&test_db, &orchestrator).await;
+    let task = typer.claim().await.expect("claims").expect("the type step");
+    let facts = ace_results::types::file_type::TypeFacts {
+        description: "PDF document, version 1.4".to_owned(),
+        mime: "application/pdf".to_owned(),
+        has_pdf_marker: true,
+        ..Default::default()
+    };
+    let mut tx = db.begin().await.expect("begins");
+    ace_core::type_step::store_facts(&mut tx, &sha256, &facts)
+        .await
+        .expect("keeps the facts");
+    typer
+        .finish_in(&mut tx, task.id, ace_core::queue::TaskState::Done, None)
+        .await
+        .expect("ends");
+    tx.commit().await.expect("commits");
+
+    // every reader but the .dmg one, which the name declines; the PDF one reads the type, and the
+    // one that depends on file_type reads ace3's result built from it
+    assert_eq!(
+        modules(&tasks_of(db, root).await),
+        [
+            "file_type",
+            "test_reads_file_type",
+            "test_wants_all",
+            "test_wants_pdf"
+        ]
+    );
+    let (tags, yara_meta): (Vec<String>, Vec<String>) = sqlx::query_as(
+        "SELECT o.tags, f.yara_meta FROM analysis.observables o
+         JOIN analysis.files f ON f.root_id = o.root_id AND f.observable_id = o.id
+         WHERE o.root_id = $1",
+    )
+    .bind(root)
+    .fetch_one(db.pool())
+    .await
+    .expect("reads");
+    assert_eq!(tags, ["pdf"]);
+    assert_eq!(yara_meta, ["type=document.pdf"]);
+    let form = ace_core::normal::normal_form(db.pool(), root)
+        .await
+        .expect("reads")
+        .expect("a root");
+    let shown = &form["observables"][format!("file:{sha256}")]["results"]["file_type"];
+    assert_eq!(shown["details"]["is_pdf_file"], true);
+    assert_eq!(shown["details"]["type"], "PDF document, version 1.4");
+    assert_eq!(
+        shown["summary"],
+        "File Type Analysis: PDF document, version 1.4 (application/pdf) (pdf document)"
+    );
+    // nothing stored as a result
+    let stored: i64 =
+        sqlx::query_scalar("SELECT count(*) FROM analysis.results WHERE root_id = $1")
+            .bind(root)
+            .fetch_one(db.pool())
+            .await
+            .expect("counts");
+    assert_eq!(stored, 0);
+}
+
+/// PLAN.md decision 25: a type step that fails, in the module or by its lease running out on its
+/// last attempt, still ends, and the file's other tasks are queued. The file's type is unknown, so
+/// every declaration that reads it takes the file, and one that a known fact declines still
+/// doesn't: a failure never keeps a module off a file it would have run on. The file shows no
+/// file_type result, so the module that depends on it waits, as it did when file_type failed.
+#[tokio::test]
+async fn a_failed_type_step_keeps_no_module_off_the_file() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let orchestrator = typed_orchestrator();
+    let expected = ["file_type", "test_wants_all", "test_wants_pdf"];
+
+    // the module fails
+    let (root, _) = typed_root(&test_db, &orchestrator, "typed", &"b1".repeat(32), "x.bin").await;
+    let typer = type_worker(&test_db, &orchestrator).await;
+    let task = typer.claim().await.expect("claims").expect("the type step");
+    typer
+        .fail(task.id, "libmagic crashed")
+        .await
+        .expect("fails");
+    assert_eq!(modules(&tasks_of(db, root).await), expected);
+    let shown: bool =
+        sqlx::query_scalar("SELECT type_result FROM analysis.observables WHERE root_id = $1")
+            .bind(root)
+            .fetch_one(db.pool())
+            .await
+            .expect("reads");
+    assert!(!shown);
+
+    // its lease runs out on its last attempt
+    let (root, _) = typed_root(&test_db, &orchestrator, "typed", &"b2".repeat(32), "y.bin").await;
+    let task = typer.claim().await.expect("claims").expect("the type step");
+    sqlx::query(
+        "UPDATE queue.tasks SET attempts = max_attempts, lease_expires_at = now() - interval '1 second'
+         WHERE id = $1",
+    )
+    .bind(task.id.0)
+    .execute(db.pool())
+    .await
+    .expect("expires");
+    let reaped = ace_core::queue::reap_expired_leases(db, Some(&orchestrator))
+        .await
+        .expect("reaps");
+    assert_eq!(reaped.failed, [task.id]);
+    assert_eq!(modules(&tasks_of(db, root).await), expected);
+    assert!(
+        tasks_of(db, root)
+            .await
+            .iter()
+            .all(|(module, _, state)| module != "file_type" || state == "failed")
+    );
+}
+
+/// PLAN.md decision 25: where the mode doesn't run file_type, the file is still typed first, but
+/// shows no file_type result, as ace3's YARA-only mode has none, and the module that depends on it
+/// isn't held back; a mode that runs file_type, set later, gives the file its result.
+#[tokio::test]
+async fn a_file_is_typed_in_a_mode_without_file_type_and_shows_its_result_once_one_has_it() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let orchestrator = typed_orchestrator();
+    let sha256 = "c1".repeat(32);
+    let (root, _) = typed_root(&test_db, &orchestrator, "untyped", &sha256, "doc.pdf").await;
+    assert_eq!(modules(&tasks_of(db, root).await), ["file_type"]);
+    let typer = type_worker(&test_db, &orchestrator).await;
+    let task = typer.claim().await.expect("claims").expect("the type step");
+    let facts = ace_results::types::file_type::TypeFacts {
+        mime: "application/pdf".to_owned(),
+        has_pdf_marker: true,
+        ..Default::default()
+    };
+    let mut tx = db.begin().await.expect("begins");
+    ace_core::type_step::store_facts(&mut tx, &sha256, &facts)
+        .await
+        .expect("keeps");
+    typer
+        .finish_in(&mut tx, task.id, ace_core::queue::TaskState::Done, None)
+        .await
+        .expect("ends");
+    tx.commit().await.expect("commits");
+    // no file_type result, so the module that reads one has none and declines
+    assert_eq!(
+        modules(&tasks_of(db, root).await),
+        ["file_type", "test_wants_all", "test_wants_pdf"]
+    );
+    let form = ace_core::normal::normal_form(db.pool(), root)
+        .await
+        .expect("reads")
+        .expect("a root");
+    let file = &form["observables"][format!("file:{sha256}")];
+    assert!(file["results"].get("file_type").is_none());
+    assert_eq!(file["tags"], json!({}));
+
+    let mut tx = db.begin().await.expect("begins");
+    orchestrator
+        .set_mode(&mut tx, root, "typed")
+        .await
+        .expect("changes the mode");
+    tx.commit().await.expect("commits");
+    let form = ace_core::normal::normal_form(db.pool(), root)
+        .await
+        .expect("reads")
+        .expect("a root");
+    let file = &form["observables"][format!("file:{sha256}")];
+    assert_eq!(file["results"]["file_type"]["details"]["is_pdf_file"], true);
+    assert_eq!(file["tags"], json!({"pdf": true}));
+    assert!(modules(&tasks_of(db, root).await).contains(&"test_reads_file_type"));
 }

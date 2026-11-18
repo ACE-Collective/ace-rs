@@ -11,8 +11,9 @@
 
 use std::time::Duration;
 
+use ace_results::FileRole;
 use ace_results::types::sandbox::OcrAnalysis;
-use ace_results::{ObservableKind, Relationship, RelationshipKind, ResultEnvelope, YaraMeta};
+use ace_results::{ObservableKind, Relationship, RelationshipKind, ResultEnvelope};
 use ace_sdk::tools::ToolRun;
 use ace_sdk::{Module, ModuleError, Outcome, Parser, Resources, TaskContext};
 use opencv::core::{BORDER_CONSTANT, Mat, MatTraitConst, Scalar, Size, Vector};
@@ -414,11 +415,8 @@ impl Parser for OcrAnalyzer {
         result.summary = Some("OCR Analysis".to_owned());
         let target = format!("{}.ocr/{}.ocr", file.path.as_str(), file.name());
         if name_fits(&target) {
-            let mut new_file = ctx.write_file(
-                &target,
-                body.as_bytes(),
-                &[YaraMeta::new("type", "document.text.ocr").map_err(ModuleError::other)?],
-            )?;
+            let mut new_file =
+                ctx.write_file(&target, body.as_bytes(), FileRole::DOCUMENT_TEXT_OCR)?;
             new_file.relationships.push(Relationship::new(
                 RelationshipKind::ExtractedFrom,
                 source(file),

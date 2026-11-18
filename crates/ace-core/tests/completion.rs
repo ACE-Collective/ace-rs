@@ -175,7 +175,11 @@ async fn a_task_the_reaper_fails_can_end_the_pass_and_a_root_with_no_work_comple
     let _claimed = worker.claim().await.expect("claims").expect("a task");
     tokio::time::sleep(Duration::from_millis(400)).await;
     assert_eq!(
-        reap_expired_leases(db).await.expect("reaps").failed.len(),
+        reap_expired_leases(db, None)
+            .await
+            .expect("reaps")
+            .failed
+            .len(),
         1
     );
     assert_eq!(
@@ -747,7 +751,11 @@ async fn a_tasks_run_time_is_from_each_claim_to_its_end_in_the_pass() {
     claim(&lost).await;
     tokio::time::sleep(Duration::from_secs(1)).await;
     assert_eq!(
-        reap_expired_leases(db).await.expect("reaps").requeued.len(),
+        reap_expired_leases(db, None)
+            .await
+            .expect("reaps")
+            .requeued
+            .len(),
         1
     );
     let reaped = worker(&test_db, "reaped", &["reaped"], lease).await;

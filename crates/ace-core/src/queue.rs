@@ -460,13 +460,46 @@ pub struct Task {
     pub delayed: Option<DelayedRun>,
 }
 
+/// The future `TypeStepEnded::ended` returns.
+pub type TypeStepFuture<'a> =
+    std::pin::Pin<Box<dyn std::future::Future<Output = Result<(), QueueError>> + Send + 'a>>;
+
+/// What follows the end of a file's type step, its first task (PLAN.md decision 25): no other task
+/// on the file is queued until it has ended, however it ended, so whatever ends it (a result, a
+/// failure, a lease that ran out on its last attempt) calls this in the same transaction, before
+/// the root's completion is checked. The orchestrator is the one implementation
+/// (`Orchestrator::type_step_ended`).
+pub trait TypeStepEnded: Send + Sync {
+    fn ended<'a>(
+        &'a self,
+        tx: &'a mut Tx<'_>,
+        root: Uuid,
+        observable: ObservableId,
+    ) -> TypeStepFuture<'a>;
+}
+
+/// The module name of a file's type step, `file_type`.
+pub const TYPE_STEP: &str = "file_type";
+
 /// One process's identity on the queue, the modules it runs, and how long its leases last.
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct Worker {
     db: Db,
     name: String,
     modules: Vec<String>,
     lease: Duration,
+    /// What a type step's end does; None for a worker that never runs one.
+    type_step_ended: Option<std::sync::Arc<dyn TypeStepEnded>>,
+}
+
+impl std::fmt::Debug for Worker {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Worker")
+            .field("name", &self.name)
+            .field("modules", &self.modules)
+            .field("lease", &self.lease)
+            .finish_non_exhaustive()
+    }
 }
 
 impl Worker {
@@ -478,7 +511,14 @@ impl Worker {
             name: name.into(),
             modules,
             lease,
+            type_step_ended: None,
         }
+    }
+
+    /// This worker, calling `ended` when it ends a file's type step (`TypeStepEnded`).
+    pub fn with_type_step(mut self, ended: std::sync::Arc<dyn TypeStepEnded>) -> Self {
+        self.type_step_ended = Some(ended);
+        self
     }
 
     pub fn name(&self) -> &str {
@@ -925,7 +965,7 @@ impl Worker {
                  runs = CASE WHEN run_pass = $5 THEN runs ELSE 0 END + 1,
                  run_pass = $5
              WHERE id = $1 AND lease_owner = $2 AND state = 'running'
-             RETURNING module, declined",
+             RETURNING module, declined, observable_id",
             task as TaskId,
             self.name,
             state as TaskState,
@@ -942,6 +982,15 @@ impl Worker {
             && let Some(declined) = &finished.declined
         {
             crate::takes::report_lost(task, &finished.module, declined, "failed");
+        }
+        // a type step that ended lets the file's other tasks be queued, done or failed alike
+        if finished.module == TYPE_STEP
+            && matches!(state, TaskState::Done | TaskState::Failed)
+            && let Some(ended) = &self.type_step_ended
+        {
+            ended
+                .ended(tx, root, ObservableId(finished.observable_id))
+                .await?;
         }
         Ok(root)
     }
@@ -1193,7 +1242,13 @@ pub struct Reaped {
 /// Takes back every running task whose lease has expired: it is queued again, or fails if it
 /// has used its attempts. One transaction per root, which locks the root first like every
 /// other change that can end its tasks.
-pub async fn reap_expired_leases(db: &Db) -> Result<Reaped, QueueError> {
+///
+/// A file's type step that fails this way ends as any other end of it does (`TypeStepEnded`),
+/// in the same transaction.
+pub async fn reap_expired_leases(
+    db: &Db,
+    type_step_ended: Option<&dyn TypeStepEnded>,
+) -> Result<Reaped, QueueError> {
     let roots = sqlx::query_scalar!(
         "SELECT DISTINCT root_id FROM queue.tasks
          WHERE state = 'running' AND lease_expires_at < now()
@@ -1218,11 +1273,19 @@ pub async fn reap_expired_leases(db: &Db) -> Result<Reaped, QueueError> {
                                 ELSE error END,
                    lease_owner = NULL, lease_expires_at = NULL, updated_at = now()
                WHERE root_id = $1 AND state = 'running' AND lease_expires_at < now()
-               RETURNING id AS "id: TaskId", state AS "state: TaskState""#,
+               RETURNING id AS "id: TaskId", state AS "state: TaskState", module,
+                         observable_id AS "observable_id: ObservableId""#,
             root,
         )
         .fetch_all(tx.conn())
         .await?;
+        if let Some(ended) = type_step_ended {
+            for row in &rows {
+                if row.module == TYPE_STEP && row.state == TaskState::Failed {
+                    ended.ended(tx, root, row.observable_id).await?;
+                }
+            }
+        }
         check_completion(tx, root).await?;
         Ok::<_, QueueError>(rows)
                 })
@@ -1360,9 +1423,14 @@ pub async fn completions(db: &Db, root: Uuid) -> Result<Vec<Completion>, QueueEr
 }
 
 /// Runs `reap_expired_leases`, `commands::reap_commands` and `scans::reap_scans` every `interval` until `stop` fires.
-pub async fn run_reaper(db: Db, interval: Duration, stop: CancellationToken) {
+pub async fn run_reaper(
+    db: Db,
+    interval: Duration,
+    stop: CancellationToken,
+    type_step_ended: Option<std::sync::Arc<dyn TypeStepEnded>>,
+) {
     loop {
-        if let Err(e) = reap_expired_leases(&db).await {
+        if let Err(e) = reap_expired_leases(&db, type_step_ended.as_deref()).await {
             tracing::error!("the reaper failed: {e}");
         }
         // GUI commands (PLAN.md 5.12) never run twice, so their lost leases end them

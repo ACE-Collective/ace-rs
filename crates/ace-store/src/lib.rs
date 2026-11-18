@@ -6,9 +6,10 @@
 //! bytes. Which objects exist, what holds them and when one may be deleted is the index in
 //! ace-core's `store` schema, which never lists the bucket to find out.
 //!
-//! A put spools the bytes to a temporary file on the node while hashing them, asks libmagic
-//! for their mime type (`ace_yara::mime`, the pinned database), and uploads them with that type
-//! unless the bucket already has them. The spooled file then joins the node's cache. A get
+//! A put spools the bytes to a temporary file on the node while hashing them and uploads them
+//! unless the bucket already has them. The spooled file then joins the node's cache. Nothing here
+//! reads what the bytes are: a file's type is found by the core's type step, a contained task
+//! (PLAN.md decision 25), so no hostile bytes are parsed in the core's process. A get
 //! reads the node's cache first and fills it from the bucket otherwise, checking the bytes'
 //! sha256 before they reach the cache.
 
@@ -69,8 +70,6 @@ pub enum StoreError {
         key: String,
         message: String,
     },
-    #[error("mime type: {0}")]
-    Mime(String),
     #[error(transparent)]
     Io(#[from] std::io::Error),
 }
@@ -221,7 +220,7 @@ impl Store {
         Ok(())
     }
 
-    /// Spools `bytes` on this node, with their sha256, size and mime type.
+    /// Spools `bytes` on this node, with their sha256 and size.
     pub async fn spool_bytes(&self, bytes: &[u8]) -> Result<Spooled, StoreError> {
         Spooled::from_reader(&self.cache, &mut &bytes[..]).await
     }
@@ -257,8 +256,8 @@ impl Store {
         }
     }
 
-    /// Uploads spooled bytes to `pool`, with their mime type as the object's content type.
-    /// Uploading bytes the bucket already has rewrites the same object.
+    /// Uploads spooled bytes to `pool`, as `application/octet-stream`: the store doesn't read what
+    /// they are. Uploading bytes the bucket already has rewrites the same object.
     pub async fn upload(&self, pool: &str, spooled: &Spooled) -> Result<(), StoreError> {
         let key = Store::key(pool, &spooled.sha256)?;
         let body = ByteStream::from_path(spooled.path())
@@ -268,7 +267,7 @@ impl Store {
             .put_object()
             .bucket(&self.bucket)
             .key(&key)
-            .content_type(&spooled.mime_type)
+            .content_type("application/octet-stream")
             .content_length(i64::try_from(spooled.size).unwrap_or(i64::MAX))
             .body(body)
             .send()

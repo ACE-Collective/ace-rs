@@ -17,8 +17,9 @@
 
 use std::fs;
 
+use ace_results::FileRole;
 use ace_results::types::scripts::MicrosoftScriptEncodingAnalysis;
-use ace_results::{AnalysisType, ObservableKind, ResultEnvelope, YaraMeta};
+use ace_results::{AnalysisType, ObservableKind, ResultEnvelope};
 use ace_sdk::takes::{Condition, Takes};
 use ace_sdk::{Manifest, Module, ModuleError, Outcome, Parser, Resources, TaskContext};
 
@@ -226,11 +227,7 @@ impl Parser for MicrosoftScriptEncodingAnalyzer {
             && !decoded.is_empty()
         {
             let output_path = format!("{path}{suffix}");
-            let mut output = ctx.write_file(
-                &output_path,
-                &decoded,
-                &[YaraMeta::new("type", "script.encoded").map_err(ModuleError::other)?],
-            )?;
+            let mut output = ctx.write_file(&output_path, &decoded, FileRole::SCRIPT_ENCODED)?;
             output.redirection = Some(source(file));
             result.files.push(output);
             result.details.analysis_output = Some(output_path);

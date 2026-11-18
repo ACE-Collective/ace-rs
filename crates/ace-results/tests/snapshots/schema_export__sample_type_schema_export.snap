@@ -63,6 +63,49 @@ expression: text
       ],
       "type": "object"
     },
+    "FileRole": {
+      "description": "A file's role: what its producer made it, named as ace3's yara_meta type= values are.",
+      "enum": [
+        "archive.dmg",
+        "document.activemime",
+        "document.html.embedded",
+        "document.html.phishkit",
+        "document.mhtml.part",
+        "document.office",
+        "document.onenote.embedded",
+        "document.pdf",
+        "document.pdf.annotation_uris",
+        "document.pdf.form_field",
+        "document.pdf.object",
+        "document.pdf.rendered",
+        "document.pdf.text",
+        "document.rtf.object",
+        "document.rtf.stripped",
+        "document.text.ocr",
+        "document.text.qrcode",
+        "document.text.refanged",
+        "email",
+        "email.attachment",
+        "email.combined",
+        "email.headers",
+        "executable.dotnet",
+        "executable.unpacked",
+        "metadata.exif",
+        "metadata.lnk",
+        "metadata.x509",
+        "payload.base64",
+        "script.autoit",
+        "script.dotnet.decompiled",
+        "script.encoded",
+        "script.java.decompiled",
+        "script.javascript",
+        "script.macro",
+        "script.macro.vba",
+        "script.macro.xlm",
+        "script.vbscript"
+      ],
+      "type": "string"
+    },
     "NewFile": {
       "additionalProperties": false,
       "description": "A file a result adds to the alert. Its bytes are already in the file store under `sha256`.",
@@ -108,6 +151,17 @@ expression: text
             "$ref": "#/$defs/Relationship"
           },
           "type": "array"
+        },
+        "role": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FileRole"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "What the producer made it, such as an email's attachment (`FileRole`). Its `type=` tag is\namong `yara_meta`, built from it."
         },
         "sha256": {
           "description": "A sha256 digest in lowercase hex.",

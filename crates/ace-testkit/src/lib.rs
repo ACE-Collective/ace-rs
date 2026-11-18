@@ -109,7 +109,14 @@ pub struct Harness<M: Module> {
     related_tags: Vec<RelatedTags>,
     tree: Option<ace_sdk::tree::TreeView>,
     scan: Option<ace_sdk::scanners::Scan>,
+    typer: Option<Typer>,
 }
+
+/// What finds a file's type for a harness, as the core's type step would before the module's task
+/// (PLAN.md decision 25): given the file's alert path and its bytes on disk, its `TypeFacts`, or
+/// None for a file whose type is unknown. `ace_mod_files::file_type::type_of` is the type step's
+/// own; the harness can't depend on it, so a test that needs it passes it.
+pub type Typer = fn(&str, &Path) -> Option<ace_results::types::file_type::TypeFacts>;
 
 impl<M: Module> Harness<M> {
     /// A harness with the module's default settings.
@@ -145,7 +152,15 @@ impl<M: Module> Harness<M> {
             related_tags: Vec::new(),
             tree: None,
             scan: None,
+            typer: None,
         })
+    }
+
+    /// Types each file the harness makes with `typer`, so the module's declaration reads its type
+    /// and the module gets its mime type, as in a stack. Without one a file's type is unknown.
+    pub fn with_typer(mut self, typer: Typer) -> Self {
+        self.typer = Some(typer);
+        self
     }
 
     /// The task's latest scan, as the core sends it after a delay that asked for one (PLAN.md 7.7).
@@ -283,12 +298,17 @@ impl<M: Module> Harness<M> {
             .map(|tag| tag.parse::<YaraMeta>())
             .collect::<Result<Vec<_>, _>>()
             .map_err(|e| HarnessError::Fixture(e.to_string()))?;
+        let facts = self.typer.and_then(|typer| typer(alert_path, local));
         let file = InputFile {
             path: AlertPath::new(alert_path).map_err(|e| HarnessError::Fixture(e.to_string()))?,
             sha256: sha256_of(&bytes),
             size: bytes.len() as u64,
+            role: yara_meta
+                .iter()
+                .find_map(ace_results::FileRole::of_yara_meta),
             yara_meta,
-            mime_type: None,
+            mime_type: facts.as_ref().map(|f| f.mime.clone()),
+            facts,
             local_path: local.to_owned(),
         };
         Ok(Observable::file(file))

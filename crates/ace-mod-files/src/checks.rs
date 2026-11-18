@@ -2,28 +2,12 @@
 //! file's alert path and bytes. ace3 runs them on the file's path on its node, which ends with the
 //! alert path, so a check on the name gives the same answer.
 
-use ace_mod_oletools::ftguess::splitext;
 use ace_mod_oletools::pyzip::ZipFile;
 
-/// `KNOWN_OFFICE_EXTENSIONS`.
-pub const KNOWN_OFFICE_EXTENSIONS: &[&str] = &[
-    "doc", "docb", "dochtml", "docm", "docx", "docxml", "dot", "dothtml", "dotm", "dotx", "odt",
-    "rtf", "wbk", "wiz", "csv", "dqy", "iqy", "odc", "ods", "slk", "xla", "xlam", "xlk", "xll",
-    "xlm", "xls", "xlsb", "xlshtml", "xlsm", "xlsx", "xlt", "xlthtml", "xltm", "xltx", "xlw",
-    "odp", "pot", "pothtml", "potm", "potx", "ppa", "ppam", "pps", "ppsm", "ppsx", "ppt",
-    "ppthtml", "pptm", "pptx", "pptxml", "pwz", "sldm", "sldx", "thmx",
-];
+pub use ace_results::types::file_type::{KNOWN_OFFICE_EXTENSIONS, is_office_ext};
 
 const OLE_MAGIC: &[u8] = b"\xD0\xCF\x11\xE0\xA1\xB1\x1A\xE1";
 const LNK_MAGIC: &[u8] = b"\x4C\x00\x00\x00\x01\x14\x02\x00";
-
-/// `is_office_ext`: `os.path.splitext`'s extension, as it is, in the list.
-pub fn is_office_ext(path: &str) -> bool {
-    splitext(path)
-        .1
-        .strip_prefix('.')
-        .is_some_and(|ext| KNOWN_OFFICE_EXTENSIONS.contains(&ext))
-}
 
 pub fn is_ole_file(data: &[u8]) -> bool {
     data.starts_with(OLE_MAGIC)
@@ -36,9 +20,11 @@ pub fn is_rtf_file(data: &[u8]) -> bool {
 
 /// `%PDF-` in the first 1024 bytes, except for the PDF module's `.pdfparser` output.
 pub fn is_pdf_file(path: &str, data: &[u8]) -> bool {
-    if path.ends_with(".pdfparser") {
-        return false;
-    }
+    ace_results::types::file_type::is_pdf_file(path, has_pdf_marker(data))
+}
+
+/// `%PDF-` in the first 1024 bytes: `is_pdf_file`'s check of the bytes.
+pub fn has_pdf_marker(data: &[u8]) -> bool {
     data[..data.len().min(1024)]
         .windows(5)
         .any(|w| w == b"%PDF-")

@@ -18,9 +18,10 @@
 //!   ace3's whole file_type analysis of the file. Here it's not a certificate, and file_type's
 //!   other checks still land.
 
+use ace_results::FileRole;
 use ace_results::types::file_type::FileTypeAnalysis;
 use ace_results::types::x509::{SerialNumber, SubjectAlternativeNames, X509Analysis};
-use ace_results::{AnalysisType, NewObservable, ObservableKind, ResultEnvelope, YaraMeta};
+use ace_results::{AnalysisType, NewObservable, ObservableKind, ResultEnvelope};
 use ace_sdk::takes::{Condition, Takes};
 use ace_sdk::{Manifest, Module, ModuleError, Outcome, Parser, TaskContext};
 
@@ -189,11 +190,10 @@ impl Parser for X509Analyzer {
         };
         let mut result = ResultEnvelope::new(analysis).with_summary(summary);
         result.observables = observables;
-        let meta = YaraMeta::new("type", "metadata.x509").map_err(ModuleError::other)?;
         let path = format!("{}.metadata", file.sha256.to_hex());
         result
             .files
-            .push(ctx.write_file(&path, metadata.as_bytes(), &[meta])?);
+            .push(ctx.write_file(&path, metadata.as_bytes(), FileRole::METADATA_X509)?);
         Ok(Outcome::Done(result))
     }
 }

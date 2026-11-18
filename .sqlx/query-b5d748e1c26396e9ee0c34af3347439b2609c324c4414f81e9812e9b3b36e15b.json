@@ -1,0 +1,70 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE queue.tasks\n             SET state = $3, error = $4, lease_owner = NULL, lease_expires_at = NULL,\n                 updated_at = now(),\n                 run_seconds = CASE WHEN run_pass = $5 THEN run_seconds ELSE 0 END\n                     + GREATEST(COALESCE(EXTRACT(EPOCH FROM now() - claimed_at)::float8, 0), 0),\n                 runs = CASE WHEN run_pass = $5 THEN runs ELSE 0 END + 1,\n                 run_pass = $5\n             WHERE id = $1 AND lease_owner = $2 AND state = 'running'\n             RETURNING module, declined, observable_id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "module",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "queue.tasks",
+            "name": "module"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "declined",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "queue.tasks",
+            "name": "declined"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "observable_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "queue.tasks",
+            "name": "observable_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text",
+        {
+          "Custom": {
+            "name": "queue.task_state",
+            "kind": {
+              "Enum": [
+                "queued",
+                "delayed",
+                "running",
+                "done",
+                "failed",
+                "cancelled"
+              ]
+            }
+          }
+        },
+        "Text",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "b5d748e1c26396e9ee0c34af3347439b2609c324c4414f81e9812e9b3b36e15b"
+}

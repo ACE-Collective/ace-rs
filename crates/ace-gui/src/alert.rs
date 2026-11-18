@@ -247,6 +247,11 @@ pub struct ObservableNode {
     pub label: String,
     /// Its value, or for a file the path it was analyzed under.
     pub value: String,
+    /// A file's type, what the type step found in its bytes (PLAN.md decision 25): libmagic's
+    /// description, and its mime type for the title. ace3 showed it as file_type's result.
+    pub file_type: Option<(String, String)>,
+    /// A file's role under that path, what its producer made it, such as `email.attachment`.
+    pub role: Option<String>,
     pub time: Option<String>,
     pub tags: Vec<String>,
     pub detections: Vec<String>,
@@ -342,7 +347,8 @@ impl TreeView {
 enum Step<'a> {
     Observable(i64),
     Result(&'a ModuleResult),
-    Line(TreeLine),
+    // boxed: the walk pushes only the small lines, and an observable's line is large
+    Line(Box<TreeLine>),
 }
 
 /// The tree's lines, from a snapshot and the comments on its observables. This is the view function the
@@ -524,7 +530,7 @@ fn walk<'a>(
     let kept_result = |id: i64| keep.as_ref().is_none_or(|k| k.results.contains(&id));
     while let Some(step) = stack.pop() {
         match step {
-            Step::Line(line) => lines.push(line),
+            Step::Line(line) => lines.push(*line),
             Step::Observable(id) => {
                 // past MAX_TREE_OBSERVABLES, which the view says, or ignored
                 let Some(observable) = by_id
@@ -591,8 +597,8 @@ fn walk<'a>(
                 } else {
                     lines.push(TreeLine::Children);
                     lines.extend(failed);
-                    stack.push(Step::Line(TreeLine::EndItem));
-                    stack.push(Step::Line(TreeLine::EndChildren));
+                    stack.push(Step::Line(Box::new(TreeLine::EndItem)));
+                    stack.push(Step::Line(Box::new(TreeLine::EndChildren)));
                     stack.extend(results.into_iter().rev().map(Step::Result));
                 }
             }
@@ -624,8 +630,8 @@ fn walk<'a>(
                     lines.push(TreeLine::EndItem);
                 } else {
                     lines.push(TreeLine::Children);
-                    stack.push(Step::Line(TreeLine::EndItem));
-                    stack.push(Step::Line(TreeLine::EndChildren));
+                    stack.push(Step::Line(Box::new(TreeLine::EndItem)));
+                    stack.push(Step::Line(Box::new(TreeLine::EndChildren)));
                     stack.extend(children.into_iter().rev().map(Step::Observable));
                 }
             }
@@ -655,6 +661,11 @@ fn observable_node(
         analyzed: !observable.results.is_empty(),
         label: observable.display_label(),
         value: display_value(observable),
+        file_type: observable
+            .file_type
+            .as_ref()
+            .map(|t| (t.description.clone(), t.mime.clone())),
+        role: observable.files.first().and_then(|f| f.role.clone()),
         time: observable
             .time
             .map(|time| time.format("%Y-%m-%d %H:%M:%S %z").to_string()),

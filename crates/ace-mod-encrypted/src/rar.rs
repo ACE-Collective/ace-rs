@@ -290,7 +290,7 @@ fn extract_all(
             }
         };
         let target = format!("{base}/{}", name.unwrap_or_default());
-        let file = ctx.write_file(&target, &bytes, &[])?;
+        let file = ctx.write_file(&target, &bytes, None)?;
         by_path.insert(target, file);
         cursor = next;
     }

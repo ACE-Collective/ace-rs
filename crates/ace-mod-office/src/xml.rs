@@ -288,7 +288,7 @@ impl Parser for XmlBinaryAnalyzer {
             Ok(parts) => {
                 for (path, bytes) in parts.into_iter().take(MAX_FILES) {
                     ctx.check_cancelled()?;
-                    files.push(ctx.write_file(&path, &bytes, &[])?);
+                    files.push(ctx.write_file(&path, &bytes, None)?);
                     analysis.extracted_files.push(format!("files/{path}"));
                 }
             }
@@ -421,7 +421,7 @@ impl Parser for XmlPlainTextAnalyzer {
             Ok(text) if text.is_empty() => {}
             Ok(text) => {
                 let path = format!("{}.noxml", file.path);
-                files.push(ctx.write_file(&path, text.as_bytes(), &[])?);
+                files.push(ctx.write_file(&path, text.as_bytes(), None)?);
                 analysis.xml_plain_text = Some(path);
             }
         }

@@ -29,7 +29,7 @@ fn read_all(mut file: &std::fs::File) -> Vec<u8> {
 }
 
 #[tokio::test]
-async fn a_put_spools_types_and_uploads_and_a_get_elsewhere_fills_that_cache() {
+async fn a_put_spools_and_uploads_and_a_get_elsewhere_fills_that_cache() {
     let (dir_a, dir_b) = (tempfile::tempdir().unwrap(), tempfile::tempdir().unwrap());
     let (a, b) = (store(&dir_a), store(&dir_b));
     let pool = test_pool();
@@ -37,7 +37,6 @@ async fn a_put_spools_types_and_uploads_and_a_get_elsewhere_fills_that_cache() {
 
     let spooled = a.spool_bytes(bytes).await.expect("spools");
     assert_eq!(spooled.size, bytes.len() as u64);
-    assert_eq!(spooled.mime_type, "application/pdf");
     let sha256 = spooled.sha256;
     assert!(!a.exists(&pool, &sha256).await.expect("heads"));
     a.upload(&pool, &spooled).await.expect("uploads");

@@ -12,8 +12,9 @@
 //! on its node, `<root>/files/<file>.activemime`; this names it by its path in the alert.
 
 use ace_mod_oletools::pyzip::zlib_decompress;
+use ace_results::FileRole;
 use ace_results::types::office::ActiveMimeAnalysis;
-use ace_results::{AnalysisType, ObservableKind, ResultEnvelope, YaraMeta};
+use ace_results::{AnalysisType, ObservableKind, ResultEnvelope};
 use ace_sdk::takes::{Condition, Takes};
 use ace_sdk::{Manifest, Module, ModuleError, Outcome, Parser, TaskContext};
 
@@ -128,8 +129,7 @@ impl Parser for ActiveMimeAnalyzer {
             Some(Ok(payload)) => payload,
         };
         let path = format!("{}.activemime", file.path);
-        let meta = YaraMeta::new("type", "document.activemime").map_err(ModuleError::other)?;
-        let mut new_file = ctx.write_file(&path, &payload, &[meta])?;
+        let mut new_file = ctx.write_file(&path, &payload, FileRole::DOCUMENT_ACTIVEMIME)?;
         new_file.add_tag("activemime");
         new_file.relationships.push(extracted_from(file));
         let mut result = ResultEnvelope::new(ActiveMimeAnalysis {

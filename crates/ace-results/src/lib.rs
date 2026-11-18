@@ -11,6 +11,7 @@ pub mod file;
 pub mod links;
 pub mod observable;
 pub mod registry;
+pub mod role;
 pub mod types;
 pub mod validate;
 
@@ -27,4 +28,5 @@ pub use observable::{
     ObservableKind, ObservableType, TypeListError, UnknownObservableKind, install_types, type_list,
 };
 pub use registry::{AnalysisTypeInfo, Registry, RegistryError, result_schema, sort_json_keys};
+pub use role::{FileRole, RoleListError, UnknownFileRole, install_roles, role_list};
 pub use validate::{FieldError, InvalidResult, InvalidSchema, ResultValidator};

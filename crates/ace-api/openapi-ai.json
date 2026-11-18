@@ -1624,11 +1624,80 @@
             "type": "string",
             "description": "The file's path in the alert, such as `email.rfc822.parts/invoice.zip`."
           },
+          "role": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "What the module that wrote it made it under this path, such as `email.attachment`, or null.\nIts `type=` tag is among `yara_meta`."
+          },
           "yara_meta": {
             "type": "array",
             "items": {
               "type": "string"
             }
+          }
+        }
+      },
+      "FileTypeBody": {
+        "type": "object",
+        "description": "What a file's bytes are, as the type step found them, with ace3's names for the checks.",
+        "required": [
+          "description",
+          "mime",
+          "is_ole_file",
+          "is_rtf_file",
+          "has_pdf_marker",
+          "is_pe_file",
+          "is_zip_file",
+          "is_jar_file",
+          "is_x509",
+          "is_lnk_file",
+          "is_email_file"
+        ],
+        "properties": {
+          "description": {
+            "type": "string",
+            "description": "libmagic's description, as `file -b -L` prints it."
+          },
+          "has_pdf_marker": {
+            "type": "boolean",
+            "description": "`%PDF-` in the first kilobyte. ace3's `is_pdf_file` is this unless the name ends in\n`.pdfparser`."
+          },
+          "is_email_file": {
+            "type": "boolean"
+          },
+          "is_jar_file": {
+            "type": "boolean"
+          },
+          "is_lnk_file": {
+            "type": "boolean"
+          },
+          "is_ole_file": {
+            "type": "boolean"
+          },
+          "is_pe_file": {
+            "type": "boolean"
+          },
+          "is_rtf_file": {
+            "type": "boolean"
+          },
+          "is_x509": {
+            "type": "boolean"
+          },
+          "is_zip_file": {
+            "type": "boolean"
+          },
+          "javascript": {
+            "type": [
+              "boolean",
+              "null"
+            ],
+            "description": "Whether it parses as JavaScript with a keyword in it; null when the type step didn't check,\nwhich it does only where the mime type or the name says JavaScript."
+          },
+          "mime": {
+            "type": "string",
+            "description": "libmagic's mime type."
           }
         }
       },
@@ -1682,6 +1751,17 @@
               "$ref": "#/components/schemas/FailedModuleBody"
             },
             "description": "The modules whose tasks on it failed without a result. Absent from the AI investigation\nAPI's observables, which can't read the task queue."
+          },
+          "file_type": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/FileTypeBody",
+                "description": "A file's type: what the type step found in its bytes (PLAN.md decision 25). ace3 showed this\nas file_type's result, which ace4 doesn't store. Absent for an observable that isn't a file,\nfor a file whose type step hasn't ended or failed, and from the AI investigation API."
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "files": {
             "type": "array",

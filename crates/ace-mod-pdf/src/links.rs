@@ -20,8 +20,6 @@
 //! (`ResultEnvelope::error`, ace3's `Analysis.error`), and the links are kept without their text.
 
 use std::collections::{BTreeMap, HashSet};
-use std::fs::File;
-use std::io::Read;
 use std::sync::LazyLock;
 use std::time::Duration;
 
@@ -29,13 +27,14 @@ use ace_pycompat::pystr;
 use ace_results::types::pdf::{PdfLink, PdfLinkTextAnalysis};
 use ace_results::{ObservableKind, ResultEnvelope};
 use ace_sdk::tools::{ToolOutput, ToolRun};
-use ace_sdk::{InputFile, Manifest, Module, ModuleError, Outcome, Parser, Resources, TaskContext};
+use ace_sdk::{Manifest, Module, ModuleError, Outcome, Parser, Resources, TaskContext};
 use regex::Regex;
 use schemars::JsonSchema;
 use serde::Deserialize;
 
 use crate::objects::{Objects, Py, decimal_turns_the_page};
 use crate::qpdf::{Document, Raised};
+use ace_sdk::takes::{Condition, Takes, TypeFact};
 
 /// The module's manifest.
 pub const MANIFEST: Manifest = Manifest::parser::<PdfLinkTextAnalyzer>();
@@ -117,6 +116,11 @@ impl Module for PdfLinkTextAnalyzer {
             }
         }
         Ok(PdfLinkTextAnalyzer)
+    }
+
+    fn takes(_: &PdfLinkTextSettings) -> Takes {
+        // ace3's is_pdf_file, which the file's type and its path state (PLAN.md decision 25)
+        Takes::everything().and(Condition::type_fact(TypeFact::IsPdfFile), "not a PDF")
     }
 }
 
@@ -515,27 +519,12 @@ pub fn links_of(path: &std::path::Path, max_links: usize) -> Result<(Vec<Link>, 
     read_links(&objects, max_links)
 }
 
-fn looks_like_pdf(file: &InputFile) -> std::io::Result<bool> {
-    // ace3's is_pdf_file: not the PDF module's own dump, and `%PDF-` in the first 1024 bytes
-    if file.path.as_str().ends_with(".pdfparser") {
-        return Ok(false);
-    }
-    let mut head = Vec::with_capacity(1024);
-    File::open(&file.local_path)?
-        .take(1024)
-        .read_to_end(&mut head)?;
-    Ok(head.windows(5).any(|w| w == b"%PDF-"))
-}
-
 impl Parser for PdfLinkTextAnalyzer {
     fn analyze(
         &self,
         ctx: &TaskContext<PdfLinkTextSettings>,
     ) -> Result<Outcome<PdfLinkTextAnalysis>, ModuleError> {
         let file = ctx.input_file()?;
-        if !looks_like_pdf(file)? {
-            return Ok(Outcome::Skipped("not a PDF".to_owned()));
-        }
         let settings = ctx.settings();
         let (mut links, truncated) = match links_of(&file.local_path, settings.max_links) {
             Ok(read) => read,

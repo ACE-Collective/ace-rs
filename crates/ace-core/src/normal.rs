@@ -42,6 +42,10 @@
 //! the core stores them. Of a detection the form keeps its description and details. The
 //! signature fields name a ruleset commit, which is a fact about the run.
 //!
+//! ace3's `file_type` result, which ace4 doesn't store, is in the form where the file shows it,
+//! built from the file's type and its analysis path (`crate::type_step`), so the comparison checks
+//! the same values in it as when it was a result.
+//!
 //! A result whose module said it failed carries the reason as `error`, as ace3's `Analysis.error`.
 //! A task that failed without a result (a crash, a deadline) is task state, which the form leaves
 //! out, as ace3's form leaves out `root.analysis_failures`.
@@ -181,6 +185,17 @@ pub async fn normal_form(pool: &PgPool, root: Uuid) -> Result<Option<Value>, DbE
             .entry(row.id)
             .or_default()
             .insert(row.module, result);
+    }
+
+    // ace3's file_type result, from the file's type, where the file shows it
+    for (id, typed) in crate::type_step::results_of(pool, root, None).await? {
+        let module = results.entry(id).or_default();
+        if !module.contains_key(crate::type_step::TYPE_STEP) {
+            module.insert(
+                crate::type_step::TYPE_STEP.to_owned(),
+                json!({"summary": typed.summary(), "tags": {}, "details": typed.details()}),
+            );
+        }
     }
 
     let mut observables = Map::new();

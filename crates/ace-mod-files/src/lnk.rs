@@ -7,12 +7,13 @@
 
 use std::fs;
 
+use ace_results::FileRole;
 use ace_results::types::lnk::LnkParseAnalysis;
-use ace_results::{AnalysisType, ObservableKind, ResultEnvelope, YaraMeta};
+use ace_results::{AnalysisType, ObservableKind, ResultEnvelope};
 use ace_sdk::{Manifest, Module, ModuleError, Outcome, Parser, TaskContext};
 use serde_json::Value;
 
-use crate::checks;
+use ace_sdk::takes::{Condition, Takes, TypeFact};
 
 /// The module's manifest.
 pub const MANIFEST: Manifest = Manifest::parser::<LnkParseAnalyzer>();
@@ -27,6 +28,14 @@ impl Module for LnkParseAnalyzer {
 
     fn init(_: &()) -> Result<Self, ModuleError> {
         Ok(LnkParseAnalyzer)
+    }
+
+    fn takes(_: &()) -> Takes {
+        // the file's type says it, as `checks::is_lnk_file` on the bytes did (PLAN.md decision 25)
+        Takes::everything().and(
+            Condition::type_fact(TypeFact::IsLnkFile),
+            "not a Windows shortcut",
+        )
     }
 }
 
@@ -165,9 +174,6 @@ impl Parser for LnkParseAnalyzer {
     fn analyze(&self, ctx: &TaskContext<()>) -> Result<Outcome<LnkParseAnalysis>, ModuleError> {
         let file = ctx.input_file()?;
         let data = fs::read(&file.local_path)?;
-        if !checks::is_lnk_file(&data) {
-            return Ok(Outcome::Skipped("not a Windows shortcut".to_owned()));
-        }
         ctx.check_cancelled()?;
         let parsed = ace_lnkparse::analyze(&data);
         let details = LnkParseAnalysis {
@@ -188,10 +194,9 @@ impl Parser for LnkParseAnalyzer {
         result.analyzed.add_tag("lnk");
         if let Some(text) = parsed.lnkparser_json {
             let path = format!("{}.lnkparser.json", file.path.as_str());
-            let meta = YaraMeta::new("type", "metadata.lnk").map_err(ModuleError::other)?;
             result
                 .files
-                .push(ctx.write_file(&path, text.as_bytes(), &[meta])?);
+                .push(ctx.write_file(&path, text.as_bytes(), FileRole::METADATA_LNK)?);
         }
         Ok(Outcome::Done(result))
     }

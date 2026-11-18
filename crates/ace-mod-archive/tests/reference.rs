@@ -40,7 +40,9 @@ fn matches_the_reference_dumps_or_lists_each_difference() {
         &Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/differences.md"),
     )
     .expect("differences.md reads");
-    let harness = Harness::<ArchiveAnalyzer>::new().expect("harness");
+    let harness = Harness::<ArchiveAnalyzer>::new()
+        .expect("harness")
+        .with_typer(ace_mod_files::file_type::type_of);
     let mut compared = Vec::new();
     let mut skipped = Vec::new();
     for dump in Dump::all("archive").expect("the dumps read") {
@@ -79,7 +81,8 @@ fn without_a_limit_every_file_ace3_extracted_matches() {
         "max_file_count": 0,
         "max_jar_file_count": 0,
     }))
-    .expect("harness");
+    .expect("harness")
+    .with_typer(ace_mod_files::file_type::type_of);
     let mut checked = 0;
     let mut cut = 0;
     for dump in Dump::all("archive").expect("the dumps read") {

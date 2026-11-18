@@ -40,6 +40,7 @@ pub mod takes;
 #[cfg(any(test, feature = "testing"))]
 pub mod testing;
 pub mod tree;
+pub mod type_step;
 pub mod writes;
 pub mod yara_qa;
 

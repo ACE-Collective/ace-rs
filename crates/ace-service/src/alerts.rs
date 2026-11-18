@@ -296,6 +296,8 @@ pub struct Alert {
 pub struct AlertFile {
     pub path: String,
     pub yara_meta: Vec<String>,
+    /// What its producer made it under this path, such as `email.attachment` (PLAN.md decision 25).
+    pub role: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -364,6 +366,10 @@ pub struct AlertObservable {
     pub ignored: bool,
     /// A file's paths, the one it's analyzed under first (PLAN.md decision 15).
     pub files: Vec<AlertFile>,
+    /// A file's type, what the type step found in its bytes (PLAN.md decision 25). None for an
+    /// observable that isn't a file, for a file whose type step hasn't ended or failed, and in the
+    /// AI API's reads.
+    pub file_type: Option<ace_results::types::file_type::TypeFacts>,
     pub relationships: Vec<Relationship>,
     pub results: Vec<ModuleResult>,
     /// The modules whose tasks on it failed without a result, by module. None when the read
@@ -1194,6 +1200,7 @@ pub(crate) async fn observables_in(
             display_value: row.display_value,
             ignored: row.ignored,
             files: Vec::new(),
+            file_type: None,
             relationships: Vec::new(),
             results: Vec::new(),
             failed: failed.then(Vec::new),
@@ -1203,7 +1210,7 @@ pub(crate) async fn observables_in(
     let at = |observable: i64| ids.binary_search(&observable).ok();
 
     for row in sqlx::query!(
-        r#"SELECT observable_id, path, yara_meta FROM analysis.files
+        r#"SELECT observable_id, path, yara_meta, role FROM analysis.files
            WHERE root_id = $1 AND observable_id = ANY($2)
            ORDER BY observable_id, analyzed DESC, depth, path COLLATE "C""#,
         id,
@@ -1216,7 +1223,21 @@ pub(crate) async fn observables_in(
             observables[i].files.push(AlertFile {
                 path: row.path,
                 yara_meta: row.yara_meta,
+                role: row.role,
             });
+        }
+    }
+    // the files' types, kept in `store`, which the AI API's role, the read without `failed`, holds
+    // nothing in (migration 0064)
+    if failed {
+        let files: Vec<String> = observables
+            .iter()
+            .filter(|o| o.kind == "file")
+            .map(|o| o.value.clone())
+            .collect();
+        let mut types = ace_core::type_step::facts_of(tx.conn(), &files).await?;
+        for observable in observables.iter_mut().filter(|o| o.kind == "file") {
+            observable.file_type = types.remove(&observable.value);
         }
     }
     for row in sqlx::query!(

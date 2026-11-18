@@ -9,8 +9,9 @@
 use std::collections::BTreeMap;
 use std::sync::LazyLock;
 
+use ace_results::FileRole;
+use ace_results::NewFile;
 use ace_results::types::email::ExtractionError;
-use ace_results::{NewFile, YaraMeta};
 use ace_sdk::{FileOutputError, InputFile};
 use sha2::{Digest, Sha256};
 
@@ -53,12 +54,7 @@ pub struct Attachment {
 
 /// Writes files for the module, the way the task context's `write_file` does.
 pub trait Writer {
-    fn write(
-        &self,
-        path: &str,
-        bytes: &[u8],
-        yara_meta: &[YaraMeta],
-    ) -> Result<NewFile, FileOutputError>;
+    fn write(&self, path: &str, bytes: &[u8], role: FileRole) -> Result<NewFile, FileOutputError>;
 }
 
 /// What extracting the parts produced.
@@ -184,7 +180,7 @@ impl<'w> Extractor<'w> {
         let path = self.names.output_file(&file_name);
         let mut file = self
             .writer
-            .write(&path, &payload, &[email_attachment()])
+            .write(&path, &payload, FileRole::EMAIL_ATTACHMENT)
             .map_err(PartError::Write)?;
         file.add_directive(DIRECTIVE_EXTRACT_URLS);
         // only a part that declares text/plain, or declares nothing, is previewed: a malformed
@@ -220,12 +216,6 @@ impl<'w> Extractor<'w> {
         }
         Ok(())
     }
-}
-
-fn email_attachment() -> YaraMeta {
-    "type=email.attachment"
-        .parse()
-        .expect("a valid yara_meta tag")
 }
 
 fn hex(bytes: &[u8]) -> String {

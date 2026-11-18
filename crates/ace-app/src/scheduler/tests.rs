@@ -247,13 +247,11 @@ async fn yara_qa_prune_removes_the_expired_matches_with_their_holds_and_an_audit
     let mut ids = BTreeMap::new();
     for (sha256, version, expires) in [(&expired_sha, "v1", -1), (&live_sha, "v1", 29)] {
         // the index rows and holds the recorder would have written, without the bytes
-        sqlx::query(
-            "INSERT INTO store.objects (pool, sha256, size, mime_type) VALUES ('alert_files', $1, 1, 'text/plain')",
-        )
-        .bind(sha256)
-        .execute(db.pool())
-        .await
-        .expect("an object row");
+        sqlx::query("INSERT INTO store.objects (pool, sha256, size) VALUES ('alert_files', $1, 1)")
+            .bind(sha256)
+            .execute(db.pool())
+            .await
+            .expect("an object row");
         let id: i64 = sqlx::query_scalar(
             "INSERT INTO yara.qa_matches (signature_uuid, signature_version, rule, namespace, sha256,
                  file_path, root_id, observable_id, match, expires_at)
@@ -332,13 +330,11 @@ async fn file_collection_prune_lets_go_of_old_collections_files() {
     tx.commit().await.expect("commits");
     let mut ids = Vec::new();
     for (sha256, days) in [("a".repeat(64), 8), ("b".repeat(64), 1)] {
-        sqlx::query(
-            "INSERT INTO store.objects (pool, sha256, size, mime_type) VALUES ('alert_files', $1, 1, 'x')",
-        )
-        .bind(&sha256)
-        .execute(db.pool())
-        .await
-        .expect("an object");
+        sqlx::query("INSERT INTO store.objects (pool, sha256, size) VALUES ('alert_files', $1, 1)")
+            .bind(&sha256)
+            .execute(db.pool())
+            .await
+            .expect("an object");
         let id: i64 = sqlx::query_scalar(
             "INSERT INTO queue.actions
                  (kind, handler, observable_type, observable_value, status, result, updated_at,
@@ -2474,8 +2470,8 @@ async fn the_monitoring_checks_run_from_the_scheduler() {
         .await
         .expect("ages it");
     sqlx::query(
-        "INSERT INTO store.objects (pool, sha256, size, mime_type, state)
-         VALUES ('renamed-away', repeat('a', 64), 7, 'text/plain', 'deleting')",
+        "INSERT INTO store.objects (pool, sha256, size, state)
+         VALUES ('renamed-away', repeat('a', 64), 7, 'deleting')",
     )
     .execute(db.pool())
     .await

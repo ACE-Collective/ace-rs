@@ -83,6 +83,8 @@ fn a_parser_log_line_carries_root_observable_and_module() {
         size: 8,
         yara_meta: vec![],
         mime_type: None,
+        facts: None,
+        role: None,
         local_path: local,
     };
     let root = Uuid::new_v4();

@@ -11,7 +11,9 @@ use serde_json::json;
 
 #[test]
 fn an_office_document_is_extracted_whole_and_its_parts_redirect_to_it() {
-    let harness = Harness::<ArchiveAnalyzer>::new().expect("harness");
+    let harness = Harness::<ArchiveAnalyzer>::new()
+        .expect("harness")
+        .with_typer(ace_mod_files::file_type::type_of);
     let docx = harness
         .sample("ace3/office/doc.docx")
         .expect("an ace3 sample");
@@ -46,7 +48,9 @@ fn a_gzip_stream_is_one_file_under_its_original_name() {
         .write(Vec::new(), flate2::Compression::default());
     encoder.write_all(b"WScript.Echo(1)").expect("compresses");
     let gz = encoder.finish().expect("finishes");
-    let harness = Harness::<ArchiveAnalyzer>::new().expect("harness");
+    let harness = Harness::<ArchiveAnalyzer>::new()
+        .expect("harness")
+        .with_typer(ace_mod_files::file_type::type_of);
     let file = harness
         .file_bytes("invoice.gz", &gz, &["type=email.attachment"])
         .expect("fixture");
@@ -75,7 +79,9 @@ fn a_gzip_stream_is_one_file_under_its_original_name() {
 
 #[test]
 fn files_that_arent_archives_are_skipped() {
-    let harness = Harness::<ArchiveAnalyzer>::new().expect("harness");
+    let harness = Harness::<ArchiveAnalyzer>::new()
+        .expect("harness")
+        .with_typer(ace_mod_files::file_type::type_of);
     for (path, bytes) in [
         ("notes.txt", &b"just text"[..]),
         // an OLE document is the Office modules' business
@@ -140,7 +146,9 @@ fn a_zip_member_the_password_doesnt_open_is_written_empty_as_7z_leaves_it() {
         refusing_zipcrypto_zip("invoice.txt"),
         encrypted_zip("invoice.txt", aes("Secr3tPw")),
     ] {
-        let harness = Harness::<ArchiveAnalyzer>::new().expect("harness");
+        let harness = Harness::<ArchiveAnalyzer>::new()
+            .expect("harness")
+            .with_typer(ace_mod_files::file_type::type_of);
         let file = harness.file_bytes("a.zip", &bytes, &[]).expect("fixture");
         let Outcome::Done(result) = harness.run_parser(file).expect("runs") else {
             panic!("expected a result");
@@ -156,7 +164,9 @@ fn a_zip_member_the_password_doesnt_open_is_written_empty_as_7z_leaves_it() {
     }
 
     let bytes = refusing_zipcrypto_zip("evil.exe");
-    let harness = Harness::<ArchiveAnalyzer>::new().expect("harness");
+    let harness = Harness::<ArchiveAnalyzer>::new()
+        .expect("harness")
+        .with_typer(ace_mod_files::file_type::type_of);
     let file = harness.file_bytes("a.zip", &bytes, &[]).expect("fixture");
     let Outcome::Done(result) = harness.run_parser(file).expect("runs") else {
         panic!("expected a result");
@@ -174,7 +184,9 @@ fn a_zip_member_the_password_opens_keeps_its_bytes() {
         encrypted_zip("invoice.txt", zipcrypto(b"infected")),
         encrypted_zip("invoice.txt", aes("infected")),
     ] {
-        let harness = Harness::<ArchiveAnalyzer>::new().expect("harness");
+        let harness = Harness::<ArchiveAnalyzer>::new()
+            .expect("harness")
+            .with_typer(ace_mod_files::file_type::type_of);
         let file = harness.file_bytes("a.zip", &bytes, &[]).expect("fixture");
         let Outcome::Done(result) = harness.run_parser(file).expect("runs") else {
             panic!("expected a result");
@@ -195,7 +207,9 @@ fn a_7z_member_the_password_doesnt_open_is_not_written() {
         .step_by(2)
         .map(|i| u8::from_str_radix(&hex[i..i + 2], 16).expect("hex"))
         .collect();
-    let harness = Harness::<ArchiveAnalyzer>::new().expect("harness");
+    let harness = Harness::<ArchiveAnalyzer>::new()
+        .expect("harness")
+        .with_typer(ace_mod_files::file_type::type_of);
     let file = harness.file_bytes("a.7z", &bytes, &[]).expect("fixture");
     let Outcome::Done(result) = harness.run_parser(file).expect("runs") else {
         panic!("expected a result");

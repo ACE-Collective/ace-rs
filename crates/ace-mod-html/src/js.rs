@@ -21,11 +21,12 @@ use std::collections::HashSet;
 
 use ace_lxml::soup::Tree;
 use ace_pycompat::pystr;
+use ace_results::FileRole;
 use ace_results::types::file_type::FileTypeAnalysis;
 use ace_results::types::html::{DomSnapshot, HtmlJavaScriptExtractionAnalysis};
 use ace_results::{
     AnalysisType, NewFile, NewObservable, ObservableKind, ObservableRef, Relationship,
-    RelationshipKind, ResultEnvelope, YaraMeta,
+    RelationshipKind, ResultEnvelope,
 };
 use ace_sdk::takes::{Case, Condition, Match, Takes, Text};
 use ace_sdk::{InputFile, Manifest, Module, ModuleError, Outcome, Parser, TaskContext};
@@ -470,9 +471,9 @@ impl Run<'_> {
             Some((dir, _)) => format!("{dir}/{name}"),
             None => name.clone(),
         };
-        let meta = YaraMeta::new("type", "script.javascript")
-            .map_err(|e| Failure::Task(ModuleError::other(e)))?;
-        let mut new_file = self.ctx.write_file(&path, content.as_bytes(), &[meta])?;
+        let mut new_file =
+            self.ctx
+                .write_file(&path, content.as_bytes(), FileRole::SCRIPT_JAVASCRIPT)?;
         new_file.relationships.push(Relationship::new(
             RelationshipKind::ExtractedFrom,
             self.source(),

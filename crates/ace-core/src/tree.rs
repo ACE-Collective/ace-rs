@@ -7,8 +7,8 @@
 use ace_results::types::email::EmailAnalysis;
 use ace_results::types::yara::YaraScanResults;
 use ace_results::{
-    AnalysisType, Detection, NewObservable, ObservableAdditions, ObservableKind, ObservableRef,
-    Relationship, ResultEnvelope,
+    AnalysisType, Detection, FileRole, NewObservable, ObservableAdditions, ObservableKind,
+    ObservableRef, Relationship, ResultEnvelope, YaraMeta,
 };
 use chrono::{DateTime, Utc};
 use serde_json::Value;
@@ -475,15 +475,18 @@ pub async fn add_detection(
     Ok(())
 }
 
-/// A path a file has in a root, with its `yara_meta` tags.
+/// A path a file has in a root, with its `yara_meta` tags and its role there.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FileRecord {
     pub path: String,
     pub yara_meta: Vec<String>,
+    /// What its producer made it under this path (`ace_results::FileRole`).
+    pub role: Option<String>,
 }
 
-/// Records that the file observable is in the root at `path`, with these `yara_meta` tags. The
-/// same path again merges its tags.
+/// Records that the file observable is in the root at `path`, with these `yara_meta` tags, as a
+/// submission gives a file: its role is the one its first `type=` tag names, when that is a role
+/// the binary lists (`FileRole::of_yara_meta`). The same path again merges its tags.
 pub async fn add_file(
     tx: &mut Tx<'_>,
     root: Uuid,
@@ -491,30 +494,46 @@ pub async fn add_file(
     path: &str,
     yara_meta: &[String],
 ) -> Result<(), DbError> {
-    add_file_at(tx, root, observable, path, yara_meta, 0).await
+    let role = yara_meta
+        .iter()
+        .filter_map(|tag| tag.parse::<YaraMeta>().ok())
+        .find_map(|tag| FileRole::of_yara_meta(&tag));
+    add_file_at(tx, root, observable, path, yara_meta, role, 0).await
 }
 
 /// `add_file` for a path a result wrote, at `depth`, the depth of the file it adds
-/// (`upsert_observable_at`). The same path at two depths keeps the least.
+/// (`upsert_observable_at`), with the role its producer gave it, whose `type=` tag joins its
+/// `yara_meta`. The same path at two depths keeps the least, and a path already given a role keeps
+/// it.
 pub async fn add_file_at(
     tx: &mut Tx<'_>,
     root: Uuid,
     observable: ObservableId,
     path: &str,
     yara_meta: &[String],
+    role: Option<FileRole>,
     depth: i32,
 ) -> Result<(), DbError> {
+    let mut yara_meta = yara_meta.to_vec();
+    if let Some(role) = role {
+        let tag = role.yara_meta().as_str().to_owned();
+        if !yara_meta.contains(&tag) {
+            yara_meta.push(tag);
+        }
+    }
     sqlx::query!(
-        "INSERT INTO analysis.files AS f (root_id, observable_id, path, yara_meta, depth)
-         VALUES ($1, $2, $3, $4, $5)
+        "INSERT INTO analysis.files AS f (root_id, observable_id, path, yara_meta, depth, role)
+         VALUES ($1, $2, $3, $4, $5, $6)
          ON CONFLICT (root_id, observable_id, path)
          DO UPDATE SET yara_meta = analysis.merged(f.yara_meta, EXCLUDED.yara_meta),
-                       depth = LEAST(f.depth, EXCLUDED.depth)",
+                       depth = LEAST(f.depth, EXCLUDED.depth),
+                       role = COALESCE(f.role, EXCLUDED.role)",
         root,
         observable as ObservableId,
         path,
-        yara_meta,
+        &yara_meta,
         depth,
+        role.map(FileRole::as_str),
     )
     .execute(tx.conn())
     .await?;
@@ -548,7 +567,7 @@ pub async fn analysis_file<'e>(
 ) -> Result<Option<FileRecord>, DbError> {
     Ok(sqlx::query_as!(
         FileRecord,
-        r#"SELECT path, yara_meta FROM analysis.files
+        r#"SELECT path, yara_meta, role FROM analysis.files
            WHERE root_id = $1 AND observable_id = $2
            ORDER BY analyzed DESC, depth, path COLLATE "C" LIMIT 1"#,
         root,
@@ -825,7 +844,8 @@ pub struct DependencyResult {
 
 /// The observable's results from `modules`, by module, as a module that depends on them reads
 /// them (`Module::DEPENDS_ON`): each one's details, and its error when its module said it failed.
-/// A module has one result per observable.
+/// A module has one result per observable. ace3's `file_type` result is built from the file's type
+/// where the file shows it (`crate::type_step`).
 pub async fn results_of(
     pool: &PgPool,
     root: Uuid,
@@ -844,14 +864,27 @@ pub async fn results_of(
     )
     .fetch_all(pool)
     .await?;
-    Ok(rows
+    let mut results: Vec<DependencyResult> = rows
         .into_iter()
         .map(|r| DependencyResult {
             module: r.module,
             details: r.details,
             error: r.error,
         })
-        .collect())
+        .collect();
+    let type_step = crate::type_step::TYPE_STEP;
+    if modules.iter().any(|m| m == type_step) && !results.iter().any(|r| r.module == type_step) {
+        let typed = crate::type_step::results_of(pool, root, Some(&[observable])).await?;
+        if let Some(typed) = typed.get(&observable) {
+            results.push(DependencyResult {
+                module: type_step.to_owned(),
+                details: typed.details(),
+                error: None,
+            });
+            results.sort_by(|a, b| a.module.cmp(&b.module));
+        }
+    }
+    Ok(results)
 }
 
 /// The observables of `kinds` added below an observable, by any route, as ace3's `recurse_tree`

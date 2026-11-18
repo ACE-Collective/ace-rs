@@ -406,7 +406,7 @@ pub struct Api {
 struct Inner {
     db: Db,
     bucket: Bucket,
-    orchestrator: Orchestrator,
+    orchestrator: Arc<Orchestrator>,
     config: ApiConfig,
     /// The module of each task that became claimable, or `*` when the listener reconnected and
     /// may have missed some.
@@ -466,7 +466,7 @@ impl Api {
             inner: Arc::new(Inner {
                 db,
                 bucket,
-                orchestrator,
+                orchestrator: Arc::new(orchestrator),
                 config,
                 wakeups,
                 listener,
@@ -558,6 +558,12 @@ impl Api {
             modules,
             self.inner.config.lease,
         )
+        .with_type_step(self.inner.orchestrator.clone())
+    }
+
+    /// The orchestrator, as what follows a file's type step for the reaper (`queue::run_reaper`).
+    pub fn type_step_ended(&self) -> Arc<dyn crate::queue::TypeStepEnded> {
+        self.inner.orchestrator.clone()
     }
 
     /// The pool a command request comes from, as a command worker named by `x-ace4-worker` or `name`.
@@ -1490,11 +1496,14 @@ impl Api {
             .presign_get(ALERT_FILES, &sha256, self.inner.config.url_expiry)
             .await
             .map_err(BucketError::from)?;
+        // the file's type, which every task but its type step's own is leased after
+        let facts = crate::type_step::facts_for(self.inner.db.pool(), &sha256.to_hex()).await?;
         Ok(Ok(TaskFile {
             path,
             sha256,
             size: object.size,
-            mime_type: object.mime_type,
+            facts,
+            role: record.role.as_deref().and_then(|role| role.parse().ok()),
             yara_meta,
             download: wire_presigned(download),
         }))
@@ -1516,6 +1525,9 @@ impl Api {
         let orchestrator = &self.inner.orchestrator;
         if let Err(rejected) = orchestrator.check_result(&task.module, &result) {
             return Err(self.reject(worker, &task, &result, rejected).await);
+        }
+        if task.module == crate::type_step::TYPE_STEP {
+            return self.land_type(worker, &task, &result).await;
         }
         let mut result: ResultEnvelope<Value> = serde_json::from_value(result)
             .map_err(|e| Failure::BadRequest(format!("the result doesn't read: {e}")))?;
@@ -1586,6 +1598,30 @@ impl Api {
         for file in files {
             bucket.remove_upload(task.id.0, &file.sha256).await?;
         }
+        Ok(())
+    }
+
+    /// Lands a file's type step (`crate::type_step`): keeps what it found in the file's bytes and
+    /// ends the task, which queues the file's other tasks in the same transaction
+    /// (`queue::TypeStepEnded`). Its output is no result in the tree.
+    async fn land_type(&self, worker: &Worker, task: &Task, result: &Value) -> Result<(), Failure> {
+        let facts: ace_results::types::file_type::TypeFacts =
+            serde_json::from_value(result.get("details").cloned().unwrap_or_default())
+                .map_err(|e| Failure::BadRequest(format!("the file's type doesn't read: {e}")))?;
+        let (facts, sha256) = (&facts, task.observable.value.as_str());
+        self.inner
+            .db
+            .transaction(Isolation::ReadCommitted, |tx| {
+                Box::pin(async move {
+                    crate::type_step::store_facts(tx, sha256, facts).await?;
+                    worker
+                        .finish_in(tx, task.id, crate::queue::TaskState::Done, None)
+                        .await?;
+                    crate::queue::check_completion(tx, task.root).await?;
+                    Ok::<_, LandError>(())
+                })
+            })
+            .await?;
         Ok(())
     }
 

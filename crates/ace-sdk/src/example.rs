@@ -6,7 +6,7 @@ use std::io::Read;
 use std::net::Ipv4Addr;
 use std::time::Duration;
 
-use ace_results::{AnalysisType, Bytes, NewObservable, ObservableKind, ResultEnvelope, YaraMeta};
+use ace_results::{AnalysisType, Bytes, FileRole, NewObservable, ObservableKind, ResultEnvelope};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -16,6 +16,10 @@ use crate::module::{Delay, Lookup, Module, ModuleError, Outcome, Parser};
 
 /// A parser: counts the lines of a file.
 pub struct LineCounter;
+
+/// The role of the file `LineCounter` writes: a role of the example's own, which a binary that
+/// runs it lists (`ace_results::install_roles`).
+pub const FIRST_LINE: FileRole = FileRole::define("example.first_line");
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -91,11 +95,8 @@ impl Parser for LineCounter {
         tracing::info!(lines, longest_line, "counted lines");
 
         // the first line also goes into the alert as a file of its own, next to the input
-        let first_line_file = ctx.write_file(
-            &format!("{}.first_line", file.path),
-            first_line,
-            &[YaraMeta::new("type", "example.first_line").map_err(ModuleError::other)?],
-        )?;
+        let first_line_file =
+            ctx.write_file(&format!("{}.first_line", file.path), first_line, FIRST_LINE)?;
 
         let stats = LineStats {
             lines,
@@ -240,6 +241,8 @@ mod tests {
             size: bytes.len() as u64,
             yara_meta: vec![],
             mime_type: Some("text/plain".to_owned()),
+            facts: None,
+            role: None,
             local_path: local.path().to_owned(),
         };
         (local, Observable::file(file))

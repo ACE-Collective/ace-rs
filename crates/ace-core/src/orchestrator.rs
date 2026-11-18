@@ -32,6 +32,7 @@ use crate::modes::{CORRELATION, DISPOSITIONED, Modes};
 use crate::queue::{self, QueueError, Task, TaskId, TaskState, Worker};
 use crate::takes::{self as declared, TakesMode};
 use crate::tree::{self, ObservableId, ResultId};
+use crate::type_step::{self, TYPE_STEP};
 
 #[derive(Debug, thiserror::Error)]
 pub enum OrchestratorError {
@@ -252,7 +253,7 @@ impl Orchestrator {
         };
         let observables = sqlx::query!(
             r#"SELECT id AS "id: ObservableId", type AS kind, tags, directives, exclude_modules,
-                      limit_modules
+                      limit_modules, type_result
                FROM analysis.observables
                WHERE root_id = $1 AND ($2::bigint[] IS NULL OR id = ANY($2))
                ORDER BY id"#,
@@ -297,6 +298,9 @@ impl Orchestrator {
         }
 
         let none = BTreeSet::new();
+        // a file's type step, queued first and alone (`crate::type_step`)
+        let type_step = self.catalog.component(TYPE_STEP);
+        let mut queued = Vec::new();
         // each observable's eligible components first, then the facts their declarations read,
         // read once for every observable that has a declaring component (`crate::takes`)
         let mut eligible: Vec<(ObservableKind, Vec<&ace_sdk::Component>)> = Vec::new();
@@ -313,17 +317,48 @@ impl Orchestrator {
                 exclude_modules: &observable.exclude_modules,
                 limit_modules: &observable.limit_modules,
             };
-            let done: BTreeSet<&str> = results
+            let mut done: BTreeSet<&str> = results
                 .get(&observable.id)
                 .unwrap_or(&none)
                 .iter()
                 .map(String::as_str)
                 .collect();
-            let components: Vec<&ace_sdk::Component> = self
+            // ace3's file_type result, built from the file's type, is the dependency's result
+            if observable.type_result {
+                done.insert(TYPE_STEP);
+            }
+            let mut components: Vec<&ace_sdk::Component> = self
                 .catalog
                 .iter()
+                .filter(|component| component.key != TYPE_STEP)
                 .filter(|component| check(component, facts, &mode_modules, &done).is_ok())
                 .collect();
+            if kind == ObservableKind::File
+                && let Some(step) = type_step
+            {
+                // typed when anything the mode runs, file_type among them, would look at it
+                let wanted =
+                    !components.is_empty() || check(step, facts, &mode_modules, &done).is_ok();
+                let step_task = tasks.get(&(observable.id, TYPE_STEP.to_owned()));
+                let ended = match step_task {
+                    Some((_, TaskState::Done | TaskState::Failed, _)) => true,
+                    None if wanted => {
+                        queued.extend(queue::enqueue(tx, root, observable.id, TYPE_STEP).await?);
+                        false
+                    }
+                    Some((id, TaskState::Cancelled, _)) if wanted && requeue_cancelled => {
+                        if queue::requeue_cancelled(tx, *id).await? {
+                            queued.push(*id);
+                        }
+                        false
+                    }
+                    _ => false,
+                };
+                // nothing else on the file until its type step has ended
+                if !ended {
+                    components.clear();
+                }
+            }
             if components.iter().any(|c| !c.takes.is_everything()) {
                 declaring.push(observable.id);
             }
@@ -336,7 +371,6 @@ impl Orchestrator {
             declared::held(tx, root, &declaring, &needs).await?
         };
         let nothing_held = declared::Held::default();
-        let mut queued = Vec::new();
         for (observable, (kind, components)) in observables.iter().zip(eligible) {
             let facts = held.get(&observable.id).unwrap_or(&nothing_held).facts(
                 kind,
@@ -437,8 +471,115 @@ impl Orchestrator {
         .execute(tx.conn())
         .await?;
         hooks::mark_due(tx, &self.hooks, &self.modes, root, mode).await?;
+        // a mode that runs file_type gives typed files ace3's result where an earlier mode didn't
+        self.show_types(tx, root, mode, Scope::All).await?;
         self.queue_eligible_locked(tx, root, mode, Scope::All, true)
             .await
+    }
+
+    /// What follows a file's type step, however it ended (`queue::TypeStepEnded`): the file shows
+    /// ace3's file_type result where that module would have run, the observable modifier's `pre`
+    /// rules see what that added, as they see what a landing adds, and the file's other tasks are
+    /// queued. Called in the transaction that ended the step, with its root locked.
+    pub async fn type_step_ended(
+        &self,
+        tx: &mut Tx<'_>,
+        root: Uuid,
+        observable: ObservableId,
+    ) -> Result<Vec<TaskId>, OrchestratorError> {
+        let locked = lock_root(tx, root).await?;
+        if locked.cancelled {
+            return Ok(Vec::new());
+        }
+        let mode = locked.mode;
+        let mut touched = vec![observable];
+        let shown = self
+            .show_types(tx, root, &mode, Scope::Observables(&touched))
+            .await?;
+        let mut pre = hooks::Effects::default();
+        if !shown.is_empty() {
+            pre = hooks::pre(tx, &self.hooks, &self.modes, root, &mode, &touched).await?;
+            touched.extend(pre.touched.iter().copied());
+            hooks::mark_due(tx, &self.hooks, &self.modes, root, &mode).await?;
+        }
+        if pre.detected
+            && self.modes.is_detectable(&mode)
+            && !tree::has_whitelisted(tx.conn(), root).await?
+        {
+            sqlx::query!(
+                "UPDATE analysis.roots SET alerted_at = COALESCE(alerted_at, now()) WHERE id = $1",
+                root,
+            )
+            .execute(tx.conn())
+            .await?;
+            tracing::info!(%root, from = %mode, "a hook's detection made the root an alert");
+            return self.set_mode(tx, root, CORRELATION).await;
+        }
+        let mut queued = self
+            .queue_eligible_locked(tx, root, &mode, Scope::Observables(&touched), false)
+            .await?;
+        queued.extend(pre.requeued);
+        Ok(queued)
+    }
+
+    /// Gives each typed file in `scope` that doesn't show it yet ace3's file_type result, where
+    /// that module would run on it in `mode` by the core's rules (`type_step::show`), and returns
+    /// those files.
+    async fn show_types(
+        &self,
+        tx: &mut Tx<'_>,
+        root: Uuid,
+        mode: &str,
+        scope: Scope<'_>,
+    ) -> Result<Vec<ObservableId>, OrchestratorError> {
+        let Some(component) = self.catalog.component(TYPE_STEP) else {
+            return Ok(Vec::new());
+        };
+        let catalog = self.catalog.keys();
+        let mut mode_modules = self.modes.modules_in(mode);
+        mode_modules.retain(|m| catalog.contains(m));
+        let only: Option<Vec<i64>> = match scope {
+            Scope::All => None,
+            Scope::Observables(ids) => Some(ids.iter().map(|id| id.0).collect()),
+        };
+        let rows = sqlx::query!(
+            r#"SELECT o.id AS "id: ObservableId", o.value, o.tags, o.directives, o.exclude_modules,
+                      o.limit_modules
+               FROM analysis.observables o
+               JOIN queue.tasks t ON t.root_id = o.root_id AND t.observable_id = o.id
+                    AND t.module = $3 AND t.state IN ('done', 'failed')
+               WHERE o.root_id = $1 AND o.type = 'file' AND NOT o.type_result
+                 AND ($2::bigint[] IS NULL OR o.id = ANY($2))
+               ORDER BY o.id"#,
+            root,
+            only.as_deref(),
+            TYPE_STEP,
+        )
+        .fetch_all(tx.conn())
+        .await?;
+        let none = BTreeSet::new();
+        let mut shown = Vec::new();
+        for row in rows {
+            let facts = Facts {
+                kind: ObservableKind::File,
+                tags: &row.tags,
+                directives: &row.directives,
+                exclude_modules: &row.exclude_modules,
+                limit_modules: &row.limit_modules,
+            };
+            if check(component, facts, &mode_modules, &none).is_err() {
+                continue;
+            }
+            let Some(type_facts) = type_step::facts_for(tx.conn(), &row.value).await? else {
+                continue;
+            };
+            let Some(file) = tree::analysis_file(tx.conn(), root, row.id).await? else {
+                continue;
+            };
+            type_step::show(tx, root, row.id, &file.path, &type_facts).await?;
+            shown.push(row.id);
+        }
+        Ok(shown)
     }
 
     /// What follows a hooks run (`crate::hooks`): a detection in a detectable mode makes the root an
@@ -578,7 +719,16 @@ impl Orchestrator {
                 .iter()
                 .map(|tag| tag.as_str().to_owned())
                 .collect();
-            tree::add_file_at(tx, root, id, file.path.as_str(), &yara_meta, depth).await?;
+            tree::add_file_at(
+                tx,
+                root,
+                id,
+                file.path.as_str(),
+                &yara_meta,
+                file.role,
+                depth,
+            )
+            .await?;
             tree::add_result_addition(tx, root, result_id, id, Some(file.path.as_str())).await?;
             touched.push(id);
             detections.extend(file.detections.iter().map(|d| (id, d)));
@@ -689,6 +839,26 @@ impl Orchestrator {
             result: result_id,
             queued,
             mode_changed_to: None,
+        })
+    }
+}
+
+impl queue::TypeStepEnded for Orchestrator {
+    fn ended<'a>(
+        &'a self,
+        tx: &'a mut Tx<'_>,
+        root: Uuid,
+        observable: ObservableId,
+    ) -> queue::TypeStepFuture<'a> {
+        Box::pin(async move {
+            match self.type_step_ended(tx, root, observable).await {
+                Ok(_) => Ok(()),
+                Err(OrchestratorError::Queue(e)) => Err(e),
+                Err(OrchestratorError::Db(e)) => Err(QueueError::Db(e)),
+                Err(OrchestratorError::NoRoot(root)) => {
+                    Err(QueueError::Db(DbError::Decode(format!("no root {root}"))))
+                }
+            }
         })
     }
 }

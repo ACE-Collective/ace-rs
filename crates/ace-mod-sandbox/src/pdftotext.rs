@@ -3,14 +3,16 @@
 
 use std::time::Duration;
 
+use ace_results::FileRole;
 use ace_results::types::sandbox::PdfTextAnalysis;
-use ace_results::{ObservableKind, Relationship, RelationshipKind, ResultEnvelope, YaraMeta};
+use ace_results::{ObservableKind, Relationship, RelationshipKind, ResultEnvelope};
 use ace_sdk::tools::ToolRun;
 use ace_sdk::{Module, ModuleError, Outcome, Parser, Resources, TaskContext};
 use schemars::JsonSchema;
 use serde::Deserialize;
 
-use crate::{head, name_fits, source};
+use crate::{name_fits, source};
+use ace_sdk::takes::{Condition, Takes, TypeFact};
 
 /// ace3's section of the module, but for `pdftotext_path`: the pool's image names the program.
 #[derive(Debug, Clone, PartialEq, Deserialize, JsonSchema)]
@@ -45,6 +47,11 @@ impl Module for PdfTextAnalyzer {
     fn init(_: &PdfTextSettings) -> Result<Self, ModuleError> {
         Ok(PdfTextAnalyzer)
     }
+
+    fn takes(_: &PdfTextSettings) -> Takes {
+        // ace3's is_pdf_file, which the file's type and its path state (PLAN.md decision 25)
+        Takes::everything().and(Condition::type_fact(TypeFact::IsPdfFile), "not a PDF")
+    }
 }
 
 /// Where ace3 writes the text: `<file>.txt` for a name ending `.pdf`, any case, and `<file>.pdf.txt`
@@ -64,9 +71,6 @@ impl Parser for PdfTextAnalyzer {
     ) -> Result<Outcome<PdfTextAnalysis>, ModuleError> {
         let file = ctx.input_file()?;
         let path = file.path.as_str();
-        if !ace_mod_files::checks::is_pdf_file(path, &head(&file.local_path, 1024)?) {
-            return Ok(Outcome::Skipped("not a PDF".to_owned()));
-        }
         let mut result = ResultEnvelope::new(PdfTextAnalysis::default());
         let local = file.local_path.display().to_string();
         let run = ToolRun::new("pdftotext", [local.as_str(), "output.txt"])
@@ -89,7 +93,7 @@ impl Parser for PdfTextAnalyzer {
             let mut new_file = ctx.write_file_from(
                 &target,
                 &mut std::fs::File::open(text)?,
-                &[YaraMeta::new("type", "document.pdf.text").map_err(ModuleError::other)?],
+                FileRole::DOCUMENT_PDF_TEXT,
             )?;
             new_file.redirection = Some(source(file));
             new_file.relationships.push(Relationship::new(

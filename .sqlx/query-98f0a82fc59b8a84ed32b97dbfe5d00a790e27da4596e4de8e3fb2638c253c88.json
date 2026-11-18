@@ -1,0 +1,53 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT path, yara_meta, role FROM analysis.files\n           WHERE root_id = $1 AND observable_id = $2\n           ORDER BY analyzed DESC, depth, path COLLATE \"C\" LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "path",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "analysis.files",
+            "name": "path"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "yara_meta",
+        "type_info": "TextArray",
+        "origin": {
+          "Table": {
+            "table": "analysis.files",
+            "name": "yara_meta"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "role",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "analysis.files",
+            "name": "role"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "98f0a82fc59b8a84ed32b97dbfe5d00a790e27da4596e4de8e3fb2638c253c88"
+}

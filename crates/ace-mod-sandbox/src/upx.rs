@@ -3,14 +3,15 @@
 
 use std::time::Duration;
 
-use ace_mod_files::checks::is_pe_file;
+use ace_results::FileRole;
 use ace_results::types::executables::UpxAnalysis;
-use ace_results::{ObservableKind, Relationship, RelationshipKind, ResultEnvelope, YaraMeta};
+use ace_results::{ObservableKind, Relationship, RelationshipKind, ResultEnvelope};
 use ace_sdk::tools::ToolRun;
 use ace_sdk::{Module, ModuleError, Outcome, Parser, Resources, TaskContext};
 use regex::Regex;
 
-use crate::{copy_directives, head, name_fits, source, stopped_reason};
+use crate::{copy_directives, name_fits, source, stopped_reason};
+use ace_sdk::takes::{Condition, Takes, TypeFact};
 
 /// The upx module.
 pub struct UpxAnalyzer {
@@ -37,14 +38,16 @@ impl Module for UpxAnalyzer {
             ok: Regex::new(r"(?m)^testing .* \[OK\]$").map_err(ModuleError::other)?,
         })
     }
+
+    fn takes(_: &()) -> Takes {
+        // `MZ` first, as `checks::is_pe_file` read it, from the file's type (PLAN.md decision 25)
+        Takes::everything().and(Condition::type_fact(TypeFact::IsPeFile), "not a PE file")
+    }
 }
 
 impl Parser for UpxAnalyzer {
     fn analyze(&self, ctx: &TaskContext<()>) -> Result<Outcome<UpxAnalysis>, ModuleError> {
         let file = ctx.input_file()?;
-        if !is_pe_file(&head(&file.local_path, 2)?) {
-            return Ok(Outcome::Skipped("not a PE file".to_owned()));
-        }
         let local = file.local_path.display().to_string();
         // the time left, as ace3's run_sandboxed_tool gives a run with no timeout of its own
         let unbounded = ctx.time_left();
@@ -86,7 +89,7 @@ impl Parser for UpxAnalyzer {
             let mut new_file = ctx.write_file_from(
                 &target,
                 &mut std::fs::File::open(unpacked)?,
-                &[YaraMeta::new("type", "executable.unpacked").map_err(ModuleError::other)?],
+                FileRole::EXECUTABLE_UNPACKED,
             )?;
             new_file.relationships.push(Relationship::new(
                 RelationshipKind::ExtractedFrom,

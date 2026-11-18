@@ -27,17 +27,15 @@ pub mod qpdf;
 
 pub use links::PdfLinkTextAnalyzer;
 
-use std::fs::File;
-use std::io::Read;
 use std::path::Path;
 use std::time::Duration;
 
+use ace_results::FileRole;
 use ace_results::types::pdf::PdfAnalysis;
 use ace_results::{
     NewFile, ObservableKind, ObservableRef, Relationship, RelationshipKind, ResultEnvelope,
-    YaraMeta,
 };
-use ace_sdk::takes::{Case, Condition, Takes, Text};
+use ace_sdk::takes::{Case, Condition, Takes, Text, TypeFact};
 use ace_sdk::{InputFile, Manifest, Module, ModuleError, Outcome, Parser, Resources, TaskContext};
 use schemars::JsonSchema;
 use serde::Deserialize;
@@ -95,20 +93,10 @@ impl Module for PdfAnalyzer {
                 Condition::Path(Text::ends_with(".ocr", Case::Exact)).negated(),
                 "OCR output",
             )
+            // `%PDF-` in the first kilobyte, whatever the name, from the file's type (PLAN.md
+            // decision 25)
+            .and(Condition::type_fact(TypeFact::HasPdfMarker), "not a PDF")
     }
-}
-
-/// `%PDF-` anywhere in the first 1024 bytes, as ace3 tests it.
-fn looks_like_pdf(local_path: &Path) -> std::io::Result<bool> {
-    let mut head = Vec::with_capacity(1024);
-    File::open(local_path)?.take(1024).read_to_end(&mut head)?;
-    Ok(head.windows(5).any(|w| w == b"%PDF-"))
-}
-
-fn yara_meta(kind: &str) -> Result<Vec<YaraMeta>, ModuleError> {
-    Ok(vec![
-        YaraMeta::new("type", kind).map_err(ModuleError::other)?,
-    ])
 }
 
 /// `re.sub(r'[^A-Za-z0-9_-]', '_', name)`.
@@ -226,10 +214,10 @@ impl Output<'_> {
         &mut self,
         path: &str,
         bytes: &[u8],
-        kind: &str,
+        role: FileRole,
         source: &ObservableRef,
     ) -> Result<(), ModuleError> {
-        let mut file = self.write(path, bytes, kind, source)?;
+        let mut file = self.write(path, bytes, role, source)?;
         file.add_directive(EXTRACT_URLS);
         file.exclude_modules.push(PdfAnalyzer::NAME.to_owned());
         self.result.files.push(file);
@@ -240,10 +228,10 @@ impl Output<'_> {
         &self,
         path: &str,
         bytes: &[u8],
-        kind: &str,
+        role: FileRole,
         source: &ObservableRef,
     ) -> Result<NewFile, ModuleError> {
-        let mut file = self.ctx.write_file(path, bytes, &yara_meta(kind)?)?;
+        let mut file = self.ctx.write_file(path, bytes, role)?;
         file.relationships.push(Relationship::new(
             RelationshipKind::ExtractedFrom,
             source.clone(),
@@ -263,7 +251,7 @@ impl Output<'_> {
         if let Some(stop) = &run.stopped {
             tracing::warn!(?stop, "pdf-parser stopped early");
         }
-        let mut file = self.write(path, &run.stdout, "document.pdf.object", source)?;
+        let mut file = self.write(path, &run.stdout, FileRole::DOCUMENT_PDF_OBJECT, source)?;
         file.add_directive(EXTRACT_URLS);
         self.result.files.push(file);
         Ok(())
@@ -301,9 +289,6 @@ impl Parser for PdfAnalyzer {
     fn analyze(&self, ctx: &TaskContext<PdfSettings>) -> Result<Outcome<PdfAnalysis>, ModuleError> {
         let file = ctx.input_file()?;
         let path = file.path.as_str();
-        if !looks_like_pdf(&file.local_path)? {
-            return Ok(Outcome::Skipped("not a PDF".to_owned()));
-        }
         let mut output = Output {
             ctx,
             file_ref: ObservableRef::new(ObservableKind::File, file.sha256.to_hex()),
@@ -362,7 +347,7 @@ fn rewrite(
     }
     let bytes = std::fs::read(rewritten)?;
     let source = output.file_ref.clone();
-    output.add(&target, &bytes, "document.pdf.rendered", &source)
+    output.add(&target, &bytes, FileRole::DOCUMENT_PDF_RENDERED, &source)
 }
 
 fn read_document(
@@ -385,7 +370,7 @@ fn read_document(
             output.add(
                 &uris_path,
                 text.as_bytes(),
-                "document.pdf.annotation_uris",
+                FileRole::DOCUMENT_PDF_ANNOTATION_URIS,
                 &source,
             )?;
         }
@@ -448,7 +433,12 @@ fn add_form_fields(
         if !name_fits(&target) {
             return Ok(Err(qpdf::Raised::new("OSError", "File name too long")));
         }
-        output.add(&target, &decoded, "document.pdf.form_field", &source)?;
+        output.add(
+            &target,
+            &decoded,
+            FileRole::DOCUMENT_PDF_FORM_FIELD,
+            &source,
+        )?;
     }
     Ok(Ok(()))
 }
@@ -487,7 +477,12 @@ fn add_javascript(
         if !name_fits(&target) {
             return Ok(Err(qpdf::Raised::new("OSError", "File name too long")));
         }
-        output.add(&target, content.as_bytes(), "script.javascript", &source)?;
+        output.add(
+            &target,
+            content.as_bytes(),
+            FileRole::SCRIPT_JAVASCRIPT,
+            &source,
+        )?;
     }
     Ok(Ok(()))
 }
@@ -554,7 +549,7 @@ fn save_decrypted_copy(
         &output.result.files,
     );
     let source = output.file_ref.clone();
-    let mut decrypted = output.write(&name, &copy, "document.pdf", &source)?;
+    let mut decrypted = output.write(&name, &copy, FileRole::DOCUMENT_PDF, &source)?;
     decrypted.add_tag("decrypted_pdf");
     decrypted.exclude_modules.push(PdfAnalyzer::NAME.to_owned());
     for module in NOT_ON_THE_COPY {
@@ -650,7 +645,9 @@ mod tests {
 
         /// Everything the module writes for a sample, Ghostscript's rewrite included.
         fn rewritten(sample: &str) -> Option<ResultEnvelope<PdfAnalysis>> {
-            let harness = Harness::<PdfAnalyzer>::new().expect("harness");
+            let harness = Harness::<PdfAnalyzer>::new()
+                .expect("harness")
+                .with_typer(ace_mod_files::file_type::type_of);
             let input = harness.sample(sample).expect("a sample");
             match harness.run_parser(input).expect("runs") {
                 Outcome::Done(result) => Some(result),

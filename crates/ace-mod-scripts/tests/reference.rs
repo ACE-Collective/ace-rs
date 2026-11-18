@@ -58,7 +58,9 @@ fn compare<M: Parser>(
 ) -> Vec<(String, Vec<Difference>)> {
     let mut compared = Vec::new();
     for dump in Dump::all(module).expect("the dumps read") {
-        let mut harness = Harness::<M>::new().expect("harness");
+        let mut harness = Harness::<M>::new()
+            .expect("harness")
+            .with_typer(ace_mod_files::file_type::type_of);
         if let Some(file_type) = dump.file_type() {
             harness = harness.dependency_result("file_type", file_type.clone());
         }

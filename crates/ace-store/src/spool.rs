@@ -1,11 +1,9 @@
-//! Bytes on their way into the bucket: in a temporary file on this node, with their sha256,
-//! size and mime type.
+//! Bytes on their way into the bucket: in a temporary file on this node, with their sha256 and
+//! size.
 
-use std::cell::RefCell;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use ace_results::Sha256;
-use ace_yara::mime::{DEFAULT_DATABASE, MimeTyper};
 use sha2::Digest;
 use tempfile::NamedTempFile;
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWriteExt};
@@ -20,8 +18,6 @@ pub struct Spooled {
     temp: NamedTempFile,
     pub sha256: Sha256,
     pub size: u64,
-    /// libmagic's answer for the bytes, from the pinned magic database.
-    pub mime_type: String,
 }
 
 impl Spooled {
@@ -46,15 +42,10 @@ impl Spooled {
         out.flush().await?;
         out.sync_all().await?;
         drop(out);
-        let path = temp.path().to_path_buf();
-        let mime_type = tokio::task::spawn_blocking(move || mime_type_of(&path))
-            .await
-            .map_err(|e| StoreError::Mime(format!("the mime type's thread failed: {e}")))??;
         Ok(Spooled {
             temp,
             sha256: Sha256(hasher.finalize().into()),
             size,
-            mime_type,
         })
     }
 
@@ -65,27 +56,4 @@ impl Spooled {
     pub(crate) fn into_temp(self) -> NamedTempFile {
         self.temp
     }
-}
-
-thread_local! {
-    /// A libmagic cookie can't be shared between threads, so each blocking thread opens its own
-    /// the first time it types a file.
-    static TYPER: RefCell<Option<MimeTyper>> = const { RefCell::new(None) };
-}
-
-fn mime_type_of(path: &Path) -> Result<String, StoreError> {
-    TYPER.with(|cell| {
-        let mut typer = cell.borrow_mut();
-        if typer.is_none() {
-            let opened = MimeTyper::open(Path::new(DEFAULT_DATABASE))
-                .map_err(|e| StoreError::Mime(e.to_string()))?;
-            *typer = Some(opened);
-        }
-        match typer.as_ref() {
-            Some(typer) => typer
-                .mime_type_of_path(path)
-                .map_err(|e| StoreError::Mime(e.to_string())),
-            None => Err(StoreError::Mime("libmagic didn't open".to_owned())),
-        }
-    })
 }

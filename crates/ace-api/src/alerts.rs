@@ -332,6 +332,51 @@ pub(crate) struct FileBody {
     /// The file's path in the alert, such as `email.rfc822.parts/invoice.zip`.
     path: String,
     yara_meta: Vec<String>,
+    /// What the module that wrote it made it under this path, such as `email.attachment`, or null.
+    /// Its `type=` tag is among `yara_meta`.
+    role: Option<String>,
+}
+
+/// What a file's bytes are, as the type step found them, with ace3's names for the checks.
+#[derive(Debug, Serialize, ToSchema)]
+pub(crate) struct FileTypeBody {
+    /// libmagic's description, as `file -b -L` prints it.
+    description: String,
+    /// libmagic's mime type.
+    mime: String,
+    is_ole_file: bool,
+    is_rtf_file: bool,
+    /// `%PDF-` in the first kilobyte. ace3's `is_pdf_file` is this unless the name ends in
+    /// `.pdfparser`.
+    has_pdf_marker: bool,
+    is_pe_file: bool,
+    is_zip_file: bool,
+    is_jar_file: bool,
+    is_x509: bool,
+    is_lnk_file: bool,
+    is_email_file: bool,
+    /// Whether it parses as JavaScript with a keyword in it; null when the type step didn't check,
+    /// which it does only where the mime type or the name says JavaScript.
+    javascript: Option<bool>,
+}
+
+impl From<ace_results::types::file_type::TypeFacts> for FileTypeBody {
+    fn from(facts: ace_results::types::file_type::TypeFacts) -> Self {
+        FileTypeBody {
+            description: facts.description,
+            mime: facts.mime,
+            is_ole_file: facts.is_ole_file,
+            is_rtf_file: facts.is_rtf_file,
+            has_pdf_marker: facts.has_pdf_marker,
+            is_pe_file: facts.is_pe_file,
+            is_zip_file: facts.is_zip_file,
+            is_jar_file: facts.is_jar_file,
+            is_x509: facts.is_x509,
+            is_lnk_file: facts.is_lnk_file,
+            is_email_file: facts.is_email_file,
+            javascript: facts.javascript,
+        }
+    }
 }
 
 #[derive(Debug, Serialize, ToSchema)]
@@ -401,6 +446,11 @@ pub(crate) struct ObservableBody {
     /// The label a module gave it in place of its type's name, such as `Source IP`, or null.
     display_type: Option<String>,
     files: Vec<FileBody>,
+    /// A file's type: what the type step found in its bytes (PLAN.md decision 25). ace3 showed this
+    /// as file_type's result, which ace4 doesn't store. Absent for an observable that isn't a file,
+    /// for a file whose type step hasn't ended or failed, and from the AI investigation API.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    file_type: Option<FileTypeBody>,
     relationships: Vec<RelationshipBody>,
     results: Vec<ResultBody>,
     /// The modules whose tasks on it failed without a result. Absent from the AI investigation
@@ -427,8 +477,19 @@ impl From<AlertObservable> for ObservableBody {
             files: observable
                 .files
                 .into_iter()
-                .map(|AlertFile { path, yara_meta }| FileBody { path, yara_meta })
+                .map(
+                    |AlertFile {
+                         path,
+                         yara_meta,
+                         role,
+                     }| FileBody {
+                        path,
+                        yara_meta,
+                        role,
+                    },
+                )
                 .collect(),
+            file_type: observable.file_type.map(FileTypeBody::from),
             relationships: observable
                 .relationships
                 .into_iter()

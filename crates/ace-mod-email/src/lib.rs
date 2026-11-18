@@ -30,9 +30,10 @@ mod settings;
 
 use std::fs;
 
+use ace_results::FileRole;
 use ace_results::types::email::EmailAnalysis;
 use ace_results::types::file_type::FileTypeAnalysis;
-use ace_results::{AnalysisType, NewFile, ObservableKind, ResultEnvelope, YaraMeta};
+use ace_results::{AnalysisType, NewFile, ObservableKind, ResultEnvelope};
 use ace_sdk::takes::{Case, Condition, Match, Takes, Text};
 use ace_sdk::{
     FileOutputError, ListSpec, Manifest, Module, ModuleError, Outcome, Parser, TaskContext,
@@ -202,13 +203,8 @@ impl Parser for EmailAnalyzer {
 struct ContextWriter<'c>(&'c TaskContext<EmailAnalyzerSettings>);
 
 impl parts::Writer for ContextWriter<'_> {
-    fn write(
-        &self,
-        path: &str,
-        bytes: &[u8],
-        yara_meta: &[YaraMeta],
-    ) -> Result<NewFile, FileOutputError> {
-        self.0.write_file(path, bytes, yara_meta)
+    fn write(&self, path: &str, bytes: &[u8], role: FileRole) -> Result<NewFile, FileOutputError> {
+        self.0.write_file(path, bytes, role)
     }
 }
 
@@ -235,11 +231,7 @@ fn headers_files(
     let mut files = Vec::new();
     let headers_path = path_with(".headers");
     if !names.is_taken(&headers_path) {
-        let mut file = writer.write(
-            &headers_path,
-            headers.as_bytes(),
-            &[yara_meta("email.headers")],
-        )?;
+        let mut file = writer.write(&headers_path, headers.as_bytes(), FileRole::EMAIL_HEADERS)?;
         file.exclude_modules.push(EmailAnalyzer::NAME.to_owned());
         names.take(&headers_path);
         files.push(file);
@@ -252,16 +244,12 @@ fn headers_files(
             combined.extend_from_slice(&attachment.bytes);
             combined.extend_from_slice(b"\n\n");
         }
-        let mut file = writer.write(&combined_path, &combined, &[yara_meta("email.combined")])?;
+        let mut file = writer.write(&combined_path, &combined, FileRole::EMAIL_COMBINED)?;
         file.exclude_modules.push(EmailAnalyzer::NAME.to_owned());
         names.take(&combined_path);
         files.push(file);
     }
     Ok(files)
-}
-
-fn yara_meta(value: &str) -> YaraMeta {
-    YaraMeta::new("type", value).expect("a valid yara_meta tag")
 }
 
 /// `\r\n` and `\r` as `\n`, as Python's `TextIOWrapper` reads them by default.

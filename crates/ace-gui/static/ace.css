@@ -1395,6 +1395,17 @@ p.warning a {
   font-weight: 650;
 }
 
+/* A file's type (what its bytes are) and its role (what its producer made it), after its path. */
+.tree .file-type,
+.tree .file-role {
+  color: var(--muted);
+  font-size: var(--text-xs);
+}
+
+.tree .file-role {
+  font-style: italic;
+}
+
 .tree .tag,
 .tag {
   display: inline-block;

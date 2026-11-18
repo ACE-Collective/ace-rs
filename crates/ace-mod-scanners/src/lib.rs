@@ -126,9 +126,9 @@ fn read_directory<S>(
         let placeholder = format!("scan/{}", output.files.len());
         let (file, bytes) = if read(&path) {
             let bytes = read_limited(&mut entry)?;
-            (ctx.write_file(&placeholder, &bytes, &[])?, Some(bytes))
+            (ctx.write_file(&placeholder, &bytes, None)?, Some(bytes))
         } else {
-            (ctx.write_file_from(&placeholder, &mut entry, &[])?, None)
+            (ctx.write_file_from(&placeholder, &mut entry, None)?, None)
         };
         output.files.push(OutputFile { path, file, bytes });
     }

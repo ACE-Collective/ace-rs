@@ -44,20 +44,27 @@ static KEYWORDS: LazyLock<Regex> = LazyLock::new(|| {
 
 /// `is_javascript_file(path)` on a file whose alert path is `path` and whose bytes are `data`.
 pub fn is_javascript_file(path: &str, data: &[u8]) -> bool {
-    if !node_checks(path, data) {
-        return false;
-    }
-    data.split(|b| *b == b'\n')
-        .any(|line| KEYWORDS.is_match(line))
+    !ace_results::types::file_type::javascript_name_refused(path) && javascript_bytes(data)
 }
 
 /// Whether `node --check` exits 0, as ace3 runs it.
 pub fn node_checks(path: &str, data: &[u8]) -> bool {
-    let lower = path.to_lowercase();
     // a name that ends in .js in another case keeps its name, which node refuses
-    if lower.ends_with(".js") && !path.ends_with(".js") {
-        return false;
-    }
+    !ace_results::types::file_type::javascript_name_refused(path) && node_parses(data)
+}
+
+/// The part of `is_javascript_file` that reads the bytes alone: node would parse them under a
+/// name it takes, and a line has a keyword. The type step keeps it as a fact of the bytes
+/// (`TypeFacts::javascript`).
+pub fn javascript_bytes(data: &[u8]) -> bool {
+    node_parses(data)
+        && data
+            .split(|b| *b == b'\n')
+            .any(|line| KEYWORDS.is_match(line))
+}
+
+/// `node --check` on the bytes under a name node takes.
+fn node_parses(data: &[u8]) -> bool {
     let text = String::from_utf8_lossy(data);
     let text = text.strip_prefix('\u{feff}').unwrap_or(&text);
     if max_nesting(text.as_bytes()) > MAX_NESTING {

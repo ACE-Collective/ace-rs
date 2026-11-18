@@ -2236,7 +2236,8 @@ async fn crashes_are_failed_tasks() {
             CrashInput {
                 sha256,
                 size: Some(9),
-                mime_type: Some("text/plain".to_owned()),
+                // its type's, and no type step ran on it here
+                mime_type: None,
             },
             CrashInput {
                 sha256: "0".repeat(64),
@@ -13318,6 +13319,7 @@ fn graph_observable(id: i64, kind: &str, value: &str) -> AlertObservable {
         display_value: None,
         ignored: false,
         files: Vec::new(),
+        file_type: None,
         relationships: Vec::new(),
         results: Vec::new(),
         failed: Some(Vec::new()),
@@ -13389,12 +13391,14 @@ fn email_graph_tree() -> AlertTree {
     email.files.push(AlertFile {
         path: "email.rfc822".to_owned(),
         yara_meta: Vec::new(),
+        role: None,
     });
     email.results.push(graph_result(10, "email_analyzer"));
     let mut zip = graph_observable(2, "file", "bb");
     zip.files.push(AlertFile {
         path: "email.rfc822.parts/invoice.zip".to_owned(),
         yara_meta: Vec::new(),
+        role: None,
     });
     zip.tags = vec!["<b>email.attachment</b>".to_owned()];
     zip.relationships.push(Relationship {
@@ -15023,7 +15027,7 @@ async fn collection(db: &Db, root: Option<Uuid>, value: &str) -> i64 {
 async fn collection_with_file(db: &Db, value: &str, sha256: &str, days: i32) -> i64 {
     let id = collection(db, None, value).await;
     sqlx::query(
-        "INSERT INTO store.objects (pool, sha256, size, mime_type) VALUES ('alert_files', $1, 1, 'x')
+        "INSERT INTO store.objects (pool, sha256, size) VALUES ('alert_files', $1, 1)
          ON CONFLICT DO NOTHING",
     )
     .bind(sha256)
@@ -18384,7 +18388,7 @@ async fn file_observable(db: &Db, root: Uuid, path: &str, sha256: &str) -> i64 {
     .await
     .expect("adds")
     .id;
-    tree::add_file_at(&mut tx, root, id, path, &[], 1)
+    tree::add_file_at(&mut tx, root, id, path, &[], None, 1)
         .await
         .expect("adds its path");
     tx.commit().await.expect("commits");

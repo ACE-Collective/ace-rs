@@ -16,8 +16,14 @@ fn fixture(name: &str) -> std::path::PathBuf {
         .join(name)
 }
 
+/// The example's own file role, which a binary that runs it lists, installed before a harness of it.
+fn install_first_line() {
+    ace_results::install_roles(&[ace_sdk::example::FIRST_LINE]).expect("installs");
+}
+
 #[test]
 fn line_counter_on_a_fixture_file() {
+    install_first_line();
     let harness = Harness::<LineCounter>::new().expect("harness");
     let notes = harness
         .file(
@@ -38,6 +44,7 @@ fn line_counter_on_a_fixture_file() {
 
 #[test]
 fn samples_carry_their_manifest_path_and_tags() {
+    install_first_line();
     let harness = Harness::<LineCounter>::new().expect("harness");
     let zip = harness
         .sample("ace3/archive/test.zip")
@@ -56,6 +63,7 @@ fn samples_carry_their_manifest_path_and_tags() {
 
 #[test]
 fn line_counter_skips_an_empty_file() {
+    install_first_line();
     let harness = Harness::<LineCounter>::with_settings(json!({"max_bytes": 64})).expect("harness");
     let empty = harness.file_bytes("empty.txt", b"", &[]).expect("fixture");
     assert_outcome_snapshot!(harness.run_parser(empty).expect("runs"));
@@ -63,6 +71,7 @@ fn line_counter_skips_an_empty_file() {
 
 #[test]
 fn line_counter_settings_refuse_unknown_keys() {
+    install_first_line();
     let err = Harness::<LineCounter>::with_settings(json!({"max_bytez": 64}))
         .err()
         .expect("an unknown key fails");

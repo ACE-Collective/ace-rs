@@ -96,7 +96,7 @@ pub(crate) fn analyze(
             continue;
         };
         let new_file =
-            ctx.write_file_from(&format!("{base}/{relative}"), &mut File::open(path)?, &[])?;
+            ctx.write_file_from(&format!("{base}/{relative}"), &mut File::open(path)?, None)?;
         members.push((relative, new_file));
     }
     Ok(Outcome::Done(result_of(file, count, false, members)))

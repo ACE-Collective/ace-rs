@@ -26,7 +26,9 @@
 
 use ace_app::App;
 use ace_gui::{AlertSummary, AnalysisView, ObservableAction, SummaryInput};
-use ace_results::{AnalysisType, NewObservable, ObservableKind, ObservableType, ResultEnvelope};
+use ace_results::{
+    AnalysisType, FileRole, NewObservable, ObservableKind, ObservableType, ResultEnvelope,
+};
 use ace_sdk::takes::{Case, Condition, Match, Takes, Text};
 use ace_sdk::{Lookup, Module, ModuleError, Outcome, Parser, TaskContext};
 use schemars::JsonSchema;
@@ -44,10 +46,18 @@ pub const TICKET: ObservableKind = ObservableKind::define(&ObservableType {
 /// Every observable type the site adds.
 pub const OBSERVABLE_TYPES: &[ObservableKind] = &[TICKET];
 
+/// The site's file role: an export from its ticket system, which a site module would give a file it
+/// fetched, so a YARA rule can scan it by `type=example.ticket_export` (PLAN.md decision 25).
+pub const TICKET_EXPORT: FileRole = FileRole::define("example.ticket_export");
+
+/// Every file role the site adds.
+pub const FILE_ROLES: &[FileRole] = &[TICKET_EXPORT];
+
 /// The site's binaries' list.
 pub fn app() -> App {
     App::new()
         .observable_types(OBSERVABLE_TYPES)
+        .file_roles(FILE_ROLES)
         .parser_pool(ace::parser_pool().module::<TicketFile>())
         .lookup_pool(ace::lookup_pool().module::<TicketLookup>())
         .module_in_group("correlation", TicketLookup::NAME)

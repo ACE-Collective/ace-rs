@@ -72,9 +72,10 @@ fn compare<M: Parser>(
     for dump in Dump::all(module).expect("the dumps read") {
         let settings = settings(&dump);
         let mut harness = if settings.is_null() {
-            Harness::<M>::new()
+            Harness::<M>::new().map(|h| h.with_typer(ace_mod_files::file_type::type_of))
         } else {
             Harness::<M>::with_settings(settings)
+                .map(|h| h.with_typer(ace_mod_files::file_type::type_of))
         }
         .expect("harness");
         if let Some(file_type) = dump.file_type() {

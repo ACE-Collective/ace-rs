@@ -6009,7 +6009,7 @@ async fn a_request_that_outlasts_its_leases_answers_only_with_tasks_it_holds() {
     });
     // past the lease: the reaper takes the three back, and then the row is let go
     tokio::time::sleep(lease + Duration::from_millis(500)).await;
-    let reaped = ace_core::queue::reap_expired_leases(db)
+    let reaped = ace_core::queue::reap_expired_leases(db, None)
         .await
         .expect("reaps");
     assert_eq!(reaped.requeued.len(), 3, "{reaped:?}");

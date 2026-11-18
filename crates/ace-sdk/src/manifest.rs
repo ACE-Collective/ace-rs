@@ -243,7 +243,7 @@ impl Manifest {
         }
         if reads.file_record && self.kind == ModuleKind::Lookup {
             return refuse(
-                "a file's size, mime type or yara_meta, which a lookup's lease lacks".into(),
+                "a file's size, type, role or yara_meta, which a lookup's lease lacks".into(),
             );
         }
         Ok(takes)
@@ -569,6 +569,8 @@ mod tests {
                 "mode" => Condition::Mode("correlation".to_owned()),
                 "result" => Condition::HasResult("file_type".to_owned()),
                 "size" => Condition::not_empty(),
+                "type" => Condition::type_fact(crate::takes::TypeFact::IsPdfFile),
+                "role" => Condition::role(ace_results::FileRole::EMAIL_ATTACHMENT),
                 _ => Condition::Path(Text::ends_with(".x", Case::Exact)),
             };
             Takes::everything().and(condition, "no")
@@ -615,7 +617,10 @@ mod tests {
                 .expect_err("refused")
                 .to_string()
         };
-        assert!(refused(&lookup, "size").contains("a lookup's lease lacks"));
+        for which in ["size", "type", "role"] {
+            assert!(parser.declaration(Some(&fact(which))).is_ok(), "{which}");
+            assert!(refused(&lookup, which).contains("a lookup's lease lacks"));
+        }
         // the rest need the module to ask for what it reads
         assert!(refused(&parser, "added_by").contains("READS_ADDED_BY"));
         assert!(refused(&parser, "mode").contains("READS_TREE"));
@@ -647,6 +652,8 @@ mod tests {
                 size: 1,
                 yara_meta: Vec::new(),
                 mime_type: None,
+                facts: None,
+                role: None,
                 local_path: Default::default(),
             };
             let ctx = crate::TaskContext::new::<Declaring>(

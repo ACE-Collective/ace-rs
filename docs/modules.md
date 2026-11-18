@@ -18,31 +18,38 @@ Versions are those of ace3's image: Python packages from `installer/requirements
 
 ## What a module takes
 
-PLAN.md decision 23. A module that declares what it takes (`Module::takes`, `ace_sdk::takes`) has its first checks as rules over facts the core holds, and the core queues no task they decline; the pool checks them again before the module runs, and the module's own code no longer does. A check that reads the file's bytes, the whole root or an observable's value stays in the module. The rules, each the module's own check moved:
+PLAN.md decisions 23 and 25. A module that declares what it takes (`Module::takes`, `ace_sdk::takes`) has its first checks as rules over facts the core holds, and the core queues no task they decline; the pool checks them again before the module runs, and the module's own code no longer does. Since decision 25 the facts include the file's type, what the type step found in its bytes (libmagic's description and mime type and file_type's checks, `TypeFacts`), and its role: a rule such as "the file's type says PDF" is the module's own check of the bytes, moved. A rule on a file's type holds when that type is unknown, because the type step failed, so a failure never keeps a module off a file. A check that needs a real parse of the bytes, the whole root or an observable's value stays in the module. The rules, each the module's own check moved:
 
 | Module | Rules, in order |
 |---|---|
-| `active_mime`, `binary_file_analyzer`, `dhash`, `har_extraction`, `html_data_url_extraction`, `java_class_decompiler`, `microsoft_script_encoding_analysis`, `onenote_extraction`, `qrcode`, `rtfole` | not an empty file |
-| `archive` | the path doesn't contain `email.rfc822` |
+| `active_mime`, `binary_file_analyzer`, `dhash`, `har_extraction`, `html_data_url_extraction`, `java_class_decompiler`, `microsoft_script_encoding_analysis`, `onenote_extraction`, `qrcode` | not an empty file |
+| `archive` | the path doesn't contain `email.rfc822`; the type's mime type, lowered, doesn't start with an `excluded_mime_types` entry, lowered; the type isn't an OLE file (whether it is a packet capture reads the bytes and stays, before these) |
+| `de4dot`, `ilspy` | the type is a PE file whose description, lowered, has `.net assembly` |
 | `cve_2021_30657_analyzer` | the path ends in `.img`, lowered; `dmg_analyzer` added it and it redirects |
 | `dmg_analyzer` | the name ends in `.dmg`, lowered |
 | `email_analyzer` | the path doesn't end in `.headers`; file_type has a result with a description; that description has `RFC 822 mail` or `message/rfc822`, or its mime type has `message/rfc822`, or file_type calls it an email, or the file has `original_email` |
 | `email_conversation_attachment_analyzer` | file_type has a result that calls it an Office document (whether the root has an email stays in the module) |
 | `encrypted_archive_analyzer` | the path ends in `.gz.e` |
-| `exif` | the path doesn't end in `.pdfparser` or `.gs.pdf`; at most `file_size_limit` bytes, when it is set |
+| `exif` | the path doesn't end in `.pdfparser` or `.gs.pdf`; at most `file_size_limit` bytes, when it is set; an Office extension on the name, or file_type's description, lowered, names an Office format or OpenDocument, or the type is an OLE file or ace3's `is_pdf_file` |
 | `extracted_ole_analyzer` | file_type has a result; `officeparser3` added it |
 | `extracted_rtf_analyzer` | `rtfole` added it; file_type has a result |
 | `file_hash_analyzer` | not empty; file_type has a result; no `ignore_pattern` matches the path on ace3's node, and no `ignore_mime_type` file_type's mime type |
 | `hidden_mime` | not empty; no `original_email` and not named `email.rfc822`; file_type doesn't call it `message/rfc822` or an email |
 | `html_js_extraction` | not empty; named as HTML or MHTML (lowered), or else not tagged `type=script.javascript` and file_type's mime type is an HTML one |
 | `javascript_deobfuscation` | tagged `type=script.javascript` or named `.js` (whether file_type gave the tag reads the bytes, and stays) |
+| `lnk_parser` | the type is a Windows shortcut |
 | `mhtml` | the name ends in `.mhtml` or `.mht`, lowered |
-| `nowhitespace_analyzer` | the path doesn't end in `.nowhitespace`; not empty |
+| `nowhitespace_analyzer` | the path doesn't end in `.nowhitespace`; not empty; the type is an RTF file |
 | `office_xml_rel` | named `document.xml.rels` |
+| `officeparser3` | file_type has a result; the type is an OLE file; neither a path ending in `.msi`, lowered, nor file_type's description, lowered, with `windows installer` |
+| `olevba_v1_2` | the type isn't an RTF file; the path doesn't end in `.msi`, lowered; an Office extension, or the type is an OLE or a zip file; at most 4 MB; the type's mime type has no `html` and isn't `text/plain` |
 | `pcodedmp` | an Office extension, or file_type's description, lowered, names an Office format |
-| `pdf_analyzer` | the path doesn't end in `.pdfparser` or `.ocr` |
+| `pdf_analyzer` | the path doesn't end in `.pdfparser` or `.ocr`; the type has `%PDF-` in the first kilobyte |
+| `pdf_encryption_analyzer`, `pdf_link_text`, `pdftotext` | the type is ace3's `is_pdf_file`: `%PDF-` in the first kilobyte, and the path doesn't end in `.pdfparser` |
 | `phishkit_analyzer` | a file has `render` or `type=email.attachment`, the root is in correlation mode, the file isn't empty, and its extension, lowered, or file_type's mime type is one the settings render (a URL's checks stay) |
+| `rtfole` | not an empty file; the type is an RTF file |
 | `site_tagger` | the observable's type is one the settings' rows are for |
+| `upx` | the type is a PE file |
 | `vbscript_analyzer` | not empty; the path ends in `.vbs`, ASCII letters in either case |
 | `x509_analyzer` | file_type has a result that calls it a certificate |
 | `xml_plain_text_analyzer` | the name doesn't end in `.noxml`; at most `maximum_size` bytes; extracted from something (the source's `microsoft_office` tag stays) |
@@ -234,7 +241,7 @@ Batch 10's image (`docker/ace4/Dockerfile`'s `sandbox` target, on `debian:13.7-s
 | unace 2.5 | `archive` | none, listing and extracting | no crate reads ACE archives | **runner**, added to `archive` in batch 10 | unace-nonfree 0.2 MB; the Public UnAce Licence, which forbids using it to make an ACE compressor, nothing ACE does |
 | 7z, unrar, unzip, `bin/unjar` | `archive`, `zip_encryption_analyzer`, `rar_encryption_analyzer` | not run | zip, sevenz-rust2 and unrar (1.29) | **crate** | none |
 | John the Ripper 1.9.0-jumbo-1, zip2john, rar2john, pdf2john.pl, office2john.py | `msoffice_encryption_analyzer`, `zip_encryption_analyzer`, `rar_encryption_analyzer`, `pdf_encryption_analyzer` | john: 10 threads (OpenMP; it links libgomp), no process; zip2john and pdf2john.pl: none | ace3 runs John only with `--wordlist`, the email body's candidates (up to `list_limit`, 5,000), and no rules, so trying each word with the format's own library gives the same password | **crate**: the wordlist tried in the task, as 4.11 does for Office, with zip, unrar and libqpdf (batch 7, `ace-mod-encrypted`), each candidate checked as John's format checks it | none; saves John's 310 MB build |
-| file (libmagic 5.46) | `archive`, `file_type`, `de4dot`, `ilspy`, `cve_2021_30657_analyzer` | none | libmagic in the task: `ace_yara::mime` for the core's mime type, and `ace-mod-files`' own cookies, from the database's bytes, for file_type's description and mime type | **crate** | none |
+| file (libmagic 5.46) | `archive`, `file_type`, `de4dot`, `ilspy`, `cve_2021_30657_analyzer` | none | libmagic in the task: `ace-mod-files`' own cookies, from the database's bytes, for the type step's description and mime type, and `ace_yara::mime` from the same bytes in the YARA module for a file whose type step failed; the core runs none (PLAN.md decision 25) | **crate** | none |
 | node `--check`, grep | `file_type`, `extracted_ole_analyzer` | node: 7 threads, no process | oxc_parser 0.157.0 (MIT, kept up) checks syntax; batch 2 measured it against node 24 on 850 cases, with no disagreement once the proposals V8 13.6 lacks are refused (`docs/measurements/javascript-check.md`) | **crate** | none; saves Node.js, 237 MB |
 | ssdeep 2.14.1 | `ssdeep` | none | fuzzyhash 0.2.2 (MIT, pure Rust, last release 2023) gives ssdeep's hashes but not its `-m` scores, batch 2 found; batch 10 kept its hash and wrote ssdeep 2.14.1's comparison, `fuzzy_compare` (`ace_mod_files::ssdeep`), which gives ssdeep's scores on all 420 files (`docs/measurements/ssdeep.md`); ssdeep 0.7.0 binds libfuzzy and is GPL-3, ffuzzy 0.3 is GPL-2+ | **crate**: fuzzyhash, with the comparison ported, in the parser pool | none |
 | pdf-parser.py, xlmdeobfuscator, pcodedmp, rtfobj, officeparser3 | `pdf_analyzer`, `xlmdeobfuscator`, `pcodedmp`, `rtfole`, `officeparser3` | Python, gone | ported in 4.9, 4.10 and 4.12; officeparser3 in batch 5, as a port of its own compound file reader in `ace-mod-office` | **crate** | none |
@@ -1447,7 +1454,7 @@ In the config's order. ace4 is the crate a ported module is in.
 ### file_type
 
 - **Section**: `analysis_module_file_type`, class `FileTypeAnalyzer` in `saq/modules/file_analysis/file_type.py`, enabled by default.
-- **ace4**: ported in `ace-mod-files`. libmagic runs in the task on the database ace3's `file` reads, loaded from its bytes before containment (`libmagic.rs`), and matches `file -b -L` and `file -b --mime-type -L` on every file of every sample's tree. `node --check` is oxc_parser 0.157.0, as CommonJS then as an ES module, with oxc's early errors and V8 13.6's missing proposals refused: it agrees with node 24 on 850 cases (`docs/measurements/javascript-check.md`, which also has nesting and the stack). ace3's mime stamp on the observable and its image preview size are the core's and the GUI's business. The email, url_extraction, pcodedmp and YARA modules depend on it, and email and pcodedmp read its result.
+- **ace4**: ported in `ace-mod-files`. It is the type step (PLAN.md decision 25, docs/decisions/0003): the core queues it first on every new file, alone, and keeps what it finds, the file's type (`TypeFacts`: libmagic's description and mime type and the checks that read only the bytes), once per sha256, not as a result in the tree. ace3's `file_type_analysis` result, its tags and its `yara_meta` types are built from the type and the file's analysis path where ace3's module would have run (`ace_core::type_step`), so the comparison checks them as before; the GUI and the API show a file's type and role instead of a result. libmagic runs in the task on the database ace3's `file` reads, loaded from its bytes before containment (`libmagic.rs`), and matches `file -b -L` and `file -b --mime-type -L` on every file of every sample's tree. `node --check` is oxc_parser 0.157.0, as CommonJS then as an ES module, with oxc's early errors and V8 13.6's missing proposals refused: it agrees with node 24 on 850 cases (`docs/measurements/javascript-check.md`, which also has nesting and the stack); the type step asks it only where the mime type or the name says JavaScript, as ace3 does. ace3's mime stamp on the observable is the file's type, and its image preview size the GUI's business. The modules that depend on it read ace3's result built from the type, and the declarations read the type itself.
 - **Pool**: parser. Magic bytes, libmagic and a JavaScript parse in the task's process.
 - **Step**: done.
 - **Does**: Runs `file` twice on a file to record its human-readable type and mime type, checks magic bytes for office/OLE/RTF/PDF/PE/zip/x509/lnk/jar/email, then tags the file and stamps yara_meta type directives.

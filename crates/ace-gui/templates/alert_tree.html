@@ -19,6 +19,8 @@
 {%- when TreeLine::Observable(node) %}
 <li class="observable"{% if !node.reference %} id="{{ node.anchor }}"{% endif %}>
 <b class="type">{{ node.label }}</b> : <span class="value">{{ node.value }}</span>
+{%- if let Some((description, mime)) = node.file_type %} <span class="file-type" title="{{ mime }}">{{ description }}</span>{% endif %}
+{%- if let Some(role) = node.role %} <span class="file-role" title="what the module that wrote it made it">{{ role }}</span>{% endif %}
 {%- if let Some(time) = node.time %} <span class="time">@ {{ time }}</span>{% endif %}
 {%- for detection in node.detections %} <span class="detection" title="{{ detection }}">detection: {{ detection }}</span>{% endfor %}
 {%- for tag in node.tags %} <span class="tag">{{ tag }}</span>{% endfor %}

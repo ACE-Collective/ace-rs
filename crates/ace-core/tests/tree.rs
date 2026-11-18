@@ -965,16 +965,16 @@ async fn a_file_is_analyzed_under_its_shallowest_path_then_the_first_in_byte_ord
         .await
         .expect("adds")
         .id;
-    tree::add_file_at(&mut tx, root.id, id, "b/z", &[], 2)
+    tree::add_file_at(&mut tx, root.id, id, "b/z", &[], None, 2)
         .await
         .expect("adds");
     // the same file written from itself, a level down, where it sorts first
-    tree::add_file_at(&mut tx, root.id, id, "a/a", &[], 3)
+    tree::add_file_at(&mut tx, root.id, id, "a/a", &[], None, 3)
         .await
         .expect("adds");
     // and at its own depth by another writer: upper case sorts before lower in bytes, not in
     // every collation
-    tree::add_file_at(&mut tx, root.id, id, "b/Z", &[], 2)
+    tree::add_file_at(&mut tx, root.id, id, "b/Z", &[], None, 2)
         .await
         .expect("adds");
     // an observable added again from deeper keeps its depth
@@ -1003,7 +1003,7 @@ async fn a_file_is_analyzed_under_its_shallowest_path_then_the_first_in_byte_ord
         .expect("chooses");
     assert_eq!(path(chosen), "b/Z");
     // a path that would sort first, arriving after the choice, changes nothing
-    tree::add_file_at(&mut tx, root.id, id, "b/A", &[], 2)
+    tree::add_file_at(&mut tx, root.id, id, "b/A", &[], None, 2)
         .await
         .expect("adds");
     assert_eq!(

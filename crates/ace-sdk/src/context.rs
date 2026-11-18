@@ -7,8 +7,9 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
+use ace_results::types::file_type::TypeFacts;
 use ace_results::{
-    AlertPath, AnalysisType, NewFile, ObservableKind, ObservableRef, Relationship,
+    AlertPath, AnalysisType, FileRole, NewFile, ObservableKind, ObservableRef, Relationship,
     RelationshipKind, Sha256, YaraMeta,
 };
 use chrono::{DateTime, Utc};
@@ -116,8 +117,14 @@ pub struct InputFile {
     pub sha256: Sha256,
     pub size: u64,
     pub yara_meta: Vec<YaraMeta>,
-    /// libmagic's answer, stored when the file entered the file store.
+    /// libmagic's mime type for the bytes: the type step's (`facts`). None when the file's type is
+    /// unknown.
     pub mime_type: Option<String>,
+    /// The file's type, what the type step found in its bytes (PLAN.md decision 25). None when the
+    /// type step failed, and for the type step's own task.
+    pub facts: Option<TypeFacts>,
+    /// What its producer made it, under its analysis path.
+    pub role: Option<FileRole>,
     /// A local copy of the bytes, which the pool fetched before the task started.
     pub local_path: PathBuf,
 }
@@ -460,13 +467,15 @@ impl<S> TaskContext<S> {
                 (Some(file), _) => Some(crate::takes::FileFacts {
                     path: file.path.as_str(),
                     size: Some(file.size),
-                    mime: file.mime_type.as_deref(),
+                    facts: file.facts.as_ref(),
+                    role: file.role,
                     yara_meta: Some(&file.yara_meta),
                 }),
                 (None, Some(path)) => Some(crate::takes::FileFacts {
                     path: path.as_str(),
                     size: None,
-                    mime: None,
+                    facts: None,
+                    role: None,
                     yara_meta: None,
                 }),
                 (None, None) => None,
@@ -766,13 +775,17 @@ impl<S> TaskContext<S> {
     /// Stores a new file at `path` inside the alert, such as
     /// `evil.zip.extracted/docs/invoice.doc`, and returns the record to add to the result. An
     /// absolute path or one with a `.` or `..` part fails before anything is stored.
+    ///
+    /// `role` is what the module made it, such as `FileRole::EMAIL_ATTACHMENT`, when it knows: the
+    /// record gets the role and the `yara_meta` tag `type=<role>` built from it, which YARA rules
+    /// scan by.
     pub fn write_file(
         &self,
         path: &str,
         bytes: &[u8],
-        yara_meta: &[YaraMeta],
+        role: impl Into<Option<FileRole>>,
     ) -> Result<NewFile, FileOutputError> {
-        self.write_file_from(path, &mut &bytes[..], yara_meta)
+        self.write_file_from(path, &mut &bytes[..], role)
     }
 
     /// `write_file` for bytes that come from a reader, such as an archive member.
@@ -780,9 +793,9 @@ impl<S> TaskContext<S> {
         &self,
         path: &str,
         reader: &mut dyn Read,
-        yara_meta: &[YaraMeta],
+        role: impl Into<Option<FileRole>>,
     ) -> Result<NewFile, FileOutputError> {
         let store = self.files.as_deref().ok_or(FileOutputError::NoStore)?;
-        write_file(store, path, reader, yara_meta)
+        write_file(store, path, reader, role.into())
     }
 }

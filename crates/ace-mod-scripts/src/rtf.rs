@@ -15,13 +15,13 @@
 use std::fs::File;
 use std::io::{self, BufReader, Read};
 
-use ace_mod_files::checks::is_rtf_file;
 use ace_pycompat::pystr::{lower, strip};
+use ace_results::FileRole;
 use ace_results::types::file_type::FileTypeAnalysis;
 use ace_results::types::rtf::RtfOleObjectAnalysis;
 use ace_results::types::scripts::{ExtractedRtfAnalysis, NoWhiteSpaceAnalysis};
-use ace_results::{AnalysisType, Detection, ObservableKind, ResultEnvelope, YaraMeta};
-use ace_sdk::takes::{Case, Condition, Takes, Text};
+use ace_results::{AnalysisType, Detection, ObservableKind, ResultEnvelope};
+use ace_sdk::takes::{Case, Condition, Takes, Text, TypeFact};
 use ace_sdk::{Manifest, Module, ModuleError, Outcome, Parser, Resources, TaskContext};
 use schemars::JsonSchema;
 use serde::Deserialize;
@@ -163,6 +163,8 @@ impl Module for NoWhiteSpaceAnalyzer {
                 "already without whitespace",
             )
             .and(Condition::not_empty(), "an empty file")
+            // `\rt` or `{\rt` first, from the file's type (PLAN.md decision 25)
+            .and(Condition::type_fact(TypeFact::IsRtfFile), "not an RTF file")
     }
 }
 
@@ -206,13 +208,6 @@ impl Parser for NoWhiteSpaceAnalyzer {
     fn analyze(&self, ctx: &TaskContext<()>) -> Result<Outcome<NoWhiteSpaceAnalysis>, ModuleError> {
         let file = ctx.input_file()?;
         let path = file.path.as_str();
-        let mut head = Vec::with_capacity(4);
-        File::open(&file.local_path)?
-            .take(4)
-            .read_to_end(&mut head)?;
-        if !is_rtf_file(&head) {
-            return Ok(Outcome::Skipped("not an RTF file".to_owned()));
-        }
         let mut result = ResultEnvelope::new(NoWhiteSpaceAnalysis::default());
         if name_fits(file, NOWHITESPACE_SUFFIX) {
             let mut stripped = Stripped {
@@ -222,7 +217,7 @@ impl Parser for NoWhiteSpaceAnalyzer {
             let mut output = ctx.write_file_from(
                 &format!("{path}{NOWHITESPACE_SUFFIX}"),
                 &mut stripped,
-                &[YaraMeta::new("type", "document.rtf.stripped").map_err(ModuleError::other)?],
+                FileRole::DOCUMENT_RTF_STRIPPED,
             )?;
             output.redirection = Some(source(file));
             result.files.push(output);

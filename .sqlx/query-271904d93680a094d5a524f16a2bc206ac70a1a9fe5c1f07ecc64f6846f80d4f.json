@@ -1,0 +1,41 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT t.observable_id AS \"id: ObservableId\", t.module FROM queue.tasks t\n           WHERE t.root_id = $1 AND t.state = 'done' AND t.module <> $2\n             AND NOT EXISTS (SELECT 1 FROM analysis.results r\n                             WHERE r.root_id = t.root_id AND r.observable_id = t.observable_id\n                               AND r.module = t.module)\n           ORDER BY t.id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id: ObservableId",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "queue.tasks",
+            "name": "observable_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "module",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "queue.tasks",
+            "name": "module"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "271904d93680a094d5a524f16a2bc206ac70a1a9fe5c1f07ecc64f6846f80d4f"
+}

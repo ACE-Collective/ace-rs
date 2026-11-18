@@ -445,11 +445,75 @@ Nothing, for a site whose modules declare nothing: they take everything, as befo
 
 **The first bytes.** After this step a run's tasks that store nothing are 131,085 of 164,091 (79.9%), and 98,164 of those are decided by a file's first bytes: 68,035 that compare fixed bytes or search the first kilobyte, 30,129 that ask libmagic or read some structure. Option 3 (a stored first kilobyte and declared magic bytes) would reach the 68,035, about 44% of the remaining tasks. At the 13.5 ms of CPU a removed task saved here, that is about 920 CPU-seconds of a run's 2,500, and since a run's time still follows its tasks, about 225 s of its 561, if their tasks cost what these did; libmagic's stored answer standing in for the other 30,129 would be about 400 CPU-seconds and 100 s more, module by module as it is shown equal. Its risk is as before: a declared byte test narrower than the module's check loses a detection, and several checks aren't one comparison. Its cost is a kilobyte a file in the store and a read of it when a file is uploaded.
 
+Built since in another form, decision 25: the file's type, found by a contained type step that runs first on every file (*The file's type, built*, below). What follows was the plan for it.
+
 A cheaper part of it needs no stored bytes. file_type's result, which the core already holds, carries `is_pdf_file`, `is_rtf_file`, `is_ole_file`, `is_pe_file`, `is_lnk_file`, `is_zip_file` and `is_jar_file`, and several modules' own first-byte checks call the same functions in `ace_mod_files::checks` that file_type does: `lnk_parser` (4,062 tasks), `pdftotext` (3,759), `upx` (4,047), and probably the RTF modules (`rtfole`, `nowhitespace_analyzer`, `binary_file_analyzer`, 12,026 together) and `officeparser3` (3,550). Where a module's check is file_type's function on the same bytes and path, a rule on file_type's field would be exact; each such module would have to wait for file_type, which every file already runs first. That is up to about 27,000 tasks, each module shown equal before it is declared. Not built.
 
 **The path hold.** `lease.md` found the hold for a file's path to be a third of the core's lease time. These runs didn't load `pg_stat_statements`, so whether it still is wasn't measured. The tasks that went were mostly files' tasks, each of which could be held, so the holds a run makes should have fallen with them; a root's time with a task due and none leased is still two thirds of it, so the lease still bounds a run.
 
 **Still the owner's**: how long the audit setting stays on in production before the core applies the declarations there (item 3 above); whether to build option 3 or the file_type part of it; and whether the attachment module may run when an email lands after its first look, which would let the root's email be declared (3,008 tasks here) but changes what that module finds.
+
+## The file's type, built: decision 25
+
+PLAN.md decision 25, docs/decisions/0003. Every new file's first task is its type step, `file_type` made mandatory; what it finds in the bytes is kept once per sha256, and declarations read it (`ace_sdk::takes::TypeFact`, `Condition::Mime`). Fourteen modules' checks of the first bytes are now rules on the type: each is the function the module called on the bytes, which the type step calls on the same bytes (`ace_mod_files::checks`, libmagic's description), so the rule says what the check said. Their code no longer reads the bytes to decide.
+
+### What the type covers, of the tasks decided by the first bytes
+
+From the run with `ACE4_TAKES_AUDIT=1` on this change (`tests/e2e/run --keep`), by `tools/task-start/declines`' classes on the tasks and the core's log, joined to each task's mark. The run had 98,885 tasks decided by the first bytes, not the 98,164 above: the sample set and the modules moved with the ace3 checkpoint at `fe6da632`, and the type step now runs where `file_type` didn't (below). "Declared" is the tasks the type rules marked; the audit found none of them that stored a result or failed.
+
+| Module | First-byte tasks | Declared | The rule, or why not |
+|---|---:|---:|---|
+| `lnk_parser` | 4,091 | 4,091 | the shortcut header |
+| `de4dot`, `ilspy` | 8,172 | 8,172 | a PE file that libmagic's description calls a .NET assembly |
+| `upx` | 4,077 | 4,077 | `MZ` |
+| `nowhitespace_analyzer`, `rtfole` | 8,074 | 8,074 | `\rt` or `{\rt` |
+| `pdftotext`, `pdf_encryption_analyzer`, `pdf_link_text` | 11,365 | 11,365 | ace3's `is_pdf_file` |
+| `pdf_analyzer` | 3,508 | 3,508 | `%PDF-` in the first kilobyte |
+| `olevba_v1_2` | 3,757 | 3,757 | its whole first test: RTF, `.msi`, an Office extension or OLE or zip, the size, the mime type |
+| `officeparser3` | 3,579 | 3,579 | the OLE signature; an installer by name or description |
+| `exif` | 3,018 | 3,018 | an Office extension or description, OLE, or `is_pdf_file` |
+| `archive` | 3,132 | 139 | an OLE file and the excluded mime types; "not an archive ace4 opens" reads each format's structure, and a packet capture's magic isn't in the type |
+| `rar_encryption_analyzer`, `autoit`, `tls_keylog` | 12,271 | 0 | a parse of the format |
+| `pcap_analyzer`, `onenote_extraction`, `java_class_decompiler`, `xml_binary_analyzer`, `xml_plain_text_analyzer`, `microsoft_script_encoding_analysis`, `har_extraction` | 26,044 | 0 | a magic number or a marker the type step doesn't check (pcap, OneNote, `CAFEBABE`, `<?xml`, `#@~^`, a HAR's JSON) |
+| `binary_file_analyzer` | 4,040 | 0 | RTF or EPS, and EPS isn't in the type |
+| `qrcode` | 3,746 | 0 | an image by its own header test, or a PDF |
+| `hidden_mime` | 11 | 0 | a packet capture |
+| **All** | **98,885** | **49,780** | **50.3%** |
+
+The rest would need facts the type step doesn't find today. Adding a fact means the type step reads it for every file, which is cheap for a magic number (pcap, OneNote, `CAFEBABE`, `<?xml`, EPS: about 26,000 tasks more) and not for a parse; that is a later step's to weigh.
+
+### What the type step changes besides
+
+- **Tasks.** The type step runs on every file any module of the mode would take, where `file_type` ran only where its own rules took the file: outputs that exclude `file_type` (exiftool's, de4dot's and ilspy's) are typed now, and ace3's result, tags and `yara_meta` types are given only where its module would have run. A run has 4,097 type steps. The type step stores no result now, so `declines` counts them among the tasks that store nothing.
+- **A failed type step.** Its file's other tasks are queued, every rule on the type holds, and the fourteen modules run on the file with their own parse deciding. No run here had one fail.
+- **The store** no longer asks libmagic about a file's bytes in the core's process when it spools them.
+
+### Before and after
+
+Measured on 2026-11-18 as `lease.md` measured, on one machine (Docker with 10 CPUs and 31 GiB, ace3's stack idle on the same VM), release images, the e2e stack's pools (8 parser and 8 sandbox slots, 16 lookup). "HEAD" is `fb14e3c8`, built from a worktree; "change" is this change, the declarations applied. For each, two runs, each on a new stack: `tests/e2e/run --compare --keep` with `tools/lease/cpu` sampling, then `tools/lease/measure --runs 2` over the 14 samples on the stack it left. Every run: 472 or 14 samples, none absent or failed, 0 unexplained differences, no task failed or leased twice.
+
+| | HEAD, two runs | change, two runs |
+|---|---:|---:|
+| Tasks in a run of the whole set | 164,949; 164,949 | 115,918; 115,918 |
+| `ace compare`, seconds | 558.3; 570.6 | 405.4; 398.0 |
+| a sample: median (range) | 6.57 (0.78 to 49.12); 6.70 (0.78 to 49.31) | 5.04 (0.77 to 33.96); 5.05 (0.52 to 39.49) |
+| CPU seconds, the stack's containers | 2,490; 2,527 | 1,678; 1,648 |
+| parsers | 679; 691 | 533; 520 |
+| Postgres | 705; 720 | 417; 402 |
+| sandbox | 541; 544 | 331; 328 |
+| the core | 436; 443 | 303; 304 |
+| bucket | 104; 104 | 74; 73 |
+| lookups | 12; 13 | 12; 12 |
+| The 14 samples: tasks | 30,547 | 21,378 |
+| seconds, four runs: median (range) | 108.0 (105.5 to 111.5) | 79.1 (77.8 to 79.9) |
+| CPU seconds, four runs: median (range) | 471.5 (465.6 to 479.2) | 300.0 (297.5 to 301.3) |
+
+- **A run has 29.7% fewer tasks, takes 28.8% less time and 33.6% less CPU.** 49,031 tasks fewer of 164,949; `ace compare` 564 s to 402 s at the median of two; the stack 2,509 to 1,663 CPU-seconds, 846 for the tasks that went, 17 ms a task. Postgres used 43% less, the sandbox pool 39%, the core 31% and the parser pool 23%. The 14 samples: 27% less time and 36% less CPU on 30% fewer tasks.
+- **What bounds a run is the same.** Over the 14 samples, `tools/lease/measure` saw the parser pool lease 5.8 to 5.9 of its 8 slots while more than 50 tasks were due at HEAD, and 4.9 to 5.0 with the change, whose remaining tasks are less the parser pool's; a root was due with nothing leased for 74% of its time at HEAD and 69% to 70% with the change. A run's time still follows its tasks.
+- **The same report.** `tools/lease/same-report` on HEAD's and the change's reports, each pair: the same samples, differences, classes, rows and values, but for pdftotext's redirection, the coin toss `compare-speed.md` describes (22 to 29 samples a pair), and one value in one sample, the DNS module's error for `youtube.com`, which names the responder's address on that run's network (`172.19.0.3`, `172.21.0.5`); two runs of the change differ in both the same way.
+
+What else the numbers could be measuring: the stack's CPU is each container's over its life, so it includes the stack's start and the report, not the image build (BuildKit's container, left out); two runs of each, one after another, HEAD's first; ace3's stack was idle. The change's runs include the type step on files `file_type` didn't run on, and the core's work for every type step's end, which HEAD's runs don't, so the saving is net of them. The whole-set run is the sample set's mix of small files, not production's.
+
 
 ## Not measured
 

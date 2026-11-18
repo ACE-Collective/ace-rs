@@ -31,11 +31,12 @@
 use std::time::Duration;
 
 use ace_pycompat::pystr;
+use ace_results::FileRole;
 use ace_results::types::file_type::FileTypeAnalysis;
 use ace_results::types::scanners::PhishkitAnalysis;
 use ace_results::{
     AlertPath, AnalysisType, NewObservable, ObservableKind, ObservableRef, Relationship,
-    RelationshipKind, ResultEnvelope, YaraMeta,
+    RelationshipKind, ResultEnvelope,
 };
 use ace_sdk::scanners::{PHISHKIT, ScanInput, ScanRequest, ScanState};
 use ace_sdk::takes::{Case, Condition, Match, Takes, Text};
@@ -442,8 +443,6 @@ impl PhishkitAnalyzer {
         }));
         let skip_screenshot_ocr = top_level_content_type(output)
             .is_some_and(|t| OCR_SKIP_CONTENT_TYPES.contains(&t.as_str()));
-        let phishkit_meta =
-            YaraMeta::new("type", "document.html.phishkit").map_err(ModuleError::other)?;
         let mut dom: Option<usize> = None;
         for file in &output.files {
             let name = file.name();
@@ -466,7 +465,7 @@ impl PhishkitAnalyzer {
             };
             let mut new_file = file.file.clone();
             new_file.path = path;
-            new_file.yara_meta.push(phishkit_meta.clone());
+            new_file.set_role(FileRole::DOCUMENT_HTML_PHISHKIT);
             new_file.exclude_modules.extend([
                 PhishkitAnalysis::MODULE.to_owned(),
                 "pdf_analyzer".to_owned(),

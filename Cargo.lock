@@ -250,6 +250,7 @@ dependencies = [
 name = "ace-mod-archive"
 version = "0.1.0"
 dependencies = [
+ "ace-mod-files",
  "ace-results",
  "ace-sdk",
  "ace-testkit",
@@ -360,6 +361,7 @@ name = "ace-mod-encrypted"
 version = "0.1.0"
 dependencies = [
  "ace-mod-archive",
+ "ace-mod-files",
  "ace-mod-msoffice",
  "ace-mod-pdf",
  "ace-results",
@@ -547,6 +549,7 @@ dependencies = [
 name = "ace-mod-pdf"
 version = "0.1.0"
 dependencies = [
+ "ace-mod-files",
  "ace-pycompat",
  "ace-results",
  "ace-sdk",
@@ -1012,7 +1015,6 @@ name = "ace-store"
 version = "0.1.0"
 dependencies = [
  "ace-results",
- "ace-yara",
  "aws-sdk-s3",
  "sha2 0.11.1",
  "tempfile",

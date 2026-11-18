@@ -204,7 +204,8 @@ mod tests {
                 file: Some(ace_sdk::takes::FileFacts {
                     path,
                     size: Some(1),
-                    mime: None,
+                    facts: None,
+                    role: None,
                     yara_meta: Some(&[]),
                 }),
                 results: &results,
