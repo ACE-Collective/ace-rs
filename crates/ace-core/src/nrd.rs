@@ -69,13 +69,36 @@ pub async fn state(db: &Db) -> Result<Option<ListState>, DbError> {
 
 /// Whether any of `names` is in the list.
 pub async fn listed(db: &Db, names: &[String]) -> Result<bool, DbError> {
+    listed_in(db.pool(), names).await
+}
+
+/// `listed`, on any connection, such as the transaction that makes an analysis cache key
+/// (`crate::cache`).
+pub async fn listed_in<'e>(
+    executor: impl sqlx::PgExecutor<'e>,
+    names: &[String],
+) -> Result<bool, DbError> {
     let found = sqlx::query_scalar!(
         "SELECT EXISTS (SELECT 1 FROM nrd.domains WHERE domain = ANY($1))",
         names,
     )
-    .fetch_one(db.pool())
+    .fetch_one(executor)
     .await?;
     Ok(found.unwrap_or(false))
+}
+
+/// The `newly-registered` read's answer for an observable of `kind` and `value`, as
+/// `ace_core::reads` gives it to the task, without its checks of who asks: false for a value that
+/// normalizes to nothing.
+pub async fn answer_for<'e>(
+    executor: impl sqlx::PgExecutor<'e>,
+    value: &str,
+) -> Result<bool, DbError> {
+    let normalized = ace_sdk::nrd::normalize_lookup(value);
+    if normalized.is_empty() {
+        return Ok(false);
+    }
+    listed_in(executor, &ace_sdk::nrd::candidates(&normalized)).await
 }
 
 /// The list's domains, sorted, for tests and checks.

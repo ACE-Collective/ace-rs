@@ -189,6 +189,33 @@ pub fn exclusions(overlay: &ace_sdk::Overlay) -> anyhow::Result<ace_sdk::exclusi
         .map_err(|(path, message)| anyhow::anyhow!("the overlay's {path}: {message}"))
 }
 
+/// The overlay's analysis cache settings (`ace_core::cache`), checked against the components whose
+/// results it keeps, as every orchestrator that queues tasks has them. Each component it keeps is
+/// logged with its time to live.
+pub fn analysis_cache(
+    overlay: &ace_sdk::Overlay,
+    components: &[ace_sdk::Component],
+) -> anyhow::Result<ace_core::cache::CacheSettings> {
+    let cache = ace_core::cache::CacheSettings::from_section(&overlay.analysis_cache);
+    if let Some(why) = cache.check(components) {
+        anyhow::bail!("the overlay's analysis_cache: {why}");
+    }
+    if !cache.enabled {
+        tracing::info!("the analysis cache is off (analysis_cache.enabled)");
+    }
+    for component in components
+        .iter()
+        .filter(|c| ace_core::cache::caches(&cache, c))
+    {
+        tracing::info!(
+            module = %component.key,
+            ttl_seconds = component.cache_ttl.map_or(0, |ttl| ttl.as_secs()),
+            "the module's results are kept in the analysis cache"
+        );
+    }
+    Ok(cache)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

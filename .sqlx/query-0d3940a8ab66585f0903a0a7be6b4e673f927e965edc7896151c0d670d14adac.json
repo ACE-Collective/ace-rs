@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO cache.probes (module, probes) VALUES ($1, $2)\n         ON CONFLICT (module) DO UPDATE SET probes = EXCLUDED.probes, reported_at = now()\n         WHERE cache.probes.probes IS DISTINCT FROM EXCLUDED.probes",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Jsonb"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "0d3940a8ab66585f0903a0a7be6b4e673f927e965edc7896151c0d670d14adac"
+}

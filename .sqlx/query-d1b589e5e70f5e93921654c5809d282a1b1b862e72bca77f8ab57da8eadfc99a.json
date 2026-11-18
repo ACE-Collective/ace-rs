@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT o.id AS \"id: ObservableId\", f.path AS \"path!\",\n                  t.description, t.mime, t.is_ole_file, t.is_rtf_file, t.has_pdf_marker,\n                  t.is_pe_file, t.is_zip_file, t.is_jar_file, t.is_x509, t.is_lnk_file,\n                  t.is_email_file, t.is_pcap_file, t.has_onenote_header, t.is_java_class_file,\n                  t.has_xml_marker, t.is_eps_file, t.is_encoded_script, t.has_har_header,\n                  t.javascript\n           FROM analysis.observables o\n           JOIN store.file_types t ON t.sha256 = o.value\n           JOIN LATERAL (\n               SELECT path FROM analysis.files\n               WHERE root_id = o.root_id AND observable_id = o.id\n               ORDER BY analyzed DESC, depth, path COLLATE \"C\" LIMIT 1\n           ) f ON true\n           WHERE o.root_id = $1 AND o.type = 'file' AND o.type_result\n             AND ($2::bigint[] IS NULL OR o.id = ANY($2))",
+  "query": "SELECT DISTINCT ON (o.id) o.id AS \"id: ObservableId\", f.path,\n                  t.description, t.mime, t.is_ole_file, t.is_rtf_file, t.has_pdf_marker,\n                  t.is_pe_file, t.is_zip_file, t.is_jar_file, t.is_x509, t.is_lnk_file,\n                  t.is_email_file, t.is_pcap_file AS \"is_pcap_file!\",\n                  t.has_onenote_header AS \"has_onenote_header!\",\n                  t.is_java_class_file AS \"is_java_class_file!\",\n                  t.has_xml_marker AS \"has_xml_marker!\", t.is_eps_file AS \"is_eps_file!\",\n                  t.is_encoded_script AS \"is_encoded_script!\",\n                  t.has_har_header AS \"has_har_header!\", t.is_image AS \"is_image!\", t.javascript\n           FROM analysis.observables o\n           JOIN analysis.files f\n                ON f.root_id = o.root_id AND f.observable_id = o.id AND f.analyzed\n           JOIN store.file_types t ON t.sha256 = o.value\n           WHERE o.root_id = $1 AND o.id = ANY($2) AND o.type = 'file'\n             AND t.is_pcap_file IS NOT NULL AND t.has_onenote_header IS NOT NULL\n             AND t.is_java_class_file IS NOT NULL AND t.has_xml_marker IS NOT NULL\n             AND t.is_eps_file IS NOT NULL AND t.is_encoded_script IS NOT NULL\n             AND t.has_har_header IS NOT NULL AND t.is_image IS NOT NULL\n           ORDER BY o.id, f.path COLLATE \"C\"",
   "describe": {
     "columns": [
       {
@@ -16,7 +16,7 @@
       },
       {
         "ordinal": 1,
-        "name": "path!",
+        "name": "path",
         "type_info": "Text",
         "origin": {
           "Table": {
@@ -148,7 +148,7 @@
       },
       {
         "ordinal": 13,
-        "name": "is_pcap_file",
+        "name": "is_pcap_file!",
         "type_info": "Bool",
         "origin": {
           "Table": {
@@ -159,7 +159,7 @@
       },
       {
         "ordinal": 14,
-        "name": "has_onenote_header",
+        "name": "has_onenote_header!",
         "type_info": "Bool",
         "origin": {
           "Table": {
@@ -170,7 +170,7 @@
       },
       {
         "ordinal": 15,
-        "name": "is_java_class_file",
+        "name": "is_java_class_file!",
         "type_info": "Bool",
         "origin": {
           "Table": {
@@ -181,7 +181,7 @@
       },
       {
         "ordinal": 16,
-        "name": "has_xml_marker",
+        "name": "has_xml_marker!",
         "type_info": "Bool",
         "origin": {
           "Table": {
@@ -192,7 +192,7 @@
       },
       {
         "ordinal": 17,
-        "name": "is_eps_file",
+        "name": "is_eps_file!",
         "type_info": "Bool",
         "origin": {
           "Table": {
@@ -203,7 +203,7 @@
       },
       {
         "ordinal": 18,
-        "name": "is_encoded_script",
+        "name": "is_encoded_script!",
         "type_info": "Bool",
         "origin": {
           "Table": {
@@ -214,7 +214,7 @@
       },
       {
         "ordinal": 19,
-        "name": "has_har_header",
+        "name": "has_har_header!",
         "type_info": "Bool",
         "origin": {
           "Table": {
@@ -225,6 +225,17 @@
       },
       {
         "ordinal": 20,
+        "name": "is_image!",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "store.file_types",
+            "name": "is_image"
+          }
+        }
+      },
+      {
+        "ordinal": 21,
         "name": "javascript",
         "type_info": "Bool",
         "origin": {
@@ -262,8 +273,9 @@
       true,
       true,
       true,
+      true,
       true
     ]
   },
-  "hash": "d7a675eb670b4df963cb1459d3dca375abcfb2bb39847ad9a9dacbbc96aa874e"
+  "hash": "d1b589e5e70f5e93921654c5809d282a1b1b862e72bca77f8ab57da8eadfc99a"
 }

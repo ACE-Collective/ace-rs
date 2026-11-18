@@ -100,6 +100,19 @@ that matches nothing, so the list stays true. So does a sample absent from this 
 is set: CI doesn't have the git-ignored samples/local/, so there it holds over the tracked samples,
 and the report says how many were absent.
 
+Last, the analysis cache's two-run check (PLAN.md decision 26, docs/decisions/0004): everything above
+runs with the cache off, which tests/e2e/site/overlay.yaml says, and this restarts the core with a copy
+of the site directory whose overlay turns it on, then submits CACHE_SAMPLES twice, as `ace compare`
+submits a sample. They reach each cacheable module the stack runs on a sample (qrcode, pdf_link_text,
+rdap_analyzer, nrd_analyzer and site_tagger; ocr runs on none). Every result the first run kept (each
+one without an error) has to come from the cache the second time, with its `cached_at`, and no task of
+it may run in a pool; what the first run couldn't keep runs again; and each sample's tree in the normal
+form has to be the same both times wherever two runs with the cache off agree: a control run with the
+cache off, before, says where they don't (ExifTool's file times, Ghostscript's rewrite of a PDF, whose
+bytes and so sha256 change every run), and files are named by their paths for the comparison, since
+their sha256s are what changes. A kept result on such a file misses, since its bytes are new, and so
+does a value chosen by such a file's sha256, as a redirection to one of two files. Then the core goes back to the site's own overlay.
+
 Usage: tests/e2e/run [--keep] [--compare] [--jobs N]
   --keep      leaves the stack up
   --compare   only brings up the stack and runs `ace compare` over the sample set, reporting
@@ -1915,6 +1928,208 @@ def give_ace4_the_trees_world():
     return None
 
 
+# The two-run check's samples (PLAN.md decision 26): ones that reach each module the stack runs that opts
+# into the analysis cache, after the comparison, so the world is the trees' (the newly registered
+# domains, the detections, the tags). qrcode: a PDF whose QR code holds a URL, whose result adds a file
+# named after it; a broken PDF, whose clean scan is kept as ace3's are; and the images inside an Office
+# document, an encrypted email's zipped attachment, an executable's resources and an HTML page's data
+# URLs. pdf_link_text: a PDF with links. rdap_analyzer: the domains in those emails and the QR code's
+# URL, which the responder answers. nrd_analyzer: an email whose domains tools/ace3/trees/nrd.json lists.
+# site_tagger: a capture whose host a site tag row names, with the cache_ttl this check gives it, since
+# ace3 doesn't keep its results by default. ocr runs on no sample: nothing in them gets its directive.
+CACHE_SAMPLES = [
+    "ace3/pdf/sample_pdf_with_qr_code.pdf",
+    "ace4/pdf/broken_no_root.pdf",
+    "ace3/office/mortgage_payment-0873821-0565.docm",
+    "ace4/email/encrypted_in_zip.email.rfc822",
+    "ace3/executables/cmd-upx.exe",
+    "ace4/web/data_urls.html",
+    "ace4/pdf/uri_array.pdf",
+    "ace3/email/encrypted_msoffice.email.rfc822",
+    "ace3/pcap/http_tls.pcapng",
+]
+CACHED_MODULES = ["qrcode", "pdf_link_text", "rdap_analyzer", "nrd_analyzer", "site_tagger"]
+
+
+def use_site(site):
+    """Starts the core again on the site directory `site`, and waits for it."""
+    ENV[PREFIX + "SITE"] = str(site)
+    compose("up", "-d", "--wait", "--no-deps", "--force-recreate", "ace")
+
+
+def run_samples(paths):
+    """Submits each sample as `ace compare` does, waits for each root to complete, and returns the
+    roots with their normal forms."""
+    manifest = {s["path"]: s for s in json.loads((ROOT / "samples" / "manifest.json").read_text())["samples"]}
+    roots = []
+    for path in paths:
+        sample = manifest[path]
+        root = submit_file((ROOT / "samples" / path).read_bytes(), sample["alert_path"], "cli",
+                           sample["meta_tags"])
+        roots.append((path, root))
+    done = []
+    for path, root in roots:
+        wait_for(f"{path}'s root to complete", lambda root=root: completed_after(root), within=600)
+        done.append((path, root, normal_form(root)))
+    return done
+
+
+def cacheable_work(roots):
+    """For each sample, what each cacheable module did on each observable, a file by its paths: (whether
+    its result has an error, whether it came from the cache, the observable's value) for a result, and
+    (None, None, value) for a task that ran in a pool and left none; a task a kept result ended at its
+    lease isn't one. A file is named by its paths because some files' bytes, and so their sha256, change
+    every run (Ghostscript's rewrite of a PDF), which makes them other inputs with other keys."""
+    names = ", ".join(f"'{m}'" for m in CACHED_MODULES)
+    label = """CASE WHEN o.type = 'file' THEN 'file@' || (SELECT string_agg(f.path, '|' ORDER BY f.path COLLATE "C")
+                                                      FROM analysis.files f
+                                                      WHERE f.root_id = o.root_id AND f.observable_id = o.id)
+                    ELSE o.type || ':' || o.value END"""
+    work = {}
+    for path, root, _ in roots:
+        for m, o, value, e, c in sql(f"""SELECT r.module, {label}, o.value, r.error IS NOT NULL,
+                                               r.cached_at IS NOT NULL
+                                        FROM analysis.results r
+                                        JOIN analysis.observables o ON o.root_id = r.root_id AND o.id = r.observable_id
+                                        WHERE r.root_id = '{root}' AND r.module IN ({names})"""):
+            work[(path, m, o)] = (e == "t", c == "t", value)
+        for m, o, value in sql(f"""SELECT t.module, {label}, o.value FROM queue.tasks t
+                                  JOIN analysis.observables o ON o.root_id = t.root_id AND o.id = t.observable_id
+                                  WHERE t.root_id = '{root}' AND t.module IN ({names})
+                                    AND NOT EXISTS (SELECT FROM analysis.results r WHERE r.root_id = t.root_id
+                                                    AND r.observable_id = t.observable_id
+                                                    AND r.module = t.module)"""):
+            work[(path, m, o)] = (None, None, value)
+    return work
+
+
+HEX = re.compile(r"\b[0-9a-f]{32,128}\b")
+
+
+def stable(text):
+    """A normal form with each file named by its paths rather than its sha256, and each of its hashes
+    (file_hash_analyzer's) by the same name, so two runs whose files' bytes differ (ExifTool's times,
+    Ghostscript's rewrite) still line up, as JSON pointers to each leaf."""
+    form = json.loads(text)
+    names = {}
+    shas = {}
+    for key, observable in form["observables"].items():
+        if not key.startswith("file:"):
+            continue
+        name = "file@" + "|".join(sorted(observable.get("paths", {})))
+        names[key[len("file:"):]] = name
+        shas[name] = key[len("file:"):]
+        hashes = observable.get("results", {}).get("file_hash_analyzer", {}).get("details", {})
+        for kind, value in (hashes.items() if isinstance(hashes, dict) else []):
+            if isinstance(value, str) and HEX.fullmatch(value):
+                names.setdefault(value, f"{name}#{kind}")
+    form = json.loads(HEX.sub(lambda m: names.get(m.group(0), m.group(0)), text))
+    leaves = {}
+
+    def walk(value, pointer):
+        if isinstance(value, dict) and value:
+            for key, item in value.items():
+                walk(item, f"{pointer}/{key}")
+        elif isinstance(value, list) and value:
+            for index, item in enumerate(value):
+                walk(item, f"{pointer}/{index}")
+        else:
+            leaves[pointer] = value
+
+    walk(form, "")
+    return leaves, shas
+
+
+def check_cache(failures):
+    """The two-run check (docs/decisions/0004): with the cache on, CACHE_SAMPLES run twice. Every result
+    of a cacheable module the first run kept, which is each one without an error, has to come from the
+    cache the second time, with no task of it run in a pool; what the first run couldn't keep (a result
+    with an error, a task that ended with none) runs again, as in ace3; and each sample's normal form
+    is the same both times wherever a control run without the cache agrees with the first."""
+
+    def expect(ok, message):
+        log(("ok    " if ok else "FAIL  ") + message)
+        if not ok:
+            failures.append(f"the analysis cache: {message}")
+
+    site = WORK / "site-cache"
+    shutil.rmtree(site, ignore_errors=True)
+    shutil.copytree(SITE, site)
+    overlay = (site / "overlay.yaml").read_text()
+    off = "analysis_cache:\n  enabled: false\n"
+    tagger = "  site_tagger:\n    settings:\n"
+    if off not in overlay or tagger not in overlay:
+        expect(False, "the site's overlay turns the cache off and has a site_tagger section, as this check expects")
+        return
+    overlay = overlay.replace(off, "analysis_cache:\n  enabled: true\n")
+    overlay = overlay.replace(tagger, "  site_tagger:\n    cache_ttl: 3600\n    settings:\n")
+    (site / "overlay.yaml").write_text(overlay)
+    sql("TRUNCATE cache.results, cache.probes")
+    # the control: a run with the cache off, as the comparison runs, which says where two runs of a
+    # sample differ without the cache (ExifTool's file times and what follows from them,
+    # Ghostscript's rewrite of a PDF)
+    control = run_samples(CACHE_SAMPLES)
+    use_site(site)
+    try:
+        first = run_samples(CACHE_SAMPLES)
+        kept = int(sql("SELECT count(*) FROM cache.results")[0][0])
+        before = cacheable_work(first)
+        second = run_samples(CACHE_SAMPLES)
+        after = cacheable_work(second)
+        keepable = {k for k, v in before.items() if v[0] is False}
+        # an input whose bytes the second run made anew is another input, and misses
+        same = {k for k in keepable if k in after and after[k][2] == before[k][2]}
+        for module in CACHED_MODULES:
+            mine = [k for k in same if k[1] == module]
+            hits = [k for k in mine if after[k][1]]
+            expect(mine and len(hits) == len(mine),
+                   f"{module}: the second run took {len(hits)} of the {len(mine)} results the first kept "
+                   "from the cache, for the same inputs")
+        lost = sorted(k for k in same if not after[k][1])
+        expect(not lost, f"no result the first run kept was made again for the same input: {lost}")
+        anew = sorted(k for k in keepable - same)
+        log(f"      {len(anew)} kept results were on files whose bytes the second run made anew, as "
+            f"Ghostscript's rewrite's are, so missed: {[k[2] for k in anew]}")
+        again = sorted(k for k, v in after.items() if not v[1])
+        expect(all(k not in same for k in again),
+               f"what ran again in a pool is what the first run couldn't keep, or a new input: "
+               f"{len(again)} ({sorted({k[1] for k in again})})")
+        ids = ", ".join(f"'{root}'" for _, root, _ in second)
+        at_lease = sql(f"""SELECT count(*) FROM queue.tasks t JOIN analysis.results r
+                           ON r.root_id = t.root_id AND r.observable_id = t.observable_id
+                          AND r.module = t.module
+                         WHERE r.cached_at IS NOT NULL AND t.root_id IN ({ids})""")[0][0]
+        hits = sum(1 for v in after.values() if v[1])
+        log(f"      the first run kept {kept} results; the second took {hits} from the cache, "
+            f"{at_lease} of them at the task's lease and the rest where the task would have been queued")
+        # wherever two runs without the cache agree, the run from the cache agrees too
+        for (path, _, off), (_, _, form), (_, _, again_form) in zip(control, first, second):
+            (off, off_shas), (cold, cold_shas), (warm, warm_shas) = (
+                stable(off), stable(form), stable(again_form))
+            # files whose bytes change from run to run, and a value that names one, as a redirection
+            # chosen between two files by their sha256s does
+            changing = {name for name in cold_shas
+                        if {off_shas.get(name), warm_shas.get(name)} != {cold_shas[name]}}
+
+            def run_dependent(value):
+                return isinstance(value, str) and any(
+                    value.removeprefix("file:").startswith(name) for name in changing)
+
+            unstable = {p for p in off.keys() | cold.keys() if off.get(p) != cold.get(p)}
+            moved = sorted(p for p in cold.keys() | warm.keys()
+                           if cold.get(p) != warm.get(p) and p not in unstable
+                           and not run_dependent(cold.get(p)) and not run_dependent(warm.get(p)))
+            if moved:
+                (WORK / f"cache-{Path(path).name}-first.json").write_text(form)
+                (WORK / f"cache-{Path(path).name}-second.json").write_text(again_form)
+            expect(not moved,
+                   f"{path}'s normal form from the cache is the same as from a run, but for the "
+                   f"{len(unstable)} values two runs without the cache differ in and what names a file "
+                   f"whose bytes change every run ({len(changing)}): {moved[:5]}")
+    finally:
+        use_site(SITE)
+
+
 def jobs_of(argv):
     """The number after --jobs, or None without it, which leaves it to `ace compare`."""
     if "--jobs" not in argv:
@@ -2138,6 +2353,8 @@ def main(argv):
             else:
                 log("ok    the acceptance threshold is met: every difference from ace3 is listed "
                     "in differences.md, and every row matched one")
+        if not SITE_RUN:
+            check_cache(failures)
     finally:
         if failures or keep:
             for service in ("ace", "parsers", "sandbox", "lookups", "scanners", "responder",

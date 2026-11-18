@@ -27,6 +27,7 @@ use ace_sdk::exclusions::Exclusions;
 use serde_json::Value;
 use uuid::Uuid;
 
+use crate::cache::{self, CacheSettings};
 use crate::db::{DbError, Retryable, Tx};
 use crate::eligibility::{Catalog, Facts, check};
 use crate::hooks::{self, Hooks};
@@ -103,6 +104,8 @@ pub struct Orchestrator {
     takes: TakesMode,
     /// The observables no module analyzes (`ace_sdk::exclusions`).
     exclusions: Arc<Exclusions>,
+    /// The analysis cache's settings (`crate::cache`).
+    cache: CacheSettings,
 }
 
 /// Why a result was refused before anything from it was written.
@@ -122,7 +125,19 @@ impl Orchestrator {
             hooks: Hooks::none(),
             takes: TakesMode::default(),
             exclusions: Arc::new(Exclusions::ace3()),
+            cache: CacheSettings::default(),
         }
+    }
+
+    /// This orchestrator, with the analysis cache on or off as `cache` says (`crate::cache`). A new
+    /// one has ace3's default: on, for the modules that opt in.
+    pub fn with_cache(mut self, cache: CacheSettings) -> Self {
+        self.cache = cache;
+        self
+    }
+
+    pub fn cache(&self) -> &CacheSettings {
+        &self.cache
     }
 
     /// This orchestrator, keeping every task off the observables `exclusions` name. A new one has
@@ -251,7 +266,20 @@ impl Orchestrator {
             .await
     }
 
-    async fn queue_eligible_locked(
+    /// `queue_eligible` with the root locked. Its future is boxed: a hit it finds lands a result,
+    /// whose eligibility runs this again (`try_hit`).
+    fn queue_eligible_locked<'a>(
+        &'a self,
+        tx: &'a mut Tx<'_>,
+        root: Uuid,
+        mode: &'a str,
+        scope: Scope<'a>,
+        requeue_cancelled: bool,
+    ) -> QueueFuture<'a> {
+        Box::pin(self.queue_eligible_unboxed(tx, root, mode, scope, requeue_cancelled))
+    }
+
+    async fn queue_eligible_unboxed(
         &self,
         tx: &mut Tx<'_>,
         root: Uuid,
@@ -429,18 +457,30 @@ impl Orchestrator {
             declared::held(tx, root, &declaring, &needs).await?
         };
         let nothing_held = declared::Held::default();
+        // the tasks a kept result may stand in for, looked up once everything else is queued
+        // (`crate::cache`)
+        let mut cacheable = Vec::new();
         for (observable, (kind, components)) in observables.iter().zip(eligible) {
             let facts = held.get(&observable.id).unwrap_or(&nothing_held).facts(
                 kind,
                 &observable.directives,
                 mode,
             );
+            let has_result = results.get(&observable.id).unwrap_or(&none);
             for component in components {
                 let key = component.key.as_str();
+                // a result with no task is one the cache wrote
+                if has_result.contains(key) {
+                    continue;
+                }
                 let task = tasks.get(&(observable.id, key.to_owned()));
                 // the module's declaration over what the core holds now (`crate::takes`)
                 let declined = component.takes.check(&facts).err();
                 if declined.is_some() && self.takes == TakesMode::Applied {
+                    continue;
+                }
+                if task.is_none() && declined.is_none() && cache::caches(&self.cache, component) {
+                    cacheable.push((observable.id, kind, observable.value.as_str(), component));
                     continue;
                 }
                 let added = match task {
@@ -469,7 +509,155 @@ impl Orchestrator {
                 queued.extend(added);
             }
         }
+        for (observable, kind, value, component) in cacheable {
+            // a hit's eligibility can reach what's left here, and its detection can change the
+            // mode, which reruns all of it
+            match self
+                .try_hit(tx, root, mode, observable, kind, value, component)
+                .await?
+            {
+                Hit::Landed(landed) => {
+                    queued.extend(landed.queued);
+                    if landed.mode_changed_to.is_some() {
+                        break;
+                    }
+                }
+                Hit::Taken => {}
+                Hit::Miss | Hit::Wait => {
+                    queued.extend(queue::enqueue(tx, root, observable, &component.key).await?);
+                }
+            }
+        }
         Ok(queued)
+    }
+
+    /// Writes the result kept for `component` on an observable, if there is one, as its task's end
+    /// would (`crate::cache`).
+    #[allow(clippy::too_many_arguments)]
+    async fn try_hit(
+        &self,
+        tx: &mut Tx<'_>,
+        root: Uuid,
+        mode: &str,
+        observable: ObservableId,
+        kind: ObservableKind,
+        value: &str,
+        component: &ace_sdk::Component,
+    ) -> Result<Hit, OrchestratorError> {
+        // what an earlier hit's eligibility did since this was gathered
+        let taken = sqlx::query_scalar!(
+            r#"SELECT EXISTS (SELECT FROM analysis.results
+                              WHERE root_id = $1 AND observable_id = $2 AND module = $3)
+                   OR EXISTS (SELECT FROM queue.tasks
+                              WHERE root_id = $1 AND observable_id = $2 AND module = $3)
+               AS "taken!""#,
+            root,
+            observable as ObservableId,
+            &component.key,
+        )
+        .fetch_one(tx.conn())
+        .await?;
+        if taken {
+            return Ok(Hit::Taken);
+        }
+        // a hit or a miss is counted in the pass it lands or queues in (`crate::metrics`)
+        queue::begin_pass(tx, root).await?;
+        let started = std::time::Instant::now();
+        let Some(kept) = self.kept_for(tx, component, kind, value).await? else {
+            return missed(tx, root, &component.key, started).await;
+        };
+        // a result that adds files names them after its file's path, which is settled first, as a
+        // lease would settle it, or else the task waits for its lease to settle it
+        let analyzed = if kept.files.is_empty() {
+            None
+        } else {
+            match settleable_path(tx, &self.catalog, root, observable).await? {
+                Some(path) => Some(path),
+                None => return Ok(Hit::Wait),
+            }
+        };
+        let Some(envelope) = cache::for_path(component, &kept, analyzed.as_deref()) else {
+            return missed(tx, root, &component.key, started).await;
+        };
+        if !cache::hold_files(tx, root, &kept).await? {
+            return missed(tx, root, &component.key, started).await;
+        }
+        let lookup = started.elapsed();
+        cache::count(tx, root, &component.key, cache::Activity::Hit, lookup).await?;
+        tracing::debug!(%root, module = %component.key, kept = kept.id, "a kept result stands in for a task");
+        let locked = Locked {
+            mode: mode.to_owned(),
+            cancelled: false,
+        };
+        let landed = self
+            .apply_result(
+                tx,
+                root,
+                &locked,
+                observable,
+                &component.key,
+                &envelope,
+                Some(kept.created_at),
+                false,
+            )
+            .await?;
+        Ok(Hit::Landed(landed))
+    }
+
+    /// The result kept for `component` on an observable of `kind` and `value` that hasn't expired,
+    /// under the key the core can make now.
+    pub async fn kept_for(
+        &self,
+        tx: &mut Tx<'_>,
+        component: &ace_sdk::Component,
+        kind: ObservableKind,
+        value: &str,
+    ) -> Result<Option<cache::Kept>, OrchestratorError> {
+        let Some(extended) = cache::extended(tx, component, value, None).await? else {
+            return Ok(None);
+        };
+        let Some(key) = cache::key(component, kind.as_str(), value, &extended) else {
+            return Ok(None);
+        };
+        Ok(cache::find(tx, &key).await?)
+    }
+
+    /// Ends a leased task with a kept result in place of its run (`crate::cache`): the task is done,
+    /// and the result lands as a task's would. The caller found it with `kept_for` and holds its
+    /// files for the root (`cache::hold_files`).
+    pub async fn land_kept(
+        &self,
+        tx: &mut Tx<'_>,
+        worker: &Worker,
+        task: &Task,
+        envelope: &ResultEnvelope<Value>,
+        cached_at: chrono::DateTime<chrono::Utc>,
+    ) -> Result<Landed, OrchestratorError> {
+        let locked = lock_root(tx, task.root).await?;
+        worker.finish_in(tx, task.id, TaskState::Done, None).await?;
+        if self.takes == TakesMode::Audit {
+            declared::report_if_marked(tx, task.id, &task.module, "stored a result").await?;
+        }
+        // a lookup at the lease counts its hit; a miss there was counted when the task was queued
+        cache::count(
+            tx,
+            task.root,
+            &task.module,
+            cache::Activity::Hit,
+            std::time::Duration::ZERO,
+        )
+        .await?;
+        self.apply_result(
+            tx,
+            task.root,
+            &locked,
+            task.observable.id,
+            &task.module,
+            envelope,
+            Some(cached_at),
+            true,
+        )
+        .await
     }
 
     /// Starts analysis of a new root: queues what is eligible for every observable it has. A
@@ -629,7 +817,7 @@ impl Orchestrator {
                                  WHERE f.root_id = o.root_id AND f.observable_id = o.id
                                    AND f.analyzed)
                  AND EXISTS (SELECT FROM store.file_types k
-                             WHERE k.sha256 = o.value AND k.has_har_header IS NOT NULL)
+                             WHERE k.sha256 = o.value AND k.is_image IS NOT NULL)
                ORDER BY o.id"#,
             root,
             only.as_deref(),
@@ -817,7 +1005,8 @@ impl Orchestrator {
     /// Lands a module's result for a task the worker owns: ends the task and writes the result,
     /// the observables it adds, its additions to the analyzed observable and its detections,
     /// then queues what became eligible. A detection in a detectable mode makes the root an
-    /// alert in correlation mode, which reruns eligibility over the whole root.
+    /// alert in correlation mode, which reruns eligibility over the whole root. A cacheable
+    /// module's result is kept when it may be (`land_result_with`).
     pub async fn land_result(
         &self,
         tx: &mut Tx<'_>,
@@ -825,15 +1014,135 @@ impl Orchestrator {
         task: &Task,
         result: &ResultEnvelope<Value>,
     ) -> Result<Landed, OrchestratorError> {
+        self.land_result_with(tx, worker, task, result, &BTreeMap::new(), false)
+            .await
+    }
+
+    /// `land_result`, keeping a cacheable module's result when it may be kept (`crate::cache`),
+    /// under the versions its pool sent (`probes`); `writes` says whether the task made writes to
+    /// ACE's data, which a result that is kept may not.
+    pub async fn land_result_with(
+        &self,
+        tx: &mut Tx<'_>,
+        worker: &Worker,
+        task: &Task,
+        result: &ResultEnvelope<Value>,
+        probes: &BTreeMap<String, String>,
+        writes: bool,
+    ) -> Result<Landed, OrchestratorError> {
         let root = task.root;
         let analyzed = task.observable.id;
         let locked = lock_root(tx, root).await?;
-        let mode = locked.mode;
         worker.finish_in(tx, task.id, TaskState::Done, None).await?;
         if self.takes == TakesMode::Audit {
             declared::report_if_marked(tx, task.id, &task.module, "stored a result").await?;
         }
-        let result_id = tree::insert_result(tx, root, analyzed, &task.module, result).await?;
+        self.keep(tx, task, result, probes, writes).await?;
+        self.apply_result(
+            tx,
+            root,
+            &locked,
+            analyzed,
+            &task.module,
+            result,
+            None,
+            true,
+        )
+        .await
+    }
+
+    /// Keeps a task's result for later roots, when its module's are kept and it may be
+    /// (`cache::refusal`), with the versions its pool sent.
+    async fn keep(
+        &self,
+        tx: &mut Tx<'_>,
+        task: &Task,
+        result: &ResultEnvelope<Value>,
+        probes: &BTreeMap<String, String>,
+        writes: bool,
+    ) -> Result<(), OrchestratorError> {
+        let Some(component) = self.catalog.component(&task.module) else {
+            return Ok(());
+        };
+        let Some(ttl) = component
+            .cache_ttl
+            .filter(|_| cache::caches(&self.cache, component))
+        else {
+            return Ok(());
+        };
+        if !probes.is_empty() {
+            cache::record_probes(tx, &component.key, probes).await?;
+        }
+        let analyzed = if task.observable.kind == ObservableKind::File {
+            tree::analysis_file(tx.conn(), task.root, task.observable.id)
+                .await?
+                .map(|file| file.path)
+        } else {
+            None
+        };
+        let (places, bytes) = match cache::refusal(component, result, writes, analyzed.as_deref()) {
+            Ok(kept) => kept,
+            Err(why) => {
+                tracing::debug!(task = %task.id, module = %task.module, "the result isn't kept: {why}");
+                return Ok(());
+            }
+        };
+        let value = task.observable.value.as_str();
+        let Some(extended) = cache::extended(tx, component, value, Some(probes)).await? else {
+            tracing::warn!(
+                task = %task.id, module = %task.module,
+                "the result isn't kept: its pool sent none of the versions its key holds"
+            );
+            return Ok(());
+        };
+        let kind = task.observable.kind.as_str();
+        let Some(key) = cache::key(component, kind, value, &extended) else {
+            return Ok(());
+        };
+        cache::keep(
+            tx,
+            &cache::Keep {
+                key,
+                module: &component.key,
+                observable_type: kind,
+                observable_value: value,
+                result,
+                file_paths: places,
+                ttl,
+            },
+        )
+        .await?;
+        cache::count(
+            tx,
+            task.root,
+            &component.key,
+            cache::Activity::Kept { bytes },
+            std::time::Duration::ZERO,
+        )
+        .await?;
+        Ok(())
+    }
+
+    /// What a result's landing writes, whether a task's end made it or the cache kept it
+    /// (`cached_at`, when the kept one's task ended): the result row, the observables it adds, its
+    /// additions, its detections, the hooks' rules over what it touched, and what became eligible.
+    /// `complete` checks the root's completion last, as a task's end does; a hit made while
+    /// eligibility runs leaves that to whatever ran it.
+    #[allow(clippy::too_many_arguments)]
+    async fn apply_result(
+        &self,
+        tx: &mut Tx<'_>,
+        root: Uuid,
+        locked: &Locked,
+        analyzed: ObservableId,
+        module: &str,
+        result: &ResultEnvelope<Value>,
+        cached_at: Option<chrono::DateTime<chrono::Utc>>,
+        complete: bool,
+    ) -> Result<Landed, OrchestratorError> {
+        let mode = locked.mode.clone();
+        let result_id =
+            tree::insert_result_from(tx, root, analyzed, module, result, cached_at).await?;
         tree::add_to_observable(tx, root, analyzed, &result.analyzed).await?;
 
         // what the result adds is one deeper than what it analyzed (`tree::upsert_observable_at`)
@@ -898,7 +1207,7 @@ impl Orchestrator {
                 // is an observable an earlier result named
                 tracing::warn!(
                     %root,
-                    module = %task.module,
+                    %module,
                     "a result added to a redirection that isn't in the root; those additions are dropped"
                 );
             }
@@ -912,7 +1221,7 @@ impl Orchestrator {
                 }
                 None => tracing::warn!(
                     %root,
-                    module = %task.module,
+                    %module,
                     observable = %other.observable.value,
                     "a result added to an observable that isn't in the root; those additions are dropped"
                 ),
@@ -947,7 +1256,9 @@ impl Orchestrator {
 
         // a result that lands after its root was cancelled is kept, and queues nothing
         if locked.cancelled {
-            queue::check_completion(tx, root).await?;
+            if complete {
+                queue::check_completion(tx, root).await?;
+            }
             return Ok(Landed {
                 result: result_id,
                 queued: Vec::new(),
@@ -971,7 +1282,9 @@ impl Orchestrator {
             tracing::info!(%root, from = %mode, "a detection made the root an alert");
             let mut queued = self.set_mode(tx, root, CORRELATION).await?;
             queued.extend(qa_task);
-            queue::check_completion(tx, root).await?;
+            if complete {
+                queue::check_completion(tx, root).await?;
+            }
             return Ok(Landed {
                 result: result_id,
                 queued,
@@ -983,7 +1296,9 @@ impl Orchestrator {
             .await?;
         queued.extend(pre.requeued);
         queued.extend(qa_task);
-        queue::check_completion(tx, root).await?;
+        if complete {
+            queue::check_completion(tx, root).await?;
+        }
         Ok(Landed {
             result: result_id,
             queued,
@@ -1010,6 +1325,55 @@ impl queue::TypeStepEnded for Orchestrator {
             }
         })
     }
+}
+
+/// What a lookup in place of a task found (`Orchestrator::try_hit`).
+enum Hit {
+    /// A kept result landed as the component's.
+    Landed(Landed),
+    /// Nothing kept: the task is queued.
+    Miss,
+    /// A kept result whose files need the file's path, which isn't settled yet: the task is
+    /// queued, and its lease looks again once it is (`Api::leased`).
+    Wait,
+    /// The component already has a result or a task on the observable.
+    Taken,
+}
+
+type QueueFuture<'a> = std::pin::Pin<
+    Box<dyn std::future::Future<Output = Result<Vec<TaskId>, OrchestratorError>> + Send + 'a>,
+>;
+
+/// Counts a lookup that found nothing to stand in for the task (`cache::count`).
+async fn missed(
+    tx: &mut Tx<'_>,
+    root: Uuid,
+    module: &str,
+    started: std::time::Instant,
+) -> Result<Hit, OrchestratorError> {
+    cache::count(tx, root, module, cache::Activity::Miss, started.elapsed()).await?;
+    Ok(Hit::Miss)
+}
+
+/// The path a file observable is analyzed under, settled now if a lease would settle it now
+/// (`tree::path_settles`), or None when its lease would still be held for it.
+async fn settleable_path(
+    tx: &mut Tx<'_>,
+    catalog: &Catalog,
+    root: Uuid,
+    observable: ObservableId,
+) -> Result<Option<String>, OrchestratorError> {
+    let last: Vec<String> = catalog
+        .iter()
+        .filter(|c| c.manifest.runs_last)
+        .map(|c| c.key.clone())
+        .collect();
+    if !tree::path_settles(tx.conn(), root, observable, &last).await? {
+        return Ok(None);
+    }
+    Ok(tree::choose_analysis_file(tx, root, observable)
+        .await?
+        .map(|file| file.path))
 }
 
 /// A root's state, read with its row locked.

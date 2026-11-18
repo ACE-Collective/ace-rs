@@ -293,6 +293,12 @@ pub enum TaskEnd {
         result: ResultEnvelope<Value>,
         #[serde(default, skip_serializing_if = "Vec::is_empty")]
         writes: Vec<WireWrite>,
+        /// For a module whose results the core keeps (`Module::CACHE`): the versions of its tools,
+        /// files and libraries in the pool that ran it, by `tool:<name>`, `file:<path>` and
+        /// `library:<name>`, which the pool read when it started. They are in the key its result is
+        /// kept under (`crate::cache`), so a result is kept under what made it. Empty for any other.
+        #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+        probes: BTreeMap<String, String>,
     },
     /// The module had nothing to store about the observable, and its writes, if it made any, land
     /// as the task ends.

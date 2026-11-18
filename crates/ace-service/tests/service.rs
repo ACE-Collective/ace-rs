@@ -13338,6 +13338,7 @@ fn graph_result(id: i64, module: &str) -> ModuleResult {
         tags: Vec::new(),
         details: serde_json::json!({}),
         created_at: chrono::DateTime::from_timestamp(1_793_000_000, 0).expect("a time"),
+        cached_at: None,
     }
 }
 

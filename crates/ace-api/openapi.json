@@ -23363,7 +23363,8 @@
           "has_xml_marker",
           "is_eps_file",
           "is_encoded_script",
-          "has_har_header"
+          "has_har_header",
+          "is_image"
         ],
         "properties": {
           "description": {
@@ -23396,6 +23397,10 @@
           "is_eps_file": {
             "type": "boolean",
             "description": "The EPS binary header or `%!PS-Adobe-` at the start."
+          },
+          "is_image": {
+            "type": "boolean",
+            "description": "Pillow would open it as an image, by its first kilobyte."
           },
           "is_jar_file": {
             "type": "boolean"
@@ -26380,11 +26385,20 @@
           "schema_version",
           "tags",
           "details",
-          "created_at"
+          "created_at",
+          "from_cache_hit"
         ],
         "properties": {
           "analysis_type": {
             "type": "string"
+          },
+          "cached_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "For a result from the cache, when the task that made it ended: ace3's `cached_at`. Null\notherwise."
           },
           "created_at": {
             "type": "string",
@@ -26399,6 +26413,10 @@
               "null"
             ],
             "description": "Why the module said it failed, or null when it didn't. A failed result keeps what the\nmodule had before it failed, as a partial result."
+          },
+          "from_cache_hit": {
+            "type": "boolean",
+            "description": "True for a result the analysis cache wrote in place of the module's task, from a result the\nmodule made earlier, in this alert or another: ace3's `from_cache_hit`."
           },
           "module": {
             "type": "string"

@@ -18,6 +18,10 @@
 //!
 //! When pdftotext doesn't finish or exits non-zero the result is marked failed with the reason
 //! (`ResultEnvelope::error`, ace3's `Analysis.error`), and the links are kept without their text.
+//!
+//! Its results are kept in the analysis cache for 30 days, as ace3's `cache_ttl` keeps them (PLAN.md
+//! decision 26), under pdftotext's version, as ace3's `extended_version` holds it; a result marked
+//! failed isn't kept, so the next alert with the PDF tries again.
 
 use std::collections::{BTreeMap, HashSet};
 use std::sync::LazyLock;
@@ -34,6 +38,7 @@ use serde::Deserialize;
 
 use crate::objects::{Objects, Py, decimal_turns_the_page};
 use crate::qpdf::{Document, Raised};
+use ace_sdk::cache::Cache;
 use ace_sdk::takes::{Condition, Takes, TypeFact};
 
 /// The module's manifest.
@@ -100,6 +105,11 @@ impl Module for PdfLinkTextAnalyzer {
         memory_mb: 2048,
         cpu_seconds: 60,
     };
+    /// ace3's `cache_ttl: 2592000`, 30 days; a poppler upgrade changes the key.
+    const CACHE: Option<Cache> = Some(Cache {
+        tools: &["pdftotext"],
+        ..Cache::new(1, Duration::from_secs(30 * 24 * 3600))
+    });
     type Output = PdfLinkTextAnalysis;
     type Settings = PdfLinkTextSettings;
 

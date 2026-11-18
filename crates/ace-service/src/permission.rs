@@ -288,6 +288,11 @@ pub const EMAIL_READ: PermissionName = PermissionName::known("email", "read");
 /// `scheduler:email_archive_partitions` holds it.
 pub const EMAIL_ARCHIVE_MAINTAIN: PermissionName =
     PermissionName::known("email_archive", "maintain");
+/// Make the analysis cache's days ahead and drop those past retention (PLAN.md decision 26), as ace3's
+/// `ace partitions maintain` keeps its cache's. ace3 has no such permission. Only the scheduler's
+/// `scheduler:analysis_cache_partitions` holds it.
+pub const ANALYSIS_CACHE_MAINTAIN: PermissionName =
+    PermissionName::known("analysis_cache", "maintain");
 /// List the observables ACE detects wherever they appear, and the types they're of: ace3's
 /// `detection:read`.
 pub const DETECTION_READ: PermissionName = PermissionName::known("detection", "read");
@@ -461,6 +466,11 @@ pub static CATALOG: &[CatalogEntry] = &[
         description: "Add and remove the observables ACE detects, and set when each expires. A detection \
                       applies to the next task that checks an observable: every alert holding it gets a \
                       detection point.",
+    },
+    CatalogEntry {
+        name: ANALYSIS_CACHE_MAINTAIN,
+        description: "Make the analysis cache's days ahead and drop those past retention. The \
+                      scheduler holds it.",
     },
     CatalogEntry {
         name: EMAIL_ARCHIVE_MAINTAIN,

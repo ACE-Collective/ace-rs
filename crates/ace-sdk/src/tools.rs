@@ -73,6 +73,10 @@ pub struct ToolSpec {
     pub memory_bytes: u64,
     /// The largest file it may write (`RLIMIT_FSIZE`).
     pub file_size_bytes: u64,
+    /// The arguments that make it print its version, for the key of a cacheable module that runs it
+    /// (`crate::cache::Cache::tools`), as ace3's `probe_binary_version` asks; empty when nothing
+    /// that runs it is cacheable.
+    pub version_args: &'static [&'static str],
 }
 
 impl ToolSpec {
@@ -87,6 +91,7 @@ impl ToolSpec {
             request_env: &[],
             memory_bytes: MEMORY_LIMIT,
             file_size_bytes: FILE_SIZE_LIMIT,
+            version_args: &[],
         }
     }
 }
@@ -100,6 +105,7 @@ pub const SANDBOX_TOOLS: &[ToolSpec] = &[
     ToolSpec {
         reads: &["/usr/share/tesseract-ocr", "/sys/devices/system/cpu"],
         request_env: &["OMP_THREAD_LIMIT"],
+        version_args: &["--version"],
         ..ToolSpec::new("tesseract", "/usr/bin/tesseract")
     },
     ToolSpec {
@@ -109,6 +115,7 @@ pub const SANDBOX_TOOLS: &[ToolSpec] = &[
             IMAGEMAGICK_MODULES,
             "/sys/devices/system/cpu",
         ],
+        version_args: &["--version"],
         ..ToolSpec::new("zbarimg", "/usr/bin/zbarimg")
     },
     ToolSpec {
@@ -126,10 +133,12 @@ pub const SANDBOX_TOOLS: &[ToolSpec] = &[
     },
     ToolSpec {
         reads: POPPLER,
+        version_args: &["-v"],
         ..ToolSpec::new("pdftotext", "/usr/bin/pdftotext")
     },
     ToolSpec {
         reads: POPPLER,
+        version_args: &["-v"],
         ..ToolSpec::new("pdfinfo", "/usr/bin/pdfinfo")
     },
     ToolSpec {
@@ -147,6 +156,7 @@ pub const SANDBOX_TOOLS: &[ToolSpec] = &[
             "/usr/share/fontconfig",
             "/var/cache/fontconfig",
         ],
+        version_args: &["--version"],
         ..ToolSpec::new("gs", "/usr/bin/gs")
     },
     ToolSpec::new("unace", "/usr/bin/unace"),

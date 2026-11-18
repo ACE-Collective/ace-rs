@@ -132,6 +132,12 @@ pub trait Module: Sized + Send + Sync + 'static {
     /// False for a module whose tasks end with writes and never a result, as ace3's email logger,
     /// which creates no analysis. Its type needs no view.
     const STORES_RESULTS: bool = true;
+    /// Whether the module's results are kept across roots and reused in place of a task, as ace3's
+    /// `cache_ttl` opts a module into its analysis result cache (PLAN.md decision 26,
+    /// `crate::cache`), with its time to live and what besides its input its result depends on.
+    /// A module whose task reads what the key doesn't hold can't opt in: every binary refuses it
+    /// when it reads its overlay (`Manifest::cache_refusal`).
+    const CACHE: Option<crate::cache::Cache> = None;
 
     /// The analysis type the module writes.
     type Output: AnalysisType;

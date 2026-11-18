@@ -11,6 +11,7 @@ pub mod hash;
 pub mod javascript;
 pub mod libmagic;
 pub mod lnk;
+pub mod pillow;
 pub mod ssdeep;
 pub mod x509;
 

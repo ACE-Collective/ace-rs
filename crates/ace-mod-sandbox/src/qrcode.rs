@@ -10,6 +10,13 @@
 //! ace3 drops a URL a line of its analysts' `qrcode.filter` matches, case-blind. That file is the
 //! analyst-edited list `qrcode_filter` here (PLAN.md 5.14), whose regex entries are the `regex`
 //! crate's rather than Python's `re`.
+//!
+//! Its results are kept in the analysis cache for 30 days, as ace3's `cache_ttl` keeps them
+//! (PLAN.md decision 26), a clean scan's among them, under its key's extended version: the filter's
+//! entries, zbarimg's, Ghostscript's and pdfinfo's versions and OpenCV's, as ace3's
+//! `extended_version` holds the filter's content hash and those tools' and `opencv-python`'s versions.
+//! A scan that failed is skipped, so it is never kept. The file it adds is named after the one it
+//! read (`output_paths`), which a hit names after the new root's.
 
 use std::time::Duration;
 
@@ -17,7 +24,8 @@ use ace_mod_files::checks::is_pdf_file;
 use ace_results::FileRole;
 use ace_results::types::sandbox::QrCodeAnalysis;
 use ace_results::{ObservableKind, Relationship, RelationshipKind, ResultEnvelope};
-use ace_sdk::takes::{Condition, Takes};
+use ace_sdk::cache::{Cache, CachePaths};
+use ace_sdk::takes::{Condition, Takes, TypeFact};
 use ace_sdk::tools::ToolRun;
 use ace_sdk::{List, ListSpec, Module, ModuleError, Outcome, Parser, Resources, TaskContext};
 use opencv::core::{Mat, Vector};
@@ -26,7 +34,7 @@ use opencv::prelude::GraphicalCodeDetectorTraitConst;
 use schemars::JsonSchema;
 use serde::Deserialize;
 
-use crate::image::{decode_bgr, is_image};
+use crate::image::decode_bgr;
 use crate::{head, name_fits, source};
 
 /// ace3's `qrcode.filter`, which its analysts edit.
@@ -66,6 +74,19 @@ impl Default for QrCodeSettings {
 /// The qrcode module.
 pub struct QrCodeAnalyzer;
 
+/// The paths the module names the file it adds at, for the file it read at `input`: one, ace3's
+/// `<path>.qrcode`.
+pub fn output_paths(input: &str) -> Vec<String> {
+    vec![format!("{input}.qrcode")]
+}
+
+/// OpenCV's version, which the decoder's answers depend on: ace3 keys on `opencv-python`'s.
+fn opencv_version() -> Vec<(&'static str, String)> {
+    opencv::core::get_version_string()
+        .map(|version| vec![("opencv", version)])
+        .unwrap_or_default()
+}
+
 impl Module for QrCodeAnalyzer {
     const NAME: &'static str = "qrcode";
     const INPUTS: &'static [ObservableKind] = &[ObservableKind::File];
@@ -76,6 +97,14 @@ impl Module for QrCodeAnalyzer {
         memory_mb: 2048,
         cpu_seconds: 300,
     };
+    /// ace3's `cache_ttl: 2592000`, 30 days.
+    const CACHE: Option<Cache> = Some(Cache {
+        paths: CachePaths::Named(output_paths),
+        lists: &[QRCODE_FILTER],
+        tools: &["pdfinfo", "gs", "zbarimg"],
+        libraries: opencv_version,
+        ..Cache::new(1, Duration::from_secs(30 * 24 * 3600))
+    });
     type Output = QrCodeAnalysis;
     type Settings = QrCodeSettings;
 
@@ -86,8 +115,19 @@ impl Module for QrCodeAnalyzer {
         Ok(QrCodeAnalyzer)
     }
 
+    /// `custom_requirement` and the start of `execute_analysis`: an image Pillow opens, or a PDF,
+    /// by the file's type (PLAN.md decision 25), as ace3's 2026-06-25 consult gate keeps the module
+    /// off every other file before its analysis cache is asked.
     fn takes(_: &QrCodeSettings) -> Takes {
-        Takes::everything().and(Condition::not_empty(), "an empty file")
+        Takes::everything()
+            .and(Condition::not_empty(), "an empty file")
+            .and(
+                Condition::Any(vec![
+                    Condition::type_fact(TypeFact::IsImage),
+                    Condition::type_fact(TypeFact::IsPdfFile),
+                ]),
+                "not an image or a PDF",
+            )
     }
 }
 
@@ -349,10 +389,8 @@ impl Parser for QrCodeAnalyzer {
         ctx: &TaskContext<QrCodeSettings>,
     ) -> Result<Outcome<QrCodeAnalysis>, ModuleError> {
         let file = ctx.input_file()?;
+        // an image or a PDF, as the declaration takes it (`takes`)
         let is_pdf = is_pdf_file(file.path.as_str(), &head(&file.local_path, 1024)?);
-        if !is_image(&file.local_path)? && !is_pdf {
-            return Ok(Outcome::Skipped("not an image or a PDF".to_owned()));
-        }
         let filter = ctx.list(&QRCODE_FILTER)?;
         let targets = if is_pdf {
             self.render(ctx, &file.local_path)?
@@ -431,7 +469,7 @@ impl Parser for QrCodeAnalyzer {
             if inverted { "INVERTED: " } else { "" },
             urls.join(", ")
         ));
-        let target = format!("{}.qrcode", file.path.as_str());
+        let [target] = <[String; 1]>::try_from(output_paths(file.path.as_str())).expect("one path");
         if name_fits(&target) {
             let text: String = urls.iter().map(|url| format!("{url}\n")).collect();
             let mut new_file =

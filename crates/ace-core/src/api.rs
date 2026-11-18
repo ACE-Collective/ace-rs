@@ -109,7 +109,7 @@ use crate::lists::ListCache;
 use crate::orchestrator::{Orchestrator, OrchestratorError, Rejected};
 use crate::queue::{HELD_BACK_BY, QueueError, TASKS_CHANNEL, Task, TaskId, Worker};
 use crate::scans::{EndedScan, ScanRowState, ScanWorker};
-use crate::tree;
+use crate::tree::{self, PATH_HOLD_LIMIT};
 
 /// What a pool's list in `ACE4_POOLS` names a scanner it runs with (`ace_sdk::scanners::pool_entry`).
 const SCAN_PREFIX: &str = "@scan/";
@@ -123,11 +123,6 @@ pub const WORKER_HEADER: &str = "x-ace4-worker";
 /// ends (`queue::check_completion`), so this is how soon it asks again while they run, and the
 /// fallback when nothing wakes it.
 const OTHERS_PENDING_DELAY: Duration = Duration::from_millis(250);
-
-/// How long a file's first task is held, at most, while something nearer the root that could add
-/// the file under another path is pending (`Api::held_for_path`). Past it the file is analyzed under
-/// the best path it has, so a slow module can't stall the root. Most holds end in under a second.
-const PATH_HOLD_LIMIT: Duration = Duration::from_secs(60);
 
 /// A held task waits half as long again as its file has, within these bounds, so a quick root
 /// goes on at once and a slow one isn't polled for nothing.
@@ -1128,6 +1123,15 @@ impl Api {
         } else {
             None
         };
+        // a result kept since the task was queued, or one whose files wait for the path just
+        // settled, ends it here, with no pool (`crate::cache`)
+        if self
+            .land_kept(worker, &task, file.as_ref().map(|f| f.path.as_str()))
+            .await?
+        {
+            times.file = times.file.saturating_add(lap(&mut clock));
+            return Ok(None);
+        }
         let catalog = self.inner.orchestrator.catalog();
         let runs_last = catalog
             .iter()
@@ -1532,6 +1536,7 @@ impl Api {
         task: TaskId,
         result: Value,
         writes: &[crate::writes::Checked],
+        probes: &std::collections::BTreeMap<String, String>,
     ) -> Result<(), Failure> {
         let task = worker.owned(task).await?.ok_or(Failure::LeaseLost(task))?;
         let orchestrator = &self.inner.orchestrator;
@@ -1602,7 +1607,9 @@ impl Api {
                     {
                         details.insert("archive_id".to_owned(), archive_id.into());
                     }
-                    orchestrator.land_result(tx, worker, task, &result).await?;
+                    orchestrator
+                        .land_result_with(tx, worker, task, &result, probes, !writes.is_empty())
+                        .await?;
                     Ok::<_, LandError>(())
                 })
             })
@@ -1611,6 +1618,53 @@ impl Api {
             bucket.remove_upload(task.id.0, &file.sha256).await?;
         }
         Ok(())
+    }
+
+    /// Ends a leased task with the result the analysis cache kept for it, when its module's results
+    /// are kept and one is (`crate::cache`): its files at the paths its module names after `path`,
+    /// the path it analyzes. True when it did.
+    async fn land_kept(
+        &self,
+        worker: &Worker,
+        task: &Task,
+        path: Option<&str>,
+    ) -> Result<bool, Failure> {
+        let orchestrator = &self.inner.orchestrator;
+        let Some(component) = orchestrator
+            .catalog()
+            .component(&task.module)
+            .filter(|c| crate::cache::caches(orchestrator.cache(), c))
+        else {
+            return Ok(false);
+        };
+        let hit = self
+            .inner
+            .db
+            .transaction(Isolation::ReadCommitted, |tx| {
+                Box::pin(async move {
+                    let kind = task.observable.kind;
+                    let value = task.observable.value.as_str();
+                    let Some(kept) = orchestrator.kept_for(tx, component, kind, value).await?
+                    else {
+                        return Ok::<_, LandError>(None);
+                    };
+                    let Some(envelope) = crate::cache::for_path(component, &kept, path) else {
+                        return Ok(None);
+                    };
+                    if !crate::cache::hold_files(tx, task.root, &kept).await? {
+                        return Ok(None);
+                    }
+                    orchestrator
+                        .land_kept(tx, worker, task, &envelope, kept.created_at)
+                        .await?;
+                    Ok(Some(kept.id))
+                })
+            })
+            .await?;
+        if let Some(kept) = hit {
+            tracing::debug!(task = %task.id, module = %task.module, kept, "a kept result ended the task");
+        }
+        Ok(hit.is_some())
     }
 
     /// Ends a file's type step whose bytes already have a type kept (`Api::leased`), as its landing
@@ -2337,12 +2391,16 @@ async fn end_in(
     let worker = api.worker(&headers)?;
     let task = TaskId(id);
     match end {
-        TaskEnd::Done { result, writes } => {
+        TaskEnd::Done {
+            result,
+            writes,
+            probes,
+        } => {
             let writes = api.check_writes(&worker, task, writes).await?;
             // checked as JSON, so each field that fails is named
             let result = serde_json::to_value(result)
                 .map_err(|e| Failure::Internal(format!("re-encoding a result: {e}")))?;
-            api.land(&worker, task, without_nul(result), &writes)
+            api.land(&worker, task, without_nul(result), &writes, &probes)
                 .await?
         }
         TaskEnd::Skipped { reason, writes } => {

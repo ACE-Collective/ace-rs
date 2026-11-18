@@ -276,6 +276,9 @@ pub struct ResultNode {
     /// The reason as the line shows it beside the badge, cut to `FAILURE_SHOWN` characters: only
     /// when the result has no summary, since a summary usually says why already, as in ace3.
     pub error_shown: Option<String>,
+    /// For a result the analysis cache wrote in place of a task (`ModuleResult::cached_at`), when
+    /// the module's run it was kept from ended, for the `cached` badge's title.
+    pub cached: Option<String>,
 }
 
 /// A module whose task on the observable failed and left no result (`FailedModule`), where the tree
@@ -295,6 +298,11 @@ const FAILURE_SHOWN: usize = 200;
 
 /// What ace3 shows for a failure recorded without a reason.
 const FAILED_WITHOUT_REASON: &str = "the analysis module failed";
+
+/// When a cached result's run ended, as a result's page shows a time.
+fn when_cached(at: chrono::DateTime<chrono::Utc>) -> String {
+    at.format("%Y-%m-%d %H:%M:%S UTC").to_string()
+}
 
 /// `text` cut to `FAILURE_SHOWN` characters, with an ellipsis when it was longer.
 fn failure_shown(text: &str) -> String {
@@ -618,6 +626,7 @@ fn walk<'a>(
                         .as_deref()
                         .filter(|_| result.summary.is_none())
                         .map(failure_shown),
+                    cached: result.cached_at.map(when_cached),
                 }));
                 let children: Vec<i64> = added_by
                     .get(&result.id)
@@ -1528,6 +1537,8 @@ pub struct ResultPage {
     pub tags: Vec<String>,
     /// Why the module said it failed, shown above its details, as ace3's analysis page does.
     pub error: Option<String>,
+    /// For a result from the analysis cache, when the run it was kept from ended.
+    pub cached: Option<String>,
     pub view: DrawnView,
     pub added: Vec<AddedObservable>,
 }
@@ -1581,6 +1592,7 @@ impl ResultPage {
                 .to_string(),
             tags: result.tags.clone(),
             error: result.error.clone(),
+            cached: result.cached_at.map(when_cached),
             view: views.draw(
                 &result.analysis_type,
                 result.schema_version,

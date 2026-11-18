@@ -26,6 +26,10 @@
 //!
 //! `CreationDates` is ace3's `lookup_domain_creation_date`, the same lookup for a domain's
 //! registration date alone, which the newly registered domains module verifies a hit with.
+//!
+//! Its results are kept in the analysis cache for 7 days, as ace3's `cache_ttl` keeps them (PLAN.md
+//! decision 26): a lookup that failed is marked failed (`ResultEnvelope::error`) and isn't kept, and a
+//! kept one's ages and `datetime_of_analysis` are those of the lookup it was kept from, as in ace3.
 
 mod bootstrap;
 mod parse;
@@ -36,6 +40,7 @@ use std::time::Duration;
 use ace_results::ObservableKind;
 use ace_results::ResultEnvelope;
 use ace_results::types::rdap::RdapAnalysis;
+use ace_sdk::cache::Cache;
 use ace_sdk::http::{HttpClient, HttpErrorKind, check_status};
 use ace_sdk::{Lookup, Manifest, Module, ModuleError, Outcome, Resources, TaskContext};
 use schemars::JsonSchema;
@@ -86,6 +91,8 @@ impl Module for RdapAnalyzer {
         timeout: Duration::from_secs(120),
         ..Resources::DEFAULT
     };
+    /// ace3's `cache_ttl: 604800`, 7 days.
+    const CACHE: Option<Cache> = Some(Cache::new(1, Duration::from_secs(7 * 24 * 3600)));
     type Output = RdapAnalysis;
     type Settings = RdapSettings;
 

@@ -230,6 +230,7 @@ fn main() -> ExitCode {
                     }
                 },
                 tool_args: Vec::new(),
+                cache_probes: Arc::new(ace_pool::cache::probe_modules(&modules, &args.tools)),
             };
             let watcher = args.rulesets.map(|dir| {
                 RulesetWatcher::new(client.clone(), dir, Arc::new(ace_mod_yara::check_ruleset))

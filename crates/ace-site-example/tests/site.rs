@@ -1072,7 +1072,7 @@ fn task_request(
                           "is_pcap_file": false, "has_onenote_header": false,
                           "is_java_class_file": false, "has_xml_marker": false,
                           "is_eps_file": false, "is_encoded_script": false,
-                          "has_har_header": false},
+                          "has_har_header": false, "is_image": false},
                 "download": {"url": "http://unused.invalid/"},
             },
         },

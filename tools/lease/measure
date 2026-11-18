@@ -16,10 +16,16 @@ It runs `ace compare` over a few of the larger samples, several at once, and whi
   the core and pools after it) and prints the statements that took the most time in Postgres
   during the runs.
 - reads each container's CPU time before and after from its cgroup.
+- with --cache, starts the core with the analysis cache on (PLAN.md decision 26: a copy of the e2e
+  site directory whose overlay turns it on) and makes the runs in pairs: the cache is emptied before
+  each pair's first run, which is cold, and its second runs warm on what the first kept. It prints
+  how many results each run took from the cache, and the median and range of the cold runs and of
+  the warm ones.
 
     tools/lease/measure                      one run of the default samples, 8 at once
     tools/lease/measure --runs 3 --timing    three runs, with the timing events
     tools/lease/measure --only ace3/archive/test.jar --jobs 1
+    tools/lease/measure --cache --runs 6     three cold runs and three warm, each after a cold one
 
 With --all it runs the whole sample set, as tests/e2e/run does, on the stack as it is: the lists
 and detections that script loaded are still there. Each run's report stays in target/lease/run-N.
@@ -274,13 +280,25 @@ def main(argv):
     parser.add_argument("--timing", action="store_true")
     parser.add_argument("--statements", action="store_true")
     parser.add_argument("--top", type=int, default=30, help="statements to print")
+    parser.add_argument("--cache", action="store_true",
+                        help="the analysis cache on, the runs in cold and warm pairs")
     args = parser.parse_args(argv)
     samples = [] if args.all else args.only or DEFAULT_SAMPLES
 
     run = e2e()
     # the core and the pools log the timing events only for a run that reads them
     run.ENV[run.PREFIX + "LOG"] = "info,ace_lease=debug" if args.timing else "info"
-    run.compose("up", "-d", "--wait", "ace", *POOLS)
+    if args.cache:
+        site = ROOT / "target" / "lease" / "site-cache"
+        shutil.rmtree(site, ignore_errors=True)
+        shutil.copytree(run.SITE, site)
+        overlay = (site / "overlay.yaml").read_text()
+        off = "analysis_cache:\n  enabled: false\n"
+        if off not in overlay:
+            raise SystemExit("the e2e site's overlay doesn't turn the cache off as this expects")
+        (site / "overlay.yaml").write_text(overlay.replace(off, "analysis_cache:\n  enabled: true\n"))
+        run.ENV[run.PREFIX + "SITE"] = str(site)
+    run.compose("up", "-d", "--wait", *(["--force-recreate"] if args.cache else []), "ace", *POOLS)
     if args.statements:
         load_statements(run)
     else:
@@ -300,7 +318,13 @@ def main(argv):
 
     walls, rates = [], []
     leased = {pool: [] for pool in POOLS}
+    by_kind = {"cold": [], "warm": []}
     for number in range(1, args.runs + 1):
+        kind = None
+        if args.cache:
+            kind = "cold" if number % 2 == 1 else "warm"
+            if kind == "cold":
+                run.sql("TRUNCATE cache.results, cache.probes")
         before = cpu_usage(run)
         report = ROOT / "target" / "lease" / f"run-{number}"
         shutil.rmtree(report, ignore_errors=True)
@@ -325,10 +349,15 @@ def main(argv):
         result = json.loads((report / "report.json").read_text())
         roots = [sample["root"] for sample in result["samples"] if sample.get("root")]
         failed = len(result.get("failed", []))
+        ids = ", ".join(f"'{root}'" for root in roots)
         counted = run.sql(
             "SELECT count(*), count(*) FILTER (WHERE attempts > 1), "
             "count(*) FILTER (WHERE state = 'failed') FROM queue.tasks WHERE root_id IN ("
-            + ", ".join(f"'{root}'" for root in roots) + ")"
+            + ids + ")"
+        )[0]
+        cached = run.sql(
+            "SELECT count(*) FILTER (WHERE cached_at IS NOT NULL), count(*) FROM analysis.results "
+            f"WHERE root_id IN ({ids})"
         )[0]
         tasks = int(counted[0])
         seconds = result.get("seconds", wall)
@@ -339,6 +368,8 @@ def main(argv):
               f"({wall:.1f}s with its container), {tasks} tasks, {tasks / seconds:.0f} a second; "
               f"{counted[1]} leased more than once, {counted[2]} failed")
         print(f"  a sample, seconds: {spread(times)}; started {started:.0f}, ended {started + wall:.0f}")
+        print(f"  results: {cached[1]}, {cached[0]} of them from the analysis cache"
+              + (f" ({kind})" if kind else ""))
         if failed:
             print(output[-2000:])
         busy = [tick for tick in ticks if tick[4] > args.busy]
@@ -361,6 +392,8 @@ def main(argv):
         cpu = {service: after[service] - before[service] for service in SERVICES}
         print("  CPU seconds: " + ", ".join(f"{s} {cpu[s]:.1f}" for s in SERVICES)
               + f"; all {sum(cpu.values()):.1f}, {sum(cpu.values()) / wall:.2f} cores")
+        if kind:
+            by_kind[kind].append((seconds, tasks, sum(cpu.values()), int(cached[0]), cpu))
 
     print(f"\n{args.runs} run(s), {args.jobs} samples at once")
     print(f"  seconds: {spread(walls, 1)}")
@@ -368,6 +401,14 @@ def main(argv):
     for pool in POOLS:
         if leased[pool]:
             print(f"  {pool}, mean tasks leased while busy: {spread(leased[pool])}")
+    for kind, rows in by_kind.items():
+        if not rows:
+            continue
+        print(f"  {kind} runs ({len(rows)}): seconds {spread([r[0] for r in rows], 1)}, "
+              f"tasks {spread([r[1] for r in rows], 0)}, CPU seconds {spread([r[2] for r in rows], 1)}, "
+              f"results from the cache {spread([r[3] for r in rows], 0)}")
+        for service in SERVICES:
+            print(f"    {service} CPU seconds: {spread([r[4][service] for r in rows], 1)}")
     if args.timing:
         print_timing(*events(run, since))
     if args.statements:

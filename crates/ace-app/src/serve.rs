@@ -189,10 +189,13 @@ async fn serve(app: &App) -> Result<ExitCode> {
     for (kind, values) in exclusions.iter() {
         tracing::info!(r#type = kind, values = ?values, "no module analyzes these observables");
     }
+    // the analysis cache, ace3's `analysis_cache` (PLAN.md decision 26)
+    let cache = crate::cli::analysis_cache(&overlay, &components)?;
     let orchestrator = Orchestrator::new(Catalog::of(components), modes)
         .with_hooks(hooks)
         .with_takes(takes)
-        .with_exclusions(exclusions);
+        .with_exclusions(exclusions)
+        .with_cache(cache);
     // a pool that lists a module leases its overlay instances too
     // the remediators, probes and collectors the pools host decide their actions' tries (PLAN.md 7.9)
     let actions = app

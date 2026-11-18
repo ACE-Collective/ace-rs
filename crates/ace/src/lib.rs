@@ -186,6 +186,27 @@ mod tests {
         );
     }
 
+    /// Every open-source module that opts into the analysis cache reads only what its key holds, and
+    /// its pool can read the version of every tool it keys on (PLAN.md decision 26). The modules that
+    /// opt in are ace3's at `fe6da632` but `phishkit_analyzer`, which ace4 can't cache as it is.
+    #[test]
+    fn every_cacheable_module_reads_only_what_its_key_holds() {
+        let app = super::app();
+        assert_eq!(app.modules_that_cannot_be_cached(), Vec::<String>::new());
+        let cached = app.cacheable_modules();
+        assert_eq!(
+            cached,
+            [
+                "site_tagger",
+                "pdf_link_text",
+                "qrcode",
+                "ocr",
+                "rdap_analyzer",
+                "nrd_analyzer"
+            ]
+        );
+    }
+
     /// Each of the signatures' 7 hunt scripts is a script command type (PLAN.md decision 16).
     #[test]
     fn the_hunt_scripts_are_script_command_types() {

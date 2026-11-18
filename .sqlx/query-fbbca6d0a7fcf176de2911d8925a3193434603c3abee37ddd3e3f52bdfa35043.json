@@ -1,21 +1,32 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT sha256, description, mime, is_ole_file, is_rtf_file, has_pdf_marker, is_pe_file,\n                  is_zip_file, is_jar_file, is_x509, is_lnk_file, is_email_file,\n                  is_pcap_file AS \"is_pcap_file!\", has_onenote_header AS \"has_onenote_header!\",\n                  is_java_class_file AS \"is_java_class_file!\",\n                  has_xml_marker AS \"has_xml_marker!\", is_eps_file AS \"is_eps_file!\",\n                  is_encoded_script AS \"is_encoded_script!\",\n                  has_har_header AS \"has_har_header!\", javascript\n           FROM store.file_types\n           WHERE sha256 = ANY($1)\n             AND is_pcap_file IS NOT NULL AND has_onenote_header IS NOT NULL\n             AND is_java_class_file IS NOT NULL AND has_xml_marker IS NOT NULL\n             AND is_eps_file IS NOT NULL AND is_encoded_script IS NOT NULL\n             AND has_har_header IS NOT NULL",
+  "query": "SELECT o.id AS \"id: ObservableId\", f.path AS \"path!\",\n                  t.description, t.mime, t.is_ole_file, t.is_rtf_file, t.has_pdf_marker,\n                  t.is_pe_file, t.is_zip_file, t.is_jar_file, t.is_x509, t.is_lnk_file,\n                  t.is_email_file, t.is_pcap_file, t.has_onenote_header, t.is_java_class_file,\n                  t.has_xml_marker, t.is_eps_file, t.is_encoded_script, t.has_har_header,\n                  t.is_image, t.javascript\n           FROM analysis.observables o\n           JOIN store.file_types t ON t.sha256 = o.value\n           JOIN LATERAL (\n               SELECT path FROM analysis.files\n               WHERE root_id = o.root_id AND observable_id = o.id\n               ORDER BY analyzed DESC, depth, path COLLATE \"C\" LIMIT 1\n           ) f ON true\n           WHERE o.root_id = $1 AND o.type = 'file' AND o.type_result\n             AND ($2::bigint[] IS NULL OR o.id = ANY($2))",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
-        "name": "sha256",
-        "type_info": "Text",
+        "name": "id: ObservableId",
+        "type_info": "Int8",
         "origin": {
           "Table": {
-            "table": "store.file_types",
-            "name": "sha256"
+            "table": "analysis.observables",
+            "name": "id"
           }
         }
       },
       {
         "ordinal": 1,
+        "name": "path!",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "analysis.files",
+            "name": "path"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
         "name": "description",
         "type_info": "Text",
         "origin": {
@@ -26,7 +37,7 @@
         }
       },
       {
-        "ordinal": 2,
+        "ordinal": 3,
         "name": "mime",
         "type_info": "Text",
         "origin": {
@@ -37,7 +48,7 @@
         }
       },
       {
-        "ordinal": 3,
+        "ordinal": 4,
         "name": "is_ole_file",
         "type_info": "Bool",
         "origin": {
@@ -48,7 +59,7 @@
         }
       },
       {
-        "ordinal": 4,
+        "ordinal": 5,
         "name": "is_rtf_file",
         "type_info": "Bool",
         "origin": {
@@ -59,7 +70,7 @@
         }
       },
       {
-        "ordinal": 5,
+        "ordinal": 6,
         "name": "has_pdf_marker",
         "type_info": "Bool",
         "origin": {
@@ -70,7 +81,7 @@
         }
       },
       {
-        "ordinal": 6,
+        "ordinal": 7,
         "name": "is_pe_file",
         "type_info": "Bool",
         "origin": {
@@ -81,7 +92,7 @@
         }
       },
       {
-        "ordinal": 7,
+        "ordinal": 8,
         "name": "is_zip_file",
         "type_info": "Bool",
         "origin": {
@@ -92,7 +103,7 @@
         }
       },
       {
-        "ordinal": 8,
+        "ordinal": 9,
         "name": "is_jar_file",
         "type_info": "Bool",
         "origin": {
@@ -103,7 +114,7 @@
         }
       },
       {
-        "ordinal": 9,
+        "ordinal": 10,
         "name": "is_x509",
         "type_info": "Bool",
         "origin": {
@@ -114,7 +125,7 @@
         }
       },
       {
-        "ordinal": 10,
+        "ordinal": 11,
         "name": "is_lnk_file",
         "type_info": "Bool",
         "origin": {
@@ -125,7 +136,7 @@
         }
       },
       {
-        "ordinal": 11,
+        "ordinal": 12,
         "name": "is_email_file",
         "type_info": "Bool",
         "origin": {
@@ -136,8 +147,8 @@
         }
       },
       {
-        "ordinal": 12,
-        "name": "is_pcap_file!",
+        "ordinal": 13,
+        "name": "is_pcap_file",
         "type_info": "Bool",
         "origin": {
           "Table": {
@@ -147,8 +158,8 @@
         }
       },
       {
-        "ordinal": 13,
-        "name": "has_onenote_header!",
+        "ordinal": 14,
+        "name": "has_onenote_header",
         "type_info": "Bool",
         "origin": {
           "Table": {
@@ -158,8 +169,8 @@
         }
       },
       {
-        "ordinal": 14,
-        "name": "is_java_class_file!",
+        "ordinal": 15,
+        "name": "is_java_class_file",
         "type_info": "Bool",
         "origin": {
           "Table": {
@@ -169,8 +180,8 @@
         }
       },
       {
-        "ordinal": 15,
-        "name": "has_xml_marker!",
+        "ordinal": 16,
+        "name": "has_xml_marker",
         "type_info": "Bool",
         "origin": {
           "Table": {
@@ -180,8 +191,8 @@
         }
       },
       {
-        "ordinal": 16,
-        "name": "is_eps_file!",
+        "ordinal": 17,
+        "name": "is_eps_file",
         "type_info": "Bool",
         "origin": {
           "Table": {
@@ -191,8 +202,8 @@
         }
       },
       {
-        "ordinal": 17,
-        "name": "is_encoded_script!",
+        "ordinal": 18,
+        "name": "is_encoded_script",
         "type_info": "Bool",
         "origin": {
           "Table": {
@@ -202,8 +213,8 @@
         }
       },
       {
-        "ordinal": 18,
-        "name": "has_har_header!",
+        "ordinal": 19,
+        "name": "has_har_header",
         "type_info": "Bool",
         "origin": {
           "Table": {
@@ -213,7 +224,18 @@
         }
       },
       {
-        "ordinal": 19,
+        "ordinal": 20,
+        "name": "is_image",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "store.file_types",
+            "name": "is_image"
+          }
+        }
+      },
+      {
+        "ordinal": 21,
         "name": "javascript",
         "type_info": "Bool",
         "origin": {
@@ -226,7 +248,8 @@
     ],
     "parameters": {
       "Left": [
-        "TextArray"
+        "Uuid",
+        "Int8Array"
       ]
     },
     "nullable": [
@@ -242,6 +265,8 @@
       false,
       false,
       false,
+      false,
+      true,
       true,
       true,
       true,
@@ -252,5 +277,5 @@
       true
     ]
   },
-  "hash": "73fd5d76a30d3990f16e52624dd9accbd6054ab54dacd621ac5d57134d35b87c"
+  "hash": "fbbca6d0a7fcf176de2911d8925a3193434603c3abee37ddd3e3f52bdfa35043"
 }

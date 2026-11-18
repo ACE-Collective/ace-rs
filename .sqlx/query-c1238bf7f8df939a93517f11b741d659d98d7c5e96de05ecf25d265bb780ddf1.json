@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT probes FROM cache.probes WHERE module = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "probes",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "cache.probes",
+            "name": "probes"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "c1238bf7f8df939a93517f11b741d659d98d7c5e96de05ecf25d265bb780ddf1"
+}

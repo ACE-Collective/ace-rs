@@ -2774,6 +2774,7 @@ async fn the_archive_readers_add_the_email_the_core_opened() {
             &ace_sdk::wire::TaskEnd::Done {
                 result: raw,
                 writes: Vec::new(),
+                probes: Default::default(),
             },
         )
         .await;
@@ -2829,6 +2830,7 @@ async fn the_archive_readers_add_the_email_the_core_opened() {
             &ace_sdk::wire::TaskEnd::Done {
                 result: result.to_raw().expect("JSON"),
                 writes: Vec::new(),
+                probes: Default::default(),
             },
         )
         .await;
@@ -3123,6 +3125,7 @@ async fn the_archive_write_is_refused_unless_it_s_the_task_s_own_email() {
                     &ace_sdk::wire::TaskEnd::Done {
                         result: result(),
                         writes,
+                        probes: Default::default(),
                     },
                 )
                 .await;
@@ -3144,6 +3147,7 @@ async fn the_archive_write_is_refused_unless_it_s_the_task_s_own_email() {
                     &ace_sdk::wire::TaskEnd::Done {
                         result: result(),
                         writes,
+                        probes: Default::default(),
                     },
                 )
                 .await;
@@ -3172,6 +3176,7 @@ async fn the_archive_write_is_refused_unless_it_s_the_task_s_own_email() {
             &ace_sdk::wire::TaskEnd::Done {
                 result: result(),
                 writes: vec![own(&mine, 1)],
+                probes: Default::default(),
             },
         )
         .await;
@@ -3186,6 +3191,7 @@ async fn the_archive_write_is_refused_unless_it_s_the_task_s_own_email() {
             &ace_sdk::wire::TaskEnd::Done {
                 result: result(),
                 writes: vec![own(&mine, 1)],
+                probes: Default::default(),
             },
         )
         .await
@@ -3208,6 +3214,7 @@ async fn the_archive_write_is_refused_unless_it_s_the_task_s_own_email() {
             &ace_sdk::wire::TaskEnd::Done {
                 result: result(),
                 writes: vec![own(&mine, 1)],
+                probes: Default::default(),
             },
         )
         .await;
@@ -3365,6 +3372,7 @@ async fn pcap_files_adds_what_pcap_analyzer_stored() {
             &ace_sdk::wire::TaskEnd::Done {
                 result: result.to_raw().expect("JSON"),
                 writes: Vec::new(),
+                probes: Default::default(),
             },
         )
         .await;

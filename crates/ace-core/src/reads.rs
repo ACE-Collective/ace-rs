@@ -467,12 +467,7 @@ async fn newly_registered(
             own.kind, own.value
         )));
     }
-    let normalized = ace_sdk::nrd::normalize_lookup(&own.value);
-    let listed = if normalized.is_empty() {
-        false
-    } else {
-        crate::nrd::listed(db, &ace_sdk::nrd::candidates(&normalized)).await?
-    };
+    let listed = crate::nrd::answer_for(db.pool(), &own.value).await?;
     tracing::info!(
         task = task.id.0,
         root = %task.root,

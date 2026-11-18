@@ -124,6 +124,8 @@ pub struct Manifest {
     pub tools: &'static [&'static str],
     /// The scanners the module sends its observable through (`Module::SCANNERS`).
     pub scanners: &'static [&'static str],
+    /// The module's opt-in to the analysis cache (`Module::CACHE`).
+    pub cache: Option<crate::cache::Cache>,
     settings_schema: fn() -> Schema,
     check_settings: fn(Option<&Value>) -> Result<(), SettingsError>,
     takes: fn(Option<&Value>) -> Result<Takes, SettingsError>,
@@ -202,6 +204,7 @@ impl Manifest {
             stores_results: M::STORES_RESULTS,
             tools: M::TOOLS,
             scanners: M::SCANNERS,
+            cache: M::CACHE,
             settings_schema: settings_schema::<M::Settings>,
             check_settings: check_settings::<M::Settings>,
             takes: takes::<M>,
@@ -247,6 +250,12 @@ impl Manifest {
             );
         }
         Ok(takes)
+    }
+
+    /// Why the module can't be cached as it opts in (`Module::CACHE`), or None when it can, or
+    /// doesn't opt in: what its task reads that its key doesn't hold (`crate::cache::refusal`).
+    pub fn cache_refusal(&self) -> Option<String> {
+        crate::cache::refusal(self)
     }
 
     /// True when the module takes observables of `kind`, directly or through a parent type.
@@ -323,6 +332,14 @@ impl Manifest {
             "settings_schema": self.settings_schema(),
             // on its default settings; a site's settings can change it (`Component::takes`)
             "takes": self.declaration(None).map_or(Value::Null, |takes| takes.describe()),
+            // ace3's `cache_ttl`, on its defaults; a site's overlay can change it (`cache_ttl`)
+            "cache": self.cache.as_ref().map(|cache| json!({
+                "version": cache.version,
+                "ttl_seconds": cache.ttl.as_secs(),
+                "lists": cache.lists.iter().map(|l| l.name).collect::<Vec<_>>(),
+                "tools": cache.tools,
+                "files": cache.files,
+            })),
         })
     }
 }

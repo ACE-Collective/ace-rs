@@ -133,6 +133,7 @@ pub fn test_tool(name: String, program: String) -> ace_sdk::tools::ToolSpec {
         request_env: &[],
         memory_bytes: 1024 * 1024 * 1024,
         file_size_bytes: ace_sdk::tools::FILE_SIZE_LIMIT,
+        version_args: &[],
     }
 }
 

@@ -53,7 +53,8 @@
 //! first-byte tests of modules that declare on them: `IsPcapFile` (ace3's `is_pcap_file`),
 //! `HasOnenoteHeader` (the bytes' half of `is_onenote_file`, whose `.one` half is
 //! `Condition::Name`), `IsJavaClassFile`, `HasXmlMarker` (`<?xml` in the first KiB),
-//! `IsEpsFile`, `IsEncodedScript` (`#@~^`) and `HasHarHeader`. Each is the module's own test, not
+//! `IsEpsFile`, `IsEncodedScript` (`#@~^`), `HasHarHeader` and `IsImage` (Pillow's `Image.open`, the ocr
+//! and qrcode modules' test). Each is the module's own test, not
 //! libmagic's answer, whose rules differ at the edges (a byte-order mark before `<?xml`, pcapng's
 //! byte order). A module whose test of the first bytes is none of these adds one: a field of
 //! `TypeFacts`, its column in `store.file_types` with a migration, the test in
@@ -226,6 +227,9 @@ pub enum TypeFact {
     IsEncodedScript,
     /// ace3's `is_har_header` on the first 4096 bytes (`checks::has_har_header`).
     HasHarHeader,
+    /// Pillow would open it, by its first 1024 bytes: the test ace3's ocr and qrcode modules make
+    /// before anything else (`ace_mod_files::pillow`).
+    IsImage,
 }
 
 impl TypeFact {
@@ -252,6 +256,7 @@ impl TypeFact {
             TypeFact::IsEpsFile => facts.is_eps_file,
             TypeFact::IsEncodedScript => facts.is_encoded_script,
             TypeFact::HasHarHeader => facts.has_har_header,
+            TypeFact::IsImage => facts.is_image,
         }
     }
 }

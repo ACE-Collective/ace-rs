@@ -506,6 +506,55 @@ impl App {
             .collect()
     }
 
+    /// Each module that opts into the analysis cache (`Module::CACHE`) whose task reads what its key
+    /// doesn't hold (`Manifest::cache_refusal`), with why. Every binary refuses such a module when it
+    /// reads its overlay; a binary's own test keeps this empty. Each cacheable module's pool must
+    /// also carry the version of every tool it keys on (`ace_sdk::tools::ToolSpec::version_args`).
+    pub fn modules_that_cannot_be_cached(&self) -> Vec<String> {
+        let pools: Vec<(&[ace_sdk::tools::ToolSpec], Vec<Manifest>)> = self
+            .parser_pools
+            .iter()
+            .map(|pool| (pool.tools.as_slice(), pool.registry.manifests()))
+            .collect();
+        let mut refused = Vec::new();
+        for manifest in self.registry().manifests() {
+            if let Some(why) = manifest.cache_refusal() {
+                refused.push(why);
+                continue;
+            }
+            let Some(cache) = manifest.cache else {
+                continue;
+            };
+            for (tools, manifests) in &pools {
+                if !manifests.iter().any(|m| m.name == manifest.name) {
+                    continue;
+                }
+                for tool in cache.tools {
+                    if !tools
+                        .iter()
+                        .any(|t| t.name == *tool && !t.version_args.is_empty())
+                    {
+                        refused.push(format!(
+                            "{} keys on {tool}'s version, which its pool can't read",
+                            manifest.name
+                        ));
+                    }
+                }
+            }
+        }
+        refused
+    }
+
+    /// The modules that opt into the analysis cache (`Module::CACHE`), by name.
+    pub fn cacheable_modules(&self) -> Vec<&'static str> {
+        self.registry()
+            .manifests()
+            .iter()
+            .filter(|m| m.cache.is_some())
+            .map(|m| m.name)
+            .collect()
+    }
+
     /// Runs the `ace` command.
     pub fn ace_main(self) -> ExitCode {
         if let Err(code) = self.install_types() {

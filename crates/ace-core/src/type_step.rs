@@ -21,7 +21,8 @@
 //! answer what that path asks (`answers`): the JavaScript check, the one fact that isn't the bytes'
 //! alone, is made only where the mime type or the name says JavaScript, so a row kept from another
 //! name may lack it, and then the step runs and adds it. A failed step keeps no row, so the next
-//! root types the bytes again. A row from before migration 0070 lacks seven facts and is no type.
+//! root types the bytes again. A row from before migration 0070 lacks seven facts, and one from before
+//! 0073 its `is_image`, and is no type.
 //!
 //! **Its end.** The step's output is the file's `TypeFacts`, kept once per sha256 in
 //! `store.file_types` (`store_facts`), not a result in the tree. However the step ends, with facts,
@@ -53,7 +54,7 @@ use crate::tree::{self, ObservableId};
 pub use crate::queue::TYPE_STEP;
 
 /// A row of `store.file_types` as `TypeFacts`; `$flag` reads each of the seven columns migration
-/// 0070 added, which a row typed before it has NULL.
+/// 0070 added and 0073's `is_image`, which a row typed before them has NULL.
 macro_rules! facts_from_row {
     ($row:expr, $flag:expr) => {
         TypeFacts {
@@ -75,6 +76,7 @@ macro_rules! facts_from_row {
             is_eps_file: $flag($row.is_eps_file),
             is_encoded_script: $flag($row.is_encoded_script),
             has_har_header: $flag($row.has_har_header),
+            is_image: $flag($row.is_image),
             javascript: $row.javascript,
         }
     };
@@ -88,9 +90,9 @@ pub async fn store_facts(tx: &mut Tx<'_>, sha256: &str, facts: &TypeFacts) -> Re
              (sha256, description, mime, is_ole_file, is_rtf_file, has_pdf_marker, is_pe_file,
               is_zip_file, is_jar_file, is_x509, is_lnk_file, is_email_file, is_pcap_file,
               has_onenote_header, is_java_class_file, has_xml_marker, is_eps_file,
-              is_encoded_script, has_har_header, javascript)
+              is_encoded_script, has_har_header, is_image, javascript)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18,
-                 $19, $20)
+                 $19, $20, $21)
          ON CONFLICT (sha256) DO UPDATE SET
              description = EXCLUDED.description, mime = EXCLUDED.mime,
              is_ole_file = EXCLUDED.is_ole_file, is_rtf_file = EXCLUDED.is_rtf_file,
@@ -102,7 +104,7 @@ pub async fn store_facts(tx: &mut Tx<'_>, sha256: &str, facts: &TypeFacts) -> Re
              is_java_class_file = EXCLUDED.is_java_class_file,
              has_xml_marker = EXCLUDED.has_xml_marker, is_eps_file = EXCLUDED.is_eps_file,
              is_encoded_script = EXCLUDED.is_encoded_script,
-             has_har_header = EXCLUDED.has_har_header,
+             has_har_header = EXCLUDED.has_har_header, is_image = EXCLUDED.is_image,
              javascript = COALESCE(EXCLUDED.javascript, t.javascript),
              typed_at = now()",
         sha256,
@@ -124,6 +126,7 @@ pub async fn store_facts(tx: &mut Tx<'_>, sha256: &str, facts: &TypeFacts) -> Re
         facts.is_eps_file,
         facts.is_encoded_script,
         facts.has_har_header,
+        facts.is_image,
         facts.javascript,
     )
     .execute(tx.conn())
@@ -132,7 +135,7 @@ pub async fn store_facts(tx: &mut Tx<'_>, sha256: &str, facts: &TypeFacts) -> Re
 }
 
 /// The facts kept for each of these sha256s that has them. A row the type step wrote before
-/// migration 0070 lacks seven of them and is left out: its file's type is unknown until it is typed
+/// migration 0070 lacks seven of them, one from before 0073 `is_image`, and is left out: its file's type is unknown until it is typed
 /// again.
 pub async fn facts_of<'e>(
     executor: impl PgExecutor<'e>,
@@ -145,13 +148,13 @@ pub async fn facts_of<'e>(
                   is_java_class_file AS "is_java_class_file!",
                   has_xml_marker AS "has_xml_marker!", is_eps_file AS "is_eps_file!",
                   is_encoded_script AS "is_encoded_script!",
-                  has_har_header AS "has_har_header!", javascript
+                  has_har_header AS "has_har_header!", is_image AS "is_image!", javascript
            FROM store.file_types
            WHERE sha256 = ANY($1)
              AND is_pcap_file IS NOT NULL AND has_onenote_header IS NOT NULL
              AND is_java_class_file IS NOT NULL AND has_xml_marker IS NOT NULL
              AND is_eps_file IS NOT NULL AND is_encoded_script IS NOT NULL
-             AND has_har_header IS NOT NULL"#,
+             AND has_har_header IS NOT NULL AND is_image IS NOT NULL"#,
         sha256s,
     )
     .fetch_all(executor)
@@ -205,7 +208,7 @@ pub async fn kept<'e>(
                   t.is_java_class_file AS "is_java_class_file!",
                   t.has_xml_marker AS "has_xml_marker!", t.is_eps_file AS "is_eps_file!",
                   t.is_encoded_script AS "is_encoded_script!",
-                  t.has_har_header AS "has_har_header!", t.javascript
+                  t.has_har_header AS "has_har_header!", t.is_image AS "is_image!", t.javascript
            FROM analysis.observables o
            JOIN analysis.files f
                 ON f.root_id = o.root_id AND f.observable_id = o.id AND f.analyzed
@@ -214,7 +217,7 @@ pub async fn kept<'e>(
              AND t.is_pcap_file IS NOT NULL AND t.has_onenote_header IS NOT NULL
              AND t.is_java_class_file IS NOT NULL AND t.has_xml_marker IS NOT NULL
              AND t.is_eps_file IS NOT NULL AND t.is_encoded_script IS NOT NULL
-             AND t.has_har_header IS NOT NULL
+             AND t.has_har_header IS NOT NULL AND t.is_image IS NOT NULL
            ORDER BY o.id, f.path COLLATE "C""#,
         root,
         &ids,
@@ -268,7 +271,7 @@ pub async fn results_of<'e>(
                   t.is_pe_file, t.is_zip_file, t.is_jar_file, t.is_x509, t.is_lnk_file,
                   t.is_email_file, t.is_pcap_file, t.has_onenote_header, t.is_java_class_file,
                   t.has_xml_marker, t.is_eps_file, t.is_encoded_script, t.has_har_header,
-                  t.javascript
+                  t.is_image, t.javascript
            FROM analysis.observables o
            JOIN store.file_types t ON t.sha256 = o.value
            JOIN LATERAL (
@@ -290,7 +293,7 @@ pub async fn results_of<'e>(
                 row.id,
                 Typed {
                     path: row.path.clone(),
-                    // ace3's result reads none of the flags migration 0070 added
+                    // ace3's result reads none of the flags migrations 0070 and 0073 added
                     facts: facts_from_row!(row, |flag: Option<bool>| flag.unwrap_or(false)),
                 },
             )

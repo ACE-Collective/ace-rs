@@ -32,6 +32,7 @@ use std::time::Duration;
 use ace_pycompat::ipaddress::{IpAddress, ip_address, ipv4_address, ipv6_address};
 use ace_results::types::tag::SiteTagAnalysis;
 use ace_results::{ObservableKind, ResultEnvelope};
+use ace_sdk::cache::Cache;
 use ace_sdk::takes::{Condition, Takes};
 use ace_sdk::{Manifest, Module, ModuleError, Outcome, Parser, Resources, TaskContext};
 use regex::{Regex, RegexBuilder};
@@ -317,6 +318,10 @@ impl Module for SiteTagger {
         timeout: Duration::from_secs(30),
         ..Resources::DEFAULT
     };
+    /// Cacheable, but kept only when the overlay gives it a `cache_ttl`: ace3's `SiteTagAnalyzer` has
+    /// its `extended_version`, but `saq.default.yaml` gives it no `cache_ttl` since ace3 took it out of
+    /// the cache. Its rows are in its settings, so a change to them changes its key.
+    const CACHE: Option<Cache> = Some(Cache::new(1, Duration::ZERO));
     type Output = SiteTagAnalysis;
     type Settings = SiteTaggerSettings;
 

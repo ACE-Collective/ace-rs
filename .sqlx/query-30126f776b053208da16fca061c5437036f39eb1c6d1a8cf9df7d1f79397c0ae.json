@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO store.file_types AS t\n             (sha256, description, mime, is_ole_file, is_rtf_file, has_pdf_marker, is_pe_file,\n              is_zip_file, is_jar_file, is_x509, is_lnk_file, is_email_file, is_pcap_file,\n              has_onenote_header, is_java_class_file, has_xml_marker, is_eps_file,\n              is_encoded_script, has_har_header, is_image, javascript)\n         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18,\n                 $19, $20, $21)\n         ON CONFLICT (sha256) DO UPDATE SET\n             description = EXCLUDED.description, mime = EXCLUDED.mime,\n             is_ole_file = EXCLUDED.is_ole_file, is_rtf_file = EXCLUDED.is_rtf_file,\n             has_pdf_marker = EXCLUDED.has_pdf_marker, is_pe_file = EXCLUDED.is_pe_file,\n             is_zip_file = EXCLUDED.is_zip_file, is_jar_file = EXCLUDED.is_jar_file,\n             is_x509 = EXCLUDED.is_x509, is_lnk_file = EXCLUDED.is_lnk_file,\n             is_email_file = EXCLUDED.is_email_file, is_pcap_file = EXCLUDED.is_pcap_file,\n             has_onenote_header = EXCLUDED.has_onenote_header,\n             is_java_class_file = EXCLUDED.is_java_class_file,\n             has_xml_marker = EXCLUDED.has_xml_marker, is_eps_file = EXCLUDED.is_eps_file,\n             is_encoded_script = EXCLUDED.is_encoded_script,\n             has_har_header = EXCLUDED.has_har_header, is_image = EXCLUDED.is_image,\n             javascript = COALESCE(EXCLUDED.javascript, t.javascript),\n             typed_at = now()",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text",
+        "Bool",
+        "Bool",
+        "Bool",
+        "Bool",
+        "Bool",
+        "Bool",
+        "Bool",
+        "Bool",
+        "Bool",
+        "Bool",
+        "Bool",
+        "Bool",
+        "Bool",
+        "Bool",
+        "Bool",
+        "Bool",
+        "Bool",
+        "Bool"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "30126f776b053208da16fca061c5437036f39eb1c6d1a8cf9df7d1f79397c0ae"
+}

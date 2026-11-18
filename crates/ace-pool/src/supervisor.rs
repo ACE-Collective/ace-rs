@@ -115,6 +115,9 @@ pub struct SupervisorConfig {
     pub tools: Arc<ToolTable>,
     /// The arguments of the binary's `tool` mode, before `tool` itself.
     pub tool_args: Vec<String>,
+    /// What each cacheable module's results depend on in this image, read when the pool started
+    /// (`crate::cache`), sent with each of its results.
+    pub cache_probes: Arc<crate::cache::Probes>,
 }
 
 /// The uid and gid of a user, by name.
@@ -325,12 +328,13 @@ pub async fn run_task_process(
             tracing::warn!("serving the task's tools: {e}");
         }
     }
-    let end = match ran {
+    let mut end = match ran {
         Ok(end) => end,
         Err(e) => TaskEnd::Failed {
             error: format!("the task process didn't run: {e}"),
         },
     };
+    crate::cache::attach(&mut end, &task.module, &config.cache_probes);
     let outputs = LocalFileStore::new(dir.outputs())?;
     // the lease stays kept until the end lands: a result's uploads can outlast it
     finish(client, &task, &outputs, &end, shutdown).await?;

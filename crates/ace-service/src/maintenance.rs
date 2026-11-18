@@ -1,6 +1,7 @@
 //! The bucket's scheduled maintenance (PLAN.md 6.7): ace3's hourly `ace cas gc`, weekly `ace cas
 //! orphans` and weekly `ace cas verify`, and the email archive's daily `ace partitions maintain`
-//! (`maintain_email_archive`, 7.5 batch 9), which the scheduler in `ace serve` calls, each as a component
+//! (`maintain_email_archive`, 7.5 batch 9) and the analysis cache's (`maintain_analysis_cache`, decision
+//! 26), which the scheduler in `ace serve` calls, each as a component
 //! of its own (`scheduler:bucket_gc`, `scheduler:bucket_orphans`, `scheduler:bucket_verify`), which
 //! migration 0036 grants `bucket:gc` or `bucket:verify` and nothing else.
 //!
@@ -23,7 +24,8 @@ use std::collections::BTreeMap;
 use ace_core::bucket::{Bucket, GcStats, OrphanStats, Retention, VerifyStats};
 
 use crate::permission::{
-    BUCKET_GC, BUCKET_VERIFY, EMAIL_ARCHIVE_MAINTAIN, NRD_REFRESH, PermissionName,
+    ANALYSIS_CACHE_MAINTAIN, BUCKET_GC, BUCKET_VERIFY, EMAIL_ARCHIVE_MAINTAIN, NRD_REFRESH,
+    PermissionName,
 };
 use crate::{Actor, Service, ServiceError};
 
@@ -108,6 +110,21 @@ impl Service {
             ace_core::email_archive::partitions::maintain(self.gate.db(), config, now, false)
                 .await?,
         )
+    }
+
+    /// The analysis cache's partitions (PLAN.md decision 26): the days past retention dropped and the
+    /// days ahead made, as ace3's `ace partitions maintain` keeps its cache's. Needs
+    /// `analysis_cache:maintain`. No audit row, as for the email archive's: dropping a day is the
+    /// retention its configuration says, applied, and what each run dropped and made is in its row.
+    pub async fn maintain_analysis_cache(
+        &self,
+        actor: &Actor,
+        settings: &ace_core::cache::CacheSettings,
+        now: chrono::DateTime<chrono::Utc>,
+    ) -> Result<ace_core::cache::Maintenance, ServiceError> {
+        self.require(actor, "maintain_analysis_cache", &ANALYSIS_CACHE_MAINTAIN)
+            .await?;
+        Ok(ace_core::cache::maintain(self.gate.db(), settings, now, false).await?)
     }
 
     /// The newly registered domains list's state, for deciding whether to rebuild it (PLAN.md 7.4).

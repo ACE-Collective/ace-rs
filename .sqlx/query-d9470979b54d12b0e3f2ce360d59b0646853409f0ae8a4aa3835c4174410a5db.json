@@ -1,0 +1,20 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO cache.activity\n             (root_id, pass, module, hits, misses, writes, write_bytes, lookup_seconds,\n              lookup_max_seconds)\n         SELECT id, pass, $2, $3, $4, $5, $6, $7, $7 FROM analysis.roots WHERE id = $1\n         ON CONFLICT (root_id, pass, module) DO UPDATE SET\n             hits = cache.activity.hits + EXCLUDED.hits,\n             misses = cache.activity.misses + EXCLUDED.misses,\n             writes = cache.activity.writes + EXCLUDED.writes,\n             write_bytes = cache.activity.write_bytes + EXCLUDED.write_bytes,\n             lookup_seconds = cache.activity.lookup_seconds + EXCLUDED.lookup_seconds,\n             lookup_max_seconds = GREATEST(cache.activity.lookup_max_seconds,\n                                           EXCLUDED.lookup_max_seconds)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Int4",
+        "Int4",
+        "Int4",
+        "Int8",
+        "Float8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "d9470979b54d12b0e3f2ce360d59b0646853409f0ae8a4aa3835c4174410a5db"
+}

@@ -8,12 +8,20 @@
 //! tesseract reads the same pixels. Each pass's text is cleaned up as ace3 cleans it, and joined over
 //! its line breaks by whether each line's last word is in the en_US Hunspell dictionary, which ace3
 //! asks through enchant and the task through `spellbook`.
+//!
+//! Its results are kept in the analysis cache for 30 days, as ace3's `cache_ttl` keeps them (PLAN.md
+//! decision 26), a clean read among them, under its key's extended version: tesseract's version, as
+//! ace3's `extended_version` holds it, and here also the en_US dictionary's bytes and OpenCV's version,
+//! which ace3 doesn't key on though its joining of lines and its preprocessing read them. A pass that
+//! failed is skipped, so it is never kept. The file it adds is named after the one it read
+//! (`output_paths`), which a hit names after the new root's.
 
 use std::time::Duration;
 
 use ace_results::FileRole;
 use ace_results::types::sandbox::OcrAnalysis;
 use ace_results::{ObservableKind, Relationship, RelationshipKind, ResultEnvelope};
+use ace_sdk::cache::{Cache, CachePaths};
 use ace_sdk::tools::ToolRun;
 use ace_sdk::{Module, ModuleError, Outcome, Parser, Resources, TaskContext};
 use opencv::core::{BORDER_CONSTANT, Mat, MatTraitConst, Scalar, Size, Vector};
@@ -56,6 +64,20 @@ impl Default for OcrSettings {
     }
 }
 
+/// The paths the module names the file it adds at, for the image it read at `input`: one, ace3's
+/// `<path>.ocr/<name>.ocr`.
+pub fn output_paths(input: &str) -> Vec<String> {
+    let name = input.rsplit('/').next().unwrap_or(input);
+    vec![format!("{input}.ocr/{name}.ocr")]
+}
+
+/// OpenCV's version, which the preprocessing's pixels depend on.
+fn opencv_version() -> Vec<(&'static str, String)> {
+    opencv::core::get_version_string()
+        .map(|version| vec![("opencv", version)])
+        .unwrap_or_default()
+}
+
 /// The ocr module.
 pub struct OcrAnalyzer {
     dictionary: spellbook::Dictionary,
@@ -72,6 +94,14 @@ impl Module for OcrAnalyzer {
         memory_mb: 3072,
         cpu_seconds: 300,
     };
+    /// ace3's `cache_ttl: 2592000`, 30 days.
+    const CACHE: Option<Cache> = Some(Cache {
+        paths: CachePaths::Named(output_paths),
+        tools: &["tesseract"],
+        files: &[DICTIONARY.0, DICTIONARY.1],
+        libraries: opencv_version,
+        ..Cache::new(1, Duration::from_secs(30 * 24 * 3600))
+    });
     type Output = OcrAnalysis;
     type Settings = OcrSettings;
 
@@ -413,7 +443,7 @@ impl Parser for OcrAnalyzer {
         }
         let mut result = ResultEnvelope::new(OcrAnalysis { ocr: true });
         result.summary = Some("OCR Analysis".to_owned());
-        let target = format!("{}.ocr/{}.ocr", file.path.as_str(), file.name());
+        let [target] = <[String; 1]>::try_from(output_paths(file.path.as_str())).expect("one path");
         if name_fits(&target) {
             let mut new_file =
                 ctx.write_file(&target, body.as_bytes(), FileRole::DOCUMENT_TEXT_OCR)?;

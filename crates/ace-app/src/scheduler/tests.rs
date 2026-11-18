@@ -966,6 +966,95 @@ async fn archive_weeks(db: &Db, table: &str) -> Vec<String> {
     .expect("reads the partitions")
 }
 
+/// The analysis cache's day partitions (PLAN.md decision 26), as `psql`'s catalog lists them.
+async fn cache_days(db: &ace_core::db::Db) -> Vec<String> {
+    sqlx::query_scalar(
+        "SELECT c.relname::text FROM pg_inherits i
+         JOIN pg_class c ON c.oid = i.inhrelid
+         WHERE i.inhparent = to_regclass('cache.results') AND c.relname NOT LIKE '%catchall'
+         ORDER BY c.relname",
+    )
+    .fetch_all(db.pool())
+    .await
+    .expect("reads the partitions")
+}
+
+/// ace3's `daily/partitions`, its analysis cache half (PLAN.md decision 26): a day past retention goes,
+/// with its rows, the days from today to three ahead are made, and a day the catchall holds rows of
+/// isn't made, and the run fails naming it.
+#[tokio::test]
+async fn analysis_cache_partitions_drops_the_old_days_and_makes_the_ones_ahead() {
+    use ace_core::cache::{DAYS_AHEAD, partition_name};
+    let fixture = Fixture::new().await;
+    let db = fixture.db();
+    let today = Utc::now().date_naive();
+    // a day forty days back, past the default 35, made by hand, holding a row
+    let old = today - chrono::Duration::days(40);
+    let old_name = partition_name(old);
+    sqlx::raw_sql(sqlx::AssertSqlSafe(format!(
+        "CREATE TABLE cache.{old_name} PARTITION OF cache.results
+         FOR VALUES FROM ('{old} 00:00:00+00') TO ('{} 00:00:00+00')",
+        old + chrono::Duration::days(1)
+    )))
+    .execute(db.pool())
+    .await
+    .expect("makes an old day");
+    sqlx::query(
+        "INSERT INTO cache.results (key, module, observable_type, observable_value, envelope,
+                                    created_at, expires_at)
+         VALUES (sha256('old'::bytea), 'qrcode', 'file', 'x', '{}', $1, $1)",
+    )
+    .bind((old.and_hms_opt(12, 0, 0).expect("noon")).and_utc())
+    .execute(db.pool())
+    .await
+    .expect("an old row");
+    let task = builtin("analysis_cache_partitions");
+    make_due(db, &task).await;
+
+    let run = run_once(&fixture, vec![task], "analysis_cache_partitions").await;
+
+    assert_eq!(run.outcome.as_deref(), Some("succeeded"), "{run:?}");
+    let expected: Vec<String> = (0..=DAYS_AHEAD)
+        .map(|ahead| partition_name(today + chrono::Duration::days(ahead)))
+        .collect();
+    assert_eq!(cache_days(db).await, expected);
+    let rows: i64 = sqlx::query_scalar("SELECT count(*) FROM cache.results")
+        .fetch_one(db.pool())
+        .await
+        .expect("counts");
+    assert_eq!(rows, 0, "the old day went with its row");
+    let summary = run.summary.expect("a summary");
+    assert_eq!(summary["dropped"], json!([old_name]));
+
+    // a row in the catchall of a day not yet made keeps that day from being made
+    let ahead = today + chrono::Duration::days(DAYS_AHEAD + 1);
+    sqlx::query(
+        "INSERT INTO cache.results (key, module, observable_type, observable_value, envelope,
+                                    created_at, expires_at)
+         VALUES (sha256('ahead'::bytea), 'qrcode', 'file', 'y', '{}', $1, $1)",
+    )
+    .bind((ahead.and_hms_opt(1, 0, 0).expect("one")).and_utc())
+    .execute(db.pool())
+    .await
+    .expect("a row past the days made");
+    let done = fixture
+        .service
+        .maintain_analysis_cache(
+            &builtin("analysis_cache_partitions").actor,
+            &ace_core::cache::CacheSettings::default(),
+            Utc::now() + chrono::Duration::days(1),
+        )
+        .await
+        .expect("runs");
+    assert_eq!(done.problems.len(), 1, "{done:?}");
+    assert!(
+        done.problems[0].contains(&partition_name(ahead)),
+        "{done:?}"
+    );
+    assert!(!cache_days(db).await.contains(&partition_name(ahead)));
+    fixture.clean_up().await;
+}
+
 /// ace3's `daily/partitions`, its email archive half (PLAN.md 7.5 batch 9): the weeks past retention go,
 /// with their rows, and the weeks from the oldest kept to four ahead are made in each table; a week the
 /// catchall holds rows of isn't made, and the run fails naming it, as ace3's exits 1.
@@ -1186,6 +1275,7 @@ async fn each_task_acts_as_its_own_component_with_only_its_grant() {
         ace_service::SIGNATURE_QA_PURGE,
         ace_service::NRD_REFRESH,
         ace_service::EMAIL_ARCHIVE_MAINTAIN,
+        ace_service::ANALYSIS_CACHE_MAINTAIN,
         ace_service::FILE_COLLECTION_PRUNE,
         ace_service::ALERT_READ,
     ];
@@ -1198,6 +1288,10 @@ async fn each_task_acts_as_its_own_component_with_only_its_grant() {
         (
             "email_archive_partitions",
             ace_service::EMAIL_ARCHIVE_MAINTAIN,
+        ),
+        (
+            "analysis_cache_partitions",
+            ace_service::ANALYSIS_CACHE_MAINTAIN,
         ),
         ("file_collection_prune", ace_service::FILE_COLLECTION_PRUNE),
     ] {
@@ -1526,6 +1620,7 @@ fn the_overlay_s_scheduler_section_sets_each_task_over_its_defaults() {
             ("bucket_orphans", "0 5 * * 1", 14400, true),
             ("bucket_verify", "0 5 * * 1", 14400, true),
             ("email_archive_partitions", "0 5 * * *", 3600, true),
+            ("analysis_cache_partitions", "0 5 * * *", 3600, true),
             ("file_collection_prune", "0 5 * * *", 3600, true),
             ("svs_validations_prune", "0 5 * * *", 3600, true),
             ("svs_catalog_refresh", "*/5 * * * *", 1500, true),
@@ -1554,6 +1649,7 @@ fn the_overlay_s_scheduler_section_sets_each_task_over_its_defaults() {
             "internal:scheduler:bucket_orphans",
             "internal:scheduler:bucket_verify",
             "internal:scheduler:email_archive_partitions",
+            "internal:scheduler:analysis_cache_partitions",
             "internal:scheduler:file_collection_prune",
             "internal:scheduler:svs_validations_prune",
             "internal:scheduler:svs_catalog_refresh",
@@ -1588,7 +1684,7 @@ fn the_overlay_s_scheduler_section_sets_each_task_over_its_defaults() {
         "scheduler:\n  bucket_gc:\n    schedule: '*/15 * * * *'\n    timeout_seconds: 600\n  \
          bucket_verify:\n    enabled: false\n  cas_node_stats:\n    enabled: true\n",
     );
-    assert_eq!(set.len(), 19, "the removed task is skipped");
+    assert_eq!(set.len(), 20, "the removed task is skipped");
     assert_eq!(
         (
             set[0].schedule.as_str(),

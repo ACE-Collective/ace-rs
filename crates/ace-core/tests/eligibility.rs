@@ -3347,3 +3347,501 @@ async fn a_kept_type_waits_for_the_file_s_path_to_be_settled() {
     let (root, _) = typed_root(&test_db, &orchestrator, "typed", &sha256, "doc.pdf").await;
     assert_eq!(modules(&tasks_of(db, root).await), ["file_type"]);
 }
+
+/// Modules whose results the analysis cache keeps (PLAN.md decision 26): a lookup on an fqdn, and a
+/// parser on a file that adds a file named after the one it read.
+mod cached {
+    use std::time::Duration;
+
+    use ace_results::ObservableKind;
+    use ace_results::types::sandbox::QrCodeAnalysis;
+    use ace_sdk::cache::{Cache, CachePaths};
+    use ace_sdk::{Lookup, Manifest, Module, ModuleError, Outcome, Parser, TaskContext};
+
+    pub struct CachedLookup;
+
+    impl Module for CachedLookup {
+        const NAME: &'static str = "test_cached";
+        const INPUTS: &'static [ObservableKind] = &[ObservableKind::Fqdn];
+        const CACHE: Option<Cache> = Some(Cache::new(1, Duration::from_secs(86_400)));
+        type Output = QrCodeAnalysis;
+        type Settings = serde_json::Value;
+
+        fn init(_: &serde_json::Value) -> Result<Self, ModuleError> {
+            Ok(CachedLookup)
+        }
+    }
+
+    impl Lookup for CachedLookup {
+        const TCP_PORTS: &'static [u16] = &[];
+
+        async fn analyze(
+            &self,
+            _: &TaskContext<serde_json::Value>,
+        ) -> Result<Outcome<QrCodeAnalysis>, ModuleError> {
+            Ok(Outcome::Skipped("a stub".to_owned()))
+        }
+    }
+
+    pub fn named(input: &str) -> Vec<String> {
+        vec![format!("{input}.cached")]
+    }
+
+    pub struct CachedFiles;
+
+    impl Module for CachedFiles {
+        const NAME: &'static str = "test_cached_files";
+        const INPUTS: &'static [ObservableKind] = &[ObservableKind::File];
+        const CACHE: Option<Cache> = Some(Cache {
+            paths: CachePaths::Named(named),
+            ..Cache::new(1, Duration::from_secs(86_400))
+        });
+        type Output = QrCodeAnalysis;
+        type Settings = ();
+
+        fn init(_: &()) -> Result<Self, ModuleError> {
+            Ok(CachedFiles)
+        }
+    }
+
+    impl Parser for CachedFiles {
+        fn analyze(&self, _: &TaskContext<()>) -> Result<Outcome<QrCodeAnalysis>, ModuleError> {
+            Ok(Outcome::Skipped("a stub".to_owned()))
+        }
+    }
+
+    /// Keyed on the `newly-registered` read's answer, as the newly registered domains module is.
+    pub struct CachedNrd;
+
+    impl Module for CachedNrd {
+        const NAME: &'static str = "test_cached_nrd";
+        const INPUTS: &'static [ObservableKind] = &[ObservableKind::Fqdn];
+        const READS: &'static [ace_sdk::reads::Read] =
+            &[<ace_sdk::reads::NewlyRegistered as ace_sdk::reads::ReadKind>::READ];
+        const CACHE: Option<Cache> = Some(Cache {
+            reads: &[<ace_sdk::reads::NewlyRegistered as ace_sdk::reads::ReadKind>::READ],
+            ..Cache::new(1, Duration::from_secs(86_400))
+        });
+        type Output = QrCodeAnalysis;
+        type Settings = ();
+
+        fn init(_: &()) -> Result<Self, ModuleError> {
+            Ok(CachedNrd)
+        }
+    }
+
+    impl Lookup for CachedNrd {
+        const TCP_PORTS: &'static [u16] = &[];
+
+        async fn analyze(
+            &self,
+            _: &TaskContext<()>,
+        ) -> Result<Outcome<QrCodeAnalysis>, ModuleError> {
+            Ok(Outcome::Skipped("a stub".to_owned()))
+        }
+    }
+
+    pub const LOOKUP: Manifest = Manifest::lookup::<CachedLookup>();
+    pub const FILES: Manifest = Manifest::parser::<CachedFiles>();
+    pub const NRD: Manifest = Manifest::lookup::<CachedNrd>();
+}
+
+fn cache_orchestrator(settings: Option<serde_json::Value>) -> Orchestrator {
+    let mut lookup = ace_sdk::Component::of(cached::LOOKUP);
+    lookup.settings = settings;
+    let modes = Modes::ace3()
+        .with_mode(AnalysisMode {
+            name: "cache_test".to_owned(),
+            module_groups: Vec::new(),
+            enabled_modules: vec!["test_cached".to_owned(), "test_cached_files".to_owned()],
+            disabled_modules: Vec::new(),
+        })
+        .with_mode(AnalysisMode {
+            name: "cache_nrd".to_owned(),
+            module_groups: Vec::new(),
+            enabled_modules: vec!["test_cached_nrd".to_owned()],
+            disabled_modules: Vec::new(),
+        });
+    Orchestrator::new(
+        Catalog::of([
+            lookup,
+            ace_sdk::Component::of(cached::FILES),
+            ace_sdk::Component::of(cached::NRD),
+        ]),
+        modes,
+    )
+}
+
+async fn start(db: &ace_core::db::Db, orchestrator: &Orchestrator, root: uuid::Uuid) {
+    let mut tx = db.begin().await.expect("begins");
+    orchestrator.start(&mut tx, root).await.expect("starts");
+    tx.commit().await.expect("commits");
+}
+
+async fn kept_rows(db: &ace_core::db::Db) -> i64 {
+    sqlx::query_scalar("SELECT count(*) FROM cache.results")
+        .fetch_one(db.pool())
+        .await
+        .expect("counts")
+}
+
+/// Claims the one task of `module` and lands `envelope` as its result.
+async fn land_one(
+    test_db: &TestDb,
+    orchestrator: &Orchestrator,
+    module: &str,
+    envelope: serde_json::Value,
+) {
+    let db = test_db.db();
+    let pool = worker(test_db, module, &[module], Duration::from_secs(60)).await;
+    let task = pool.claim().await.expect("claims").expect("a task");
+    let mut tx = db.begin().await.expect("begins");
+    orchestrator
+        .land_result_with(
+            &mut tx,
+            &pool,
+            &task,
+            &result(envelope),
+            &std::collections::BTreeMap::new(),
+            false,
+        )
+        .await
+        .expect("lands");
+    tx.commit().await.expect("commits");
+}
+
+/// The kept result's row in a root: its summary, its details and its `cached_at`.
+async fn result_in(
+    db: &ace_core::db::Db,
+    root: uuid::Uuid,
+    module: &str,
+) -> Option<(
+    Option<String>,
+    serde_json::Value,
+    Option<chrono::DateTime<chrono::Utc>>,
+)> {
+    sqlx::query_as(
+        "SELECT summary, details, cached_at FROM analysis.results WHERE root_id = $1 AND module = $2",
+    )
+    .bind(root)
+    .bind(module)
+    .fetch_optional(db.pool())
+    .await
+    .expect("reads")
+}
+
+fn found() -> serde_json::Value {
+    json!({
+        "analysis_type": "qr_code_analysis", "schema_version": 1,
+        "details": {"extracted_text": "http://found.example/", "inverted": false},
+        "summary": "found it",
+        "analyzed": {"tags": ["seen"]},
+        "observables": [{"type": "fqdn", "value": "child.example"}],
+    })
+}
+
+/// A cacheable module's result is kept, and the next root with the same observable gets it as the
+/// module's result, marked with when the task that made it ended, with what it adds, and no task.
+#[tokio::test]
+async fn a_kept_result_stands_in_for_the_task_in_a_later_root() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let orchestrator = cache_orchestrator(None);
+    let (first, _) = root_with(db, "cache_test", &[(ObservableKind::Fqdn, "kept.example")]).await;
+    start(db, &orchestrator, first).await;
+    assert_eq!(
+        tasks_of(db, first).await,
+        [(
+            "test_cached".to_owned(),
+            "kept.example".to_owned(),
+            "queued".to_owned()
+        )]
+    );
+    land_one(&test_db, &orchestrator, "test_cached", found()).await;
+    assert_eq!(kept_rows(db).await, 1);
+    let (summary, details, cached_at) =
+        result_in(db, first, "test_cached").await.expect("a result");
+    assert_eq!(cached_at, None, "a task's own result isn't from the cache");
+
+    let (second, _) = root_with(db, "cache_test", &[(ObservableKind::Fqdn, "kept.example")]).await;
+    start(db, &orchestrator, second).await;
+    // no task for the kept one; the fqdn its result added has one of its own, a miss
+    assert_eq!(
+        tasks_of(db, second).await,
+        [(
+            "test_cached".to_owned(),
+            "child.example".to_owned(),
+            "queued".to_owned()
+        )]
+    );
+    let created: chrono::DateTime<chrono::Utc> =
+        sqlx::query_scalar("SELECT created_at FROM cache.results")
+            .fetch_one(db.pool())
+            .await
+            .expect("reads");
+    let hit = result_in(db, second, "test_cached")
+        .await
+        .expect("a result");
+    assert_eq!(hit, (summary, details, Some(created)));
+    let tags: Vec<String> = sqlx::query_scalar(
+        "SELECT tags FROM analysis.observables WHERE root_id = $1 AND value = 'kept.example'",
+    )
+    .bind(second)
+    .fetch_one(db.pool())
+    .await
+    .expect("reads");
+    assert_eq!(tags, ["seen"]);
+    let added: Vec<String> = sqlx::query_scalar(
+        "SELECT o.value FROM analysis.result_additions a
+         JOIN analysis.observables o ON o.root_id = a.root_id AND o.id = a.observable_id
+         WHERE a.root_id = $1",
+    )
+    .bind(second)
+    .fetch_all(db.pool())
+    .await
+    .expect("reads");
+    assert_eq!(added, ["child.example"]);
+    // the pass's metrics count the first root's miss and keep and the second's hit and miss
+    let activity: Vec<(uuid::Uuid, i32, i32, i32)> = sqlx::query_as(
+        "SELECT root_id, hits, misses, writes FROM cache.activity
+         WHERE module = 'test_cached' ORDER BY hits, root_id",
+    )
+    .fetch_all(db.pool())
+    .await
+    .expect("reads");
+    let mut expected = vec![(first, 0, 2, 1), (second, 1, 1, 0)];
+    expected.sort_by_key(|(root, hits, ..)| (*hits, *root));
+    assert_eq!(
+        activity, expected,
+        "first: kept.example and child.example missed"
+    );
+    // a hit's root is in a pass, as a task's would be
+    let open: bool =
+        sqlx::query_scalar("SELECT pass > completed_pass FROM analysis.roots WHERE id = $1")
+            .bind(second)
+            .fetch_one(db.pool())
+            .await
+            .expect("reads");
+    assert!(open);
+}
+
+/// What isn't kept (a result with an error) and what misses: other settings, an expired row, and the
+/// cache turned off, which neither looks up nor keeps.
+#[tokio::test]
+async fn an_error_isnt_kept_and_other_settings_an_expired_row_or_the_switch_miss() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let orchestrator = cache_orchestrator(None);
+    let root = |value: &'static str| async move {
+        root_with(db, "cache_test", &[(ObservableKind::Fqdn, value)])
+            .await
+            .0
+    };
+
+    // a result whose module said it failed is not kept
+    let failed = root("failed.example").await;
+    start(db, &orchestrator, failed).await;
+    let mut errored = found();
+    errored["error"] = json!("the lookup failed");
+    land_one(&test_db, &orchestrator, "test_cached", errored).await;
+    assert_eq!(kept_rows(db).await, 0);
+
+    // kept once; then a root under other settings misses
+    let kept = root("kept.example").await;
+    start(db, &orchestrator, kept).await;
+    land_one(&test_db, &orchestrator, "test_cached", found()).await;
+    assert_eq!(kept_rows(db).await, 1);
+    let other = cache_orchestrator(Some(json!({"anything": 1})));
+    let elsewhere = root("kept.example").await;
+    start(db, &other, elsewhere).await;
+    assert_eq!(result_in(db, elsewhere, "test_cached").await, None);
+    assert!(tasks_of(db, elsewhere).await.contains(&(
+        "test_cached".to_owned(),
+        "kept.example".to_owned(),
+        "queued".to_owned()
+    )));
+
+    // with the cache off nothing is looked up or kept
+    let off = cache_orchestrator(None).with_cache(ace_core::cache::CacheSettings::off());
+    let unseen = root("kept.example").await;
+    start(db, &off, unseen).await;
+    assert_eq!(result_in(db, unseen, "test_cached").await, None);
+
+    // an expired row is no hit
+    sqlx::query("UPDATE cache.results SET expires_at = now()")
+        .execute(db.pool())
+        .await
+        .expect("expires");
+    let later = root("kept.example").await;
+    start(db, &orchestrator, later).await;
+    assert_eq!(result_in(db, later, "test_cached").await, None);
+}
+
+/// A kept result's file is held by its row, and a hit names it after the new root's path, puts it in
+/// the root and holds it for the root; a result that adds a file at a path its module doesn't name
+/// isn't kept.
+#[tokio::test]
+async fn a_kept_file_is_named_after_the_new_root_s_path_and_held() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let orchestrator = cache_orchestrator(None);
+    let (input, output) = ("1".repeat(64), "2".repeat(64));
+    for sha256 in [&input, &output] {
+        sqlx::query("INSERT INTO store.objects (pool, sha256, size) VALUES ('alert_files', $1, 3)")
+            .bind(sha256)
+            .execute(db.pool())
+            .await
+            .expect("an object");
+    }
+    let root_at = |path: &'static str| {
+        let input = input.clone();
+        async move {
+            let (root, ids) = root_with(db, "cache_test", &[(ObservableKind::File, &input)]).await;
+            let mut tx = db.begin().await.expect("begins");
+            tree::add_file(&mut tx, root, ids[0], path, &[])
+                .await
+                .expect("a path");
+            tx.commit().await.expect("commits");
+            root
+        }
+    };
+    let envelope = |path: &str| {
+        json!({
+            "analysis_type": "qr_code_analysis", "schema_version": 1,
+            "details": {"extracted_text": null, "inverted": false},
+            "files": [{"path": path, "sha256": output, "size": 3, "tags": ["qr-code"]}],
+        })
+    };
+    let first = root_at("a/x.png").await;
+    start(db, &orchestrator, first).await;
+    land_one(
+        &test_db,
+        &orchestrator,
+        "test_cached_files",
+        envelope("a/x.png.cached"),
+    )
+    .await;
+    let (places, files): (Vec<i32>, Vec<String>) =
+        sqlx::query_as("SELECT file_paths, files FROM cache.results")
+            .fetch_one(db.pool())
+            .await
+            .expect("a row");
+    assert_eq!((places, files), (vec![0], vec![output.clone()]));
+    let held: (String, bool) = sqlx::query_as(
+        "SELECT h.holder_id, h.expires_at = r.expires_at FROM store.holds h
+         JOIN cache.results r ON r.id::text = h.holder_id
+         WHERE h.holder_kind = 'cache' AND h.sha256 = $1",
+    )
+    .bind(&output)
+    .fetch_one(db.pool())
+    .await
+    .expect("the row holds its file until it expires");
+    assert!(held.1, "{held:?}");
+
+    let second = root_at("b/y.png").await;
+    start(db, &orchestrator, second).await;
+    // no task for the file it read; the file the hit added gets its own, a miss
+    assert_eq!(
+        tasks_of(db, second).await,
+        [(
+            "test_cached_files".to_owned(),
+            output.clone(),
+            "queued".to_owned()
+        )]
+    );
+    let paths: Vec<String> = sqlx::query_scalar(
+        "SELECT f.path FROM analysis.files f JOIN analysis.observables o
+           ON o.root_id = f.root_id AND o.id = f.observable_id
+         WHERE f.root_id = $1 AND o.value = $2",
+    )
+    .bind(second)
+    .bind(&output)
+    .fetch_all(db.pool())
+    .await
+    .expect("reads");
+    assert_eq!(paths, ["b/y.png.cached"]);
+    let root_hold: i64 = sqlx::query_scalar(
+        "SELECT count(*) FROM store.holds WHERE holder_kind = 'root' AND holder_id = $1 AND sha256 = $2",
+    )
+    .bind(second.to_string())
+    .bind(&output)
+    .fetch_one(db.pool())
+    .await
+    .expect("counts");
+    assert_eq!(root_hold, 1);
+    // the hit settled the file's path, as its lease would have
+    let analyzed: Vec<String> =
+        sqlx::query_scalar("SELECT path FROM analysis.files WHERE root_id = $1 AND analyzed")
+            .bind(second)
+            .fetch_all(db.pool())
+            .await
+            .expect("reads");
+    assert_eq!(analyzed, ["b/y.png"]);
+
+    // a file the module didn't name after its input isn't kept
+    sqlx::query("DELETE FROM cache.results")
+        .execute(db.pool())
+        .await
+        .expect("empties");
+    let third = root_at("c/z.png").await;
+    start(db, &orchestrator, third).await;
+    land_one(
+        &test_db,
+        &orchestrator,
+        "test_cached_files",
+        envelope("elsewhere.cached"),
+    )
+    .await;
+    assert_eq!(kept_rows(db).await, 0);
+}
+
+/// A module keyed on the `newly-registered` read's answer gets a hit while the name's listing is the
+/// same, and misses once it changes, as ace3's key changes with its database's version.
+#[tokio::test]
+async fn a_keyed_read_s_answer_is_in_the_key() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let orchestrator = cache_orchestrator(None);
+    sqlx::query("INSERT INTO nrd.domains (domain) VALUES ('new.example')")
+        .execute(db.pool())
+        .await
+        .expect("lists it");
+    let root = || async {
+        root_with(db, "cache_nrd", &[(ObservableKind::Fqdn, "new.example")])
+            .await
+            .0
+    };
+    let first = root().await;
+    start(db, &orchestrator, first).await;
+    let tagged = json!({
+        "analysis_type": "qr_code_analysis", "schema_version": 1,
+        "details": {"extracted_text": null, "inverted": false},
+        "analyzed": {"tags": ["suspect:nrd"]},
+    });
+    land_one(&test_db, &orchestrator, "test_cached_nrd", tagged.clone()).await;
+    let second = root().await;
+    start(db, &orchestrator, second).await;
+    assert!(
+        result_in(db, second, "test_cached_nrd")
+            .await
+            .expect("a hit")
+            .2
+            .is_some()
+    );
+    sqlx::query("DELETE FROM nrd.domains")
+        .execute(db.pool())
+        .await
+        .expect("empties");
+    let third = root().await;
+    start(db, &orchestrator, third).await;
+    assert_eq!(
+        result_in(db, third, "test_cached_nrd").await,
+        None,
+        "the answer changed"
+    );
+    assert!(tasks_of(db, third).await.contains(&(
+        "test_cached_nrd".to_owned(),
+        "new.example".to_owned(),
+        "queued".to_owned()
+    )));
+}

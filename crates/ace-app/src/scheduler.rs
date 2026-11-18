@@ -16,6 +16,7 @@
 //! | `bucket_orphans` | `weekly/cas-orphans`, `ace cas orphans` | `0 5 * * 1` | 4 h | `scheduler:bucket_orphans`, `bucket:gc` |
 //! | `bucket_verify` | `weekly/cas-verify`, `ace cas verify` | `0 5 * * 1` | 4 h | `scheduler:bucket_verify`, `bucket:verify` |
 //! | `email_archive_partitions` | `daily/partitions`, `ace partitions maintain`, its email archive half (PLAN.md 7.5 batch 9) | `0 5 * * *` | 1 h | `scheduler:email_archive_partitions`, `email_archive:maintain` |
+//! | `analysis_cache_partitions` | `daily/partitions`, `ace partitions maintain`, its analysis cache half (PLAN.md decision 26) | `0 5 * * *` | 1 h | `scheduler:analysis_cache_partitions`, `analysis_cache:maintain` |
 //! | `file_collection_prune` | `daily/file-collection-prune`, `ace file-collection prune` (PLAN.md 7.9) | `0 5 * * *` | 1 h | `scheduler:file_collection_prune`, `file_collection:prune` |
 //! | `svs_validations_prune` | `daily/svs-validations-prune`, `ace svs yara prune` (PLAN.md 7.10 batch 3) | `0 5 * * *` | 1 h | `scheduler:svs_validations_prune`, `svs:validation_prune` |
 //! | `svs_catalog_refresh` | `service_svs`'s catalog refresher, every `svs.catalog.refresh_interval_seconds` (300), `ace svs catalog refresh` (PLAN.md 7.10 batch 4) | `*/5 * * * *` | 25 min | `scheduler:svs_catalog_refresh`, `svs:catalog_refresh` |
@@ -309,6 +310,27 @@ impl Task {
                         Ok(Done {
                             summary: summary(&done),
                             error: (!problems.is_empty()).then(|| problems.join("; ")),
+                        })
+                    })
+                },
+            ),
+            Task::new(
+                "analysis_cache_partitions",
+                "0 5 * * *",
+                Duration::from_secs(3600),
+                |ctx| {
+                    Box::pin(async move {
+                        let settings = ace_core::cache::CacheSettings::from_section(
+                            &ctx.overlay.analysis_cache,
+                        );
+                        let done = ctx
+                            .service
+                            .maintain_analysis_cache(&ctx.actor, &settings, Utc::now())
+                            .await
+                            .map_err(|e| e.to_string())?;
+                        Ok(Done {
+                            summary: summary(&done),
+                            error: (!done.problems.is_empty()).then(|| done.problems.join("; ")),
                         })
                     })
                 },

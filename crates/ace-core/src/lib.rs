@@ -17,6 +17,7 @@
 pub mod actions;
 pub mod api;
 pub mod bucket;
+pub mod cache;
 pub mod commands;
 pub mod db;
 pub mod eligibility;

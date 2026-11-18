@@ -380,6 +380,7 @@ fn supervisor(pool: &ParserPool) -> ExitCode {
     if let Err(e) = telemetry.start_export() {
         eprintln!("no span export: {e}");
     }
+    let cache_probes = Arc::new(ace_pool::cache::probe_modules(&modules, &pool.tools));
     let config = SupervisorConfig {
         program: program.clone(),
         args: task_args,
@@ -388,6 +389,7 @@ fn supervisor(pool: &ParserPool) -> ExitCode {
         read_paths: Vec::new(),
         tools,
         tool_args: Vec::new(),
+        cache_probes,
     };
     let poll = Duration::from_secs(number("ACE4_RULESET_POLL_SECONDS", 30) as u64);
     let watcher = rulesets.map(|(rulesets, dir)| {

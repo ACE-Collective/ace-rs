@@ -11,6 +11,9 @@
     <h2><b class="type">{{ observable_label }}</b> : <span class="value">{{ observable_value }}</span></h2>
     <h3>{{ title }}{% for tag in tags %} <span class="tag">{{ tag }}</span>{% endfor %}</h3>
     <p class="muted">{{ module }} · {{ analysis_type }} version {{ schema_version }} · {{ created_at }}</p>
+    {%- if let Some(when) = cached %}
+    <p class="cached-message"><span class="cached">cached</span> From the analysis cache: {{ module }}'s result from its run at {{ when }}, which this alert didn't run again.</p>
+    {%- endif %}
     {%- if let Some(error) = error %}
     <p class="warning failure-message" role="alert"><b>{{ module }} failed:</b> <span class="failure-text">{{ error }}</span></p>
     {%- endif %}

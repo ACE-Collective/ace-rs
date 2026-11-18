@@ -14,12 +14,18 @@
 //! rule's job, as in ace3.
 //!
 //! ace3 falls back to WHOIS when RDAP can't answer, which isn't ported (`tests/differences.md`).
+//!
+//! Its results are kept in the analysis cache for 24 hours, as ace3's `cache_ttl` keeps them (PLAN.md
+//! decision 26). ace3 keys them on its database file's version; here the key holds the list's answer
+//! for the observable (`ace_sdk::cache::KEYED_READS`), which changes only when this name's listing
+//! does. A hit that couldn't be verified is marked failed and isn't kept, so the next alert asks again.
 
 use std::time::Duration;
 
 use ace_mod_rdap::CreationDates;
 use ace_results::types::nrd::NrdAnalysis;
 use ace_results::{ObservableKind, ResultEnvelope};
+use ace_sdk::cache::Cache;
 use ace_sdk::http::HttpClient;
 use ace_sdk::reads::{NewlyRegistered, NewlyRegisteredRequest, Read, ReadKind};
 use ace_sdk::{Lookup, Manifest, Module, ModuleError, Outcome, Resources, TaskContext};
@@ -72,6 +78,12 @@ impl Module for NrdAnalyzer {
         timeout: Duration::from_secs(120),
         ..Resources::DEFAULT
     };
+    /// ace3's `cache_ttl: 86400`, 24 hours, keyed on the list's answer for the observable, where ace3
+    /// keys on its database file's version (`ace_sdk::cache::KEYED_READS`).
+    const CACHE: Option<Cache> = Some(Cache {
+        reads: &[NewlyRegistered::READ],
+        ..Cache::new(1, Duration::from_secs(24 * 3600))
+    });
     type Output = NrdAnalysis;
     type Settings = NrdSettings;
 

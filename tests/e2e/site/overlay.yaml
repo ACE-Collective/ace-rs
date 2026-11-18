@@ -3,6 +3,11 @@
 # tools/ace3/dumps/reference over plain HTTP on port 443, and the DNS module asks it as its
 # resolver, which answers from tools/ace3/trees/dns.json, so nothing reaches the internet, a
 # real resolver or a real Splunk.
+# The analysis cache (PLAN.md decision 26) is off, so every sample is analyzed by its modules, not
+# answered from what an earlier sample or check kept: the comparison checks the modules. tests/e2e/run's
+# two-run check turns it on, for its own samples, to check that a hit is a run.
+analysis_cache:
+  enabled: false
 modules:
   rdap_analyzer:
     settings:

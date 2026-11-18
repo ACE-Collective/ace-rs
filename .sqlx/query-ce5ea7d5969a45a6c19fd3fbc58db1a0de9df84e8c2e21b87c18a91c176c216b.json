@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "INSERT INTO analysis.results\n               (root_id, observable_id, module, analysis_type, schema_version, details, summary,\n                tags, error)\n           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)\n           RETURNING id AS \"id: ResultId\"",
+  "query": "INSERT INTO analysis.results\n               (root_id, observable_id, module, analysis_type, schema_version, details, summary,\n                tags, error, cached_at)\n           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)\n           RETURNING id AS \"id: ResultId\"",
   "describe": {
     "columns": [
       {
@@ -25,12 +25,13 @@
         "Jsonb",
         "Text",
         "TextArray",
-        "Text"
+        "Text",
+        "Timestamptz"
       ]
     },
     "nullable": [
       false
     ]
   },
-  "hash": "177be516aac03312335c39de992023392b8c4f4ab2e26dad6e0bf67e857d0f52"
+  "hash": "ce5ea7d5969a45a6c19fd3fbc58db1a0de9df84e8c2e21b87c18a91c176c216b"
 }

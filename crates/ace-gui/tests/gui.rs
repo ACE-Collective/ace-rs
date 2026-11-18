@@ -1470,6 +1470,7 @@ fn module_result(id: i64, module: &str, summary: Option<&str>) -> ModuleResult {
         tags: Vec::new(),
         details: serde_json::json!({}),
         created_at: chrono::DateTime::from_timestamp(1_793_000_000, 0).expect("a time"),
+        cached_at: None,
     }
 }
 
@@ -1543,6 +1544,43 @@ fn fixture_tree() -> (AlertTree, Vec<ObservableComment>) {
         edited_at: None,
     }];
     (tree, comments)
+}
+
+/// A result the analysis cache wrote in place of a task (PLAN.md decision 26) has a `cached` badge after
+/// its summary, saying when the run it was kept from ended, as ace3's `from_cache_hit` and `cached_at`;
+/// its page says the same above the details; a result a task made has neither.
+#[test]
+fn a_result_from_the_cache_says_so_and_when_it_ran() {
+    let (mut tree, comments) = fixture_tree();
+    let ran = chrono::DateTime::from_timestamp(1_790_000_000, 0).expect("a time");
+    tree.observables[2].results[0].cached_at = Some(ran);
+    let html = AlertTreeFragment {
+        tree: tree_view(&tree, &comments, &ObservableActions::empty()),
+    }
+    .render()
+    .expect("renders");
+    let compact: String = html.lines().map(str::trim).collect();
+    let line = r#"<li class="result" id="r11" data-module="rdap_analyzer"><a class="summary" href="/alerts/00000000-0000-0000-0000-000000005800/results/11" title="rdap_analyzer">rdap_analyzer</a> <span class="cached" title="From the analysis cache: the module's result from its run at 2026-09-21 14:13:20 UTC, not run again here">cached</span>"#;
+    assert!(compact.contains(line), "{compact}");
+    assert_eq!(compact.matches("class=\"cached\"").count(), 1, "{compact}");
+
+    let layout = || Layout::new("n0nce", Theme::Light, Some("alice".to_owned()), "/alerts/x");
+    let page = ace_gui::alert::ResultPage::new(layout(), &tree, 11, &Views::builtin())
+        .expect("the result")
+        .render()
+        .expect("renders");
+    let compact: String = page.lines().map(str::trim).collect();
+    let message = r#"<p class="cached-message"><span class="cached">cached</span> From the analysis cache: rdap_analyzer's result from its run at 2026-09-21 14:13:20 UTC, which this alert didn't run again.</p>"#;
+    assert!(compact.contains(message), "{compact}");
+    assert!(
+        compact.find(message) < compact.find(r#"<div class="analysis-view">"#),
+        "{compact}"
+    );
+    let page = ace_gui::alert::ResultPage::new(layout(), &tree, 10, &Views::builtin())
+        .expect("the result")
+        .render()
+        .expect("renders");
+    assert!(!page.contains("cached"), "{page}");
 }
 
 /// A failed analysis (ace3's `Analysis.error`, its 2b9fcd2c): a result whose module said it failed has
@@ -11823,6 +11861,14 @@ fn the_monitoring_page_draws_runs_and_records_as_text() {
         analysis_time_seconds: 0.5,
         percentage: 100.0,
         exec_count: 1,
+        cache: Some(ace_core::metrics::CacheMetrics {
+            cache_hit_count: 1,
+            cache_miss_count: 1,
+            cache_write_count_insert: 1,
+            cache_write_bytes_compressed_sum: 100,
+            cache_lookup_ms_sum: 1.0,
+            cache_lookup_ms_max: 1.0,
+        }),
     };
     let event = ace_core::metrics::RootMetrics {
         event_type: ace_core::metrics::EVENT_TYPE_ROOT,
@@ -11850,7 +11896,7 @@ fn the_monitoring_page_draws_runs_and_records_as_text() {
         .1;
     for (json, table, count) in [
         (event.to_json(), root_table, 14),
-        (module.to_json(), module_table, 8),
+        (module.to_json(), module_table, 14),
     ] {
         let fields: serde_json::Value = serde_json::from_str(&json).expect("JSON");
         let fields = fields.as_object().expect("an object");

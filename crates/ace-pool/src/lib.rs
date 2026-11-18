@@ -8,9 +8,12 @@
 //! each in a contained process of its own. A parser pool whose image carries programs runs them at a task's
 //! request in the sandbox runner (`tools`, PLAN.md 7.3). A scanner pool holds the Docker socket and runs
 //! the scanner images modules' scans ask for (`scanners`, PLAN.md 7.7). A network pool also runs the
-//! remediators, remediation probes and file collectors it hosts (`actions`, PLAN.md 7.9).
+//! remediators, remediation probes and file collectors it hosts (`actions`, PLAN.md 7.9). A pool reads
+//! the versions in its image that a cacheable module's results depend on when it starts, and sends
+//! them with each of that module's results (`cache`, PLAN.md decision 26).
 
 pub mod actions;
+pub mod cache;
 pub mod client;
 pub mod commands;
 pub mod containment;

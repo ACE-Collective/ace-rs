@@ -1,0 +1,86 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT module, hits::int8 AS \"hits!\", misses::int8 AS \"misses!\",\n                  writes::int8 AS \"writes!\", write_bytes, lookup_seconds, lookup_max_seconds\n           FROM cache.activity WHERE root_id = $1 AND pass = $2 ORDER BY module",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "module",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "cache.activity",
+            "name": "module"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "hits!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 2,
+        "name": "misses!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 3,
+        "name": "writes!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 4,
+        "name": "write_bytes",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "cache.activity",
+            "name": "write_bytes"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "lookup_seconds",
+        "type_info": "Float8",
+        "origin": {
+          "Table": {
+            "table": "cache.activity",
+            "name": "lookup_seconds"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "lookup_max_seconds",
+        "type_info": "Float8",
+        "origin": {
+          "Table": {
+            "table": "cache.activity",
+            "name": "lookup_max_seconds"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      null,
+      null,
+      null,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "d025b0b9fd4a611f03d0c9cb73c198ad02b0e16e84823579a67e072bc26e33f5"
+}

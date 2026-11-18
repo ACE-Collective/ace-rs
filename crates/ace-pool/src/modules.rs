@@ -241,7 +241,11 @@ pub fn task_end<D: AnalysisType>(
 ) -> TaskEnd {
     match outcome {
         Ok(Outcome::Done(result)) => match result.to_raw() {
-            Ok(result) => TaskEnd::Done { result, writes },
+            Ok(result) => TaskEnd::Done {
+                result,
+                writes,
+                probes: Default::default(),
+            },
             Err(e) => TaskEnd::Failed {
                 error: format!("the result doesn't serialize: {e}"),
             },
@@ -331,6 +335,19 @@ impl Modules {
             .keys()
             .chain(self.lookups.keys())
             .cloned()
+            .collect()
+    }
+
+    /// Each component's key and its module's manifest, parsers first.
+    pub fn components(&self) -> Vec<(&str, Manifest)> {
+        self.parsers
+            .iter()
+            .map(|(key, p)| (key.as_str(), p.manifest()))
+            .chain(
+                self.lookups
+                    .iter()
+                    .map(|(key, l)| (key.as_str(), l.manifest())),
+            )
             .collect()
     }
 

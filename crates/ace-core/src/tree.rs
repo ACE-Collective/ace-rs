@@ -314,11 +314,24 @@ pub async fn insert_result(
     module: &str,
     result: &ResultEnvelope<Value>,
 ) -> Result<ResultId, DbError> {
+    insert_result_from(tx, root, observable, module, result, None).await
+}
+
+/// `insert_result`, for a result the analysis cache kept (`crate::cache`) when `cached_at` says
+/// when the task that made it ended.
+pub async fn insert_result_from(
+    tx: &mut Tx<'_>,
+    root: Uuid,
+    observable: ObservableId,
+    module: &str,
+    result: &ResultEnvelope<Value>,
+    cached_at: Option<chrono::DateTime<chrono::Utc>>,
+) -> Result<ResultId, DbError> {
     let id = sqlx::query_scalar!(
         r#"INSERT INTO analysis.results
                (root_id, observable_id, module, analysis_type, schema_version, details, summary,
-                tags, error)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                tags, error, cached_at)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
            RETURNING id AS "id: ResultId""#,
         root,
         observable as ObservableId,
@@ -330,6 +343,7 @@ pub async fn insert_result(
         result.summary,
         &result.tags,
         result.error,
+        cached_at,
     )
     .fetch_one(tx.conn())
     .await?;
@@ -633,6 +647,28 @@ pub async fn analysis_file_state<'e>(
     .await?;
     let waited = std::time::Duration::try_from_secs_f64(row.waited.max(0.0)).unwrap_or_default();
     Ok((row.chosen, waited))
+}
+
+/// How long a file's first task is held, at most, while something nearer the root that could add
+/// the file under another path is pending (`Api::held_for_path`). Past it the file is analyzed under
+/// the best path it has, so a slow module can't stall the root. Most holds end in under a second.
+pub const PATH_HOLD_LIMIT: std::time::Duration = std::time::Duration::from_secs(60);
+
+/// Whether a file observable's path is settled, or a lease would settle it now: nothing nearer the
+/// root, of a module not in `last`, could still add a path to it, or it has waited
+/// `PATH_HOLD_LIMIT` (PLAN.md decision 15).
+pub async fn path_settles(
+    conn: &mut sqlx::PgConnection,
+    root: Uuid,
+    observable: ObservableId,
+    last: &[String],
+) -> Result<bool, DbError> {
+    let (chosen, waited) = analysis_file_state(&mut *conn, root, observable).await?;
+    if chosen || waited >= PATH_HOLD_LIMIT {
+        return Ok(true);
+    }
+    let depth = depth(&mut *conn, root, observable).await?;
+    Ok(!pending_above(&mut *conn, root, depth, last).await?)
 }
 
 /// Whether the root has a task that hasn't finished on an observable shallower than `depth`, of a

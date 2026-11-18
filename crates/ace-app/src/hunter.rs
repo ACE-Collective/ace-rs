@@ -917,10 +917,13 @@ async fn hunt(app: &App) -> Result<ExitCode> {
         });
     // as `ace serve` applies or audits the modules' declarations
     let takes = ace_core::takes::TakesMode::from_env().map_err(anyhow::Error::msg)?;
+    // a hunt's root looks results up and keeps them as `ace serve`'s roots do
+    let cache = crate::cli::analysis_cache(&overlay, &components)?;
     let orchestrator = Orchestrator::new(Catalog::of(components), modes)
         .with_hooks(hooks)
         .with_takes(takes)
-        .with_exclusions(crate::cli::exclusions(&overlay)?);
+        .with_exclusions(crate::cli::exclusions(&overlay)?)
+        .with_cache(cache);
     // the site's dispositions, as `ace serve` has them, for whatever the hunter reads through the service
     let dispositions = ace_service::Dispositions::configured(&overlay)
         .map_err(anyhow::Error::msg)

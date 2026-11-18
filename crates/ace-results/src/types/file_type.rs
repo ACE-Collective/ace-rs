@@ -98,6 +98,9 @@ pub struct TypeFacts {
     pub is_encoded_script: bool,
     /// ace3's `is_har_header` on the first 4096 bytes: optional whitespace, `{`, `"log"` and `:`.
     pub has_har_header: bool,
+    /// Pillow would open the file (`Image.open`), by its first 1024 bytes: the test ace3's ocr and
+    /// qrcode modules make before they read anything (`ace_mod_files::pillow`).
+    pub is_image: bool,
     /// Whether node would parse the bytes as JavaScript and a line has a JavaScript keyword: the
     /// part of ace3's `is_javascript_file` that reads the bytes. The type step checks it only when
     /// the mime type or the name it typed the file under says JavaScript, as ace3 gates node; None

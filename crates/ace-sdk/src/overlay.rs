@@ -67,6 +67,13 @@
 //! null dropping one of ace3's. The core reads it, as `Exclusions::from_section`, where it decides
 //! what to queue; a pool doesn't.
 //!
+//! `analysis_cache:` is ace3's section of that name (PLAN.md decision 26, `crate::cache`): `enabled`, the
+//! switch for the whole cache, and `retention_days`, how long a day's kept results stay. A module's
+//! section, or an instance's, sets its time to live in seconds with `cache_ttl` beside its `settings`,
+//! as ace3's module sections do, 0 keeping none; a module that doesn't opt in (`Module::CACHE`) refuses
+//! any other value, and every binary refuses a cacheable module whose task reads what its key doesn't
+//! hold (`Manifest::cache_refusal`). The core reads the switch; a pool doesn't.
+//!
 //! `secrets:` says where each secret comes from, by the name modules declare in
 //! `Module::SECRETS`: `env:<VARIABLE>` or `file:<path>`, as ace3's `env:` references. Nothing
 //! is read when the overlay loads; a pool reads only the ones its modules declare (PLAN.md 2.24,
@@ -133,6 +140,33 @@ pub struct Overlay {
     /// (`crate::exclusions`): the observables no module analyzes. `from_yaml` checks every spec reads.
     /// The core reads it; a pool doesn't.
     pub observable_exclusions: BTreeMap<String, Option<String>>,
+    /// ace3's `analysis_cache:` (PLAN.md decision 26, `crate::cache`): the switch for the whole cache
+    /// and how long its rows' days are kept. Each module's time to live is its section's `cache_ttl`.
+    /// The core reads it; a pool doesn't.
+    pub analysis_cache: AnalysisCacheSection,
+}
+
+/// The analysis cache's settings (`Overlay::analysis_cache`).
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields, default)]
+pub struct AnalysisCacheSection {
+    /// ace3's `enabled`: false turns the whole cache off, so the core neither looks a result up nor
+    /// keeps one, whatever each module's `cache_ttl` says. A pool reads the overlay either way, and
+    /// refuses a module that can't be cached with its `cache_ttl` set.
+    pub enabled: bool,
+    /// ace3's `partition_retention_days`: a day's rows are dropped this many days after it ends. It
+    /// must be longer than every module's time to live, which the core checks when it starts.
+    pub retention_days: u32,
+}
+
+impl Default for AnalysisCacheSection {
+    /// ace3's `saq.default.yaml`.
+    fn default() -> Self {
+        AnalysisCacheSection {
+            enabled: true,
+            retention_days: 35,
+        }
+    }
 }
 
 /// The AI investigation API's settings (PLAN.md 7.15, `ace_service::ai`): read-only routes an AI agent's
@@ -854,6 +888,11 @@ pub struct ModuleSection {
     pub settings: Option<Value>,
     /// Named instances, each a run of the module with its own inputs and settings.
     pub instances: BTreeMap<String, InstanceSection>,
+    /// How long, in seconds, the module's results are kept in the analysis cache (ace3's
+    /// `cache_ttl`), for the module and each of its instances that doesn't say: 0 keeps none. A
+    /// module that can't be cached (`Module::CACHE`) refuses any but 0. Without it, a cacheable
+    /// module keeps its results for its own time to live (`Cache::ttl`).
+    pub cache_ttl: Option<u64>,
 }
 
 /// One named instance of a module.
@@ -868,6 +907,8 @@ pub struct InstanceSection {
     /// `module_group_*` lists, so the analysis modes that run a group run it. An instance named as
     /// one of ace3's modules is in that module's groups already.
     pub groups: Vec<String>,
+    /// The instance's own `cache_ttl`, over its module's (`ModuleSection::cache_ttl`).
+    pub cache_ttl: Option<u64>,
 }
 
 /// An overlay that doesn't load.
@@ -901,6 +942,8 @@ pub enum OverlayError {
     },
     #[error("the overlay {path} can't be read: {message}")]
     Read { path: String, message: String },
+    #[error("the overlay's {path}: {message}")]
+    Cache { path: String, message: String },
 }
 
 /// What the core queues and a pool runs: a module as itself, or one named instance of it.
@@ -917,6 +960,9 @@ pub struct Component {
     pub groups: Vec<String>,
     /// What it takes on its settings (`Module::takes`, `crate::takes`).
     pub takes: Takes,
+    /// How long its results are kept in the analysis cache (`Module::CACHE`, `cache_ttl`), or None
+    /// when they aren't.
+    pub cache_ttl: Option<std::time::Duration>,
 }
 
 impl Component {
@@ -931,6 +977,10 @@ impl Component {
             settings: None,
             groups: Vec::new(),
             takes: manifest.declaration(None).unwrap_or_default(),
+            cache_ttl: manifest
+                .cache
+                .map(|cache| cache.ttl)
+                .filter(|ttl| !ttl.is_zero()),
         }
     }
 
@@ -951,7 +1001,44 @@ impl Component {
             settings,
             groups: Vec::new(),
             takes,
+            cache_ttl: manifest
+                .cache
+                .map(|cache| cache.ttl)
+                .filter(|ttl| !ttl.is_zero()),
         })
+    }
+
+    /// The component with the overlay's `cache_ttl` for it, refused when the module can't be cached
+    /// with it: it doesn't opt in, or its task reads what the key doesn't hold
+    /// (`Manifest::cache_refusal`).
+    fn with_cache_ttl(mut self, ttl: Option<u64>, path: String) -> Result<Component, OverlayError> {
+        let refuse = |message: String| OverlayError::Cache {
+            path: path.clone(),
+            message,
+        };
+        match (ttl, self.manifest.cache) {
+            (Some(0), _) => self.cache_ttl = None,
+            (Some(_), None) => {
+                return Err(refuse(format!(
+                    "{} doesn't opt into the analysis cache (Module::CACHE), so its cache_ttl is 0 \
+                     or nothing",
+                    self.manifest.name
+                )));
+            }
+            (Some(seconds), Some(_)) => {
+                self.cache_ttl = Some(std::time::Duration::from_secs(seconds));
+            }
+            // a module ace3 can cache but doesn't by default keeps none until the overlay says
+            (None, cache) => {
+                self.cache_ttl = cache.map(|cache| cache.ttl).filter(|ttl| !ttl.is_zero());
+            }
+        }
+        if self.cache_ttl.is_some()
+            && let Some(why) = self.manifest.cache_refusal()
+        {
+            return Err(refuse(why));
+        }
+        Ok(self)
     }
 
     /// True when it takes observables of `kind`, directly or through a parent type.
@@ -1092,6 +1179,8 @@ impl Overlay {
             ai_api: AiApiSection::default(),
             // the core decides what is queued
             observable_exclusions: BTreeMap::new(),
+            // the core looks results up and keeps them
+            analysis_cache: AnalysisCacheSection::default(),
         }
     }
 
@@ -1127,12 +1216,15 @@ impl Overlay {
             }
             let Some(section) = section else {
                 if manifest.enabled_by_default {
-                    components.push(Component::with_settings(
-                        manifest,
-                        manifest.name.to_owned(),
-                        None,
-                        format!("modules.{}", manifest.name),
-                    )?);
+                    components.push(
+                        Component::with_settings(
+                            manifest,
+                            manifest.name.to_owned(),
+                            None,
+                            format!("modules.{}", manifest.name),
+                        )?
+                        .with_cache_ttl(None, format!("modules.{}", manifest.name))?,
+                    );
                 } else {
                     tracing::info!(
                         module = manifest.name,
@@ -1149,12 +1241,18 @@ impl Overlay {
             if section.instances.is_empty() {
                 let path = format!("modules.{}.settings", manifest.name);
                 check(path.clone(), section.settings.as_ref())?;
-                components.push(Component::with_settings(
-                    manifest,
-                    manifest.name.to_owned(),
-                    section.settings.clone(),
-                    path,
-                )?);
+                components.push(
+                    Component::with_settings(
+                        manifest,
+                        manifest.name.to_owned(),
+                        section.settings.clone(),
+                        path,
+                    )?
+                    .with_cache_ttl(
+                        section.cache_ttl,
+                        format!("modules.{}.cache_ttl", manifest.name),
+                    )?,
+                );
                 continue;
             }
             if section.settings.is_some() {
@@ -1186,16 +1284,22 @@ impl Overlay {
                         inputs.clone()
                     }
                 };
-                components.push(Component {
-                    inputs,
-                    groups: instance.groups.clone(),
-                    ..Component::with_settings(
-                        manifest,
-                        name.clone(),
-                        instance.settings.clone(),
-                        path,
-                    )?
-                });
+                components.push(
+                    Component {
+                        inputs,
+                        groups: instance.groups.clone(),
+                        ..Component::with_settings(
+                            manifest,
+                            name.clone(),
+                            instance.settings.clone(),
+                            path,
+                        )?
+                    }
+                    .with_cache_ttl(
+                        instance.cache_ttl.or(section.cache_ttl),
+                        format!("modules.{}.instances.{name}.cache_ttl", manifest.name),
+                    )?,
+                );
             }
         }
         // an instance named like a module, or like another module's instance, would share its
@@ -1234,6 +1338,76 @@ mod tests {
 
     fn keys(components: &[Component]) -> Vec<&str> {
         components.iter().map(|c| c.key.as_str()).collect()
+    }
+
+    /// A cacheable module keeps its results for its own time to live unless its section's `cache_ttl`
+    /// says another, or 0 for none; a module that doesn't opt in refuses one; and one whose task reads
+    /// what the key doesn't hold is refused whatever its section says, but when it is 0 (PLAN.md
+    /// decision 26).
+    #[test]
+    fn cache_ttl_is_the_module_s_unless_the_overlay_says_otherwise() {
+        use crate::cache::Cache;
+        use std::time::Duration;
+        let mut cached = LINE_COUNTER;
+        cached.cache = Some(Cache::new(1, Duration::from_secs(600)));
+        let ttl = |yaml: &str, manifests: &[Manifest]| -> Result<Vec<Option<u64>>, OverlayError> {
+            Ok(Overlay::from_yaml(yaml)?
+                .components(manifests)?
+                .iter()
+                .map(|c| c.cache_ttl.map(|t| t.as_secs()))
+                .collect())
+        };
+        let both = [cached, RESOLVER];
+        assert_eq!(ttl("", &both), Ok(vec![Some(600), None]));
+        assert_eq!(
+            ttl("modules: {example_line_counter: {cache_ttl: 60}}", &both),
+            Ok(vec![Some(60), None])
+        );
+        assert_eq!(
+            ttl("modules: {example_line_counter: {cache_ttl: 0}}", &both),
+            Ok(vec![None, None])
+        );
+        // an instance takes its module's unless it says its own
+        assert_eq!(
+            ttl(
+                "modules: {example_line_counter: {cache_ttl: 60, instances: {a: {}, b: {cache_ttl: 5}}}}",
+                &both
+            ),
+            Ok(vec![Some(60), Some(5), None])
+        );
+        let refused = ttl("modules: {example_resolver: {cache_ttl: 60}}", &both).unwrap_err();
+        assert!(
+            refused
+                .to_string()
+                .contains("doesn't opt into the analysis cache"),
+            "{refused}"
+        );
+        assert_eq!(
+            ttl("modules: {example_resolver: {cache_ttl: 0}}", &both),
+            Ok(vec![Some(600), None])
+        );
+        // a cacheable module that walks its tree can't be cached, unless the overlay keeps none
+        let mut walks = cached;
+        walks.reads_tree = true;
+        let refused = ttl("", &[walks]).unwrap_err();
+        assert!(refused.to_string().contains("READS_TREE"), "{refused}");
+        assert_eq!(
+            ttl("modules: {example_line_counter: {cache_ttl: 0}}", &[walks]),
+            Ok(vec![None])
+        );
+        // a module ace3 can cache but doesn't by default keeps nothing until its section says
+        let mut off = cached;
+        off.cache = Some(Cache::new(1, Duration::ZERO));
+        assert_eq!(ttl("", &[off]), Ok(vec![None]));
+        assert_eq!(
+            ttl("modules: {example_line_counter: {cache_ttl: 90}}", &[off]),
+            Ok(vec![Some(90)])
+        );
+        // the switch and the retention, ace3's defaults
+        let overlay = Overlay::from_yaml("analysis_cache: {enabled: false}").expect("loads");
+        assert!(!overlay.analysis_cache.enabled);
+        assert_eq!(overlay.analysis_cache.retention_days, 35);
+        assert!(Overlay::from_yaml("analysis_cache: {enable: false}").is_err());
     }
 
     #[test]

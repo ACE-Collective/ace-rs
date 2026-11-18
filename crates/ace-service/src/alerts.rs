@@ -322,6 +322,10 @@ pub struct ModuleResult {
     pub tags: Vec<String>,
     pub details: Value,
     pub created_at: DateTime<Utc>,
+    /// For a result the analysis cache wrote in place of a task (PLAN.md decision 26), when the task
+    /// that made the kept result ended, in another root or this one: ace3's `cached_at`, with its
+    /// `from_cache_hit` this being set. None for a result a task made here.
+    pub cached_at: Option<DateTime<Utc>>,
 }
 
 /// A module whose task on an observable failed and left no result: it crashed, was killed at its
@@ -1261,7 +1265,7 @@ pub(crate) async fn observables_in(
     }
     for row in sqlx::query!(
         "SELECT id, observable_id, module, analysis_type, schema_version, summary, error, tags,
-                details, created_at
+                details, created_at, cached_at
          FROM analysis.results
          WHERE root_id = $1 AND observable_id = ANY($2)
          ORDER BY observable_id, module",
@@ -1282,6 +1286,7 @@ pub(crate) async fn observables_in(
                 tags: row.tags,
                 details: row.details,
                 created_at: row.created_at,
+                cached_at: row.cached_at,
             });
         }
     }

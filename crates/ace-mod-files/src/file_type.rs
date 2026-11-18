@@ -94,6 +94,7 @@ pub fn facts_of(path: &str, data: &[u8], description: String, mime: String) -> T
         is_eps_file: checks::is_eps_file(data),
         is_encoded_script: checks::is_encoded_script(data),
         has_har_header: checks::has_har_header(data),
+        is_image: crate::pillow::identify(&data[..data.len().min(1024)]).is_some(),
         javascript,
         description,
         mime,

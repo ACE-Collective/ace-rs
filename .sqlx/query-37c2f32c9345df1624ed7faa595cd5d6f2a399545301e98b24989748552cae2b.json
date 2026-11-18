@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, observable_id, module, analysis_type, schema_version, summary, error, tags,\n                details, created_at\n         FROM analysis.results\n         WHERE root_id = $1 AND observable_id = ANY($2)\n         ORDER BY observable_id, module",
+  "query": "SELECT id, observable_id, module, analysis_type, schema_version, summary, error, tags,\n                details, created_at, cached_at\n         FROM analysis.results\n         WHERE root_id = $1 AND observable_id = ANY($2)\n         ORDER BY observable_id, module",
   "describe": {
     "columns": [
       {
@@ -112,6 +112,17 @@
             "name": "created_at"
           }
         }
+      },
+      {
+        "ordinal": 10,
+        "name": "cached_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "analysis.results",
+            "name": "cached_at"
+          }
+        }
       }
     ],
     "parameters": {
@@ -130,8 +141,9 @@
       true,
       false,
       false,
-      false
+      false,
+      true
     ]
   },
-  "hash": "7b5d8780d917a67e676c02e75bac17245bea686174a8b3e57721a2af5b9781c6"
+  "hash": "37c2f32c9345df1624ed7faa595cd5d6f2a399545301e98b24989748552cae2b"
 }

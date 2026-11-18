@@ -83,8 +83,10 @@
 //! **The module events.** ace3 emits one event for each module that did anything in the work item
 //! (`event_type` `module`), after the root's, with the same `root_uuid` and `timestamp`, which join
 //! them. "Did anything" is a module ace3 ran at least once (its `analyze` called, whatever it
-//! returned or raised) or that had a cache hit, miss or write. ace4 has no analysis cache, so here it
-//! is a module with at least one run in the pass. Their message starts `METRICS (module): `.
+//! returned or raised) or that had a cache hit, miss or write. Here it is a module with at least one
+//! run in the pass, or with a lookup or a keep of the analysis cache in it (PLAN.md decision 26), so a
+//! module whose every result came from the cache has an event with no runs. Their message starts
+//! `METRICS (module): `.
 //!
 //! | ace3's field | here | from |
 //! |---|---|---|
@@ -95,7 +97,10 @@
 //! | `analysis_time_seconds`, the module's run time in the work item | `analysis_time_seconds`, the module's run time in the pass | the sum of its tasks' `run_seconds` in the pass |
 //! | `percentage`, `analysis_time_seconds` as a percentage of the work item's `total_time_seconds`, 0 when that is 0 | `percentage`, `analysis_time_seconds` as a percentage of `total_analysis_time_seconds`, 0 when that is 0 | ace3's share is of the engine's time, which its modules ran one after another in; here tasks run side by side and the pass's open time includes waits, so a share of it could pass 100 and would move with the queue. A share of the run times is the module's share of the work, and the events of a pass add up to 100 |
 //! | `exec_count`, the module's `analyze` calls, a delayed module's resumptions included | `exec_count` | the sum of its tasks' `runs` in the pass |
-//! | `cache_hit_count`, `cache_miss_count`, `cache_write_count_insert`, `cache_lookup_*`, `cache_write_*` | not emitted | ace4 has no analysis cache. ace3 leaves them out too for a module that had no cache activity |
+//! | `cache_hit_count`, `cache_miss_count`, `cache_write_count_insert` | the same, for a module the cache did anything for in the pass, as ace3 leaves them out otherwise | `cache.activity` (migration 0072, `crate::cache::count`): a lookup where a task would have been queued counts its hit or its miss; a lookup at a lease, for a task whose files waited for its path, counts only its hit, since its miss was counted when the task was queued; a task's end that kept its result counts a write |
+//! | `cache_write_bytes_compressed_sum` | the same | the kept results' JSON, deflated, which is what the 1 MiB limit is of; ace3's is zstd's |
+//! | `cache_lookup_ms_sum`, `cache_lookup_ms_max` | the same, over hits and misses as ace3's since 2026-06-10 | each lookup timed from making its key to its hit or miss; a lookup at a lease isn't timed |
+//! | `cache_lookup_key_ms_sum`, `cache_lookup_db_ms_sum`, `cache_lookup_decode_ms_sum`, `cache_lookup_blob_ms_sum`, `cache_write_ms_*`, `cache_write_bytes_uncompressed_sum` | not emitted | ace4's key needs no probe at lookup (the pool's versions are kept), a kept result has no blob to fetch, and the write is a statement in the task's end's transaction |
 //!
 //! And `pass`, as on the root's event.
 //!
@@ -107,9 +112,10 @@
 //! such failure: a task fails, never a pass, so a root whose tasks failed has its event, `completed`,
 //! as ace3's does when a module raised and the engine caught it. A failed run counts in its module's run time and executions, as in ace3.
 //!
-//! **Cost.** One statement in the transaction that ends the pass, which reads the root's row, counts
+//! **Cost.** Two statements in the transaction that ends the pass: one reads the root's row, counts
 //! its observables by type, and reads its tasks through their index by root once, grouped by module,
-//! for the counts and the run times; nothing for a task's end that leaves the pass open. The lease
+//! for the counts and the run times; the other reads the pass's rows of `cache.activity` by their key.
+//! Nothing for a task's end that leaves the pass open, but the cache's own upsert of its counts. The lease
 //! sets one column more, and a task's end and its delay three, in statements they already ran; the
 //! root's lock they already took returns the pass. `docs/measurements/root-metrics.md` has the
 //! measurements. The statement is a read: if it fails, the transaction fails as it would on any
@@ -188,6 +194,27 @@ pub struct ModuleMetrics {
     pub percentage: f64,
     /// The module's runs in the pass.
     pub exec_count: i64,
+    /// What the analysis cache did for the module in the pass (PLAN.md decision 26), ace3's fields,
+    /// when it did anything, as ace3 attaches them only then.
+    #[serde(flatten, skip_serializing_if = "Option::is_none")]
+    pub cache: Option<CacheMetrics>,
+}
+
+/// A module's analysis cache counts in a pass (`crate::cache::count`): ace3's per-(root, module)
+/// fields of the same names.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct CacheMetrics {
+    /// Lookups that found a kept result, which stood in for a task.
+    pub cache_hit_count: i64,
+    /// Lookups that found none, after which the task was queued.
+    pub cache_miss_count: i64,
+    /// Results kept for later roots.
+    pub cache_write_count_insert: i64,
+    /// The kept results' sizes, compressed, in bytes.
+    pub cache_write_bytes_compressed_sum: i64,
+    /// How long the lookups took in all, hits and misses, and the longest, in milliseconds.
+    pub cache_lookup_ms_sum: f64,
+    pub cache_lookup_ms_max: f64,
 }
 
 /// Whether anything takes the events. When nothing does, a pass's end doesn't read them.
@@ -196,7 +223,7 @@ pub fn enabled() -> bool {
 }
 
 /// Reads the events of the root's pass that this transaction ended at `completed_at`, with the root
-/// locked. One statement.
+/// locked. Two statements: the pass's tasks and observables, and its analysis cache counts.
 pub async fn read(
     tx: &mut Tx<'_>,
     root: Uuid,
@@ -245,7 +272,7 @@ pub async fn read(
     )
     .fetch_optional(tx.conn())
     .await?;
-    Ok(row.map(|row| {
+    let Some(mut metrics) = row.map(|row| {
         let observable_type_counts: BTreeMap<String, i64> =
             row.types.into_iter().zip(row.counts).collect();
         let total: f64 = row.seconds.iter().sum();
@@ -267,6 +294,7 @@ pub async fn read(
                     0.0
                 },
                 exec_count: runs,
+                cache: None,
             })
             .collect();
         RootMetrics {
@@ -291,7 +319,45 @@ pub async fn read(
             },
             modules,
         }
-    }))
+    }) else {
+        return Ok(None);
+    };
+    let activity = sqlx::query!(
+        r#"SELECT module, hits::int8 AS "hits!", misses::int8 AS "misses!",
+                  writes::int8 AS "writes!", write_bytes, lookup_seconds, lookup_max_seconds
+           FROM cache.activity WHERE root_id = $1 AND pass = $2 ORDER BY module"#,
+        root,
+        pass,
+    )
+    .fetch_all(tx.conn())
+    .await?;
+    for row in activity {
+        let cache = CacheMetrics {
+            cache_hit_count: row.hits,
+            cache_miss_count: row.misses,
+            cache_write_count_insert: row.writes,
+            cache_write_bytes_compressed_sum: row.write_bytes,
+            cache_lookup_ms_sum: row.lookup_seconds * 1000.0,
+            cache_lookup_ms_max: row.lookup_max_seconds * 1000.0,
+        };
+        // a module whose every result came from the cache ran nothing, and has an event for that
+        match metrics.modules.iter_mut().find(|m| m.module == row.module) {
+            Some(module) => module.cache = Some(cache),
+            None => metrics.modules.push(ModuleMetrics {
+                event_type: EVENT_TYPE_MODULE,
+                timestamp: completed_at,
+                root_uuid: root,
+                pass,
+                module: row.module,
+                analysis_time_seconds: 0.0,
+                percentage: 0.0,
+                exec_count: 0,
+                cache: Some(cache),
+            }),
+        }
+    }
+    metrics.modules.sort_by(|a, b| a.module.cmp(&b.module));
+    Ok(Some(metrics))
 }
 
 impl RootMetrics {

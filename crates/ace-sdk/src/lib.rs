@@ -18,8 +18,13 @@
 //! core queues no task those checks decline, the pool checks them again before `analyze`, and
 //! `analyze` doesn't repeat them. `takes`' docs say how to write one and how to check it with the
 //! core's audit setting before relying on it.
+//!
+//! A module whose result is worth keeping across roots, such as one that runs OCR or asks a vendor,
+//! opts into the analysis cache with `Module::CACHE` (PLAN.md decision 26): `cache`'s docs say what
+//! its key holds, what a cacheable module may read, and what is never kept.
 
 pub mod actions;
+pub mod cache;
 pub mod context;
 pub mod domains;
 pub mod email_threads;

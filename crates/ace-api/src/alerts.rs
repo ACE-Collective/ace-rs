@@ -370,6 +370,8 @@ pub(crate) struct FileTypeBody {
     is_encoded_script: bool,
     /// A HAR's start in the first 4096 bytes: whitespace, `{`, `"log"` and `:`.
     has_har_header: bool,
+    /// Pillow would open it as an image, by its first kilobyte.
+    is_image: bool,
     /// Whether it parses as JavaScript with a keyword in it; null when the type step didn't check,
     /// which it does only where the mime type or the name says JavaScript.
     javascript: Option<bool>,
@@ -396,6 +398,7 @@ impl From<ace_results::types::file_type::TypeFacts> for FileTypeBody {
             is_eps_file: facts.is_eps_file,
             is_encoded_script: facts.is_encoded_script,
             has_har_header: facts.has_har_header,
+            is_image: facts.is_image,
             javascript: facts.javascript,
         }
     }
@@ -421,6 +424,12 @@ pub(crate) struct ResultBody {
     /// The result's details, as the analysis type's JSON Schema (`ace schema export`) says.
     details: Value,
     created_at: DateTime<Utc>,
+    /// True for a result the analysis cache wrote in place of the module's task, from a result the
+    /// module made earlier, in this alert or another: ace3's `from_cache_hit`.
+    from_cache_hit: bool,
+    /// For a result from the cache, when the task that made it ended: ace3's `cached_at`. Null
+    /// otherwise.
+    cached_at: Option<DateTime<Utc>>,
 }
 
 /// A module whose task on the observable failed and left no result: it crashed, was stopped at
@@ -539,6 +548,8 @@ impl From<AlertObservable> for ObservableBody {
                     tags: result.tags,
                     details: result.details,
                     created_at: result.created_at,
+                    from_cache_hit: result.cached_at.is_some(),
+                    cached_at: result.cached_at,
                 })
                 .collect(),
             failed_modules: observable.failed.map(|failed| {

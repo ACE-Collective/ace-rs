@@ -920,7 +920,10 @@ impl TaskProcess {
     }
 }
 
-/// The supervisor's child that has contained itself, so it's past exec and setup.
+/// The supervisor's task process that has contained itself, so it's past exec and setup. Only a
+/// task process: the supervisor also starts the version probes of its cacheable modules' tools when it
+/// starts (`ace_pool::cache`), and a container's own seccomp profile shows as `Seccomp: 2` on every
+/// process in it.
 fn contained_child(supervisor: u32) -> Option<TaskProcess> {
     let parent = supervisor.to_string();
     std::fs::read_dir("/proc")
@@ -930,12 +933,14 @@ fn contained_child(supervisor: u32) -> Option<TaskProcess> {
         .find_map(|pid| {
             let stat = proc_stat(pid)?;
             let status = std::fs::read_to_string(format!("/proc/{pid}/status")).ok()?;
-            (stat[1] == parent && status.lines().any(|line| line == "Seccomp:\t2")).then(|| {
-                TaskProcess {
+            let command = std::fs::read(format!("/proc/{pid}/cmdline")).ok()?;
+            let task = command.split(|b| *b == 0).nth(1) == Some(&b"task"[..]);
+            (stat[1] == parent && task && status.lines().any(|line| line == "Seccomp:\t2")).then(
+                || TaskProcess {
                     pid,
                     started: stat[19].clone(),
-                }
-            })
+                },
+            )
         })
 }
 
