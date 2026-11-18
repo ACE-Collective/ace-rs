@@ -238,6 +238,39 @@
       },
       "tags": {}
     },
+    "file:4143ccd9d627cd6ef87f760dd9bfc8db07e411034aa51b51d2a07e8f137ae338": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "invoice.ppt.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:560f5ccd8b5c88d60634dceef0382d47d39756d195ff1e0602cec3b2994ebfe2": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:4e1a5ed6f3ce5703217974ca9968a08ec00a8551aa8959da43fc59b5e97c36df": {
       "detections": {},
       "directives": {},
@@ -368,39 +401,6 @@
         "email": true
       }
     },
-    "file:528536d8ba603f05c7001db0d9e3cdcaa31d0cd0d72169d69635b0fb1e53a519": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "invoice.ppt.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:560f5ccd8b5c88d60634dceef0382d47d39756d195ff1e0602cec3b2994ebfe2": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:560f5ccd8b5c88d60634dceef0382d47d39756d195ff1e0602cec3b2994ebfe2": {
       "detections": {},
       "directives": {
@@ -420,9 +420,9 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 13:41:49+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 13:41:49+00:00",
-              "File:FileModifyDate": "2026:11:16 13:41:49+00:00",
+              "File:FileAccessDate": "2026:11:18 03:54:26+00:00",
+              "File:FileInodeChangeDate": "2026:11:18 03:54:26+00:00",
+              "File:FileModifyDate": "2026:11:18 03:54:26+00:00",
               "File:FileName": "invoice.ppt",
               "File:FilePermissions": 100664,
               "File:FileSize": 2560,
@@ -468,48 +468,48 @@
         "msoffice_encryption_analyzer": {
           "details": {
             "email": true,
-            "email_body": "The password is CryptoAp1\n\n",
+            "email_body": "The password is CryptoAp1",
             "encryption_info": null,
             "password": "CryptoAp1",
             "word_list": [
               "VelvetSweatshop",
               "/01Hannes Ruescher/01",
-              "Cryp",
-              "Crypt",
-              "Crypto",
-              "CryptoA",
-              "CryptoAp",
-              "CryptoAp1",
-              "assw",
-              "asswo",
-              "asswor",
-              "assword",
-              "oAp1",
-              "pass",
-              "passw",
-              "passwo",
-              "passwor",
               "password",
-              "ptoA",
-              "ptoAp",
-              "ptoAp1",
-              "rypt",
-              "rypto",
-              "ryptoA",
-              "ryptoAp",
-              "ryptoAp1",
+              "CryptoAp1",
+              "pass",
+              "assw",
               "sswo",
-              "sswor",
-              "ssword",
               "swor",
-              "sword",
-              "toAp",
-              "toAp1",
               "word",
+              "Cryp",
+              "rypt",
               "ypto",
+              "ptoA",
+              "toAp",
+              "oAp1",
+              "passw",
+              "asswo",
+              "sswor",
+              "sword",
+              "Crypt",
+              "rypto",
               "yptoA",
+              "ptoAp",
+              "toAp1",
+              "passwo",
+              "asswor",
+              "ssword",
+              "Crypto",
+              "ryptoA",
               "yptoAp",
-              "yptoAp1"
+              "ptoAp1",
+              "passwor",
+              "assword",
+              "CryptoA",
+              "ryptoAp",
+              "yptoAp1",
+              "CryptoAp",
+              "ryptoAp1"
             ]
           },
           "summary": "MSOffice Encryption Analysis: password CryptoAp1",
@@ -583,9 +583,9 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 13:41:51+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 13:41:51+00:00",
-              "File:FileModifyDate": "2026:11:16 13:41:51+00:00",
+              "File:FileAccessDate": "2026:11:18 03:54:26+00:00",
+              "File:FileInodeChangeDate": "2026:11:18 03:54:26+00:00",
+              "File:FileModifyDate": "2026:11:18 03:54:26+00:00",
               "File:FileName": "invoice.ppt.decrypted",
               "File:FilePermissions": 100666,
               "File:FileSize": 2560,
@@ -1052,7 +1052,7 @@
       },
       "tags": {}
     },
-    "file:e0ff5cdfe13e031438fe47f012fb5399bfed0b817c2de2e3e0223cae519d965e": {
+    "file:e0c5e51d7a2bd236976e2fa83ad29bc488ff4ef87446d8c33950f1619a7ea3b7": {
       "detections": {},
       "directives": {},
       "excluded_analysis": {

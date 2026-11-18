@@ -304,6 +304,39 @@
       },
       "tags": {}
     },
+    "file:0cef122423e50b693c3fc98de334327cf4288fefae629276dd49e01e7d5a420c": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "invoice.doc.decrypted.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:cdfc3417b58de583128af96d82784e8782ae9b8ceb9d1fafd115bf0719052dd3": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:20bc7d114382458144dfc7e3681ea806337d40786f166c60864eeac4fc5ba11d": {
       "detections": {},
       "directives": {
@@ -493,6 +526,39 @@
         "email": true
       }
     },
+    "file:2c7025eb60d938bada486c60d9844bfa274ba556d0a3c0f4348915c561e96904": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "invoice.doc.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:2f881ed02b6b7a84fcb77a001472d84331d76a99e7e5eb3e51dca0312f49fc76": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:2f881ed02b6b7a84fcb77a001472d84331d76a99e7e5eb3e51dca0312f49fc76": {
       "detections": {},
       "directives": {
@@ -512,9 +578,9 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 13:44:04+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 13:44:04+00:00",
-              "File:FileModifyDate": "2026:11:16 13:44:04+00:00",
+              "File:FileAccessDate": "2026:11:18 03:56:46+00:00",
+              "File:FileInodeChangeDate": "2026:11:18 03:56:46+00:00",
+              "File:FileModifyDate": "2026:11:18 03:56:46+00:00",
               "File:FileName": "invoice.doc",
               "File:FilePermissions": 100664,
               "File:FileSize": 22528,
@@ -604,48 +670,48 @@
         "msoffice_encryption_analyzer": {
           "details": {
             "email": true,
-            "email_body": "The password is R4Binary1\n\n",
+            "email_body": "The password is R4Binary1",
             "encryption_info": null,
             "password": "R4Binary1",
             "word_list": [
               "VelvetSweatshop",
               "/01Hannes Ruescher/01",
-              "4Bin",
-              "4Bina",
-              "4Binar",
-              "4Binary",
-              "4Binary1",
-              "Bina",
-              "Binar",
-              "Binary",
-              "Binary1",
-              "R4Bi",
-              "R4Bin",
-              "R4Bina",
-              "R4Binar",
-              "R4Binary",
-              "R4Binary1",
-              "ary1",
-              "assw",
-              "asswo",
-              "asswor",
-              "assword",
-              "inar",
-              "inary",
-              "inary1",
-              "nary",
-              "nary1",
-              "pass",
-              "passw",
-              "passwo",
-              "passwor",
               "password",
+              "R4Binary1",
+              "pass",
+              "assw",
               "sswo",
-              "sswor",
-              "ssword",
               "swor",
+              "word",
+              "R4Bi",
+              "4Bin",
+              "Bina",
+              "inar",
+              "nary",
+              "ary1",
+              "passw",
+              "asswo",
+              "sswor",
               "sword",
-              "word"
+              "R4Bin",
+              "4Bina",
+              "Binar",
+              "inary",
+              "nary1",
+              "passwo",
+              "asswor",
+              "ssword",
+              "R4Bina",
+              "4Binar",
+              "Binary",
+              "inary1",
+              "passwor",
+              "assword",
+              "R4Binar",
+              "4Binary",
+              "Binary1",
+              "R4Binary",
+              "4Binary1"
             ]
           },
           "summary": "MSOffice Encryption Analysis: password R4Binary1",
@@ -824,39 +890,6 @@
       "tags": {
         "email": true
       }
-    },
-    "file:6c4ef7b7308d193ec1f6c18d29c0ad3a00ceee2258a6c462a268b1bebf3beec7": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "invoice.doc.decrypted.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:cdfc3417b58de583128af96d82784e8782ae9b8ceb9d1fafd115bf0719052dd3": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
     },
     "file:6c98d4f2b62b4db730884f9bd6d27e5360693eaad02d9cdbaa0e71c4c747450b": {
       "detections": {},
@@ -1212,9 +1245,9 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 13:44:07+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 13:44:07+00:00",
-              "File:FileModifyDate": "2026:11:16 13:44:07+00:00",
+              "File:FileAccessDate": "2026:11:18 03:56:47+00:00",
+              "File:FileInodeChangeDate": "2026:11:18 03:56:47+00:00",
+              "File:FileModifyDate": "2026:11:18 03:56:47+00:00",
               "File:FileName": "invoice.doc.decrypted",
               "File:FilePermissions": 100666,
               "File:FileSize": 22528,
@@ -1656,39 +1689,6 @@
       "tags": {
         "email": true
       }
-    },
-    "file:f612aa6e98ef25649adc8fdf505ce538e8e341bf34f59eb64acef432c8079d3f": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "invoice.doc.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:2f881ed02b6b7a84fcb77a001472d84331d76a99e7e5eb3e51dca0312f49fc76": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
     },
     "file:f70fe384c672865fff4bb8ab60d73098bc751e8f2aa915b8aff2e2085648b428": {
       "detections": {},

@@ -96,9 +96,9 @@ use ace_results::types::tag::{
 use ace_results::types::url_extraction::UrlExtractionAnalysis;
 use ace_results::types::user::UserAnalysis;
 use ace_results::types::values::{
-    CommandLineAnalysis, EmailAddressFqdnAnalysis, FileLocationAnalysis, FilePathAnalysis,
-    IdnaAnalysis, NetworkIdentifierAnalysis, OneDriveUrlAnalysis, ParseUrlAnalysis,
-    ProtectedUrlAnalysis,
+    ApexDomainAnalysis, CommandLineAnalysis, EmailAddressFqdnAnalysis, FileLocationAnalysis,
+    FilePathAnalysis, IdnaAnalysis, NetworkIdentifierAnalysis, OneDriveUrlAnalysis,
+    ParseUrlAnalysis, ProtectedUrlAnalysis,
 };
 use ace_results::types::x509::{SerialNumber, X509Analysis};
 use ace_results::types::xlm::XlmDeobfuscatorAnalysis;
@@ -238,6 +238,7 @@ impl Views {
             .with(ViewEntry::of::<NetworkIdentifierAnalysis>())
             .with(ViewEntry::of::<ParseUrlAnalysis>())
             .with(ViewEntry::of::<IdnaAnalysis>())
+            .with(ViewEntry::of::<ApexDomainAnalysis>())
             .with(ViewEntry::of::<EmailAddressFqdnAnalysis>())
             .with(ViewEntry::of::<ProtectedUrlAnalysis>())
             .with(ViewEntry::of::<OneDriveUrlAnalysis>())
@@ -2300,6 +2301,14 @@ impl AnalysisView for IdnaAnalysis {
             field("idna", self.idna.as_ref()),
             field("unicode", self.unicode.as_ref()),
         ])
+    }
+}
+
+/// `apex_domain_analysis`: the subdomain's registrable domain.
+impl AnalysisView for ApexDomainAnalysis {
+    type View<'a> = FieldsView;
+    fn view(&self) -> FieldsView {
+        fields_view([field("apex_domain", self.apex_domain.as_ref())])
     }
 }
 

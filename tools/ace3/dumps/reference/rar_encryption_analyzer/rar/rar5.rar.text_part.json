@@ -1,0 +1,188 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "fe6da632",
+  "also_enabled": [
+    "email_analyzer",
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "RarEncryptionAnalysis",
+      "details": {
+        "email": true,
+        "email_body": "The password is Rar5Pass thanks\n\nSee the attached file.",
+        "encryption_info": null,
+        "password": "Rar5Pass",
+        "word_list": [
+          "password",
+          "Rar5Pass",
+          "thanks",
+          "attached",
+          "file.",
+          "file",
+          "pass",
+          "assw",
+          "sswo",
+          "swor",
+          "word",
+          "Rar5",
+          "ar5P",
+          "r5Pa",
+          "5Pas",
+          "Pass",
+          "than",
+          "hank",
+          "anks",
+          "atta",
+          "ttac",
+          "tach",
+          "ache",
+          "ched",
+          "ile.",
+          "passw",
+          "asswo",
+          "sswor",
+          "sword",
+          "Rar5P",
+          "ar5Pa",
+          "r5Pas",
+          "5Pass",
+          "thank",
+          "hanks",
+          "attac",
+          "ttach",
+          "tache",
+          "ached",
+          "passwo",
+          "asswor",
+          "ssword",
+          "Rar5Pa",
+          "ar5Pas",
+          "r5Pass",
+          "attach",
+          "ttache",
+          "tached",
+          "passwor",
+          "assword",
+          "Rar5Pas",
+          "ar5Pass",
+          "attache",
+          "ttached"
+        ]
+      },
+      "detections": [],
+      "module_path": "saq.modules.email.encryption.rar:RarEncryptionAnalysis",
+      "observables": [
+        {
+          "detections": [
+            {
+              "description": "Was able to decrypt based on contents of email.",
+              "details": null
+            }
+          ],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "rar5.rar.decrypted/invoice.txt",
+          "relationships": [],
+          "size": 74,
+          "tags": [],
+          "type": "file",
+          "value": "8134eac7b93d58b0e99176e2c8e315c7c82bcdefd64a5d68bfb26dca896d7512",
+          "yara_meta": []
+        },
+        {
+          "detections": [
+            {
+              "description": "Was able to decrypt based on contents of email.",
+              "details": null
+            }
+          ],
+          "directives": [
+            "extract_urls"
+          ],
+          "excluded_analysis": [],
+          "file_path": "rar5.rar.decrypted/docs/notes.txt",
+          "relationships": [],
+          "size": 70,
+          "tags": [],
+          "type": "file",
+          "value": "3300560ced3d600b14aebe26906c95e2a192fa2d2351579601dc99bc522bc214",
+          "yara_meta": []
+        }
+      ],
+      "summary": "Rar Encryption Analysis: password Rar5Pass",
+      "tags": []
+    },
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": false,
+        "is_office_ext": false,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "application/vnd.rar",
+        "type": "RAR archive data, v5"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: RAR archive data, v5 (application/vnd.rar)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "carrying_email": {
+      "parts": [
+        {
+          "body": "VGhlIHBhc3N3b3JkIGlzIFJhcjVQYXNzIHRoYW5rcwo=",
+          "html": false,
+          "path": "email.rfc822.unknown_text_plain_000.txt"
+        },
+        {
+          "body": "PGh0bWw+PGJvZHk+PHA+U2VlIHRoZSBhdHRhY2hlZCBmaWxlLjwvcD48L2JvZHk+PC9odG1sPgo=",
+          "html": true,
+          "path": "email.rfc822.unknown_text_html_000.html"
+        }
+      ]
+    },
+    "directives": [],
+    "label": "fixtures/encrypted/rar/rar5.rar attached to an email, body text_part",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "rar5.rar",
+      "size": 370,
+      "type": "file",
+      "value": "6a75c274f6285acb23a37e565d19cb9e2b5d0f4ed783f0c9d62ec2d20a79ccf9"
+    }
+  },
+  "module": "rar_encryption_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "extract_urls",
+      "render",
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "rar5.rar",
+    "relationships": [],
+    "size": 370,
+    "tags": [
+      "encrypted_rar"
+    ],
+    "type": "file",
+    "value": "6a75c274f6285acb23a37e565d19cb9e2b5d0f4ed783f0c9d62ec2d20a79ccf9",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

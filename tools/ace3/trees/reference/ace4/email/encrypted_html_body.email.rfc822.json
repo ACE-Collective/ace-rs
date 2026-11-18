@@ -317,39 +317,6 @@
       },
       "tags": {}
     },
-    "file:24214400c02b8e03737ee0ba4a74e2a46c0757c93a89962f1cc7c11dc9da8219": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "invoice.docx.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:b161b3f2d5fca3dd7b8ecb2986787f88d86d56e0ed107860b29cc4eb6d3085ec": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:28c4be1e39bff0434d9e31fe088b743c03b9e0a2fb056b0e3ed509983b8bd81c": {
       "detections": {},
       "directives": {
@@ -845,9 +812,9 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 19:46:36+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 19:46:36+00:00",
-              "File:FileModifyDate": "2026:11:16 19:46:36+00:00",
+              "File:FileAccessDate": "2026:11:18 03:54:34+00:00",
+              "File:FileInodeChangeDate": "2026:11:18 03:54:34+00:00",
+              "File:FileModifyDate": "2026:11:18 03:54:34+00:00",
               "File:FileName": "invoice.docx.decrypted",
               "File:FilePermissions": 100666,
               "File:FileSize": 12529,
@@ -1089,6 +1056,39 @@
       },
       "tags": {}
     },
+    "file:7d3489263a5433986ece3395fb3e53bc3f3593dcc10bbbe87a72cab14a673665": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "invoice.docx.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:b161b3f2d5fca3dd7b8ecb2986787f88d86d56e0ed107860b29cc4eb6d3085ec": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:802a346da0760b72b825d9a7857e3e630400a8d33847d94865869877e73c9247": {
       "detections": {},
       "directives": {
@@ -1264,6 +1264,39 @@
       },
       "tags": {}
     },
+    "file:a2a344de58daab9b693243dbd3c1e8ef78c06b104adbdb487c19542b0a5e019e": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "invoice.docx.decrypted.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:6a65fb99c4c7ecb88273b7f1d49b00640de95cb682cb1a63df0c08764f0ef24d": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:ad59db739609567920cdf1eb3d785107e043f25f8e8567338c03b9e50d85025f": {
       "detections": {},
       "directives": {},
@@ -1348,9 +1381,9 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 19:46:35+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 19:46:35+00:00",
-              "File:FileModifyDate": "2026:11:16 19:46:35+00:00",
+              "File:FileAccessDate": "2026:11:18 03:54:32+00:00",
+              "File:FileInodeChangeDate": "2026:11:18 03:54:32+00:00",
+              "File:FileModifyDate": "2026:11:18 03:54:32+00:00",
               "File:FileName": "invoice.docx",
               "File:FilePermissions": 100664,
               "File:FileSize": 17920,
@@ -1395,56 +1428,58 @@
         "msoffice_encryption_analyzer": {
           "details": {
             "email": true,
-            "email_body": "Use **H7mlPass**\n\n",
+            "email_body": "See the HTML part\n\nUse **H7mlPass**",
             "encryption_info": null,
             "password": "H7mlPass",
             "word_list": [
               "VelvetSweatshop",
               "/01Hannes Ruescher/01",
-              "**H7",
-              "**H7m",
-              "**H7ml",
-              "**H7mlP",
-              "**H7mlPa",
-              "**H7mlPas",
-              "**H7mlPass",
-              "**H7mlPass*",
-              "*H7m",
-              "*H7ml",
-              "*H7mlP",
-              "*H7mlPa",
-              "*H7mlPas",
-              "*H7mlPass",
-              "*H7mlPass*",
-              "*H7mlPass**",
-              "7mlP",
-              "7mlPa",
-              "7mlPas",
-              "7mlPass",
-              "7mlPass*",
-              "7mlPass**",
-              "H7ml",
-              "H7mlP",
-              "H7mlPa",
-              "H7mlPas",
+              "HTML",
+              "part",
               "H7mlPass",
-              "H7mlPass*",
-              "H7mlPass**",
-              "Pass",
-              "Pass*",
-              "Pass**",
-              "ass*",
-              "ass**",
-              "lPas",
-              "lPass",
-              "lPass*",
-              "lPass**",
+              "**H7",
+              "*H7m",
+              "H7ml",
+              "7mlP",
               "mlPa",
+              "lPas",
+              "Pass",
+              "ass*",
+              "ss**",
+              "**H7m",
+              "*H7ml",
+              "H7mlP",
+              "7mlPa",
               "mlPas",
+              "lPass",
+              "Pass*",
+              "ass**",
+              "**H7ml",
+              "*H7mlP",
+              "H7mlPa",
+              "7mlPas",
               "mlPass",
+              "lPass*",
+              "Pass**",
+              "**H7mlP",
+              "*H7mlPa",
+              "H7mlPas",
+              "7mlPass",
               "mlPass*",
+              "lPass**",
+              "**H7mlPa",
+              "*H7mlPas",
+              "7mlPass*",
               "mlPass**",
-              "ss**"
+              "**H7mlPas",
+              "*H7mlPass",
+              "H7mlPass*",
+              "7mlPass**",
+              "**H7mlPass",
+              "*H7mlPass*",
+              "H7mlPass**",
+              "**H7mlPass*",
+              "*H7mlPass**"
             ]
           },
           "summary": "MSOffice Encryption Analysis: password H7mlPass",
@@ -2022,39 +2057,6 @@
         "xml_plain_text_analyzer": {
           "details": {
             "xml_plain_text": null
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
-    "file:d64c5ac21891329f086bc12c144211966e5328ed90911d5bdb5be389f5115148": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "invoice.docx.decrypted.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:6a65fb99c4c7ecb88273b7f1d49b00640de95cb682cb1a63df0c08764f0ef24d": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
           },
           "summary": null,
           "tags": {}

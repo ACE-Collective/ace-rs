@@ -1386,7 +1386,7 @@ def check_root_metrics(roots, failures):
                and sum(last["observable_type_counts"].values()) == observables
                and last["task_count"] == tasks and last["failed_task_count"] == failed
                and last["is_alert"] == (row[4] == "t") and last["queue"] == row[5]
-               and last["cancelled"] is False and last["pass_open_seconds"] > 0
+               and last["outcome"] == "completed" and last["pass_open_seconds"] > 0
                and last["total_analysis_time_seconds"] > 0,
                f"its last event has the root's counts ({observables} observables, {tasks} tasks, "
                f"{failed} failed): {json.dumps(last)}")

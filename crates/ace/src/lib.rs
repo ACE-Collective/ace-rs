@@ -39,6 +39,7 @@ pub fn parser_pool() -> ParserPool {
         .module::<ace_mod_values::NetworkIdentifier>()
         .module::<ace_mod_values::ParseUrlAnalyzer>()
         .module::<ace_mod_values::IdnaAnalyzer>()
+        .module::<ace_mod_values::ApexDomainAnalyzer>()
         .module::<ace_mod_values::EmailAddressFqdnAnalyzer>()
         .module::<ace_mod_values::ProtectedUrlAnalyzer>()
         .module::<ace_mod_html::HtmlDataUrlAnalyzer>()

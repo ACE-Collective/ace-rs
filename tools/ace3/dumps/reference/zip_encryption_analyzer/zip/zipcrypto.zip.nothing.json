@@ -1,6 +1,6 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "37a765bf",
+  "ace3_commit": "fe6da632",
   "also_enabled": [
     "email_analyzer",
     "file_type"
@@ -10,16 +10,15 @@
       "class": "ZipEncryptionAnalysis",
       "details": {
         "email": true,
-        "email_body": "a b c d\n\n",
+        "email_body": "a b c d",
         "encryption_info": null,
         "password": null,
         "word_list": []
       },
       "detections": [],
-      "error": "ZipEncryptionAnalyzer was unable to crack the password",
       "module_path": "saq.modules.email.encryption.zip:ZipEncryptionAnalysis",
       "observables": [],
-      "summary": "Zip Encryption Analysis: ZipEncryptionAnalyzer was unable to crack the password",
+      "summary": "Zip Encryption Analysis: word list could not be created from email",
       "tags": []
     },
     {
@@ -48,8 +47,13 @@
   ],
   "input": {
     "carrying_email": {
-      "body": "YSBiIGMgZAo=",
-      "body_path": "email.rfc822.unknown_text_plain_000.txt"
+      "parts": [
+        {
+          "body": "YSBiIGMgZAo=",
+          "html": false,
+          "path": "email.rfc822.unknown_text_plain_000.txt"
+        }
+      ]
     },
     "directives": [],
     "label": "fixtures/encrypted/zip/zipcrypto.zip attached to an email, body nothing",

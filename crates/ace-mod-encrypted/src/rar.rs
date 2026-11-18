@@ -28,7 +28,7 @@ use unrar::error::Code;
 
 use crate::{
     ArchiveSettings, Carried, DIRECTIVE_EXTRACT_URLS, MAX_OUTPUT_BYTES, as_john_shows, carried,
-    cracking_deadline, decrypted_detection, sorted, summarize,
+    cracking_deadline, decrypted_detection, summarize,
 };
 
 /// The module's manifest.
@@ -336,28 +336,31 @@ impl Parser for RarEncryptionAnalyzer {
             Ok(hash) => hash,
             Err(error) => return done(details, Vec::new(), Some(error)),
         };
+        // rar.py's wordlist_from_email (1998ca56): an email with no text is still an email
         match carried(ctx)? {
-            Carried::Absent | Carried::NoBody => {}
+            Carried::Absent => {}
+            Carried::NoBody => details.email = true,
             Carried::Raised(message) => {
                 tracing::warn!("building the wordlist raised: {message}");
-                details.email = true;
-                // rar.py's except Exception around the wordlist (its 41d44392)
+                // rar.py's except Exception around the wordlist (its 41d44392), before it assigns
+                // anything the wordlist gave
                 let error = format!("unable to build the password wordlist: {message}");
                 return done(details, Vec::new(), Some(error));
             }
             Carried::Body { text, words } => {
                 details.email = true;
                 details.email_body = Some(text);
-                details.word_list = sorted(&words);
                 if !words.is_empty() {
                     let found = crack(&file.local_path, &hash, &words, cracking_deadline(ctx));
                     details.password = found.map(|p| as_john_shows(&p).to_owned());
                 }
+                details.word_list = words;
             }
         }
+        // none of the candidates was the password: the summary says so, and since ace3's 1998ca56
+        // it isn't an error
         let Some(password) = details.password.clone().filter(|p| !p.is_empty()) else {
-            let error = "RarEncryptionAnalyzer could not crack password!".to_owned();
-            return done(details, Vec::new(), Some(error));
+            return done(details, Vec::new(), None);
         };
         let base = format!("{}.decrypted", file.path.as_str());
         let Some(mut files) = extract_all(ctx, &file.local_path, &base, &password)? else {

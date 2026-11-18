@@ -44,7 +44,7 @@ use crate::containment::SandboxProfile;
 use crate::modules::Modules;
 use crate::pool::{PoolStats, Runner, SHUTDOWN_GRACE, lease_loop};
 use crate::run::{
-    LeaseKeeper, TaskDir, fetch_email_body, fetch_input, fetch_scan_output, fetch_tree_files,
+    LeaseKeeper, TaskDir, fetch_email_parts, fetch_input, fetch_scan_output, fetch_tree_files,
     finish,
 };
 use crate::tools::{ToolDirs, ToolHost, ToolTable};
@@ -77,9 +77,9 @@ pub struct TaskRequest {
     pub settings: Option<serde_json::Value>,
     /// The input's bytes, for a file task.
     pub input: Option<PathBuf>,
-    /// The body of the email that carried the task's file, for a module that reads it.
+    /// The body parts of the email that carried the task's file, for a module that reads it.
     #[serde(default)]
-    pub email_body: Option<PathBuf>,
+    pub email_parts: Vec<ace_sdk::EmailBodyPart>,
     /// The directory of the tree's files the module reads, for a module that reads them.
     #[serde(default)]
     pub tree_files: Option<PathBuf>,
@@ -252,7 +252,7 @@ pub async fn run_task_process(
     let dir = TaskDir::new()?;
     let input = fetch_input(client, &task, &dir).await?;
     open_to_task_user(&dir, input.as_deref(), config.user)?;
-    let email_body = fetch_email_body(client, &task, dir.path()).await?;
+    let email_parts = fetch_email_parts(client, &task, dir.path()).await?;
     let tree_files = fetch_tree_files(client, &task, dir.path()).await?;
     let scan_output = fetch_scan_output(client, &task, dir.path()).await?;
 
@@ -267,8 +267,8 @@ pub async fn run_task_process(
     if let Some(input) = &input {
         profile = profile.allow_read(input);
     }
-    if let Some(body) = &email_body {
-        profile = profile.allow_read(body);
+    for part in &email_parts {
+        profile = profile.allow_read(&part.path);
     }
     if let Some(files) = &tree_files {
         profile = profile.allow_read(files);
@@ -284,7 +284,7 @@ pub async fn run_task_process(
         module: manifest.name.to_owned(),
         settings: parser.settings().cloned(),
         input,
-        email_body,
+        email_parts,
         tree_files,
         outputs: dir.outputs(),
         profile,

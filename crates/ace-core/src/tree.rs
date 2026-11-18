@@ -662,12 +662,15 @@ pub async fn add_result_addition(
     Ok(())
 }
 
-/// The body of the email that carried an observable: what `Module::READS_CARRYING_EMAIL` asks for.
+/// A body part of the email that carried an observable: what `Module::READS_CARRYING_EMAIL` asks
+/// for.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EmailBodyFile {
     pub path: String,
     /// The file observable's value.
     pub sha256: String,
+    /// An HTML part rather than plain text.
+    pub html: bool,
 }
 
 /// Whether an email in the root hasn't been parsed yet.
@@ -953,12 +956,14 @@ pub async fn observables_below(
 /// The email an observable came out of, as ace3's `search_down` finds its `EmailAnalysis`: up
 /// through the results that added it, by any route, to the nearest email result that parsed a
 /// message. A result lands after the one that added what it analyzed, so the highest id is the
-/// nearest. None means no email carried it, and an inner None that one did but has no body.
+/// nearest. None means no email carried it; otherwise the email's text and HTML body parts, in the
+/// order its result added them (ace3's `EmailAnalysis.body_parts`), which an email without a text
+/// part has none of.
 pub async fn carrying_email(
     pool: &PgPool,
     root: Uuid,
     observable: ObservableId,
-) -> Result<Option<Option<EmailBodyFile>>, DbError> {
+) -> Result<Option<Vec<EmailBodyFile>>, DbError> {
     let email = sqlx::query_scalar!(
         r#"WITH RECURSIVE ancestors (observable_id) AS (
                SELECT $2::bigint
@@ -1000,12 +1005,16 @@ pub async fn carrying_email(
         .iter()
         .map(|file| file.path.rsplit('/').next().unwrap_or_default())
         .collect();
-    Ok(Some(EmailAnalysis::body_of(&names).map(|index| {
-        EmailBodyFile {
-            path: files[index].path.clone(),
-            sha256: files[index].value.clone(),
-        }
-    })))
+    Ok(Some(
+        EmailAnalysis::body_parts_of(&names)
+            .into_iter()
+            .map(|(index, html)| EmailBodyFile {
+                path: files[index].path.clone(),
+                sha256: files[index].value.clone(),
+                html,
+            })
+            .collect(),
+    ))
 }
 
 /// Whether any of the root's observables is whitelisted: it has ace3's `whitelisted` tag or directive

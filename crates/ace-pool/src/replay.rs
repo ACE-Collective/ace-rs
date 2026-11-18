@@ -43,7 +43,7 @@ pub async fn replay_task(
         }
         _ => None,
     };
-    let email_body = crate::run::fetch_email_body(client, task, dir).await?;
+    let email_parts = crate::run::fetch_email_parts(client, task, dir).await?;
     let tree_files = crate::run::fetch_tree_files(client, task, dir).await?;
     let outputs = Arc::new(LocalFileStore::new(dir.join("outputs"))?);
     eprintln!(
@@ -58,7 +58,7 @@ pub async fn replay_task(
     let run = Run {
         task,
         input: input.as_deref(),
-        email_body: email_body.as_deref(),
+        email_parts: &email_parts,
         tree_files: tree_files.as_deref(),
         outputs,
         cancel: CancellationToken::new(),

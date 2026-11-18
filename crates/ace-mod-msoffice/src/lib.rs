@@ -26,7 +26,8 @@ use ace_mod_oletools::py::is_space;
 use ace_results::types::msoffice::MsofficeEncryptionAnalysis;
 use ace_results::{AnalysisType, Detection, ObservableKind, ResultEnvelope, YaraMeta};
 use ace_sdk::{
-    CarryingEmail, Delay, Manifest, Module, ModuleError, Outcome, Parser, Resources, TaskContext,
+    CarryingEmail, Delay, EmailBodyPart, Manifest, Module, ModuleError, Outcome, Parser, Resources,
+    TaskContext,
 };
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -111,8 +112,14 @@ pub fn read_text(data: &[u8]) -> String {
     text.replace("\r\n", "\n").replace('\r', "\n")
 }
 
-/// ace3's `generate_wordlist`, which returns the same set. Its order is that of the words' first
-/// appearance rather than a set's, which changes from run to run.
+/// Python's `string.punctuation`.
+const PUNCTUATION: &str = "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~";
+
+/// ace3's `generate_wordlist` since `1998ca56`, in its order: the text cut at `byte_limit`
+/// characters and split at whitespace, then every word as written and without the punctuation
+/// around it, then every substring of a word, shortest first, each once and only if its length is
+/// in range, until `list_limit` are listed. A candidate is added before the limit is checked, as
+/// ace3's `_add` does.
 pub fn generate_wordlist(
     text: &str,
     range_low: usize,
@@ -120,27 +127,46 @@ pub fn generate_wordlist(
     byte_limit: usize,
     list_limit: usize,
 ) -> Vec<String> {
-    let data: Vec<char> = text.chars().take(byte_limit).collect();
+    let data: String = text.chars().take(byte_limit).collect();
+    let words: Vec<Vec<char>> = data
+        .split(is_space)
+        .filter(|word| !word.is_empty())
+        .map(|word| word.chars().collect())
+        .collect();
     let mut seen = HashSet::new();
-    let mut words = Vec::new();
-    for size in range_low..=range_high {
-        if size == 0 || size > data.len() {
-            continue;
+    let mut candidates = Vec::new();
+    // whether the list is full
+    let mut add = |candidate: &[char]| -> bool {
+        if (range_low..=range_high).contains(&candidate.len()) {
+            let candidate: String = candidate.iter().collect();
+            if seen.insert(candidate.clone()) {
+                candidates.push(candidate);
+            }
         }
-        for window in data.windows(size) {
-            if window.iter().copied().any(is_space) {
+        candidates.len() >= list_limit
+    };
+    for word in &words {
+        let text: String = word.iter().collect();
+        let stripped: Vec<char> = ace_pycompat::pystr::strip_chars(&text, PUNCTUATION)
+            .chars()
+            .collect();
+        if add(word) || add(&stripped) {
+            return candidates;
+        }
+    }
+    for size in range_low..=range_high {
+        for word in &words {
+            if size > word.len() {
                 continue;
             }
-            let word: String = window.iter().collect();
-            if seen.insert(word.clone()) {
-                words.push(word);
-            }
-            if words.len() >= list_limit {
-                return words;
+            for start in 0..=word.len() - size {
+                if add(&word[start..start + size]) {
+                    return candidates;
+                }
             }
         }
     }
-    words
+    candidates
 }
 
 /// How ace3 cuts candidate passwords from an email's body: `generate_wordlist`'s range of lengths and
@@ -153,38 +179,48 @@ pub struct WordlistLimits {
     pub list_limit: usize,
 }
 
-/// ace3's `wordlist_from_email` past its finding the email, which `zip.py` and `rar.py` also write out
-/// inline: the body's bytes read as text, through html2text, cut at `byte_limit` characters, and the
-/// words in it. html2text's exception is what ace3's caller catches.
-pub fn words_from_body(
-    body: &[u8],
+/// The text of an email's body parts and the candidates in it.
+pub type BodyWords = (String, Vec<String>);
+
+/// ace3's `wordlist_from_email` past its finding the email, since `1998ca56`: every body part read
+/// as text, an HTML part through html2text, stripped and cut at `byte_limit` characters, each text
+/// once, in the email's order; then the texts joined by a blank line, and the words in them. None
+/// when no part has any text, ace3's `email_body` None. html2text's exception is what ace3's
+/// caller catches.
+pub fn words_from_parts(
+    parts: &[EmailBodyPart],
     limits: WordlistLimits,
-) -> Result<(String, Vec<String>), ace_mod_oletools::py::PyErr> {
-    let text = html2text::html2text(&read_text(body))?;
-    let body: String = text.chars().take(limits.byte_limit).collect();
+) -> Result<Result<Option<BodyWords>, ace_mod_oletools::py::PyErr>, std::io::Error> {
+    let mut texts: Vec<String> = Vec::new();
+    for part in parts {
+        let mut content = read_text(&fs::read(&part.path)?);
+        if part.html {
+            content = match html2text::html2text(&content) {
+                Ok(text) => text,
+                Err(error) => return Ok(Err(error)),
+            };
+        }
+        let text: String = ace_pycompat::pystr::strip(&content)
+            .chars()
+            .take(limits.byte_limit)
+            .collect();
+        // the HTML part is often the text part again
+        if !text.is_empty() && !texts.contains(&text) {
+            texts.push(text);
+        }
+    }
+    if texts.is_empty() {
+        return Ok(Ok(None));
+    }
+    let body = texts.join("\n\n");
     let words = generate_wordlist(
         &body,
         limits.range_low,
         limits.range_high,
-        limits.byte_limit,
+        body.chars().count(),
         limits.list_limit,
     );
-    Ok((body, words))
-}
-
-fn read_body(
-    body: &[u8],
-    settings: &MsofficeEncryptionSettings,
-) -> Result<(String, Vec<String>), ace_mod_oletools::py::PyErr> {
-    words_from_body(
-        body,
-        WordlistLimits {
-            range_low: settings.range_low,
-            range_high: settings.range_high,
-            byte_limit: settings.byte_limit,
-            list_limit: settings.list_limit,
-        },
-    )
+    Ok(Ok(Some((body, words))))
 }
 
 /// The password that opens the file, or None when none does. One that breaks the reading of the file
@@ -273,13 +309,21 @@ impl MsofficeEncryption {
         match ctx.carrying_email() {
             CarryingEmail::Pending | CarryingEmail::Absent => {}
             CarryingEmail::NoBody => details.email = true,
-            CarryingEmail::Body(path) => {
-                let body = fs::read(path)?;
-                match read_body(&body, ctx.settings()) {
-                    Ok((text, found)) => {
+            CarryingEmail::Parts(parts) => {
+                let settings = ctx.settings();
+                let limits = WordlistLimits {
+                    range_low: settings.range_low,
+                    range_high: settings.range_high,
+                    byte_limit: settings.byte_limit,
+                    list_limit: settings.list_limit,
+                };
+                match words_from_parts(parts, limits)? {
+                    Ok(found) => {
                         details.email = true;
-                        details.email_body = Some(text);
-                        words = found;
+                        if let Some((text, found)) = found {
+                            details.email_body = Some(text);
+                            words = found;
+                        }
                     }
                     Err(error) => {
                         tracing::warn!("reading the email's body raised: {}", error.message);
@@ -289,9 +333,7 @@ impl MsofficeEncryption {
                 }
             }
         }
-        let mut sorted = words.clone();
-        sorted.sort();
-        details.word_list.extend(sorted);
+        details.word_list.extend(words.iter().cloned());
         details.password = crack(
             office,
             DEFAULT_PASSWORDS
@@ -300,8 +342,9 @@ impl MsofficeEncryption {
                 .chain(words.iter().map(String::as_str)),
             stop,
         );
+        // none of the candidates was the password: the summary says so, and since ace3's
+        // `1998ca56` it isn't an error
         if details.password.is_none() {
-            *failure = Some("could not crack password".to_owned());
             return Ok(None);
         }
         let plain = match office.decrypt() {
@@ -389,10 +432,24 @@ mod tests {
         Harness::new().expect("a harness")
     }
 
+    /// An email with these body parts, each its bytes and whether it is HTML.
+    fn email_with(dir: &Path, parts: &[(&[u8], bool)]) -> CarryingEmail {
+        CarryingEmail::Parts(
+            parts
+                .iter()
+                .enumerate()
+                .map(|(index, (text, html))| {
+                    let path: PathBuf = dir.join(format!("email_body.{index}"));
+                    fs::write(&path, text).expect("written");
+                    EmailBodyPart { path, html: *html }
+                })
+                .collect(),
+        )
+    }
+
+    /// An email with one plain text part.
     fn body_file(dir: &Path, text: &[u8]) -> CarryingEmail {
-        let path: PathBuf = dir.join("email_body");
-        fs::write(&path, text).expect("written");
-        CarryingEmail::Body(path)
+        email_with(dir, &[(text, false)])
     }
 
     fn done(
@@ -519,12 +576,17 @@ mod tests {
         let harness = harness().carrying_email(body_file(dir.path(), b"The password is wrong\n"));
         let input = harness.sample(NO_EMAIL).expect("a sample");
         let result = done(harness.run_parser(input).expect("runs"));
-        assert_eq!(result.error.as_deref(), Some("could not crack password"));
+        // not an error since ace3's 1998ca56: the summary says so
+        assert_eq!(result.error, None);
+        assert_eq!(
+            result.summary.as_deref(),
+            Some("MSOffice Encryption Analysis: password not available")
+        );
         assert_eq!(result.details.password, None);
         assert!(result.files.is_empty());
         assert_eq!(
             result.details.email_body.as_deref(),
-            Some("The password is wrong\n\n")
+            Some("The password is wrong")
         );
     }
 
@@ -545,7 +607,10 @@ mod tests {
     #[test]
     fn a_body_html2text_raises_on_keeps_what_the_result_has_and_says_decryption_failed() {
         let dir = tempfile::tempdir().expect("a directory");
-        let harness = harness().carrying_email(body_file(dir.path(), b"before &#1a after\n"));
+        let harness = harness().carrying_email(email_with(
+            dir.path(),
+            &[(b"plain text", false), (b"before &#1a after\n", true)],
+        ));
         let input = harness.sample(NO_EMAIL).expect("a sample");
         let result = done(harness.run_parser(input).expect("runs"));
         assert!(!result.details.email);
@@ -681,7 +746,7 @@ mod tests {
             "{:?}",
             started.elapsed()
         );
-        assert_eq!(result.error.as_deref(), Some("could not crack password"));
+        assert_eq!(result.error, None);
         assert!(
             result
                 .details
@@ -692,15 +757,61 @@ mod tests {
     }
 
     #[test]
-    fn a_wordlist_is_ace3s_in_first_seen_order() {
-        let words = generate_wordlist("ab cdef\nghij", 4, 5, 1024, 5000);
-        assert_eq!(words, ["cdef", "ghij"]);
+    fn a_wordlist_is_ace3s_words_then_their_substrings() {
+        // every word, as written and without its punctuation, then each word's substrings,
+        // shortest first, across the words in turn
         assert_eq!(
-            generate_wordlist("abcdefgh", 4, 5, 1024, 2),
-            ["abcd", "bcde"]
+            generate_wordlist("ab cdef\n(ghij),", 4, 5, 1024, 5000),
+            [
+                "cdef", "ghij", "(ghi", "hij)", "ij),", "(ghij", "ghij)", "hij),"
+            ]
+        );
+        // a whole word comes before a long word's substrings, so the limit drops those first
+        assert_eq!(
+            generate_wordlist("abcdefgh Secr3tPw", 4, 8, 1024, 3),
+            ["abcdefgh", "Secr3tPw", "abcd"]
         );
         assert_eq!(generate_wordlist("abcdefgh", 4, 5, 4, 5000), ["abcd"]);
         assert!(generate_wordlist("", 4, 5, 1024, 5000).is_empty());
+        // the candidate is added before the limit is checked, as ace3's `_add` does
+        assert_eq!(generate_wordlist("abcd efgh", 4, 4, 1024, 0), ["abcd"]);
+    }
+
+    #[test]
+    fn the_candidates_come_from_every_body_part_once() {
+        let dir = tempfile::tempdir().expect("a directory");
+        let limits = WordlistLimits {
+            range_low: 4,
+            range_high: 8,
+            byte_limit: 12,
+            list_limit: 5000,
+        };
+        let CarryingEmail::Parts(parts) = email_with(
+            dir.path(),
+            &[
+                (b"  Use Secr3tPw  \n", false),
+                (b"<p>Use Secr3tPw</p>", true),
+                (b"a gateway banner that is long", true),
+            ],
+        ) else {
+            panic!("parts");
+        };
+        let (body, words) = words_from_parts(&parts, limits)
+            .expect("reads")
+            .expect("html2text")
+            .expect("text");
+        // the HTML part repeats the text one, and each part is cut at byte_limit
+        assert_eq!(body, "Use Secr3tPw\n\na gateway ba");
+        assert_eq!(words[..3], ["Secr3tPw", "gateway", "Secr"]);
+        let CarryingEmail::Parts(blank) = email_with(dir.path(), &[(b" \n ", false)]) else {
+            panic!("parts");
+        };
+        assert_eq!(
+            words_from_parts(&blank, limits)
+                .expect("reads")
+                .expect("html2text"),
+            None
+        );
     }
 
     #[test]

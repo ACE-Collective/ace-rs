@@ -1,0 +1,340 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "fe6da632",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "EmailAnalysis",
+      "details": {
+        "email": {
+          "authentication_failed": false,
+          "compauth_reason": null,
+          "compauth_result": null,
+          "decoded_subject": "Newsletter",
+          "dkim_result": null,
+          "dmarc_result": null,
+          "env_mail_from": null,
+          "env_rcpt_to": [],
+          "from": "IT Desk <it@corp.example>",
+          "from_address": "it@corp.example",
+          "headers": [
+            [
+              "From",
+              "IT Desk <it@corp.example>"
+            ],
+            [
+              "To",
+              "pat@corp.example"
+            ],
+            [
+              "Return-Path",
+              "<bounce@mailer.corp.example>"
+            ],
+            [
+              "Subject",
+              "Newsletter"
+            ],
+            [
+              "Date",
+              "Mon, 09 Nov 2026 12:00:00 +0000"
+            ],
+            [
+              "Message-ID",
+              "<lure_footer_only@corp.example>"
+            ],
+            [
+              "MIME-Version",
+              "1.0"
+            ],
+            [
+              "Content-Type",
+              "multipart/alternative; boundary=\"lure_footer_only-boundary\""
+            ]
+          ],
+          "internal_org_sender": false,
+          "is_anonymous_direct_send": false,
+          "log_entry": {
+            "attachment_count": 2,
+            "attachment_hashes": [
+              "181ee0f201bc149e44c4d988fd91d1e96c36182fd81897aebaa20d2646605c99",
+              "1ca36d00cbacd3389920c798085dfe73a42fa63d125666a6d99bda9e71c8fc75"
+            ],
+            "attachment_names": [
+              "email.rfc822.unknown_text_plain_000.txt",
+              "email.rfc822.unknown_text_html_000.html"
+            ],
+            "attachment_sizes": [
+              18,
+              180
+            ],
+            "attachment_types": [
+              "text/plain",
+              "text/html"
+            ],
+            "authentication_failed": false,
+            "bcc": [],
+            "cc": [],
+            "compauth_reason": null,
+            "compauth_result": null,
+            "date": "2026-11-18 05:05:28.445601 +0000",
+            "dkim_result": null,
+            "dmarc_result": null,
+            "env_mail_from": null,
+            "env_rcpt_to": [],
+            "first_received": null,
+            "headers": [
+              "From: IT Desk <it@corp.example>",
+              "To: pat@corp.example",
+              "Return-Path: <bounce@mailer.corp.example>",
+              "Subject: Newsletter",
+              "Date: Mon, 09 Nov 2026 12:00:00 +0000",
+              "Message-ID: <lure_footer_only@corp.example>",
+              "MIME-Version: 1.0",
+              "Content-Type: multipart/alternative; boundary=\"lure_footer_only-boundary\""
+            ],
+            "in_reply_to": null,
+            "internal_org_sender": false,
+            "is_anonymous_direct_send": false,
+            "last_received": null,
+            "mail_from": "IT Desk <it@corp.example>",
+            "mail_from_is_local": false,
+            "mail_to": [
+              "pat@corp.example"
+            ],
+            "message_directionality": null,
+            "message_id": "<lure_footer_only@corp.example>",
+            "originating_ip": null,
+            "path": [],
+            "refereneces": null,
+            "reply_to": null,
+            "size": 763,
+            "spf_result": null,
+            "spoofed_internal": false,
+            "subject": "Newsletter",
+            "subject_raw": "Newsletter",
+            "thread_index": null,
+            "thread_topic": null,
+            "user_agent": null,
+            "x_mailer": null,
+            "x_sender": null
+          },
+          "mail_from_is_local": false,
+          "message-id": "<lure_footer_only@corp.example>",
+          "message_directionality": null,
+          "return_path": "bounce@mailer.corp.example",
+          "spf_result": null,
+          "spoofed_internal": false,
+          "subject": "Newsletter",
+          "to": [
+            "pat@corp.example"
+          ],
+          "to_addresses": [
+            "pat@corp.example"
+          ]
+        },
+        "extraction_errors": [],
+        "parsing_error": null
+      },
+      "detections": [],
+      "module_path": "saq.modules.email.rfc822:EmailAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "email_from",
+          "value": "it@corp.example"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "email_to",
+          "value": "pat@corp.example"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "email_conversation",
+          "value": "it@corp.example|pat@corp.example"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "display_type": "Decoded Subject",
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "email_subject",
+          "value": "Newsletter"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [
+            "saq.modules.email.message_id:<class 'saq.modules.email.message_id.MessageIDAnalyzerV2'>"
+          ],
+          "relationships": [],
+          "tags": [],
+          "type": "message_id",
+          "value": "<lure_footer_only@corp.example>"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "email_return_path",
+          "value": "bounce@mailer.corp.example"
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls",
+            "preview",
+            "yara_meta:type=email.attachment"
+          ],
+          "excluded_analysis": [],
+          "file_path": "email.rfc822.unknown_text_plain_000.txt",
+          "relationships": [],
+          "size": 18,
+          "tags": [],
+          "type": "file",
+          "value": "181ee0f201bc149e44c4d988fd91d1e96c36182fd81897aebaa20d2646605c99",
+          "yara_meta": [
+            "type=email.attachment"
+          ]
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls",
+            "render",
+            "yara_meta:type=document.html",
+            "yara_meta:type=email.attachment"
+          ],
+          "excluded_analysis": [],
+          "file_path": "email.rfc822.unknown_text_html_000.html",
+          "relationships": [],
+          "size": 180,
+          "tags": [],
+          "type": "file",
+          "value": "1ca36d00cbacd3389920c798085dfe73a42fa63d125666a6d99bda9e71c8fc75",
+          "yara_meta": [
+            "type=document.html",
+            "type=email.attachment"
+          ]
+        },
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=email",
+            "yara_meta:type=email.headers"
+          ],
+          "excluded_analysis": [
+            "saq.modules.email.rfc822:<class 'saq.modules.email.rfc822.EmailAnalyzer'>"
+          ],
+          "file_path": "email.rfc822.headers",
+          "relationships": [],
+          "size": 288,
+          "tags": [
+            "email"
+          ],
+          "type": "file",
+          "value": "ce83f892827ce5db38518f776b59fc8c30ae0c5484b751bed729c965a1f6ce91",
+          "yara_meta": [
+            "type=email",
+            "type=email.headers"
+          ]
+        },
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=email",
+            "yara_meta:type=email.combined"
+          ],
+          "excluded_analysis": [
+            "saq.modules.email.rfc822:<class 'saq.modules.email.rfc822.EmailAnalyzer'>"
+          ],
+          "file_path": "email.rfc822.combined",
+          "relationships": [],
+          "size": 492,
+          "tags": [
+            "email"
+          ],
+          "type": "file",
+          "value": "cb14d865bf4553d2b76c72d967c67a60c1beb0f9d323f2decbdc0b8e5b8fce59",
+          "yara_meta": [
+            "type=email",
+            "type=email.combined"
+          ]
+        }
+      ],
+      "summary": "Email Analysis: From IT Desk <it@corp.example> To pat@corp.example Subject Newsletter",
+      "tags": []
+    },
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": true,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": false,
+        "is_office_ext": false,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "message/rfc822",
+        "type": "news or mail, ASCII text"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace4/email/lure_footer_only.email.rfc822",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "email.rfc822",
+      "size": 763,
+      "type": "file",
+      "value": "9758f4f8fda88789adb69f8d58e0f8f4254183d3f7aa128c1386040f2a6f950b"
+    }
+  },
+  "module": "email_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email"
+    ],
+    "excluded_analysis": [],
+    "file_path": "email.rfc822",
+    "relationships": [],
+    "size": 763,
+    "tags": [
+      "email"
+    ],
+    "type": "file",
+    "value": "9758f4f8fda88789adb69f8d58e0f8f4254183d3f7aa128c1386040f2a6f950b",
+    "yara_meta": [
+      "type=email"
+    ]
+  }
+}

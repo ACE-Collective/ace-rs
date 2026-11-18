@@ -1,14 +1,14 @@
 //! PLAN.md 7.5 batch 7: the encrypted attachment modules against ace3's reference dumps, made by
 //! `tools/ace3/dumps/make-dumps encrypted` from `tools/ace3/dumps/fixtures/encrypted`, which
 //! `tools/samples/make-encrypted-files` writes, and the samples the modules take. A dump of a file
-//! attached to an email holds the body ace3's email module wrote, which the test gives the module as
-//! the carrying email's. Every difference is listed and explained in differences.md, next to this
+//! attached to an email holds the body parts ace3's email module wrote, which the test gives the
+//! module as the carrying email's. Every difference is listed and explained in differences.md, next to this
 //! file.
 
 use std::path::{Path, PathBuf};
 
 use ace_mod_encrypted::{PdfEncryptionAnalyzer, RarEncryptionAnalyzer, ZipEncryptionAnalyzer};
-use ace_sdk::{CarryingEmail, Parser};
+use ace_sdk::{CarryingEmail, EmailBodyPart, Parser};
 use ace_testkit::Harness;
 use ace_testkit::reference::{Difference, Dump, ListedDifferences, diff, normal_form};
 use serde_json::Value;
@@ -45,27 +45,29 @@ fn carrying_email(dump: &Dump, dir: &Path) -> CarryingEmail {
     if carried.is_null() {
         return CarryingEmail::Absent;
     }
-    let Some(body) = carried["body"].as_str() else {
-        return CarryingEmail::NoBody;
-    };
     use base64::Engine;
-    let bytes = base64::engine::general_purpose::STANDARD
-        .decode(body)
-        .expect("base64");
-    let path = dir.join("email_body");
-    std::fs::write(&path, bytes).expect("written");
-    CarryingEmail::Body(path)
-}
-
-/// ace3's candidates come out of a set, whose order changes from run to run; the port sorts them.
-fn sorted_word_list(mut form: Value) -> Value {
-    if let Some(words) = form
-        .pointer_mut("/details/word_list")
-        .and_then(Value::as_array_mut)
+    let mut parts = Vec::new();
+    for (index, part) in carried["parts"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .enumerate()
     {
-        words.sort_by(|a, b| a.as_str().cmp(&b.as_str()));
+        let bytes = base64::engine::general_purpose::STANDARD
+            .decode(part["body"].as_str().expect("a body"))
+            .expect("base64");
+        let path = dir.join(format!("email_body.{index}"));
+        std::fs::write(&path, bytes).expect("written");
+        parts.push(EmailBodyPart {
+            path,
+            html: part["html"].as_bool().expect("html or not"),
+        });
     }
-    form
+    if parts.is_empty() {
+        CarryingEmail::NoBody
+    } else {
+        CarryingEmail::Parts(parts)
+    }
 }
 
 /// pikepdf's copy of a PDF has a second `/ID` from the clock, the port's one from the content.
@@ -116,7 +118,7 @@ fn compare<M: Parser>(
         {
             ace_testkit::check_view_fixture(fixture, &outcome);
         }
-        let ace3 = with_deterministic_id(sorted_word_list(dump.normal_form(class)), &dump, class);
+        let ace3 = with_deterministic_id(dump.normal_form(class), &dump, class);
         let differences = diff(&ace3, &normal_form(&outcome));
         compared.push((format!("{module}/{}", dump.short_name()), differences));
     }

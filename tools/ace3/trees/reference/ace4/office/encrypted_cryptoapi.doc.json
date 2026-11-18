@@ -66,39 +66,6 @@
       },
       "tags": {}
     },
-    "file:0923a8f64192e75519afde6a8fee1667b2fcd0459a44a5861c2f87eec778378b": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "encrypted_cryptoapi.doc.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:2933e69bd26f61b99ba7b81487bee95fa954ef7ad19996e5bfbc0f57e635624d": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:20bc7d114382458144dfc7e3681ea806337d40786f166c60864eeac4fc5ba11d": {
       "detections": {},
       "directives": {
@@ -180,8 +147,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 20:04:47+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 20:04:47+00:00",
+              "File:FileAccessDate": "2026:11:18 04:10:04+00:00",
+              "File:FileInodeChangeDate": "2026:11:18 04:10:04+00:00",
               "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "encrypted_cryptoapi.doc",
               "File:FilePermissions": 100644,
@@ -280,8 +247,7 @@
               "/01Hannes Ruescher/01"
             ]
           },
-          "error": "could not crack password",
-          "summary": "MSOffice Encryption Analysis: could not crack password",
+          "summary": "MSOffice Encryption Analysis: no associated email detected",
           "tags": {}
         },
         "observable_detection": {
@@ -378,6 +344,39 @@
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:4fb772480603d87a311d1f41516080f073e48e56649fdd4ea2207ee335858b42": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "encrypted_cryptoapi.doc.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:2933e69bd26f61b99ba7b81487bee95fa954ef7ad19996e5bfbc0f57e635624d": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
           },
           "summary": null,
           "tags": {}

@@ -1,6 +1,6 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "37a765bf",
+  "ace3_commit": "fe6da632",
   "also_enabled": [
     "file_type",
     "email_analyzer",
@@ -61,7 +61,7 @@
                 "shop.example.net"
               ]
             ],
-            "observable_uuid": "a85526d7-d401-431a-b119-ab356c4639bb",
+            "observable_uuid": "0efc1b22-1948-487e-bdb4-950682346eae",
             "reasons": [
               "found in the email body",
               "clickable link with text 'shop.example.net'"
@@ -81,7 +81,7 @@
                 "shop.example.net"
               ]
             ],
-            "observable_uuid": "17479867-adbf-4ad2-b9dc-376fa44214c9",
+            "observable_uuid": "bab0d2d4-3958-4e33-a226-2b6f8de13c7c",
             "reasons": [
               "found in the email body",
               "clickable link with text 'shop.example.net'"
@@ -101,7 +101,7 @@
                 "blog.example.org"
               ]
             ],
-            "observable_uuid": "84bd5e8d-88db-460c-89e0-90de61923f90",
+            "observable_uuid": "8592e0d7-0f47-4e3c-98a1-632e58d09538",
             "reasons": [
               "found in the email body",
               "clickable link with text 'blog.example.org'"
@@ -126,7 +126,7 @@
                 "land.example.co.uk/x"
               ]
             ],
-            "observable_uuid": "424e015c-72d8-4fcc-9641-4b741daaeb13",
+            "observable_uuid": "2bebb357-bbb6-4be5-b795-4297ad9c2353",
             "reasons": [
               "found in the email body",
               "clickable link with text 'track.example.info'",
@@ -147,7 +147,7 @@
                 "198.51.100.4"
               ]
             ],
-            "observable_uuid": "5ba2abdb-27a3-4e11-bf5f-c1c09d0c6ca4",
+            "observable_uuid": "3a0c4545-0eb3-4035-8224-9c4484548d38",
             "reasons": [
               "found in the email body",
               "clickable link with text '198.51.100.4'"
@@ -169,7 +169,7 @@
               "shop.example.net"
             ]
           ],
-          "observable_uuid": "a85526d7-d401-431a-b119-ab356c4639bb",
+          "observable_uuid": "0efc1b22-1948-487e-bdb4-950682346eae",
           "reasons": [
             "found in the email body",
             "clickable link with text 'shop.example.net'"
@@ -257,7 +257,7 @@
             "cc": [],
             "compauth_reason": null,
             "compauth_result": null,
-            "date": "2026-11-16 16:44:01.763921 +0000",
+            "date": "2026-11-18 06:02:08.235276 +0000",
             "dkim_result": null,
             "dmarc_result": null,
             "env_mail_from": null,
@@ -540,8 +540,249 @@
         "directives": [],
         "paths": [],
         "tags": [],
+        "type": "url",
+        "value": "https://news.example.com/d"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "url",
+        "value": "https://news.example.com/online"
+      },
+      {
+        "detections": [],
+        "directives": [
+          "crawl"
+        ],
+        "paths": [],
+        "tags": [],
+        "type": "url",
+        "value": "https://shop.example.net/sale"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [
+          "domain_in_url"
+        ],
+        "type": "fqdn",
+        "value": "land.example.co.uk"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "url",
+        "value": "https://news.example.com/a"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "url",
+        "value": "https://news.example.com/e"
+      },
+      {
+        "detections": [],
+        "directives": [
+          "extract_urls",
+          "preview"
+        ],
+        "paths": [
+          {
+            "path": "email.rfc822.unknown_text_plain_000.txt",
+            "yara_meta": [
+              "type=email.attachment"
+            ]
+          }
+        ],
+        "size": 45,
+        "tags": [],
+        "type": "file",
+        "value": "bcbef8a2c3f995dcb0a73200f012fc873099ce83f66bb45419a51e19f1ef37cb"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "url",
+        "value": "https://mail.example.com/unsub"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "uri_path",
+        "value": "/x"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "url",
+        "value": "https://track.example.info/o?u=https%3A%2F%2Fland.example.co.uk%2Fx"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [
+          "domain_in_url"
+        ],
+        "type": "fqdn",
+        "value": "news.example.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "uri_path",
+        "value": "/a"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
         "type": "uri_path",
         "value": "/b"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "url",
+        "value": "https://198.51.100.4/x"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [
+          "domain_in_url"
+        ],
+        "type": "fqdn",
+        "value": "shop.example.net"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [
+          "ip_in_url"
+        ],
+        "type": "ip",
+        "value": "198.51.100.4"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "url",
+        "value": "https://news.example.com/c"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [
+          {
+            "path": "email.rfc822",
+            "yara_meta": [
+              "type=email"
+            ]
+          }
+        ],
+        "size": 1558,
+        "tags": [
+          "email"
+        ],
+        "type": "file",
+        "value": "71c2b71030bea5a106315fb1a75f56241b967e7b4ab330f8a9e8e6f3d8dab17d"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "uri_path",
+        "value": "/c"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "fqdn",
+        "value": "example.net"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "fqdn",
+        "value": "example.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [
+          "domain_in_url"
+        ],
+        "type": "fqdn",
+        "value": "blog.example.org"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "uri_path",
+        "value": "/sale"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_subject",
+        "value": "News"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "uri_path",
+        "value": "/e"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "url",
+        "value": "https://blog.example.org/post/1"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_conversation",
+        "value": "support@example.com|bob@example.net"
       },
       {
         "detections": [],
@@ -561,22 +802,6 @@
         ],
         "type": "file",
         "value": "372f9639c2510d2c31cff9261e611aa57f139546a7e9c7f1cd923d9edf07cf87"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "url",
-        "value": "https://news.example.com/a"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "url",
-        "value": "https://shop.example.net/cart"
       },
       {
         "detections": [],
@@ -603,50 +828,8 @@
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "url",
-        "value": "https://land.example.co.uk/x"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "url",
-        "value": "https://news.example.com/online"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "uri_path",
-        "value": "/post/1"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "uri_path",
-        "value": "/a"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [
-          "ip_in_url"
-        ],
-        "type": "ip",
-        "value": "198.51.100.4"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "url",
-        "value": "https://track.example.info/o?u=https%3A%2F%2Fland.example.co.uk%2Fx"
+        "type": "email_to",
+        "value": "bob@example.net"
       },
       {
         "detections": [],
@@ -663,74 +846,16 @@
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "uri_path",
-        "value": "/d"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
         "type": "url",
-        "value": "https://198.51.100.4/x"
+        "value": "https://shop.example.net/cart"
       },
       {
         "detections": [],
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "uri_path",
-        "value": "/c"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "uri_path",
-        "value": "/cart"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "url",
-        "value": "https://mail.example.com/unsub"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "url",
-        "value": "https://news.example.com/c"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "url",
-        "value": "https://blog.example.org/post/1"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_conversation",
-        "value": "support@example.com|bob@example.net"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [
-          "domain_in_url"
-        ],
-        "type": "fqdn",
-        "value": "news.example.com"
+        "type": "message_id",
+        "value": "<url_newsletter@example.com>"
       },
       {
         "detections": [],
@@ -747,55 +872,24 @@
         "directives": [],
         "paths": [],
         "tags": [],
+        "type": "email_from",
+        "value": "support@example.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
         "type": "uri_path",
-        "value": "/e"
-      },
-      {
-        "detections": [],
-        "directives": [
-          "extract_urls",
-          "preview"
-        ],
-        "paths": [
-          {
-            "path": "email.rfc822.unknown_text_plain_000.txt",
-            "yara_meta": [
-              "type=email.attachment"
-            ]
-          }
-        ],
-        "size": 45,
-        "tags": [],
-        "type": "file",
-        "value": "bcbef8a2c3f995dcb0a73200f012fc873099ce83f66bb45419a51e19f1ef37cb"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [
-          {
-            "path": "email.rfc822",
-            "yara_meta": [
-              "type=email"
-            ]
-          }
-        ],
-        "size": 1558,
-        "tags": [
-          "email"
-        ],
-        "type": "file",
-        "value": "71c2b71030bea5a106315fb1a75f56241b967e7b4ab330f8a9e8e6f3d8dab17d"
+        "value": "/cart"
       },
       {
         "detections": [],
         "directives": [],
         "paths": [],
-        "tags": [
-          "domain_in_url"
-        ],
-        "type": "fqdn",
-        "value": "blog.example.org"
+        "tags": [],
+        "type": "uri_path",
+        "value": "/unsub"
       },
       {
         "detections": [],
@@ -803,25 +897,31 @@
         "paths": [],
         "tags": [],
         "type": "url",
-        "value": "https://news.example.com/e"
-      },
-      {
-        "detections": [],
-        "directives": [
-          "crawl"
-        ],
-        "paths": [],
-        "tags": [],
-        "type": "url",
-        "value": "https://shop.example.net/sale"
+        "value": "https://land.example.co.uk/x"
       },
       {
         "detections": [],
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "fqdn",
-        "value": "example.net"
+        "type": "uri_path",
+        "value": "/d"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "url",
+        "value": "https://news.example.com/b"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "uri_path",
+        "value": "/online"
       },
       {
         "detections": [],
@@ -847,100 +947,8 @@
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "email_to",
-        "value": "bob@example.net"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_subject",
-        "value": "News"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [
-          "domain_in_url"
-        ],
-        "type": "fqdn",
-        "value": "land.example.co.uk"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
         "type": "uri_path",
-        "value": "/x"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [
-          "domain_in_url"
-        ],
-        "type": "fqdn",
-        "value": "shop.example.net"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "message_id",
-        "value": "<url_newsletter@example.com>"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "uri_path",
-        "value": "/sale"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "uri_path",
-        "value": "/online"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "uri_path",
-        "value": "/unsub"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "url",
-        "value": "https://news.example.com/b"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_from",
-        "value": "support@example.com"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "url",
-        "value": "https://news.example.com/d"
+        "value": "/post/1"
       },
       {
         "detections": [],
@@ -949,53 +957,75 @@
         "tags": [],
         "type": "uri_path",
         "value": "/o?u=https%3A%2F%2Fland.example.co.uk%2Fx"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "fqdn",
-        "value": "example.com"
       }
     ],
     "results": [
       {
-        "added": [],
-        "class": "FileTypeAnalysis",
+        "added": [
+          {
+            "observable": 10
+          },
+          {
+            "observable": 38
+          }
+        ],
+        "class": "ParseURLAnalysis",
         "details": {
-          "is_email_file": true,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "message/rfc822",
-          "type": "news or mail, ASCII text, with very long lines (959)"
+          "fragment": "",
+          "netloc": "news.example.com",
+          "params": null,
+          "path": "/d",
+          "query": "",
+          "scheme": "https"
         },
-        "module": "file_type",
-        "observable": 1,
-        "summary": "File Type Analysis: news or mail, ASCII text, with very long lines (959) (message/rfc822) (email)",
+        "module": "parse_url",
+        "observable": 0,
+        "summary": "URL Parser: scheme=https, netloc=news.example.com, path=/d",
         "tags": []
       },
       {
         "added": [],
-        "class": "HTMLJavaScriptExtractionAnalysis",
+        "class": "ProtectedURLAnalysis",
         "details": {
-          "dom_snapshot_files": [],
-          "duplicate_count": 0,
-          "extracted_files": [],
-          "extracted_uri_paths": [],
-          "extracted_urls": [],
-          "inline_handlers": [],
-          "script_count": 0
+          "extracted_url": "https://news.example.com/d",
+          "protection_type": "unprotected"
         },
-        "module": "html_js_extraction",
+        "module": "protected_url_analyzer",
+        "observable": 0,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 10
+          },
+          {
+            "observable": 40
+          }
+        ],
+        "class": "ParseURLAnalysis",
+        "details": {
+          "fragment": "",
+          "netloc": "news.example.com",
+          "params": null,
+          "path": "/online",
+          "query": "",
+          "scheme": "https"
+        },
+        "module": "parse_url",
+        "observable": 1,
+        "summary": "URL Parser: scheme=https, netloc=news.example.com, path=/online",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "ProtectedURLAnalysis",
+        "details": {
+          "extracted_url": "https://news.example.com/online",
+          "protection_type": "unprotected"
+        },
+        "module": "protected_url_analyzer",
         "observable": 1,
         "summary": null,
         "tags": []
@@ -1003,10 +1033,45 @@
       {
         "added": [
           {
-            "observable": 20
+            "observable": 14
           },
           {
-            "observable": 8
+            "observable": 22
+          }
+        ],
+        "class": "ParseURLAnalysis",
+        "details": {
+          "fragment": "",
+          "netloc": "shop.example.net",
+          "params": null,
+          "path": "/sale",
+          "query": "",
+          "scheme": "https"
+        },
+        "module": "parse_url",
+        "observable": 2,
+        "summary": "URL Parser: scheme=https, netloc=shop.example.net, path=/sale",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "ProtectedURLAnalysis",
+        "details": {
+          "extracted_url": "https://shop.example.net/sale",
+          "protection_type": "unprotected"
+        },
+        "module": "protected_url_analyzer",
+        "observable": 2,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 10
+          },
+          {
+            "observable": 11
           }
         ],
         "class": "ParseURLAnalysis",
@@ -1019,7 +1084,7 @@
           "scheme": "https"
         },
         "module": "parse_url",
-        "observable": 2,
+        "observable": 4,
         "summary": "URL Parser: scheme=https, netloc=news.example.com, path=/a",
         "tags": []
       },
@@ -1031,42 +1096,42 @@
           "protection_type": "unprotected"
         },
         "module": "protected_url_analyzer",
-        "observable": 2,
+        "observable": 4,
         "summary": null,
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 34
+            "observable": 10
           },
           {
-            "observable": 15
+            "observable": 24
           }
         ],
         "class": "ParseURLAnalysis",
         "details": {
           "fragment": "",
-          "netloc": "shop.example.net",
+          "netloc": "news.example.com",
           "params": null,
-          "path": "/cart",
+          "path": "/e",
           "query": "",
           "scheme": "https"
         },
         "module": "parse_url",
-        "observable": 3,
-        "summary": "URL Parser: scheme=https, netloc=shop.example.net, path=/cart",
+        "observable": 5,
+        "summary": "URL Parser: scheme=https, netloc=news.example.com, path=/e",
         "tags": []
       },
       {
         "added": [],
         "class": "ProtectedURLAnalysis",
         "details": {
-          "extracted_url": "https://shop.example.net/cart",
+          "extracted_url": "https://news.example.com/e",
           "protection_type": "unprotected"
         },
         "module": "protected_url_analyzer",
-        "observable": 3,
+        "observable": 5,
         "summary": null,
         "tags": []
       },
@@ -1085,208 +1150,78 @@
           "is_rtf_file": false,
           "is_x509": false,
           "is_zip_file": false,
-          "mime": "text/html",
-          "type": "HTML document, ASCII text, with very long lines (959)"
+          "mime": "text/plain",
+          "type": "ASCII text"
         },
         "module": "file_type",
-        "observable": 4,
-        "summary": "File Type Analysis: HTML document, ASCII text, with very long lines (959) (text/html)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "HTMLJavaScriptExtractionAnalysis",
-        "details": {
-          "dom_snapshot_files": [],
-          "duplicate_count": 0,
-          "extracted_files": [],
-          "extracted_uri_paths": [],
-          "extracted_urls": [],
-          "inline_handlers": [],
-          "script_count": 0
-        },
-        "module": "html_js_extraction",
-        "observable": 4,
-        "summary": null,
+        "observable": 6,
+        "summary": "File Type Analysis: ASCII text (text/plain)",
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 13
-          },
-          {
-            "observable": 5
-          },
-          {
-            "observable": 10
-          },
-          {
-            "observable": 18
-          },
-          {
-            "observable": 27
-          },
-          {
-            "observable": 3
-          },
-          {
-            "observable": 2
-          },
-          {
-            "observable": 39
-          },
-          {
-            "observable": 41
-          },
-          {
-            "observable": 17
-          },
-          {
-            "observable": 16
-          },
-          {
-            "observable": 26
+            "observable": 1
           }
         ],
         "class": "URLExtractionAnalysis",
         "details": {
           "urls": [
-            "https://198.51.100.4/x",
-            "https://land.example.co.uk/x",
-            "https://track.example.info/o?u=https%3A%2F%2Fland.example.co.uk%2Fx",
-            "https://blog.example.org/post/1",
-            "https://shop.example.net/sale",
-            "https://shop.example.net/cart",
-            "https://news.example.com/a",
-            "https://news.example.com/b",
-            "https://news.example.com/d",
-            "https://news.example.com/c",
-            "https://mail.example.com/unsub",
-            "https://news.example.com/e",
-            "https://cdn.example.org/logo.png"
+            "https://news.example.com/online"
           ],
           "urls_grouped_by_domain": {
-            "example.co.uk": [
-              "https://land.example.co.uk/x"
-            ],
             "example.com": [
-              "https://news.example.com/a",
-              "https://news.example.com/b",
-              "https://news.example.com/d",
-              "https://news.example.com/c",
-              "https://mail.example.com/unsub",
-              "https://news.example.com/e"
-            ],
-            "example.info": [
-              "https://track.example.info/o?u=https%3A%2F%2Fland.example.co.uk%2Fx"
-            ],
-            "example.net": [
-              "https://shop.example.net/sale",
-              "https://shop.example.net/cart"
-            ],
-            "example.org": [
-              "https://cdn.example.org/logo.png",
-              "https://blog.example.org/post/1"
-            ],
-            "no_tld": [
-              "https://198.51.100.4/x"
+              "https://news.example.com/online"
             ]
           }
         },
         "module": "url_extraction",
-        "observable": 4,
-        "summary": "URL Extraction Analysis (198.51.100.4, blog.example.org, cdn.example.org, land.example.co.uk, mail.example.com, news.example.com, shop.example.net, track.example.info)",
+        "observable": 6,
+        "summary": "URL Extraction Analysis (news.example.com)",
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 32
+            "observable": 30
           },
+          {
+            "observable": 36
+          }
+        ],
+        "class": "ParseURLAnalysis",
+        "details": {
+          "fragment": "",
+          "netloc": "mail.example.com",
+          "params": null,
+          "path": "/unsub",
+          "query": "",
+          "scheme": "https"
+        },
+        "module": "parse_url",
+        "observable": 7,
+        "summary": "URL Parser: scheme=https, netloc=mail.example.com, path=/unsub",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "ProtectedURLAnalysis",
+        "details": {
+          "extracted_url": "https://mail.example.com/unsub",
+          "protection_type": "unprotected"
+        },
+        "module": "protected_url_analyzer",
+        "observable": 7,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [
           {
             "observable": 33
-          }
-        ],
-        "class": "ParseURLAnalysis",
-        "details": {
-          "fragment": "",
-          "netloc": "land.example.co.uk",
-          "params": null,
-          "path": "/x",
-          "query": "",
-          "scheme": "https"
-        },
-        "module": "parse_url",
-        "observable": 5,
-        "summary": "URL Parser: scheme=https, netloc=land.example.co.uk, path=/x",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "ProtectedURLAnalysis",
-        "details": {
-          "extracted_url": "https://land.example.co.uk/x",
-          "protection_type": "unprotected"
-        },
-        "module": "protected_url_analyzer",
-        "observable": 5,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 20
           },
           {
-            "observable": 37
-          }
-        ],
-        "class": "ParseURLAnalysis",
-        "details": {
-          "fragment": "",
-          "netloc": "news.example.com",
-          "params": null,
-          "path": "/online",
-          "query": "",
-          "scheme": "https"
-        },
-        "module": "parse_url",
-        "observable": 6,
-        "summary": "URL Parser: scheme=https, netloc=news.example.com, path=/online",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "ProtectedURLAnalysis",
-        "details": {
-          "extracted_url": "https://news.example.com/online",
-          "protection_type": "unprotected"
-        },
-        "module": "protected_url_analyzer",
-        "observable": 6,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "NetworkIdentifierAnalysis",
-        "details": {
-          "identified_networks": []
-        },
-        "module": "network_identifier",
-        "observable": 9,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 21
-          },
-          {
-            "observable": 42
+            "observable": 43
           }
         ],
         "class": "ParseURLAnalysis",
@@ -1299,7 +1234,7 @@
           "scheme": "https"
         },
         "module": "parse_url",
-        "observable": 10,
+        "observable": 9,
         "summary": "URL Parser: scheme=https, netloc=track.example.info, path=/o, query=u=https%3A%2F%2Fland.example.co.uk%2Fx, params=(u=https://land.example.co.uk/x)",
         "tags": []
       },
@@ -1311,17 +1246,17 @@
           "protection_type": "unprotected"
         },
         "module": "protected_url_analyzer",
-        "observable": 10,
+        "observable": 9,
         "summary": null,
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 9
+            "observable": 15
           },
           {
-            "observable": 33
+            "observable": 8
           }
         ],
         "class": "ParseURLAnalysis",
@@ -1351,47 +1286,23 @@
         "tags": []
       },
       {
-        "added": [
-          {
-            "observable": 11
-          },
-          {
-            "observable": 38
-          }
-        ],
-        "class": "ParseURLAnalysis",
-        "details": {
-          "fragment": "",
-          "netloc": "mail.example.com",
-          "params": null,
-          "path": "/unsub",
-          "query": "",
-          "scheme": "https"
-        },
-        "module": "parse_url",
-        "observable": 16,
-        "summary": "URL Parser: scheme=https, netloc=mail.example.com, path=/unsub",
-        "tags": []
-      },
-      {
         "added": [],
-        "class": "ProtectedURLAnalysis",
+        "class": "NetworkIdentifierAnalysis",
         "details": {
-          "extracted_url": "https://mail.example.com/unsub",
-          "protection_type": "unprotected"
+          "identified_networks": []
         },
-        "module": "protected_url_analyzer",
-        "observable": 16,
+        "module": "network_identifier",
+        "observable": 15,
         "summary": null,
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 20
+            "observable": 10
           },
           {
-            "observable": 14
+            "observable": 18
           }
         ],
         "class": "ParseURLAnalysis",
@@ -1404,7 +1315,7 @@
           "scheme": "https"
         },
         "module": "parse_url",
-        "observable": 17,
+        "observable": 16,
         "summary": "URL Parser: scheme=https, netloc=news.example.com, path=/c",
         "tags": []
       },
@@ -1416,88 +1327,8 @@
           "protection_type": "unprotected"
         },
         "module": "protected_url_analyzer",
-        "observable": 17,
+        "observable": 16,
         "summary": null,
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 25
-          },
-          {
-            "observable": 7
-          }
-        ],
-        "class": "ParseURLAnalysis",
-        "details": {
-          "fragment": "",
-          "netloc": "blog.example.org",
-          "params": null,
-          "path": "/post/1",
-          "query": "",
-          "scheme": "https"
-        },
-        "module": "parse_url",
-        "observable": 18,
-        "summary": "URL Parser: scheme=https, netloc=blog.example.org, path=/post/1",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "ProtectedURLAnalysis",
-        "details": {
-          "extracted_url": "https://blog.example.org/post/1",
-          "protection_type": "unprotected"
-        },
-        "module": "protected_url_analyzer",
-        "observable": 18,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": false,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "text/plain",
-          "type": "ASCII text"
-        },
-        "module": "file_type",
-        "observable": 23,
-        "summary": "File Type Analysis: ASCII text (text/plain)",
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 6
-          }
-        ],
-        "class": "URLExtractionAnalysis",
-        "details": {
-          "urls": [
-            "https://news.example.com/online"
-          ],
-          "urls_grouped_by_domain": {
-            "example.com": [
-              "https://news.example.com/online"
-            ]
-          }
-        },
-        "module": "url_extraction",
-        "observable": 23,
-        "summary": "URL Extraction Analysis (news.example.com)",
         "tags": []
       },
       {
@@ -1514,7 +1345,7 @@
                   "shop.example.net"
                 ]
               ],
-              "observable_uuid": "a85526d7-d401-431a-b119-ab356c4639bb",
+              "observable_uuid": "0efc1b22-1948-487e-bdb4-950682346eae",
               "reasons": [
                 "found in the email body",
                 "clickable link with text 'shop.example.net'"
@@ -1534,7 +1365,7 @@
                   "shop.example.net"
                 ]
               ],
-              "observable_uuid": "17479867-adbf-4ad2-b9dc-376fa44214c9",
+              "observable_uuid": "bab0d2d4-3958-4e33-a226-2b6f8de13c7c",
               "reasons": [
                 "found in the email body",
                 "clickable link with text 'shop.example.net'"
@@ -1554,7 +1385,7 @@
                   "blog.example.org"
                 ]
               ],
-              "observable_uuid": "84bd5e8d-88db-460c-89e0-90de61923f90",
+              "observable_uuid": "8592e0d7-0f47-4e3c-98a1-632e58d09538",
               "reasons": [
                 "found in the email body",
                 "clickable link with text 'blog.example.org'"
@@ -1579,7 +1410,7 @@
                   "land.example.co.uk/x"
                 ]
               ],
-              "observable_uuid": "424e015c-72d8-4fcc-9641-4b741daaeb13",
+              "observable_uuid": "2bebb357-bbb6-4be5-b795-4297ad9c2353",
               "reasons": [
                 "found in the email body",
                 "clickable link with text 'track.example.info'",
@@ -1600,7 +1431,7 @@
                   "198.51.100.4"
                 ]
               ],
-              "observable_uuid": "5ba2abdb-27a3-4e11-bf5f-c1c09d0c6ca4",
+              "observable_uuid": "3a0c4545-0eb3-4035-8224-9c4484548d38",
               "reasons": [
                 "found in the email body",
                 "clickable link with text '198.51.100.4'"
@@ -1622,7 +1453,7 @@
                 "shop.example.net"
               ]
             ],
-            "observable_uuid": "a85526d7-d401-431a-b119-ab356c4639bb",
+            "observable_uuid": "0efc1b22-1948-487e-bdb4-950682346eae",
             "reasons": [
               "found in the email body",
               "clickable link with text 'shop.example.net'"
@@ -1636,41 +1467,41 @@
           "subject": "News"
         },
         "module": "lure_url_analyzer",
-        "observable": 24,
+        "observable": 17,
         "summary": "Lure URL Analysis: https://shop.example.net/sale (found in the email body; clickable link with text 'shop.example.net')",
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 40
+            "observable": 34
           },
           {
-            "observable": 30
+            "observable": 29
           },
           {
-            "observable": 19
+            "observable": 26
           },
           {
-            "observable": 31
+            "observable": 23
           },
           {
-            "observable": 35
+            "observable": 32
           },
           {
-            "observable": 23,
+            "observable": 6,
             "path": "email.rfc822.unknown_text_plain_000.txt"
           },
           {
-            "observable": 4,
+            "observable": 28,
             "path": "email.rfc822.unknown_text_html_000.html"
           },
           {
-            "observable": 29,
+            "observable": 41,
             "path": "email.rfc822.headers"
           },
           {
-            "observable": 1,
+            "observable": 27,
             "path": "email.rfc822.combined"
           }
         ],
@@ -1742,7 +1573,7 @@
               "cc": [],
               "compauth_reason": null,
               "compauth_result": null,
-              "date": "2026-11-16 16:44:01.763921 +0000",
+              "date": "2026-11-18 06:02:08.235276 +0000",
               "dkim_result": null,
               "dmarc_result": null,
               "env_mail_from": null,
@@ -1800,7 +1631,7 @@
           "parsing_error": null
         },
         "module": "email_analyzer",
-        "observable": 24,
+        "observable": 17,
         "summary": "Email Analysis: From Support <support@example.com> To bob@example.net Subject News",
         "tags": []
       },
@@ -1823,7 +1654,7 @@
           "type": "news or mail, ASCII text"
         },
         "module": "file_type",
-        "observable": 24,
+        "observable": 17,
         "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
         "tags": []
       },
@@ -1840,77 +1671,42 @@
           "script_count": 0
         },
         "module": "html_js_extraction",
-        "observable": 24,
+        "observable": 17,
         "summary": null,
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 20
+            "observable": 21
           },
           {
-            "observable": 22
+            "observable": 42
           }
         ],
         "class": "ParseURLAnalysis",
         "details": {
           "fragment": "",
-          "netloc": "news.example.com",
+          "netloc": "blog.example.org",
           "params": null,
-          "path": "/e",
+          "path": "/post/1",
           "query": "",
           "scheme": "https"
         },
         "module": "parse_url",
-        "observable": 26,
-        "summary": "URL Parser: scheme=https, netloc=news.example.com, path=/e",
+        "observable": 25,
+        "summary": "URL Parser: scheme=https, netloc=blog.example.org, path=/post/1",
         "tags": []
       },
       {
         "added": [],
         "class": "ProtectedURLAnalysis",
         "details": {
-          "extracted_url": "https://news.example.com/e",
+          "extracted_url": "https://blog.example.org/post/1",
           "protection_type": "unprotected"
         },
         "module": "protected_url_analyzer",
-        "observable": 26,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 34
-          },
-          {
-            "observable": 36
-          }
-        ],
-        "class": "ParseURLAnalysis",
-        "details": {
-          "fragment": "",
-          "netloc": "shop.example.net",
-          "params": null,
-          "path": "/sale",
-          "query": "",
-          "scheme": "https"
-        },
-        "module": "parse_url",
-        "observable": 27,
-        "summary": "URL Parser: scheme=https, netloc=shop.example.net, path=/sale",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "ProtectedURLAnalysis",
-        "details": {
-          "extracted_url": "https://shop.example.net/sale",
-          "protection_type": "unprotected"
-        },
-        "module": "protected_url_analyzer",
-        "observable": 27,
+        "observable": 25,
         "summary": null,
         "tags": []
       },
@@ -1930,11 +1726,11 @@
           "is_x509": false,
           "is_zip_file": false,
           "mime": "message/rfc822",
-          "type": "news or mail, ASCII text"
+          "type": "news or mail, ASCII text, with very long lines (959)"
         },
         "module": "file_type",
-        "observable": 29,
-        "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
+        "observable": 27,
+        "summary": "File Type Analysis: news or mail, ASCII text, with very long lines (959) (message/rfc822) (email)",
         "tags": []
       },
       {
@@ -1950,14 +1746,143 @@
           "script_count": 0
         },
         "module": "html_js_extraction",
-        "observable": 29,
+        "observable": 27,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": false,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "text/html",
+          "type": "HTML document, ASCII text, with very long lines (959)"
+        },
+        "module": "file_type",
+        "observable": 28,
+        "summary": "File Type Analysis: HTML document, ASCII text, with very long lines (959) (text/html)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "HTMLJavaScriptExtractionAnalysis",
+        "details": {
+          "dom_snapshot_files": [],
+          "duplicate_count": 0,
+          "extracted_files": [],
+          "extracted_uri_paths": [],
+          "extracted_urls": [],
+          "inline_handlers": [],
+          "script_count": 0
+        },
+        "module": "html_js_extraction",
+        "observable": 28,
         "summary": null,
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 28
+            "observable": 13
+          },
+          {
+            "observable": 37
+          },
+          {
+            "observable": 9
+          },
+          {
+            "observable": 25
+          },
+          {
+            "observable": 2
+          },
+          {
+            "observable": 31
+          },
+          {
+            "observable": 4
+          },
+          {
+            "observable": 39
+          },
+          {
+            "observable": 0
+          },
+          {
+            "observable": 16
+          },
+          {
+            "observable": 7
+          },
+          {
+            "observable": 5
+          }
+        ],
+        "class": "URLExtractionAnalysis",
+        "details": {
+          "urls": [
+            "https://198.51.100.4/x",
+            "https://land.example.co.uk/x",
+            "https://track.example.info/o?u=https%3A%2F%2Fland.example.co.uk%2Fx",
+            "https://blog.example.org/post/1",
+            "https://shop.example.net/sale",
+            "https://shop.example.net/cart",
+            "https://news.example.com/a",
+            "https://news.example.com/b",
+            "https://news.example.com/d",
+            "https://news.example.com/c",
+            "https://mail.example.com/unsub",
+            "https://news.example.com/e",
+            "https://cdn.example.org/logo.png"
+          ],
+          "urls_grouped_by_domain": {
+            "example.co.uk": [
+              "https://land.example.co.uk/x"
+            ],
+            "example.com": [
+              "https://news.example.com/a",
+              "https://news.example.com/b",
+              "https://news.example.com/d",
+              "https://news.example.com/c",
+              "https://mail.example.com/unsub",
+              "https://news.example.com/e"
+            ],
+            "example.info": [
+              "https://track.example.info/o?u=https%3A%2F%2Fland.example.co.uk%2Fx"
+            ],
+            "example.net": [
+              "https://shop.example.net/sale",
+              "https://shop.example.net/cart"
+            ],
+            "example.org": [
+              "https://cdn.example.org/logo.png",
+              "https://blog.example.org/post/1"
+            ],
+            "no_tld": [
+              "https://198.51.100.4/x"
+            ]
+          }
+        },
+        "module": "url_extraction",
+        "observable": 28,
+        "summary": "URL Extraction Analysis (198.51.100.4, blog.example.org, cdn.example.org, land.example.co.uk, mail.example.com, news.example.com, shop.example.net, track.example.info)",
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 19
           }
         ],
         "class": "EmailAddressFQDNAnalysis",
@@ -1965,17 +1890,102 @@
           "domain": "example.net"
         },
         "module": "email_address_fqdn_analyzer",
-        "observable": 30,
+        "observable": 29,
         "summary": "Email Address FQDN: example.net",
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 20
+            "observable": 14
           },
           {
-            "observable": 0
+            "observable": 35
+          }
+        ],
+        "class": "ParseURLAnalysis",
+        "details": {
+          "fragment": "",
+          "netloc": "shop.example.net",
+          "params": null,
+          "path": "/cart",
+          "query": "",
+          "scheme": "https"
+        },
+        "module": "parse_url",
+        "observable": 31,
+        "summary": "URL Parser: scheme=https, netloc=shop.example.net, path=/cart",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "ProtectedURLAnalysis",
+        "details": {
+          "extracted_url": "https://shop.example.net/cart",
+          "protection_type": "unprotected"
+        },
+        "module": "protected_url_analyzer",
+        "observable": 31,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 20
+          }
+        ],
+        "class": "EmailAddressFQDNAnalysis",
+        "details": {
+          "domain": "example.com"
+        },
+        "module": "email_address_fqdn_analyzer",
+        "observable": 34,
+        "summary": "Email Address FQDN: example.com",
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 3
+          },
+          {
+            "observable": 8
+          }
+        ],
+        "class": "ParseURLAnalysis",
+        "details": {
+          "fragment": "",
+          "netloc": "land.example.co.uk",
+          "params": null,
+          "path": "/x",
+          "query": "",
+          "scheme": "https"
+        },
+        "module": "parse_url",
+        "observable": 37,
+        "summary": "URL Parser: scheme=https, netloc=land.example.co.uk, path=/x",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "ProtectedURLAnalysis",
+        "details": {
+          "extracted_url": "https://land.example.co.uk/x",
+          "protection_type": "unprotected"
+        },
+        "module": "protected_url_analyzer",
+        "observable": 37,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 10
+          },
+          {
+            "observable": 12
           }
         ],
         "class": "ParseURLAnalysis",
@@ -2005,56 +2015,45 @@
         "tags": []
       },
       {
-        "added": [
-          {
-            "observable": 43
-          }
-        ],
-        "class": "EmailAddressFQDNAnalysis",
+        "added": [],
+        "class": "FileTypeAnalysis",
         "details": {
-          "domain": "example.com"
+          "is_email_file": true,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "message/rfc822",
+          "type": "news or mail, ASCII text"
         },
-        "module": "email_address_fqdn_analyzer",
-        "observable": 40,
-        "summary": "Email Address FQDN: example.com",
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 20
-          },
-          {
-            "observable": 12
-          }
-        ],
-        "class": "ParseURLAnalysis",
-        "details": {
-          "fragment": "",
-          "netloc": "news.example.com",
-          "params": null,
-          "path": "/d",
-          "query": "",
-          "scheme": "https"
-        },
-        "module": "parse_url",
+        "module": "file_type",
         "observable": 41,
-        "summary": "URL Parser: scheme=https, netloc=news.example.com, path=/d",
+        "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
         "tags": []
       },
       {
         "added": [],
-        "class": "ProtectedURLAnalysis",
+        "class": "HTMLJavaScriptExtractionAnalysis",
         "details": {
-          "extracted_url": "https://news.example.com/d",
-          "protection_type": "unprotected"
+          "dom_snapshot_files": [],
+          "duplicate_count": 0,
+          "extracted_files": [],
+          "extracted_uri_paths": [],
+          "extracted_urls": [],
+          "inline_handlers": [],
+          "script_count": 0
         },
-        "module": "protected_url_analyzer",
+        "module": "html_js_extraction",
         "observable": 41,
         "summary": null,
         "tags": []
       }
-    ],
-    "whitelisted": false
+    ]
   }
 }

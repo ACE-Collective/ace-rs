@@ -1,6 +1,6 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "37a765bf",
+  "ace3_commit": "fe6da632",
   "also_enabled": [
     "file_type",
     "email_analyzer"
@@ -92,7 +92,7 @@
             "cc": [],
             "compauth_reason": null,
             "compauth_result": null,
-            "date": "2026-11-16 16:31:58.946948 +0000",
+            "date": "2026-11-18 05:51:56.385878 +0000",
             "dkim_result": null,
             "dmarc_result": null,
             "env_mail_from": null,
@@ -436,7 +436,7 @@
           "cc": [],
           "compauth_reason": null,
           "compauth_result": null,
-          "date": "2026-11-16 16:31:58.946948 +0000",
+          "date": "2026-11-18 05:51:56.385878 +0000",
           "dkim_result": null,
           "dmarc_result": null,
           "env_mail_from": null,
@@ -510,16 +510,35 @@
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "email_return_path",
-        "value": "sender@external.example"
+        "type": "email_to",
+        "value": "alice@company.com"
       },
       {
         "detections": [],
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "email_conversation",
-        "value": "sender@external.example|alice@company.com"
+        "type": "email_return_path",
+        "value": "sender@external.example"
+      },
+      {
+        "detections": [],
+        "directives": [
+          "extract_urls",
+          "render"
+        ],
+        "paths": [
+          {
+            "path": "Hello __ World .txt",
+            "yara_meta": [
+              "type=email.attachment"
+            ]
+          }
+        ],
+        "size": 13,
+        "tags": [],
+        "type": "file",
+        "value": "d5ef9984be135ec74cbc5dee24825199ca433e1ffd7a2fb22db12a3c5324ea1d"
       },
       {
         "detections": [],
@@ -534,19 +553,19 @@
         "directives": [],
         "paths": [
           {
-            "path": "email.rfc822.headers",
+            "path": "email.rfc822.combined",
             "yara_meta": [
               "type=email",
-              "type=email.headers"
+              "type=email.combined"
             ]
           }
         ],
-        "size": 513,
+        "size": 535,
         "tags": [
           "email"
         ],
         "type": "file",
-        "value": "09db63545e823b9a574916cb5d1188dc8b16e769c8bbd2f47665a9c133cecf90"
+        "value": "dcd70bcaa924606b123f068c1900433e95f37acf4586199235be3e70876b4fb4"
       },
       {
         "detections": [],
@@ -570,21 +589,20 @@
       {
         "detections": [],
         "directives": [
-          "extract_urls",
-          "render"
+          "tracked"
         ],
-        "paths": [
-          {
-            "path": "Hello __ World .txt",
-            "yara_meta": [
-              "type=email.attachment"
-            ]
-          }
-        ],
-        "size": 13,
+        "paths": [],
         "tags": [],
-        "type": "file",
-        "value": "d5ef9984be135ec74cbc5dee24825199ca433e1ffd7a2fb22db12a3c5324ea1d"
+        "type": "message_id",
+        "value": "<multi-rfc2047-filename-test@external.example>"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_from",
+        "value": "sender@external.example"
       },
       {
         "detections": [],
@@ -611,71 +629,30 @@
         "directives": [],
         "paths": [
           {
-            "path": "email.rfc822.combined",
+            "path": "email.rfc822.headers",
             "yara_meta": [
               "type=email",
-              "type=email.combined"
+              "type=email.headers"
             ]
           }
         ],
-        "size": 535,
+        "size": 513,
         "tags": [
           "email"
         ],
         "type": "file",
-        "value": "dcd70bcaa924606b123f068c1900433e95f37acf4586199235be3e70876b4fb4"
-      },
-      {
-        "detections": [],
-        "directives": [
-          "tracked"
-        ],
-        "paths": [],
-        "tags": [],
-        "type": "message_id",
-        "value": "<multi-rfc2047-filename-test@external.example>"
+        "value": "09db63545e823b9a574916cb5d1188dc8b16e769c8bbd2f47665a9c133cecf90"
       },
       {
         "detections": [],
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "email_from",
-        "value": "sender@external.example"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_to",
-        "value": "alice@company.com"
+        "type": "email_conversation",
+        "value": "sender@external.example|alice@company.com"
       }
     ],
     "results": [
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": true,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "message/rfc822",
-          "type": "SMTP mail, ASCII text"
-        },
-        "module": "file_type",
-        "observable": 3,
-        "summary": "File Type Analysis: SMTP mail, ASCII text (message/rfc822) (email)",
-        "tags": []
-      },
       {
         "added": [],
         "class": "FileTypeAnalysis",
@@ -695,8 +672,31 @@
           "type": "ASCII text"
         },
         "module": "file_type",
-        "observable": 4,
+        "observable": 2,
         "summary": "File Type Analysis: ASCII text (text/plain)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": true,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "message/rfc822",
+          "type": "SMTP mail, ASCII text"
+        },
+        "module": "file_type",
+        "observable": 4,
+        "summary": "File Type Analysis: SMTP mail, ASCII text (message/rfc822) (email)",
         "tags": []
       },
       {
@@ -727,44 +727,44 @@
         "class": "MailboxEmailAnalysis",
         "details": {},
         "module": "mailbox_email_analyzer",
-        "observable": 6,
+        "observable": 8,
         "summary": null,
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 9
-          },
-          {
-            "observable": 10
-          },
-          {
-            "observable": 1
-          },
-          {
-            "observable": 2
-          },
-          {
-            "observable": 8
+            "observable": 7
           },
           {
             "observable": 0
           },
           {
-            "observable": 4,
-            "path": "email.rfc822.unknown_text_plain_000.txt"
+            "observable": 10
+          },
+          {
+            "observable": 3
+          },
+          {
+            "observable": 6
+          },
+          {
+            "observable": 1
           },
           {
             "observable": 5,
+            "path": "email.rfc822.unknown_text_plain_000.txt"
+          },
+          {
+            "observable": 2,
             "path": "Hello __ World .txt"
           },
           {
-            "observable": 3,
+            "observable": 9,
             "path": "email.rfc822.headers"
           },
           {
-            "observable": 7,
+            "observable": 4,
             "path": "email.rfc822.combined"
           }
         ],
@@ -844,7 +844,7 @@
               "cc": [],
               "compauth_reason": null,
               "compauth_result": null,
-              "date": "2026-11-16 16:31:58.946948 +0000",
+              "date": "2026-11-18 05:51:56.385878 +0000",
               "dkim_result": null,
               "dmarc_result": null,
               "env_mail_from": null,
@@ -907,7 +907,7 @@
           "parsing_error": null
         },
         "module": "email_analyzer",
-        "observable": 6,
+        "observable": 8,
         "summary": "Email Analysis: From External Sender <sender@external.example> To alice@company.com Subject Test multi-chunk RFC 2047 attachment filename",
         "tags": []
       },
@@ -930,7 +930,7 @@
           "type": "SMTP mail, ASCII text"
         },
         "module": "file_type",
-        "observable": 6,
+        "observable": 8,
         "summary": "File Type Analysis: SMTP mail, ASCII text (message/rfc822) (email)",
         "tags": []
       },
@@ -953,11 +953,10 @@
           "type": "SMTP mail, ASCII text"
         },
         "module": "file_type",
-        "observable": 7,
+        "observable": 9,
         "summary": "File Type Analysis: SMTP mail, ASCII text (message/rfc822) (email)",
         "tags": []
       }
-    ],
-    "whitelisted": false
+    ]
   }
 }

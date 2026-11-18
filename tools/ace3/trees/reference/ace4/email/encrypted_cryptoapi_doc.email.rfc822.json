@@ -369,39 +369,6 @@
         "email": true
       }
     },
-    "file:180b86d799e710b7699bb4ba4e61e678519fd2bea8d1d7fbacaa2b525d6fc550": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "invoice.doc.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:2933e69bd26f61b99ba7b81487bee95fa954ef7ad19996e5bfbc0f57e635624d": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:20bc7d114382458144dfc7e3681ea806337d40786f166c60864eeac4fc5ba11d": {
       "detections": {},
       "directives": {
@@ -546,9 +513,9 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 13:41:41+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 13:41:41+00:00",
-              "File:FileModifyDate": "2026:11:16 13:41:41+00:00",
+              "File:FileAccessDate": "2026:11:18 03:54:19+00:00",
+              "File:FileInodeChangeDate": "2026:11:18 03:54:19+00:00",
+              "File:FileModifyDate": "2026:11:18 03:54:19+00:00",
               "File:FileName": "invoice.doc",
               "File:FilePermissions": 100664,
               "File:FileSize": 22528,
@@ -638,48 +605,48 @@
         "msoffice_encryption_analyzer": {
           "details": {
             "email": true,
-            "email_body": "The password is CryptoAp1\n\n",
+            "email_body": "The password is CryptoAp1",
             "encryption_info": null,
             "password": "CryptoAp1",
             "word_list": [
               "VelvetSweatshop",
               "/01Hannes Ruescher/01",
-              "Cryp",
-              "Crypt",
-              "Crypto",
-              "CryptoA",
-              "CryptoAp",
-              "CryptoAp1",
-              "assw",
-              "asswo",
-              "asswor",
-              "assword",
-              "oAp1",
-              "pass",
-              "passw",
-              "passwo",
-              "passwor",
               "password",
-              "ptoA",
-              "ptoAp",
-              "ptoAp1",
-              "rypt",
-              "rypto",
-              "ryptoA",
-              "ryptoAp",
-              "ryptoAp1",
+              "CryptoAp1",
+              "pass",
+              "assw",
               "sswo",
-              "sswor",
-              "ssword",
               "swor",
-              "sword",
-              "toAp",
-              "toAp1",
               "word",
+              "Cryp",
+              "rypt",
               "ypto",
+              "ptoA",
+              "toAp",
+              "oAp1",
+              "passw",
+              "asswo",
+              "sswor",
+              "sword",
+              "Crypt",
+              "rypto",
               "yptoA",
+              "ptoAp",
+              "toAp1",
+              "passwo",
+              "asswor",
+              "ssword",
+              "Crypto",
+              "ryptoA",
               "yptoAp",
-              "yptoAp1"
+              "ptoAp1",
+              "passwor",
+              "assword",
+              "CryptoA",
+              "ryptoAp",
+              "yptoAp1",
+              "CryptoAp",
+              "ryptoAp1"
             ]
           },
           "summary": "MSOffice Encryption Analysis: password CryptoAp1",
@@ -844,6 +811,39 @@
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:463a30722b814b2e84525eb7e27cf46b4e3f9c0be6e7f588d343f09fcde46cfb": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "invoice.doc.decrypted.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:da1442cfb424fde5250f03e617414980e0c294fc27938e9a6dda57776bd8fa61": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
           },
           "summary": null,
           "tags": {}
@@ -1102,39 +1102,6 @@
       },
       "tags": {}
     },
-    "file:96848dba233dae34bf19a22e410dc36b8b8385189b643e3c74da32c9f9f948aa": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "invoice.doc.decrypted.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:da1442cfb424fde5250f03e617414980e0c294fc27938e9a6dda57776bd8fa61": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:b5ac3f69b457fdf1d14d5af4ce7e37a480a2cfb9a091774832c14b3832d6a6d2": {
       "detections": {},
       "directives": {
@@ -1302,9 +1269,9 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 13:41:42+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 13:41:42+00:00",
-              "File:FileModifyDate": "2026:11:16 13:41:42+00:00",
+              "File:FileAccessDate": "2026:11:18 03:54:19+00:00",
+              "File:FileInodeChangeDate": "2026:11:18 03:54:19+00:00",
+              "File:FileModifyDate": "2026:11:18 03:54:19+00:00",
               "File:FileName": "invoice.doc.decrypted",
               "File:FilePermissions": 100666,
               "File:FileSize": 22528,
@@ -1689,6 +1656,39 @@
       "tags": {
         "email": true
       }
+    },
+    "file:f416cc24ca2c127bc7dd97335b110ad88150e9d517daa426d82bb5606ea692e6": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "invoice.doc.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:2933e69bd26f61b99ba7b81487bee95fa954ef7ad19996e5bfbc0f57e635624d": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
     },
     "file:f70fe384c672865fff4bb8ab60d73098bc751e8f2aa915b8aff2e2085648b428": {
       "detections": {},

@@ -261,9 +261,9 @@
               "ExifTool:ExifToolVersion": 13.25,
               "ExifTool:Warning": "[minor] Decryption is very slow for encryption V5.6 or higher",
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 19:48:15+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 19:48:15+00:00",
-              "File:FileModifyDate": "2026:11:16 19:48:15+00:00",
+              "File:FileAccessDate": "2026:11:18 03:55:57+00:00",
+              "File:FileInodeChangeDate": "2026:11:18 03:55:57+00:00",
+              "File:FileModifyDate": "2026:11:18 03:55:57+00:00",
               "File:FileName": "statement.pdf",
               "File:FilePermissions": 100664,
               "File:FileSize": 3116,
@@ -324,32 +324,31 @@
         "pdf_encryption_analyzer": {
           "details": {
             "email": true,
-            "email_body": "Your code: OwnerPw4\n\n",
+            "email_body": "Your code: OwnerPw4",
             "password": null,
             "word_list": [
-              "Owne",
-              "Owner",
-              "OwnerP",
-              "OwnerPw",
-              "OwnerPw4",
               "Your",
-              "code",
               "code:",
-              "erPw",
-              "erPw4",
-              "nerP",
-              "nerPw",
-              "nerPw4",
+              "code",
+              "OwnerPw4",
               "ode:",
-              "rPw4",
+              "Owne",
               "wner",
+              "nerP",
+              "erPw",
+              "rPw4",
+              "Owner",
               "wnerP",
+              "nerPw",
+              "erPw4",
+              "OwnerP",
               "wnerPw",
+              "nerPw4",
+              "OwnerPw",
               "wnerPw4"
             ]
           },
-          "error": "could not crack password",
-          "summary": "PDF Encryption Analysis: could not crack password",
+          "summary": "PDF Encryption Analysis: password not available",
           "tags": {}
         },
         "pdftotext": {
@@ -382,7 +381,7 @@
         "pdf": true
       }
     },
-    "file:a93ecd86a0dc5f88904114db455158d50c5640339ae3ed76f46ce18ae7d2b107": {
+    "file:8830d1ece643ad2b473ed12e08bc3683c2e4c46e0c41f4f2b39298e55d7908ae": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -852,9 +851,9 @@
           "type=document.pdf.text": true
         }
       },
-      "redirection": "file:a93ecd86a0dc5f88904114db455158d50c5640339ae3ed76f46ce18ae7d2b107",
+      "redirection": "file:8830d1ece643ad2b473ed12e08bc3683c2e4c46e0c41f4f2b39298e55d7908ae",
       "relationships": {
-        "extracted_from file:a93ecd86a0dc5f88904114db455158d50c5640339ae3ed76f46ce18ae7d2b107": true
+        "extracted_from file:8830d1ece643ad2b473ed12e08bc3683c2e4c46e0c41f4f2b39298e55d7908ae": true
       },
       "results": {
         "file_type": {
@@ -893,7 +892,7 @@
       },
       "tags": {}
     },
-    "file:f07914e91bb717bec8ba5c563ad87f36b9be27b8cc210c9a8e3676a44cde8b53": {
+    "file:f40d67958b721b4a35b0c4632fbfc3ac3d33ab9089078c0d68f4967e7031c8a4": {
       "detections": {},
       "directives": {},
       "excluded_analysis": {

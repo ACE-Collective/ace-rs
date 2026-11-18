@@ -1,6 +1,6 @@
 # Differences from ace3's reference dumps
 
-`tests/reference.rs` runs the archive module on each sample that `tools/ace3/dumps/reference/archive/` has a dump for, with the mime type ace3's file_type module found, puts both results into the normal form `ace_testkit::reference` describes, and fails on any difference this table doesn't list, or on a row that no longer matches anything. The dumps were made with ace3 at commit 844e3584. A second test runs the module with no file limit and checks every file ace3 extracted against ace4's by path, size and sha256.
+`tests/reference.rs` runs the archive module on each sample that `tools/ace3/dumps/reference/archive/` has a dump for, with the mime type ace3's file_type module found, puts both results into the normal form `ace_testkit::reference` describes, and fails on any difference this table doesn't list, or on a row that no longer matches anything. The dumps were made with ace3 at commit fe6da632. A second test runs the module with no file limit and checks every file ace3 extracted against ace4's by path, size and sha256.
 
 In the Dumps column, `*` matches any text in a dump's name. In the Path column, a `*` segment matches one segment of the JSON pointer, `**` any number, and a `*` inside a segment any text; `/` alone is the whole result.
 
@@ -13,6 +13,8 @@ In the Dumps column, `*` matches any text in a dump's name. In the Path column, 
 | `*` | `/observables/*/yara_meta/*` | file_type's `yara_meta` tags on the extracted files (`type=archive.jar`, `type=executable`, `type=script.javascript`). The archive module sets none. |
 | `local/archive/zip-slip.zip` | `/details/extracted_files/*` | The two files come out in archive order, `x` (stored as `../x`) then `readme.txt`. ace3 lists its extraction directory with `os.walk`, whose order is the filesystem's: on the tmpfs the dumps ran on that is newest first, so `readme.txt` came first. On ext4 it is the order of the names' hashes. The files, names and tags match. |
 | `local/archive/zip-slip.zip` | `/summary` | The summary lists the files in the same order. |
+| `ace4/pcap/*_keys.zip` | `/details/extracted_files/*` | The same two files in another order: ace4 in archive order, the capture first as `tools/samples/make-pcaps` wrote it, ace3 in its filesystem's (`os.walk`), the key log first. The trees list the same (`tools/ace3/trees/differences.md`). |
+| `ace4/pcap/*_keys.zip` | `/summary` | The summary lists the files in the same order. |
 | `ace3/archive/malicious.jar` | `/observables/*` | More files than the limit (68 entries, 30 extracted). Both pick the riskiest kinds first, but within a kind ace3 takes them in its filesystem's order (above) and ace4 in archive order, so they pick different files of the same kind. The no-limit test shows every file ace3 extracted comes out of ace4 with the same bytes. |
 | `ace3/archive/malicious.jar` | `/details/extracted_files/*` | The same choice of files. |
 | `ace3/archive/malicious.jar` | `/summary` | The same choice of files, in the summary. |

@@ -1,6 +1,6 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "f72f8946",
+  "ace3_commit": "fe6da632",
   "also_enabled": [
     "email_analyzer",
     "file_type"
@@ -298,7 +298,7 @@
             "cc": [],
             "compauth_reason": null,
             "compauth_result": null,
-            "date": "2026-11-08 21:48:20.958059 +0000",
+            "date": "2026-11-18 05:10:04.647074 +0000",
             "dkim_result": "fail",
             "dmarc_result": "fail",
             "env_mail_from": null,
@@ -670,7 +670,7 @@
     {
       "record": {
         "path": "database.pool.status",
-        "timestamp": "2026-11-08T21:48:20.952131",
+        "timestamp": "2026-11-18T05:10:04.640142",
         "value": "Pool size: 5  Connections in pool: 0 Current Overflow: -4 Current Checked out connections: 1"
       },
       "tag": "monitoring"
@@ -680,7 +680,7 @@
         "header": "Received: from MN2PR19MB2800.namprd19.prod.outlook.com (2603:10b6:408:80::38) by BN8PR19MB2577.namprd19.prod.outlook.com with HTTPS via BN8PR15CA0061.NAMPRD15.PROD.OUTLOOK.COM; Thu, 28 May 2020 14:53:51 +0000",
         "header_index": 0,
         "message_id": "<CANTOGZshnHG073SKFD9aA-TxAu6UVnTwMbYFYMH7iCNhkenwvg@mail.gmail.com>",
-        "timestamp": "1794174500.958059"
+        "timestamp": "1794978604.647074"
       },
       "tag": "phishfinder-headers"
     },
@@ -689,7 +689,7 @@
         "header": "Received: from BN6PR11CA0022.namprd11.prod.outlook.com (2603:10b6:405:2::32) by MN2PR19MB2800.namprd19.prod.outlook.com (2603:10b6:208:f3::17) with Microsoft SMTP Server (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.3045.17; Thu, 28 May 2020 14:53:50 +0000",
         "header_index": 1,
         "message_id": "<CANTOGZshnHG073SKFD9aA-TxAu6UVnTwMbYFYMH7iCNhkenwvg@mail.gmail.com>",
-        "timestamp": "1794174500.958059"
+        "timestamp": "1794978604.647074"
       },
       "tag": "phishfinder-headers"
     },
@@ -698,7 +698,7 @@
         "header": "Received: from BN8NAM12FT058.eop-nam12.prod.protection.outlook.com (2603:10b6:405:2:cafe::8d) by BN6PR11CA0022.outlook.office365.com (2603:10b6:405:2::32) with Microsoft SMTP Server (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.3045.19 via Frontend Transport; Thu, 28 May 2020 14:53:50 +0000",
         "header_index": 2,
         "message_id": "<CANTOGZshnHG073SKFD9aA-TxAu6UVnTwMbYFYMH7iCNhkenwvg@mail.gmail.com>",
-        "timestamp": "1794174500.958059"
+        "timestamp": "1794978604.647074"
       },
       "tag": "phishfinder-headers"
     },
@@ -707,7 +707,7 @@
         "header": "Authentication-Results: spf=softfail (sender IP is 216.131.54.6) smtp.mailfrom=gmail.com; company.mail.onmicrosoft.com; dkim=fail (body hash did not verify) header.d=gmail.com;company.mail.onmicrosoft.com; dmarc=fail action=none header.from=gmail.com;",
         "header_index": 3,
         "message_id": "<CANTOGZshnHG073SKFD9aA-TxAu6UVnTwMbYFYMH7iCNhkenwvg@mail.gmail.com>",
-        "timestamp": "1794174500.958059"
+        "timestamp": "1794978604.647074"
       },
       "tag": "phishfinder-headers"
     },
@@ -716,7 +716,7 @@
         "header": "Received-SPF: SoftFail (protection.outlook.com: domain of transitioning gmail.com discourages use of 216.131.54.6 as permitted sender)",
         "header_index": 4,
         "message_id": "<CANTOGZshnHG073SKFD9aA-TxAu6UVnTwMbYFYMH7iCNhkenwvg@mail.gmail.com>",
-        "timestamp": "1794174500.958059"
+        "timestamp": "1794978604.647074"
       },
       "tag": "phishfinder-headers"
     },
@@ -725,7 +725,7 @@
         "header": "Received: from o365transport.company.com (216.131.54.6) by BN8NAM12FT058.mail.protection.outlook.com (10.13.182.188) with Microsoft SMTP Server (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.20.3066.8 via Frontend Transport; Thu, 28 May 2020 14:53:49 +0000",
         "header_index": 5,
         "message_id": "<CANTOGZshnHG073SKFD9aA-TxAu6UVnTwMbYFYMH7iCNhkenwvg@mail.gmail.com>",
-        "timestamp": "1794174500.958059"
+        "timestamp": "1794978604.647074"
       },
       "tag": "phishfinder-headers"
     },
@@ -734,7 +734,7 @@
         "header": "Received: from exchangeserver.subdomain.company.com (10.224.163.30) by S7GRAMIHQEXEG01.company.com (216.131.54.6) with Microsoft SMTP Server (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256) id 15.1.1913.5; Thu, 28 May 2020 10:53:39 -0400",
         "header_index": 6,
         "message_id": "<CANTOGZshnHG073SKFD9aA-TxAu6UVnTwMbYFYMH7iCNhkenwvg@mail.gmail.com>",
-        "timestamp": "1794174500.958059"
+        "timestamp": "1794978604.647074"
       },
       "tag": "phishfinder-headers"
     },
@@ -743,7 +743,7 @@
         "header": "Received: from sogramihqfeye02.company.com (216.131.54.10) by exchangeserver.subdomain.company.com (10.224.163.30) with Microsoft SMTP Server id 14.3.487.0; Thu, 28 May 2020 10:53:42 -0400",
         "header_index": 7,
         "message_id": "<CANTOGZshnHG073SKFD9aA-TxAu6UVnTwMbYFYMH7iCNhkenwvg@mail.gmail.com>",
-        "timestamp": "1794174500.958059"
+        "timestamp": "1794978604.647074"
       },
       "tag": "phishfinder-headers"
     },
@@ -752,7 +752,7 @@
         "header": "Received: from localhost.localdomain (localhost [127.0.0.1])by sogramihqfeye02.company.com (Postfix) with SMTP id 49XrL316R6z1Zcq6for <John.Davison@company.com>; Thu, 28 May 2020 10:53:31 -0400 (EDT)",
         "header_index": 8,
         "message_id": "<CANTOGZshnHG073SKFD9aA-TxAu6UVnTwMbYFYMH7iCNhkenwvg@mail.gmail.com>",
-        "timestamp": "1794174500.958059"
+        "timestamp": "1794978604.647074"
       },
       "tag": "phishfinder-headers"
     },
@@ -761,7 +761,7 @@
         "header": "Received: from mailserver.company.com (unknown [216.131.54.100])by sogramihqfeye02.company.com (Postfix) with ESMTPS id 49XrL25ZrQz1ZcmLfor <John.Davison@company.com>; Thu, 28 May 2020 10:53:30 -0400 (EDT)",
         "header_index": 9,
         "message_id": "<CANTOGZshnHG073SKFD9aA-TxAu6UVnTwMbYFYMH7iCNhkenwvg@mail.gmail.com>",
-        "timestamp": "1794174500.958059"
+        "timestamp": "1794978604.647074"
       },
       "tag": "phishfinder-headers"
     },
@@ -770,7 +770,7 @@
         "header": "Received-SPF: Pass (mailserver.company.com: domain of  unixfreak0037@gmail.com designates 209.85.167.52 as permitted  sender) identity=mailfrom; client-ip=209.85.167.52;  receiver=mailserver.company.com;  envelope-from=\"unixfreak0037@gmail.com\";  x-sender=\"unixfreak0037@gmail.com\"; x-conformance=spf_only;  x-record-type=\"v=spf1\"; x-record-text=\"v=spf1  ip4:35.190.247.0/24 ip4:64.233.160.0/19 ip4:66.102.0.0/20  ip4:66.249.80.0/20 ip4:72.14.192.0/18 ip4:74.125.0.0/16  ip4:108.177.8.0/21 ip4:173.194.0.0/16 ip4:209.85.128.0/17  ip4:216.58.192.0/19 ip4:216.239.32.0/19 ~all\"",
         "header_index": 10,
         "message_id": "<CANTOGZshnHG073SKFD9aA-TxAu6UVnTwMbYFYMH7iCNhkenwvg@mail.gmail.com>",
-        "timestamp": "1794174500.958059"
+        "timestamp": "1794978604.647074"
       },
       "tag": "phishfinder-headers"
     },
@@ -779,7 +779,7 @@
         "header": "Authentication-Results-Original: mailserver.company.com; spf=Pass smtp.mailfrom=unixfreak0037@gmail.com; dkim=pass (signature verified) header.i=@gmail.com; dmarc=pass (p=none dis=none) d=gmail.com",
         "header_index": 11,
         "message_id": "<CANTOGZshnHG073SKFD9aA-TxAu6UVnTwMbYFYMH7iCNhkenwvg@mail.gmail.com>",
-        "timestamp": "1794174500.958059"
+        "timestamp": "1794978604.647074"
       },
       "tag": "phishfinder-headers"
     },
@@ -788,7 +788,7 @@
         "header": "IronPort-PHdr: 9a23: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",
         "header_index": 12,
         "message_id": "<CANTOGZshnHG073SKFD9aA-TxAu6UVnTwMbYFYMH7iCNhkenwvg@mail.gmail.com>",
-        "timestamp": "1794174500.958059"
+        "timestamp": "1794978604.647074"
       },
       "tag": "phishfinder-headers"
     },
@@ -797,7 +797,7 @@
         "header": "X-IronPort-Anti-Spam-Filtered: true",
         "header_index": 13,
         "message_id": "<CANTOGZshnHG073SKFD9aA-TxAu6UVnTwMbYFYMH7iCNhkenwvg@mail.gmail.com>",
-        "timestamp": "1794174500.958059"
+        "timestamp": "1794978604.647074"
       },
       "tag": "phishfinder-headers"
     },
@@ -806,7 +806,7 @@
         "header": "X-IronPort-Anti-Spam-Result: A0D9AwAa0M9efzSnVdFmHQEBAQEJARIBBQUBggqCImhiJAcILIQlgRyCXotJCQaBM06FAoQcJAMGgTaEUIEXA4IsiBELAQMBAQEKBSoEAQGGYQIjAUsCAQ8BAQUBAQECAQMDBAETAQEJCwsIJ4VgDII7KQGDJhEdARseAxIIAQIFNwIjAQERAQUBIhMihU8BAwkloFmBDIERgQQ9iyiBFQUBF4MCBYRfChkoDWWBNAIHEoEmh12EZ4ETgQeBR4QmgRCFRIJgBIFBAQEBoVGPWUsBBgJEgW4MGJQFhF4eglMBmzmdFJFGDyODPzMaI4EBbYFLUBgNkECDcopyKDA3AgYIAQEDCY1bAQE",
         "header_index": 14,
         "message_id": "<CANTOGZshnHG073SKFD9aA-TxAu6UVnTwMbYFYMH7iCNhkenwvg@mail.gmail.com>",
-        "timestamp": "1794174500.958059"
+        "timestamp": "1794978604.647074"
       },
       "tag": "phishfinder-headers"
     },
@@ -815,7 +815,7 @@
         "header": "X-IronPort-AV: E=Sophos;i=\"5.73,445,1583211600\";    d=\"scan'208,217\";a=\"221715906\"",
         "header_index": 15,
         "message_id": "<CANTOGZshnHG073SKFD9aA-TxAu6UVnTwMbYFYMH7iCNhkenwvg@mail.gmail.com>",
-        "timestamp": "1794174500.958059"
+        "timestamp": "1794978604.647074"
       },
       "tag": "phishfinder-headers"
     },
@@ -824,7 +824,7 @@
         "header": "x-ExternalSender: TRUE",
         "header_index": 16,
         "message_id": "<CANTOGZshnHG073SKFD9aA-TxAu6UVnTwMbYFYMH7iCNhkenwvg@mail.gmail.com>",
-        "timestamp": "1794174500.958059"
+        "timestamp": "1794978604.647074"
       },
       "tag": "phishfinder-headers"
     },
@@ -833,7 +833,7 @@
         "header": "Received: from mail-lf1-f52.google.com ([209.85.167.52])  by mailserver.company.com with ESMTP/TLS/AES128-GCM-SHA256; 28 May 2020 10:53:21 -0400",
         "header_index": 17,
         "message_id": "<CANTOGZshnHG073SKFD9aA-TxAu6UVnTwMbYFYMH7iCNhkenwvg@mail.gmail.com>",
-        "timestamp": "1794174500.958059"
+        "timestamp": "1794978604.647074"
       },
       "tag": "phishfinder-headers"
     },
@@ -842,7 +842,7 @@
         "header": "Received: by mail-lf1-f52.google.com with SMTP id x27so16720941lfg.9        for <John.Davison@company.com>; Thu, 28 May 2020 07:53:21 -0700 (PDT)",
         "header_index": 18,
         "message_id": "<CANTOGZshnHG073SKFD9aA-TxAu6UVnTwMbYFYMH7iCNhkenwvg@mail.gmail.com>",
-        "timestamp": "1794174500.958059"
+        "timestamp": "1794978604.647074"
       },
       "tag": "phishfinder-headers"
     },
@@ -851,7 +851,7 @@
         "header": "DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;        d=gmail.com; s=20161025;        h=mime-version:from:date:message-id:subject:to;        bh=ChkpaatFXllgyXDku53KDsXXxLmVslFsva46+U6egcs=;        b=dVVdZ7x8/RD3VeVeLhNFFN/Cwh/ceg8lErdjcMLQAp7B+iA5GFToMUI+kVK2XuAu4m         Qj1wFUwN3b50tsDU8No1LKJdSYKBkvD2kXHksCAcRjDqEZiEMDE/2mjtQUSA1m2E0DLf         fk5P/SOBvXXj6vYXuQrYrUiQZ58aRNrjuuU5MZynU9JCyQBExekPaLeNF8FfdVfppJEC         4FlkLnW8VMkwIX0qFNZgE8pFvwu5I2Thsfp5ti2NBAiXJT2RbMRZTckYT5Sou9ZlK1/K         Ub1CU4rrhEFaMhnE7PbVOz1QEXn4TIWLtEvZidwChD3GwFR5Xy4FxpH8eWMdhdi2XgRe         f9eQ==",
         "header_index": 19,
         "message_id": "<CANTOGZshnHG073SKFD9aA-TxAu6UVnTwMbYFYMH7iCNhkenwvg@mail.gmail.com>",
-        "timestamp": "1794174500.958059"
+        "timestamp": "1794978604.647074"
       },
       "tag": "phishfinder-headers"
     },
@@ -860,7 +860,7 @@
         "header": "X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;        d=1e100.net; s=20161025;        h=x-gm-message-state:mime-version:from:date:message-id:subject:to;        bh=ChkpaatFXllgyXDku53KDsXXxLmVslFsva46+U6egcs=;        b=ASFUjw5CTvI2dDvgfzbeO/jtcw4avm4ebcwODiu3Kx58pLWshMuzMv9RxEKsHObqTy         zbCk5imuvS/i+5DvR1Hyhakh5ool7oti8iSPygk3KvBpEmhNfRsH9HjQ6Jgg1kX0PUfQ         hjxdh4ZSQGuksU1gsxKuipFZtl9hslM90fPdhxovIjsSleFW8NxJiAhV+ZoyvzHnjtRn         G3VqfXemxBvzfCnS59v4an3jdV5/igMeshIFlMpl+8GiJ5JIiuSyxz4pBNwas5pX3Ar6         eFb/wcPeFPsbVYK1ff9F8oVvIp7iXmsSlOR70JazunrhV1omszUCeYdylxEQ4zYE//Wq         d0Lw==",
         "header_index": 20,
         "message_id": "<CANTOGZshnHG073SKFD9aA-TxAu6UVnTwMbYFYMH7iCNhkenwvg@mail.gmail.com>",
-        "timestamp": "1794174500.958059"
+        "timestamp": "1794978604.647074"
       },
       "tag": "phishfinder-headers"
     },
@@ -869,7 +869,7 @@
         "header": "X-Gm-Message-State: AOAM531l7eonQDsg669HEML2BO3ycCknk4GSZuK/PlugYEvymDk9eYZnFx99prwQ6Pl/ggF6wsQlyHQ9R7riLWcYzuHecPxLYUOQ",
         "header_index": 21,
         "message_id": "<CANTOGZshnHG073SKFD9aA-TxAu6UVnTwMbYFYMH7iCNhkenwvg@mail.gmail.com>",
-        "timestamp": "1794174500.958059"
+        "timestamp": "1794978604.647074"
       },
       "tag": "phishfinder-headers"
     },
@@ -878,7 +878,7 @@
         "header": "X-Google-Smtp-Source: ABdhPJxJYcU3C1OWUYQGlzPxH0YDY3cyMPGnnycgFhgWBq5wejsdX7jX/wLDRxfjx0hCpDxq2E8hx5BnjnQSaXAQR+c=",
         "header_index": 22,
         "message_id": "<CANTOGZshnHG073SKFD9aA-TxAu6UVnTwMbYFYMH7iCNhkenwvg@mail.gmail.com>",
-        "timestamp": "1794174500.958059"
+        "timestamp": "1794978604.647074"
       },
       "tag": "phishfinder-headers"
     },
@@ -887,7 +887,7 @@
         "header": "X-Received: by 2002:a19:c7d6:: with SMTP id x205mr1863039lff.113.1590677598692; Thu, 28 May 2020 07:53:18 -0700 (PDT)",
         "header_index": 23,
         "message_id": "<CANTOGZshnHG073SKFD9aA-TxAu6UVnTwMbYFYMH7iCNhkenwvg@mail.gmail.com>",
-        "timestamp": "1794174500.958059"
+        "timestamp": "1794978604.647074"
       },
       "tag": "phishfinder-headers"
     },
@@ -896,7 +896,7 @@
         "header": "MIME-Version: 1.0",
         "header_index": 24,
         "message_id": "<CANTOGZshnHG073SKFD9aA-TxAu6UVnTwMbYFYMH7iCNhkenwvg@mail.gmail.com>",
-        "timestamp": "1794174500.958059"
+        "timestamp": "1794978604.647074"
       },
       "tag": "phishfinder-headers"
     },
@@ -905,7 +905,7 @@
         "header": "From: John Davison <unixfreak0037@gmail.com>",
         "header_index": 25,
         "message_id": "<CANTOGZshnHG073SKFD9aA-TxAu6UVnTwMbYFYMH7iCNhkenwvg@mail.gmail.com>",
-        "timestamp": "1794174500.958059"
+        "timestamp": "1794978604.647074"
       },
       "tag": "phishfinder-headers"
     },
@@ -914,7 +914,7 @@
         "header": "Date: Thu, 28 May 2020 10:53:06 -0400",
         "header_index": 26,
         "message_id": "<CANTOGZshnHG073SKFD9aA-TxAu6UVnTwMbYFYMH7iCNhkenwvg@mail.gmail.com>",
-        "timestamp": "1794174500.958059"
+        "timestamp": "1794978604.647074"
       },
       "tag": "phishfinder-headers"
     },
@@ -923,7 +923,7 @@
         "header": "Message-ID: <CANTOGZshnHG073SKFD9aA-TxAu6UVnTwMbYFYMH7iCNhkenwvg@mail.gmail.com>",
         "header_index": 27,
         "message_id": "<CANTOGZshnHG073SKFD9aA-TxAu6UVnTwMbYFYMH7iCNhkenwvg@mail.gmail.com>",
-        "timestamp": "1794174500.958059"
+        "timestamp": "1794978604.647074"
       },
       "tag": "phishfinder-headers"
     },
@@ -932,7 +932,7 @@
         "header": "Subject: test canary #1",
         "header_index": 28,
         "message_id": "<CANTOGZshnHG073SKFD9aA-TxAu6UVnTwMbYFYMH7iCNhkenwvg@mail.gmail.com>",
-        "timestamp": "1794174500.958059"
+        "timestamp": "1794978604.647074"
       },
       "tag": "phishfinder-headers"
     },
@@ -941,7 +941,7 @@
         "header": "To: \"Davison, John\" <John.Davison@company.com>",
         "header_index": 29,
         "message_id": "<CANTOGZshnHG073SKFD9aA-TxAu6UVnTwMbYFYMH7iCNhkenwvg@mail.gmail.com>",
-        "timestamp": "1794174500.958059"
+        "timestamp": "1794978604.647074"
       },
       "tag": "phishfinder-headers"
     },
@@ -950,7 +950,7 @@
         "header": "Return-Path: unixfreak0037@gmail.com",
         "header_index": 30,
         "message_id": "<CANTOGZshnHG073SKFD9aA-TxAu6UVnTwMbYFYMH7iCNhkenwvg@mail.gmail.com>",
-        "timestamp": "1794174500.958059"
+        "timestamp": "1794978604.647074"
       },
       "tag": "phishfinder-headers"
     },
@@ -959,7 +959,7 @@
         "header": "X-OrganizationHeadersPreserved: exchangeserver.subdomain.company.com",
         "header_index": 31,
         "message_id": "<CANTOGZshnHG073SKFD9aA-TxAu6UVnTwMbYFYMH7iCNhkenwvg@mail.gmail.com>",
-        "timestamp": "1794174500.958059"
+        "timestamp": "1794978604.647074"
       },
       "tag": "phishfinder-headers"
     },
@@ -968,7 +968,7 @@
         "header": "X-EOPAttributedMessage: 0",
         "header_index": 32,
         "message_id": "<CANTOGZshnHG073SKFD9aA-TxAu6UVnTwMbYFYMH7iCNhkenwvg@mail.gmail.com>",
-        "timestamp": "1794174500.958059"
+        "timestamp": "1794978604.647074"
       },
       "tag": "phishfinder-headers"
     },
@@ -977,7 +977,7 @@
         "header": "X-CrossPremisesHeadersPromoted: BN8NAM12FT058.eop-nam12.prod.protection.outlook.com",
         "header_index": 33,
         "message_id": "<CANTOGZshnHG073SKFD9aA-TxAu6UVnTwMbYFYMH7iCNhkenwvg@mail.gmail.com>",
-        "timestamp": "1794174500.958059"
+        "timestamp": "1794978604.647074"
       },
       "tag": "phishfinder-headers"
     },
@@ -986,7 +986,7 @@
         "header": "X-CrossPremisesHeadersFiltered: BN8NAM12FT058.eop-nam12.prod.protection.outlook.com",
         "header_index": 34,
         "message_id": "<CANTOGZshnHG073SKFD9aA-TxAu6UVnTwMbYFYMH7iCNhkenwvg@mail.gmail.com>",
-        "timestamp": "1794174500.958059"
+        "timestamp": "1794978604.647074"
       },
       "tag": "phishfinder-headers"
     },
@@ -995,7 +995,7 @@
         "header": "X-Forefront-Antispam-Report: CIP:216.131.54.6;CTRY:US;LANG:en;SCL:-1;SRV:;IPV:NLI;SFV:SKN;H:o365transport.company.com;PTR:o365transport.company.com;CAT:NONE;SFTY:;SFS:;DIR:INB;SFP:;",
         "header_index": 35,
         "message_id": "<CANTOGZshnHG073SKFD9aA-TxAu6UVnTwMbYFYMH7iCNhkenwvg@mail.gmail.com>",
-        "timestamp": "1794174500.958059"
+        "timestamp": "1794978604.647074"
       },
       "tag": "phishfinder-headers"
     },
@@ -1004,7 +1004,7 @@
         "header": "X-MS-PublicTrafficType: Email",
         "header_index": 36,
         "message_id": "<CANTOGZshnHG073SKFD9aA-TxAu6UVnTwMbYFYMH7iCNhkenwvg@mail.gmail.com>",
-        "timestamp": "1794174500.958059"
+        "timestamp": "1794978604.647074"
       },
       "tag": "phishfinder-headers"
     },
@@ -1013,7 +1013,7 @@
         "header": "X-OriginatorOrg: company.onmicrosoft.com",
         "header_index": 37,
         "message_id": "<CANTOGZshnHG073SKFD9aA-TxAu6UVnTwMbYFYMH7iCNhkenwvg@mail.gmail.com>",
-        "timestamp": "1794174500.958059"
+        "timestamp": "1794978604.647074"
       },
       "tag": "phishfinder-headers"
     },
@@ -1022,7 +1022,7 @@
         "header": "X-MS-Office365-Filtering-Correlation-Id: a4d196d0-028d-4f06-2655-08d80316ee8a",
         "header_index": 38,
         "message_id": "<CANTOGZshnHG073SKFD9aA-TxAu6UVnTwMbYFYMH7iCNhkenwvg@mail.gmail.com>",
-        "timestamp": "1794174500.958059"
+        "timestamp": "1794978604.647074"
       },
       "tag": "phishfinder-headers"
     },
@@ -1031,7 +1031,7 @@
         "header": "X-MS-TrafficTypeDiagnostic: MN2PR19MB2800:",
         "header_index": 39,
         "message_id": "<CANTOGZshnHG073SKFD9aA-TxAu6UVnTwMbYFYMH7iCNhkenwvg@mail.gmail.com>",
-        "timestamp": "1794174500.958059"
+        "timestamp": "1794978604.647074"
       },
       "tag": "phishfinder-headers"
     },
@@ -1040,7 +1040,7 @@
         "header": "X-MS-Oob-TLC-OOBClassifiers: OLM:2399;",
         "header_index": 40,
         "message_id": "<CANTOGZshnHG073SKFD9aA-TxAu6UVnTwMbYFYMH7iCNhkenwvg@mail.gmail.com>",
-        "timestamp": "1794174500.958059"
+        "timestamp": "1794978604.647074"
       },
       "tag": "phishfinder-headers"
     },
@@ -1049,7 +1049,7 @@
         "header": "X-Microsoft-Antispam: BCL:0;",
         "header_index": 41,
         "message_id": "<CANTOGZshnHG073SKFD9aA-TxAu6UVnTwMbYFYMH7iCNhkenwvg@mail.gmail.com>",
-        "timestamp": "1794174500.958059"
+        "timestamp": "1794978604.647074"
       },
       "tag": "phishfinder-headers"
     },
@@ -1058,7 +1058,7 @@
         "header": "X-Microsoft-Antispam-Mailbox-Delivery: ucf:0;jmr:0;auth:0;dest:I;ENG:(750128)(520011016)(944506432)(944626604);",
         "header_index": 42,
         "message_id": "<CANTOGZshnHG073SKFD9aA-TxAu6UVnTwMbYFYMH7iCNhkenwvg@mail.gmail.com>",
-        "timestamp": "1794174500.958059"
+        "timestamp": "1794978604.647074"
       },
       "tag": "phishfinder-headers"
     },
@@ -1067,7 +1067,7 @@
         "header": "X-Microsoft-Antispam-Message-Info: K1O8ZlVgeG+GLVCr5br3ykeY/C9gNvUfrbTO5NRUoo7pGx9Nxb5cnKg6h/0YTeQ+iLBJnWvTir99sbgQip/FOoYyO1AHx2l69z0PEdCZtVfRM5QikyfInmxXwrW5t7DOh7b2RIyQjJOJJVzwLmWnMPBjJWZFht5l0G6sgHgKf3esNHnxBum9dIE7kwYNvSAllIKwsz5JFjNULxRU/QXPsf+YoBDtO16MosWJEi6hT/q4qebGptWaEP7cPSL7x8o1hL65o42RNYr8WkhvLg5ViwWUPNkra4ohZzwggohISF6oQmS6B8AVVFRNXVzORhggv/Ghu2Ud0bAuPk5/OzC7XLCj2QAB04KVaDdF/RDRs3ebviycQpCISDBzEyJr7yJw49YEy/1QUul0bV/F5d8NBU30KwcJdB5XXVWQL7KIPFZccSCSPrnryRs1Wiw5xUjRUTZluEebdnBoacnlqAYEF0iYtF7j9TSbZCkIhi1XQy+FY/baO5c/IjWBWNmlC+UWOGIjLrrsE1kEQqENa8Kma6Hp5+IsIYOJoQZoP0UnHsdAZjoLWz/ca2lB/BlNJF/bB06b/pw6zieO3aU/slW2Zw+1TU8OWNi9UV0Duzdepd2P/Vt1RbksU61Yhk/u1j/ldUHpFeSuRi2Fpk4EsMw9p+XII8cWAigGWaYs98iQ5XMUVbtCaOUeOqP/7Vqg6xIZuSXlsN62Jbmti6Iei8eOEClLIelHNcgjN9AUlsQdZ0UpJ9tgZNhGV18yQhWiLRhL71I+cK+S1GbizawySEM9CZ5tPBoU3rS/7NmT8CMGOj9mq/ewY/wmvDhFMpz4O+qVFHKST4gG183MjAid31+t0pVW11q1xv/s0eL0Mvtw1a2Dr4bXuNNWCAAqw5/pqIU2KxsuQZxAnOUkTlbpWX1aF5KKQVXEqPpgXrjOVvZ23tkBhLHghJmodNgpFz7wEGtio/LPLuymgN34D7xH7Q8DtjPxR74cgRt76pXhHJ3Q93Zj9Wi10AxdsIaASTZLQ3jMMRoBuuw9fM2Low9atF8CH49nja4QGKpcG6UY07aHRSxuVUP9S22/Hb7DD5dPly2ghhRqI75s1z/u0VQhQuRoMhSsvWb0r6tWrbpBsoDF5OQ74UGDAOdbDLpbfAEoKYpg4tOjmSWGz6KgEW4c3bIMqw==",
         "header_index": 43,
         "message_id": "<CANTOGZshnHG073SKFD9aA-TxAu6UVnTwMbYFYMH7iCNhkenwvg@mail.gmail.com>",
-        "timestamp": "1794174500.958059"
+        "timestamp": "1794978604.647074"
       },
       "tag": "phishfinder-headers"
     },
@@ -1076,7 +1076,7 @@
         "header": "Content-type: multipart/alternative;boundary=\"B_3673507989_1940279413\"",
         "header_index": 44,
         "message_id": "<CANTOGZshnHG073SKFD9aA-TxAu6UVnTwMbYFYMH7iCNhkenwvg@mail.gmail.com>",
-        "timestamp": "1794174500.958059"
+        "timestamp": "1794978604.647074"
       },
       "tag": "phishfinder-headers"
     },
@@ -1105,7 +1105,7 @@
         "cc": [],
         "compauth_reason": null,
         "compauth_result": null,
-        "date": "2026-11-08 21:48:20.958059 +0000",
+        "date": "2026-11-18 05:10:04.647074 +0000",
         "dkim_result": "fail",
         "dmarc_result": "fail",
         "env_mail_from": null,
@@ -1142,7 +1142,7 @@
         "subject_raw": "test canary #1",
         "thread_index": null,
         "thread_topic": null,
-        "timestamp": "1794174500.958059",
+        "timestamp": "1794978604.647074",
         "user_agent": null,
         "x_mailer": null,
         "x_sender": null
@@ -1179,62 +1179,76 @@
         "thread_id": "<CANTOGZshnHG073SKFD9aA-TxAu6UVnTwMbYFYMH7iCNhkenwvg@mail.gmail.com>",
         "thread_message_count": 0,
         "thread_method": "self",
-        "timestamp": "1794174500.958059"
+        "timestamp": "1794978604.647074"
       },
       "tag": "phishfinder-lookalike"
     },
     {
       "record": {
         "alert_type": "cli_analysis",
-        "analysis_time_seconds": 0.023577999999999998,
-        "exec_count": 5,
+        "event_type": "root",
         "is_alert": false,
-        "module": "file_type",
-        "percentage": 9.24405776310427,
+        "observable_count": 13,
+        "observable_type_counts": {
+          "email_conversation": 1,
+          "email_dkim_signing_domain": 1,
+          "email_from": 1,
+          "email_return_path": 1,
+          "email_sender_tenant_id": 1,
+          "email_subject": 1,
+          "email_to": 1,
+          "file": 5,
+          "message_id": 1
+        },
+        "outcome": "completed",
         "queue": "default",
-        "root_uuid": "307e71e0-c69a-4129-8403-25d5de449a10",
-        "timestamp": "2026-11-08 21:48:21.189240",
-        "total_analysis_time_seconds": 0.030323999999999997,
-        "total_time_seconds": 0.25506114959716797
+        "root_uuid": "95dd5bdc-976b-44fe-84af-ff0f0e0030e1",
+        "timestamp": "2026-11-18 05:10:05.318746",
+        "total_analysis_time_seconds": 0.039144,
+        "total_time_seconds": 0.7006382942199707
       },
       "tag": "metrics"
     },
     {
       "record": {
-        "alert_type": "cli_analysis",
-        "analysis_time_seconds": 0.001604,
+        "analysis_time_seconds": 0.00236,
+        "event_type": "module",
         "exec_count": 13,
-        "is_alert": false,
         "module": "email_logger",
-        "percentage": 0.6288688036313194,
-        "queue": "default",
-        "root_uuid": "307e71e0-c69a-4129-8403-25d5de449a10",
-        "timestamp": "2026-11-08 21:48:21.189240",
-        "total_analysis_time_seconds": 0.030323999999999997,
-        "total_time_seconds": 0.25506114959716797
+        "percentage": 0.3368357138725078,
+        "root_uuid": "95dd5bdc-976b-44fe-84af-ff0f0e0030e1",
+        "timestamp": "2026-11-18 05:10:05.318746"
       },
       "tag": "metrics"
     },
     {
       "record": {
-        "alert_type": "cli_analysis",
-        "analysis_time_seconds": 0.005142,
+        "analysis_time_seconds": 0.0055720000000000006,
+        "event_type": "module",
         "exec_count": 3,
-        "is_alert": false,
         "module": "email_analyzer",
-        "percentage": 2.0159871497956634,
-        "queue": "default",
-        "root_uuid": "307e71e0-c69a-4129-8403-25d5de449a10",
-        "timestamp": "2026-11-08 21:48:21.189240",
-        "total_analysis_time_seconds": 0.030323999999999997,
-        "total_time_seconds": 0.25506114959716797
+        "percentage": 0.7952748295328872,
+        "root_uuid": "95dd5bdc-976b-44fe-84af-ff0f0e0030e1",
+        "timestamp": "2026-11-18 05:10:05.318746"
+      },
+      "tag": "metrics"
+    },
+    {
+      "record": {
+        "analysis_time_seconds": 0.031212,
+        "event_type": "module",
+        "exec_count": 5,
+        "module": "file_type",
+        "percentage": 4.45479504296132,
+        "root_uuid": "95dd5bdc-976b-44fe-84af-ff0f0e0030e1",
+        "timestamp": "2026-11-18 05:10:05.318746"
       },
       "tag": "metrics"
     },
     {
       "record": {
         "path": "database.pool.available_count",
-        "timestamp": "2026-11-08T21:48:21.189501",
+        "timestamp": "2026-11-18T05:10:05.319207",
         "value": 0
       },
       "tag": "monitoring"
@@ -1242,7 +1256,7 @@
     {
       "record": {
         "path": "database.pool.in_use_count",
-        "timestamp": "2026-11-08T21:48:21.189519",
+        "timestamp": "2026-11-18T05:10:05.319250",
         "value": 1
       },
       "tag": "monitoring"

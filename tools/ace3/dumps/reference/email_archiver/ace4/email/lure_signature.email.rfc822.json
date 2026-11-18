@@ -1,6 +1,6 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "37a765bf",
+  "ace3_commit": "fe6da632",
   "also_enabled": [
     "email_analyzer",
     "file_type",
@@ -80,7 +80,7 @@
             "cc": [],
             "compauth_reason": null,
             "compauth_result": null,
-            "date": "2026-11-16 21:32:32.947416 +0000",
+            "date": "2026-11-18 06:06:00.640992 +0000",
             "dkim_result": null,
             "dmarc_result": null,
             "env_mail_from": null,
@@ -369,33 +369,6 @@
       {
         "detections": [],
         "directives": [],
-        "paths": [
-          {
-            "path": "email.rfc822.combined",
-            "yara_meta": [
-              "type=email",
-              "type=email.combined"
-            ]
-          }
-        ],
-        "size": 891,
-        "tags": [
-          "email"
-        ],
-        "type": "file",
-        "value": "1d5171c59dffbf47e09b237c9d34e4dfc874b084beedc1662076fce5c6c8fd7c"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_return_path",
-        "value": "sam@partner-example.org"
-      },
-      {
-        "detections": [],
-        "directives": [],
         "paths": [],
         "tags": [],
         "type": "url",
@@ -404,46 +377,21 @@
       {
         "detections": [],
         "directives": [
-          "archive"
+          "extract_urls",
+          "preview"
         ],
         "paths": [
           {
-            "path": "email.rfc822",
+            "path": "email.rfc822.unknown_text_plain_000.txt",
             "yara_meta": [
-              "type=email"
+              "type=email.attachment"
             ]
           }
         ],
-        "size": 1166,
-        "tags": [
-          "email"
-        ],
+        "size": 178,
+        "tags": [],
         "type": "file",
-        "value": "9c5c29b65488a975e60ac3b9a110cd57d5684154c3a83efd21884e5a5756414e"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_from",
-        "value": "sam@partner-example.org"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "url",
-        "value": "https://www.partner-example.org/in.png"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "url",
-        "value": "https://social.partner-example.org/sam"
+        "value": "e329e68e5c747eb4d241e707a8d8c15daec0a12856ca3895dbb025591ad057bd"
       },
       {
         "detections": [],
@@ -469,27 +417,8 @@
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "email_conversation",
-        "value": "sam@partner-example.org|pat@corp.example"
-      },
-      {
-        "detections": [],
-        "directives": [
-          "extract_urls",
-          "preview"
-        ],
-        "paths": [
-          {
-            "path": "email.rfc822.unknown_text_plain_000.txt",
-            "yara_meta": [
-              "type=email.attachment"
-            ]
-          }
-        ],
-        "size": 178,
-        "tags": [],
-        "type": "file",
-        "value": "e329e68e5c747eb4d241e707a8d8c15daec0a12856ca3895dbb025591ad057bd"
+        "type": "url",
+        "value": "https://www.partner-example.org/about"
       },
       {
         "detections": [],
@@ -504,8 +433,47 @@
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "email_subject",
-        "value": "Invoice 2291 is ready"
+        "type": "email_to",
+        "value": "pat@corp.example"
+      },
+      {
+        "detections": [],
+        "directives": [
+          "archive"
+        ],
+        "paths": [
+          {
+            "path": "email.rfc822",
+            "yara_meta": [
+              "type=email"
+            ]
+          }
+        ],
+        "size": 1166,
+        "tags": [
+          "email"
+        ],
+        "type": "file",
+        "value": "9c5c29b65488a975e60ac3b9a110cd57d5684154c3a83efd21884e5a5756414e"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [
+          {
+            "path": "email.rfc822.combined",
+            "yara_meta": [
+              "type=email",
+              "type=email.combined"
+            ]
+          }
+        ],
+        "size": 891,
+        "tags": [
+          "email"
+        ],
+        "type": "file",
+        "value": "1d5171c59dffbf47e09b237c9d34e4dfc874b084beedc1662076fce5c6c8fd7c"
       },
       {
         "detections": [],
@@ -532,8 +500,16 @@
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "email_to",
-        "value": "pat@corp.example"
+        "type": "email_from",
+        "value": "sam@partner-example.org"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_conversation",
+        "value": "sam@partner-example.org|pat@corp.example"
       },
       {
         "detections": [],
@@ -541,10 +517,91 @@
         "paths": [],
         "tags": [],
         "type": "url",
-        "value": "https://www.partner-example.org/about"
+        "value": "https://social.partner-example.org/sam"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_return_path",
+        "value": "sam@partner-example.org"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "url",
+        "value": "https://www.partner-example.org/in.png"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_subject",
+        "value": "Invoice 2291 is ready"
       }
     ],
     "results": [
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": false,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "text/plain",
+          "type": "ASCII text"
+        },
+        "module": "file_type",
+        "observable": 1,
+        "summary": "File Type Analysis: ASCII text (text/plain)",
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 0
+          },
+          {
+            "observable": 3
+          },
+          {
+            "observable": 11
+          }
+        ],
+        "class": "URLExtractionAnalysis",
+        "details": {
+          "urls": [
+            "https://billing.lure-example.net/invoice/2291",
+            "https://www.partner-example.org/about",
+            "https://social.partner-example.org/sam"
+          ],
+          "urls_grouped_by_domain": {
+            "lure-example.net": [
+              "https://billing.lure-example.net/invoice/2291"
+            ],
+            "partner-example.org": [
+              "https://www.partner-example.org/about",
+              "https://social.partner-example.org/sam"
+            ]
+          }
+        },
+        "module": "url_extraction",
+        "observable": 1,
+        "summary": "URL Extraction Analysis (billing.lure-example.net, social.partner-example.org, www.partner-example.org)",
+        "tags": []
+      },
       {
         "added": [],
         "class": "FileTypeAnalysis",
@@ -561,47 +618,47 @@
           "is_x509": false,
           "is_zip_file": false,
           "mime": "message/rfc822",
-          "type": "news or mail, ASCII text, with very long lines (397)"
+          "type": "news or mail, ASCII text"
         },
         "module": "file_type",
-        "observable": 0,
-        "summary": "File Type Analysis: news or mail, ASCII text, with very long lines (397) (message/rfc822) (email)",
+        "observable": 2,
+        "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 4
+            "observable": 9
           },
           {
-            "observable": 13
-          },
-          {
-            "observable": 8
-          },
-          {
-            "observable": 11
+            "observable": 5
           },
           {
             "observable": 10
           },
           {
-            "observable": 1
+            "observable": 14
           },
           {
-            "observable": 9,
+            "observable": 4
+          },
+          {
+            "observable": 12
+          },
+          {
+            "observable": 1,
             "path": "email.rfc822.unknown_text_plain_000.txt"
           },
           {
-            "observable": 12,
+            "observable": 8,
             "path": "email.rfc822.unknown_text_html_000.html"
           },
           {
-            "observable": 7,
+            "observable": 2,
             "path": "email.rfc822.headers"
           },
           {
-            "observable": 0,
+            "observable": 7,
             "path": "email.rfc822.combined"
           }
         ],
@@ -677,7 +734,7 @@
               "cc": [],
               "compauth_reason": null,
               "compauth_result": null,
-              "date": "2026-11-16 21:32:32.947416 +0000",
+              "date": "2026-11-18 06:06:00.640992 +0000",
               "dkim_result": null,
               "dmarc_result": null,
               "env_mail_from": null,
@@ -737,7 +794,7 @@
           "parsing_error": null
         },
         "module": "email_analyzer",
-        "observable": 3,
+        "observable": 6,
         "summary": "Email Analysis: From Sam Field <sam@partner-example.org> To pat@corp.example Subject Invoice 2291 is ready",
         "tags": []
       },
@@ -760,7 +817,7 @@
           "type": "news or mail, ASCII text"
         },
         "module": "file_type",
-        "observable": 3,
+        "observable": 6,
         "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
         "tags": []
       },
@@ -780,68 +837,11 @@
           "is_x509": false,
           "is_zip_file": false,
           "mime": "message/rfc822",
-          "type": "news or mail, ASCII text"
+          "type": "news or mail, ASCII text, with very long lines (397)"
         },
         "module": "file_type",
         "observable": 7,
-        "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": false,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "text/plain",
-          "type": "ASCII text"
-        },
-        "module": "file_type",
-        "observable": 9,
-        "summary": "File Type Analysis: ASCII text (text/plain)",
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 2
-          },
-          {
-            "observable": 6
-          },
-          {
-            "observable": 14
-          }
-        ],
-        "class": "URLExtractionAnalysis",
-        "details": {
-          "urls": [
-            "https://billing.lure-example.net/invoice/2291",
-            "https://social.partner-example.org/sam",
-            "https://www.partner-example.org/about"
-          ],
-          "urls_grouped_by_domain": {
-            "lure-example.net": [
-              "https://billing.lure-example.net/invoice/2291"
-            ],
-            "partner-example.org": [
-              "https://social.partner-example.org/sam",
-              "https://www.partner-example.org/about"
-            ]
-          }
-        },
-        "module": "url_extraction",
-        "observable": 9,
-        "summary": "URL Extraction Analysis (billing.lure-example.net, social.partner-example.org, www.partner-example.org)",
+        "summary": "File Type Analysis: news or mail, ASCII text, with very long lines (397) (message/rfc822) (email)",
         "tags": []
       },
       {
@@ -863,31 +863,31 @@
           "type": "HTML document, ASCII text, with very long lines (397)"
         },
         "module": "file_type",
-        "observable": 12,
+        "observable": 8,
         "summary": "File Type Analysis: HTML document, ASCII text, with very long lines (397) (text/html)",
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 2
+            "observable": 0
           },
           {
-            "observable": 6
+            "observable": 3
           },
           {
-            "observable": 14
+            "observable": 11
           },
           {
-            "observable": 5
+            "observable": 13
           }
         ],
         "class": "URLExtractionAnalysis",
         "details": {
           "urls": [
             "https://billing.lure-example.net/invoice/2291",
-            "https://social.partner-example.org/sam",
             "https://www.partner-example.org/about",
+            "https://social.partner-example.org/sam",
             "https://www.partner-example.org/in.png"
           ],
           "urls_grouped_by_domain": {
@@ -895,18 +895,17 @@
               "https://billing.lure-example.net/invoice/2291"
             ],
             "partner-example.org": [
+              "https://www.partner-example.org/about",
               "https://social.partner-example.org/sam",
-              "https://www.partner-example.org/in.png",
-              "https://www.partner-example.org/about"
+              "https://www.partner-example.org/in.png"
             ]
           }
         },
         "module": "url_extraction",
-        "observable": 12,
+        "observable": 8,
         "summary": "URL Extraction Analysis (billing.lure-example.net, social.partner-example.org, www.partner-example.org)",
         "tags": []
       }
-    ],
-    "whitelisted": false
+    ]
   }
 }

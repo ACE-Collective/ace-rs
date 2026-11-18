@@ -1,0 +1,49 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "fe6da632",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "QRCodeAnalysis",
+      "details": {
+        "extracted_text": null,
+        "inverted": false
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.qrcode:QRCodeAnalysis",
+      "observables": [],
+      "summary": null,
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace4/pdf/link_text_rotate_name.pdf",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "link_text_rotate_name.pdf",
+      "size": 753,
+      "type": "file",
+      "value": "18a10b7e04567660630b0ad80eb06d578f4a306e40513dc9d37f8ea57d7a0d6a"
+    }
+  },
+  "module": "qrcode",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "link_text_rotate_name.pdf",
+    "relationships": [],
+    "size": 753,
+    "tags": [],
+    "type": "file",
+    "value": "18a10b7e04567660630b0ad80eb06d578f4a306e40513dc9d37f8ea57d7a0d6a",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

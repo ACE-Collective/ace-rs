@@ -1,39 +1,6 @@
 {
   "form": 1,
   "observables": {
-    "file:04fbe3a58c9a69500a31ece3061ebde17215135c7c8a11ac02d78b077405dd09": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "encrypted_bad_key_bits.docx.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:be7e30f02c9bb2c3593693ab2ed399950d9dd8871b4e58337a2ff705883304c4": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:167181108f6fd083cd67d569e9906a592ca923bc2d4c571ed1242caf92ed48f8": {
       "detections": {},
       "directives": {
@@ -166,6 +133,39 @@
             "xml_plain_text": null
           },
           "error": "unable to parse XML: Start tag expected, '<' not found, line 1, column 1 (stream_10_0.dat, line 1)",
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:43bdffda5ece354741b18e4d27779ca10a068d7d61adc77d8f69f2a31aa06da1": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "encrypted_bad_key_bits.docx.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:be7e30f02c9bb2c3593693ab2ed399950d9dd8871b4e58337a2ff705883304c4": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
           "summary": null,
           "tags": {}
         }
@@ -383,8 +383,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 20:03:37+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 20:03:37+00:00",
+              "File:FileAccessDate": "2026:11:18 04:09:09+00:00",
+              "File:FileInodeChangeDate": "2026:11:18 04:09:09+00:00",
               "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "encrypted_bad_key_bits.docx",
               "File:FilePermissions": 100644,
@@ -438,8 +438,7 @@
               "/01Hannes Ruescher/01"
             ]
           },
-          "error": "could not crack password",
-          "summary": "MSOffice Encryption Analysis: could not crack password",
+          "summary": "MSOffice Encryption Analysis: no associated email detected",
           "tags": {}
         },
         "observable_detection": {

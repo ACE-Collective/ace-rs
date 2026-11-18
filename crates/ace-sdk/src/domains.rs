@@ -53,6 +53,20 @@ pub fn registrable_domain(value: &str) -> String {
     top_domain_under_public_suffix(normalized).unwrap_or_else(|| normalized.to_owned())
 }
 
+/// ace3's `apex_domain_of` (`saq/modules/apex_domain.py`): the registrable domain of `fqdn`, or
+/// None when `fqdn` is already its own registrable domain or the list has no suffix for it.
+/// `apex_domain_analyzer` adds it as an observable, and the RDAP module looks it up in place of the
+/// subdomain.
+pub fn apex_domain_of(fqdn: &str) -> Option<String> {
+    let lowered = ace_pycompat::pystr::lower(ace_pycompat::pystr::strip(fqdn));
+    let normalized = lowered.trim_end_matches('.');
+    if normalized.is_empty() {
+        return None;
+    }
+    let apex = registrable_domain(normalized);
+    (!apex.is_empty() && apex != normalized).then_some(apex)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -65,6 +79,31 @@ mod tests {
         assert_eq!(registrable_domain("someone.github.io"), "github.io");
         assert_eq!(registrable_domain("localhost"), "localhost");
         assert_eq!(registrable_domain("x.not-a-real-tld"), "x.not-a-real-tld");
+    }
+
+    #[test]
+    fn a_subdomain_has_an_apex_and_an_apex_has_none() {
+        assert_eq!(
+            apex_domain_of(" WWW.Example.COM. "),
+            Some("example.com".to_owned())
+        );
+        assert_eq!(
+            apex_domain_of("a.b.example.co.uk"),
+            Some("example.co.uk".to_owned())
+        );
+        assert_eq!(apex_domain_of("example.com"), None);
+        assert_eq!(apex_domain_of("Example.com."), None);
+        // no public suffix: registrable_domain gives the name back
+        assert_eq!(apex_domain_of("x.not-a-real-tld"), None);
+        assert_eq!(apex_domain_of("localhost"), None);
+        assert_eq!(apex_domain_of("co.uk"), None);
+        assert_eq!(apex_domain_of(" . "), None);
+        assert_eq!(apex_domain_of(""), None);
+        // the private section isn't used, so a name under github.io has github.io as its apex
+        assert_eq!(
+            apex_domain_of("someone.github.io"),
+            Some("github.io".to_owned())
+        );
     }
 
     #[test]

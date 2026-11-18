@@ -777,6 +777,9 @@ URLSAFE_200 = (
 )
 NETWORKS = ["--config", f"{REMOTE}/fixtures/values/networks.yaml"]
 ONE_DRIVE = ["--replay-http", f"{REMOTE}/fixtures/values/one_drive"]
+# tldextract reads the public suffix list the RDAP recording holds, as it does in make-trees, rather than
+# fetch one
+SUFFIX_LIST = ["--replay-http", f"{REMOTE}/rdap"]
 VALUE_RUNS = [
     ("command_line_analyzer", "paths", "command_line",
      r'cmd.exe /c "C:\Program Files\Acme Tool\run.exe" -o C:\Users\alice\AppData\Local\Temp\out.log \\fileserver\share\drop\x.dll',
@@ -826,6 +829,14 @@ VALUE_RUNS = [
     ("idna_analyzer", "sharp_s", "fqdn", "fa\u00df.de", [], [], []),
     ("idna_analyzer", "sharp_s_punycode", "fqdn", "xn--fa-hia.de", [], [], []),
     ("idna_analyzer", "snowman", "fqdn", "\u2603.net", [], [], []),
+    ("apex_domain_analyzer", "subdomain", "fqdn", "login.mail.Example.co.uk", [], [], SUFFIX_LIST),
+    ("apex_domain_analyzer", "apex", "fqdn", "example.com", [], [], SUFFIX_LIST),
+    ("apex_domain_analyzer", "upper", "fqdn", "MAIL.EXAMPLE.ORG", [], [], SUFFIX_LIST),
+    ("apex_domain_analyzer", "no_suffix", "fqdn", "host.corp-internal", [], [], SUFFIX_LIST),
+    ("apex_domain_analyzer", "suffix_only", "fqdn", "co.uk", [], [], SUFFIX_LIST),
+    ("apex_domain_analyzer", "private_suffix", "fqdn", "someone.github.io", [], [], SUFFIX_LIST),
+    ("apex_domain_analyzer", "unicode", "fqdn", "www.m\u00fcnchen.de", [], [], SUFFIX_LIST),
+    ("apex_domain_analyzer", "punycode", "fqdn", "www.xn--mnchen-3ya.de", [], [], SUFFIX_LIST),
     ("parse_url", "full", "url", "https://www.example.com/path/to?a=1&b=%20x+y#frag", [], [], []),
     ("parse_url", "ipv4_port", "url", "http://192.0.2.10:8080/login", [], [], []),
     ("parse_url", "host_first", "url", "yahoo.com/login", [], [], []),
@@ -1191,6 +1202,17 @@ def encrypted_runs():
         add(fixture, "no_body")
         add(fixture)
     add("zip/zipcrypto.zip", "html", "<html><body><p>Use <b>Secr3tPw</b></p></body></html>\n", ".html")
+    # ace3's 1998ca56 reads every body part: the password in the text part where the HTML one, which
+    # EmailAnalysis.body picks, says nothing of it; an HTML part that repeats the text one, read once;
+    # and two long parts, each cut at byte_limit
+    for fixture, password in (("zip/zipcrypto.zip", "Secr3tPw"), ("rar/rar5.rar", "Rar5Pass"),
+                              ("pdf/aes_128.pdf", ENCRYPTED_PASSWORDS["pdf/aes_128.pdf"][0])):
+        add(fixture, "text_part", f"The password is {password} thanks\n--html--\n"
+            "<html><body><p>See the attached file.</p></body></html>\n", ".both")
+    add("zip/zipcrypto.zip", "repeated", "Use Secr3tPw to open it\n--html--\n"
+        "<html><body><p>Use Secr3tPw to open it</p></body></html>\n", ".both")
+    add("zip/zipcrypto.zip", "long_parts", LONG_BODY + "--html--\n<html><body><p>" + LONG_BODY + "</p></body></html>\n",
+        ".both")
     add("zip/zipcrypto.zip", "long", LONG_BODY)
     add("zip/zipcrypto.zip", "full_early", "Secr3tPw" + FILLER + "\n")
     add("zip/zipcrypto.zip", "full_late", FILLER[:1000] + "Secr3tPw" + FILLER[1000:] + "\n")
@@ -1918,7 +1940,7 @@ def copy_in(keys):
         docker("exec", "-i", CONTAINER, "tar", "-C", f"{REMOTE}/{target}", "-xf", "-", stdin=archive)
     put(f"{REMOTE}/fake_dns.py", (HERE / "fake_dns.py").read_bytes())
     put(f"{REMOTE}/fake_ldap.py", (HERE / "fake_ldap.py").read_bytes())
-    if "nrd" in keys:
+    if "nrd" in keys or "values" in keys:
         # the RDAP module's recording, for its bootstrap files and example.com
         archive = subprocess.run(
             ["tar", "--no-xattrs", "-C", str(OUT / "rdap_analyzer" / "fqdn_example.com.http"), "-cf", "-", "."],
@@ -2007,6 +2029,7 @@ def run(spec):
         "network_identifier": "NetworkIdentifierAnalysis",
         "parse_url": "ParseURLAnalysis",
         "idna_analyzer": "IDNAAnalysis",
+        "apex_domain_analyzer": "ApexDomainAnalysis",
         "email_address_fqdn_analyzer": "EmailAddressFQDNAnalysis",
         "protected_url_analyzer": "ProtectedURLAnalysis",
         "html_data_url_extraction": "HTMLDataURLAnalysis",

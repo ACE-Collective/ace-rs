@@ -1,0 +1,120 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "fe6da632",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "ArchiveAnalysis",
+      "details": {
+        "extracted_files": [
+          "rsa_keys.txt",
+          "http_tls.pcapng"
+        ],
+        "file_count": 2
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.archive:ArchiveAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "file_path": "rsa_keys.zip.extracted/rsa_keys.txt",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "7665923187d5d5e057cc89f1f735f6e98e244747a6b1d3d2c67f82e1e6de2f3f"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 118,
+          "tags": [],
+          "type": "file",
+          "value": "bc040b3afb27c9c945c7fe8a18aa3ad45b48f4fe2385b1e6e159abd884248081",
+          "yara_meta": []
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "file_path": "rsa_keys.zip.extracted/http_tls.pcapng",
+          "relationships": [
+            {
+              "target": {
+                "type": "file",
+                "value": "7665923187d5d5e057cc89f1f735f6e98e244747a6b1d3d2c67f82e1e6de2f3f"
+              },
+              "type": "extracted_from"
+            }
+          ],
+          "size": 11652,
+          "tags": [],
+          "type": "file",
+          "value": "d62e8e38b1bed05360dd8b2e1a70cc42736aaf0881e482a3c4e7c977fe2451ed",
+          "yara_meta": []
+        }
+      ],
+      "summary": "Archive Analysis: extracted 2 of 2 files: (rsa_keys.txt, http_tls.pcapng)",
+      "tags": []
+    },
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": false,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": false,
+        "is_office_ext": false,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": true,
+        "mime": "application/zip",
+        "type": "Zip archive data, made by v2.0 UNIX, extract using at least v2.0, last modified Nov 10 2026 12:00:00, uncompressed size 11652, method=deflate"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: Zip archive data, made by v2.0 UNIX, extract using at least v2.0, last modified Nov 10 2026 12:00:00, uncompressed size 11652, method=deflate (application/zip) (zip archive)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace4/pcap/rsa_keys.zip",
+    "meta_tags": [
+      "type=email.attachment"
+    ],
+    "observable": {
+      "file_path": "rsa_keys.zip",
+      "size": 8888,
+      "type": "file",
+      "value": "7665923187d5d5e057cc89f1f735f6e98e244747a6b1d3d2c67f82e1e6de2f3f"
+    }
+  },
+  "module": "archive",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email.attachment"
+    ],
+    "excluded_analysis": [],
+    "file_path": "rsa_keys.zip",
+    "relationships": [],
+    "size": 8888,
+    "tags": [
+      "zip"
+    ],
+    "type": "file",
+    "value": "7665923187d5d5e057cc89f1f735f6e98e244747a6b1d3d2c67f82e1e6de2f3f",
+    "yara_meta": [
+      "type=email.attachment"
+    ]
+  }
+}

@@ -1,6 +1,6 @@
 # Module inventory
 
-PLAN.md 7.1. The 91 `analysis_module_*` sections of `ace3/etc/saq.default.yaml` at ace3 `37a765bf`, with what each module does, where it runs in ace4 and which step ports it. 90 of them were there at `141a60a2`, the commit PLAN.md was written against, and at `f72f8946`, which this inventory followed until 2026-11-16; ace3's `b4badb2c` added the 91st, `pdf_link_text`. Each entry comes from the module's code, not just its config: the class, the helpers it calls and the base classes they inherit. It's the plan for the rest of phase 7, so when a step ports a module, change its row.
+PLAN.md 7.1. The 92 `analysis_module_*` sections of `ace3/etc/saq.default.yaml` at ace3 `fe6da632`, with what each module does, where it runs in ace4 and which step ports it. 90 of them were there at `141a60a2`, the commit PLAN.md was written against, and at `f72f8946`, which this inventory followed until 2026-11-16; ace3's `b4badb2c` added the 91st, `pdf_link_text`, which it followed to `37a765bf` until 2026-11-17, and `d7436a48` the 92nd, `apex_domain_analyzer`. Each entry comes from the module's code, not just its config: the class, the helpers it calls and the base classes they inherit. It's the plan for the rest of phase 7, so when a step ports a module, change its row.
 
 `tools/ace3/modules/check` reads the sections at the head of ace3's checkout and fails if this file misses one, names one that's gone, or disagrees with ace3 about a module's class, groups or modes. It also checks that every module has a pool and a step from the lists below, that the ported modules are the ones `crates/ace` registers, that every reader of ACE's data has what serves it (7.2), and that every module starting a process has a decision for each program (7.3). tests/e2e/run runs it.
 
@@ -51,19 +51,19 @@ PLAN.md decision 23. A module that declares what it takes (`Module::takes`, `ace
 
 | Pool | Modules | Ported |
 |---|---|---|
-| parser | 53 | 53 |
+| parser | 54 | 54 |
 | lookup | 16 | 16 |
 | core | 4 | 3 |
 | sandbox | 16 | 16 |
 | scanner | 2 | 2 |
-| all | 91 | 90 |
+| all | 92 | 91 |
 
 | Step | Modules |
 |---|---|
-| done | 90 |
+| done | 91 |
 | owner | 1 |
 
-No ace3 module goes to 7.8 or 7.9: 7.8's integrations are a site's (below), and remediation and file collection are services, not modules. "done" is the ten modules phases 1 to 4 ported, those 7.4, 7.5, 7.6, 7.7 and 7.10 have ported since, and `pdf_link_text`, ported when the inventory followed ace3 to `37a765bf` (its entry). "owner" is a module no step names.
+No ace3 module goes to 7.8 or 7.9: 7.8's integrations are a site's (below), and remediation and file collection are services, not modules. "done" is the ten modules phases 1 to 4 ported, those 7.4, 7.5, 7.6, 7.7 and 7.10 have ported since, `pdf_link_text`, ported when the inventory followed ace3 to `37a765bf`, and `apex_domain_analyzer`, ported when it followed ace3 to `fe6da632` (their entries). "owner" is a module no step names.
 
 ## 7.5's batches
 
@@ -75,7 +75,7 @@ In order. Batches 10 to 13 run programs in the sandbox runner, which batch 10 bu
 4. **HTML**: done. `html_data_url_extraction`, `har_extraction`, `html_js_extraction`, `mhtml`, in `ace-mod-html`, on `ace-lxml`'s BeautifulSoup tree, `ace-mod-oletools`' port of Python's feed parser and `ace-pycompat`. HTML, MHTML and HAR files, with the DOM snapshots 7.7's js-deobfuscator reads, which ride in the results' `dom_snapshots` rather than in files beside the scripts.
 5. **Office containers**: done. `onenote_extraction`, `officeparser3`, `office_xml_rel`, `xml_binary_analyzer`, `xml_plain_text_analyzer`, `extracted_ole_analyzer`, `hidden_mime`, `active_mime`, in `ace-mod-office`. OneNote, compound files, Office XML, hidden MIME and ActiveMime. XML is parsed by `ace_lxml::target`, lxml's target parser over the vendored libxml2, which matches lxml on 472 inputs; MIME by `ace-mod-oletools`' feed parser; compound files by a port of officeparser3's own reader, not olefile's, since what officeparser3 writes for a damaged file follows from how it reads one. `extracted_ole_analyzer` reads on the lease which modules added its file, and runs last; `xml_plain_text_analyzer` reads the tags of the file its file came from, and the archive module now waits for file_type, as ace3's does, so those tags are there.
 6. **RTF and scripts**: done. `microsoft_script_encoding_analysis`, `extracted_rtf_analyzer`, `vbscript_analyzer`, `nowhitespace_analyzer`, in `ace-mod-scripts`. Checks and transforms of RTF and script files. The Perl decoder ace3 runs for encoded scripts is ported and matches it byte for byte on 50,000 inputs (`docs/measurements/scripts.md`); `extracted_rtf_analyzer` reads on the lease which modules added its file, and looks for rtfole, whose `extracted_rtf` tag is what ace3 reads.
-7. **Encrypted files**: done. `zip_encryption_analyzer`, `rar_encryption_analyzer`, `pdf_encryption_analyzer`, in `ace-mod-encrypted`. No John (7.3): the email's candidates, cut by 4.11's `ace_mod_msoffice::words_from_body`, are tried in the task with the zip crate, libunrar and libqpdf, keeping what John's check accepts, which for a PDF is the user password only. The dumps cover each encryption method, a wrong, missing and full list, and no email or no body, with 0 differences but other modules' tags; a decrypted PDF matches pikepdf's copy byte for byte but for the `/ID` pikepdf takes from the clock (`docs/measurements/encrypted.md`).
+7. **Encrypted files**: done. `zip_encryption_analyzer`, `rar_encryption_analyzer`, `pdf_encryption_analyzer`, in `ace-mod-encrypted`. No John (7.3): the email's candidates, cut from every body part by `ace_mod_msoffice::words_from_parts` (4.11's, made ace3's again at `1998ca56`), are tried in the task with the zip crate, libunrar and libqpdf, keeping what John's check accepts, which for a PDF is the user password only. The dumps cover each encryption method, a wrong, missing and full list, and no email or no body, with 0 differences but other modules' tags; a decrypted PDF matches pikepdf's copy byte for byte but for the `/ID` pikepdf takes from the clock (`docs/measurements/encrypted.md`).
 8. **Email tree**: done. `lure_url_analyzer` and `mailbox_email_analyzer` in `ace-mod-emailtree`, `email_conversation_attachment_analyzer` and `email_conversation_link_analyzer` in `ace-mod-brocess`, beside the frequency module whose `new_sender` tag they read. Each walks the root's tree, which the core sends on the lease (`Module::READS_TREE`, `ace_sdk::tree`), with the files it reads (`Module::READS_TREE_FILES`), the lure module's HTML bodies; a result adds to other observables in the root (`ResultEnvelope::others`) only what its module declares (`Module::ADDS_TO_OTHERS`), the lure's `crawl` and the mailbox's `tracked`, and the mailbox module's changes its root's description and details (`ResultEnvelope::root`, `Module::SETS_ROOT`). The lure module runs last, as ace3's final analysis; the attachment module looks for a macro only as far as ace3 does when it runs, so its answer doesn't depend on which task lands first; the link module, which does nothing without a pattern in ace3, is off until a site gives it a section.
 9. **Email archive**: done. `email_archiver`, `encrypted_archive_analyzer`, `url_email_pivot_analyzer`, `message_id_analyzer_v2`, in `ace-mod-emailarchive`, lookup modules on 7.2's reads (`crates/ace-core/src/reads.md`): `archived-email`, `decrypted-archive` and `archived-url-count`, and the `email-archive` write. The archive is `ace_core::email_archive`: each email gzipped and encrypted in the core with ACE's key (`ACE4_ENCRYPTION_KEY`, AES-256-GCM in ace3's layout, which only `ace serve` holds), an object of the bucket's `email_archive` pool held by its rows, and migration 0041's weekly-partitioned tables, which the scheduler's `email_archive_partitions` keeps (6.7's `daily/partitions`, its archive half). A read that opens an email puts it in the task's root, and the result adds it with no upload, which the core allows only for a module that declares such a read (`ace_sdk::reads::FILE_READS`). Brings ace3's `email` router (5.6), `GET /api/email/v1/archive`, under `email:read`, each read audited. The email logger's log entry now names the archive path.
 10. **PDF and image text**: done. `ocr`, `qrcode`, `exif` and `pdftotext` in `ace-mod-sandbox`, on the sandbox pool, and `ssdeep` in `ace-mod-files`, on the parser pool. Builds the sandbox runner (`ace_pool::tools`, *The sandbox runner* below) and the sandbox pool's image (*Image*), and adds Ghostscript's rewrite to `pdf_analyzer` and ACE archives to `archive`, which move to the sandbox pool. OpenCV is 5.0.0, ace3's, built with the wheel's defaults and linked statically; tesseract's output matches ace3's on every dump. ssdeep is fuzzyhash's hash with ssdeep 2.14.1's comparison, which matches ssdeep's `-m` on all 420 measured files. The comparison keys Ghostscript's rewrite and ExifTool's metadata, whose bytes change every run on both systems, by their paths (`ace compare`'s `VOLATILE_FILES`), so what runs on them is compared.
@@ -106,7 +106,7 @@ Where the two systems draw the line differently:
 - ace3 says `<tool> did not finish` when its sandbox stops a tool on a timeout or a limit, and goes on. A module that runs a tool in ace4's sandbox runner says the same, and adds why the runner stopped it. A module whose tool is a library inside the task (libmagic, the ports of officeparser, pdf-parser, rtfobj, John's `*2john`, 7z and unrar) has no such stop: past the task's deadline it is a failed task.
 - ace3 never caches a failed analysis, and runs a module again on one when the module allows it (`allow_reanalysis_on_failure`, once per work item since `907e3b3e`). ace4 has no result cache (PLAN.md 6.7) and never claims a finished task again; a retry isn't built.
 
-What each module says. ace3's column is every place its code sets `Analysis.error` at `37a765bf`; `<e>` is an exception's text, and `<how T exited>` is ace3's `tool_failure_reason`: `T exited with status N` or `T was killed by signal N`, then `: ` and the last line T wrote to stderr.
+What each module says. ace3's column is every place its code sets `Analysis.error` at `fe6da632`; `<e>` is an exception's text, and `<how T exited>` is ace3's `tool_failure_reason`: `T exited with status N` or `T was killed by signal N`, then `: ` and the last line T wrote to stderr.
 
 | Module | Crate | ace3's reason | ace4 |
 |---|---|---|---|
@@ -115,10 +115,10 @@ What each module says. ace3's column is every place its code sets `Analysis.erro
 | `fqdn_analyzer` | `ace-mod-dns` | `A lookup failed: <e>`, `MX lookup failed: <e>`, `wildcard probe failed: <e>`, joined by `; ` | the same, for a resolver that answered with a failure; one that can't be reached fails the task as unavailable |
 | a Splunk instance, such as `proxy_domain_splunk` | `ace-mod-splunk` | `timed out`, or `<e>` | the same; splunkd down fails the task as unavailable |
 | `clicker_detection_splunk` | `ace-mod-splunk` | each failed search's `<name>: <error>`, joined by `; ` | the same |
-| `msoffice_encryption_analyzer` | `ace-mod-msoffice` | `office2john.py failed: <stderr>`, `could not crack password`, `decryption failed: <e>`, `<e>` for msoffcrypto's `Unsupported encryption method`, `office2john.py did not finish` | the first three; msoffcrypto 6.0.0 raises no such thing where ace3 looks for it, and office2john is a library here |
-| `zip_encryption_analyzer` | `ace-mod-encrypted` | `zip2john failed: <stderr>`, `unable to build the password wordlist: <e>`, `ZipEncryptionAnalyzer was unable to crack the password`, `<how 7z exited>` above status 1, and five for a tool that didn't finish or a file that went missing | the first four: 7z is a library here, so its line is written for it, `7z exited with status 2: ERROR: Wrong password : <member>` for the last member the password doesn't open, and the library's words in 7z's place for any other member that doesn't extract |
-| `rar_encryption_analyzer` | `ace-mod-encrypted` | `rar2john failed: <stderr>`, `unable to build the password wordlist: <e>`, `RarEncryptionAnalyzer could not crack password!`, `<how unrar exited>`, `unrar could not write every file`, and three for a tool that didn't finish | the first three, and `unrar could not extract the archive` where libunrar fails |
-| `pdf_encryption_analyzer` | `ace-mod-encrypted` | `pdf2john.pl failed: <stderr>`, `could not crack password`, `decryption failed: <e>`, `pdf2john.pl did not finish` | the first three |
+| `msoffice_encryption_analyzer` | `ace-mod-msoffice` | `office2john.py failed: <stderr>`, `decryption failed: <e>`, `<e>` for msoffcrypto's `Unsupported encryption method`, `office2john.py did not finish` | the first two; msoffcrypto 6.0.0 raises no such thing where ace3 looks for it, and office2john is a library here |
+| `zip_encryption_analyzer` | `ace-mod-encrypted` | `zip2john failed: <stderr>`, `unable to build the password wordlist: <e>`, `<how 7z exited>` above status 1, `unable to crack the password: <e>` where John raised, and two for a tool that didn't finish | the first three: 7z is a library here, so its line is written for it, `7z exited with status 2: ERROR: Wrong password : <member>` for the last member the password doesn't open, and the library's words in 7z's place for any other member that doesn't extract |
+| `rar_encryption_analyzer` | `ace-mod-encrypted` | `rar2john failed: <stderr>`, `unable to build the password wordlist: <e>`, `<how unrar exited>`, `unrar could not write every file`, `unable to crack the password: <e>` where John raised, and two for a tool that didn't finish | the first two, and `unrar could not extract the archive` where libunrar fails |
+| `pdf_encryption_analyzer` | `ace-mod-encrypted` | `pdf2john.pl failed: <stderr>`, `decryption failed: <e>`, `pdf2john.pl did not finish` | the first two |
 | `exif` | `ace-mod-sandbox` | `exiftool did not finish`, ExifTool's own error or `<how exiftool exited>`, `unreadable exiftool output: <e>` | the same |
 | `javascript_deobfuscation` | `ace-mod-scanners` | `js deobfuscator call failed: <e>`, the report's error, `<how js deobfuscator exited>` when it reported none | the same |
 | `phishkit_analyzer` | `ace-mod-scanners` | `phishkit scan failed for <observable> job ID <id>: <e>`, the same with `timed out`, `failed to scan URL <url>: <e>`, `no job id: the scan was never dispatched` | the first; the scanner pool always has the scan it was asked for |
@@ -311,6 +311,7 @@ In the config's order. ace4 is the crate a ported module is in.
 | `network_identifier` | `NetworkIdentifier` | `ace-mod-values` | parser | done | correlation | analysis, cli, correlation |
 | `parse_url` | `ParseURLAnalyzer` | `ace-mod-values` | parser | done | correlation | analysis, cli, correlation |
 | `fqdn_analyzer` | `FQDNAnalyzer` | `ace-mod-dns` | lookup | done | correlation | analysis, cli, correlation |
+| `apex_domain_analyzer` | `ApexDomainAnalyzer` | `ace-mod-values` | parser | done | correlation | analysis, cli, correlation |
 | `idna_analyzer` | `IDNAAnalyzer` | `ace-mod-values` | parser | done | correlation | analysis, cli, correlation |
 | `rdap_analyzer` | `RdapAnalyzer` | `ace-mod-rdap` | lookup | done | correlation | analysis, cli, correlation |
 | `nrd_analyzer` | `NRDAnalyzer` | `ace-mod-nrd` | lookup | done | common | analysis, binary, cli, correlation, email, file |
@@ -869,6 +870,27 @@ In the config's order. ace4 is the crate a ported module is in.
 - **Tags and detections**: none; adds one ip observable (first sorted A record)
 - **Notes**: Timeout 5s per query, lifetime 5s (dns.py:48,171-175). Only the first address becomes an observable (line 214-217); all are in details. MX and wildcard probe only when the name is its own eTLD+1 (line 177-179, 224). Probe label is constant for cacheability, but no cache_ttl is configured for this module. A CNAME chain is recorded as aliaslist.
 
+### apex_domain_analyzer
+
+- **Section**: `analysis_module_apex_domain_analyzer`, class `ApexDomainAnalyzer` in `saq/modules/apex_domain.py`, enabled by default. ace3 added it in `d7436a48`.
+- **ace4**: ported in `ace-mod-values`. Ported when the inventory followed ace3 to `fe6da632`. The apex is `ace_sdk::domains::apex_domain_of`, on the public suffix list tldextract 5.4.0 ships, the reduction the RDAP module already used.
+- **Pool**: parser. Reduces a name in memory.
+- **Step**: done.
+- **Does**: Adds the registrable domain (eTLD+1) of a subdomain fqdn as an fqdn observable of its own, with the subdomain's time, so an analyst can pivot to every alert with that domain. A name that is its own apex, or has no public suffix, gets no analysis.
+- **Input**: fqdn.
+- **Groups and modes**: groups correlation; modes analysis, cli, correlation.
+- **Depends on**: none. `rdap_analyzer` depends on it in ace3 and skips a subdomain it gave an apex observable (`7265bb53`, `e871441c`); in ace4 RDAP computes the same apex itself (its entry).
+- **Libraries**: tldextract 5.4.0 (`saq.domain_similarity.registrable_domain`, imported when the module first runs).
+- **Tools**: none.
+- **Writes**: none.
+- **yara_meta**: none.
+- **ACE's data**: none.
+- **Secrets**: none.
+- **Network**: none in ace4. ace3's tldextract may fetch the public suffix list from publicsuffix.org when its cache is empty.
+- **Reads outside the alert**: none in ace4; tldextract's cache in ace3.
+- **Tags and detections**: none; the apex observable gets display_type 'Apex Domain'.
+- **Notes**: Details hold `apex_domain`; the summary is `Apex Domain: <apex>`. The name is stripped, lowered and its trailing dots dropped before it is reduced (apex_domain.py:21-33).
+
 ### idna_analyzer
 
 - **Section**: `analysis_module_idna_analyzer`, class `IDNAAnalyzer` in `saq/modules/url/idna.py`, enabled by default.
@@ -897,9 +919,9 @@ In the config's order. ace4 is the crate a ported module is in.
 - **Pool**: lookup. RDAP over HTTPS (1.x).
 - **Step**: done.
 - **Does**: Looks up registration data for an fqdn (reduced to its eTLD+1) or a globally routable ip via RDAP, falling back to legacy WHOIS, recording registrar, dates/ages, nameservers, emails, network CIDR/country and raw responses.
-- **Input**: fqdn; ip (and subtypes, e.g. email_first_hop_ip; custom_requirement skips non-global IPs).
+- **Input**: fqdn; ip (and subtypes, e.g. email_first_hop_ip; custom_requirement skips non-global IPs, and since `7265bb53` a subdomain fqdn that `apex_domain_analyzer` gave an apex observable, which RDAP looks up instead).
 - **Groups and modes**: groups correlation; modes analysis, cli, correlation.
-- **Depends on**: none.
+- **Depends on**: `apex_domain_analyzer` in ace3. In ace4 none: the module computes the apex from the value as the apex module does and skips a subdomain that has one, since a dependency in ace4 waits for a result and the apex module stores none for a name that is its own apex (`ace-mod-rdap`'s docs). The two differ only for an fqdn the apex module doesn't run on.
 - **Libraries**: whoisit 4.1.0 (RDAP bootstrap + domain/ip queries); python-whois 0.9.6 (whois.whois fallback); tldextract 5.4.0 (eTLD+1 reduction).
 - **Tools**: none.
 - **Writes**: none.
@@ -1356,7 +1378,7 @@ In the config's order. ace4 is the crate a ported module is in.
 - **Network**: none.
 - **Reads outside the alert**: bin/office2john.py; /opt/tools/john-1.9.0-jumbo-1/run (john_bin_path).
 - **Tags and detections**: 'encrypted_msoffice' tag on the source (also when msoffcrypto says 'Unsupported encryption method'); decrypted file tagged 'decrypted_msoffice' with detection point EMAIL_ENCRYPTED_DECRYPTED.
-- **Notes**: Always tries 'VelvetSweatshop' and '/01Hannes Ruescher/01' first (msoffice.py:114). wordlist harvested from the carrying email's body: search_down() to the nearest EmailAnalysis with .email, read its body file, html2text, cut to byte_limit, then every non-whitespace substring of length range_low..range_high until list_limit (saq/cracking.py:20-81). Decryption runs in-process on the attacker file after a password is found (msoffice.py:137-141). crack_password finds the line by the attachment's basename and takes field 2 (cracking.py:126-127).
+- **Notes**: Always tries 'VelvetSweatshop' and '/01Hannes Ruescher/01' first (msoffice.py:114). wordlist harvested from the carrying email (saq/cracking.py wordlist_from_email, since 1998ca56 and ea898311): search_down() to the nearest EmailAnalysis with .email, then every body part (EmailAnalysis.body_parts), an HTML part through html2text, each stripped and cut to byte_limit and kept once, joined by a blank line; then every whitespace-separated word, as written and without its punctuation, then every substring of each word, shortest first, of length range_low..range_high, until list_limit. A password not found is no error since 1998ca56: the summary says "password not available". Decryption runs in-process on the attacker file after a password is found (msoffice.py:137-141). crack_password finds the line by the attachment's basename and takes field 2 (cracking.py:126-127).
 
 ### xml_binary_analyzer
 
@@ -2111,14 +2133,14 @@ In the config's order. ace4 is the crate a ported module is in.
 ### zip_encryption_analyzer
 
 - **Section**: `analysis_module_zip_encryption_analyzer`, class `ZipEncryptionAnalyzer` in `saq/modules/email/encryption/zip.py`, enabled by default.
-- **ace4**: ported in `ace-mod-encrypted`. No zip2john, John or 7z: the body's candidates, from 4.11's `words_from_body`, are tried with the zip crate as John checks them, an AES entry by its verifier and HMAC, each one a hash of its own whose last cracked password ace3 keeps, and ZipCrypto by the check bytes of up to eight of the smallest entries and the smallest one's CRC. The password is what ace3 reads from John's `--show` line, up to its first `:`. The extraction is `ace-mod-archive`'s 7z, which writes an empty file for an entry the password doesn't open. `john_bin_path` and `extract_timeout` aren't settings. `crates/ace-mod-encrypted/tests/differences.md` has the rest.
+- **ace4**: ported in `ace-mod-encrypted`. No zip2john, John or 7z: the email's candidates, from `ace_mod_msoffice::words_from_parts`, are tried with the zip crate as John checks them, an AES entry by its verifier and HMAC, each one a hash of its own whose last cracked password ace3 keeps, and ZipCrypto by the check bytes of up to eight of the smallest entries and the smallest one's CRC. The password is what ace3 reads from John's `--show` line, up to its first `:`. The extraction is `ace-mod-archive`'s 7z, which writes an empty file for an entry the password doesn't open. `john_bin_path` and `extract_timeout` aren't settings. `crates/ace-mod-encrypted/tests/differences.md` has the rest.
 - **Pool**: parser. ace3 runs zip2john, John and 7z. As 4.11 did for Office, the task tries the email's wordlist itself, with the zip crate's ZipCrypto and AES, as `ace-mod-archive` already reads zips. 7.3 drops John: ace3 runs it only with this wordlist.
 - **Step**: done.
 - **Does**: For a zip with any encrypted entry, extracts its hash with zip2john, cracks it with John the Ripper using words from the carrying email, and extracts the archive with 7z using the cracked password.
 - **Input**: file.
 - **Groups and modes**: groups file; modes analysis, binary, cli, correlation, email, file.
 - **Depends on**: search_down() to the carrying EmailAnalysis and its body file (no wait_for_analysis).
-- **Libraries**: html2text 2025.4.15 (inline in zip.py, not via wordlist_from_email).
+- **Libraries**: html2text 2025.4.15 (via cracking.wordlist_from_email since 1998ca56; zip.py had its own copy of the old logic before).
 - **Tools**: zip2john (john run dir) via run_sandboxed_tool; john 1.9.0-jumbo-1 (openwall git master, built with plain ./configure, so OpenMP is enabled if detected) via saq/cracking.py crack_password(): two run_sandboxed_tool calls, `john --session=john --pot=john.pot --wordlist=<abs> <hash>` (pot moved out as {hash}.pot) then `john --pot=<pot> --show <hash>`; 7z 25.01 `7z x -y -p<password> -o<abs dir> <file>` via run_sandboxed_tool, timeout extract_timeout=5s, write_dirs=[{file}.decrypted].
 - **Threads and children**: john runs one OpenMP thread per core (base_module.py:476 comment; RLIMIT_CPU is scaled by cpu_count for this); 7z uses multiple threads
 - **Writes**: {file}.hash; {file}.wordlist; {file}.hash.pot; {file}.decrypted/<members> (added as observables).
@@ -2128,7 +2150,7 @@ In the config's order. ace4 is the crate a ported module is in.
 - **Network**: none.
 - **Reads outside the alert**: /opt/tools/john-1.9.0-jumbo-1/run (john_bin_path).
 - **Tags and detections**: 'encrypted_zip' tag on source; each extracted member gets detection point EMAIL_ENCRYPTED_DECRYPTED and extract_urls directive.
-- **Notes**: Encryption check via stdlib zipfile flag_bits & 1. No default passwords; without an email body nothing is cracked. Wordlist logic duplicates cracking.wordlist_from_email (zip.py:195-214). Password passed on 7z's command line. Members extracted before a 7z stop are still added (zip.py:249-255). Loop variable shadows _file (zip.py:261). Decrypted members not volatile.
+- **Notes**: Encryption check via stdlib zipfile flag_bits & 1. No default passwords; without an email body nothing is cracked. The wordlist is cracking.wordlist_from_email's since 1998ca56, which made an email with no body part an email (`email` true) where zip.py's own copy didn't, and a password not found no error. Password passed on 7z's command line. Members extracted before a 7z stop are still added (zip.py:249-255). Loop variable shadows _file (zip.py:261). Decrypted members not volatile.
 
 ### rar_encryption_analyzer
 
@@ -2139,8 +2161,8 @@ In the config's order. ace4 is the crate a ported module is in.
 - **Does**: For a RAR that rarfile says needs a password, extracts its hash with rar2john, cracks it with John the Ripper using words from the carrying email, and extracts it with unrar using the cracked password.
 - **Input**: file.
 - **Groups and modes**: groups file; modes analysis, binary, cli, correlation, email, file.
-- **Depends on**: search_down() to the carrying EmailAnalysis and its body file (no wait_for_analysis).
-- **Libraries**: rarfile 4.5 (RarFile.needs_password header check only); html2text 2025.4.15 (inline in rar.py).
+- **Depends on**: search_down() to the carrying EmailAnalysis and its body parts (no wait_for_analysis).
+- **Libraries**: rarfile 4.5 (RarFile.needs_password header check only); html2text 2025.4.15 (via cracking.wordlist_from_email since 1998ca56; rar.py had its own copy of the old logic before).
 - **Tools**: rar2john (john run dir) via run_sandboxed_tool; john 1.9.0-jumbo-1 (openwall git master, built with plain ./configure, so OpenMP is enabled if detected) via saq/cracking.py crack_password(): two run_sandboxed_tool calls, `john --session=john --pot=john.pot --wordlist=<abs> <hash>` (pot moved out as {hash}.pot) then `john --pot=<pot> --show <hash>`; unrar 7.1.8 `unrar x -y -kb -p<password> <file> <abs dir>/` via run_sandboxed_tool, read_files=archive_volumes(), write_dirs=[{file}.decrypted], timeout = time_left().
 - **Threads and children**: john runs one OpenMP thread per core (base_module.py:476 comment; RLIMIT_CPU is scaled by cpu_count for this); unrar may use threads
 - **Writes**: {file}.hash; {file}.wordlist; {file}.hash.pot; {file}.decrypted/<members> (added as observables).
@@ -2150,7 +2172,7 @@ In the config's order. ace4 is the crate a ported module is in.
 - **Network**: none.
 - **Reads outside the alert**: /opt/tools/john-1.9.0-jumbo-1/run (john_bin_path); sibling volume files of a split archive (archive_volumes, saq/modules/file_analysis/archive.py:108).
 - **Tags and detections**: 'encrypted_rar' tag on source; each extracted member gets detection point EMAIL_ENCRYPTED_DECRYPTED and extract_urls directive.
-- **Notes**: Near copy of zip.py (diff is check, tools, messages). unrar used directly because rarfile would run unrar outside the sandbox (rar.py:239-241). UNRAR_WRITE_ERROR (5) keeps partial output; other non-zero exits return without adding files. No explicit extract timeout. Unsure whether rarfile.needs_password ever calls an external tool; this path only parses headers.
+- **Notes**: Near copy of zip.py (diff is check, tools, messages). Its wordlist is cracking.wordlist_from_email's since 1998ca56, as zip.py's is. unrar used directly because rarfile would run unrar outside the sandbox (rar.py:239-241). UNRAR_WRITE_ERROR (5) keeps partial output; other non-zero exits return without adding files. No explicit extract timeout. Unsure whether rarfile.needs_password ever calls an external tool; this path only parses headers.
 
 ### pdf_encryption_analyzer
 

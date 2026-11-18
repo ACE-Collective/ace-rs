@@ -61,8 +61,8 @@ pub trait Module: Sized + Send + Sync + 'static {
     /// giving it a section in the overlay, empty or not, as ace3's site config sets `enabled: true`.
     /// Without one it doesn't run.
     const ENABLED_BY_DEFAULT: bool = true;
-    /// True for a module that reads the body of the email that carried its observable, as ace3's
-    /// modules for encrypted attachments do. The core adds it to the module's tasks, which read it
+    /// True for a module that reads the body parts of the email that carried its observable, as
+    /// ace3's modules for encrypted attachments do. The core adds it to the module's tasks, which read it
     /// with `TaskContext::carrying_email`, or says an email in the root isn't parsed yet, and a
     /// module that needs to know then delays itself.
     const READS_CARRYING_EMAIL: bool = false;

@@ -1,0 +1,321 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "fe6da632",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "EmailAnalysis",
+      "details": {
+        "email": {
+          "authentication_failed": false,
+          "compauth_reason": null,
+          "compauth_result": null,
+          "decoded_subject": "Re: Contract draft",
+          "dkim_result": null,
+          "dmarc_result": null,
+          "env_mail_from": null,
+          "env_rcpt_to": [],
+          "from": "Sam Field <sam@partner-example.org>",
+          "from_address": "sam@partner-example.org",
+          "headers": [
+            [
+              "From",
+              "Sam Field <sam@partner-example.org>"
+            ],
+            [
+              "To",
+              "pat@corp.example"
+            ],
+            [
+              "Return-Path",
+              "<sam@partner-example.org>"
+            ],
+            [
+              "Subject",
+              "Re: Contract draft"
+            ],
+            [
+              "Date",
+              "Wed, 11 Nov 2026 09:30:00 +0000"
+            ],
+            [
+              "Message-ID",
+              "<lure_thread_text@partner-example.org>"
+            ],
+            [
+              "Content-Type",
+              "text/plain; charset=\"utf-8\""
+            ],
+            [
+              "Content-Transfer-Encoding",
+              "7bit"
+            ],
+            [
+              "MIME-Version",
+              "1.0"
+            ]
+          ],
+          "internal_org_sender": false,
+          "is_anonymous_direct_send": false,
+          "log_entry": {
+            "attachment_count": 1,
+            "attachment_hashes": [
+              "b966a995aeebc7806741f3ba798cc1a22824e92359204fb51830ea9c90e3d5e5"
+            ],
+            "attachment_names": [
+              "email.rfc822.unknown_text_plain_000.txt"
+            ],
+            "attachment_sizes": [
+              611
+            ],
+            "attachment_types": [
+              "text/plain"
+            ],
+            "authentication_failed": false,
+            "bcc": [],
+            "cc": [],
+            "compauth_reason": null,
+            "compauth_result": null,
+            "date": "2026-11-18 05:05:58.310727 +0000",
+            "dkim_result": null,
+            "dmarc_result": null,
+            "env_mail_from": null,
+            "env_rcpt_to": [],
+            "first_received": null,
+            "headers": [
+              "From: Sam Field <sam@partner-example.org>",
+              "To: pat@corp.example",
+              "Return-Path: <sam@partner-example.org>",
+              "Subject: Re: Contract draft",
+              "Date: Wed, 11 Nov 2026 09:30:00 +0000",
+              "Message-ID: <lure_thread_text@partner-example.org>",
+              "Content-Type: text/plain; charset=\"utf-8\"",
+              "Content-Transfer-Encoding: 7bit",
+              "MIME-Version: 1.0"
+            ],
+            "in_reply_to": null,
+            "internal_org_sender": false,
+            "is_anonymous_direct_send": false,
+            "last_received": null,
+            "mail_from": "Sam Field <sam@partner-example.org>",
+            "mail_from_is_local": false,
+            "mail_to": [
+              "pat@corp.example"
+            ],
+            "message_directionality": null,
+            "message_id": "<lure_thread_text@partner-example.org>",
+            "originating_ip": null,
+            "path": [],
+            "refereneces": null,
+            "reply_to": null,
+            "size": 923,
+            "spf_result": null,
+            "spoofed_internal": false,
+            "subject": "Re: Contract draft",
+            "subject_raw": "Re: Contract draft",
+            "thread_index": null,
+            "thread_topic": null,
+            "user_agent": null,
+            "x_mailer": null,
+            "x_sender": null
+          },
+          "mail_from_is_local": false,
+          "message-id": "<lure_thread_text@partner-example.org>",
+          "message_directionality": null,
+          "return_path": "sam@partner-example.org",
+          "spf_result": null,
+          "spoofed_internal": false,
+          "subject": "Re: Contract draft",
+          "to": [
+            "pat@corp.example"
+          ],
+          "to_addresses": [
+            "pat@corp.example"
+          ]
+        },
+        "extraction_errors": [],
+        "parsing_error": null
+      },
+      "detections": [],
+      "module_path": "saq.modules.email.rfc822:EmailAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "email_from",
+          "value": "sam@partner-example.org"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "email_to",
+          "value": "pat@corp.example"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "email_conversation",
+          "value": "sam@partner-example.org|pat@corp.example"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "display_type": "Decoded Subject",
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "email_subject",
+          "value": "Re: Contract draft"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [
+            "saq.modules.email.message_id:<class 'saq.modules.email.message_id.MessageIDAnalyzerV2'>"
+          ],
+          "relationships": [],
+          "tags": [],
+          "type": "message_id",
+          "value": "<lure_thread_text@partner-example.org>"
+        },
+        {
+          "detections": [],
+          "directives": [],
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "email_return_path",
+          "value": "sam@partner-example.org"
+        },
+        {
+          "detections": [],
+          "directives": [
+            "extract_urls",
+            "preview",
+            "yara_meta:type=email.attachment"
+          ],
+          "excluded_analysis": [],
+          "file_path": "email.rfc822.unknown_text_plain_000.txt",
+          "relationships": [],
+          "size": 611,
+          "tags": [],
+          "type": "file",
+          "value": "b966a995aeebc7806741f3ba798cc1a22824e92359204fb51830ea9c90e3d5e5",
+          "yara_meta": [
+            "type=email.attachment"
+          ]
+        },
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=email",
+            "yara_meta:type=email.headers"
+          ],
+          "excluded_analysis": [
+            "saq.modules.email.rfc822:<class 'saq.modules.email.rfc822.EmailAnalyzer'>"
+          ],
+          "file_path": "email.rfc822.headers",
+          "relationships": [],
+          "size": 310,
+          "tags": [
+            "email"
+          ],
+          "type": "file",
+          "value": "99859fb3105c1d5816dded250d4549dee0c05b6a1afb72e13a12bc894da388d6",
+          "yara_meta": [
+            "type=email",
+            "type=email.headers"
+          ]
+        },
+        {
+          "detections": [],
+          "directives": [
+            "yara_meta:type=email",
+            "yara_meta:type=email.combined"
+          ],
+          "excluded_analysis": [
+            "saq.modules.email.rfc822:<class 'saq.modules.email.rfc822.EmailAnalyzer'>"
+          ],
+          "file_path": "email.rfc822.combined",
+          "relationships": [],
+          "size": 925,
+          "tags": [
+            "email"
+          ],
+          "type": "file",
+          "value": "e826c0db13b347eb1cdfa002cf1afaf361e75016a51b4afdda92a55b6bdca7f0",
+          "yara_meta": [
+            "type=email",
+            "type=email.combined"
+          ]
+        }
+      ],
+      "summary": "Email Analysis: From Sam Field <sam@partner-example.org> To pat@corp.example Subject Re: Contract draft",
+      "tags": []
+    },
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": true,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": false,
+        "is_office_ext": false,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "message/rfc822",
+        "type": "news or mail, ASCII text"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace4/email/lure_thread_text.email.rfc822",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "email.rfc822",
+      "size": 923,
+      "type": "file",
+      "value": "e1e898edef785750d32cc9c65d6a8732e8211b259c315d1d131aa6ca21343674"
+    }
+  },
+  "module": "email_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email"
+    ],
+    "excluded_analysis": [],
+    "file_path": "email.rfc822",
+    "relationships": [],
+    "size": 923,
+    "tags": [
+      "email"
+    ],
+    "type": "file",
+    "value": "e1e898edef785750d32cc9c65d6a8732e8211b259c315d1d131aa6ca21343674",
+    "yara_meta": [
+      "type=email"
+    ]
+  }
+}

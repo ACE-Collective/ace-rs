@@ -1,8 +1,8 @@
 //! The results of the modules that read an observable's value (PLAN.md 7.5 batch 3), each named
 //! after its ace3 class: `CommandLineAnalysis`, `FilePathAnalysis` and `FileLocationAnalysis`,
-//! `NetworkIdentifierAnalysis`, `ParseURLAnalysis`, `IDNAAnalysis`, `EmailAddressFQDNAnalysis`
-//! and `ProtectedURLAnalysis`. `ace-mod-values` writes them, and `protected_url_one_drive` writes
-//! `ProtectedURLAnalysis`'s fields for a 1drv.ms link it followed.
+//! `NetworkIdentifierAnalysis`, `ParseURLAnalysis`, `IDNAAnalysis`, `ApexDomainAnalysis`,
+//! `EmailAddressFQDNAnalysis` and `ProtectedURLAnalysis`. `ace-mod-values` writes them, and
+//! `protected_url_one_drive` writes `ProtectedURLAnalysis`'s fields for a 1drv.ms link it followed.
 
 use std::collections::BTreeMap;
 
@@ -120,6 +120,20 @@ impl AnalysisType for IdnaAnalysis {
     const MODULE: &'static str = "idna_analyzer";
 }
 
+/// The details of an `apex_domain_analysis` result (`saq/modules/apex_domain.py`): the registrable
+/// domain of a subdomain, which the module adds as an `fqdn` observable.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct ApexDomainAnalysis {
+    pub apex_domain: Option<String>,
+}
+
+impl AnalysisType for ApexDomainAnalysis {
+    const NAME: &'static str = "apex_domain_analysis";
+    const VERSION: u32 = 1;
+    const MODULE: &'static str = "apex_domain_analyzer";
+}
+
 /// The details of an `email_address_fqdn_analysis` result (`saq/modules/email/address.py`).
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -195,6 +209,7 @@ mod tests {
             "fragment": "",
         }));
         round_trip::<IdnaAnalysis>(json!({"original": "a", "idna": "b", "unicode": "c"}));
+        round_trip::<ApexDomainAnalysis>(json!({"apex_domain": "example.com"}));
         round_trip::<EmailAddressFqdnAnalysis>(json!({"domain": "example.com"}));
         round_trip::<ProtectedUrlAnalysis>(
             json!({"protection_type": "cisco", "extracted_url": "https://a.com/"}),

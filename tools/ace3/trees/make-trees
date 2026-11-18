@@ -63,7 +63,7 @@ _loader.exec_module(dumps)
 CONTAINER, REMOTE, docker, put = dumps.CONTAINER, dumps.REMOTE, dumps.docker, dumps.put
 ENABLE = [
     "file_type", "archive", "yara_scanner_v3_4", "rdap_analyzer", "proxy_domain_splunk", "olevba_v1_2",
-    "rtfole", "msoffice_encryption_analyzer", "xlmdeobfuscator", "pcodedmp", "pdf_analyzer", "fqdn_analyzer",
+    "rtfole", "msoffice_encryption_analyzer", "xlmdeobfuscator", "pcodedmp", "pdf_analyzer", "fqdn_analyzer", "apex_domain_analyzer",
     "email_conversation_frequency_analyzer", "email_thread_analyzer", "nrd_analyzer", "url_extraction",
     "ioc_extraction", "file_hash_analyzer", "binary_file_analyzer", "x509_analyzer", "lnk_parser", "dhash",
     "command_line_analyzer", "file_location_analysis", "file_path_analysis", "network_identifier", "parse_url",
@@ -245,7 +245,12 @@ def save_dns_recording(recorded):
 
 def ace3_commit():
     """The commit ace3's checkout is at in the container, and git's complaint when it can't say."""
-    result = docker("exec", CONTAINER, "git", "-C", "/opt/ace", "rev-parse", "--short=8", "HEAD", check=False)
+    # git in the container calls the bind-mounted checkout's owner dubious on about one call in eight
+    # (4 of 30 on 2026-11-17), whoever runs it, so the check is waived for this one read
+    result = docker(
+        "exec", CONTAINER, "git", "-c", "safe.directory=/opt/ace", "--no-optional-locks", "-C", "/opt/ace",
+        "rev-parse", "--short=8", "HEAD", check=False,
+    )
     if result.returncode != 0:
         return None, result.stderr.decode(errors="replace").strip() or f"git exited {result.returncode}"
     return result.stdout.decode().strip(), None
@@ -300,8 +305,7 @@ def main():
         raise SystemExit(f"ace3's checkout moved from {commit} to {after} while the trees were made; make them again")
     (OUT / "index.json").write_text(json.dumps({"ace3_commit": commit}, indent=2) + "\n")
     if after is None:
-        # seen twice on 2026-11-16, each time at the end of a run of over an hour and never in a
-        # short one, with git's exit 128; the same command by hand right after answered
+        # git's dubious-ownership refusal did this until ace3_commit waived the check
         raise SystemExit(
             f"the trees were made at {commit}, but ace3's commit couldn't be read again at the end "
             f"({error}): check that its checkout didn't move"

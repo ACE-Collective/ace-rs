@@ -484,14 +484,13 @@
         },
         "rar_encryption_analyzer": {
           "details": {
-            "email": false,
+            "email": true,
             "email_body": null,
             "encryption_info": null,
             "password": null,
             "word_list": []
           },
-          "error": "RarEncryptionAnalyzer could not crack password!",
-          "summary": "Rar Encryption Analysis: RarEncryptionAnalyzer could not crack password!",
+          "summary": "Rar Encryption Analysis: email body cannot be determined",
           "tags": {}
         },
         "url_extraction": {

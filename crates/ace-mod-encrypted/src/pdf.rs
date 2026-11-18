@@ -26,9 +26,7 @@ use md5::{Digest, Md5};
 use rc4::{KeyInit, Rc4};
 use sha2::{Sha256, Sha384, Sha512};
 
-use crate::{
-    Carried, PdfSettings, carried, cracking_deadline, decrypted_detection, sorted, summarize,
-};
+use crate::{Carried, PdfSettings, carried, cracking_deadline, decrypted_detection, summarize};
 
 /// The module's manifest.
 pub const MANIFEST: Manifest = Manifest::parser::<PdfEncryptionAnalyzer>();
@@ -318,7 +316,7 @@ impl Parser for PdfEncryptionAnalyzer {
             Carried::Body { text, words } => {
                 details.email = true;
                 details.email_body = Some(text);
-                details.word_list = sorted(&words);
+                details.word_list = words.clone();
                 if !words.is_empty() {
                     match Hash::of(&locked) {
                         Err(complaint) => {
@@ -326,14 +324,15 @@ impl Parser for PdfEncryptionAnalyzer {
                         }
                         Ok(hash) => {
                             details.password = crack(&hash, &words, cracking_deadline(ctx));
-                            match &details.password {
-                                None => failure = Some("could not crack password".to_owned()),
-                                Some(password) => match Self::decrypt(ctx, password)? {
+                            // none of the candidates was the password: the summary says so,
+                            // and since ace3's 1998ca56 it isn't an error
+                            if let Some(password) = &details.password {
+                                match Self::decrypt(ctx, password)? {
                                     Ok(record) => files.push(record),
                                     Err(message) => {
                                         failure = Some(format!("decryption failed: {message}"));
                                     }
-                                },
+                                }
                             }
                         }
                     }

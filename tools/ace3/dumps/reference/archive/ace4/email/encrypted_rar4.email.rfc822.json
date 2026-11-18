@@ -1,0 +1,62 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "fe6da632",
+  "also_enabled": [
+    "file_type"
+  ],
+  "analyses": [
+    {
+      "class": "FileTypeAnalysis",
+      "details": {
+        "is_email_file": true,
+        "is_jar_file": false,
+        "is_lnk_file": false,
+        "is_office_document": false,
+        "is_office_ext": false,
+        "is_ole_file": false,
+        "is_pdf_file": false,
+        "is_pe_file": false,
+        "is_rtf_file": false,
+        "is_x509": false,
+        "is_zip_file": false,
+        "mime": "message/rfc822",
+        "type": "news or mail, ASCII text"
+      },
+      "detections": [],
+      "module_path": "saq.modules.file_analysis.file_type:FileTypeAnalysis",
+      "observables": [],
+      "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "ace4/email/encrypted_rar4.email.rfc822",
+    "meta_tags": [],
+    "observable": {
+      "file_path": "email.rfc822",
+      "size": 928,
+      "type": "file",
+      "value": "eb06565da21dbba9c50ea51ab5913d4b40bd2fe8863fb5dc3108b0be028fcb2e"
+    }
+  },
+  "module": "archive",
+  "observable_after": {
+    "detections": [],
+    "directives": [
+      "yara_meta:type=email"
+    ],
+    "excluded_analysis": [],
+    "file_path": "email.rfc822",
+    "relationships": [],
+    "size": 928,
+    "tags": [
+      "email"
+    ],
+    "type": "file",
+    "value": "eb06565da21dbba9c50ea51ab5913d4b40bd2fe8863fb5dc3108b0be028fcb2e",
+    "yara_meta": [
+      "type=email"
+    ]
+  }
+}

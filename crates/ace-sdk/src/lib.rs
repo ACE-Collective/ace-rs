@@ -42,7 +42,9 @@ pub mod tree;
 pub mod wire;
 pub mod writes;
 
-pub use context::{CarryingEmail, DelayedRun, InputFile, Observable, Secret, Secrets, TaskContext};
+pub use context::{
+    CarryingEmail, DelayedRun, EmailBodyPart, InputFile, Observable, Secret, Secrets, TaskContext,
+};
 pub use files::{FileOutputError, FileStore, LocalFileStore};
 pub use lists::{List, ListSpec};
 pub use manifest::{

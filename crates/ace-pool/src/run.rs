@@ -6,8 +6,8 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::Duration;
 
-use ace_sdk::LocalFileStore;
 use ace_sdk::wire::{LeasedTask, TaskEnd};
+use ace_sdk::{EmailBodyPart, LocalFileStore};
 use tokio::task::JoinHandle;
 use tokio_util::sync::CancellationToken;
 use tracing::Instrument;
@@ -114,23 +114,27 @@ pub async fn fetch_input(
     Ok(Some(path))
 }
 
-/// Downloads the body of the email that carried the task's file, for the task's user to read.
-pub async fn fetch_email_body(
+/// Downloads the body parts of the email that carried the task's file, for the task's user to read,
+/// each to a file of its own in `dir`, in the email's order.
+pub async fn fetch_email_parts(
     client: &LeaseClient,
     task: &LeasedTask,
     dir: &Path,
-) -> Result<Option<PathBuf>, ClientError> {
-    let Some(download) = task
-        .carrying_email
-        .as_ref()
-        .and_then(|email| email.body.as_ref())
-    else {
-        return Ok(None);
+) -> Result<Vec<EmailBodyPart>, ClientError> {
+    let Some(email) = &task.carrying_email else {
+        return Ok(Vec::new());
     };
-    let path = dir.join("email_body");
-    client.download(download, &path).await?;
-    std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o644))?;
-    Ok(Some(path))
+    let mut parts = Vec::with_capacity(email.parts.len());
+    for (index, part) in email.parts.iter().enumerate() {
+        let path = dir.join(format!("email_body.{index}"));
+        client.download(&part.download, &path).await?;
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o644))?;
+        parts.push(EmailBodyPart {
+            path,
+            html: part.html,
+        });
+    }
+    Ok(parts)
 }
 
 /// Downloads the files of the task's tree its module reads (`Module::READS_TREE_FILES`) into a
@@ -267,7 +271,7 @@ pub async fn run_in_process(
     }
     .instrument(tracing::info_span!("fetch_input"))
     .await?;
-    let email_body = fetch_email_body(client, &task, dir.path()).await?;
+    let email_parts = fetch_email_parts(client, &task, dir.path()).await?;
     let tree_files = fetch_tree_files(client, &task, dir.path()).await?;
     let scan_output = fetch_scan_output(client, &task, dir.path()).await?;
     let outputs = Arc::new(LocalFileStore::new(dir.outputs())?);
@@ -288,7 +292,7 @@ pub async fn run_in_process(
                 parser.run(Run {
                     task: &owned_task,
                     input: input.as_deref(),
-                    email_body: email_body.as_deref(),
+                    email_parts: &email_parts,
                     tree_files: tree_files.as_deref(),
                     outputs: owned_outputs,
                     cancel,
@@ -310,7 +314,7 @@ pub async fn run_in_process(
                             .run(Run {
                                 task: &owned_task,
                                 input: input.as_deref(),
-                                email_body: email_body.as_deref(),
+                                email_parts: &email_parts,
                                 tree_files: tree_files.as_deref(),
                                 outputs: owned_outputs,
                                 cancel,

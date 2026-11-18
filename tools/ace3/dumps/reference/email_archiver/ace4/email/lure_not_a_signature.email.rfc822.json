@@ -1,6 +1,6 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "37a765bf",
+  "ace3_commit": "fe6da632",
   "also_enabled": [
     "email_analyzer",
     "file_type",
@@ -80,7 +80,7 @@
             "cc": [],
             "compauth_reason": null,
             "compauth_result": null,
-            "date": "2026-11-16 21:32:02.883781 +0000",
+            "date": "2026-11-18 06:05:48.786313 +0000",
             "dkim_result": null,
             "dmarc_result": null,
             "env_mail_from": null,
@@ -371,56 +371,8 @@
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "message_id",
-        "value": "<lure_not_a_signature@partner-example.org>"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_to",
-        "value": "pat@corp.example"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
         "type": "url",
         "value": "https://offers.lure-example.net/pricing"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_return_path",
-        "value": "sam@partner-example.org"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_conversation",
-        "value": "sam@partner-example.org|pat@corp.example"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "url",
-        "value": "https://pay.lure-example.net/receipt"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "url",
-        "value": "https://pay.lure-example.net/portal"
       },
       {
         "detections": [],
@@ -435,28 +387,24 @@
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "email_from",
-        "value": "sam@partner-example.org"
+        "type": "url",
+        "value": "https://pay.lure-example.net/portal"
       },
       {
         "detections": [],
-        "directives": [
-          "extract_urls",
-          "render"
-        ],
-        "paths": [
-          {
-            "path": "email.rfc822.unknown_text_html_000.html",
-            "yara_meta": [
-              "type=document.html",
-              "type=email.attachment"
-            ]
-          }
-        ],
-        "size": 491,
+        "directives": [],
+        "paths": [],
         "tags": [],
-        "type": "file",
-        "value": "d45eb1dac945d14ed7556f0ee73994bb2380e9c5fb21c91b0fa82aae38996e8e"
+        "type": "url",
+        "value": "https://pay.lure-example.net/receipt"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_from",
+        "value": "sam@partner-example.org"
       },
       {
         "detections": [],
@@ -500,10 +448,73 @@
       {
         "detections": [],
         "directives": [],
+        "paths": [
+          {
+            "path": "email.rfc822.headers",
+            "yara_meta": [
+              "type=email",
+              "type=email.headers"
+            ]
+          }
+        ],
+        "size": 326,
+        "tags": [
+          "email"
+        ],
+        "type": "file",
+        "value": "c7fff7ea527f87847fc64783302e7407c76553f7a73cbdc0bd302fce62e9ed14"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_conversation",
+        "value": "sam@partner-example.org|pat@corp.example"
+      },
+      {
+        "detections": [],
+        "directives": [
+          "extract_urls",
+          "render"
+        ],
+        "paths": [
+          {
+            "path": "email.rfc822.unknown_text_html_000.html",
+            "yara_meta": [
+              "type=document.html",
+              "type=email.attachment"
+            ]
+          }
+        ],
+        "size": 491,
+        "tags": [],
+        "type": "file",
+        "value": "d45eb1dac945d14ed7556f0ee73994bb2380e9c5fb21c91b0fa82aae38996e8e"
+      },
+      {
+        "detections": [],
+        "directives": [],
         "paths": [],
         "tags": [],
         "type": "url",
         "value": "https://pay.lure-example.net/review"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_return_path",
+        "value": "sam@partner-example.org"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "message_id",
+        "value": "<lure_not_a_signature@partner-example.org>"
       },
       {
         "detections": [],
@@ -527,81 +538,21 @@
       {
         "detections": [],
         "directives": [],
-        "paths": [
-          {
-            "path": "email.rfc822.headers",
-            "yara_meta": [
-              "type=email",
-              "type=email.headers"
-            ]
-          }
-        ],
-        "size": 326,
-        "tags": [
-          "email"
-        ],
-        "type": "file",
-        "value": "c7fff7ea527f87847fc64783302e7407c76553f7a73cbdc0bd302fce62e9ed14"
+        "paths": [],
+        "tags": [],
+        "type": "email_to",
+        "value": "pat@corp.example"
       }
     ],
     "results": [
       {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": false,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "text/html",
-          "type": "HTML document, ASCII text, with very long lines (490)"
-        },
-        "module": "file_type",
-        "observable": 9,
-        "summary": "File Type Analysis: HTML document, ASCII text, with very long lines (490) (text/html)",
-        "tags": []
-      },
-      {
         "added": [
           {
-            "observable": 12
+            "observable": 4
           },
           {
-            "observable": 6
+            "observable": 14
           },
-          {
-            "observable": 5
-          }
-        ],
-        "class": "URLExtractionAnalysis",
-        "details": {
-          "urls": [
-            "https://pay.lure-example.net/review",
-            "https://pay.lure-example.net/portal",
-            "https://pay.lure-example.net/receipt"
-          ],
-          "urls_grouped_by_domain": {
-            "lure-example.net": [
-              "https://pay.lure-example.net/review",
-              "https://pay.lure-example.net/portal",
-              "https://pay.lure-example.net/receipt"
-            ]
-          }
-        },
-        "module": "url_extraction",
-        "observable": 9,
-        "summary": "URL Extraction Analysis (pay.lure-example.net)",
-        "tags": []
-      },
-      {
-        "added": [
           {
             "observable": 8
           },
@@ -609,16 +560,10 @@
             "observable": 1
           },
           {
-            "observable": 4
+            "observable": 12
           },
           {
-            "observable": 7
-          },
-          {
-            "observable": 0
-          },
-          {
-            "observable": 3
+            "observable": 11
           },
           {
             "observable": 13,
@@ -629,11 +574,11 @@
             "path": "email.rfc822.unknown_text_html_000.html"
           },
           {
-            "observable": 14,
+            "observable": 7,
             "path": "email.rfc822.headers"
           },
           {
-            "observable": 11,
+            "observable": 6,
             "path": "email.rfc822.combined"
           }
         ],
@@ -709,7 +654,7 @@
               "cc": [],
               "compauth_reason": null,
               "compauth_result": null,
-              "date": "2026-11-16 21:32:02.883781 +0000",
+              "date": "2026-11-18 06:05:48.786313 +0000",
               "dkim_result": null,
               "dmarc_result": null,
               "env_mail_from": null,
@@ -769,7 +714,7 @@
           "parsing_error": null
         },
         "module": "email_analyzer",
-        "observable": 10,
+        "observable": 5,
         "summary": "Email Analysis: From Sam Field <sam@partner-example.org> To pat@corp.example Subject Thank you for your payment",
         "tags": []
       },
@@ -792,7 +737,7 @@
           "type": "news or mail, ASCII text"
         },
         "module": "file_type",
-        "observable": 10,
+        "observable": 5,
         "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
         "tags": []
       },
@@ -815,8 +760,86 @@
           "type": "news or mail, ASCII text, with very long lines (490)"
         },
         "module": "file_type",
-        "observable": 11,
+        "observable": 6,
         "summary": "File Type Analysis: news or mail, ASCII text, with very long lines (490) (message/rfc822) (email)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": true,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "message/rfc822",
+          "type": "news or mail, ASCII text"
+        },
+        "module": "file_type",
+        "observable": 7,
+        "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": false,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "text/html",
+          "type": "HTML document, ASCII text, with very long lines (490)"
+        },
+        "module": "file_type",
+        "observable": 9,
+        "summary": "File Type Analysis: HTML document, ASCII text, with very long lines (490) (text/html)",
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 2
+          },
+          {
+            "observable": 3
+          },
+          {
+            "observable": 10
+          }
+        ],
+        "class": "URLExtractionAnalysis",
+        "details": {
+          "urls": [
+            "https://pay.lure-example.net/portal",
+            "https://pay.lure-example.net/receipt",
+            "https://pay.lure-example.net/review"
+          ],
+          "urls_grouped_by_domain": {
+            "lure-example.net": [
+              "https://pay.lure-example.net/portal",
+              "https://pay.lure-example.net/receipt",
+              "https://pay.lure-example.net/review"
+            ]
+          }
+        },
+        "module": "url_extraction",
+        "observable": 9,
+        "summary": "URL Extraction Analysis (pay.lure-example.net)",
         "tags": []
       },
       {
@@ -845,7 +868,7 @@
       {
         "added": [
           {
-            "observable": 2
+            "observable": 0
           }
         ],
         "class": "URLExtractionAnalysis",
@@ -863,31 +886,7 @@
         "observable": 13,
         "summary": "URL Extraction Analysis (offers.lure-example.net)",
         "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": true,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "message/rfc822",
-          "type": "news or mail, ASCII text"
-        },
-        "module": "file_type",
-        "observable": 14,
-        "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
-        "tags": []
       }
-    ],
-    "whitelisted": false
+    ]
   }
 }

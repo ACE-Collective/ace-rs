@@ -1,0 +1,48 @@
+{
+  "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
+  "ace3_commit": "fe6da632",
+  "also_enabled": [],
+  "analyses": [
+    {
+      "class": "ApexDomainAnalysis",
+      "details": {
+        "apex_domain": "example.co.uk"
+      },
+      "detections": [],
+      "module_path": "saq.modules.apex_domain:ApexDomainAnalysis",
+      "observables": [
+        {
+          "detections": [],
+          "directives": [],
+          "display_type": "Apex Domain",
+          "excluded_analysis": [],
+          "relationships": [],
+          "tags": [],
+          "type": "fqdn",
+          "value": "example.co.uk"
+        }
+      ],
+      "summary": "Apex Domain: example.co.uk",
+      "tags": []
+    }
+  ],
+  "input": {
+    "directives": [],
+    "label": "fqdn login.mail.Example.co.uk",
+    "meta_tags": [],
+    "observable": {
+      "type": "fqdn",
+      "value": "login.mail.Example.co.uk"
+    }
+  },
+  "module": "apex_domain_analyzer",
+  "observable_after": {
+    "detections": [],
+    "directives": [],
+    "excluded_analysis": [],
+    "relationships": [],
+    "tags": [],
+    "type": "fqdn",
+    "value": "login.mail.Example.co.uk"
+  }
+}

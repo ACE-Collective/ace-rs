@@ -1,11 +1,12 @@
 # Differences from ace3's reference dumps
 
-`tests/reference.rs` runs the YARA module on `test.zip` with the fixture rules in `tools/ace3/dumps/fixtures/yara/` and the meta tags of each of the three dumps in `tools/ace3/dumps/reference/yara_scanner_v3_4/`, puts both results into the normal form `ace_testkit::reference` describes, and fails on any difference this table doesn't list, or on a row that no longer matches anything. The dumps were made with ace3 at commit 844e3584. The same file also checks the Done condition directly: `ace4_fixture_zip_attachment` matches only when the file is tagged `type=email.attachment`.
+`tests/reference.rs` runs the YARA module on `test.zip` with the fixture rules in `tools/ace3/dumps/fixtures/yara/` and the meta tags of each of the three dumps in `tools/ace3/dumps/reference/yara_scanner_v3_4/`, puts both results into the normal form `ace_testkit::reference` describes, and fails on any difference this table doesn't list, or on a row that no longer matches anything. The dumps were made with ace3 at commit fe6da632. The same file also checks the Done condition directly: `ace4_fixture_zip_attachment` matches only when the file is tagged `type=email.attachment`.
 
 In the Dumps column, `*` matches any text in a dump's name. In the Path column, a `*` segment matches one segment of the JSON pointer, `**` any number, and a `*` inside a segment any text.
 
 | Dumps | Path | Why |
 |---|---|---|
+| `*` | `/details/scan_results/*/rule_content_hash` | A hash of the rule's text, which ace3's SVS capture and YARA QA store read, in the dumps since they were made again at `fe6da632`. ace4 names a rule by its ruleset's key and its name; the trees list the same (`tools/ace3/trees/differences.md`). |
 | `*` | `/details/scan_results/*/strings/*/2` | The bytes a pattern matched stay bytes, written `{"base64": ...}` (ace3 #999). ace3 turns them into text, here `"PK\u0003\u0004"`; both hold the same four bytes. |
 | `*` | `/details/scan_results/*/context/*/2` | The same matched bytes, in the context entry. |
 | `*` | `/details/scan_results/*/match_context/*/data` | The context bytes are bytes too: `{"base64": ...}` where ace3 writes the base64 text itself. The value inside is the same. |

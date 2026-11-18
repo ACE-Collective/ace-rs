@@ -405,7 +405,7 @@ async fn a_completed_pass_emits_one_metrics_event_with_the_roots_counts() {
         "observable_type_counts": {"fqdn": 3, "ipv4": 2, "url": 1},
         "task_count": 12,
         "failed_task_count": 1,
-        "cancelled": false,
+        "outcome": "completed",
     });
     assert_eq!(event, &expected);
     // and one event for each of the three modules that ran, the core's hooks among them, after the
@@ -631,7 +631,7 @@ async fn a_cancelled_root_and_a_root_whose_task_failed_each_emit_their_event() {
     tx.commit().await.expect("commits");
     let events = emitted::of(queued);
     assert_eq!(events.len(), 1, "{events:?}");
-    assert_eq!(events[0]["cancelled"], true);
+    assert_eq!(events[0]["outcome"], "cancelled");
     assert_eq!(events[0]["pass"], 1);
     assert_eq!(events[0]["task_count"], 2);
     assert_eq!(events[0]["failed_task_count"], 0);
@@ -655,7 +655,7 @@ async fn a_cancelled_root_and_a_root_whose_task_failed_each_emit_their_event() {
     slow.cancelled(task.id).await.expect("stops");
     let events = emitted::of(running);
     assert_eq!(events.len(), 1, "{events:?}");
-    assert_eq!(events[0]["cancelled"], true);
+    assert_eq!(events[0]["outcome"], "cancelled");
     assert_eq!(events[0]["task_count"], 2);
     // the task that stopped ran; the one queued behind it didn't
     let modules = emitted::modules_of(running);
@@ -674,7 +674,7 @@ async fn a_cancelled_root_and_a_root_whose_task_failed_each_emit_their_event() {
         .expect("fails");
     let events = emitted::of(failed);
     assert_eq!(events.len(), 1, "{events:?}");
-    assert_eq!(events[0]["cancelled"], false);
+    assert_eq!(events[0]["outcome"], "completed");
     assert_eq!(events[0]["task_count"], 1);
     assert_eq!(events[0]["failed_task_count"], 1);
     // a failed run counts, as a module that raised does in ace3

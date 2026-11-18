@@ -6,8 +6,9 @@
 //! the Ripper as a wordlist with no rules, then opens the file with the one John found: 7z for a zip,
 //! unrar for a RAR, pikepdf for a PDF. A task process starts no process, and 7.3 dropped John, so each
 //! module here tries the same candidates itself, as `msoffice_encryption_analyzer` does (4.11), with
-//! the format's own library: the zip crate, libunrar and libqpdf. The candidates are 4.11's,
-//! `ace_mod_msoffice::words_from_body`.
+//! the format's own library: the zip crate, libunrar and libqpdf. The candidates are those of
+//! `ace_mod_msoffice::words_from_parts`, from every body part of the email since ace3's `1998ca56`,
+//! in ace3's order.
 //!
 //! What John accepts is what's kept, not what the library would: John checks a PDF's user password
 //! and never its owner's, and ace3 reads a zip's or a RAR's password from John's answer up to its first
@@ -22,7 +23,6 @@ pub mod pdf;
 pub mod rar;
 pub mod zip;
 
-use std::fs;
 use std::time::{Duration, Instant};
 
 use ace_mod_msoffice::WordlistLimits;
@@ -60,7 +60,8 @@ macro_rules! wordlist_settings {
             pub range_low: usize,
             /// The longest password to try.
             pub range_high: usize,
-            /// How much of the email's body to look at, in characters.
+            /// How much of each of the email's body parts to look at, in characters, an HTML part's
+            /// after html2text.
             pub byte_limit: usize,
             /// The most passwords to try from the email.
             pub list_limit: usize,
@@ -107,40 +108,33 @@ wordlist_settings!(
     11
 );
 
-/// What the carrying email gave a module.
+/// What the carrying email gave a module: ace3's `wordlist_from_email`.
 #[derive(Debug)]
 pub(crate) enum Carried {
     /// No email carried the file.
     Absent,
-    /// An email did, with no body.
+    /// An email did, with no text in its body parts.
     NoBody,
-    /// Its body as text, cut at `byte_limit`, and the candidates in it in the order they first appear.
+    /// The text of its body parts, and the candidates in it in ace3's order.
     Body { text: String, words: Vec<String> },
-    /// html2text raised on the body.
+    /// html2text raised on an HTML part.
     Raised(String),
 }
 
-/// The carrying email's body and the candidates in it. Call it once the email isn't pending.
+/// The carrying email's body parts and the candidates in them. Call it once the email isn't
+/// pending.
 pub(crate) fn carried<S: Wordlist>(ctx: &TaskContext<S>) -> Result<Carried, ModuleError> {
     Ok(match ctx.carrying_email() {
         CarryingEmail::Pending | CarryingEmail::Absent => Carried::Absent,
         CarryingEmail::NoBody => Carried::NoBody,
-        CarryingEmail::Body(path) => {
-            let body = fs::read(path)?;
-            match ace_mod_msoffice::words_from_body(&body, ctx.settings().limits()) {
-                Ok((text, words)) => Carried::Body { text, words },
+        CarryingEmail::Parts(parts) => {
+            match ace_mod_msoffice::words_from_parts(parts, ctx.settings().limits())? {
+                Ok(Some((text, words))) => Carried::Body { text, words },
+                Ok(None) => Carried::NoBody,
                 Err(error) => Carried::Raised(error.message),
             }
         }
     })
-}
-
-/// The candidates as the result keeps them: sorted, where ace3 has a set's order, which changes from
-/// run to run.
-pub(crate) fn sorted(words: &[String]) -> Vec<String> {
-    let mut sorted = words.to_vec();
-    sorted.sort();
-    sorted
 }
 
 /// When a task stops trying candidates.

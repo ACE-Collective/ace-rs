@@ -1,6 +1,6 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "f72f8946",
+  "ace3_commit": "fe6da632",
   "also_enabled": [
     "email_analyzer",
     "file_type"
@@ -87,7 +87,7 @@
             "cc": [],
             "compauth_reason": null,
             "compauth_result": null,
-            "date": "2026-11-08 21:48:48.765175 +0000",
+            "date": "2026-11-18 05:10:51.615138 +0000",
             "dkim_result": null,
             "dmarc_result": null,
             "env_mail_from": null,
@@ -431,7 +431,7 @@
     {
       "record": {
         "path": "database.pool.status",
-        "timestamp": "2026-11-08T21:48:48.758527",
+        "timestamp": "2026-11-18T05:10:51.605628",
         "value": "Pool size: 5  Connections in pool: 0 Current Overflow: -4 Current Checked out connections: 1"
       },
       "tag": "monitoring"
@@ -441,7 +441,7 @@
         "header": "From: sender@example.com",
         "header_index": 0,
         "message_id": "<encrypted_nested_html.email.rfc822@example.com>",
-        "timestamp": "1794174528.765175"
+        "timestamp": "1794978651.615138"
       },
       "tag": "phishfinder-headers"
     },
@@ -450,7 +450,7 @@
         "header": "To: recipient@example.com",
         "header_index": 1,
         "message_id": "<encrypted_nested_html.email.rfc822@example.com>",
-        "timestamp": "1794174528.765175"
+        "timestamp": "1794978651.615138"
       },
       "tag": "phishfinder-headers"
     },
@@ -459,7 +459,7 @@
         "header": "Subject: the attached file",
         "header_index": 2,
         "message_id": "<encrypted_nested_html.email.rfc822@example.com>",
-        "timestamp": "1794174528.765175"
+        "timestamp": "1794978651.615138"
       },
       "tag": "phishfinder-headers"
     },
@@ -468,7 +468,7 @@
         "header": "Date: Fri, 06 Nov 2026 12:00:00 +0000",
         "header_index": 3,
         "message_id": "<encrypted_nested_html.email.rfc822@example.com>",
-        "timestamp": "1794174528.765175"
+        "timestamp": "1794978651.615138"
       },
       "tag": "phishfinder-headers"
     },
@@ -477,7 +477,7 @@
         "header": "Message-ID: <encrypted_nested_html.email.rfc822@example.com>",
         "header_index": 4,
         "message_id": "<encrypted_nested_html.email.rfc822@example.com>",
-        "timestamp": "1794174528.765175"
+        "timestamp": "1794978651.615138"
       },
       "tag": "phishfinder-headers"
     },
@@ -486,7 +486,7 @@
         "header": "MIME-Version: 1.0",
         "header_index": 5,
         "message_id": "<encrypted_nested_html.email.rfc822@example.com>",
-        "timestamp": "1794174528.765175"
+        "timestamp": "1794978651.615138"
       },
       "tag": "phishfinder-headers"
     },
@@ -495,7 +495,7 @@
         "header": "Content-Type: multipart/mixed; boundary=\"===============7461630536846085791==\"",
         "header_index": 6,
         "message_id": "<encrypted_nested_html.email.rfc822@example.com>",
-        "timestamp": "1794174528.765175"
+        "timestamp": "1794978651.615138"
       },
       "tag": "phishfinder-headers"
     },
@@ -536,7 +536,7 @@
         "cc": [],
         "compauth_reason": null,
         "compauth_result": null,
-        "date": "2026-11-08 21:48:48.765175 +0000",
+        "date": "2026-11-18 05:10:51.615138 +0000",
         "dkim_result": null,
         "dmarc_result": null,
         "env_mail_from": null,
@@ -564,7 +564,7 @@
         "subject_raw": "the attached file",
         "thread_index": null,
         "thread_topic": null,
-        "timestamp": "1794174528.765175",
+        "timestamp": "1794978651.615138",
         "user_agent": null,
         "x_mailer": null,
         "x_sender": null
@@ -594,62 +594,73 @@
         "thread_id": "<encrypted_nested_html.email.rfc822@example.com>",
         "thread_message_count": 0,
         "thread_method": "self",
-        "timestamp": "1794174528.765175"
+        "timestamp": "1794978651.615138"
       },
       "tag": "phishfinder-lookalike"
     },
     {
       "record": {
         "alert_type": "cli_analysis",
-        "analysis_time_seconds": 0.007954,
+        "event_type": "root",
+        "is_alert": false,
+        "observable_count": 18,
+        "observable_type_counts": {
+          "email_conversation": 1,
+          "email_from": 1,
+          "email_subject": 1,
+          "email_to": 1,
+          "file": 12,
+          "message_id": 2
+        },
+        "outcome": "completed",
+        "queue": "default",
+        "root_uuid": "518059e6-ca31-4709-ba3a-1171bbfcf72d",
+        "timestamp": "2026-11-18 05:10:52.368746",
+        "total_analysis_time_seconds": 0.100151,
+        "total_time_seconds": 0.7886981964111328
+      },
+      "tag": "metrics"
+    },
+    {
+      "record": {
+        "analysis_time_seconds": 0.014358,
+        "event_type": "module",
         "exec_count": 8,
-        "is_alert": false,
         "module": "email_analyzer",
-        "percentage": 2.8897846025381493,
-        "queue": "default",
-        "root_uuid": "35fbae81-e895-48fb-a52a-fd6ee51197b3",
-        "timestamp": "2026-11-08 21:48:49.017791",
-        "total_analysis_time_seconds": 0.05033599999999999,
-        "total_time_seconds": 0.27524542808532715
+        "percentage": 1.820468217796641,
+        "root_uuid": "518059e6-ca31-4709-ba3a-1171bbfcf72d",
+        "timestamp": "2026-11-18 05:10:52.368746"
       },
       "tag": "metrics"
     },
     {
       "record": {
-        "alert_type": "cli_analysis",
-        "analysis_time_seconds": 0.040167999999999995,
+        "analysis_time_seconds": 0.079763,
+        "event_type": "module",
         "exec_count": 12,
-        "is_alert": false,
         "module": "file_type",
-        "percentage": 14.593521236453658,
-        "queue": "default",
-        "root_uuid": "35fbae81-e895-48fb-a52a-fd6ee51197b3",
-        "timestamp": "2026-11-08 21:48:49.017791",
-        "total_analysis_time_seconds": 0.05033599999999999,
-        "total_time_seconds": 0.27524542808532715
+        "percentage": 10.11324741998283,
+        "root_uuid": "518059e6-ca31-4709-ba3a-1171bbfcf72d",
+        "timestamp": "2026-11-18 05:10:52.368746"
       },
       "tag": "metrics"
     },
     {
       "record": {
-        "alert_type": "cli_analysis",
-        "analysis_time_seconds": 0.002214,
+        "analysis_time_seconds": 0.006030000000000001,
+        "event_type": "module",
         "exec_count": 18,
-        "is_alert": false,
         "module": "email_logger",
-        "percentage": 0.8043730336961861,
-        "queue": "default",
-        "root_uuid": "35fbae81-e895-48fb-a52a-fd6ee51197b3",
-        "timestamp": "2026-11-08 21:48:49.017791",
-        "total_analysis_time_seconds": 0.05033599999999999,
-        "total_time_seconds": 0.27524542808532715
+        "percentage": 0.764551006638372,
+        "root_uuid": "518059e6-ca31-4709-ba3a-1171bbfcf72d",
+        "timestamp": "2026-11-18 05:10:52.368746"
       },
       "tag": "metrics"
     },
     {
       "record": {
         "path": "database.pool.available_count",
-        "timestamp": "2026-11-08T21:48:49.018058",
+        "timestamp": "2026-11-18T05:10:52.369233",
         "value": 0
       },
       "tag": "monitoring"
@@ -657,7 +668,7 @@
     {
       "record": {
         "path": "database.pool.in_use_count",
-        "timestamp": "2026-11-08T21:48:49.018081",
+        "timestamp": "2026-11-18T05:10:52.369277",
         "value": 1
       },
       "tag": "monitoring"

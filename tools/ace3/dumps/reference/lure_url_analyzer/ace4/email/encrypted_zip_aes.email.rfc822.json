@@ -1,6 +1,6 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "37a765bf",
+  "ace3_commit": "fe6da632",
   "also_enabled": [
     "file_type",
     "email_analyzer",
@@ -61,7 +61,7 @@
               ],
               []
             ],
-            "observable_uuid": "d56170b8-875e-4113-a4f0-04ced3420115",
+            "observable_uuid": "b4d8f71a-4ff8-4ecc-bd3b-bed7197a5522",
             "reasons": [
               "found in attachment invoice.zip",
               "same domain as the sender (example.com)"
@@ -81,7 +81,7 @@
               ],
               []
             ],
-            "observable_uuid": "f89bae23-0b44-4184-8637-ef42506720c3",
+            "observable_uuid": "cd12e262-5398-4598-b0b4-a6b8fd56dbd4",
             "reasons": [
               "found in attachment invoice.zip",
               "same domain as the sender (example.com)"
@@ -172,7 +172,7 @@
             "cc": [],
             "compauth_reason": null,
             "compauth_result": null,
-            "date": "2026-11-16 16:40:56.862754 +0000",
+            "date": "2026-11-18 05:59:35.960531 +0000",
             "dkim_result": null,
             "dmarc_result": null,
             "env_mail_from": null,
@@ -453,26 +453,21 @@
       {
         "detections": [],
         "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_to",
-        "value": "recipient@example.com"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "sha256",
-        "value": "3300560ced3d600b14aebe26906c95e2a192fa2d2351579601dc99bc522bc214"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_conversation",
-        "value": "sender@example.com|recipient@example.com"
+        "paths": [
+          {
+            "path": "email.rfc822.combined",
+            "yara_meta": [
+              "type=email",
+              "type=email.combined"
+            ]
+          }
+        ],
+        "size": 278,
+        "tags": [
+          "email"
+        ],
+        "type": "file",
+        "value": "56c690c49201fa69971f81796d3831284ab4df4581103585bdfa90a61ef0477a"
       },
       {
         "detections": [],
@@ -497,24 +492,76 @@
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "fqdn",
-        "value": "example.com"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_subject",
-        "value": "the attached file"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
         "type": "sha256",
-        "value": "8dcb4874ebe8fa12f38b5980be914b5a8ef18ca6083fd5d01a2f5725a07fbb32"
+        "value": "3300560ced3d600b14aebe26906c95e2a192fa2d2351579601dc99bc522bc214"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "message_id",
+        "value": "<encrypted_zip_aes@example.com>"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "md5",
+        "value": "cffc4e3ead01bb5a72eaa1f1afd3bade"
+      },
+      {
+        "detections": [
+          "Was able to decrypt based on contents of email."
+        ],
+        "directives": [
+          "extract_urls"
+        ],
+        "paths": [
+          {
+            "path": "invoice.zip.decrypted/docs/notes.txt",
+            "yara_meta": []
+          }
+        ],
+        "size": 70,
+        "tags": [],
+        "type": "file",
+        "value": "3300560ced3d600b14aebe26906c95e2a192fa2d2351579601dc99bc522bc214"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_from",
+        "value": "sender@example.com"
+      },
+      {
+        "detections": [
+          "Was able to decrypt based on contents of email."
+        ],
+        "directives": [
+          "extract_urls"
+        ],
+        "paths": [
+          {
+            "path": "invoice.zip.decrypted/invoice.txt",
+            "yara_meta": []
+          }
+        ],
+        "size": 74,
+        "tags": [],
+        "type": "file",
+        "value": "8134eac7b93d58b0e99176e2c8e315c7c82bcdefd64a5d68bfb26dca896d7512"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "uri_path",
+        "value": "/notes.txt"
       },
       {
         "detections": [],
@@ -540,68 +587,16 @@
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "message_id",
-        "value": "<encrypted_zip_aes@example.com>"
+        "type": "email_conversation",
+        "value": "sender@example.com|recipient@example.com"
       },
       {
         "detections": [],
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "uri_path",
-        "value": "/notes.txt"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "md5",
-        "value": "9428b4cb3732575512d83d6f99a003b6"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "md5",
-        "value": "a4d9704d99088d239183a3c8fd0c1745"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_from",
-        "value": "sender@example.com"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [
-          "domain_in_url"
-        ],
         "type": "fqdn",
-        "value": "payload.example.com"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [
-          {
-            "path": "invoice.zip.extracted/docs/notes.txt",
-            "yara_meta": []
-          },
-          {
-            "path": "invoice.zip.extracted/invoice.txt",
-            "yara_meta": []
-          }
-        ],
-        "size": 0,
-        "tags": [],
-        "type": "file",
-        "value": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        "value": "example.com"
       },
       {
         "detections": [],
@@ -614,92 +609,10 @@
       {
         "detections": [],
         "directives": [],
-        "paths": [
-          {
-            "path": "email.rfc822.combined",
-            "yara_meta": [
-              "type=email",
-              "type=email.combined"
-            ]
-          }
-        ],
-        "size": 278,
-        "tags": [
-          "email"
-        ],
-        "type": "file",
-        "value": "56c690c49201fa69971f81796d3831284ab4df4581103585bdfa90a61ef0477a"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [
-          {
-            "path": "email.rfc822.headers",
-            "yara_meta": [
-              "type=email",
-              "type=email.headers"
-            ]
-          }
-        ],
-        "size": 242,
-        "tags": [
-          "email"
-        ],
-        "type": "file",
-        "value": "45b9fe17201db363353c7d0ad8a4605090b5f32db4e744c83bcf4253373e5059"
-      },
-      {
-        "detections": [
-          "Was able to decrypt based on contents of email."
-        ],
-        "directives": [
-          "extract_urls"
-        ],
-        "paths": [
-          {
-            "path": "invoice.zip.decrypted/docs/notes.txt",
-            "yara_meta": []
-          }
-        ],
-        "size": 70,
-        "tags": [],
-        "type": "file",
-        "value": "3300560ced3d600b14aebe26906c95e2a192fa2d2351579601dc99bc522bc214"
-      },
-      {
-        "detections": [],
-        "directives": [],
         "paths": [],
         "tags": [],
         "type": "sha256",
-        "value": "8134eac7b93d58b0e99176e2c8e315c7c82bcdefd64a5d68bfb26dca896d7512"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "url",
-        "value": "https://payload.example.com/invoice.txt"
-      },
-      {
-        "detections": [
-          "Was able to decrypt based on contents of email."
-        ],
-        "directives": [
-          "extract_urls"
-        ],
-        "paths": [
-          {
-            "path": "invoice.zip.decrypted/invoice.txt",
-            "yara_meta": []
-          }
-        ],
-        "size": 74,
-        "tags": [],
-        "type": "file",
-        "value": "8134eac7b93d58b0e99176e2c8e315c7c82bcdefd64a5d68bfb26dca896d7512"
+        "value": "8dcb4874ebe8fa12f38b5980be914b5a8ef18ca6083fd5d01a2f5725a07fbb32"
       },
       {
         "detections": [],
@@ -729,6 +642,32 @@
         "paths": [],
         "tags": [],
         "type": "url",
+        "value": "https://payload.example.com/invoice.txt"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [
+          {
+            "path": "invoice.zip.extracted/docs/notes.txt",
+            "yara_meta": []
+          },
+          {
+            "path": "invoice.zip.extracted/invoice.txt",
+            "yara_meta": []
+          }
+        ],
+        "size": 0,
+        "tags": [],
+        "type": "file",
+        "value": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "url",
         "value": "https://payload.example.com/notes.txt"
       },
       {
@@ -736,24 +675,110 @@
         "directives": [],
         "paths": [],
         "tags": [],
+        "type": "email_to",
+        "value": "recipient@example.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
         "type": "md5",
-        "value": "cffc4e3ead01bb5a72eaa1f1afd3bade"
+        "value": "9428b4cb3732575512d83d6f99a003b6"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [
+          "domain_in_url"
+        ],
+        "type": "fqdn",
+        "value": "payload.example.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "sha256",
+        "value": "8134eac7b93d58b0e99176e2c8e315c7c82bcdefd64a5d68bfb26dca896d7512"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [
+          {
+            "path": "email.rfc822.headers",
+            "yara_meta": [
+              "type=email",
+              "type=email.headers"
+            ]
+          }
+        ],
+        "size": 242,
+        "tags": [
+          "email"
+        ],
+        "type": "file",
+        "value": "45b9fe17201db363353c7d0ad8a4605090b5f32db4e744c83bcf4253373e5059"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_subject",
+        "value": "the attached file"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "md5",
+        "value": "a4d9704d99088d239183a3c8fd0c1745"
       }
     ],
     "results": [
       {
-        "added": [
-          {
-            "observable": 4
-          }
-        ],
-        "class": "EmailAddressFQDNAnalysis",
+        "added": [],
+        "class": "FileTypeAnalysis",
         "details": {
-          "domain": "example.com"
+          "is_email_file": true,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "message/rfc822",
+          "type": "news or mail, ASCII text"
         },
-        "module": "email_address_fqdn_analyzer",
+        "module": "file_type",
         "observable": 0,
-        "summary": "Email Address FQDN: example.com",
+        "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "HTMLJavaScriptExtractionAnalysis",
+        "details": {
+          "dom_snapshot_files": [],
+          "duplicate_count": 0,
+          "extracted_files": [],
+          "extracted_uri_paths": [],
+          "extracted_urls": [],
+          "inline_handlers": [],
+          "script_count": 0
+        },
+        "module": "html_js_extraction",
+        "observable": 0,
+        "summary": null,
         "tags": []
       },
       {
@@ -770,7 +795,7 @@
                 ],
                 []
               ],
-              "observable_uuid": "d56170b8-875e-4113-a4f0-04ced3420115",
+              "observable_uuid": "b4d8f71a-4ff8-4ecc-bd3b-bed7197a5522",
               "reasons": [
                 "found in attachment invoice.zip",
                 "same domain as the sender (example.com)"
@@ -790,7 +815,7 @@
                 ],
                 []
               ],
-              "observable_uuid": "f89bae23-0b44-4184-8637-ef42506720c3",
+              "observable_uuid": "cd12e262-5398-4598-b0b4-a6b8fd56dbd4",
               "reasons": [
                 "found in attachment invoice.zip",
                 "same domain as the sender (example.com)"
@@ -807,41 +832,41 @@
           "subject": "the attached file"
         },
         "module": "lure_url_analyzer",
-        "observable": 3,
+        "observable": 1,
         "summary": "Lure URL Analysis: no lure URL identified",
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 12
+            "observable": 6
           },
           {
-            "observable": 0
+            "observable": 18
           },
           {
-            "observable": 2
+            "observable": 10
           },
           {
-            "observable": 5
+            "observable": 23
           },
           {
-            "observable": 8
+            "observable": 3
           },
           {
-            "observable": 7,
+            "observable": 9,
             "path": "email.rfc822.unknown_text_plain_000.txt"
           },
           {
-            "observable": 22,
+            "observable": 14,
             "path": "invoice.zip"
           },
           {
-            "observable": 17,
+            "observable": 22,
             "path": "email.rfc822.headers"
           },
           {
-            "observable": 16,
+            "observable": 0,
             "path": "email.rfc822.combined"
           }
         ],
@@ -913,7 +938,7 @@
               "cc": [],
               "compauth_reason": null,
               "compauth_result": null,
-              "date": "2026-11-16 16:40:56.862754 +0000",
+              "date": "2026-11-18 05:59:35.960531 +0000",
               "dkim_result": null,
               "dmarc_result": null,
               "env_mail_from": null,
@@ -971,7 +996,7 @@
           "parsing_error": null
         },
         "module": "email_analyzer",
-        "observable": 3,
+        "observable": 1,
         "summary": "Email Analysis: From sender@example.com To recipient@example.com Subject the attached file",
         "tags": []
       },
@@ -994,7 +1019,7 @@
           "type": "news or mail, ASCII text"
         },
         "module": "file_type",
-        "observable": 3,
+        "observable": 1,
         "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
         "tags": []
       },
@@ -1011,7 +1036,7 @@
           "script_count": 0
         },
         "module": "html_js_extraction",
-        "observable": 3,
+        "observable": 1,
         "summary": null,
         "tags": []
       },
@@ -1034,26 +1059,56 @@
           "type": "ASCII text"
         },
         "module": "file_type",
-        "observable": 7,
+        "observable": 5,
         "summary": "File Type Analysis: ASCII text (text/plain)",
         "tags": []
       },
       {
-        "added": [],
-        "class": "URLExtractionAnalysis",
+        "added": [
+          {
+            "observable": 19
+          },
+          {
+            "observable": 2
+          }
+        ],
+        "class": "FileHashAnalysis",
         "details": {
-          "urls": [],
-          "urls_grouped_by_domain": {}
+          "md5": "9428b4cb3732575512d83d6f99a003b6",
+          "sha1": "5a7280b469da57f01a54398758509e060d871851",
+          "sha256": "3300560ced3d600b14aebe26906c95e2a192fa2d2351579601dc99bc522bc214"
         },
-        "module": "url_extraction",
-        "observable": 7,
+        "module": "file_hash_analyzer",
+        "observable": 5,
         "summary": null,
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 4
+            "observable": 17
+          }
+        ],
+        "class": "URLExtractionAnalysis",
+        "details": {
+          "urls": [
+            "https://payload.example.com/notes.txt"
+          ],
+          "urls_grouped_by_domain": {
+            "example.com": [
+              "https://payload.example.com/notes.txt"
+            ]
+          }
+        },
+        "module": "url_extraction",
+        "observable": 5,
+        "summary": "URL Extraction Analysis (payload.example.com)",
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 11
           }
         ],
         "class": "EmailAddressFQDNAnalysis",
@@ -1061,7 +1116,7 @@
           "domain": "example.com"
         },
         "module": "email_address_fqdn_analyzer",
-        "observable": 12,
+        "observable": 6,
         "summary": "Email Address FQDN: example.com",
         "tags": []
       },
@@ -1080,224 +1135,21 @@
           "is_rtf_file": false,
           "is_x509": false,
           "is_zip_file": false,
-          "mime": "inode/x-empty",
-          "type": "empty"
-        },
-        "module": "file_type",
-        "observable": 14,
-        "summary": "File Type Analysis: empty (inode/x-empty)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": true,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "message/rfc822",
-          "type": "news or mail, ASCII text"
-        },
-        "module": "file_type",
-        "observable": 16,
-        "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "HTMLJavaScriptExtractionAnalysis",
-        "details": {
-          "dom_snapshot_files": [],
-          "duplicate_count": 0,
-          "extracted_files": [],
-          "extracted_uri_paths": [],
-          "extracted_urls": [],
-          "inline_handlers": [],
-          "script_count": 0
-        },
-        "module": "html_js_extraction",
-        "observable": 16,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": true,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "message/rfc822",
-          "type": "news or mail, ASCII text"
-        },
-        "module": "file_type",
-        "observable": 17,
-        "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "HTMLJavaScriptExtractionAnalysis",
-        "details": {
-          "dom_snapshot_files": [],
-          "duplicate_count": 0,
-          "extracted_files": [],
-          "extracted_uri_paths": [],
-          "extracted_urls": [],
-          "inline_handlers": [],
-          "script_count": 0
-        },
-        "module": "html_js_extraction",
-        "observable": 17,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": false,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
           "mime": "text/plain",
           "type": "ASCII text"
         },
         "module": "file_type",
-        "observable": 18,
+        "observable": 7,
         "summary": "File Type Analysis: ASCII text (text/plain)",
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 10
+            "observable": 4
           },
           {
-            "observable": 1
-          }
-        ],
-        "class": "FileHashAnalysis",
-        "details": {
-          "md5": "9428b4cb3732575512d83d6f99a003b6",
-          "sha1": "5a7280b469da57f01a54398758509e060d871851",
-          "sha256": "3300560ced3d600b14aebe26906c95e2a192fa2d2351579601dc99bc522bc214"
-        },
-        "module": "file_hash_analyzer",
-        "observable": 18,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 23
-          }
-        ],
-        "class": "URLExtractionAnalysis",
-        "details": {
-          "urls": [
-            "https://payload.example.com/notes.txt"
-          ],
-          "urls_grouped_by_domain": {
-            "example.com": [
-              "https://payload.example.com/notes.txt"
-            ]
-          }
-        },
-        "module": "url_extraction",
-        "observable": 18,
-        "summary": "URL Extraction Analysis (payload.example.com)",
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 13
-          },
-          {
-            "observable": 15
-          }
-        ],
-        "class": "ParseURLAnalysis",
-        "details": {
-          "fragment": "",
-          "netloc": "payload.example.com",
-          "params": null,
-          "path": "/invoice.txt",
-          "query": "",
-          "scheme": "https"
-        },
-        "module": "parse_url",
-        "observable": 20,
-        "summary": "URL Parser: scheme=https, netloc=payload.example.com, path=/invoice.txt",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "ProtectedURLAnalysis",
-        "details": {
-          "extracted_url": "https://payload.example.com/invoice.txt",
-          "protection_type": "unprotected"
-        },
-        "module": "protected_url_analyzer",
-        "observable": 20,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": false,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "text/plain",
-          "type": "ASCII text"
-        },
-        "module": "file_type",
-        "observable": 21,
-        "summary": "File Type Analysis: ASCII text (text/plain)",
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 24
-          },
-          {
-            "observable": 19
+            "observable": 21
           }
         ],
         "class": "FileHashAnalysis",
@@ -1307,14 +1159,14 @@
           "sha256": "8134eac7b93d58b0e99176e2c8e315c7c82bcdefd64a5d68bfb26dca896d7512"
         },
         "module": "file_hash_analyzer",
-        "observable": 21,
+        "observable": 7,
         "summary": null,
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 20
+            "observable": 15
           }
         ],
         "class": "URLExtractionAnalysis",
@@ -1329,79 +1181,114 @@
           }
         },
         "module": "url_extraction",
-        "observable": 21,
+        "observable": 7,
         "summary": "URL Extraction Analysis (payload.example.com)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": false,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "text/plain",
+          "type": "ASCII text"
+        },
+        "module": "file_type",
+        "observable": 9,
+        "summary": "File Type Analysis: ASCII text (text/plain)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "URLExtractionAnalysis",
+        "details": {
+          "urls": [],
+          "urls_grouped_by_domain": {}
+        },
+        "module": "url_extraction",
+        "observable": 9,
+        "summary": null,
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 21,
+            "observable": 7,
             "path": "invoice.zip.decrypted/invoice.txt"
           },
           {
-            "observable": 18,
+            "observable": 5,
             "path": "invoice.zip.decrypted/docs/notes.txt"
           }
         ],
         "class": "ZipEncryptionAnalysis",
         "details": {
           "email": true,
-          "email_body": "The password is Aes256Pw thanks\n\n",
+          "email_body": "The password is Aes256Pw thanks",
           "encryption_info": null,
           "password": "Aes256Pw",
           "word_list": [
-            "Aes256",
+            "password",
             "Aes256Pw",
-            "s256Pw",
-            "256Pw",
+            "thanks",
             "pass",
+            "assw",
+            "sswo",
+            "swor",
+            "word",
+            "Aes2",
+            "es25",
+            "s256",
+            "256P",
+            "56Pw",
+            "than",
+            "hank",
             "anks",
             "passw",
             "asswo",
-            "hanks",
-            "thank",
-            "s256",
-            "Aes25",
-            "word",
-            "passwor",
-            "Aes2",
-            "es256P",
-            "swor",
             "sswor",
-            "assword",
-            "asswor",
-            "sswo",
-            "password",
-            "passwo",
-            "Aes256P",
-            "256P",
-            "s256P",
-            "es25",
-            "hank",
-            "than",
-            "ssword",
             "sword",
-            "es256Pw",
-            "56Pw",
+            "Aes25",
             "es256",
-            "assw",
-            "thanks"
+            "s256P",
+            "256Pw",
+            "thank",
+            "hanks",
+            "passwo",
+            "asswor",
+            "ssword",
+            "Aes256",
+            "es256P",
+            "s256Pw",
+            "passwor",
+            "assword",
+            "Aes256P",
+            "es256Pw"
           ]
         },
         "module": "zip_encryption_analyzer",
-        "observable": 22,
+        "observable": 14,
         "summary": "Zip Encryption Analysis: password Aes256Pw",
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 14,
+            "observable": 16,
             "path": "invoice.zip.extracted/invoice.txt"
           },
           {
-            "observable": 14,
+            "observable": 16,
             "path": "invoice.zip.extracted/docs/notes.txt"
           }
         ],
@@ -1414,7 +1301,7 @@
           "file_count": 2
         },
         "module": "archive",
-        "observable": 22,
+        "observable": 14,
         "summary": "Archive Analysis: extracted 2 of 2 files: (invoice.txt, docs/notes.txt)",
         "tags": []
       },
@@ -1437,17 +1324,17 @@
           "type": "Zip archive data, made by v6.3 UNIX, extract using at least v5.1, last modified Jan 01 2020 12:00:00, uncompressed size 70, method=AES Encrypted"
         },
         "module": "file_type",
-        "observable": 22,
+        "observable": 14,
         "summary": "File Type Analysis: Zip archive data, made by v6.3 UNIX, extract using at least v5.1, last modified Jan 01 2020 12:00:00, uncompressed size 70, method=AES Encrypted (application/zip) (zip archive)",
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 11
+            "observable": 24
           },
           {
-            "observable": 6
+            "observable": 13
           }
         ],
         "class": "FileHashAnalysis",
@@ -1457,7 +1344,7 @@
           "sha256": "8dcb4874ebe8fa12f38b5980be914b5a8ef18ca6083fd5d01a2f5725a07fbb32"
         },
         "module": "file_hash_analyzer",
-        "observable": 22,
+        "observable": 14,
         "summary": null,
         "tags": []
       },
@@ -1470,7 +1357,7 @@
           "type": null
         },
         "module": "olevba_v1_2",
-        "observable": 22,
+        "observable": 14,
         "summary": null,
         "tags": []
       },
@@ -1482,17 +1369,75 @@
           "urls_grouped_by_domain": {}
         },
         "module": "url_extraction",
-        "observable": 22,
+        "observable": 14,
         "summary": null,
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 13
+            "observable": 20
           },
           {
-            "observable": 9
+            "observable": 12
+          }
+        ],
+        "class": "ParseURLAnalysis",
+        "details": {
+          "fragment": "",
+          "netloc": "payload.example.com",
+          "params": null,
+          "path": "/invoice.txt",
+          "query": "",
+          "scheme": "https"
+        },
+        "module": "parse_url",
+        "observable": 15,
+        "summary": "URL Parser: scheme=https, netloc=payload.example.com, path=/invoice.txt",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "ProtectedURLAnalysis",
+        "details": {
+          "extracted_url": "https://payload.example.com/invoice.txt",
+          "protection_type": "unprotected"
+        },
+        "module": "protected_url_analyzer",
+        "observable": 15,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": false,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "inode/x-empty",
+          "type": "empty"
+        },
+        "module": "file_type",
+        "observable": 16,
+        "summary": "File Type Analysis: empty (inode/x-empty)",
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 20
+          },
+          {
+            "observable": 8
           }
         ],
         "class": "ParseURLAnalysis",
@@ -1505,7 +1450,7 @@
           "scheme": "https"
         },
         "module": "parse_url",
-        "observable": 23,
+        "observable": 17,
         "summary": "URL Parser: scheme=https, netloc=payload.example.com, path=/notes.txt",
         "tags": []
       },
@@ -1517,11 +1462,65 @@
           "protection_type": "unprotected"
         },
         "module": "protected_url_analyzer",
-        "observable": 23,
+        "observable": 17,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 11
+          }
+        ],
+        "class": "EmailAddressFQDNAnalysis",
+        "details": {
+          "domain": "example.com"
+        },
+        "module": "email_address_fqdn_analyzer",
+        "observable": 18,
+        "summary": "Email Address FQDN: example.com",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": true,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "message/rfc822",
+          "type": "news or mail, ASCII text"
+        },
+        "module": "file_type",
+        "observable": 22,
+        "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "HTMLJavaScriptExtractionAnalysis",
+        "details": {
+          "dom_snapshot_files": [],
+          "duplicate_count": 0,
+          "extracted_files": [],
+          "extracted_uri_paths": [],
+          "extracted_urls": [],
+          "inline_handlers": [],
+          "script_count": 0
+        },
+        "module": "html_js_extraction",
+        "observable": 22,
         "summary": null,
         "tags": []
       }
-    ],
-    "whitelisted": false
+    ]
   }
 }

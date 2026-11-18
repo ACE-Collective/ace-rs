@@ -129,40 +129,7 @@
         "pdf": true
       }
     },
-    "file:36916f1a4bc0d25128684ebfd380326bb016ae786309e397274a9174108262d3": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "ComplaintApril_424256637.pdf.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:f68ba01d524f39a2832632eeb77772feb30440d2dbbf92fc83de39494cff4076": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
-    "file:5c9b6ef4c5dd681b72eb77c6050606d367576aaf0789fbe6db7da01c67968e06": {
+    "file:391fd5294ac7a146d899fd3e1497c5193b5104df59fc2273936e40c853cdb791": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -429,9 +396,9 @@
           "type=document.pdf.text": true
         }
       },
-      "redirection": "file:5c9b6ef4c5dd681b72eb77c6050606d367576aaf0789fbe6db7da01c67968e06",
+      "redirection": "file:391fd5294ac7a146d899fd3e1497c5193b5104df59fc2273936e40c853cdb791",
       "relationships": {
-        "extracted_from file:5c9b6ef4c5dd681b72eb77c6050606d367576aaf0789fbe6db7da01c67968e06": true,
+        "extracted_from file:391fd5294ac7a146d899fd3e1497c5193b5104df59fc2273936e40c853cdb791": true,
         "extracted_from file:f68ba01d524f39a2832632eeb77772feb30440d2dbbf92fc83de39494cff4076": true
       },
       "results": {
@@ -454,6 +421,39 @@
           "summary": "File Type Analysis: Unicode text, UTF-8 text (text/plain)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:c86847d2d70415ba50ba6d96c415c3b2db62e17fbaaf784b71c796f5dfdad4be": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "ComplaintApril_424256637.pdf.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:f68ba01d524f39a2832632eeb77772feb30440d2dbbf92fc83de39494cff4076": true
+      },
+      "results": {
         "observable_detection": {
           "details": {
             "for_detection": false
@@ -549,8 +549,8 @@
               "ExifTool:ExifToolVersion": 13.25,
               "ExifTool:Warning": "[minor] Decryption is very slow for encryption V5.6 or higher",
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 19:44:51+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 19:44:51+00:00",
+              "File:FileAccessDate": "2026:11:18 03:53:09+00:00",
+              "File:FileInodeChangeDate": "2026:11:18 03:53:09+00:00",
               "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "ComplaintApril_424256637.pdf",
               "File:FilePermissions": 100644,
@@ -793,6 +793,103 @@
         "domain_in_url": true
       }
     },
+    "fqdn:adobe.com": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "fqdn_analyzer": {
+          "details": {
+            "aliaslist": [],
+            "all_resolutions": [],
+            "ip_address": null,
+            "mx": null,
+            "resolution_count": null,
+            "status": "nxdomain",
+            "wildcard_dns": null
+          },
+          "summary": "DNS Analysis: does not exist (nxdomain)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "proxy_domain_splunk": {
+          "details": {
+            "dispatch_state": "DONE",
+            "gui_link": null,
+            "query": "index=proxy hostname=\"adobe.com\"",
+            "query_results": [
+              {
+                "_time": "2026-10-30T14:02:11.000+00:00",
+                "dest_ip": "198.51.100.20",
+                "full_url": "https://www.example.com/login",
+                "src_ip": "192.0.2.10",
+                "src_translated_ip": "198.51.100.7",
+                "user": "alice@example.com"
+              },
+              {
+                "_time": "2026-10-30T14:05:42.000+00:00",
+                "dest_ip": "198.51.100.20",
+                "full_url": "http://www.example.com/",
+                "src_ip": "192.0.2.11",
+                "src_translated_ip": "198.51.100.7",
+                "user": "bob@example.com"
+              },
+              {
+                "_time": "2026-10-30T14:09:03.000+00:00",
+                "dest_ip": "198.51.100.21",
+                "full_url": "https://www.example.com/static/app.js",
+                "src_ip": "192.0.2.12"
+              }
+            ],
+            "query_summary": "Proxy correlation",
+            "question": "Was this domain seen in proxy logs?"
+          },
+          "summary": "Proxy correlation: (3 results)",
+          "tags": {}
+        },
+        "rdap_analyzer": {
+          "details": {
+            "assignment_type": null,
+            "country": null,
+            "datetime_created": null,
+            "datetime_expiration": null,
+            "datetime_of_last_update": null,
+            "domain_name": null,
+            "emails": null,
+            "ip_version": null,
+            "lookup_protocol": null,
+            "name_servers": null,
+            "network_cidr": null,
+            "network_name": null,
+            "not_found": null,
+            "rdap_attempt_error": "Failed to make a GET request to https://rdap.verisign.com/com/v1/domain/adobe.com: nothing recorded for GET https://rdap.verisign.com/com/v1/domain/adobe.com",
+            "rdap_data": null,
+            "rdap_raw_json": null,
+            "rdap_service_url": null,
+            "registrar": null,
+            "whois_data": null,
+            "whois_raw_text": null
+          },
+          "error": "rdap: Failed to make a GET request to https://rdap.verisign.com/com/v1/domain/adobe.com: nothing recorded for GET https://rdap.verisign.com/com/v1/domain/adobe.com; whois: no WHOIS in a replay",
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "fqdn:example.com": {
       "detections": {},
       "directives": {},
@@ -1030,6 +1127,13 @@
       "excluded_analysis": {},
       "relationships": {},
       "results": {
+        "apex_domain_analyzer": {
+          "details": {
+            "apex_domain": "adobe.com"
+          },
+          "summary": "Apex Domain: adobe.com",
+          "tags": {}
+        },
         "fqdn_analyzer": {
           "details": {
             "aliaslist": [],
@@ -1083,32 +1187,6 @@
             "question": "Was this domain seen in proxy logs?"
           },
           "summary": "Proxy correlation: (3 results)",
-          "tags": {}
-        },
-        "rdap_analyzer": {
-          "details": {
-            "assignment_type": null,
-            "country": null,
-            "datetime_created": null,
-            "datetime_expiration": null,
-            "datetime_of_last_update": null,
-            "domain_name": null,
-            "emails": null,
-            "ip_version": null,
-            "lookup_protocol": null,
-            "name_servers": null,
-            "network_cidr": null,
-            "network_name": null,
-            "not_found": null,
-            "rdap_attempt_error": "Failed to make a GET request to https://rdap.verisign.com/com/v1/domain/adobe.com: nothing recorded for GET https://rdap.verisign.com/com/v1/domain/adobe.com",
-            "rdap_data": null,
-            "rdap_raw_json": null,
-            "rdap_service_url": null,
-            "registrar": null,
-            "whois_data": null,
-            "whois_raw_text": null
-          },
-          "error": "rdap: Failed to make a GET request to https://rdap.verisign.com/com/v1/domain/adobe.com: nothing recorded for GET https://rdap.verisign.com/com/v1/domain/adobe.com; whois: no WHOIS in a replay",
           "tags": {}
         },
         "user_defined_tagging": {

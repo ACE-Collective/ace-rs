@@ -235,8 +235,18 @@ pub struct RelatedTags {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct CarryingEmail {
-    /// The email's body, which a message with no text part doesn't have.
-    pub body: Option<Presigned>,
+    /// The email's text and HTML body parts, in the order its module extracted them; none for a
+    /// message with no text part.
+    pub parts: Vec<EmailBodyPart>,
+}
+
+/// Where to download one body part of a carrying email, and what kind it is.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct EmailBodyPart {
+    /// An HTML part rather than plain text.
+    pub html: bool,
+    pub download: Presigned,
 }
 
 /// The ruleset a YARA pool should scan with: the latest the core built (PLAN.md 2.26), and

@@ -1,6 +1,6 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "37a765bf",
+  "ace3_commit": "fe6da632",
   "also_enabled": [
     "email_analyzer",
     "file_type",
@@ -80,7 +80,7 @@
             "cc": [],
             "compauth_reason": null,
             "compauth_result": null,
-            "date": "2026-11-16 21:31:37.842533 +0000",
+            "date": "2026-11-18 06:05:39.727273 +0000",
             "dkim_result": null,
             "dmarc_result": null,
             "env_mail_from": null,
@@ -365,22 +365,51 @@
     "observables": [
       {
         "detections": [],
-        "directives": [
-          "extract_urls",
-          "preview"
-        ],
-        "paths": [
-          {
-            "path": "email.rfc822.unknown_text_plain_000.txt",
-            "yara_meta": [
-              "type=email.attachment"
-            ]
-          }
-        ],
-        "size": 25,
+        "directives": [],
+        "paths": [],
         "tags": [],
-        "type": "file",
-        "value": "d7b32263895b94a4bf5bef1b74bfac3a7321dd4a24398d382219fc852a6ebe48"
+        "type": "message_id",
+        "value": "<lure_attachment@corp.example>"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "url",
+        "value": "https://pay.lure-example.net/invoice/1001"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_to",
+        "value": "pat@corp.example"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_conversation",
+        "value": "it@corp.example|pat@corp.example"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_subject",
+        "value": "Invoice"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_from",
+        "value": "it@corp.example"
       },
       {
         "detections": [],
@@ -400,93 +429,6 @@
         ],
         "type": "file",
         "value": "8a425c479fcfc2be2427de995b9721648a631a5188acb1eb2aaf8ca45c2057aa"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "message_id",
-        "value": "<lure_attachment@corp.example>"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "url",
-        "value": "https://pay.lure-example.net/invoice/1001"
-      },
-      {
-        "detections": [],
-        "directives": [
-          "archive"
-        ],
-        "paths": [
-          {
-            "path": "email.rfc822",
-            "yara_meta": [
-              "type=email"
-            ]
-          }
-        ],
-        "size": 689,
-        "tags": [
-          "email"
-        ],
-        "type": "file",
-        "value": "ae0023a3a35753a14cd1c10489cc7fcbca5e059e120f120986b455e240c16519"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_return_path",
-        "value": "bounce@mailer.corp.example"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_from",
-        "value": "it@corp.example"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [
-          {
-            "path": "email.rfc822.combined",
-            "yara_meta": [
-              "type=email",
-              "type=email.combined"
-            ]
-          }
-        ],
-        "size": 306,
-        "tags": [
-          "email"
-        ],
-        "type": "file",
-        "value": "c67c094e14d3a34f7c257824c6b0a3ee67fbb4a989e2c4fde26e74b63281547b"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_to",
-        "value": "pat@corp.example"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_subject",
-        "value": "Invoice"
       },
       {
         "detections": [],
@@ -512,11 +454,92 @@
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "email_conversation",
-        "value": "it@corp.example|pat@corp.example"
+        "type": "email_return_path",
+        "value": "bounce@mailer.corp.example"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [
+          {
+            "path": "email.rfc822.combined",
+            "yara_meta": [
+              "type=email",
+              "type=email.combined"
+            ]
+          }
+        ],
+        "size": 306,
+        "tags": [
+          "email"
+        ],
+        "type": "file",
+        "value": "c67c094e14d3a34f7c257824c6b0a3ee67fbb4a989e2c4fde26e74b63281547b"
+      },
+      {
+        "detections": [],
+        "directives": [
+          "extract_urls",
+          "preview"
+        ],
+        "paths": [
+          {
+            "path": "email.rfc822.unknown_text_plain_000.txt",
+            "yara_meta": [
+              "type=email.attachment"
+            ]
+          }
+        ],
+        "size": 25,
+        "tags": [],
+        "type": "file",
+        "value": "d7b32263895b94a4bf5bef1b74bfac3a7321dd4a24398d382219fc852a6ebe48"
+      },
+      {
+        "detections": [],
+        "directives": [
+          "archive"
+        ],
+        "paths": [
+          {
+            "path": "email.rfc822",
+            "yara_meta": [
+              "type=email"
+            ]
+          }
+        ],
+        "size": 689,
+        "tags": [
+          "email"
+        ],
+        "type": "file",
+        "value": "ae0023a3a35753a14cd1c10489cc7fcbca5e059e120f120986b455e240c16519"
       }
     ],
     "results": [
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": true,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "message/rfc822",
+          "type": "news or mail, ASCII text"
+        },
+        "module": "file_type",
+        "observable": 6,
+        "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
+        "tags": []
+      },
       {
         "added": [],
         "class": "FileTypeAnalysis",
@@ -536,20 +559,30 @@
           "type": "ASCII text"
         },
         "module": "file_type",
-        "observable": 0,
+        "observable": 7,
         "summary": "File Type Analysis: ASCII text (text/plain)",
         "tags": []
       },
       {
-        "added": [],
+        "added": [
+          {
+            "observable": 1
+          }
+        ],
         "class": "URLExtractionAnalysis",
         "details": {
-          "urls": [],
-          "urls_grouped_by_domain": {}
+          "urls": [
+            "https://pay.lure-example.net/invoice/1001"
+          ],
+          "urls_grouped_by_domain": {
+            "lure-example.net": [
+              "https://pay.lure-example.net/invoice/1001"
+            ]
+          }
         },
         "module": "url_extraction",
-        "observable": 0,
-        "summary": null,
+        "observable": 7,
+        "summary": "URL Extraction Analysis (pay.lure-example.net)",
         "tags": []
       },
       {
@@ -571,44 +604,79 @@
           "type": "news or mail, ASCII text"
         },
         "module": "file_type",
-        "observable": 1,
+        "observable": 9,
         "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": false,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "text/plain",
+          "type": "ASCII text"
+        },
+        "module": "file_type",
+        "observable": 10,
+        "summary": "File Type Analysis: ASCII text (text/plain)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "URLExtractionAnalysis",
+        "details": {
+          "urls": [],
+          "urls_grouped_by_domain": {}
+        },
+        "module": "url_extraction",
+        "observable": 10,
+        "summary": null,
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 6
-          },
-          {
-            "observable": 8
-          },
-          {
-            "observable": 11
-          },
-          {
-            "observable": 9
+            "observable": 5
           },
           {
             "observable": 2
           },
           {
-            "observable": 5
+            "observable": 3
           },
           {
-            "observable": 0,
-            "path": "email.rfc822.unknown_text_plain_000.txt"
+            "observable": 4
+          },
+          {
+            "observable": 0
+          },
+          {
+            "observable": 8
           },
           {
             "observable": 10,
-            "path": "invoice.txt"
-          },
-          {
-            "observable": 1,
-            "path": "email.rfc822.headers"
+            "path": "email.rfc822.unknown_text_plain_000.txt"
           },
           {
             "observable": 7,
+            "path": "invoice.txt"
+          },
+          {
+            "observable": 6,
+            "path": "email.rfc822.headers"
+          },
+          {
+            "observable": 9,
             "path": "email.rfc822.combined"
           }
         ],
@@ -684,7 +752,7 @@
               "cc": [],
               "compauth_reason": null,
               "compauth_result": null,
-              "date": "2026-11-16 21:31:37.842533 +0000",
+              "date": "2026-11-18 06:05:39.727273 +0000",
               "dkim_result": null,
               "dmarc_result": null,
               "env_mail_from": null,
@@ -744,7 +812,7 @@
           "parsing_error": null
         },
         "module": "email_analyzer",
-        "observable": 4,
+        "observable": 11,
         "summary": "Email Analysis: From IT Desk <it@corp.example> To pat@corp.example Subject Invoice",
         "tags": []
       },
@@ -767,79 +835,10 @@
           "type": "news or mail, ASCII text"
         },
         "module": "file_type",
-        "observable": 4,
+        "observable": 11,
         "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": true,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "message/rfc822",
-          "type": "news or mail, ASCII text"
-        },
-        "module": "file_type",
-        "observable": 7,
-        "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": false,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "text/plain",
-          "type": "ASCII text"
-        },
-        "module": "file_type",
-        "observable": 10,
-        "summary": "File Type Analysis: ASCII text (text/plain)",
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 3
-          }
-        ],
-        "class": "URLExtractionAnalysis",
-        "details": {
-          "urls": [
-            "https://pay.lure-example.net/invoice/1001"
-          ],
-          "urls_grouped_by_domain": {
-            "lure-example.net": [
-              "https://pay.lure-example.net/invoice/1001"
-            ]
-          }
-        },
-        "module": "url_extraction",
-        "observable": 10,
-        "summary": "URL Extraction Analysis (pay.lure-example.net)",
         "tags": []
       }
-    ],
-    "whitelisted": false
+    ]
   }
 }

@@ -1,6 +1,6 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "37a765bf",
+  "ace3_commit": "fe6da632",
   "also_enabled": [
     "email_analyzer",
     "file_type",
@@ -80,7 +80,7 @@
             "cc": [],
             "compauth_reason": null,
             "compauth_result": null,
-            "date": "2026-11-16 21:31:45.954044 +0000",
+            "date": "2026-11-18 06:05:41.982660 +0000",
             "dkim_result": null,
             "dmarc_result": null,
             "env_mail_from": null,
@@ -372,39 +372,7 @@
         "paths": [],
         "tags": [],
         "type": "url",
-        "value": "https://fonts.googleapis.com/css?family=Roboto"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "url",
         "value": "https://collect.lure-example.net/post"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "url",
-        "value": "https://docs.lure-example.net/open?d=1"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_return_path",
-        "value": "bounce@mailer.corp.example"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_to",
-        "value": "pat@corp.example"
       },
       {
         "detections": [],
@@ -416,62 +384,30 @@
       },
       {
         "detections": [],
-        "directives": [
-          "archive"
-        ],
-        "paths": [
-          {
-            "path": "email.rfc822",
-            "yara_meta": [
-              "type=email"
-            ]
-          }
-        ],
-        "size": 1469,
-        "tags": [
-          "email"
-        ],
-        "type": "file",
-        "value": "890392a1c2d8445fac130cff74dfbc58c00c71a324873b55f3aaf7dd103aaf56"
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "url",
+        "value": "https://docs.lure-example.net/open?d=1"
       },
       {
         "detections": [],
         "directives": [
           "extract_urls",
-          "render"
+          "preview"
         ],
         "paths": [
           {
-            "path": "email.rfc822.unknown_text_html_000.html",
+            "path": "email.rfc822.unknown_text_plain_000.txt",
             "yara_meta": [
-              "type=document.html",
               "type=email.attachment"
             ]
           }
         ],
-        "size": 791,
+        "size": 66,
         "tags": [],
         "type": "file",
-        "value": "77367fe8b6a5d18ff77b715a9d1aa0058ba70c027d3f0c97a5bf31b2b9eaa017"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [
-          {
-            "path": "email.rfc822.combined",
-            "yara_meta": [
-              "type=email",
-              "type=email.combined"
-            ]
-          }
-        ],
-        "size": 1167,
-        "tags": [
-          "email"
-        ],
-        "type": "file",
-        "value": "f3b45df763081c45d6bf3259ff77856d37951a1699782d329cd9eb170c9a0186"
+        "value": "35cbe161bb99757665d56d449a0fc36e4c1daa95c220377294e99393551b56dc"
       },
       {
         "detections": [],
@@ -497,6 +433,42 @@
         "directives": [],
         "paths": [],
         "tags": [],
+        "type": "email_conversation",
+        "value": "it@corp.example|pat@corp.example"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_return_path",
+        "value": "bounce@mailer.corp.example"
+      },
+      {
+        "detections": [],
+        "directives": [
+          "extract_urls",
+          "render"
+        ],
+        "paths": [
+          {
+            "path": "email.rfc822.unknown_text_html_000.html",
+            "yara_meta": [
+              "type=document.html",
+              "type=email.attachment"
+            ]
+          }
+        ],
+        "size": 791,
+        "tags": [],
+        "type": "file",
+        "value": "77367fe8b6a5d18ff77b715a9d1aa0058ba70c027d3f0c97a5bf31b2b9eaa017"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
         "type": "message_id",
         "value": "<lure_button@corp.example>"
       },
@@ -505,8 +477,71 @@
         "directives": [],
         "paths": [],
         "tags": [],
+        "type": "url",
+        "value": "https://login.lure-example.net/verify?id=7"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [
+          {
+            "path": "email.rfc822.combined",
+            "yara_meta": [
+              "type=email",
+              "type=email.combined"
+            ]
+          }
+        ],
+        "size": 1167,
+        "tags": [
+          "email"
+        ],
+        "type": "file",
+        "value": "f3b45df763081c45d6bf3259ff77856d37951a1699782d329cd9eb170c9a0186"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
         "type": "email_from",
         "value": "it@corp.example"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_subject",
+        "value": "Action required: verify your mailbox"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_to",
+        "value": "pat@corp.example"
+      },
+      {
+        "detections": [],
+        "directives": [
+          "archive"
+        ],
+        "paths": [
+          {
+            "path": "email.rfc822",
+            "yara_meta": [
+              "type=email"
+            ]
+          }
+        ],
+        "size": 1469,
+        "tags": [
+          "email"
+        ],
+        "type": "file",
+        "value": "890392a1c2d8445fac130cff74dfbc58c00c71a324873b55f3aaf7dd103aaf56"
       },
       {
         "detections": [],
@@ -522,67 +557,197 @@
         "paths": [],
         "tags": [],
         "type": "url",
-        "value": "https://login.lure-example.net/verify?id=7"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_conversation",
-        "value": "it@corp.example|pat@corp.example"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_subject",
-        "value": "Action required: verify your mailbox"
-      },
-      {
-        "detections": [],
-        "directives": [
-          "extract_urls",
-          "preview"
-        ],
-        "paths": [
-          {
-            "path": "email.rfc822.unknown_text_plain_000.txt",
-            "yara_meta": [
-              "type=email.attachment"
-            ]
-          }
-        ],
-        "size": 66,
-        "tags": [],
-        "type": "file",
-        "value": "35cbe161bb99757665d56d449a0fc36e4c1daa95c220377294e99393551b56dc"
+        "value": "https://fonts.googleapis.com/css?family=Roboto"
       }
     ],
     "results": [
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": false,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "text/plain",
+          "type": "ASCII text"
+        },
+        "module": "file_type",
+        "observable": 3,
+        "summary": "File Type Analysis: ASCII text (text/plain)",
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 9
+          }
+        ],
+        "class": "URLExtractionAnalysis",
+        "details": {
+          "urls": [
+            "https://login.lure-example.net/verify?id=7"
+          ],
+          "urls_grouped_by_domain": {
+            "lure-example.net": [
+              "https://login.lure-example.net/verify?id=7"
+            ]
+          }
+        },
+        "module": "url_extraction",
+        "observable": 3,
+        "summary": "URL Extraction Analysis (login.lure-example.net)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": true,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "message/rfc822",
+          "type": "news or mail, ASCII text"
+        },
+        "module": "file_type",
+        "observable": 4,
+        "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": false,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "text/html",
+          "type": "HTML document, ASCII text, with very long lines (790)"
+        },
+        "module": "file_type",
+        "observable": 7,
+        "summary": "File Type Analysis: HTML document, ASCII text, with very long lines (790) (text/html)",
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 16
+          },
+          {
+            "observable": 15
+          },
+          {
+            "observable": 2
+          },
+          {
+            "observable": 9
+          },
+          {
+            "observable": 0
+          },
+          {
+            "observable": 1
+          }
+        ],
+        "class": "URLExtractionAnalysis",
+        "details": {
+          "urls": [
+            "https://fonts.googleapis.com/css?family=Roboto",
+            "https://t.track-example.com/c?u=https%3A%2F%2Fdocs.lure-example.net%2Fopen%3Fd%3D1",
+            "https://docs.lure-example.net/open?d=1",
+            "https://login.lure-example.net/verify?id=7",
+            "https://collect.lure-example.net/post",
+            "https://cdn.lure-example.net/pixel.gif"
+          ],
+          "urls_grouped_by_domain": {
+            "fonts.googleapis.com": [
+              "https://fonts.googleapis.com/css?family=Roboto"
+            ],
+            "lure-example.net": [
+              "https://docs.lure-example.net/open?d=1",
+              "https://cdn.lure-example.net/pixel.gif",
+              "https://login.lure-example.net/verify?id=7",
+              "https://collect.lure-example.net/post"
+            ],
+            "track-example.com": [
+              "https://t.track-example.com/c?u=https%3A%2F%2Fdocs.lure-example.net%2Fopen%3Fd%3D1"
+            ]
+          }
+        },
+        "module": "url_extraction",
+        "observable": 7,
+        "summary": "URL Extraction Analysis (cdn.lure-example.net, collect.lure-example.net, docs.lure-example.net, fonts.googleapis.com, login.lure-example.net, t.track-example.com)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": true,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "message/rfc822",
+          "type": "news or mail, ASCII text, with very long lines (790)"
+        },
+        "module": "file_type",
+        "observable": 10,
+        "summary": "File Type Analysis: news or mail, ASCII text, with very long lines (790) (message/rfc822) (email)",
+        "tags": []
+      },
       {
         "added": [
           {
             "observable": 11
           },
           {
-            "observable": 4
+            "observable": 13
           },
           {
-            "observable": 14
+            "observable": 5
           },
           {
-            "observable": 15
+            "observable": 12
           },
           {
-            "observable": 10
+            "observable": 8
           },
           {
-            "observable": 3
+            "observable": 6
           },
           {
-            "observable": 16,
+            "observable": 3,
             "path": "email.rfc822.unknown_text_plain_000.txt"
           },
           {
@@ -590,11 +755,11 @@
             "path": "email.rfc822.unknown_text_html_000.html"
           },
           {
-            "observable": 9,
+            "observable": 4,
             "path": "email.rfc822.headers"
           },
           {
-            "observable": 8,
+            "observable": 10,
             "path": "email.rfc822.combined"
           }
         ],
@@ -670,7 +835,7 @@
               "cc": [],
               "compauth_reason": null,
               "compauth_result": null,
-              "date": "2026-11-16 21:31:45.954044 +0000",
+              "date": "2026-11-18 06:05:41.982660 +0000",
               "dkim_result": null,
               "dmarc_result": null,
               "env_mail_from": null,
@@ -730,7 +895,7 @@
           "parsing_error": null
         },
         "module": "email_analyzer",
-        "observable": 6,
+        "observable": 14,
         "summary": "Email Analysis: From IT Desk <it@corp.example> To pat@corp.example Subject Action required: verify your mailbox",
         "tags": []
       },
@@ -753,176 +918,10 @@
           "type": "news or mail, ASCII text"
         },
         "module": "file_type",
-        "observable": 6,
+        "observable": 14,
         "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": false,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "text/html",
-          "type": "HTML document, ASCII text, with very long lines (790)"
-        },
-        "module": "file_type",
-        "observable": 7,
-        "summary": "File Type Analysis: HTML document, ASCII text, with very long lines (790) (text/html)",
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 0
-          },
-          {
-            "observable": 12
-          },
-          {
-            "observable": 1
-          },
-          {
-            "observable": 2
-          },
-          {
-            "observable": 13
-          },
-          {
-            "observable": 5
-          }
-        ],
-        "class": "URLExtractionAnalysis",
-        "details": {
-          "urls": [
-            "https://fonts.googleapis.com/css?family=Roboto",
-            "https://t.track-example.com/c?u=https%3A%2F%2Fdocs.lure-example.net%2Fopen%3Fd%3D1",
-            "https://collect.lure-example.net/post",
-            "https://docs.lure-example.net/open?d=1",
-            "https://login.lure-example.net/verify?id=7",
-            "https://cdn.lure-example.net/pixel.gif"
-          ],
-          "urls_grouped_by_domain": {
-            "fonts.googleapis.com": [
-              "https://fonts.googleapis.com/css?family=Roboto"
-            ],
-            "lure-example.net": [
-              "https://cdn.lure-example.net/pixel.gif",
-              "https://collect.lure-example.net/post",
-              "https://docs.lure-example.net/open?d=1",
-              "https://login.lure-example.net/verify?id=7"
-            ],
-            "track-example.com": [
-              "https://t.track-example.com/c?u=https%3A%2F%2Fdocs.lure-example.net%2Fopen%3Fd%3D1"
-            ]
-          }
-        },
-        "module": "url_extraction",
-        "observable": 7,
-        "summary": "URL Extraction Analysis (cdn.lure-example.net, collect.lure-example.net, docs.lure-example.net, fonts.googleapis.com, login.lure-example.net, t.track-example.com)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": true,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "message/rfc822",
-          "type": "news or mail, ASCII text, with very long lines (790)"
-        },
-        "module": "file_type",
-        "observable": 8,
-        "summary": "File Type Analysis: news or mail, ASCII text, with very long lines (790) (message/rfc822) (email)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": true,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "message/rfc822",
-          "type": "news or mail, ASCII text"
-        },
-        "module": "file_type",
-        "observable": 9,
-        "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": false,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "text/plain",
-          "type": "ASCII text"
-        },
-        "module": "file_type",
-        "observable": 16,
-        "summary": "File Type Analysis: ASCII text (text/plain)",
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 13
-          }
-        ],
-        "class": "URLExtractionAnalysis",
-        "details": {
-          "urls": [
-            "https://login.lure-example.net/verify?id=7"
-          ],
-          "urls_grouped_by_domain": {
-            "lure-example.net": [
-              "https://login.lure-example.net/verify?id=7"
-            ]
-          }
-        },
-        "module": "url_extraction",
-        "observable": 16,
-        "summary": "URL Extraction Analysis (login.lure-example.net)",
         "tags": []
       }
-    ],
-    "whitelisted": false
+    ]
   }
 }

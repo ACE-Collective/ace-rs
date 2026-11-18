@@ -81,9 +81,9 @@ use std::time::Duration;
 use ace_results::{AlertPath, ObservableKind, ObservableRef, ResultEnvelope, Sha256, YaraMeta};
 use ace_sdk::wire::{
     ApiError, COMMANDS, CarryingEmail, CommandEnd, CommandLeaseRequest, CommandOutcome,
-    CommandReply, CommandReport, CurrentRuleset, FieldError as WireFieldError, LeaseRequest,
-    LeasedCommand, LeasedTask, MAX_LEASED_AT_ONCE, Presigned, Renewal, TaskEnd, TaskFile,
-    TaskObservable, UploadRequest, paths,
+    CommandReply, CommandReport, CurrentRuleset, EmailBodyPart, FieldError as WireFieldError,
+    LeaseRequest, LeasedCommand, LeasedTask, MAX_LEASED_AT_ONCE, Presigned, Renewal, TaskEnd,
+    TaskFile, TaskObservable, UploadRequest, paths,
 };
 use axum::extract::rejection::JsonRejection;
 use axum::extract::{Path, State};
@@ -1314,37 +1314,39 @@ impl Api {
     ) -> Result<Result<Option<CarryingEmail>, String>, Failure> {
         let email =
             tree::carrying_email(self.inner.db.pool(), task.root, task.observable.id).await?;
-        let Some(body) = email else {
+        let Some(parts) = email else {
             return Ok(Ok(None));
         };
-        let Some(body) = body else {
-            return Ok(Ok(Some(CarryingEmail { body: None })));
-        };
-        let Ok(sha256) = body.sha256.parse::<Sha256>() else {
-            return Ok(Err(format!(
-                "the email body's value {:?} isn't a sha256",
-                body.sha256
-            )));
-        };
-        if self
-            .inner
-            .bucket
-            .object(ALERT_FILES, &sha256)
-            .await?
-            .is_none()
-        {
-            return Ok(Err(format!("email body {sha256} isn't in the bucket")));
+        let mut wire = Vec::with_capacity(parts.len());
+        for part in parts {
+            let Ok(sha256) = part.sha256.parse::<Sha256>() else {
+                return Ok(Err(format!(
+                    "the email body part's value {:?} isn't a sha256",
+                    part.sha256
+                )));
+            };
+            if self
+                .inner
+                .bucket
+                .object(ALERT_FILES, &sha256)
+                .await?
+                .is_none()
+            {
+                return Ok(Err(format!("email body part {sha256} isn't in the bucket")));
+            }
+            let download = self
+                .inner
+                .bucket
+                .store()
+                .presign_get(ALERT_FILES, &sha256, self.inner.config.url_expiry)
+                .await
+                .map_err(BucketError::from)?;
+            wire.push(EmailBodyPart {
+                html: part.html,
+                download: wire_presigned(download),
+            });
         }
-        let download = self
-            .inner
-            .bucket
-            .store()
-            .presign_get(ALERT_FILES, &sha256, self.inner.config.url_expiry)
-            .await
-            .map_err(BucketError::from)?;
-        Ok(Ok(Some(CarryingEmail {
-            body: Some(wire_presigned(download)),
-        })))
+        Ok(Ok(Some(CarryingEmail { parts: wire })))
     }
 
     fn wire_task(

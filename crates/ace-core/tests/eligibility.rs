@@ -668,31 +668,34 @@ async fn add_result(
 }
 
 /// The walk ace3's `search_down` does: past an archive to the nearest email, by any route, to the
-/// email's body. A cycle ends, an email with no body is one, and nothing above a root is none.
+/// email's body parts. A cycle ends, an email with no body part is one, and nothing above a root is
+/// none.
 #[tokio::test]
 async fn a_file_finds_the_body_of_the_email_that_carried_it() {
     let test_db = TestDb::new().await;
     let db = test_db.db();
     let hash = |c: &str| c.repeat(64);
-    let (outer, nested, zip, doc, body, inner_body) = (
+    let (outer, nested, zip, doc, body, inner_body, outer_html) = (
         hash("a"),
         hash("b"),
         hash("c"),
         hash("d"),
         hash("e"),
         hash("f"),
+        hash("0"),
     );
-    let values = [&outer, &nested, &zip, &doc, &body, &inner_body];
+    let values = [&outer, &nested, &zip, &doc, &body, &inner_body, &outer_html];
     let files: Vec<(ObservableKind, &str)> = values
         .iter()
         .map(|value| (ObservableKind::File, value.as_str()))
         .collect();
     let (root, ids) = root_with(db, "test", &files).await;
-    let (outer_id, nested_id, zip_id, doc_id, body_id, inner_id) =
-        (ids[0], ids[1], ids[2], ids[3], ids[4], ids[5]);
+    let (outer_id, nested_id, zip_id, doc_id, body_id, inner_id, html_id) =
+        (ids[0], ids[1], ids[2], ids[3], ids[4], ids[5], ids[6]);
     let message = json!({"email": {}});
 
-    // the outer email adds the nested one, its body, and the nested one's zip, as ace3's does
+    // the outer email adds the nested one, its two body parts, and the nested one's zip, as ace3's
+    // does; every part counts, in the order the email added them (ace3's `body_parts`)
     add_result(
         db,
         root,
@@ -702,19 +705,28 @@ async fn a_file_finds_the_body_of_the_email_that_carried_it() {
         &[
             (body_id, Some("email.rfc822.unknown_text_plain_000.txt")),
             (nested_id, Some("email.rfc822.email_000.rfc822")),
+            (html_id, Some("email.rfc822.unknown_text_html_001.html")),
             (zip_id, Some("a_000.zip")),
         ],
     )
     .await;
-    let outer_body = tree::EmailBodyFile {
-        path: "email.rfc822.unknown_text_plain_000.txt".to_owned(),
-        sha256: body.clone(),
-    };
+    let outer_body = vec![
+        tree::EmailBodyFile {
+            path: "email.rfc822.unknown_text_plain_000.txt".to_owned(),
+            sha256: body.clone(),
+            html: false,
+        },
+        tree::EmailBodyFile {
+            path: "email.rfc822.unknown_text_html_001.html".to_owned(),
+            sha256: outer_html.clone(),
+            html: true,
+        },
+    ];
     assert_eq!(
         tree::carrying_email(db.pool(), root, zip_id)
             .await
             .expect("reads"),
-        Some(Some(outer_body))
+        Some(outer_body)
     );
 
     // the nested email is nearer than the outer one, by the route through its own zip
@@ -739,15 +751,16 @@ async fn a_file_finds_the_body_of_the_email_that_carried_it() {
         &[(doc_id, Some("a.zip.extracted/a.docx"))],
     )
     .await;
-    let inner = tree::EmailBodyFile {
+    let inner = vec![tree::EmailBodyFile {
         path: "x/email.rfc822.unknown_text_html_000.html".to_owned(),
         sha256: inner_body.clone(),
-    };
+        html: true,
+    }];
     assert_eq!(
         tree::carrying_email(db.pool(), root, doc_id)
             .await
             .expect("reads"),
-        Some(Some(inner.clone()))
+        Some(inner.clone())
     );
 
     // a file that contains its own ancestor ends the walk
@@ -764,7 +777,7 @@ async fn a_file_finds_the_body_of_the_email_that_carried_it() {
         tree::carrying_email(db.pool(), root, doc_id)
             .await
             .expect("reads"),
-        Some(Some(inner))
+        Some(inner)
     );
 
     // no route to an email, and an email that couldn't be parsed isn't one
@@ -799,7 +812,7 @@ async fn a_file_finds_the_body_of_the_email_that_carried_it() {
         None
     );
 
-    // an email with no text part is still an email
+    // an email with no text part is still an email, with no body parts
     let (third_root, third) = root_with(
         db,
         "test",
@@ -822,7 +835,7 @@ async fn a_file_finds_the_body_of_the_email_that_carried_it() {
         tree::carrying_email(db.pool(), third_root, third[1])
             .await
             .expect("reads"),
-        Some(None)
+        Some(Vec::new())
     );
 }
 

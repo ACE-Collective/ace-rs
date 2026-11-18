@@ -141,10 +141,10 @@
           "type=document.pdf.text": true
         }
       },
-      "redirection": "file:e37709f3ff3a90c19134d4b460b899ef3fdc294bac1cfd048a70e0f8133eeed5",
+      "redirection": "file:c11a9ed7fbc5a6b32de396a7da5a3483f96595d57791e13fb40b6a5533ba015f",
       "relationships": {
         "extracted_from file:6a1d3505f33e73d1536fd9acfe2b1103f5d73b7ee1a7b3f81bb7643aa71171a6": true,
-        "extracted_from file:e37709f3ff3a90c19134d4b460b899ef3fdc294bac1cfd048a70e0f8133eeed5": true
+        "extracted_from file:c11a9ed7fbc5a6b32de396a7da5a3483f96595d57791e13fb40b6a5533ba015f": true
       },
       "results": {
         "file_type": {
@@ -200,8 +200,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 20:48:10+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 20:48:10+00:00",
+              "File:FileAccessDate": "2026:11:18 04:51:04+00:00",
+              "File:FileInodeChangeDate": "2026:11:18 04:51:04+00:00",
               "File:FileModifyDate": "2026:11:16 16:21:04+00:00",
               "File:FileName": "link_text_single.pdf",
               "File:FilePermissions": 100644,
@@ -302,7 +302,7 @@
         "pdf": true
       }
     },
-    "file:779fc6265bcfb571869b763383fbbd04ea40361d974655ffd7986321e84dda77": {
+    "file:764b7d8968859334b6e39357aa24975ecd01ef2a78ecac166cb09e8fe4c3eee4": {
       "detections": {},
       "directives": {},
       "excluded_analysis": {
@@ -335,7 +335,7 @@
       },
       "tags": {}
     },
-    "file:e37709f3ff3a90c19134d4b460b899ef3fdc294bac1cfd048a70e0f8133eeed5": {
+    "file:c11a9ed7fbc5a6b32de396a7da5a3483f96595d57791e13fb40b6a5533ba015f": {
       "detections": {},
       "directives": {
         "extract_urls": true
@@ -514,6 +514,13 @@
       "excluded_analysis": {},
       "relationships": {},
       "results": {
+        "apex_domain_analyzer": {
+          "details": {
+            "apex_domain": "lure-example.net"
+          },
+          "summary": "Apex Domain: lure-example.net",
+          "tags": {}
+        },
         "fqdn_analyzer": {
           "details": {
             "aliaslist": [],
@@ -567,32 +574,6 @@
             "question": "Was this domain seen in proxy logs?"
           },
           "summary": "Proxy correlation: (3 results)",
-          "tags": {}
-        },
-        "rdap_analyzer": {
-          "details": {
-            "assignment_type": null,
-            "country": null,
-            "datetime_created": null,
-            "datetime_expiration": null,
-            "datetime_of_last_update": null,
-            "domain_name": null,
-            "emails": null,
-            "ip_version": null,
-            "lookup_protocol": null,
-            "name_servers": null,
-            "network_cidr": null,
-            "network_name": null,
-            "not_found": null,
-            "rdap_attempt_error": "Failed to make a GET request to https://rdap.verisign.com/net/v1/domain/lure-example.net: nothing recorded for GET https://rdap.verisign.com/net/v1/domain/lure-example.net",
-            "rdap_data": null,
-            "rdap_raw_json": null,
-            "rdap_service_url": null,
-            "registrar": null,
-            "whois_data": null,
-            "whois_raw_text": null
-          },
-          "error": "rdap: Failed to make a GET request to https://rdap.verisign.com/net/v1/domain/lure-example.net: nothing recorded for GET https://rdap.verisign.com/net/v1/domain/lure-example.net; whois: no WHOIS in a replay",
           "tags": {}
         },
         "user_defined_tagging": {
@@ -826,6 +807,103 @@
             "whois_data": null,
             "whois_raw_text": null
           },
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "fqdn:lure-example.net": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "fqdn_analyzer": {
+          "details": {
+            "aliaslist": [],
+            "all_resolutions": [],
+            "ip_address": null,
+            "mx": null,
+            "resolution_count": null,
+            "status": "nxdomain",
+            "wildcard_dns": null
+          },
+          "summary": "DNS Analysis: does not exist (nxdomain)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "proxy_domain_splunk": {
+          "details": {
+            "dispatch_state": "DONE",
+            "gui_link": null,
+            "query": "index=proxy hostname=\"lure-example.net\"",
+            "query_results": [
+              {
+                "_time": "2026-10-30T14:02:11.000+00:00",
+                "dest_ip": "198.51.100.20",
+                "full_url": "https://www.example.com/login",
+                "src_ip": "192.0.2.10",
+                "src_translated_ip": "198.51.100.7",
+                "user": "alice@example.com"
+              },
+              {
+                "_time": "2026-10-30T14:05:42.000+00:00",
+                "dest_ip": "198.51.100.20",
+                "full_url": "http://www.example.com/",
+                "src_ip": "192.0.2.11",
+                "src_translated_ip": "198.51.100.7",
+                "user": "bob@example.com"
+              },
+              {
+                "_time": "2026-10-30T14:09:03.000+00:00",
+                "dest_ip": "198.51.100.21",
+                "full_url": "https://www.example.com/static/app.js",
+                "src_ip": "192.0.2.12"
+              }
+            ],
+            "query_summary": "Proxy correlation",
+            "question": "Was this domain seen in proxy logs?"
+          },
+          "summary": "Proxy correlation: (3 results)",
+          "tags": {}
+        },
+        "rdap_analyzer": {
+          "details": {
+            "assignment_type": null,
+            "country": null,
+            "datetime_created": null,
+            "datetime_expiration": null,
+            "datetime_of_last_update": null,
+            "domain_name": null,
+            "emails": null,
+            "ip_version": null,
+            "lookup_protocol": null,
+            "name_servers": null,
+            "network_cidr": null,
+            "network_name": null,
+            "not_found": null,
+            "rdap_attempt_error": "Failed to make a GET request to https://rdap.verisign.com/net/v1/domain/lure-example.net: nothing recorded for GET https://rdap.verisign.com/net/v1/domain/lure-example.net",
+            "rdap_data": null,
+            "rdap_raw_json": null,
+            "rdap_service_url": null,
+            "registrar": null,
+            "whois_data": null,
+            "whois_raw_text": null
+          },
+          "error": "rdap: Failed to make a GET request to https://rdap.verisign.com/net/v1/domain/lure-example.net: nothing recorded for GET https://rdap.verisign.com/net/v1/domain/lure-example.net; whois: no WHOIS in a replay",
           "tags": {}
         },
         "user_defined_tagging": {

@@ -29,6 +29,20 @@ impl AnalysisType for EmailAnalysis {
 }
 
 impl EmailAnalysis {
+    /// Which of the files an email result added are its body parts, given their names in the order it
+    /// added them, each with whether it is an HTML part: ace3's `EmailAnalysis.body_parts`, the
+    /// unnamed text parts the email module extracts (`is_body_part`, `is_html_body_part`).
+    pub fn body_parts_of(names: &[&str]) -> Vec<(usize, bool)> {
+        names
+            .iter()
+            .enumerate()
+            .filter_map(|(index, name)| {
+                let html = name.contains(".unknown_text_html");
+                (html || name.contains(".unknown_text_plain")).then_some((index, html))
+            })
+            .collect()
+    }
+
     /// Which of the files an email result added is the email's body, given their names in the order
     /// it added them: ace3's `EmailAnalysis.body` (`saq/modules/email/rfc822.py`). A lone plain text
     /// part with no HTML is the body. Otherwise the first HTML part, then the first plain text part
@@ -267,5 +281,15 @@ mod tests {
         assert_eq!(Email::body_of(&["unknown_text_plain.txt", "x.docx"]), None);
         assert_eq!(Email::body_of(&["a.headers", "x.docx"]), None);
         assert_eq!(Email::body_of(&[]), None);
+        assert_eq!(
+            Email::body_parts_of(&[
+                "a.headers",
+                "a.unknown_text_plain_000",
+                "x.docx",
+                "a.unknown_text_html_001",
+                "unknown_text_plain.txt",
+            ]),
+            [(1, false), (3, true)]
+        );
     }
 }

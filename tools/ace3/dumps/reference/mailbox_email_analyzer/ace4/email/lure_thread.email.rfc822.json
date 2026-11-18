@@ -1,6 +1,6 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "37a765bf",
+  "ace3_commit": "fe6da632",
   "also_enabled": [
     "file_type",
     "email_analyzer"
@@ -88,7 +88,7 @@
             "cc": [],
             "compauth_reason": null,
             "compauth_result": null,
-            "date": "2026-11-16 16:43:14.590968 +0000",
+            "date": "2026-11-18 06:01:27.421146 +0000",
             "dkim_result": null,
             "dmarc_result": null,
             "env_mail_from": null,
@@ -426,7 +426,7 @@
           "cc": [],
           "compauth_reason": null,
           "compauth_result": null,
-          "date": "2026-11-16 16:43:14.590968 +0000",
+          "date": "2026-11-18 06:01:27.421146 +0000",
           "dkim_result": null,
           "dmarc_result": null,
           "env_mail_from": null,
@@ -496,30 +496,47 @@
       {
         "detections": [],
         "directives": [],
+        "paths": [
+          {
+            "path": "email.rfc822.combined",
+            "yara_meta": [
+              "type=email",
+              "type=email.combined"
+            ]
+          }
+        ],
+        "size": 1388,
+        "tags": [
+          "email"
+        ],
+        "type": "file",
+        "value": "d25feafd5479a0901808dd193759ec5ab64f357b6e5c324f8706f1ffe74993f8"
+      },
+      {
+        "detections": [],
+        "directives": [],
         "paths": [],
         "tags": [],
-        "type": "email_from",
-        "value": "sam@partner-example.org"
+        "type": "email_conversation",
+        "value": "sam@partner-example.org|pat@corp.example"
       },
       {
         "detections": [],
         "directives": [
-          "extract_urls",
-          "render"
+          "tracked"
         ],
-        "paths": [
-          {
-            "path": "email.rfc822.unknown_text_html_000.html",
-            "yara_meta": [
-              "type=document.html",
-              "type=email.attachment"
-            ]
-          }
-        ],
-        "size": 1051,
+        "paths": [],
         "tags": [],
-        "type": "file",
-        "value": "0856d7dac3697c95433c269e8e2a051542899c63cfaf315476e1679245eb3ce8"
+        "type": "message_id",
+        "value": "<lure_thread@partner-example.org>"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_subject",
+        "value": "RE: Updated remittance details"
       },
       {
         "detections": [],
@@ -543,6 +560,30 @@
       },
       {
         "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_to",
+        "value": "pat@corp.example"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_from",
+        "value": "sam@partner-example.org"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_return_path",
+        "value": "sam@partner-example.org"
+      },
+      {
+        "detections": [],
         "directives": [
           "extract_urls",
           "preview"
@@ -562,64 +603,23 @@
       },
       {
         "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_return_path",
-        "value": "sam@partner-example.org"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_conversation",
-        "value": "sam@partner-example.org|pat@corp.example"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_to",
-        "value": "pat@corp.example"
-      },
-      {
-        "detections": [],
         "directives": [
-          "tracked"
+          "extract_urls",
+          "render"
         ],
-        "paths": [],
-        "tags": [],
-        "type": "message_id",
-        "value": "<lure_thread@partner-example.org>"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_subject",
-        "value": "RE: Updated remittance details"
-      },
-      {
-        "detections": [],
-        "directives": [],
         "paths": [
           {
-            "path": "email.rfc822.combined",
+            "path": "email.rfc822.unknown_text_html_000.html",
             "yara_meta": [
-              "type=email",
-              "type=email.combined"
+              "type=document.html",
+              "type=email.attachment"
             ]
           }
         ],
-        "size": 1388,
-        "tags": [
-          "email"
-        ],
+        "size": 1051,
+        "tags": [],
         "type": "file",
-        "value": "d25feafd5479a0901808dd193759ec5ab64f357b6e5c324f8706f1ffe74993f8"
+        "value": "0856d7dac3697c95433c269e8e2a051542899c63cfaf315476e1679245eb3ce8"
       },
       {
         "detections": [],
@@ -646,7 +646,7 @@
         "added": [],
         "class": "FileTypeAnalysis",
         "details": {
-          "is_email_file": false,
+          "is_email_file": true,
           "is_jar_file": false,
           "is_lnk_file": false,
           "is_office_document": false,
@@ -657,12 +657,12 @@
           "is_rtf_file": false,
           "is_x509": false,
           "is_zip_file": false,
-          "mime": "text/html",
-          "type": "HTML document, ASCII text, with very long lines (1050)"
+          "mime": "message/rfc822",
+          "type": "news or mail, ASCII text, with very long lines (1050)"
         },
         "module": "file_type",
-        "observable": 1,
-        "summary": "File Type Analysis: HTML document, ASCII text, with very long lines (1050) (text/html)",
+        "observable": 0,
+        "summary": "File Type Analysis: news or mail, ASCII text, with very long lines (1050) (message/rfc822) (email)",
         "tags": []
       },
       {
@@ -670,15 +670,12 @@
         "class": "MailboxEmailAnalysis",
         "details": {},
         "module": "mailbox_email_analyzer",
-        "observable": 2,
+        "observable": 4,
         "summary": null,
         "tags": []
       },
       {
         "added": [
-          {
-            "observable": 0
-          },
           {
             "observable": 6
           },
@@ -686,20 +683,23 @@
             "observable": 5
           },
           {
-            "observable": 8
+            "observable": 1
+          },
+          {
+            "observable": 3
+          },
+          {
+            "observable": 2
           },
           {
             "observable": 7
           },
           {
-            "observable": 4
-          },
-          {
-            "observable": 3,
+            "observable": 8,
             "path": "email.rfc822.unknown_text_plain_000.txt"
           },
           {
-            "observable": 1,
+            "observable": 9,
             "path": "email.rfc822.unknown_text_html_000.html"
           },
           {
@@ -707,7 +707,7 @@
             "path": "email.rfc822.headers"
           },
           {
-            "observable": 9,
+            "observable": 0,
             "path": "email.rfc822.combined"
           }
         ],
@@ -783,7 +783,7 @@
               "cc": [],
               "compauth_reason": null,
               "compauth_result": null,
-              "date": "2026-11-16 16:43:14.590968 +0000",
+              "date": "2026-11-18 06:01:27.421146 +0000",
               "dkim_result": null,
               "dmarc_result": null,
               "env_mail_from": null,
@@ -843,7 +843,7 @@
           "parsing_error": null
         },
         "module": "email_analyzer",
-        "observable": 2,
+        "observable": 4,
         "summary": "Email Analysis: From Sam Field <sam@partner-example.org> To pat@corp.example Subject RE: Updated remittance details",
         "tags": []
       },
@@ -866,7 +866,7 @@
           "type": "news or mail, ASCII text"
         },
         "module": "file_type",
-        "observable": 2,
+        "observable": 4,
         "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
         "tags": []
       },
@@ -889,7 +889,7 @@
           "type": "ASCII text"
         },
         "module": "file_type",
-        "observable": 3,
+        "observable": 8,
         "summary": "File Type Analysis: ASCII text (text/plain)",
         "tags": []
       },
@@ -897,7 +897,7 @@
         "added": [],
         "class": "FileTypeAnalysis",
         "details": {
-          "is_email_file": true,
+          "is_email_file": false,
           "is_jar_file": false,
           "is_lnk_file": false,
           "is_office_document": false,
@@ -908,12 +908,12 @@
           "is_rtf_file": false,
           "is_x509": false,
           "is_zip_file": false,
-          "mime": "message/rfc822",
-          "type": "news or mail, ASCII text, with very long lines (1050)"
+          "mime": "text/html",
+          "type": "HTML document, ASCII text, with very long lines (1050)"
         },
         "module": "file_type",
         "observable": 9,
-        "summary": "File Type Analysis: news or mail, ASCII text, with very long lines (1050) (message/rfc822) (email)",
+        "summary": "File Type Analysis: HTML document, ASCII text, with very long lines (1050) (text/html)",
         "tags": []
       },
       {
@@ -939,7 +939,6 @@
         "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
         "tags": []
       }
-    ],
-    "whitelisted": false
+    ]
   }
 }

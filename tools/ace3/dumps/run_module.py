@@ -162,7 +162,8 @@ def parse_args():
     parser.add_argument(
         "--carrying-email", metavar="BODY",
         help="the file comes as the attachment of an email, made here, whose text body is the file BODY, "
-        "or whose body is the HTML file BODY when it ends in .html, or which has no body when BODY is -. "
+        "or whose body is the HTML file BODY when it ends in .html, or which has a text part and an HTML "
+        "alternative when it ends in .both, split at a line --html--, or which has no body when BODY is -. "
         "The email is the root's file, email_analyzer has to be enabled, and the dump is the attachment's",
     )
     parser.add_argument(
@@ -926,6 +927,7 @@ TREE_MODULES = {
     "NetworkIdentifierAnalysis": "network_identifier",
     "ParseURLAnalysis": "parse_url",
     "IDNAAnalysis": "idna_analyzer",
+    "ApexDomainAnalysis": "apex_domain_analyzer",
     "EmailAddressFQDNAnalysis": "email_address_fqdn_analyzer",
     "ProtectedURLAnalysis": "protected_url_analyzer",
     "HTMLDataURLAnalysis": "html_data_url_extraction",
@@ -1035,6 +1037,7 @@ TREE_EXCLUDED = {
     "URLExtractionAnalyzer": "url_extraction",
     "IOCExtractionAnalyzer": "ioc_extraction",
     "IDNAAnalyzer": "idna_analyzer",
+    "ApexDomainAnalyzer": "apex_domain_analyzer",
     "HTMLDataURLAnalyzer": "html_data_url_extraction",
     "HARExtractor": "har_extraction",
     "HTMLJavaScriptExtractor": "html_js_extraction",
@@ -1116,6 +1119,10 @@ def carrying_email(work, body, attachment, name):
             text = fp.read()
         if body.endswith(".html"):
             message.set_content(text, subtype="html")
+        elif body.endswith(".both"):
+            plain, html = text.split("\n--html--\n", 1)
+            message.set_content(plain)
+            message.add_alternative(html, subtype="html")
         else:
             message.set_content(text)
     with open(attachment, "rb") as fp:
@@ -1128,21 +1135,27 @@ def carrying_email(work, body, attachment, name):
 
 
 def carrying_email_body(root, target):
-    """The body of the email search_down() finds from target, as the encryption modules read it."""
+    """The body parts of the email search_down() finds from target, as the encryption modules read them
+    since ace3's 1998ca56 (EmailAnalysis.body_parts), in order, each with whether it is HTML."""
     import base64
 
     from saq.analysis.search import search_down
-    from saq.modules.email.rfc822 import EmailAnalysis
+    from saq.modules.email.rfc822 import EmailAnalysis, is_html_body_part
 
     for analysis in root.all_analysis:
         analysis.load_details()
     found = search_down(target, lambda obj: isinstance(obj, EmailAnalysis) and obj.email is not None)
     if not found:
         return None
-    if not found.body:
-        return {"body": None}
-    with open(found.body.full_path, "rb") as fp:
-        return {"body_path": found.body.file_path, "body": base64.b64encode(fp.read()).decode()}
+    parts = []
+    for part in found.body_parts:
+        with open(part.full_path, "rb") as fp:
+            parts.append({
+                "path": part.file_path,
+                "html": is_html_body_part(part),
+                "body": base64.b64encode(fp.read()).decode(),
+            })
+    return {"parts": parts}
 
 
 def tree_time(time):
@@ -1200,13 +1213,11 @@ def rtfole_in_alert_paths(result, files_dir):
 
 
 def msoffice_in_alert_paths(result, files_dir):
-    """The candidates from the body come out of a set, in an order that changes from run to run, and
-    office2john.py names the file by the path it was given, on the node, which reaches the summary.
-    The port sorts them and writes the path in the alert. Those two things are put the same here.
-    ace3 kept office2john.py's failure in the details too until 2b9fcd2c moved it to Analysis.error,
-    which tree_form holds as the result's error, with the same path put the same way."""
-    details = result["details"]
-    details["word_list"] = details["word_list"][:2] + sorted(details["word_list"][2:])
+    """office2john.py names the file by the path it was given, on the node, which reaches the summary;
+    the port writes the path in the alert, which is put the same here. ace3 kept office2john.py's
+    failure in the details too until 2b9fcd2c moved it to Analysis.error, which tree_form holds as the
+    result's error, with the same path put the same way. The candidates from the body came out of a set
+    until 1998ca56, and were sorted here; they are in the order ace3 makes them now."""
     if isinstance(result["summary"], str):
         result["summary"] = result["summary"].replace(files_dir + "/", "")
 
@@ -1357,10 +1368,6 @@ def tree_form(root):
                 msoffice_in_alert_paths(result, observable.full_path.removesuffix("/" + observable.file_path))
             if class_name == "ObservableModifierAnalysis":
                 modifier_modules(result["details"])
-            if class_name in ("ZipEncryptionAnalysis", "RarEncryptionAnalysis", "PDFEncryptionAnalysis"):
-                # the candidates come out of a set, whose order changes from run to run; the port sorts them
-                if isinstance(result["details"].get("word_list"), list):
-                    result["details"]["word_list"] = sorted(result["details"]["word_list"])
             entry["results"][tree_module(analysis)] = renamed_strings(result, renames)
         for detection in detections:
             entry["detections"].setdefault(detection.description, []).append(json_safe(detection.details))
@@ -1473,7 +1480,6 @@ def tree_view(root):
             })
     return {
         "alert_type": root.alert_type,
-        "whitelisted": root.whitelisted,
         "observables": observables,
         "results": results,
         "bodies": bodies,

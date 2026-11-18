@@ -1,6 +1,6 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "37a765bf",
+  "ace3_commit": "fe6da632",
   "also_enabled": [
     "file_type",
     "email_analyzer",
@@ -62,7 +62,7 @@
               ],
               []
             ],
-            "observable_uuid": "120ab876-d61e-4b13-9d92-f775d899d849",
+            "observable_uuid": "7b8e0722-1486-4915-ba7e-26c5832b02fc",
             "reasons": [
               "found in the email body",
               "clickable link with text 'Play voicemail'",
@@ -84,7 +84,7 @@
               ],
               []
             ],
-            "observable_uuid": "f3be3734-f8c4-474a-8259-3ece28a7ad37",
+            "observable_uuid": "2ea90218-6fb5-414a-bf09-722acb636e6f",
             "reasons": [
               "found in the email body",
               "clickable link with text 'Voicemail settings'",
@@ -107,7 +107,7 @@
               [],
               []
             ],
-            "observable_uuid": "e25791ed-7383-493d-8e66-9523509ef89f",
+            "observable_uuid": "f4058a05-1b57-46f1-b84d-3bc4a86f79fe",
             "reasons": [
               "found in the email body",
               "clickable link with text 'Original notice'",
@@ -132,7 +132,7 @@
             ],
             []
           ],
-          "observable_uuid": "120ab876-d61e-4b13-9d92-f775d899d849",
+          "observable_uuid": "7b8e0722-1486-4915-ba7e-26c5832b02fc",
           "reasons": [
             "found in the email body",
             "clickable link with text 'Play voicemail'",
@@ -225,7 +225,7 @@
             "cc": [],
             "compauth_reason": null,
             "compauth_result": null,
-            "date": "2026-11-16 16:43:18.095284 +0000",
+            "date": "2026-11-18 06:01:30.759150 +0000",
             "dkim_result": null,
             "dmarc_result": null,
             "env_mail_from": null,
@@ -519,16 +519,89 @@
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "fqdn",
-        "value": "corp.example"
+        "type": "email_from",
+        "value": "sam@partner-example.org"
       },
       {
         "detections": [],
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "email_return_path",
-        "value": "sam@partner-example.org"
+        "type": "uri_path",
+        "value": "/play?id=3"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "url",
+        "value": "https://voice.lure-example.net/settings"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "fqdn",
+        "value": "partner-example.org"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [
+          "domain_in_url"
+        ],
+        "type": "fqdn",
+        "value": "voice.partner-example.org"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "fqdn",
+        "value": "corp.example"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [
+          {
+            "path": "email.rfc822.combined",
+            "yara_meta": [
+              "type=email",
+              "type=email.combined"
+            ]
+          }
+        ],
+        "size": 960,
+        "tags": [
+          "email"
+        ],
+        "type": "file",
+        "value": "2dbb8101ae858c92b7f61837111c9ca0d1037fc19b07343ae54265a59fd0c0f0"
+      },
+      {
+        "detections": [],
+        "directives": [
+          "extract_urls",
+          "render"
+        ],
+        "paths": [
+          {
+            "path": "email.rfc822.unknown_text_html_000.html",
+            "yara_meta": [
+              "type=document.html",
+              "type=email.attachment"
+            ]
+          }
+        ],
+        "size": 612,
+        "tags": [],
+        "type": "file",
+        "value": "922a40876343b52bf45fae673550d6dbd0736dd7454a2a07738c4654ed92fc33"
       },
       {
         "detections": [],
@@ -545,6 +618,14 @@
         "directives": [],
         "paths": [],
         "tags": [],
+        "type": "uri_path",
+        "value": "/settings"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
         "type": "email_to",
         "value": "pat@corp.example"
       },
@@ -553,8 +634,8 @@
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "email_subject",
-        "value": "FW: Voicemail from 555-0100"
+        "type": "uri_path",
+        "value": "/original"
       },
       {
         "detections": [],
@@ -580,8 +661,18 @@
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "uri_path",
-        "value": "/original"
+        "type": "email_conversation",
+        "value": "sam@partner-example.org|pat@corp.example"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [
+          "domain_in_url"
+        ],
+        "type": "fqdn",
+        "value": "voice.lure-example.net"
       },
       {
         "detections": [],
@@ -600,43 +691,6 @@
         ],
         "type": "file",
         "value": "743daf6ee0f2e4d6ca6552fa6c6e19af981718e6235d85dd616ec11277d88c30"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "fqdn",
-        "value": "partner-example.org"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [
-          {
-            "path": "email.rfc822.combined",
-            "yara_meta": [
-              "type=email",
-              "type=email.combined"
-            ]
-          }
-        ],
-        "size": 960,
-        "tags": [
-          "email"
-        ],
-        "type": "file",
-        "value": "2dbb8101ae858c92b7f61837111c9ca0d1037fc19b07343ae54265a59fd0c0f0"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [
-          "domain_in_url"
-        ],
-        "type": "fqdn",
-        "value": "voice.partner-example.org"
       },
       {
         "detections": [],
@@ -662,46 +716,16 @@
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "email_conversation",
-        "value": "sam@partner-example.org|pat@corp.example"
-      },
-      {
-        "detections": [],
-        "directives": [
-          "extract_urls",
-          "render"
-        ],
-        "paths": [
-          {
-            "path": "email.rfc822.unknown_text_html_000.html",
-            "yara_meta": [
-              "type=document.html",
-              "type=email.attachment"
-            ]
-          }
-        ],
-        "size": 612,
-        "tags": [],
-        "type": "file",
-        "value": "922a40876343b52bf45fae673550d6dbd0736dd7454a2a07738c4654ed92fc33"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [
-          "domain_in_url"
-        ],
-        "type": "fqdn",
-        "value": "voice.lure-example.net"
+        "type": "email_return_path",
+        "value": "sam@partner-example.org"
       },
       {
         "detections": [],
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "uri_path",
-        "value": "/play?id=3"
+        "type": "email_subject",
+        "value": "FW: Voicemail from 555-0100"
       },
       {
         "detections": [],
@@ -716,39 +740,15 @@
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "email_from",
-        "value": "sam@partner-example.org"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "url",
-        "value": "https://voice.lure-example.net/settings"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
         "type": "message_id",
         "value": "<lure_thread_header@partner-example.org>"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "uri_path",
-        "value": "/settings"
       }
     ],
     "results": [
       {
         "added": [
           {
-            "observable": 8
+            "observable": 3
           }
         ],
         "class": "EmailAddressFQDNAnalysis",
@@ -756,7 +756,7 @@
           "domain": "partner-example.org"
         },
         "module": "email_address_fqdn_analyzer",
-        "observable": 1,
+        "observable": 0,
         "summary": "Email Address FQDN: partner-example.org",
         "tags": []
       },
@@ -766,7 +766,156 @@
             "observable": 14
           },
           {
-            "observable": 15
+            "observable": 9
+          }
+        ],
+        "class": "ParseURLAnalysis",
+        "details": {
+          "fragment": "",
+          "netloc": "voice.lure-example.net",
+          "params": null,
+          "path": "/settings",
+          "query": "",
+          "scheme": "https"
+        },
+        "module": "parse_url",
+        "observable": 2,
+        "summary": "URL Parser: scheme=https, netloc=voice.lure-example.net, path=/settings",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "ProtectedURLAnalysis",
+        "details": {
+          "extracted_url": "https://voice.lure-example.net/settings",
+          "protection_type": "unprotected"
+        },
+        "module": "protected_url_analyzer",
+        "observable": 2,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": true,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "message/rfc822",
+          "type": "news or mail, ASCII text, with very long lines (611)"
+        },
+        "module": "file_type",
+        "observable": 6,
+        "summary": "File Type Analysis: news or mail, ASCII text, with very long lines (611) (message/rfc822) (email)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "HTMLJavaScriptExtractionAnalysis",
+        "details": {
+          "dom_snapshot_files": [],
+          "duplicate_count": 0,
+          "extracted_files": [],
+          "extracted_uri_paths": [],
+          "extracted_urls": [],
+          "inline_handlers": [],
+          "script_count": 0
+        },
+        "module": "html_js_extraction",
+        "observable": 6,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": false,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "text/html",
+          "type": "HTML document, ASCII text, with very long lines (611)"
+        },
+        "module": "file_type",
+        "observable": 7,
+        "summary": "File Type Analysis: HTML document, ASCII text, with very long lines (611) (text/html)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "HTMLJavaScriptExtractionAnalysis",
+        "details": {
+          "dom_snapshot_files": [],
+          "duplicate_count": 0,
+          "extracted_files": [],
+          "extracted_uri_paths": [],
+          "extracted_urls": [],
+          "inline_handlers": [],
+          "script_count": 0
+        },
+        "module": "html_js_extraction",
+        "observable": 7,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 19
+          },
+          {
+            "observable": 8
+          },
+          {
+            "observable": 2
+          }
+        ],
+        "class": "URLExtractionAnalysis",
+        "details": {
+          "urls": [
+            "https://voice.partner-example.org/original",
+            "https://voice.lure-example.net/play?id=3",
+            "https://voice.lure-example.net/settings"
+          ],
+          "urls_grouped_by_domain": {
+            "lure-example.net": [
+              "https://voice.lure-example.net/play?id=3",
+              "https://voice.lure-example.net/settings"
+            ],
+            "partner-example.org": [
+              "https://voice.partner-example.org/original"
+            ]
+          }
+        },
+        "module": "url_extraction",
+        "observable": 7,
+        "summary": "URL Extraction Analysis (voice.lure-example.net, voice.partner-example.org)",
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 14
+          },
+          {
+            "observable": 1
           }
         ],
         "class": "ParseURLAnalysis",
@@ -779,7 +928,7 @@
           "scheme": "https"
         },
         "module": "parse_url",
-        "observable": 2,
+        "observable": 8,
         "summary": "URL Parser: scheme=https, netloc=voice.lure-example.net, path=/play, query=id=3, params=(id=3)",
         "tags": []
       },
@@ -791,14 +940,14 @@
           "protection_type": "unprotected"
         },
         "module": "protected_url_analyzer",
-        "observable": 2,
+        "observable": 8,
         "summary": null,
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 0
+            "observable": 5
           }
         ],
         "class": "EmailAddressFQDNAnalysis",
@@ -806,7 +955,7 @@
           "domain": "corp.example"
         },
         "module": "email_address_fqdn_analyzer",
-        "observable": 3,
+        "observable": 10,
         "summary": "Email Address FQDN: corp.example",
         "tags": []
       },
@@ -829,7 +978,7 @@
           "type": "ASCII text"
         },
         "module": "file_type",
-        "observable": 5,
+        "observable": 12,
         "summary": "File Type Analysis: ASCII text (text/plain)",
         "tags": []
       },
@@ -841,7 +990,7 @@
           "urls_grouped_by_domain": {}
         },
         "module": "url_extraction",
-        "observable": 5,
+        "observable": 12,
         "summary": null,
         "tags": []
       },
@@ -860,7 +1009,7 @@
                 ],
                 []
               ],
-              "observable_uuid": "120ab876-d61e-4b13-9d92-f775d899d849",
+              "observable_uuid": "7b8e0722-1486-4915-ba7e-26c5832b02fc",
               "reasons": [
                 "found in the email body",
                 "clickable link with text 'Play voicemail'",
@@ -882,7 +1031,7 @@
                 ],
                 []
               ],
-              "observable_uuid": "f3be3734-f8c4-474a-8259-3ece28a7ad37",
+              "observable_uuid": "2ea90218-6fb5-414a-bf09-722acb636e6f",
               "reasons": [
                 "found in the email body",
                 "clickable link with text 'Voicemail settings'",
@@ -905,7 +1054,7 @@
                 [],
                 []
               ],
-              "observable_uuid": "e25791ed-7383-493d-8e66-9523509ef89f",
+              "observable_uuid": "f4058a05-1b57-46f1-b84d-3bc4a86f79fe",
               "reasons": [
                 "found in the email body",
                 "clickable link with text 'Original notice'",
@@ -930,7 +1079,7 @@
               ],
               []
             ],
-            "observable_uuid": "120ab876-d61e-4b13-9d92-f775d899d849",
+            "observable_uuid": "7b8e0722-1486-4915-ba7e-26c5832b02fc",
             "reasons": [
               "found in the email body",
               "clickable link with text 'Play voicemail'",
@@ -945,44 +1094,44 @@
           "subject": "FW: Voicemail from 555-0100"
         },
         "module": "lure_url_analyzer",
-        "observable": 7,
+        "observable": 15,
         "summary": "Lure URL Analysis: https://voice.lure-example.net/play?id=3 (found in the email body; clickable link with text 'Play voicemail'; the only linked external domain)",
         "tags": []
       },
       {
         "added": [
           {
+            "observable": 0
+          },
+          {
+            "observable": 10
+          },
+          {
+            "observable": 13
+          },
+          {
+            "observable": 18
+          },
+          {
+            "observable": 20
+          },
+          {
             "observable": 17
           },
           {
-            "observable": 3
-          },
-          {
-            "observable": 12
-          },
-          {
-            "observable": 4
-          },
-          {
-            "observable": 19
-          },
-          {
-            "observable": 1
-          },
-          {
-            "observable": 5,
+            "observable": 12,
             "path": "email.rfc822.unknown_text_plain_000.txt"
           },
           {
-            "observable": 13,
+            "observable": 7,
             "path": "email.rfc822.unknown_text_html_000.html"
           },
           {
-            "observable": 11,
+            "observable": 16,
             "path": "email.rfc822.headers"
           },
           {
-            "observable": 9,
+            "observable": 6,
             "path": "email.rfc822.combined"
           }
         ],
@@ -1058,7 +1207,7 @@
               "cc": [],
               "compauth_reason": null,
               "compauth_result": null,
-              "date": "2026-11-16 16:43:18.095284 +0000",
+              "date": "2026-11-18 06:01:30.759150 +0000",
               "dkim_result": null,
               "dmarc_result": null,
               "env_mail_from": null,
@@ -1118,7 +1267,7 @@
           "parsing_error": null
         },
         "module": "email_analyzer",
-        "observable": 7,
+        "observable": 15,
         "summary": "Email Analysis: From Sam Field <sam@partner-example.org> To pat@corp.example Subject FW: Voicemail from 555-0100",
         "tags": []
       },
@@ -1141,7 +1290,7 @@
           "type": "news or mail, ASCII text"
         },
         "module": "file_type",
-        "observable": 7,
+        "observable": 15,
         "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
         "tags": []
       },
@@ -1158,47 +1307,7 @@
           "script_count": 0
         },
         "module": "html_js_extraction",
-        "observable": 7,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": true,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "message/rfc822",
-          "type": "news or mail, ASCII text, with very long lines (611)"
-        },
-        "module": "file_type",
-        "observable": 9,
-        "summary": "File Type Analysis: news or mail, ASCII text, with very long lines (611) (message/rfc822) (email)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "HTMLJavaScriptExtractionAnalysis",
-        "details": {
-          "dom_snapshot_files": [],
-          "duplicate_count": 0,
-          "extracted_files": [],
-          "extracted_uri_paths": [],
-          "extracted_urls": [],
-          "inline_handlers": [],
-          "script_count": 0
-        },
-        "module": "html_js_extraction",
-        "observable": 9,
+        "observable": 15,
         "summary": null,
         "tags": []
       },
@@ -1221,7 +1330,7 @@
           "type": "news or mail, ASCII text"
         },
         "module": "file_type",
-        "observable": 11,
+        "observable": 16,
         "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
         "tags": []
       },
@@ -1238,115 +1347,6 @@
           "script_count": 0
         },
         "module": "html_js_extraction",
-        "observable": 11,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": false,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "text/html",
-          "type": "HTML document, ASCII text, with very long lines (611)"
-        },
-        "module": "file_type",
-        "observable": 13,
-        "summary": "File Type Analysis: HTML document, ASCII text, with very long lines (611) (text/html)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "HTMLJavaScriptExtractionAnalysis",
-        "details": {
-          "dom_snapshot_files": [],
-          "duplicate_count": 0,
-          "extracted_files": [],
-          "extracted_uri_paths": [],
-          "extracted_urls": [],
-          "inline_handlers": [],
-          "script_count": 0
-        },
-        "module": "html_js_extraction",
-        "observable": 13,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 16
-          },
-          {
-            "observable": 2
-          },
-          {
-            "observable": 18
-          }
-        ],
-        "class": "URLExtractionAnalysis",
-        "details": {
-          "urls": [
-            "https://voice.partner-example.org/original",
-            "https://voice.lure-example.net/play?id=3",
-            "https://voice.lure-example.net/settings"
-          ],
-          "urls_grouped_by_domain": {
-            "lure-example.net": [
-              "https://voice.lure-example.net/play?id=3",
-              "https://voice.lure-example.net/settings"
-            ],
-            "partner-example.org": [
-              "https://voice.partner-example.org/original"
-            ]
-          }
-        },
-        "module": "url_extraction",
-        "observable": 13,
-        "summary": "URL Extraction Analysis (voice.lure-example.net, voice.partner-example.org)",
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 10
-          },
-          {
-            "observable": 6
-          }
-        ],
-        "class": "ParseURLAnalysis",
-        "details": {
-          "fragment": "",
-          "netloc": "voice.partner-example.org",
-          "params": null,
-          "path": "/original",
-          "query": "",
-          "scheme": "https"
-        },
-        "module": "parse_url",
-        "observable": 16,
-        "summary": "URL Parser: scheme=https, netloc=voice.partner-example.org, path=/original",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "ProtectedURLAnalysis",
-        "details": {
-          "extracted_url": "https://voice.partner-example.org/original",
-          "protection_type": "unprotected"
-        },
-        "module": "protected_url_analyzer",
         "observable": 16,
         "summary": null,
         "tags": []
@@ -1354,7 +1354,7 @@
       {
         "added": [
           {
-            "observable": 8
+            "observable": 3
           }
         ],
         "class": "EmailAddressFQDNAnalysis",
@@ -1369,39 +1369,38 @@
       {
         "added": [
           {
-            "observable": 14
+            "observable": 4
           },
           {
-            "observable": 20
+            "observable": 11
           }
         ],
         "class": "ParseURLAnalysis",
         "details": {
           "fragment": "",
-          "netloc": "voice.lure-example.net",
+          "netloc": "voice.partner-example.org",
           "params": null,
-          "path": "/settings",
+          "path": "/original",
           "query": "",
           "scheme": "https"
         },
         "module": "parse_url",
-        "observable": 18,
-        "summary": "URL Parser: scheme=https, netloc=voice.lure-example.net, path=/settings",
+        "observable": 19,
+        "summary": "URL Parser: scheme=https, netloc=voice.partner-example.org, path=/original",
         "tags": []
       },
       {
         "added": [],
         "class": "ProtectedURLAnalysis",
         "details": {
-          "extracted_url": "https://voice.lure-example.net/settings",
+          "extracted_url": "https://voice.partner-example.org/original",
           "protection_type": "unprotected"
         },
         "module": "protected_url_analyzer",
-        "observable": 18,
+        "observable": 19,
         "summary": null,
         "tags": []
       }
-    ],
-    "whitelisted": false
+    ]
   }
 }

@@ -95,7 +95,7 @@ pub fn main(registry: &Registry, secrets: TaskSecrets<'_>) -> ExitCode {
     let end = parser.run(Run {
         task: &request.task,
         input: request.input.as_deref(),
-        email_body: request.email_body.as_deref(),
+        email_parts: &request.email_parts,
         tree_files: request.tree_files.as_deref(),
         outputs,
         // the supervisor kills the process instead

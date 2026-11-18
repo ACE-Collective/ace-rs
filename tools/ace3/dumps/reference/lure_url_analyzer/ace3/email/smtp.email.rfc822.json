@@ -1,6 +1,6 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "37a765bf",
+  "ace3_commit": "fe6da632",
   "also_enabled": [
     "file_type",
     "email_analyzer",
@@ -340,7 +340,7 @@
             "cc": [],
             "compauth_reason": null,
             "compauth_result": null,
-            "date": "2026-11-16 16:33:25.486486 +0000",
+            "date": "2026-11-18 05:53:05.596987 +0000",
             "dkim_result": "fail",
             "dmarc_result": "fail",
             "env_mail_from": null,
@@ -707,37 +707,10 @@
       {
         "detections": [],
         "directives": [],
-        "paths": [
-          {
-            "path": "email.rfc822.headers",
-            "yara_meta": [
-              "type=email",
-              "type=email.headers"
-            ]
-          }
-        ],
-        "size": 12476,
-        "tags": [
-          "email"
-        ],
-        "type": "file",
-        "value": "5c0125d3a06c99c65c8fc13de8a8e91987b176e5f043b8b017b3bd020e037bc2"
-      },
-      {
-        "detections": [],
-        "directives": [],
         "paths": [],
         "tags": [],
-        "type": "email_to",
-        "value": "john.davison@company.com"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_from",
-        "value": "unixfreak0037@gmail.com"
+        "type": "fqdn",
+        "value": "gmail.com"
       },
       {
         "detections": [],
@@ -746,6 +719,22 @@
         "tags": [],
         "type": "email_sender_tenant_id",
         "value": "cfddba29-ca2a-450c-a415-595e7fcce8e5"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_dkim_signing_domain",
+        "value": "gmail.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_conversation",
+        "value": "unixfreak0037@gmail.com|john.davison@company.com"
       },
       {
         "detections": [],
@@ -766,6 +755,46 @@
         "tags": [],
         "type": "file",
         "value": "811f5117e3a51ac9a95f89eeb50c6c0c7c59387f931d909b780f644c956bb5ea"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_subject",
+        "value": "test canary #1"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_return_path",
+        "value": "unixfreak0037@gmail.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "message_id",
+        "value": "<CANTOGZshnHG073SKFD9aA-TxAu6UVnTwMbYFYMH7iCNhkenwvg@mail.gmail.com>"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_to",
+        "value": "john.davison@company.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_from",
+        "value": "unixfreak0037@gmail.com"
       },
       {
         "detections": [],
@@ -791,6 +820,25 @@
         "directives": [],
         "paths": [
           {
+            "path": "email.rfc822.headers",
+            "yara_meta": [
+              "type=email",
+              "type=email.headers"
+            ]
+          }
+        ],
+        "size": 12476,
+        "tags": [
+          "email"
+        ],
+        "type": "file",
+        "value": "5c0125d3a06c99c65c8fc13de8a8e91987b176e5f043b8b017b3bd020e037bc2"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [
+          {
             "path": "email.rfc822.combined",
             "yara_meta": [
               "type=email",
@@ -804,46 +852,6 @@
         ],
         "type": "file",
         "value": "c4182daf9da80681691b664dd87e528a991a15ef7031360f926a96b0c741fba9"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_subject",
-        "value": "test canary #1"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "fqdn",
-        "value": "gmail.com"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_conversation",
-        "value": "unixfreak0037@gmail.com|john.davison@company.com"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "message_id",
-        "value": "<CANTOGZshnHG073SKFD9aA-TxAu6UVnTwMbYFYMH7iCNhkenwvg@mail.gmail.com>"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_return_path",
-        "value": "unixfreak0037@gmail.com"
       },
       {
         "detections": [],
@@ -863,87 +871,9 @@
         ],
         "type": "file",
         "value": "5d2569cdbe088294e456effabcfd8362108468f12deaf6464f95bc5400f85874"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_dkim_signing_domain",
-        "value": "gmail.com"
       }
     ],
     "results": [
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": true,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "message/rfc822",
-          "type": "RFC 822 mail, ASCII text, with very long lines (3316)"
-        },
-        "module": "file_type",
-        "observable": 1,
-        "summary": "File Type Analysis: RFC 822 mail, ASCII text, with very long lines (3316) (message/rfc822) (email)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "HTMLJavaScriptExtractionAnalysis",
-        "details": {
-          "dom_snapshot_files": [],
-          "duplicate_count": 0,
-          "extracted_files": [],
-          "extracted_uri_paths": [],
-          "extracted_urls": [],
-          "inline_handlers": [],
-          "script_count": 0
-        },
-        "module": "html_js_extraction",
-        "observable": 1,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 0
-          }
-        ],
-        "class": "EmailAddressFQDNAnalysis",
-        "details": {
-          "domain": "company.com"
-        },
-        "module": "email_address_fqdn_analyzer",
-        "observable": 2,
-        "summary": "Email Address FQDN: company.com",
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 9
-          }
-        ],
-        "class": "EmailAddressFQDNAnalysis",
-        "details": {
-          "domain": "gmail.com"
-        },
-        "module": "email_address_fqdn_analyzer",
-        "observable": 3,
-        "summary": "Email Address FQDN: gmail.com",
-        "tags": []
-      },
       {
         "added": [],
         "class": "FileTypeAnalysis",
@@ -997,6 +927,51 @@
         "tags": []
       },
       {
+        "added": [
+          {
+            "observable": 1
+          }
+        ],
+        "class": "EmailAddressFQDNAnalysis",
+        "details": {
+          "domain": "gmail.com"
+        },
+        "module": "email_address_fqdn_analyzer",
+        "observable": 7,
+        "summary": "Email Address FQDN: gmail.com",
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 0
+          }
+        ],
+        "class": "EmailAddressFQDNAnalysis",
+        "details": {
+          "domain": "company.com"
+        },
+        "module": "email_address_fqdn_analyzer",
+        "observable": 9,
+        "summary": "Email Address FQDN: company.com",
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 1
+          }
+        ],
+        "class": "EmailAddressFQDNAnalysis",
+        "details": {
+          "domain": "gmail.com"
+        },
+        "module": "email_address_fqdn_analyzer",
+        "observable": 10,
+        "summary": "Email Address FQDN: gmail.com",
+        "tags": []
+      },
+      {
         "added": [],
         "class": "FileTypeAnalysis",
         "details": {
@@ -1015,7 +990,7 @@
           "type": "ASCII text"
         },
         "module": "file_type",
-        "observable": 6,
+        "observable": 11,
         "summary": "File Type Analysis: ASCII text (text/plain)",
         "tags": []
       },
@@ -1027,7 +1002,7 @@
           "urls_grouped_by_domain": {}
         },
         "module": "url_extraction",
-        "observable": 6,
+        "observable": 11,
         "summary": null,
         "tags": []
       },
@@ -1050,7 +1025,7 @@
           "type": "RFC 822 mail, ASCII text, with very long lines (3316)"
         },
         "module": "file_type",
-        "observable": 7,
+        "observable": 12,
         "summary": "File Type Analysis: RFC 822 mail, ASCII text, with very long lines (3316) (message/rfc822) (email)",
         "tags": []
       },
@@ -1067,27 +1042,70 @@
           "script_count": 0
         },
         "module": "html_js_extraction",
-        "observable": 7,
+        "observable": 12,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": true,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "message/rfc822",
+          "type": "RFC 822 mail, ASCII text, with very long lines (3316)"
+        },
+        "module": "file_type",
+        "observable": 13,
+        "summary": "File Type Analysis: RFC 822 mail, ASCII text, with very long lines (3316) (message/rfc822) (email)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "HTMLJavaScriptExtractionAnalysis",
+        "details": {
+          "dom_snapshot_files": [],
+          "duplicate_count": 0,
+          "extracted_files": [],
+          "extracted_uri_paths": [],
+          "extracted_urls": [],
+          "inline_handlers": [],
+          "script_count": 0
+        },
+        "module": "html_js_extraction",
+        "observable": 13,
         "summary": null,
         "tags": []
       },
       {
         "added": [
           {
+            "observable": 10
+          },
+          {
             "observable": 9
-          }
-        ],
-        "class": "EmailAddressFQDNAnalysis",
-        "details": {
-          "domain": "gmail.com"
-        },
-        "module": "email_address_fqdn_analyzer",
-        "observable": 12,
-        "summary": "Email Address FQDN: gmail.com",
-        "tags": []
-      },
-      {
-        "added": [
+          },
+          {
+            "observable": 4
+          },
+          {
+            "observable": 6
+          },
+          {
+            "observable": 8
+          },
+          {
+            "observable": 7
+          },
           {
             "observable": 3
           },
@@ -1095,25 +1113,7 @@
             "observable": 2
           },
           {
-            "observable": 10
-          },
-          {
-            "observable": 8
-          },
-          {
-            "observable": 11
-          },
-          {
-            "observable": 12
-          },
-          {
-            "observable": 14
-          },
-          {
-            "observable": 4
-          },
-          {
-            "observable": 6,
+            "observable": 11,
             "path": "email.rfc822.unknown_text_plain_000.txt"
           },
           {
@@ -1121,11 +1121,11 @@
             "path": "email.rfc822.unknown_text_html_000.html"
           },
           {
-            "observable": 1,
+            "observable": 12,
             "path": "email.rfc822.headers"
           },
           {
-            "observable": 7,
+            "observable": 13,
             "path": "email.rfc822.combined"
           }
         ],
@@ -1420,7 +1420,7 @@
               "cc": [],
               "compauth_reason": null,
               "compauth_result": null,
-              "date": "2026-11-16 16:33:25.486486 +0000",
+              "date": "2026-11-18 05:53:05.596987 +0000",
               "dkim_result": "fail",
               "dmarc_result": "fail",
               "env_mail_from": null,
@@ -1527,7 +1527,7 @@
           "parsing_error": null
         },
         "module": "email_analyzer",
-        "observable": 13,
+        "observable": 14,
         "summary": "Email Analysis: From John Davison <unixfreak0037@gmail.com> To \"Davison, John\" <John.Davison@company.com> Subject test canary #1",
         "tags": []
       },
@@ -1550,7 +1550,7 @@
           "type": "RFC 822 mail, ASCII text"
         },
         "module": "file_type",
-        "observable": 13,
+        "observable": 14,
         "summary": "File Type Analysis: RFC 822 mail, ASCII text (message/rfc822) (email)",
         "tags": []
       },
@@ -1567,11 +1567,10 @@
           "script_count": 0
         },
         "module": "html_js_extraction",
-        "observable": 13,
+        "observable": 14,
         "summary": null,
         "tags": []
       }
-    ],
-    "whitelisted": false
+    ]
   }
 }

@@ -481,194 +481,25 @@
         "email": true
       }
     },
-    "file:253d56244d51877c3b62589b99046a742f6eae16fe0ce585606b344f96fa9b87": {
+    "file:27bcb434a366f3b8746c52c415973d9884fae538c0331fbce601e8e5f06e1121": {
       "detections": {},
-      "directives": {
-        "extract_urls": true
-      },
+      "directives": {},
       "excluded_analysis": {
-        "pdf_analyzer": true
+        "file_hash_analyzer": true,
+        "file_type": true
       },
       "paths": {
-        "spectre.pdf.gs.pdf": {
-          "type=document.pdf": true,
-          "type=document.pdf.rendered": true
+        "spectre.pdf.exif/exiftool.out": {
+          "type=metadata.exif": true
         }
       },
-      "redirection": "file:d1a3c8c49faea6321bd01e706e0957012c18a94e1a187f1a5477c0e82270dc51",
       "relationships": {
         "extracted_from file:d1a3c8c49faea6321bd01e706e0957012c18a94e1a187f1a5477c0e82270dc51": true
       },
       "results": {
-        "file_type": {
-          "details": {
-            "is_email_file": false,
-            "is_jar_file": false,
-            "is_lnk_file": false,
-            "is_office_document": false,
-            "is_office_ext": false,
-            "is_ole_file": false,
-            "is_pdf_file": true,
-            "is_pe_file": false,
-            "is_rtf_file": false,
-            "is_x509": false,
-            "is_zip_file": false,
-            "mime": "application/pdf",
-            "type": "PDF document, version 1.7, 16 page(s)"
-          },
-          "summary": "File Type Analysis: PDF document, version 1.7, 16 page(s) (application/pdf) (pdf document)",
-          "tags": {}
-        },
         "observable_detection": {
           "details": {
             "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "pdf_link_text": {
-          "details": {
-            "links": [
-              {
-                "line": null,
-                "page": 12,
-                "text": null,
-                "url": "https://bugs.chromium.org/p/chromium/issues/detail?id=508166"
-              },
-              {
-                "line": null,
-                "page": 12,
-                "text": null,
-                "url": "https://bugs.chromium.org/p/chromium/issues/detail?id=508166"
-              },
-              {
-                "line": null,
-                "page": 13,
-                "text": null,
-                "url": "https://www.amd.com/en-us/press-releases/Pages/amd-takes-computing-2016dec13.aspx"
-              },
-              {
-                "line": null,
-                "page": 13,
-                "text": null,
-                "url": "https://www.amd.com/en-us/press-releases/Pages/amd-takes-computing-2016dec13.aspx"
-              },
-              {
-                "line": null,
-                "page": 13,
-                "text": null,
-                "url": "https://www.youtube.com/watch?v=uZRih6APtiQ"
-              },
-              {
-                "line": null,
-                "page": 13,
-                "text": null,
-                "url": "https://www.youtube.com/watch?v=uZRih6APtiQ"
-              },
-              {
-                "line": null,
-                "page": 13,
-                "text": null,
-                "url": "http://cr.yp.to/papers.html#cachetiming"
-              },
-              {
-                "line": null,
-                "page": 13,
-                "text": null,
-                "url": "http://cr.yp.to/papers.html#cachetiming"
-              },
-              {
-                "line": null,
-                "page": 13,
-                "text": null,
-                "url": "http://eprint.iacr.org/2017/968"
-              },
-              {
-                "line": null,
-                "page": 13,
-                "text": null,
-                "url": "http://eprint.iacr.org/2017/968"
-              },
-              {
-                "line": null,
-                "page": 13,
-                "text": null,
-                "url": "https://cyber.wtf/2017/07/28/negative-result-reading-kernel-memory-from-user-mode/"
-              },
-              {
-                "line": null,
-                "page": 13,
-                "text": null,
-                "url": "https://cyber.wtf/2017/07/28/negative-result-reading-kernel-memory-from-user-mode/"
-              },
-              {
-                "line": null,
-                "page": 13,
-                "text": null,
-                "url": "http://www.cs.vu.nl/~giuffrida/papers/anc-ndss-2017.pdf"
-              },
-              {
-                "line": null,
-                "page": 13,
-                "text": null,
-                "url": "http://www.cs.vu.nl/~giuffrida/papers/anc-ndss-2017.pdf"
-              },
-              {
-                "line": null,
-                "page": 13,
-                "text": null,
-                "url": "https://users.ece.cmu.edu/~yoonguk/papers/kim-isca14.pdf"
-              },
-              {
-                "line": null,
-                "page": 13,
-                "text": null,
-                "url": "https://users.ece.cmu.edu/~yoonguk/papers/kim-isca14.pdf"
-              },
-              {
-                "line": null,
-                "page": 13,
-                "text": null,
-                "url": "http://www.daemonology.net/papers/htt.pdf"
-              },
-              {
-                "line": null,
-                "page": 13,
-                "text": null,
-                "url": "http://www.daemonology.net/papers/htt.pdf"
-              },
-              {
-                "line": null,
-                "page": 14,
-                "text": null,
-                "url": "http://eprint.iacr.org/2015/905"
-              }
-            ]
-          },
-          "summary": "PDF Link Text Analysis: 19 links, 0 with text",
-          "tags": {}
-        },
-        "pdftotext": {
-          "details": {
-            "output_path": "e4051a7f94df4c7cb73292494e66f6a8f878174836b49765ef201cb665ceb277",
-            "stderr": "",
-            "stdout": ""
-          },
-          "summary": "PDF Text Analysis",
-          "tags": {}
-        },
-        "qrcode": {
-          "details": {
-            "extracted_text": null,
-            "inverted": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "url_extraction": {
-          "details": {
-            "urls": [],
-            "urls_grouped_by_domain": {}
           },
           "summary": null,
           "tags": {}
@@ -681,9 +512,7 @@
           "tags": {}
         }
       },
-      "tags": {
-        "pdf": true
-      }
+      "tags": {}
     },
     "file:2e0fe360df9179aea4c2792c019d2d30c6feeffb8073537f0069b68472c207f7": {
       "detections": {},
@@ -1714,6 +1543,210 @@
       },
       "tags": {}
     },
+    "file:8aba0700e51f1501491207b34c51937e2190d50c6a97e31a1cb5caf95287ec6e": {
+      "detections": {},
+      "directives": {
+        "extract_urls": true
+      },
+      "excluded_analysis": {
+        "pdf_analyzer": true
+      },
+      "paths": {
+        "spectre.pdf.gs.pdf": {
+          "type=document.pdf": true,
+          "type=document.pdf.rendered": true
+        }
+      },
+      "redirection": "file:d1a3c8c49faea6321bd01e706e0957012c18a94e1a187f1a5477c0e82270dc51",
+      "relationships": {
+        "extracted_from file:d1a3c8c49faea6321bd01e706e0957012c18a94e1a187f1a5477c0e82270dc51": true
+      },
+      "results": {
+        "file_type": {
+          "details": {
+            "is_email_file": false,
+            "is_jar_file": false,
+            "is_lnk_file": false,
+            "is_office_document": false,
+            "is_office_ext": false,
+            "is_ole_file": false,
+            "is_pdf_file": true,
+            "is_pe_file": false,
+            "is_rtf_file": false,
+            "is_x509": false,
+            "is_zip_file": false,
+            "mime": "application/pdf",
+            "type": "PDF document, version 1.7, 16 page(s)"
+          },
+          "summary": "File Type Analysis: PDF document, version 1.7, 16 page(s) (application/pdf) (pdf document)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "pdf_link_text": {
+          "details": {
+            "links": [
+              {
+                "line": null,
+                "page": 12,
+                "text": null,
+                "url": "https://bugs.chromium.org/p/chromium/issues/detail?id=508166"
+              },
+              {
+                "line": null,
+                "page": 12,
+                "text": null,
+                "url": "https://bugs.chromium.org/p/chromium/issues/detail?id=508166"
+              },
+              {
+                "line": null,
+                "page": 13,
+                "text": null,
+                "url": "https://www.amd.com/en-us/press-releases/Pages/amd-takes-computing-2016dec13.aspx"
+              },
+              {
+                "line": null,
+                "page": 13,
+                "text": null,
+                "url": "https://www.amd.com/en-us/press-releases/Pages/amd-takes-computing-2016dec13.aspx"
+              },
+              {
+                "line": null,
+                "page": 13,
+                "text": null,
+                "url": "https://www.youtube.com/watch?v=uZRih6APtiQ"
+              },
+              {
+                "line": null,
+                "page": 13,
+                "text": null,
+                "url": "https://www.youtube.com/watch?v=uZRih6APtiQ"
+              },
+              {
+                "line": null,
+                "page": 13,
+                "text": null,
+                "url": "http://cr.yp.to/papers.html#cachetiming"
+              },
+              {
+                "line": null,
+                "page": 13,
+                "text": null,
+                "url": "http://cr.yp.to/papers.html#cachetiming"
+              },
+              {
+                "line": null,
+                "page": 13,
+                "text": null,
+                "url": "http://eprint.iacr.org/2017/968"
+              },
+              {
+                "line": null,
+                "page": 13,
+                "text": null,
+                "url": "http://eprint.iacr.org/2017/968"
+              },
+              {
+                "line": null,
+                "page": 13,
+                "text": null,
+                "url": "https://cyber.wtf/2017/07/28/negative-result-reading-kernel-memory-from-user-mode/"
+              },
+              {
+                "line": null,
+                "page": 13,
+                "text": null,
+                "url": "https://cyber.wtf/2017/07/28/negative-result-reading-kernel-memory-from-user-mode/"
+              },
+              {
+                "line": null,
+                "page": 13,
+                "text": null,
+                "url": "http://www.cs.vu.nl/~giuffrida/papers/anc-ndss-2017.pdf"
+              },
+              {
+                "line": null,
+                "page": 13,
+                "text": null,
+                "url": "http://www.cs.vu.nl/~giuffrida/papers/anc-ndss-2017.pdf"
+              },
+              {
+                "line": null,
+                "page": 13,
+                "text": null,
+                "url": "https://users.ece.cmu.edu/~yoonguk/papers/kim-isca14.pdf"
+              },
+              {
+                "line": null,
+                "page": 13,
+                "text": null,
+                "url": "https://users.ece.cmu.edu/~yoonguk/papers/kim-isca14.pdf"
+              },
+              {
+                "line": null,
+                "page": 13,
+                "text": null,
+                "url": "http://www.daemonology.net/papers/htt.pdf"
+              },
+              {
+                "line": null,
+                "page": 13,
+                "text": null,
+                "url": "http://www.daemonology.net/papers/htt.pdf"
+              },
+              {
+                "line": null,
+                "page": 14,
+                "text": null,
+                "url": "http://eprint.iacr.org/2015/905"
+              }
+            ]
+          },
+          "summary": "PDF Link Text Analysis: 19 links, 0 with text",
+          "tags": {}
+        },
+        "pdftotext": {
+          "details": {
+            "output_path": "e4051a7f94df4c7cb73292494e66f6a8f878174836b49765ef201cb665ceb277",
+            "stderr": "",
+            "stdout": ""
+          },
+          "summary": "PDF Text Analysis",
+          "tags": {}
+        },
+        "qrcode": {
+          "details": {
+            "extracted_text": null,
+            "inverted": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "url_extraction": {
+          "details": {
+            "urls": [],
+            "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {
+        "pdf": true
+      }
+    },
     "file:a9824e9a088bd0e3b97aef48b8e1ea8a95389d5661abb030b4f73b1e55e03e9f": {
       "detections": {},
       "directives": {
@@ -1931,9 +1964,9 @@
               "ExifTool:ExifToolVersion": 13.25,
               "ExifTool:Warning": "FlateDecode Predictor 2 currently not supported",
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 19:40:54+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 19:40:54+00:00",
-              "File:FileModifyDate": "2026:11:16 19:40:54+00:00",
+              "File:FileAccessDate": "2026:11:18 03:50:11+00:00",
+              "File:FileInodeChangeDate": "2026:11:18 03:50:11+00:00",
+              "File:FileModifyDate": "2026:11:18 03:50:11+00:00",
               "File:FileName": "spectre.pdf",
               "File:FilePermissions": 100664,
               "File:FileSize": 131872,
@@ -2165,9 +2198,9 @@
           "type=document.pdf.text": true
         }
       },
-      "redirection": "file:253d56244d51877c3b62589b99046a742f6eae16fe0ce585606b344f96fa9b87",
+      "redirection": "file:8aba0700e51f1501491207b34c51937e2190d50c6a97e31a1cb5caf95287ec6e",
       "relationships": {
-        "extracted_from file:253d56244d51877c3b62589b99046a742f6eae16fe0ce585606b344f96fa9b87": true
+        "extracted_from file:8aba0700e51f1501491207b34c51937e2190d50c6a97e31a1cb5caf95287ec6e": true
       },
       "results": {
         "file_type": {
@@ -2206,40 +2239,7 @@
       },
       "tags": {}
     },
-    "file:e78e7b94128796dd83610e2e51c4470325b33cb38c01f883820d7d691e25b33d": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "spectre.pdf.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:d1a3c8c49faea6321bd01e706e0957012c18a94e1a187f1a5477c0e82270dc51": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
-    "fqdn:bugs.chromium.org": {
+    "fqdn:amd.com": {
       "detections": {},
       "directives": {},
       "excluded_analysis": {},
@@ -2269,7 +2269,281 @@
           "details": {
             "dispatch_state": "DONE",
             "gui_link": null,
+            "query": "index=proxy hostname=\"amd.com\"",
+            "query_results": [
+              {
+                "_time": "2026-10-30T14:02:11.000+00:00",
+                "dest_ip": "198.51.100.20",
+                "full_url": "https://www.example.com/login",
+                "src_ip": "192.0.2.10",
+                "src_translated_ip": "198.51.100.7",
+                "user": "alice@example.com"
+              },
+              {
+                "_time": "2026-10-30T14:05:42.000+00:00",
+                "dest_ip": "198.51.100.20",
+                "full_url": "http://www.example.com/",
+                "src_ip": "192.0.2.11",
+                "src_translated_ip": "198.51.100.7",
+                "user": "bob@example.com"
+              },
+              {
+                "_time": "2026-10-30T14:09:03.000+00:00",
+                "dest_ip": "198.51.100.21",
+                "full_url": "https://www.example.com/static/app.js",
+                "src_ip": "192.0.2.12"
+              }
+            ],
+            "query_summary": "Proxy correlation",
+            "question": "Was this domain seen in proxy logs?"
+          },
+          "summary": "Proxy correlation: (3 results)",
+          "tags": {}
+        },
+        "rdap_analyzer": {
+          "details": {
+            "assignment_type": null,
+            "country": null,
+            "datetime_created": null,
+            "datetime_expiration": null,
+            "datetime_of_last_update": null,
+            "domain_name": null,
+            "emails": null,
+            "ip_version": null,
+            "lookup_protocol": null,
+            "name_servers": null,
+            "network_cidr": null,
+            "network_name": null,
+            "not_found": null,
+            "rdap_attempt_error": "Failed to make a GET request to https://rdap.verisign.com/com/v1/domain/amd.com: nothing recorded for GET https://rdap.verisign.com/com/v1/domain/amd.com",
+            "rdap_data": null,
+            "rdap_raw_json": null,
+            "rdap_service_url": null,
+            "registrar": null,
+            "whois_data": null,
+            "whois_raw_text": null
+          },
+          "error": "rdap: Failed to make a GET request to https://rdap.verisign.com/com/v1/domain/amd.com: nothing recorded for GET https://rdap.verisign.com/com/v1/domain/amd.com; whois: no WHOIS in a replay",
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "fqdn:ams.org": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "fqdn_analyzer": {
+          "details": {
+            "aliaslist": [],
+            "all_resolutions": [],
+            "ip_address": null,
+            "mx": null,
+            "resolution_count": null,
+            "status": "nxdomain",
+            "wildcard_dns": null
+          },
+          "summary": "DNS Analysis: does not exist (nxdomain)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "proxy_domain_splunk": {
+          "details": {
+            "dispatch_state": "DONE",
+            "gui_link": null,
+            "query": "index=proxy hostname=\"ams.org\"",
+            "query_results": [
+              {
+                "_time": "2026-10-30T14:02:11.000+00:00",
+                "dest_ip": "198.51.100.20",
+                "full_url": "https://www.example.com/login",
+                "src_ip": "192.0.2.10",
+                "src_translated_ip": "198.51.100.7",
+                "user": "alice@example.com"
+              },
+              {
+                "_time": "2026-10-30T14:05:42.000+00:00",
+                "dest_ip": "198.51.100.20",
+                "full_url": "http://www.example.com/",
+                "src_ip": "192.0.2.11",
+                "src_translated_ip": "198.51.100.7",
+                "user": "bob@example.com"
+              },
+              {
+                "_time": "2026-10-30T14:09:03.000+00:00",
+                "dest_ip": "198.51.100.21",
+                "full_url": "https://www.example.com/static/app.js",
+                "src_ip": "192.0.2.12"
+              }
+            ],
+            "query_summary": "Proxy correlation",
+            "question": "Was this domain seen in proxy logs?"
+          },
+          "summary": "Proxy correlation: (3 results)",
+          "tags": {}
+        },
+        "rdap_analyzer": {
+          "details": {
+            "assignment_type": null,
+            "country": null,
+            "datetime_created": null,
+            "datetime_expiration": null,
+            "datetime_of_last_update": null,
+            "domain_name": null,
+            "emails": null,
+            "ip_version": null,
+            "lookup_protocol": null,
+            "name_servers": null,
+            "network_cidr": null,
+            "network_name": null,
+            "not_found": null,
+            "rdap_attempt_error": "Failed to make a GET request to https://rdap.publicinterestregistry.org/rdap/domain/ams.org: nothing recorded for GET https://rdap.publicinterestregistry.org/rdap/domain/ams.org",
+            "rdap_data": null,
+            "rdap_raw_json": null,
+            "rdap_service_url": null,
+            "registrar": null,
+            "whois_data": null,
+            "whois_raw_text": null
+          },
+          "error": "rdap: Failed to make a GET request to https://rdap.publicinterestregistry.org/rdap/domain/ams.org: nothing recorded for GET https://rdap.publicinterestregistry.org/rdap/domain/ams.org; whois: no WHOIS in a replay",
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "fqdn:bugs.chromium.org": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "apex_domain_analyzer": {
+          "details": {
+            "apex_domain": "chromium.org"
+          },
+          "summary": "Apex Domain: chromium.org",
+          "tags": {}
+        },
+        "fqdn_analyzer": {
+          "details": {
+            "aliaslist": [],
+            "all_resolutions": [],
+            "ip_address": null,
+            "mx": null,
+            "resolution_count": null,
+            "status": "nxdomain",
+            "wildcard_dns": null
+          },
+          "summary": "DNS Analysis: does not exist (nxdomain)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "proxy_domain_splunk": {
+          "details": {
+            "dispatch_state": "DONE",
+            "gui_link": null,
             "query": "index=proxy hostname=\"bugs.chromium.org\"",
+            "query_results": [
+              {
+                "_time": "2026-10-30T14:02:11.000+00:00",
+                "dest_ip": "198.51.100.20",
+                "full_url": "https://www.example.com/login",
+                "src_ip": "192.0.2.10",
+                "src_translated_ip": "198.51.100.7",
+                "user": "alice@example.com"
+              },
+              {
+                "_time": "2026-10-30T14:05:42.000+00:00",
+                "dest_ip": "198.51.100.20",
+                "full_url": "http://www.example.com/",
+                "src_ip": "192.0.2.11",
+                "src_translated_ip": "198.51.100.7",
+                "user": "bob@example.com"
+              },
+              {
+                "_time": "2026-10-30T14:09:03.000+00:00",
+                "dest_ip": "198.51.100.21",
+                "full_url": "https://www.example.com/static/app.js",
+                "src_ip": "192.0.2.12"
+              }
+            ],
+            "query_summary": "Proxy correlation",
+            "question": "Was this domain seen in proxy logs?"
+          },
+          "summary": "Proxy correlation: (3 results)",
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {
+        "domain_in_url": true
+      }
+    },
+    "fqdn:chromium.org": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "fqdn_analyzer": {
+          "details": {
+            "aliaslist": [],
+            "all_resolutions": [],
+            "ip_address": null,
+            "mx": null,
+            "resolution_count": null,
+            "status": "nxdomain",
+            "wildcard_dns": null
+          },
+          "summary": "DNS Analysis: does not exist (nxdomain)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "proxy_domain_splunk": {
+          "details": {
+            "dispatch_state": "DONE",
+            "gui_link": null,
+            "query": "index=proxy hostname=\"chromium.org\"",
             "query_results": [
               {
                 "_time": "2026-10-30T14:02:11.000+00:00",
@@ -2334,9 +2608,104 @@
           "tags": {}
         }
       },
-      "tags": {
-        "domain_in_url": true
-      }
+      "tags": {}
+    },
+    "fqdn:cmu.edu": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "fqdn_analyzer": {
+          "details": {
+            "aliaslist": [],
+            "all_resolutions": [],
+            "ip_address": null,
+            "mx": null,
+            "resolution_count": null,
+            "status": "nxdomain",
+            "wildcard_dns": null
+          },
+          "summary": "DNS Analysis: does not exist (nxdomain)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "proxy_domain_splunk": {
+          "details": {
+            "dispatch_state": "DONE",
+            "gui_link": null,
+            "query": "index=proxy hostname=\"cmu.edu\"",
+            "query_results": [
+              {
+                "_time": "2026-10-30T14:02:11.000+00:00",
+                "dest_ip": "198.51.100.20",
+                "full_url": "https://www.example.com/login",
+                "src_ip": "192.0.2.10",
+                "src_translated_ip": "198.51.100.7",
+                "user": "alice@example.com"
+              },
+              {
+                "_time": "2026-10-30T14:05:42.000+00:00",
+                "dest_ip": "198.51.100.20",
+                "full_url": "http://www.example.com/",
+                "src_ip": "192.0.2.11",
+                "src_translated_ip": "198.51.100.7",
+                "user": "bob@example.com"
+              },
+              {
+                "_time": "2026-10-30T14:09:03.000+00:00",
+                "dest_ip": "198.51.100.21",
+                "full_url": "https://www.example.com/static/app.js",
+                "src_ip": "192.0.2.12"
+              }
+            ],
+            "query_summary": "Proxy correlation",
+            "question": "Was this domain seen in proxy logs?"
+          },
+          "summary": "Proxy correlation: (3 results)",
+          "tags": {}
+        },
+        "rdap_analyzer": {
+          "details": {
+            "assignment_type": null,
+            "country": null,
+            "datetime_created": null,
+            "datetime_expiration": null,
+            "datetime_of_last_update": null,
+            "domain_name": null,
+            "emails": null,
+            "ip_version": null,
+            "lookup_protocol": null,
+            "name_servers": null,
+            "network_cidr": null,
+            "network_name": null,
+            "not_found": null,
+            "rdap_attempt_error": "no RDAP service for TLD: TLD \"edu\" has no known RDAP endpoint and is unsupported. It may be supported by overrides, try using whoisit.bootstrap(overrides=True)",
+            "rdap_data": null,
+            "rdap_raw_json": null,
+            "rdap_service_url": null,
+            "registrar": null,
+            "whois_data": null,
+            "whois_raw_text": null
+          },
+          "error": "rdap: no RDAP service for TLD: TLD \"edu\" has no known RDAP endpoint and is unsupported. It may be supported by overrides, try using whoisit.bootstrap(overrides=True); whois: no WHOIS in a replay",
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
     },
     "fqdn:company.com": {
       "detections": {},
@@ -2445,6 +2814,13 @@
       "excluded_analysis": {},
       "relationships": {},
       "results": {
+        "apex_domain_analyzer": {
+          "details": {
+            "apex_domain": "yp.to"
+          },
+          "summary": "Apex Domain: yp.to",
+          "tags": {}
+        },
         "fqdn_analyzer": {
           "details": {
             "aliaslist": [],
@@ -2498,32 +2874,6 @@
             "question": "Was this domain seen in proxy logs?"
           },
           "summary": "Proxy correlation: (3 results)",
-          "tags": {}
-        },
-        "rdap_analyzer": {
-          "details": {
-            "assignment_type": null,
-            "country": null,
-            "datetime_created": null,
-            "datetime_expiration": null,
-            "datetime_of_last_update": null,
-            "domain_name": null,
-            "emails": null,
-            "ip_version": null,
-            "lookup_protocol": null,
-            "name_servers": null,
-            "network_cidr": null,
-            "network_name": null,
-            "not_found": null,
-            "rdap_attempt_error": "Failed to make a GET request to https://rdap.tonicregistry.to/rdap/domain/yp.to: nothing recorded for GET https://rdap.tonicregistry.to/rdap/domain/yp.to",
-            "rdap_data": null,
-            "rdap_raw_json": null,
-            "rdap_service_url": null,
-            "registrar": null,
-            "whois_data": null,
-            "whois_raw_text": null
-          },
-          "error": "rdap: Failed to make a GET request to https://rdap.tonicregistry.to/rdap/domain/yp.to: nothing recorded for GET https://rdap.tonicregistry.to/rdap/domain/yp.to; whois: no WHOIS in a replay",
           "tags": {}
         },
         "user_defined_tagging": {
@@ -2637,12 +2987,116 @@
         "domain_in_url": true
       }
     },
+    "fqdn:daemonology.net": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "fqdn_analyzer": {
+          "details": {
+            "aliaslist": [],
+            "all_resolutions": [],
+            "ip_address": null,
+            "mx": null,
+            "resolution_count": null,
+            "status": "nxdomain",
+            "wildcard_dns": null
+          },
+          "summary": "DNS Analysis: does not exist (nxdomain)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "proxy_domain_splunk": {
+          "details": {
+            "dispatch_state": "DONE",
+            "gui_link": null,
+            "query": "index=proxy hostname=\"daemonology.net\"",
+            "query_results": [
+              {
+                "_time": "2026-10-30T14:02:11.000+00:00",
+                "dest_ip": "198.51.100.20",
+                "full_url": "https://www.example.com/login",
+                "src_ip": "192.0.2.10",
+                "src_translated_ip": "198.51.100.7",
+                "user": "alice@example.com"
+              },
+              {
+                "_time": "2026-10-30T14:05:42.000+00:00",
+                "dest_ip": "198.51.100.20",
+                "full_url": "http://www.example.com/",
+                "src_ip": "192.0.2.11",
+                "src_translated_ip": "198.51.100.7",
+                "user": "bob@example.com"
+              },
+              {
+                "_time": "2026-10-30T14:09:03.000+00:00",
+                "dest_ip": "198.51.100.21",
+                "full_url": "https://www.example.com/static/app.js",
+                "src_ip": "192.0.2.12"
+              }
+            ],
+            "query_summary": "Proxy correlation",
+            "question": "Was this domain seen in proxy logs?"
+          },
+          "summary": "Proxy correlation: (3 results)",
+          "tags": {}
+        },
+        "rdap_analyzer": {
+          "details": {
+            "assignment_type": null,
+            "country": null,
+            "datetime_created": null,
+            "datetime_expiration": null,
+            "datetime_of_last_update": null,
+            "domain_name": null,
+            "emails": null,
+            "ip_version": null,
+            "lookup_protocol": null,
+            "name_servers": null,
+            "network_cidr": null,
+            "network_name": null,
+            "not_found": null,
+            "rdap_attempt_error": "Failed to make a GET request to https://rdap.verisign.com/net/v1/domain/daemonology.net: nothing recorded for GET https://rdap.verisign.com/net/v1/domain/daemonology.net",
+            "rdap_data": null,
+            "rdap_raw_json": null,
+            "rdap_service_url": null,
+            "registrar": null,
+            "whois_data": null,
+            "whois_raw_text": null
+          },
+          "error": "rdap: Failed to make a GET request to https://rdap.verisign.com/net/v1/domain/daemonology.net: nothing recorded for GET https://rdap.verisign.com/net/v1/domain/daemonology.net; whois: no WHOIS in a replay",
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "fqdn:eprint.iacr.org": {
       "detections": {},
       "directives": {},
       "excluded_analysis": {},
       "relationships": {},
       "results": {
+        "apex_domain_analyzer": {
+          "details": {
+            "apex_domain": "iacr.org"
+          },
+          "summary": "Apex Domain: iacr.org",
+          "tags": {}
+        },
         "fqdn_analyzer": {
           "details": {
             "aliaslist": [],
@@ -2696,32 +3150,6 @@
             "question": "Was this domain seen in proxy logs?"
           },
           "summary": "Proxy correlation: (3 results)",
-          "tags": {}
-        },
-        "rdap_analyzer": {
-          "details": {
-            "assignment_type": null,
-            "country": null,
-            "datetime_created": null,
-            "datetime_expiration": null,
-            "datetime_of_last_update": null,
-            "domain_name": null,
-            "emails": null,
-            "ip_version": null,
-            "lookup_protocol": null,
-            "name_servers": null,
-            "network_cidr": null,
-            "network_name": null,
-            "not_found": null,
-            "rdap_attempt_error": "Failed to make a GET request to https://rdap.publicinterestregistry.org/rdap/domain/iacr.org: nothing recorded for GET https://rdap.publicinterestregistry.org/rdap/domain/iacr.org",
-            "rdap_data": null,
-            "rdap_raw_json": null,
-            "rdap_service_url": null,
-            "registrar": null,
-            "whois_data": null,
-            "whois_raw_text": null
-          },
-          "error": "rdap: Failed to make a GET request to https://rdap.publicinterestregistry.org/rdap/domain/iacr.org: nothing recorded for GET https://rdap.publicinterestregistry.org/rdap/domain/iacr.org; whois: no WHOIS in a replay",
           "tags": {}
         },
         "user_defined_tagging": {
@@ -3064,12 +3492,116 @@
       },
       "tags": {}
     },
+    "fqdn:iacr.org": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "fqdn_analyzer": {
+          "details": {
+            "aliaslist": [],
+            "all_resolutions": [],
+            "ip_address": null,
+            "mx": null,
+            "resolution_count": null,
+            "status": "nxdomain",
+            "wildcard_dns": null
+          },
+          "summary": "DNS Analysis: does not exist (nxdomain)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "proxy_domain_splunk": {
+          "details": {
+            "dispatch_state": "DONE",
+            "gui_link": null,
+            "query": "index=proxy hostname=\"iacr.org\"",
+            "query_results": [
+              {
+                "_time": "2026-10-30T14:02:11.000+00:00",
+                "dest_ip": "198.51.100.20",
+                "full_url": "https://www.example.com/login",
+                "src_ip": "192.0.2.10",
+                "src_translated_ip": "198.51.100.7",
+                "user": "alice@example.com"
+              },
+              {
+                "_time": "2026-10-30T14:05:42.000+00:00",
+                "dest_ip": "198.51.100.20",
+                "full_url": "http://www.example.com/",
+                "src_ip": "192.0.2.11",
+                "src_translated_ip": "198.51.100.7",
+                "user": "bob@example.com"
+              },
+              {
+                "_time": "2026-10-30T14:09:03.000+00:00",
+                "dest_ip": "198.51.100.21",
+                "full_url": "https://www.example.com/static/app.js",
+                "src_ip": "192.0.2.12"
+              }
+            ],
+            "query_summary": "Proxy correlation",
+            "question": "Was this domain seen in proxy logs?"
+          },
+          "summary": "Proxy correlation: (3 results)",
+          "tags": {}
+        },
+        "rdap_analyzer": {
+          "details": {
+            "assignment_type": null,
+            "country": null,
+            "datetime_created": null,
+            "datetime_expiration": null,
+            "datetime_of_last_update": null,
+            "domain_name": null,
+            "emails": null,
+            "ip_version": null,
+            "lookup_protocol": null,
+            "name_servers": null,
+            "network_cidr": null,
+            "network_name": null,
+            "not_found": null,
+            "rdap_attempt_error": "Failed to make a GET request to https://rdap.publicinterestregistry.org/rdap/domain/iacr.org: nothing recorded for GET https://rdap.publicinterestregistry.org/rdap/domain/iacr.org",
+            "rdap_data": null,
+            "rdap_raw_json": null,
+            "rdap_service_url": null,
+            "registrar": null,
+            "whois_data": null,
+            "whois_raw_text": null
+          },
+          "error": "rdap: Failed to make a GET request to https://rdap.publicinterestregistry.org/rdap/domain/iacr.org: nothing recorded for GET https://rdap.publicinterestregistry.org/rdap/domain/iacr.org; whois: no WHOIS in a replay",
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "fqdn:users.ece.cmu.edu": {
       "detections": {},
       "directives": {},
       "excluded_analysis": {},
       "relationships": {},
       "results": {
+        "apex_domain_analyzer": {
+          "details": {
+            "apex_domain": "cmu.edu"
+          },
+          "summary": "Apex Domain: cmu.edu",
+          "tags": {}
+        },
         "fqdn_analyzer": {
           "details": {
             "aliaslist": [],
@@ -3125,32 +3657,6 @@
           "summary": "Proxy correlation: (3 results)",
           "tags": {}
         },
-        "rdap_analyzer": {
-          "details": {
-            "assignment_type": null,
-            "country": null,
-            "datetime_created": null,
-            "datetime_expiration": null,
-            "datetime_of_last_update": null,
-            "domain_name": null,
-            "emails": null,
-            "ip_version": null,
-            "lookup_protocol": null,
-            "name_servers": null,
-            "network_cidr": null,
-            "network_name": null,
-            "not_found": null,
-            "rdap_attempt_error": "no RDAP service for TLD: TLD \"edu\" has no known RDAP endpoint and is unsupported. It may be supported by overrides, try using whoisit.bootstrap(overrides=True)",
-            "rdap_data": null,
-            "rdap_raw_json": null,
-            "rdap_service_url": null,
-            "registrar": null,
-            "whois_data": null,
-            "whois_raw_text": null
-          },
-          "error": "rdap: no RDAP service for TLD: TLD \"edu\" has no known RDAP endpoint and is unsupported. It may be supported by overrides, try using whoisit.bootstrap(overrides=True); whois: no WHOIS in a replay",
-          "tags": {}
-        },
         "user_defined_tagging": {
           "details": {
             "tags_added": []
@@ -3163,7 +3669,7 @@
         "domain_in_url": true
       }
     },
-    "fqdn:www.amd.com": {
+    "fqdn:vu.nl": {
       "detections": {},
       "directives": {},
       "excluded_analysis": {},
@@ -3193,205 +3699,7 @@
           "details": {
             "dispatch_state": "DONE",
             "gui_link": null,
-            "query": "index=proxy hostname=\"www.amd.com\"",
-            "query_results": [
-              {
-                "_time": "2026-10-30T14:02:11.000+00:00",
-                "dest_ip": "198.51.100.20",
-                "full_url": "https://www.example.com/login",
-                "src_ip": "192.0.2.10",
-                "src_translated_ip": "198.51.100.7",
-                "user": "alice@example.com"
-              },
-              {
-                "_time": "2026-10-30T14:05:42.000+00:00",
-                "dest_ip": "198.51.100.20",
-                "full_url": "http://www.example.com/",
-                "src_ip": "192.0.2.11",
-                "src_translated_ip": "198.51.100.7",
-                "user": "bob@example.com"
-              },
-              {
-                "_time": "2026-10-30T14:09:03.000+00:00",
-                "dest_ip": "198.51.100.21",
-                "full_url": "https://www.example.com/static/app.js",
-                "src_ip": "192.0.2.12"
-              }
-            ],
-            "query_summary": "Proxy correlation",
-            "question": "Was this domain seen in proxy logs?"
-          },
-          "summary": "Proxy correlation: (3 results)",
-          "tags": {}
-        },
-        "rdap_analyzer": {
-          "details": {
-            "assignment_type": null,
-            "country": null,
-            "datetime_created": null,
-            "datetime_expiration": null,
-            "datetime_of_last_update": null,
-            "domain_name": null,
-            "emails": null,
-            "ip_version": null,
-            "lookup_protocol": null,
-            "name_servers": null,
-            "network_cidr": null,
-            "network_name": null,
-            "not_found": null,
-            "rdap_attempt_error": "Failed to make a GET request to https://rdap.verisign.com/com/v1/domain/amd.com: nothing recorded for GET https://rdap.verisign.com/com/v1/domain/amd.com",
-            "rdap_data": null,
-            "rdap_raw_json": null,
-            "rdap_service_url": null,
-            "registrar": null,
-            "whois_data": null,
-            "whois_raw_text": null
-          },
-          "error": "rdap: Failed to make a GET request to https://rdap.verisign.com/com/v1/domain/amd.com: nothing recorded for GET https://rdap.verisign.com/com/v1/domain/amd.com; whois: no WHOIS in a replay",
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {
-        "domain_in_url": true
-      }
-    },
-    "fqdn:www.ams.org": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {},
-      "relationships": {},
-      "results": {
-        "fqdn_analyzer": {
-          "details": {
-            "aliaslist": [],
-            "all_resolutions": [],
-            "ip_address": null,
-            "mx": null,
-            "resolution_count": null,
-            "status": "nxdomain",
-            "wildcard_dns": null
-          },
-          "summary": "DNS Analysis: does not exist (nxdomain)",
-          "tags": {}
-        },
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "proxy_domain_splunk": {
-          "details": {
-            "dispatch_state": "DONE",
-            "gui_link": null,
-            "query": "index=proxy hostname=\"www.ams.org\"",
-            "query_results": [
-              {
-                "_time": "2026-10-30T14:02:11.000+00:00",
-                "dest_ip": "198.51.100.20",
-                "full_url": "https://www.example.com/login",
-                "src_ip": "192.0.2.10",
-                "src_translated_ip": "198.51.100.7",
-                "user": "alice@example.com"
-              },
-              {
-                "_time": "2026-10-30T14:05:42.000+00:00",
-                "dest_ip": "198.51.100.20",
-                "full_url": "http://www.example.com/",
-                "src_ip": "192.0.2.11",
-                "src_translated_ip": "198.51.100.7",
-                "user": "bob@example.com"
-              },
-              {
-                "_time": "2026-10-30T14:09:03.000+00:00",
-                "dest_ip": "198.51.100.21",
-                "full_url": "https://www.example.com/static/app.js",
-                "src_ip": "192.0.2.12"
-              }
-            ],
-            "query_summary": "Proxy correlation",
-            "question": "Was this domain seen in proxy logs?"
-          },
-          "summary": "Proxy correlation: (3 results)",
-          "tags": {}
-        },
-        "rdap_analyzer": {
-          "details": {
-            "assignment_type": null,
-            "country": null,
-            "datetime_created": null,
-            "datetime_expiration": null,
-            "datetime_of_last_update": null,
-            "domain_name": null,
-            "emails": null,
-            "ip_version": null,
-            "lookup_protocol": null,
-            "name_servers": null,
-            "network_cidr": null,
-            "network_name": null,
-            "not_found": null,
-            "rdap_attempt_error": "Failed to make a GET request to https://rdap.publicinterestregistry.org/rdap/domain/ams.org: nothing recorded for GET https://rdap.publicinterestregistry.org/rdap/domain/ams.org",
-            "rdap_data": null,
-            "rdap_raw_json": null,
-            "rdap_service_url": null,
-            "registrar": null,
-            "whois_data": null,
-            "whois_raw_text": null
-          },
-          "error": "rdap: Failed to make a GET request to https://rdap.publicinterestregistry.org/rdap/domain/ams.org: nothing recorded for GET https://rdap.publicinterestregistry.org/rdap/domain/ams.org; whois: no WHOIS in a replay",
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {
-        "domain_in_url": true
-      }
-    },
-    "fqdn:www.cs.vu.nl": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {},
-      "relationships": {},
-      "results": {
-        "fqdn_analyzer": {
-          "details": {
-            "aliaslist": [],
-            "all_resolutions": [],
-            "ip_address": null,
-            "mx": null,
-            "resolution_count": null,
-            "status": "nxdomain",
-            "wildcard_dns": null
-          },
-          "summary": "DNS Analysis: does not exist (nxdomain)",
-          "tags": {}
-        },
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "proxy_domain_splunk": {
-          "details": {
-            "dispatch_state": "DONE",
-            "gui_link": null,
-            "query": "index=proxy hostname=\"www.cs.vu.nl\"",
+            "query": "index=proxy hostname=\"vu.nl\"",
             "query_results": [
               {
                 "_time": "2026-10-30T14:02:11.000+00:00",
@@ -3456,6 +3764,244 @@
           "tags": {}
         }
       },
+      "tags": {}
+    },
+    "fqdn:www.amd.com": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "apex_domain_analyzer": {
+          "details": {
+            "apex_domain": "amd.com"
+          },
+          "summary": "Apex Domain: amd.com",
+          "tags": {}
+        },
+        "fqdn_analyzer": {
+          "details": {
+            "aliaslist": [],
+            "all_resolutions": [],
+            "ip_address": null,
+            "mx": null,
+            "resolution_count": null,
+            "status": "nxdomain",
+            "wildcard_dns": null
+          },
+          "summary": "DNS Analysis: does not exist (nxdomain)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "proxy_domain_splunk": {
+          "details": {
+            "dispatch_state": "DONE",
+            "gui_link": null,
+            "query": "index=proxy hostname=\"www.amd.com\"",
+            "query_results": [
+              {
+                "_time": "2026-10-30T14:02:11.000+00:00",
+                "dest_ip": "198.51.100.20",
+                "full_url": "https://www.example.com/login",
+                "src_ip": "192.0.2.10",
+                "src_translated_ip": "198.51.100.7",
+                "user": "alice@example.com"
+              },
+              {
+                "_time": "2026-10-30T14:05:42.000+00:00",
+                "dest_ip": "198.51.100.20",
+                "full_url": "http://www.example.com/",
+                "src_ip": "192.0.2.11",
+                "src_translated_ip": "198.51.100.7",
+                "user": "bob@example.com"
+              },
+              {
+                "_time": "2026-10-30T14:09:03.000+00:00",
+                "dest_ip": "198.51.100.21",
+                "full_url": "https://www.example.com/static/app.js",
+                "src_ip": "192.0.2.12"
+              }
+            ],
+            "query_summary": "Proxy correlation",
+            "question": "Was this domain seen in proxy logs?"
+          },
+          "summary": "Proxy correlation: (3 results)",
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {
+        "domain_in_url": true
+      }
+    },
+    "fqdn:www.ams.org": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "apex_domain_analyzer": {
+          "details": {
+            "apex_domain": "ams.org"
+          },
+          "summary": "Apex Domain: ams.org",
+          "tags": {}
+        },
+        "fqdn_analyzer": {
+          "details": {
+            "aliaslist": [],
+            "all_resolutions": [],
+            "ip_address": null,
+            "mx": null,
+            "resolution_count": null,
+            "status": "nxdomain",
+            "wildcard_dns": null
+          },
+          "summary": "DNS Analysis: does not exist (nxdomain)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "proxy_domain_splunk": {
+          "details": {
+            "dispatch_state": "DONE",
+            "gui_link": null,
+            "query": "index=proxy hostname=\"www.ams.org\"",
+            "query_results": [
+              {
+                "_time": "2026-10-30T14:02:11.000+00:00",
+                "dest_ip": "198.51.100.20",
+                "full_url": "https://www.example.com/login",
+                "src_ip": "192.0.2.10",
+                "src_translated_ip": "198.51.100.7",
+                "user": "alice@example.com"
+              },
+              {
+                "_time": "2026-10-30T14:05:42.000+00:00",
+                "dest_ip": "198.51.100.20",
+                "full_url": "http://www.example.com/",
+                "src_ip": "192.0.2.11",
+                "src_translated_ip": "198.51.100.7",
+                "user": "bob@example.com"
+              },
+              {
+                "_time": "2026-10-30T14:09:03.000+00:00",
+                "dest_ip": "198.51.100.21",
+                "full_url": "https://www.example.com/static/app.js",
+                "src_ip": "192.0.2.12"
+              }
+            ],
+            "query_summary": "Proxy correlation",
+            "question": "Was this domain seen in proxy logs?"
+          },
+          "summary": "Proxy correlation: (3 results)",
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {
+        "domain_in_url": true
+      }
+    },
+    "fqdn:www.cs.vu.nl": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "apex_domain_analyzer": {
+          "details": {
+            "apex_domain": "vu.nl"
+          },
+          "summary": "Apex Domain: vu.nl",
+          "tags": {}
+        },
+        "fqdn_analyzer": {
+          "details": {
+            "aliaslist": [],
+            "all_resolutions": [],
+            "ip_address": null,
+            "mx": null,
+            "resolution_count": null,
+            "status": "nxdomain",
+            "wildcard_dns": null
+          },
+          "summary": "DNS Analysis: does not exist (nxdomain)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "proxy_domain_splunk": {
+          "details": {
+            "dispatch_state": "DONE",
+            "gui_link": null,
+            "query": "index=proxy hostname=\"www.cs.vu.nl\"",
+            "query_results": [
+              {
+                "_time": "2026-10-30T14:02:11.000+00:00",
+                "dest_ip": "198.51.100.20",
+                "full_url": "https://www.example.com/login",
+                "src_ip": "192.0.2.10",
+                "src_translated_ip": "198.51.100.7",
+                "user": "alice@example.com"
+              },
+              {
+                "_time": "2026-10-30T14:05:42.000+00:00",
+                "dest_ip": "198.51.100.20",
+                "full_url": "http://www.example.com/",
+                "src_ip": "192.0.2.11",
+                "src_translated_ip": "198.51.100.7",
+                "user": "bob@example.com"
+              },
+              {
+                "_time": "2026-10-30T14:09:03.000+00:00",
+                "dest_ip": "198.51.100.21",
+                "full_url": "https://www.example.com/static/app.js",
+                "src_ip": "192.0.2.12"
+              }
+            ],
+            "query_summary": "Proxy correlation",
+            "question": "Was this domain seen in proxy logs?"
+          },
+          "summary": "Proxy correlation: (3 results)",
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
       "tags": {
         "domain_in_url": true
       }
@@ -3466,6 +4012,13 @@
       "excluded_analysis": {},
       "relationships": {},
       "results": {
+        "apex_domain_analyzer": {
+          "details": {
+            "apex_domain": "daemonology.net"
+          },
+          "summary": "Apex Domain: daemonology.net",
+          "tags": {}
+        },
         "fqdn_analyzer": {
           "details": {
             "aliaslist": [],
@@ -3521,32 +4074,6 @@
           "summary": "Proxy correlation: (3 results)",
           "tags": {}
         },
-        "rdap_analyzer": {
-          "details": {
-            "assignment_type": null,
-            "country": null,
-            "datetime_created": null,
-            "datetime_expiration": null,
-            "datetime_of_last_update": null,
-            "domain_name": null,
-            "emails": null,
-            "ip_version": null,
-            "lookup_protocol": null,
-            "name_servers": null,
-            "network_cidr": null,
-            "network_name": null,
-            "not_found": null,
-            "rdap_attempt_error": "Failed to make a GET request to https://rdap.verisign.com/net/v1/domain/daemonology.net: nothing recorded for GET https://rdap.verisign.com/net/v1/domain/daemonology.net",
-            "rdap_data": null,
-            "rdap_raw_json": null,
-            "rdap_service_url": null,
-            "registrar": null,
-            "whois_data": null,
-            "whois_raw_text": null
-          },
-          "error": "rdap: Failed to make a GET request to https://rdap.verisign.com/net/v1/domain/daemonology.net: nothing recorded for GET https://rdap.verisign.com/net/v1/domain/daemonology.net; whois: no WHOIS in a replay",
-          "tags": {}
-        },
         "user_defined_tagging": {
           "details": {
             "tags_added": []
@@ -3565,6 +4092,13 @@
       "excluded_analysis": {},
       "relationships": {},
       "results": {
+        "apex_domain_analyzer": {
+          "details": {
+            "apex_domain": "youtube.com"
+          },
+          "summary": "Apex Domain: youtube.com",
+          "tags": {}
+        },
         "fqdn_analyzer": {
           "details": {
             "aliaslist": [],
@@ -3620,6 +4154,87 @@
           "summary": "Proxy correlation: (3 results)",
           "tags": {}
         },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {
+        "domain_in_url": true
+      }
+    },
+    "fqdn:youtube.com": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {},
+      "tags": {}
+    },
+    "fqdn:yp.to": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {},
+      "relationships": {},
+      "results": {
+        "fqdn_analyzer": {
+          "details": {
+            "aliaslist": [],
+            "all_resolutions": [],
+            "ip_address": null,
+            "mx": null,
+            "resolution_count": null,
+            "status": "nxdomain",
+            "wildcard_dns": null
+          },
+          "summary": "DNS Analysis: does not exist (nxdomain)",
+          "tags": {}
+        },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "proxy_domain_splunk": {
+          "details": {
+            "dispatch_state": "DONE",
+            "gui_link": null,
+            "query": "index=proxy hostname=\"yp.to\"",
+            "query_results": [
+              {
+                "_time": "2026-10-30T14:02:11.000+00:00",
+                "dest_ip": "198.51.100.20",
+                "full_url": "https://www.example.com/login",
+                "src_ip": "192.0.2.10",
+                "src_translated_ip": "198.51.100.7",
+                "user": "alice@example.com"
+              },
+              {
+                "_time": "2026-10-30T14:05:42.000+00:00",
+                "dest_ip": "198.51.100.20",
+                "full_url": "http://www.example.com/",
+                "src_ip": "192.0.2.11",
+                "src_translated_ip": "198.51.100.7",
+                "user": "bob@example.com"
+              },
+              {
+                "_time": "2026-10-30T14:09:03.000+00:00",
+                "dest_ip": "198.51.100.21",
+                "full_url": "https://www.example.com/static/app.js",
+                "src_ip": "192.0.2.12"
+              }
+            ],
+            "query_summary": "Proxy correlation",
+            "question": "Was this domain seen in proxy logs?"
+          },
+          "summary": "Proxy correlation: (3 results)",
+          "tags": {}
+        },
         "rdap_analyzer": {
           "details": {
             "assignment_type": null,
@@ -3635,7 +4250,7 @@
             "network_cidr": null,
             "network_name": null,
             "not_found": null,
-            "rdap_attempt_error": "Failed to make a GET request to https://rdap.verisign.com/com/v1/domain/youtube.com: nothing recorded for GET https://rdap.verisign.com/com/v1/domain/youtube.com",
+            "rdap_attempt_error": "Failed to make a GET request to https://rdap.tonicregistry.to/rdap/domain/yp.to: nothing recorded for GET https://rdap.tonicregistry.to/rdap/domain/yp.to",
             "rdap_data": null,
             "rdap_raw_json": null,
             "rdap_service_url": null,
@@ -3643,7 +4258,7 @@
             "whois_data": null,
             "whois_raw_text": null
           },
-          "error": "rdap: Failed to make a GET request to https://rdap.verisign.com/com/v1/domain/youtube.com: nothing recorded for GET https://rdap.verisign.com/com/v1/domain/youtube.com; whois: no WHOIS in a replay",
+          "error": "rdap: Failed to make a GET request to https://rdap.tonicregistry.to/rdap/domain/yp.to: nothing recorded for GET https://rdap.tonicregistry.to/rdap/domain/yp.to; whois: no WHOIS in a replay",
           "tags": {}
         },
         "user_defined_tagging": {
@@ -3654,9 +4269,7 @@
           "tags": {}
         }
       },
-      "tags": {
-        "domain_in_url": true
-      }
+      "tags": {}
     },
     "ip:192.0.2.10": {
       "detections": {},

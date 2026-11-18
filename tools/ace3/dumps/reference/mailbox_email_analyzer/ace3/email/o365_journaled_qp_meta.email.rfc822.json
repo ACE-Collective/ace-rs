@@ -1,6 +1,6 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "37a765bf",
+  "ace3_commit": "fe6da632",
   "also_enabled": [
     "file_type",
     "email_analyzer"
@@ -90,7 +90,7 @@
             "cc": [],
             "compauth_reason": null,
             "compauth_result": null,
-            "date": "2026-11-16 16:33:03.626909 +0000",
+            "date": "2026-11-18 05:52:46.132566 +0000",
             "dkim_result": null,
             "dmarc_result": null,
             "env_mail_from": "jane.smith@widgetsinc.com",
@@ -431,7 +431,7 @@
           "cc": [],
           "compauth_reason": null,
           "compauth_result": null,
-          "date": "2026-11-16 16:33:03.626909 +0000",
+          "date": "2026-11-18 05:52:46.132566 +0000",
           "dkim_result": null,
           "dmarc_result": null,
           "env_mail_from": "jane.smith@widgetsinc.com",
@@ -502,6 +502,81 @@
       {
         "detections": [],
         "directives": [],
+        "paths": [
+          {
+            "path": "email.rfc822.combined",
+            "yara_meta": [
+              "type=email",
+              "type=email.combined"
+            ]
+          }
+        ],
+        "size": 841,
+        "tags": [
+          "email"
+        ],
+        "type": "file",
+        "value": "1c0b59da5a0031fcab308b31f033bb91a68f75c20377d6cbb8145692f61af999"
+      },
+      {
+        "detections": [],
+        "directives": [
+          "original_email"
+        ],
+        "paths": [
+          {
+            "path": "email.rfc822",
+            "yara_meta": [
+              "type=email"
+            ]
+          }
+        ],
+        "size": 2805,
+        "tags": [
+          "email"
+        ],
+        "type": "file",
+        "value": "e2b8f8ac2e981223e21989167fad128f86e9eca90953b1db417c6c07a6fdf6b1"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_conversation",
+        "value": "jane.smith@widgetsinc.com|john.doe@acmecorp.com"
+      },
+      {
+        "detections": [],
+        "directives": [
+          "extract_urls",
+          "render"
+        ],
+        "paths": [
+          {
+            "path": "email.rfc822.unknown_text_html_000.html",
+            "yara_meta": [
+              "type=document.html",
+              "type=email.attachment"
+            ]
+          }
+        ],
+        "size": 101,
+        "tags": [],
+        "type": "file",
+        "value": "051e7a603f3f417a319bac4808f0bed9bc96b872b4f082fa8c973dbc458a5a53"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_from",
+        "value": "jane.smith@widgetsinc.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
         "paths": [],
         "tags": [],
         "type": "email_to",
@@ -509,21 +584,11 @@
       },
       {
         "detections": [],
-        "directives": [
-          "tracked"
-        ],
-        "paths": [],
-        "tags": [],
-        "type": "message_id",
-        "value": "<AAAAAA1111BBBBBB2222@AAAAAA1111.namprd10.prod.outlook.com>"
-      },
-      {
-        "detections": [],
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "email_envelope_rcpt_to",
-        "value": "john.doe@acmecorp.com"
+        "type": "email_subject",
+        "value": "RE: Project Alpha - Design Review Discussions on March 17, 2026 | Read Meeting Report"
       },
       {
         "detections": [],
@@ -565,112 +630,24 @@
       },
       {
         "detections": [],
-        "directives": [
-          "original_email"
-        ],
-        "paths": [
-          {
-            "path": "email.rfc822",
-            "yara_meta": [
-              "type=email"
-            ]
-          }
-        ],
-        "size": 2805,
-        "tags": [
-          "email"
-        ],
-        "type": "file",
-        "value": "e2b8f8ac2e981223e21989167fad128f86e9eca90953b1db417c6c07a6fdf6b1"
-      },
-      {
-        "detections": [],
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "email_subject",
-        "value": "RE: Project Alpha - Design Review Discussions on March 17, 2026 | Read Meeting Report"
+        "type": "email_envelope_rcpt_to",
+        "value": "john.doe@acmecorp.com"
       },
       {
         "detections": [],
         "directives": [
-          "extract_urls",
-          "render"
+          "tracked"
         ],
-        "paths": [
-          {
-            "path": "email.rfc822.unknown_text_html_000.html",
-            "yara_meta": [
-              "type=document.html",
-              "type=email.attachment"
-            ]
-          }
-        ],
-        "size": 101,
-        "tags": [],
-        "type": "file",
-        "value": "051e7a603f3f417a319bac4808f0bed9bc96b872b4f082fa8c973dbc458a5a53"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [
-          {
-            "path": "email.rfc822.combined",
-            "yara_meta": [
-              "type=email",
-              "type=email.combined"
-            ]
-          }
-        ],
-        "size": 841,
-        "tags": [
-          "email"
-        ],
-        "type": "file",
-        "value": "1c0b59da5a0031fcab308b31f033bb91a68f75c20377d6cbb8145692f61af999"
-      },
-      {
-        "detections": [],
-        "directives": [],
         "paths": [],
         "tags": [],
-        "type": "email_from",
-        "value": "jane.smith@widgetsinc.com"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_conversation",
-        "value": "jane.smith@widgetsinc.com|john.doe@acmecorp.com"
+        "type": "message_id",
+        "value": "<AAAAAA1111BBBBBB2222@AAAAAA1111.namprd10.prod.outlook.com>"
       }
     ],
     "results": [
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": false,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "text/plain",
-          "type": "ASCII text"
-        },
-        "module": "file_type",
-        "observable": 3,
-        "summary": "File Type Analysis: ASCII text (text/plain)",
-        "tags": []
-      },
       {
         "added": [],
         "class": "FileTypeAnalysis",
@@ -690,7 +667,7 @@
           "type": "RFC 822 mail, ASCII text"
         },
         "module": "file_type",
-        "observable": 4,
+        "observable": 0,
         "summary": "File Type Analysis: RFC 822 mail, ASCII text (message/rfc822) (email)",
         "tags": []
       },
@@ -699,12 +676,15 @@
         "class": "MailboxEmailAnalysis",
         "details": {},
         "module": "mailbox_email_analyzer",
-        "observable": 5,
+        "observable": 1,
         "summary": null,
         "tags": []
       },
       {
         "added": [
+          {
+            "observable": 4
+          },
           {
             "observable": 9
           },
@@ -712,31 +692,28 @@
             "observable": 2
           },
           {
-            "observable": 10
-          },
-          {
-            "observable": 0
+            "observable": 5
           },
           {
             "observable": 6
           },
           {
-            "observable": 1
-          },
-          {
-            "observable": 3,
-            "path": "email.rfc822.unknown_text_plain_000.txt"
+            "observable": 10
           },
           {
             "observable": 7,
+            "path": "email.rfc822.unknown_text_plain_000.txt"
+          },
+          {
+            "observable": 3,
             "path": "email.rfc822.unknown_text_html_000.html"
           },
           {
-            "observable": 4,
+            "observable": 8,
             "path": "email.rfc822.headers"
           },
           {
-            "observable": 8,
+            "observable": 0,
             "path": "email.rfc822.combined"
           }
         ],
@@ -814,7 +791,7 @@
               "cc": [],
               "compauth_reason": null,
               "compauth_result": null,
-              "date": "2026-11-16 16:33:03.626909 +0000",
+              "date": "2026-11-18 05:52:46.132566 +0000",
               "dkim_result": null,
               "dmarc_result": null,
               "env_mail_from": "jane.smith@widgetsinc.com",
@@ -875,7 +852,7 @@
           "parsing_error": null
         },
         "module": "email_analyzer",
-        "observable": 5,
+        "observable": 1,
         "summary": "Email Analysis: From \"Smith, Jane\" <jane.smith@widgetsinc.com> To john.doe@acmecorp.com Subject RE: Project Alpha - Design Review Discussions on March 17, 2026 | Read Meeting Report",
         "tags": []
       },
@@ -898,7 +875,7 @@
           "type": "SMTP mail, ASCII text"
         },
         "module": "file_type",
-        "observable": 5,
+        "observable": 1,
         "summary": "File Type Analysis: SMTP mail, ASCII text (message/rfc822) (email)",
         "tags": []
       },
@@ -921,8 +898,31 @@
           "type": "HTML document, ASCII text"
         },
         "module": "file_type",
-        "observable": 7,
+        "observable": 3,
         "summary": "File Type Analysis: HTML document, ASCII text (text/html)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": false,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "text/plain",
+          "type": "ASCII text"
+        },
+        "module": "file_type",
+        "observable": 7,
+        "summary": "File Type Analysis: ASCII text (text/plain)",
         "tags": []
       },
       {
@@ -948,7 +948,6 @@
         "summary": "File Type Analysis: RFC 822 mail, ASCII text (message/rfc822) (email)",
         "tags": []
       }
-    ],
-    "whitelisted": false
+    ]
   }
 }

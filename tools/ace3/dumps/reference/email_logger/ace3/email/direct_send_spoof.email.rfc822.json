@@ -1,6 +1,6 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "f72f8946",
+  "ace3_commit": "fe6da632",
   "also_enabled": [
     "email_analyzer",
     "file_type"
@@ -109,7 +109,7 @@
             "cc": [],
             "compauth_reason": "000",
             "compauth_result": "fail",
-            "date": "2026-11-08 21:47:48.633369 +0000",
+            "date": "2026-11-18 05:09:09.118436 +0000",
             "dkim_result": "none",
             "dmarc_result": "fail",
             "env_mail_from": null,
@@ -396,7 +396,7 @@
     {
       "record": {
         "path": "database.pool.status",
-        "timestamp": "2026-11-08T21:47:48.626918",
+        "timestamp": "2026-11-18T05:09:09.111963",
         "value": "Pool size: 5  Connections in pool: 0 Current Overflow: -4 Current Checked out connections: 1"
       },
       "tag": "monitoring"
@@ -406,7 +406,7 @@
         "header": "Received: from [203.0.113.10] (203.0.113.10) by mx.company.com (10.0.0.5) with Microsoft SMTP Server id 15.20.0.0 via Frontend Transport; Fri, 17 Jul 2026 23:56:26 +0000",
         "header_index": 0,
         "message_id": "<direct-send-spoof-test@company.com>",
-        "timestamp": "1794174468.633369"
+        "timestamp": "1794978549.118436"
       },
       "tag": "phishfinder-headers"
     },
@@ -415,7 +415,7 @@
         "header": "Authentication-Results: spf=fail (sender IP is 203.0.113.10) smtp.mailfrom=company.com; dkim=none (message not signed) header.d=none;dmarc=fail action=oreject header.from=company.com;",
         "header_index": 1,
         "message_id": "<direct-send-spoof-test@company.com>",
-        "timestamp": "1794174468.633369"
+        "timestamp": "1794978549.118436"
       },
       "tag": "phishfinder-headers"
     },
@@ -424,7 +424,7 @@
         "header": "Received-SPF: Fail (protection.outlook.com: domain of company.com does not designate 203.0.113.10 as permitted sender) receiver=protection.outlook.com; client-ip=203.0.113.10; helo=[127.0.0.1];",
         "header_index": 2,
         "message_id": "<direct-send-spoof-test@company.com>",
-        "timestamp": "1794174468.633369"
+        "timestamp": "1794978549.118436"
       },
       "tag": "phishfinder-headers"
     },
@@ -433,7 +433,7 @@
         "header": "From: \"Chief Executive\" <ceo@company.com>",
         "header_index": 3,
         "message_id": "<direct-send-spoof-test@company.com>",
-        "timestamp": "1794174468.633369"
+        "timestamp": "1794978549.118436"
       },
       "tag": "phishfinder-headers"
     },
@@ -442,7 +442,7 @@
         "header": "To: user@company.com",
         "header_index": 4,
         "message_id": "<direct-send-spoof-test@company.com>",
-        "timestamp": "1794174468.633369"
+        "timestamp": "1794978549.118436"
       },
       "tag": "phishfinder-headers"
     },
@@ -451,7 +451,7 @@
         "header": "Subject: Task Submission Confirmation",
         "header_index": 5,
         "message_id": "<direct-send-spoof-test@company.com>",
-        "timestamp": "1794174468.633369"
+        "timestamp": "1794978549.118436"
       },
       "tag": "phishfinder-headers"
     },
@@ -460,7 +460,7 @@
         "header": "Message-ID: <direct-send-spoof-test@company.com>",
         "header_index": 6,
         "message_id": "<direct-send-spoof-test@company.com>",
-        "timestamp": "1794174468.633369"
+        "timestamp": "1794978549.118436"
       },
       "tag": "phishfinder-headers"
     },
@@ -469,7 +469,7 @@
         "header": "Date: Fri, 17 Jul 2026 23:56:25 +0000",
         "header_index": 7,
         "message_id": "<direct-send-spoof-test@company.com>",
-        "timestamp": "1794174468.633369"
+        "timestamp": "1794978549.118436"
       },
       "tag": "phishfinder-headers"
     },
@@ -478,7 +478,7 @@
         "header": "Content-Type: text/plain; charset=utf-8",
         "header_index": 8,
         "message_id": "<direct-send-spoof-test@company.com>",
-        "timestamp": "1794174468.633369"
+        "timestamp": "1794978549.118436"
       },
       "tag": "phishfinder-headers"
     },
@@ -487,7 +487,7 @@
         "header": "MIME-Version: 1.0",
         "header_index": 9,
         "message_id": "<direct-send-spoof-test@company.com>",
-        "timestamp": "1794174468.633369"
+        "timestamp": "1794978549.118436"
       },
       "tag": "phishfinder-headers"
     },
@@ -512,7 +512,7 @@
         "cc": [],
         "compauth_reason": "000",
         "compauth_result": "fail",
-        "date": "2026-11-08 21:47:48.633369 +0000",
+        "date": "2026-11-18 05:09:09.118436 +0000",
         "dkim_result": "none",
         "dmarc_result": "fail",
         "env_mail_from": null,
@@ -542,7 +542,7 @@
         "subject_raw": "Task Submission Confirmation",
         "thread_index": null,
         "thread_topic": null,
-        "timestamp": "1794174468.633369",
+        "timestamp": "1794978549.118436",
         "user_agent": null,
         "x_mailer": null,
         "x_sender": null
@@ -572,62 +572,75 @@
         "thread_id": "<direct-send-spoof-test@company.com>",
         "thread_message_count": 0,
         "thread_method": "self",
-        "timestamp": "1794174468.633369"
+        "timestamp": "1794978549.118436"
       },
       "tag": "phishfinder-lookalike"
     },
     {
       "record": {
         "alert_type": "cli_analysis",
-        "analysis_time_seconds": 0.004936,
-        "exec_count": 2,
+        "event_type": "root",
         "is_alert": false,
-        "module": "email_analyzer",
-        "percentage": 1.9534639610346725,
+        "observable_count": 11,
+        "observable_type_counts": {
+          "email_conversation": 1,
+          "email_first_hop_helo": 1,
+          "email_first_hop_ip": 1,
+          "email_from": 1,
+          "email_subject": 1,
+          "email_to": 1,
+          "file": 4,
+          "message_id": 1
+        },
+        "outcome": "completed",
         "queue": "default",
-        "root_uuid": "7912247e-bd03-418b-ada8-d7dbb9382207",
-        "timestamp": "2026-11-08 21:47:48.863120",
-        "total_analysis_time_seconds": 0.026545000000000003,
-        "total_time_seconds": 0.25267934799194336
+        "root_uuid": "fd370744-1400-46bd-b093-cdc02fbe7cd2",
+        "timestamp": "2026-11-18 05:09:09.793523",
+        "total_analysis_time_seconds": 0.034066,
+        "total_time_seconds": 0.7035641670227051
       },
       "tag": "metrics"
     },
     {
       "record": {
-        "alert_type": "cli_analysis",
-        "analysis_time_seconds": 0.020384000000000003,
+        "analysis_time_seconds": 0.026819000000000003,
+        "event_type": "module",
         "exec_count": 4,
-        "is_alert": false,
         "module": "file_type",
-        "percentage": 8.067141284791484,
-        "queue": "default",
-        "root_uuid": "7912247e-bd03-418b-ada8-d7dbb9382207",
-        "timestamp": "2026-11-08 21:47:48.863120",
-        "total_analysis_time_seconds": 0.026545000000000003,
-        "total_time_seconds": 0.25267934799194336
+        "percentage": 3.811876905768356,
+        "root_uuid": "fd370744-1400-46bd-b093-cdc02fbe7cd2",
+        "timestamp": "2026-11-18 05:09:09.793523"
       },
       "tag": "metrics"
     },
     {
       "record": {
-        "alert_type": "cli_analysis",
-        "analysis_time_seconds": 0.001225,
+        "analysis_time_seconds": 0.002366,
+        "event_type": "module",
         "exec_count": 11,
-        "is_alert": false,
         "module": "email_logger",
-        "percentage": 0.4848041637494881,
-        "queue": "default",
-        "root_uuid": "7912247e-bd03-418b-ada8-d7dbb9382207",
-        "timestamp": "2026-11-08 21:47:48.863120",
-        "total_analysis_time_seconds": 0.026545000000000003,
-        "total_time_seconds": 0.25267934799194336
+        "percentage": 0.33628773477937024,
+        "root_uuid": "fd370744-1400-46bd-b093-cdc02fbe7cd2",
+        "timestamp": "2026-11-18 05:09:09.793523"
+      },
+      "tag": "metrics"
+    },
+    {
+      "record": {
+        "analysis_time_seconds": 0.004881,
+        "event_type": "module",
+        "exec_count": 2,
+        "module": "email_analyzer",
+        "percentage": 0.6937533531099349,
+        "root_uuid": "fd370744-1400-46bd-b093-cdc02fbe7cd2",
+        "timestamp": "2026-11-18 05:09:09.793523"
       },
       "tag": "metrics"
     },
     {
       "record": {
         "path": "database.pool.available_count",
-        "timestamp": "2026-11-08T21:47:48.863390",
+        "timestamp": "2026-11-18T05:09:09.793944",
         "value": 0
       },
       "tag": "monitoring"
@@ -635,7 +648,7 @@
     {
       "record": {
         "path": "database.pool.in_use_count",
-        "timestamp": "2026-11-08T21:47:48.863407",
+        "timestamp": "2026-11-18T05:09:09.793970",
         "value": 1
       },
       "tag": "monitoring"

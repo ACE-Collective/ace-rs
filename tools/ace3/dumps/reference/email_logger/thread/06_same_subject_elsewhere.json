@@ -1,6 +1,6 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "f72f8946",
+  "ace3_commit": "fe6da632",
   "also_enabled": [
     "email_analyzer",
     "file_type"
@@ -71,7 +71,7 @@
             "cc": [],
             "compauth_reason": null,
             "compauth_result": null,
-            "date": "2026-11-08 21:49:21.319305 +0000",
+            "date": "2026-11-18 05:13:10.915072 +0000",
             "dkim_result": null,
             "dmarc_result": null,
             "env_mail_from": null,
@@ -822,7 +822,7 @@
     {
       "record": {
         "path": "database.pool.status",
-        "timestamp": "2026-11-08T21:49:21.314665",
+        "timestamp": "2026-11-18T05:13:10.908311",
         "value": "Pool size: 5  Connections in pool: 0 Current Overflow: -4 Current Checked out connections: 1"
       },
       "tag": "monitoring"
@@ -832,7 +832,7 @@
         "header": "From: Dave <dave@example.net>",
         "header_index": 0,
         "message_id": "<other-6@example.net>",
-        "timestamp": "1794174561.319305"
+        "timestamp": "1794978790.915072"
       },
       "tag": "phishfinder-headers"
     },
@@ -841,7 +841,7 @@
         "header": "To: Erin <erin@example.net>",
         "header_index": 1,
         "message_id": "<other-6@example.net>",
-        "timestamp": "1794174561.319305"
+        "timestamp": "1794978790.915072"
       },
       "tag": "phishfinder-headers"
     },
@@ -850,7 +850,7 @@
         "header": "Subject: Quarterly invoice",
         "header_index": 2,
         "message_id": "<other-6@example.net>",
-        "timestamp": "1794174561.319305"
+        "timestamp": "1794978790.915072"
       },
       "tag": "phishfinder-headers"
     },
@@ -859,7 +859,7 @@
         "header": "Date: Thu, 05 Nov 2026 10:00:00 +0100",
         "header_index": 3,
         "message_id": "<other-6@example.net>",
-        "timestamp": "1794174561.319305"
+        "timestamp": "1794978790.915072"
       },
       "tag": "phishfinder-headers"
     },
@@ -868,7 +868,7 @@
         "header": "Message-ID: <other-6@example.net>",
         "header_index": 4,
         "message_id": "<other-6@example.net>",
-        "timestamp": "1794174561.319305"
+        "timestamp": "1794978790.915072"
       },
       "tag": "phishfinder-headers"
     },
@@ -877,7 +877,7 @@
         "header": "MIME-Version: 1.0",
         "header_index": 5,
         "message_id": "<other-6@example.net>",
-        "timestamp": "1794174561.319305"
+        "timestamp": "1794978790.915072"
       },
       "tag": "phishfinder-headers"
     },
@@ -886,7 +886,7 @@
         "header": "Content-Type: text/plain; charset=utf-8",
         "header_index": 6,
         "message_id": "<other-6@example.net>",
-        "timestamp": "1794174561.319305"
+        "timestamp": "1794978790.915072"
       },
       "tag": "phishfinder-headers"
     },
@@ -911,7 +911,7 @@
         "cc": [],
         "compauth_reason": null,
         "compauth_result": null,
-        "date": "2026-11-08 21:49:21.319305 +0000",
+        "date": "2026-11-18 05:13:10.915072 +0000",
         "dkim_result": null,
         "dmarc_result": null,
         "env_mail_from": null,
@@ -939,7 +939,7 @@
         "subject_raw": "Quarterly invoice",
         "thread_index": null,
         "thread_topic": null,
-        "timestamp": "1794174561.319305",
+        "timestamp": "1794978790.915072",
         "user_agent": null,
         "x_mailer": null,
         "x_sender": null
@@ -969,62 +969,73 @@
         "thread_id": "<other-6@example.net>",
         "thread_message_count": 0,
         "thread_method": "self",
-        "timestamp": "1794174561.319305"
+        "timestamp": "1794978790.915072"
       },
       "tag": "phishfinder-lookalike"
     },
     {
       "record": {
         "alert_type": "cli_analysis",
-        "analysis_time_seconds": 0.0013360000000000002,
-        "exec_count": 9,
+        "event_type": "root",
         "is_alert": false,
-        "module": "email_logger",
-        "percentage": 0.5170017007684551,
+        "observable_count": 9,
+        "observable_type_counts": {
+          "email_conversation": 1,
+          "email_from": 1,
+          "email_subject": 1,
+          "email_to": 1,
+          "file": 4,
+          "message_id": 1
+        },
+        "outcome": "completed",
         "queue": "default",
-        "root_uuid": "b4d557ba-6138-4122-8acc-40e69131acaf",
-        "timestamp": "2026-11-08 21:49:21.556460",
-        "total_analysis_time_seconds": 0.024446000000000002,
-        "total_time_seconds": 0.25841307640075684
+        "root_uuid": "c3c00e45-9a90-43d6-929f-f4a1f9e6ce02",
+        "timestamp": "2026-11-18 05:13:11.578507",
+        "total_analysis_time_seconds": 0.034318999999999995,
+        "total_time_seconds": 0.6940689086914062
       },
       "tag": "metrics"
     },
     {
       "record": {
-        "alert_type": "cli_analysis",
-        "analysis_time_seconds": 0.019538000000000003,
-        "exec_count": 4,
-        "is_alert": false,
-        "module": "file_type",
-        "percentage": 7.560762896417722,
-        "queue": "default",
-        "root_uuid": "b4d557ba-6138-4122-8acc-40e69131acaf",
-        "timestamp": "2026-11-08 21:49:21.556460",
-        "total_analysis_time_seconds": 0.024446000000000002,
-        "total_time_seconds": 0.25841307640075684
-      },
-      "tag": "metrics"
-    },
-    {
-      "record": {
-        "alert_type": "cli_analysis",
-        "analysis_time_seconds": 0.003572,
+        "analysis_time_seconds": 0.004979,
+        "event_type": "module",
         "exec_count": 2,
-        "is_alert": false,
         "module": "email_analyzer",
-        "percentage": 1.3822829903779352,
-        "queue": "default",
-        "root_uuid": "b4d557ba-6138-4122-8acc-40e69131acaf",
-        "timestamp": "2026-11-08 21:49:21.556460",
-        "total_analysis_time_seconds": 0.024446000000000002,
-        "total_time_seconds": 0.25841307640075684
+        "percentage": 0.7173639299572401,
+        "root_uuid": "c3c00e45-9a90-43d6-929f-f4a1f9e6ce02",
+        "timestamp": "2026-11-18 05:13:11.578507"
+      },
+      "tag": "metrics"
+    },
+    {
+      "record": {
+        "analysis_time_seconds": 0.002001,
+        "event_type": "module",
+        "exec_count": 9,
+        "module": "email_logger",
+        "percentage": 0.28829990436722985,
+        "root_uuid": "c3c00e45-9a90-43d6-929f-f4a1f9e6ce02",
+        "timestamp": "2026-11-18 05:13:11.578507"
+      },
+      "tag": "metrics"
+    },
+    {
+      "record": {
+        "analysis_time_seconds": 0.027338999999999995,
+        "event_type": "module",
+        "exec_count": 4,
+        "module": "file_type",
+        "percentage": 3.938946069712991,
+        "root_uuid": "c3c00e45-9a90-43d6-929f-f4a1f9e6ce02",
+        "timestamp": "2026-11-18 05:13:11.578507"
       },
       "tag": "metrics"
     },
     {
       "record": {
         "path": "database.pool.available_count",
-        "timestamp": "2026-11-08T21:49:21.556723",
+        "timestamp": "2026-11-18T05:13:11.578927",
         "value": 0
       },
       "tag": "monitoring"
@@ -1032,7 +1043,7 @@
     {
       "record": {
         "path": "database.pool.in_use_count",
-        "timestamp": "2026-11-08T21:49:21.556740",
+        "timestamp": "2026-11-18T05:13:11.578943",
         "value": 1
       },
       "tag": "monitoring"

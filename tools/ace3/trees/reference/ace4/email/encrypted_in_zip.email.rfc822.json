@@ -263,8 +263,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files/invoice.zip.extracted",
-              "File:FileAccessDate": "2026:11:16 19:47:05+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 19:47:05+00:00",
+              "File:FileAccessDate": "2026:11:18 03:55:05+00:00",
+              "File:FileInodeChangeDate": "2026:11:18 03:55:04+00:00",
               "File:FileModifyDate": "2020:01:01 00:00:00+00:00",
               "File:FileName": "invoice.docm",
               "File:FilePermissions": 100664,
@@ -310,42 +310,42 @@
         "msoffice_encryption_analyzer": {
           "details": {
             "email": true,
-            "email_body": "The password is Secr3tPw\n\n",
+            "email_body": "The password is Secr3tPw",
             "encryption_info": null,
             "password": "Secr3tPw",
             "word_list": [
               "VelvetSweatshop",
               "/01Hannes Ruescher/01",
-              "3tPw",
-              "Secr",
-              "Secr3",
-              "Secr3t",
-              "Secr3tP",
-              "Secr3tPw",
-              "assw",
-              "asswo",
-              "asswor",
-              "assword",
-              "cr3t",
-              "cr3tP",
-              "cr3tPw",
-              "ecr3",
-              "ecr3t",
-              "ecr3tP",
-              "ecr3tPw",
-              "pass",
-              "passw",
-              "passwo",
-              "passwor",
               "password",
-              "r3tP",
-              "r3tPw",
+              "Secr3tPw",
+              "pass",
+              "assw",
               "sswo",
-              "sswor",
-              "ssword",
               "swor",
+              "word",
+              "Secr",
+              "ecr3",
+              "cr3t",
+              "r3tP",
+              "3tPw",
+              "passw",
+              "asswo",
+              "sswor",
               "sword",
-              "word"
+              "Secr3",
+              "ecr3t",
+              "cr3tP",
+              "r3tPw",
+              "passwo",
+              "asswor",
+              "ssword",
+              "Secr3t",
+              "ecr3tP",
+              "cr3tPw",
+              "passwor",
+              "assword",
+              "Secr3tP",
+              "ecr3tPw"
             ]
           },
           "summary": "MSOffice Encryption Analysis: password Secr3tPw",
@@ -530,6 +530,39 @@
         "macro": true
       }
     },
+    "file:14cdc0a92ec96725f29afc49ad2f95b7a98c8c265df17364dc31d945a41add9b": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "invoice.zip.extracted/invoice.docm.decrypted.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:45cca7fd63944ca6b6ea4e4669078cf3520b3896956c183c9bfd0fb3d0bfaf4f": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:167181108f6fd083cd67d569e9906a592ca923bc2d4c571ed1242caf92ed48f8": {
       "detections": {},
       "directives": {
@@ -623,8 +656,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files/invoice.zip.extracted/invoice.docm.decrypted.extracted/word",
-              "File:FileAccessDate": "2026:11:16 19:47:08+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 19:47:08+00:00",
+              "File:FileAccessDate": "2026:11:18 03:55:07+00:00",
+              "File:FileInodeChangeDate": "2026:11:18 03:55:07+00:00",
               "File:FileModifyDate": "1980:01:01 00:00:00+00:00",
               "File:FileName": "vbaProject.bin",
               "File:FilePermissions": 100664,
@@ -1243,9 +1276,9 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files/invoice.zip.extracted",
-              "File:FileAccessDate": "2026:11:16 19:47:07+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 19:47:07+00:00",
-              "File:FileModifyDate": "2026:11:16 19:47:07+00:00",
+              "File:FileAccessDate": "2026:11:18 03:55:06+00:00",
+              "File:FileInodeChangeDate": "2026:11:18 03:55:06+00:00",
+              "File:FileModifyDate": "2026:11:18 03:55:06+00:00",
               "File:FileName": "invoice.docm.decrypted",
               "File:FilePermissions": 100666,
               "File:FileSize": 73622,
@@ -1424,6 +1457,39 @@
         "xml_plain_text_analyzer": {
           "details": {
             "xml_plain_text": null
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:469441296786b7531361fbca0070f71bcaaba13a3fafe85d2684908ff67ea8cc": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "invoice.zip.extracted/invoice.docm.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:0587627f0391dcbb29925b0c90a7640f7286b4dca8240d81d61756c8f648acf4": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
           },
           "summary": null,
           "tags": {}
@@ -1886,39 +1952,6 @@
       },
       "tags": {}
     },
-    "file:7e1a2b5fec4733a97cf2dc9f6499893fa67b1e471236862ad5e08dbd07fcbc57": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "invoice.zip.extracted/invoice.docm.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:0587627f0391dcbb29925b0c90a7640f7286b4dca8240d81d61756c8f648acf4": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:80482f86e196171d66001e0e74d1900408a3aaf2463e54005d251b5f2db9a0b0": {
       "detections": {},
       "directives": {
@@ -2289,39 +2322,6 @@
       },
       "tags": {}
     },
-    "file:b1fdc88ab08d54387008f9e5e1b86265862bc74eb840a408fc115458a820add4": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "invoice.zip.extracted/invoice.docm.decrypted.extracted/word/vbaProject.bin.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:170b804293599496c29d816cfe408adc5a99e767eb930b0c0cf9e7db62436abe": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:b520d7662070c97304b0bbff09af9f61baaa6872976663ed1a886abc7c29cb15": {
       "detections": {},
       "directives": {
@@ -2373,6 +2373,39 @@
           "details": {
             "urls": [],
             "urls_grouped_by_domain": {}
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:bacf7a0fc19a4a6f7f472d20aef30f0e3be5720cffbda1d6239b47530db0b332": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "invoice.zip.extracted/invoice.docm.decrypted.extracted/word/vbaProject.bin.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:170b804293599496c29d816cfe408adc5a99e767eb930b0c0cf9e7db62436abe": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
           },
           "summary": null,
           "tags": {}
@@ -2490,39 +2523,6 @@
         "xml_plain_text_analyzer": {
           "details": {
             "xml_plain_text": null
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
-    "file:c66793246f15cbf41238a4cd8caca4b1d0f913f64d321cf804997167c5ff2fe8": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "invoice.zip.extracted/invoice.docm.decrypted.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:45cca7fd63944ca6b6ea4e4669078cf3520b3896956c183c9bfd0fb3d0bfaf4f": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
           },
           "summary": null,
           "tags": {}

@@ -81,6 +81,7 @@ impl Modes {
                 group(
                     "correlation",
                     &[
+                        "apex_domain_analyzer",
                         "clicker_detection_splunk",
                         "email_thread_analyzer",
                         "fqdn_analyzer",

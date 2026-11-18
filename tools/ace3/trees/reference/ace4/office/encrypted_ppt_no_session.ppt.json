@@ -1,6 +1,39 @@
 {
   "form": 1,
   "observables": {
+    "file:3910f8288e46b29115e3f28ec1fec380e6e0808d1cef610bb2b047a7da2aad76": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "encrypted_ppt_no_session.ppt.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:a0c29a98583606e74bb159e759443eaf8f6874639510f0b4e0b8f8263745511d": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:7d0a98a3301c7ddbe2b913457591a76affbf4b4ac5864572ce8c57f1b45a04aa": {
       "detections": {},
       "directives": {
@@ -82,8 +115,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 20:05:41+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 20:05:41+00:00",
+              "File:FileAccessDate": "2026:11:18 04:10:36+00:00",
+              "File:FileInodeChangeDate": "2026:11:18 04:10:36+00:00",
               "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "encrypted_ppt_no_session.ppt",
               "File:FilePermissions": 100644,
@@ -138,8 +171,7 @@
               "/01Hannes Ruescher/01"
             ]
           },
-          "error": "could not crack password",
-          "summary": "MSOffice Encryption Analysis: could not crack password",
+          "summary": "MSOffice Encryption Analysis: no associated email detected",
           "tags": {}
         },
         "observable_detection": {
@@ -181,39 +213,6 @@
         "microsoft_office": true,
         "ole": true
       }
-    },
-    "file:a8487bf6f5504738b24350c36608a15aef472c1e64c014a9b8777be553c78d47": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "encrypted_ppt_no_session.ppt.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:a0c29a98583606e74bb159e759443eaf8f6874639510f0b4e0b8f8263745511d": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
     },
     "file:ebcbd5f378239f5638a26a8fc2256df5e0b976ed9ee28ba9d10b88266ffbc790": {
       "detections": {},

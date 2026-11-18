@@ -13,8 +13,9 @@ use std::path::{Path, PathBuf};
 
 use ace_mod_values::protected::{self, Hop};
 use ace_mod_values::{
-    CommandLineAnalyzer, EmailAddressFqdnAnalyzer, FileLocationAnalyzer, FilePathAnalyzer,
-    IdnaAnalyzer, NetworkIdentifier, OneDriveUrlAnalyzer, ParseUrlAnalyzer, ProtectedUrlAnalyzer,
+    ApexDomainAnalyzer, CommandLineAnalyzer, EmailAddressFqdnAnalyzer, FileLocationAnalyzer,
+    FilePathAnalyzer, IdnaAnalyzer, NetworkIdentifier, OneDriveUrlAnalyzer, ParseUrlAnalyzer,
+    ProtectedUrlAnalyzer,
 };
 use ace_results::{ObservableKind, ObservableRef, Relationship, RelationshipKind};
 use ace_sdk::{Observable, Outcome, Parser};
@@ -212,6 +213,12 @@ async fn matches_the_reference_dumps_or_lists_each_difference() {
         "IDNAAnalysis",
         none,
         Some(("unicode", "idna_unicode")),
+    ));
+    compared.extend(compare::<ApexDomainAnalyzer>(
+        "apex_domain_analyzer",
+        "ApexDomainAnalysis",
+        none,
+        Some(("subdomain", "apex_domain_subdomain")),
     ));
     compared.extend(compare::<EmailAddressFqdnAnalyzer>(
         "email_address_fqdn_analyzer",

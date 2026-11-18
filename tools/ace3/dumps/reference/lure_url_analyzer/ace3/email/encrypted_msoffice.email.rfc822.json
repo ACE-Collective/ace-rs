@@ -1,6 +1,6 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "37a765bf",
+  "ace3_commit": "fe6da632",
   "also_enabled": [
     "file_type",
     "email_analyzer",
@@ -60,7 +60,7 @@
                 "info_3805.xls"
               ]
             ],
-            "observable_uuid": "a717533b-898b-48a2-9355-6ec18a564abc",
+            "observable_uuid": "a2d67ff2-58fe-4fe3-9806-fa3b1d5a95be",
             "reasons": [
               "found in attachment info_3805.xls"
             ],
@@ -78,7 +78,7 @@
                 "info_3805.xls"
               ]
             ],
-            "observable_uuid": "12bea375-3bf5-4dea-ae71-ba3ed79d01c6",
+            "observable_uuid": "3f00359b-f537-4439-add4-643e05914623",
             "reasons": [
               "found in attachment info_3805.xls"
             ],
@@ -98,7 +98,7 @@
               "info_3805.xls"
             ]
           ],
-          "observable_uuid": "a717533b-898b-48a2-9355-6ec18a564abc",
+          "observable_uuid": "a2d67ff2-58fe-4fe3-9806-fa3b1d5a95be",
           "reasons": [
             "found in attachment info_3805.xls"
           ],
@@ -232,7 +232,7 @@
             "cc": [],
             "compauth_reason": null,
             "compauth_result": null,
-            "date": "2026-11-16 16:31:09.048491 +0000",
+            "date": "2026-11-18 05:51:26.489872 +0000",
             "dkim_result": "pass",
             "dmarc_result": "pass",
             "env_mail_from": null,
@@ -552,119 +552,46 @@
       {
         "detections": [],
         "directives": [
+          "crawl_extracted_urls",
           "extract_urls"
         ],
         "paths": [
           {
-            "path": "info_3805.xls.decrypted.officeparser/stream_2_0.dat",
-            "yara_meta": []
-          },
-          {
-            "path": "info_3805.xls.officeparser/stream_2_0.dat",
-            "yara_meta": []
+            "path": "info_3805.xls.decrypted.xlmdeobfuscator/xlmdeobfuscatorextractcells.stdout",
+            "yara_meta": [
+              "type=script.macro.xlm"
+            ]
           }
         ],
-        "size": 4096,
+        "size": 13785,
         "tags": [],
         "type": "file",
-        "value": "30812268cfefcc8320d3b990169f35de93d7fc7dd749a0b25b9993c0d1347776"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [
-          "domain_in_url"
-        ],
-        "type": "fqdn",
-        "value": "component.pw"
+        "value": "29f8b9e445a1d64c8726dadd08dd2d3646ce741ac03f502f9b07e2f8fafe4a9f"
       },
       {
         "detections": [],
         "directives": [
-          "crawl"
+          "crawl_extracted_urls",
+          "extract_urls"
         ],
-        "paths": [],
-        "tags": [],
-        "type": "url",
-        "value": "https://component.pw/wp-index.php,$BB$54"
-      },
-      {
-        "detections": [],
-        "directives": [],
         "paths": [
           {
-            "path": "email.rfc822.combined",
+            "path": "info_3805.xls.xlmdeobfuscator/xlmdeobfuscatorextractcells.stdout",
             "yara_meta": [
-              "type=email",
-              "type=email.combined"
+              "type=script.macro.xlm"
+            ]
+          },
+          {
+            "path": "info_3805.xls.xlmdeobfuscator/xlmdeobfuscator.stdout",
+            "yara_meta": [
+              "type=script.macro.xlm"
             ]
           }
         ],
-        "size": 3081,
-        "tags": [
-          "email"
-        ],
+        "size": 370,
+        "tags": [],
         "type": "file",
-        "value": "be9ce3733c126f844e3bf872e7c10da1d4ca66940419671f337bdb889fdd00f8"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_reply_to",
-        "value": "noreply@tovarioseni9.fun"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_dkim_signing_domain",
-        "value": "tovarioseni9.fun"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_subject",
-        "value": "Doc #848625: facsimile copy"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "md5",
-        "value": "866195ca1ecf838967b5bbf59d0799fc"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [
-          {
-            "path": "email.rfc822",
-            "yara_meta": [
-              "type=email"
-            ]
-          }
-        ],
-        "size": 97167,
-        "tags": [
-          "email"
-        ],
-        "type": "file",
-        "value": "bfe786d76a1bdd92b7786b47ddae228f9b0c5fefcfdef656b689352b250dfc01"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "fqdn",
-        "value": "user.com"
+        "value": "e47fc1671bf1cff13c94b264a5d0eafd0056438696023d3e61ef9b58bfa10d2d"
       },
       {
         "detections": [],
@@ -690,6 +617,123 @@
         ],
         "type": "file",
         "value": "e42f4cd8ff57dc0c9756242193462dcb03b4e7fef955985a2e953a6053324055"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "fqdn",
+        "value": "user.com"
+      },
+      {
+        "detections": [],
+        "directives": [
+          "extract_urls",
+          "preview"
+        ],
+        "paths": [
+          {
+            "path": "email.rfc822.unknown_text_plain_000.txt",
+            "yara_meta": [
+              "type=email.attachment"
+            ]
+          }
+        ],
+        "size": 932,
+        "tags": [],
+        "type": "file",
+        "value": "a0ed8009073f3abdc1dc979ef137f6d69c62d1920902a29cd3baad0a0c16e747"
+      },
+      {
+        "detections": [],
+        "directives": [
+          "extract_urls"
+        ],
+        "paths": [
+          {
+            "path": "info_3805.xls.decrypted.officeparser/stream_1_0.dat.extracted/theme/theme/_rels/themeManager.xml.rels",
+            "yara_meta": []
+          }
+        ],
+        "size": 283,
+        "tags": [],
+        "type": "file",
+        "value": "2983db3781942d11b9497551888ee8774f861ff9cbc5c64ddb79eaa0698f87bd"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "sha256",
+        "value": "ce3af53d22189d65f561fa45ff655a020c9ef96c17c83e748cd773eff8ef96e8"
+      },
+      {
+        "detections": [],
+        "directives": [
+          "crawl"
+        ],
+        "paths": [],
+        "tags": [],
+        "type": "url",
+        "value": "https://component.pw/wp-index.php,$BB$54"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_subject",
+        "value": "Doc #848625: facsimile copy"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_conversation",
+        "value": "noreply@tovarioseni9.fun|target@user.com"
+      },
+      {
+        "detections": [],
+        "directives": [
+          "extract_urls"
+        ],
+        "paths": [
+          {
+            "path": "info_3805.xls.officeparser/stream_1_0.dat",
+            "yara_meta": []
+          }
+        ],
+        "size": 58605,
+        "tags": [],
+        "type": "file",
+        "value": "43d660c446fd186dafd3fd99a6fcaff491c46b14b2d6e2f2f80278e8e6ed66f2"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_to",
+        "value": "target@user.com"
+      },
+      {
+        "detections": [],
+        "directives": [
+          "extract_urls"
+        ],
+        "paths": [
+          {
+            "path": "info_3805.xls.decrypted.officeparser/stream_1_0.dat.extracted/theme/theme/theme1.xml",
+            "yara_meta": []
+          }
+        ],
+        "size": 6518,
+        "tags": [],
+        "type": "file",
+        "value": "1a73bbcac110fe0137415fd3c1847031464891744879db49b6a78981934a1ccb"
       },
       {
         "detections": [],
@@ -728,29 +772,39 @@
       {
         "detections": [],
         "directives": [
-          "extract_urls",
-          "preview"
+          "crawl_extracted_urls",
+          "extract_urls"
         ],
         "paths": [
           {
-            "path": "email.rfc822.unknown_text_plain_000.txt",
+            "path": "info_3805.xls.decrypted.xlmdeobfuscator/xlmdeobfuscator.stdout",
             "yara_meta": [
-              "type=email.attachment"
+              "type=script.macro.xlm"
             ]
           }
         ],
-        "size": 932,
+        "size": 8743,
         "tags": [],
         "type": "file",
-        "value": "a0ed8009073f3abdc1dc979ef137f6d69c62d1920902a29cd3baad0a0c16e747"
+        "value": "05682ac12d472755641d40ed35e81533ffa4a2d334ba6b7d2a8d62983f77c3fe"
       },
       {
         "detections": [],
         "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_conversation",
-        "value": "noreply@tovarioseni9.fun|target@user.com"
+        "paths": [
+          {
+            "path": "email.rfc822",
+            "yara_meta": [
+              "type=email"
+            ]
+          }
+        ],
+        "size": 97167,
+        "tags": [
+          "email"
+        ],
+        "type": "file",
+        "value": "bfe786d76a1bdd92b7786b47ddae228f9b0c5fefcfdef656b689352b250dfc01"
       },
       {
         "detections": [],
@@ -758,15 +812,15 @@
         "paths": [],
         "tags": [],
         "type": "md5",
-        "value": "af93ae2e4dc1d242f984a2325d709e86"
+        "value": "866195ca1ecf838967b5bbf59d0799fc"
       },
       {
         "detections": [],
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "uri_path",
-        "value": "/wp-index.php,$BB$54"
+        "type": "fqdn",
+        "value": "tovarioseni9.fun"
       },
       {
         "detections": [],
@@ -775,11 +829,11 @@
         ],
         "paths": [
           {
-            "path": "info_3805.xls.decrypted.officeparser/stream_3_0.dat",
+            "path": "info_3805.xls.officeparser/stream_3_0.dat",
             "yara_meta": []
           },
           {
-            "path": "info_3805.xls.officeparser/stream_3_0.dat",
+            "path": "info_3805.xls.decrypted.officeparser/stream_3_0.dat",
             "yara_meta": []
           }
         ],
@@ -787,6 +841,43 @@
         "tags": [],
         "type": "file",
         "value": "4137c040feddd71feefc2bc6b8dd7469966c310036ad2276bc78a404d8e17c51"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [
+          {
+            "path": "email.rfc822.combined",
+            "yara_meta": [
+              "type=email",
+              "type=email.combined"
+            ]
+          }
+        ],
+        "size": 3081,
+        "tags": [
+          "email"
+        ],
+        "type": "file",
+        "value": "be9ce3733c126f844e3bf872e7c10da1d4ca66940419671f337bdb889fdd00f8"
+      },
+      {
+        "detections": [],
+        "directives": [
+          "crawl"
+        ],
+        "paths": [],
+        "tags": [],
+        "type": "url",
+        "value": "https://component.pw/wp-index.php"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "uri_path",
+        "value": "/wp-index.php"
       },
       {
         "detections": [],
@@ -799,61 +890,12 @@
       {
         "detections": [],
         "directives": [],
-        "paths": [
-          {
-            "path": "email.rfc822.headers",
-            "yara_meta": [
-              "type=email",
-              "type=email.headers"
-            ]
-          }
-        ],
-        "size": 2145,
-        "tags": [
-          "email"
-        ],
-        "type": "file",
-        "value": "26c514a15652cb61afb1a63b00ebbb64b7c991cc0bd64b693c606ba11918eb6d"
-      },
-      {
-        "detections": [],
-        "directives": [
-          "extract_urls"
-        ],
-        "paths": [
-          {
-            "path": "info_3805.xls.officeparser/stream_1_0.dat",
-            "yara_meta": []
-          }
-        ],
-        "size": 58605,
-        "tags": [],
-        "type": "file",
-        "value": "43d660c446fd186dafd3fd99a6fcaff491c46b14b2d6e2f2f80278e8e6ed66f2"
-      },
-      {
-        "detections": [],
-        "directives": [],
         "paths": [],
-        "tags": [],
-        "type": "email_from",
-        "value": "noreply@tovarioseni9.fun"
-      },
-      {
-        "detections": [],
-        "directives": [
-          "extract_urls"
+        "tags": [
+          "domain_in_url"
         ],
-        "paths": [
-          {
-            "path": "info_3805.xls.decrypted.officeparser/stream_1_0.dat.extracted/[Content_Types].xml",
-            "yara_meta": []
-          }
-        ],
-        "size": 540,
-        "tags": [],
-        "type": "file",
-        "value": "6c98d4f2b62b4db730884f9bd6d27e5360693eaad02d9cdbaa0e71c4c747450b"
+        "type": "fqdn",
+        "value": "component.pw"
       },
       {
         "detections": [
@@ -883,35 +925,49 @@
       {
         "detections": [],
         "directives": [
-          "crawl_extracted_urls",
           "extract_urls"
         ],
         "paths": [
           {
-            "path": "info_3805.xls.xlmdeobfuscator/xlmdeobfuscator.stdout",
-            "yara_meta": [
-              "type=script.macro.xlm"
-            ]
+            "path": "info_3805.xls.officeparser/stream_2_0.dat",
+            "yara_meta": []
           },
           {
-            "path": "info_3805.xls.xlmdeobfuscator/xlmdeobfuscatorextractcells.stdout",
+            "path": "info_3805.xls.decrypted.officeparser/stream_2_0.dat",
+            "yara_meta": []
+          }
+        ],
+        "size": 4096,
+        "tags": [],
+        "type": "file",
+        "value": "30812268cfefcc8320d3b990169f35de93d7fc7dd749a0b25b9993c0d1347776"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [
+          {
+            "path": "email.rfc822.headers",
             "yara_meta": [
-              "type=script.macro.xlm"
+              "type=email",
+              "type=email.headers"
             ]
           }
         ],
-        "size": 370,
-        "tags": [],
+        "size": 2145,
+        "tags": [
+          "email"
+        ],
         "type": "file",
-        "value": "e47fc1671bf1cff13c94b264a5d0eafd0056438696023d3e61ef9b58bfa10d2d"
+        "value": "26c514a15652cb61afb1a63b00ebbb64b7c991cc0bd64b693c606ba11918eb6d"
       },
       {
         "detections": [],
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "email_to",
-        "value": "target@user.com"
+        "type": "email_dkim_signing_domain",
+        "value": "tovarioseni9.fun"
       },
       {
         "detections": [],
@@ -919,68 +975,15 @@
         "paths": [],
         "tags": [],
         "type": "uri_path",
-        "value": "/wp-index.php"
-      },
-      {
-        "detections": [],
-        "directives": [
-          "crawl"
-        ],
-        "paths": [],
-        "tags": [],
-        "type": "url",
-        "value": "https://component.pw/wp-index.php"
+        "value": "/wp-index.php,$BB$54"
       },
       {
         "detections": [],
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "sha256",
-        "value": "ce3af53d22189d65f561fa45ff655a020c9ef96c17c83e748cd773eff8ef96e8"
-      },
-      {
-        "detections": [],
-        "directives": [
-          "crawl_extracted_urls",
-          "extract_urls"
-        ],
-        "paths": [
-          {
-            "path": "info_3805.xls.decrypted.xlmdeobfuscator/xlmdeobfuscator.stdout",
-            "yara_meta": [
-              "type=script.macro.xlm"
-            ]
-          }
-        ],
-        "size": 8743,
-        "tags": [],
-        "type": "file",
-        "value": "75f910165082fec59e2f017932744d1b88fa052582b088e3faf3ea2d57de0125"
-      },
-      {
-        "detections": [],
-        "directives": [
-          "extract_urls"
-        ],
-        "paths": [
-          {
-            "path": "info_3805.xls.decrypted.officeparser/stream_1_0.dat.extracted/theme/theme/_rels/themeManager.xml.rels",
-            "yara_meta": []
-          }
-        ],
-        "size": 283,
-        "tags": [],
-        "type": "file",
-        "value": "2983db3781942d11b9497551888ee8774f861ff9cbc5c64ddb79eaa0698f87bd"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "fqdn",
-        "value": "tovarioseni9.fun"
+        "type": "email_from",
+        "value": "noreply@tovarioseni9.fun"
       },
       {
         "detections": [],
@@ -1008,38 +1011,35 @@
       },
       {
         "detections": [],
-        "directives": [
-          "extract_urls"
-        ],
-        "paths": [
-          {
-            "path": "info_3805.xls.decrypted.officeparser/stream_1_0.dat.extracted/theme/theme/theme1.xml",
-            "yara_meta": []
-          }
-        ],
-        "size": 6518,
+        "directives": [],
+        "paths": [],
         "tags": [],
-        "type": "file",
-        "value": "1a73bbcac110fe0137415fd3c1847031464891744879db49b6a78981934a1ccb"
+        "type": "email_reply_to",
+        "value": "noreply@tovarioseni9.fun"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "md5",
+        "value": "af93ae2e4dc1d242f984a2325d709e86"
       },
       {
         "detections": [],
         "directives": [
-          "crawl_extracted_urls",
           "extract_urls"
         ],
         "paths": [
           {
-            "path": "info_3805.xls.decrypted.xlmdeobfuscator/xlmdeobfuscatorextractcells.stdout",
-            "yara_meta": [
-              "type=script.macro.xlm"
-            ]
+            "path": "info_3805.xls.decrypted.officeparser/stream_1_0.dat.extracted/[Content_Types].xml",
+            "yara_meta": []
           }
         ],
-        "size": 13785,
+        "size": 540,
         "tags": [],
         "type": "file",
-        "value": "cbaa19196eb6b7c13e4e4251396916806d0384f3f6652e6c7e798cbee1701b84"
+        "value": "6c98d4f2b62b4db730884f9bd6d27e5360693eaad02d9cdbaa0e71c4c747450b"
       }
     ],
     "results": [
@@ -1058,23 +1058,12 @@
           "is_rtf_file": false,
           "is_x509": false,
           "is_zip_file": false,
-          "mime": "application/octet-stream",
-          "type": "data"
+          "mime": "text/plain",
+          "type": "ASCII text, with very long lines (421)"
         },
         "module": "file_type",
         "observable": 0,
-        "summary": "File Type Analysis: data (application/octet-stream)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "ExtractedOLEAnalysis",
-        "details": {
-          "suspect_files": []
-        },
-        "module": "extracted_ole_analyzer",
-        "observable": 0,
-        "summary": null,
+        "summary": "File Type Analysis: ASCII text, with very long lines (421) (text/plain)",
         "tags": []
       },
       {
@@ -1090,12 +1079,1252 @@
         "tags": []
       },
       {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": false,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "text/plain",
+          "type": "ASCII text"
+        },
+        "module": "file_type",
+        "observable": 1,
+        "summary": "File Type Analysis: ASCII text (text/plain)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "URLExtractionAnalysis",
+        "details": {
+          "urls": [],
+          "urls_grouped_by_domain": {}
+        },
+        "module": "url_extraction",
+        "observable": 1,
+        "summary": null,
+        "tags": []
+      },
+      {
         "added": [
           {
-            "observable": 1
+            "observable": 25,
+            "path": "info_3805.xls.decrypted"
+          }
+        ],
+        "class": "MSOfficeEncryptionAnalysis",
+        "details": {
+          "email": true,
+          "email_body": "**CAUTION EXTERNAL EMAIL**\n\n**DO NOT open attachments or click on links from unknown senders or unexpected emails**\n\nGiven invoice #466457\n\nPassword for this document: 709384\n\nWaiting for your answer,\nPeachey Wexler\nThis e-mail transmission contains information that is confidential and may be privileged.\nIt is intended only for the addressee(s) named above. If you receive this e-mail in error,\nplease do not read, copy or disseminate it in any manner.  If you are not the intended \nrecipient, any disclosure, copying, distribution or use of the contents of this information\nis prohibited. Please reply to the message immediately by informing the sender that the \nmessage was misdirected. After replying, please erase it from your computer system. Your \nassistance in correcting this error is appreciated.\n\n\n\n\n**CAUTION EXTERNAL EMAIL**\n\n**DO NOT open attachments or click on links from unknown senders or unexpected emails**",
+          "encryption_info": null,
+          "password": "709384",
+          "word_list": [
+            "VelvetSweatshop",
+            "/01Hannes Ruescher/01",
+            "**CAUTION",
+            "CAUTION",
+            "EXTERNAL",
+            "EMAIL**",
+            "EMAIL",
+            "**DO",
+            "open",
+            "attachments",
+            "click",
+            "links",
+            "from",
+            "unknown",
+            "senders",
+            "unexpected",
+            "emails**",
+            "emails",
+            "Given",
+            "invoice",
+            "#466457",
+            "466457",
+            "Password",
+            "this",
+            "document:",
+            "document",
+            "709384",
+            "Waiting",
+            "your",
+            "answer,",
+            "answer",
+            "Peachey",
+            "Wexler",
+            "This",
+            "e-mail",
+            "contains",
+            "information",
+            "that",
+            "privileged.",
+            "privileged",
+            "intended",
+            "only",
+            "addressee(s",
+            "named",
+            "above.",
+            "above",
+            "receive",
+            "error,",
+            "error",
+            "please",
+            "read,",
+            "read",
+            "copy",
+            "disseminate",
+            "manner.",
+            "manner",
+            "recipient,",
+            "recipient",
+            "disclosure,",
+            "disclosure",
+            "copying,",
+            "copying",
+            "contents",
+            "prohibited.",
+            "prohibited",
+            "Please",
+            "reply",
+            "message",
+            "immediately",
+            "informing",
+            "sender",
+            "misdirected",
+            "After",
+            "replying,",
+            "replying",
+            "erase",
+            "computer",
+            "system.",
+            "system",
+            "Your",
+            "assistance",
+            "correcting",
+            "appreciated",
+            "**CA",
+            "*CAU",
+            "CAUT",
+            "AUTI",
+            "UTIO",
+            "TION",
+            "EXTE",
+            "XTER",
+            "TERN",
+            "ERNA",
+            "RNAL",
+            "EMAI",
+            "MAIL",
+            "AIL*",
+            "IL**",
+            "atta",
+            "ttac",
+            "tach",
+            "achm",
+            "chme",
+            "hmen",
+            "ment",
+            "ents",
+            "clic",
+            "lick",
+            "link",
+            "inks",
+            "unkn",
+            "nkno",
+            "know",
+            "nown",
+            "send",
+            "ende",
+            "nder",
+            "ders",
+            "unex",
+            "nexp",
+            "expe",
+            "xpec",
+            "pect",
+            "ecte",
+            "cted",
+            "emai",
+            "mail",
+            "ails",
+            "ils*",
+            "ls**",
+            "Give",
+            "iven",
+            "invo",
+            "nvoi",
+            "voic",
+            "oice",
+            "#466",
+            "4664",
+            "6645",
+            "6457",
+            "Pass",
+            "assw",
+            "sswo",
+            "swor",
+            "word",
+            "docu",
+            "ocum",
+            "cume",
+            "umen",
+            "ent:",
+            "7093",
+            "0938",
+            "9384",
+            "Wait",
+            "aiti",
+            "itin",
+            "ting",
+            "answ",
+            "nswe",
+            "swer",
+            "wer,",
+            "Peac",
+            "each",
+            "ache",
+            "chey",
+            "Wexl",
+            "exle",
+            "xler",
+            "e-ma",
+            "-mai",
+            "tran",
+            "rans",
+            "ansm",
+            "nsmi",
+            "smis",
+            "miss",
+            "issi",
+            "ssio",
+            "sion",
+            "cont",
+            "onta",
+            "ntai",
+            "tain",
+            "ains",
+            "info",
+            "nfor",
+            "form",
+            "orma",
+            "rmat",
+            "mati",
+            "atio",
+            "tion",
+            "conf",
+            "onfi",
+            "nfid",
+            "fide",
+            "iden",
+            "dent",
+            "enti",
+            "ntia",
+            "tial",
+            "priv",
+            "rivi",
+            "ivil",
+            "vile",
+            "ileg",
+            "lege",
+            "eged",
+            "ged.",
+            "inte",
+            "nten",
+            "tend",
+            "nded",
+            "addr",
+            "ddre",
+            "dres",
+            "ress",
+            "esse",
+            "ssee",
+            "see(",
+            "ee(s",
+            "e(s)",
+            "name",
+            "amed",
+            "abov",
+            "bove",
+            "ove.",
+            "rece",
+            "ecei",
+            "ceiv",
+            "eive",
+            "erro",
+            "rror",
+            "ror,",
+            "plea",
+            "leas",
+            "ease",
+            "ead,",
+            "diss",
+            "isse",
+            "ssem",
+            "semi",
+            "emin",
+            "mina",
+            "inat",
+            "nate",
+            "mann",
+            "anne",
+            "nner",
+            "ner.",
+            "reci",
+            "ecip",
+            "cipi",
+            "ipie",
+            "pien",
+            "ient",
+            "ent,",
+            "disc",
+            "iscl",
+            "sclo",
+            "clos",
+            "losu",
+            "osur",
+            "sure",
+            "ure,",
+            "opyi",
+            "pyin",
+            "ying",
+            "ing,",
+            "dist",
+            "istr",
+            "stri",
+            "trib",
+            "ribu",
+            "ibut",
+            "buti",
+            "utio",
+            "onte",
+            "tent",
+            "proh",
+            "rohi",
+            "ohib",
+            "hibi",
+            "ibit",
+            "bite",
+            "ited",
+            "ted.",
+            "Plea",
+            "repl",
+            "eply",
+            "mess",
+            "essa",
+            "ssag",
+            "sage",
+            "imme",
+            "mmed",
+            "medi",
+            "edia",
+            "diat",
+            "iate",
+            "atel",
+            "tely",
+            "ormi",
+            "rmin",
+            "ming",
+            "misd",
+            "isdi",
+            "sdir",
+            "dire",
+            "irec",
+            "rect",
+            "Afte",
+            "fter",
+            "plyi",
+            "lyin",
+            "eras",
+            "rase",
+            "comp",
+            "ompu",
+            "mput",
+            "pute",
+            "uter",
+            "syst",
+            "yste",
+            "stem",
+            "tem.",
+            "assi",
+            "ssis",
+            "sist",
+            "ista",
+            "stan",
+            "tanc",
+            "ance",
+            "corr",
+            "orre",
+            "rrec",
+            "ecti",
+            "ctin",
+            "appr",
+            "ppre",
+            "prec",
+            "ecia",
+            "ciat",
+            "ated",
+            "**CAU",
+            "*CAUT",
+            "CAUTI",
+            "AUTIO",
+            "UTION",
+            "EXTER",
+            "XTERN",
+            "TERNA",
+            "ERNAL",
+            "MAIL*",
+            "AIL**",
+            "attac",
+            "ttach",
+            "tachm",
+            "achme",
+            "chmen",
+            "hment",
+            "ments",
+            "unkno",
+            "nknow",
+            "known",
+            "sende",
+            "ender",
+            "nders",
+            "unexp",
+            "nexpe",
+            "expec",
+            "xpect",
+            "pecte",
+            "ected",
+            "email",
+            "mails",
+            "ails*",
+            "ils**",
+            "invoi",
+            "nvoic",
+            "voice",
+            "#4664",
+            "46645",
+            "66457",
+            "Passw",
+            "asswo",
+            "sswor",
+            "sword",
+            "docum",
+            "ocume",
+            "cumen",
+            "ument",
+            "ment:",
+            "70938",
+            "09384",
+            "Waiti",
+            "aitin",
+            "iting",
+            "answe",
+            "nswer",
+            "swer,",
+            "Peach",
+            "eache",
+            "achey",
+            "Wexle",
+            "exler",
+            "e-mai",
+            "-mail",
+            "trans",
+            "ransm",
+            "ansmi",
+            "nsmis",
+            "smiss",
+            "missi",
+            "issio",
+            "ssion",
+            "conta",
+            "ontai",
+            "ntain",
+            "tains",
+            "infor",
+            "nform",
+            "forma",
+            "ormat",
+            "rmati",
+            "matio",
+            "ation",
+            "confi",
+            "onfid",
+            "nfide",
+            "fiden",
+            "ident",
+            "denti",
+            "entia",
+            "ntial",
+            "privi",
+            "rivil",
+            "ivile",
+            "vileg",
+            "ilege",
+            "leged",
+            "eged.",
+            "inten",
+            "ntend",
+            "tende",
+            "ended",
+            "addre",
+            "ddres",
+            "dress",
+            "resse",
+            "essee",
+            "ssee(",
+            "see(s",
+            "ee(s)",
+            "bove.",
+            "recei",
+            "eceiv",
+            "ceive",
+            "rror,",
+            "pleas",
+            "lease",
+            "disse",
+            "issem",
+            "ssemi",
+            "semin",
+            "emina",
+            "minat",
+            "inate",
+            "manne",
+            "anner",
+            "nner.",
+            "recip",
+            "ecipi",
+            "cipie",
+            "ipien",
+            "pient",
+            "ient,",
+            "discl",
+            "isclo",
+            "sclos",
+            "closu",
+            "losur",
+            "osure",
+            "sure,",
+            "copyi",
+            "opyin",
+            "pying",
+            "ying,",
+            "distr",
+            "istri",
+            "strib",
+            "tribu",
+            "ribut",
+            "ibuti",
+            "butio",
+            "ution",
+            "conte",
+            "onten",
+            "ntent",
+            "tents",
+            "prohi",
+            "rohib",
+            "ohibi",
+            "hibit",
+            "ibite",
+            "bited",
+            "ited.",
+            "Pleas",
+            "messa",
+            "essag",
+            "ssage",
+            "immed",
+            "mmedi",
+            "media",
+            "ediat",
+            "diate",
+            "iatel",
+            "ately",
+            "formi",
+            "ormin",
+            "rming",
+            "misdi",
+            "isdir",
+            "sdire",
+            "direc",
+            "irect",
+            "recte",
+            "cted.",
+            "eplyi",
+            "plyin",
+            "lying",
+            "compu",
+            "omput",
+            "mpute",
+            "puter",
+            "syste",
+            "ystem",
+            "stem.",
+            "assis",
+            "ssist",
+            "sista",
+            "istan",
+            "stanc",
+            "tance",
+            "corre",
+            "orrec",
+            "rrect",
+            "recti",
+            "ectin",
+            "cting",
+            "appre",
+            "pprec",
+            "preci",
+            "recia",
+            "eciat",
+            "ciate",
+            "iated",
+            "ated.",
+            "**CAUT",
+            "*CAUTI",
+            "CAUTIO",
+            "AUTION",
+            "EXTERN",
+            "XTERNA",
+            "TERNAL",
+            "EMAIL*",
+            "MAIL**",
+            "attach",
+            "ttachm",
+            "tachme",
+            "achmen",
+            "chment",
+            "hments",
+            "unknow",
+            "nknown",
+            "enders",
+            "unexpe",
+            "nexpec",
+            "expect",
+            "xpecte",
+            "pected",
+            "mails*",
+            "ails**",
+            "invoic",
+            "nvoice",
+            "#46645",
+            "Passwo",
+            "asswor",
+            "ssword",
+            "docume",
+            "ocumen",
+            "cument",
+            "ument:",
+            "Waitin",
+            "aiting",
+            "nswer,",
+            "Peache",
+            "eachey",
+            "transm",
+            "ransmi",
+            "ansmis",
+            "nsmiss",
+            "smissi",
+            "missio",
+            "ission",
+            "contai",
+            "ontain",
+            "ntains",
+            "inform",
+            "nforma",
+            "format",
+            "ormati",
+            "rmatio",
+            "mation",
+            "confid",
+            "onfide",
+            "nfiden",
+            "fident",
+            "identi",
+            "dentia",
+            "ential",
+            "privil",
+            "rivile",
+            "ivileg",
+            "vilege",
+            "ileged",
+            "leged.",
+            "intend",
+            "ntende",
+            "tended",
+            "addres",
+            "ddress",
+            "dresse",
+            "ressee",
+            "essee(",
+            "ssee(s",
+            "see(s)",
+            "receiv",
+            "eceive",
+            "dissem",
+            "issemi",
+            "ssemin",
+            "semina",
+            "eminat",
+            "minate",
+            "anner.",
+            "recipi",
+            "ecipie",
+            "cipien",
+            "ipient",
+            "pient,",
+            "disclo",
+            "isclos",
+            "sclosu",
+            "closur",
+            "losure",
+            "osure,",
+            "copyin",
+            "opying",
+            "pying,",
+            "distri",
+            "istrib",
+            "stribu",
+            "tribut",
+            "ributi",
+            "ibutio",
+            "bution",
+            "conten",
+            "ontent",
+            "ntents",
+            "prohib",
+            "rohibi",
+            "ohibit",
+            "hibite",
+            "ibited",
+            "bited.",
+            "messag",
+            "essage",
+            "immedi",
+            "mmedia",
+            "mediat",
+            "ediate",
+            "diatel",
+            "iately",
+            "nformi",
+            "formin",
+            "orming",
+            "misdir",
+            "isdire",
+            "sdirec",
+            "direct",
+            "irecte",
+            "rected",
+            "ected.",
+            "replyi",
+            "eplyin",
+            "plying",
+            "lying,",
+            "comput",
+            "ompute",
+            "mputer",
+            "ystem.",
+            "assist",
+            "ssista",
+            "sistan",
+            "istanc",
+            "stance",
+            "correc",
+            "orrect",
+            "rrecti",
+            "rectin",
+            "ecting",
+            "apprec",
+            "ppreci",
+            "precia",
+            "reciat",
+            "eciate",
+            "ciated",
+            "iated.",
+            "**CAUTI",
+            "*CAUTIO",
+            "EXTERNA",
+            "XTERNAL",
+            "attachm",
+            "ttachme",
+            "tachmen",
+            "achment",
+            "chments",
+            "unexpec",
+            "nexpect",
+            "expecte",
+            "xpected",
+            "emails*",
+            "mails**",
+            "Passwor",
+            "assword",
+            "documen",
+            "ocument",
+            "cument:",
+            "transmi",
+            "ransmis",
+            "ansmiss",
+            "nsmissi",
+            "smissio",
+            "mission",
+            "contain",
+            "ontains",
+            "informa",
+            "nformat",
+            "formati",
+            "ormatio",
+            "rmation",
+            "confide",
+            "onfiden",
+            "nfident",
+            "fidenti",
+            "identia",
+            "dential",
+            "privile",
+            "rivileg",
+            "ivilege",
+            "vileged",
+            "ileged.",
+            "intende",
+            "ntended",
+            "address",
+            "ddresse",
+            "dressee",
+            "ressee(",
+            "essee(s",
+            "ssee(s)",
+            "dissemi",
+            "issemin",
+            "ssemina",
+            "seminat",
+            "eminate",
+            "recipie",
+            "ecipien",
+            "cipient",
+            "ipient,",
+            "disclos",
+            "isclosu",
+            "sclosur",
+            "closure",
+            "losure,",
+            "opying,",
+            "distrib",
+            "istribu",
+            "stribut",
+            "tributi",
+            "ributio",
+            "ibution",
+            "content",
+            "ontents",
+            "prohibi",
+            "rohibit",
+            "ohibite",
+            "hibited",
+            "ibited.",
+            "immedia",
+            "mmediat",
+            "mediate",
+            "ediatel",
+            "diately",
+            "informi",
+            "nformin",
+            "forming",
+            "misdire",
+            "isdirec",
+            "sdirect",
+            "directe",
+            "irected",
+            "rected.",
+            "replyin",
+            "eplying",
+            "plying,",
+            "compute",
+            "omputer",
+            "assista",
+            "ssistan",
+            "sistanc",
+            "istance",
+            "correct",
+            "orrecti",
+            "rrectin",
+            "recting",
+            "appreci",
+            "pprecia",
+            "preciat",
+            "reciate",
+            "eciated",
+            "ciated.",
+            "**CAUTIO",
+            "*CAUTION",
+            "attachme",
+            "ttachmen",
+            "tachment",
+            "achments",
+            "unexpect",
+            "nexpecte",
+            "expected",
+            "ocument:",
+            "transmis",
+            "ransmiss",
+            "ansmissi",
+            "nsmissio",
+            "smission",
+            "informat",
+            "nformati",
+            "formatio",
+            "ormation",
+            "confiden",
+            "onfident",
+            "nfidenti",
+            "fidentia",
+            "idential",
+            "privileg",
+            "rivilege",
+            "ivileged",
+            "vileged.",
+            "addresse",
+            "ddressee",
+            "dressee(",
+            "ressee(s",
+            "essee(s)",
+            "dissemin",
+            "issemina",
+            "sseminat",
+            "seminate",
+            "recipien",
+            "ecipient",
+            "cipient,",
+            "disclosu",
+            "isclosur",
+            "sclosure",
+            "closure,",
+            "distribu",
+            "istribut",
+            "stributi",
+            "tributio",
+            "ribution",
+            "prohibit",
+            "rohibite",
+            "ohibited",
+            "hibited.",
+            "immediat",
+            "mmediate",
+            "mediatel",
+            "ediately",
+            "informin",
+            "nforming",
+            "misdirec",
+            "isdirect",
+            "sdirecte",
+            "directed",
+            "irected.",
+            "eplying,",
+            "assistan",
+            "ssistanc",
+            "sistance",
+            "correcti",
+            "orrectin",
+            "rrecting",
+            "apprecia",
+            "ppreciat",
+            "preciate",
+            "reciated",
+            "eciated.",
+            "attachmen",
+            "ttachment",
+            "tachments",
+            "unexpecte",
+            "nexpected",
+            "transmiss",
+            "ransmissi",
+            "ansmissio",
+            "nsmission",
+            "informati",
+            "nformatio",
+            "formation",
+            "confident",
+            "onfidenti",
+            "nfidentia",
+            "fidential",
+            "privilege",
+            "rivileged",
+            "ivileged.",
+            "addressee",
+            "ddressee(",
+            "dressee(s",
+            "ressee(s)",
+            "dissemina",
+            "isseminat",
+            "sseminate",
+            "ecipient,",
+            "disclosur",
+            "isclosure",
+            "sclosure,",
+            "distribut",
+            "istributi",
+            "stributio",
+            "tribution",
+            "prohibite",
+            "rohibited",
+            "ohibited.",
+            "immediate",
+            "mmediatel",
+            "mediately",
+            "misdirect",
+            "isdirecte",
+            "sdirected",
+            "directed.",
+            "assistanc",
+            "ssistance",
+            "correctin",
+            "orrecting",
+            "appreciat",
+            "ppreciate",
+            "preciated",
+            "reciated.",
+            "attachment",
+            "ttachments",
+            "transmissi",
+            "ransmissio",
+            "ansmission",
+            "informatio",
+            "nformation",
+            "confidenti",
+            "onfidentia",
+            "nfidential",
+            "rivileged.",
+            "addressee(",
+            "ddressee(s",
+            "dressee(s)",
+            "disseminat",
+            "isseminate",
+            "isclosure,",
+            "distributi",
+            "istributio",
+            "stribution",
+            "rohibited.",
+            "immediatel",
+            "mmediately",
+            "misdirecte",
+            "isdirected",
+            "sdirected.",
+            "appreciate",
+            "ppreciated",
+            "preciated.",
+            "transmissio",
+            "ransmission",
+            "confidentia",
+            "onfidential",
+            "ddressee(s)",
+            "distributio",
+            "istribution",
+            "isdirected.",
+            "ppreciated."
+          ]
+        },
+        "module": "msoffice_encryption_analyzer",
+        "observable": 2,
+        "summary": "MSOffice Encryption Analysis: password 709384",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": false,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": true,
+          "is_office_ext": true,
+          "is_ole_file": true,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "application/vnd.ms-excel",
+          "type": "Composite Document File V2 Document, Little Endian, Os: Windows, Version 10.0, Code page: 1252, Name of Creating Application: Microsoft Excel, Create Time/Date: Fri Jun  5 18:17:20 2015, Last Saved Time/Date: Mon Sep  7 15:00:28 2020, Security: 1"
+        },
+        "module": "file_type",
+        "observable": 2,
+        "summary": "File Type Analysis: Composite Document File V2 Document, Little Endian, Os: Windows, Version 10.0, Code page: 1252, Name of Creating Application: Microsoft Excel, Create Time/Date: Fri Jun  5 18:17:20 2015, Last Saved Time/Date: Mon Sep  7 15:00:28 2020, Security: 1 (application/vnd.ms-excel) (ms office document) (ole compound file)",
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 34
           },
           {
-            "observable": 16
+            "observable": 31
+          }
+        ],
+        "class": "FileHashAnalysis",
+        "details": {
+          "md5": "af93ae2e4dc1d242f984a2325d709e86",
+          "sha1": "b0d77acbb65a534e1ab0a57d69e6e014e5d72452",
+          "sha256": "e42f4cd8ff57dc0c9756242193462dcb03b4e7fef955985a2e953a6053324055"
+        },
+        "module": "file_hash_analyzer",
+        "observable": 2,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 10,
+            "path": "info_3805.xls.officeparser/stream_1_0.dat"
+          },
+          {
+            "observable": 26,
+            "path": "info_3805.xls.officeparser/stream_2_0.dat"
+          },
+          {
+            "observable": 19,
+            "path": "info_3805.xls.officeparser/stream_3_0.dat"
+          }
+        ],
+        "class": "OfficeParserAnalysis3",
+        "details": {
+          "extracted_files": [
+            "stream_1_0.dat",
+            "stream_2_0.dat",
+            "stream_3_0.dat"
+          ]
+        },
+        "module": "officeparser3",
+        "observable": 2,
+        "summary": "OfficeParser3 Analysis: extracted 3 files",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "OLEVBA_Analysis_v1_2",
+        "details": {
+          "keyword_summary": {},
+          "macros": [],
+          "type": "OLE"
+        },
+        "module": "olevba_v1_2",
+        "observable": 2,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "URLExtractionAnalysis",
+        "details": {
+          "urls": [],
+          "urls_grouped_by_domain": {}
+        },
+        "module": "url_extraction",
+        "observable": 2,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 1,
+            "path": "info_3805.xls.xlmdeobfuscator/xlmdeobfuscator.stdout"
+          },
+          {
+            "observable": 1,
+            "path": "info_3805.xls.xlmdeobfuscator/xlmdeobfuscatorextractcells.stdout"
+          }
+        ],
+        "class": "XLMMacroDeobfuscatorAnalysis",
+        "details": {
+          "cell_count": 0
+        },
+        "module": "xlmdeobfuscator",
+        "observable": 2,
+        "summary": "XLMMacroDeobfuscator Analysis - analyzed 0 cells",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": false,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "text/plain",
+          "type": "ASCII text, with CRLF, LF line terminators"
+        },
+        "module": "file_type",
+        "observable": 4,
+        "summary": "File Type Analysis: ASCII text, with CRLF, LF line terminators (text/plain)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "URLExtractionAnalysis",
+        "details": {
+          "urls": [],
+          "urls_grouped_by_domain": {}
+        },
+        "module": "url_extraction",
+        "observable": 4,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": false,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "text/xml",
+          "type": "XML 1.0 document, ASCII text, with CRLF line terminators"
+        },
+        "module": "file_type",
+        "observable": 5,
+        "summary": "File Type Analysis: XML 1.0 document, ASCII text, with CRLF line terminators (text/xml)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "URLExtractionAnalysis",
+        "details": {
+          "urls": [],
+          "urls_grouped_by_domain": {}
+        },
+        "module": "url_extraction",
+        "observable": 5,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 24
+          },
+          {
+            "observable": 29
           }
         ],
         "class": "ParseURLAnalysis",
@@ -1108,7 +2337,7 @@
           "scheme": "https"
         },
         "module": "parse_url",
-        "observable": 2,
+        "observable": 7,
         "summary": "URL Parser: scheme=https, netloc=component.pw, path=/wp-index.php,$BB$54",
         "tags": []
       },
@@ -1120,7 +2349,7 @@
           "protection_type": "unprotected"
         },
         "module": "protected_url_analyzer",
-        "observable": 2,
+        "observable": 7,
         "summary": null,
         "tags": []
       },
@@ -1128,7 +2357,7 @@
         "added": [],
         "class": "FileTypeAnalysis",
         "details": {
-          "is_email_file": true,
+          "is_email_file": false,
           "is_jar_file": false,
           "is_lnk_file": false,
           "is_office_document": false,
@@ -1139,44 +2368,268 @@
           "is_rtf_file": false,
           "is_x509": false,
           "is_zip_file": false,
-          "mime": "message/rfc822",
-          "type": "RFC 822 mail, ASCII text, with CRLF, LF line terminators"
+          "mime": "application/octet-stream",
+          "type": "Applesoft BASIC program data, first line number 16"
         },
         "module": "file_type",
-        "observable": 3,
-        "summary": "File Type Analysis: RFC 822 mail, ASCII text, with CRLF, LF line terminators (message/rfc822) (email)",
+        "observable": 10,
+        "summary": "File Type Analysis: Applesoft BASIC program data, first line number 16 (application/octet-stream)",
         "tags": []
       },
       {
         "added": [],
-        "class": "HTMLJavaScriptExtractionAnalysis",
+        "class": "ExtractedOLEAnalysis",
         "details": {
-          "dom_snapshot_files": [],
-          "duplicate_count": 0,
-          "extracted_files": [],
-          "extracted_uri_paths": [],
-          "extracted_urls": [],
-          "inline_handlers": [],
-          "script_count": 0
+          "suspect_files": []
         },
-        "module": "html_js_extraction",
-        "observable": 3,
+        "module": "extracted_ole_analyzer",
+        "observable": 10,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "URLExtractionAnalysis",
+        "details": {
+          "urls": [],
+          "urls_grouped_by_domain": {}
+        },
+        "module": "url_extraction",
+        "observable": 10,
         "summary": null,
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 31
+            "observable": 3
           }
         ],
         "class": "EmailAddressFQDNAnalysis",
         "details": {
-          "domain": "tovarioseni9.fun"
+          "domain": "user.com"
         },
         "module": "email_address_fqdn_analyzer",
-        "observable": 4,
-        "summary": "Email Address FQDN: tovarioseni9.fun",
+        "observable": 11,
+        "summary": "Email Address FQDN: user.com",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": false,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "text/xml",
+          "type": "XML 1.0 document, Unicode text, UTF-8 text, with very long lines (6401), with CRLF line terminators"
+        },
+        "module": "file_type",
+        "observable": 12,
+        "summary": "File Type Analysis: XML 1.0 document, Unicode text, UTF-8 text, with very long lines (6401), with CRLF line terminators (text/xml)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "URLExtractionAnalysis",
+        "details": {
+          "urls": [],
+          "urls_grouped_by_domain": {}
+        },
+        "module": "url_extraction",
+        "observable": 12,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": false,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "text/xml",
+          "type": "XML 1.0 document, ASCII text, with CRLF line terminators"
+        },
+        "module": "file_type",
+        "observable": 13,
+        "summary": "File Type Analysis: XML 1.0 document, ASCII text, with CRLF line terminators (text/xml)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "URLExtractionAnalysis",
+        "details": {
+          "urls": [],
+          "urls_grouped_by_domain": {}
+        },
+        "module": "url_extraction",
+        "observable": 13,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 35,
+            "path": "info_3805.xls.decrypted.officeparser/stream_1_0.dat.extracted/[Content_Types].xml"
+          },
+          {
+            "observable": 12,
+            "path": "info_3805.xls.decrypted.officeparser/stream_1_0.dat.extracted/theme/theme/theme1.xml"
+          },
+          {
+            "observable": 32,
+            "path": "info_3805.xls.decrypted.officeparser/stream_1_0.dat.extracted/theme/theme/themeManager.xml"
+          },
+          {
+            "observable": 5,
+            "path": "info_3805.xls.decrypted.officeparser/stream_1_0.dat.extracted/theme/theme/_rels/themeManager.xml.rels"
+          },
+          {
+            "observable": 13,
+            "path": "info_3805.xls.decrypted.officeparser/stream_1_0.dat.extracted/_rels/.rels"
+          }
+        ],
+        "class": "ArchiveAnalysis",
+        "details": {
+          "extracted_files": [
+            "[Content_Types].xml",
+            "theme/theme/theme1.xml",
+            "theme/theme/themeManager.xml",
+            "theme/theme/_rels/themeManager.xml.rels",
+            "_rels/.rels"
+          ],
+          "file_count": 5
+        },
+        "module": "archive",
+        "observable": 14,
+        "summary": "Archive Analysis: extracted 5 of 5 files: ([Content_Types].xml, theme/theme/theme1.xml, theme/theme/themeManager.xml, theme/theme/_rels/themeManager.xml.rels, _rels/.rels)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": false,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": true,
+          "mime": "application/octet-stream",
+          "type": "Applesoft BASIC program data, first line number 16"
+        },
+        "module": "file_type",
+        "observable": 14,
+        "summary": "File Type Analysis: Applesoft BASIC program data, first line number 16 (application/octet-stream) (zip archive)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "ExtractedOLEAnalysis",
+        "details": {
+          "suspect_files": []
+        },
+        "module": "extracted_ole_analyzer",
+        "observable": 14,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "OLEVBA_Analysis_v1_2",
+        "details": {
+          "keyword_summary": {},
+          "macros": [],
+          "type": "OpenXML"
+        },
+        "module": "olevba_v1_2",
+        "observable": 14,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "URLExtractionAnalysis",
+        "details": {
+          "urls": [],
+          "urls_grouped_by_domain": {}
+        },
+        "module": "url_extraction",
+        "observable": 14,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": false,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "text/plain",
+          "type": "ASCII text"
+        },
+        "module": "file_type",
+        "observable": 15,
+        "summary": "File Type Analysis: ASCII text (text/plain)",
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 7
+          },
+          {
+            "observable": 21
+          }
+        ],
+        "class": "URLExtractionAnalysis",
+        "details": {
+          "urls": [
+            "https://component.pw/wp-index.php,$BB$54",
+            "https://component.pw/wp-index.php"
+          ],
+          "urls_grouped_by_domain": {
+            "component.pw": [
+              "https://component.pw/wp-index.php,$BB$54",
+              "https://component.pw/wp-index.php"
+            ]
+          }
+        },
+        "module": "url_extraction",
+        "observable": 15,
+        "summary": "URL Extraction Analysis (component.pw)",
         "tags": []
       },
       {
@@ -1192,7 +2645,7 @@
                   "info_3805.xls"
                 ]
               ],
-              "observable_uuid": "a717533b-898b-48a2-9355-6ec18a564abc",
+              "observable_uuid": "a2d67ff2-58fe-4fe3-9806-fa3b1d5a95be",
               "reasons": [
                 "found in attachment info_3805.xls"
               ],
@@ -1210,7 +2663,7 @@
                   "info_3805.xls"
                 ]
               ],
-              "observable_uuid": "12bea375-3bf5-4dea-ae71-ba3ed79d01c6",
+              "observable_uuid": "3f00359b-f537-4439-add4-643e05914623",
               "reasons": [
                 "found in attachment info_3805.xls"
               ],
@@ -1230,7 +2683,7 @@
                 "info_3805.xls"
               ]
             ],
-            "observable_uuid": "a717533b-898b-48a2-9355-6ec18a564abc",
+            "observable_uuid": "a2d67ff2-58fe-4fe3-9806-fa3b1d5a95be",
             "reasons": [
               "found in attachment info_3805.xls"
             ],
@@ -1243,47 +2696,47 @@
           "subject": "Doc #848625: facsimile copy"
         },
         "module": "lure_url_analyzer",
-        "observable": 8,
+        "observable": 16,
         "summary": "Lure URL Analysis: https://component.pw/wp-index.php (found in attachment info_3805.xls)",
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 21
+            "observable": 30
           },
           {
-            "observable": 25
+            "observable": 11
           },
           {
-            "observable": 14
+            "observable": 9
           },
           {
-            "observable": 6
+            "observable": 8
           },
           {
-            "observable": 18
+            "observable": 23
           },
           {
-            "observable": 4
+            "observable": 33
           },
           {
-            "observable": 5
+            "observable": 28
           },
           {
-            "observable": 13,
+            "observable": 4,
             "path": "email.rfc822.unknown_text_plain_000.txt"
           },
           {
-            "observable": 10,
+            "observable": 2,
             "path": "info_3805.xls"
           },
           {
-            "observable": 19,
+            "observable": 27,
             "path": "email.rfc822.headers"
           },
           {
-            "observable": 3,
+            "observable": 20,
             "path": "email.rfc822.combined"
           }
         ],
@@ -1402,7 +2855,7 @@
               "cc": [],
               "compauth_reason": null,
               "compauth_result": null,
-              "date": "2026-11-16 16:31:09.048491 +0000",
+              "date": "2026-11-18 05:51:26.489872 +0000",
               "dkim_result": "pass",
               "dmarc_result": "pass",
               "env_mail_from": null,
@@ -1477,7 +2930,7 @@
           "parsing_error": null
         },
         "module": "email_analyzer",
-        "observable": 8,
+        "observable": 16,
         "summary": "Email Analysis: From Peachey Wexler <noreply@tovarioseni9.fun> To target@user.com Subject Doc #848625: facsimile copy",
         "tags": []
       },
@@ -1500,7 +2953,7 @@
           "type": "RFC 822 mail, ASCII text"
         },
         "module": "file_type",
-        "observable": 8,
+        "observable": 16,
         "summary": "File Type Analysis: RFC 822 mail, ASCII text (message/rfc822) (email)",
         "tags": []
       },
@@ -1517,1310 +2970,7 @@
           "script_count": 0
         },
         "module": "html_js_extraction",
-        "observable": 8,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 23,
-            "path": "info_3805.xls.decrypted"
-          }
-        ],
-        "class": "MSOfficeEncryptionAnalysis",
-        "details": {
-          "email": true,
-          "email_body": "**CAUTION EXTERNAL EMAIL** **DO NOT open attachments or click on links from\nunknown senders or unexpected emails** Given invoice #466457 Password for this\ndocument: 709384 Waiting for your answer, Peachey Wexler This e-mail\ntransmission contains information that is confidential and may be privileged.\nIt is intended only for the addressee(s) named above. If you receive this\ne-mail in error, please do not read, copy or disseminate it in any manner. If\nyou are not the intended recipient, any disclosure, copying, distribution or\nuse of the contents of this information is prohibited. Please reply to the\nmessage immediately by informing the sender that the message was misdirected.\nAfter replying, please erase it from your computer system. Your assistance in\ncorrecting this error is appreciated. **CAUTION EXTERNAL EMAIL** **DO NOT open\nattachments or click on links from unknown senders or unexpected emails**\n\n",
-          "encryption_info": null,
-          "password": "709384",
-          "word_list": [
-            "VelvetSweatshop",
-            "/01Hannes Ruescher/01",
-            "tanc",
-            "anne",
-            "stributio",
-            "eplying",
-            "anner.",
-            "ppreci",
-            "ppreciated",
-            "disc",
-            "media",
-            "receive",
-            "isseminat",
-            "contains",
-            "hibite",
-            "assis",
-            "ddressee(s",
-            "XTERNA",
-            "CAUTIO",
-            "fidential",
-            "ted.",
-            "pient",
-            "immed",
-            "syste",
-            "ivil",
-            "semi",
-            "eachey",
-            "EMAIL**",
-            "directe",
-            "cting",
-            "abov",
-            "nfidentia",
-            "appreciated",
-            "isdi",
-            "mmedia",
-            "isdirec",
-            "ecipient",
-            "pprecia",
-            "disclosur",
-            "sistance",
-            "mediatel",
-            "irected.",
-            "forma",
-            "eply",
-            "-mail",
-            "irect",
-            "ssemi",
-            "ormi",
-            "correc",
-            "issemina",
-            "formati",
-            "misdirecte",
-            "ransmi",
-            "exler",
-            "expecte",
-            "EMAIL*",
-            "orrecting",
-            "invo",
-            "ument",
-            "confid",
-            "Password",
-            "istributi",
-            "disclosure",
-            "inate",
-            "nsmissi",
-            "CAUT",
-            "atel",
-            "docume",
-            "sage",
-            "conta",
-            "attachmen",
-            "addres",
-            "transmis",
-            "ttachment",
-            "AUTI",
-            "closur",
-            "Peac",
-            "nner.",
-            "essee(",
-            "EXTERN",
-            "eplyin",
-            "informin",
-            "orrectin",
-            "ssemin",
-            "tachm",
-            "eciat",
-            "rohi",
-            "EXTER",
-            "istance",
-            "message",
-            "sende",
-            "mails**",
-            "nformatio",
-            "cted.",
-            "istan",
-            "ents",
-            "appreciate",
-            "clic",
-            "trib",
-            "ately",
-            "osur",
-            "TERNAL",
-            "ressee(s)",
-            "losure",
-            "sclosur",
-            "inat",
-            "achme",
-            "nfiden",
-            "plyin",
-            "irected",
-            "ansmiss",
-            "essa",
-            "closure,",
-            "tem.",
-            "diatel",
-            "mmed",
-            "achm",
-            "ssee",
-            "ocumen",
-            "enders",
-            "ediat",
-            "nswer,",
-            "mput",
-            "direct",
-            "transmi",
-            "nders",
-            "Peach",
-            "ssis",
-            "ment:",
-            "lying",
-            "mation",
-            "Wexler",
-            "ormin",
-            "nfid",
-            "dential",
-            "RNAL",
-            "ctin",
-            "ails**",
-            "pyin",
-            "mediat",
-            "disclosure,",
-            "unknow",
-            "wer,",
-            "pprec",
-            "eminate",
-            "missio",
-            "leas",
-            "AUTIO",
-            "copyi",
-            "atio",
-            "*CAUTIO",
-            "iden",
-            "iting",
-            "EMAIL",
-            "aiting",
-            "onte",
-            "mails*",
-            "09384",
-            "documen",
-            "hment",
-            "rming",
-            "vilege",
-            "reci",
-            "isdire",
-            "correcti",
-            "read",
-            "unexpe",
-            "informati",
-            "4664",
-            "distribu",
-            "orrect",
-            "isseminate",
-            "onta",
-            "Your",
-            "dire",
-            "rivil",
-            "emin",
-            "**CAUTI",
-            "comput",
-            "ddressee(s)",
-            "fident",
-            "opying",
-            "hibi",
-            "plyi",
-            "ontai",
-            "rror",
-            "After",
-            "ivileg",
-            "orma",
-            "orre",
-            "pecte",
-            "priv",
-            "EXTERNAL",
-            "ocument",
-            "sistan",
-            "isclosu",
-            "unexpect",
-            "formatio",
-            "stan",
-            "yste",
-            "correcting",
-            "eged.",
-            "precia",
-            "TERNA",
-            "email",
-            "asswo",
-            "ormation",
-            "*CAUTION",
-            "isclosure,",
-            "istanc",
-            "Pleas",
-            "sclos",
-            "onten",
-            "assistan",
-            "ments",
-            "send",
-            "onfide",
-            "Pass",
-            "46645",
-            "manner.",
-            "ent,",
-            "chment",
-            "ciate",
-            "nexpect",
-            "recei",
-            "essage",
-            "disseminate",
-            "eged",
-            "eceive",
-            "cont",
-            "mediate",
-            "dissemina",
-            "nswer",
-            "plying,",
-            "sist",
-            "from",
-            "tely",
-            "Passwor",
-            "dentia",
-            "informa",
-            "ivileged",
-            "AIL*",
-            "ended",
-            "tial",
-            "fidentia",
-            "assw",
-            "sclosu",
-            "pute",
-            "seminat",
-            "ting",
-            "66457",
-            "pected",
-            "ivilege",
-            "MAIL**",
-            "fidenti",
-            "eceiv",
-            "rivileged",
-            "unkn",
-            "emails**",
-            "rmat",
-            "formin",
-            "read,",
-            "system.",
-            "that",
-            "rivilege",
-            "tachment",
-            "informatio",
-            "addre",
-            "matio",
-            "disseminat",
-            "rected",
-            "format",
-            "chey",
-            "medi",
-            "conte",
-            "nformi",
-            "#466457",
-            "apprecia",
-            "forming",
-            "ying",
-            "nder",
-            "prohibi",
-            "opying,",
-            "plying",
-            "assista",
-            "rohibited",
-            "closure",
-            "vile",
-            "iated",
-            "rivile",
-            "corr",
-            "ument:",
-            "nfide",
-            "informi",
-            "Wexle",
-            "preciat",
-            "ecei",
-            "ient",
-            "ected.",
-            "inten",
-            "ontent",
-            "istr",
-            "preciate",
-            "trans",
-            "tach",
-            "ansmissio",
-            "preciated.",
-            "amed",
-            "imme",
-            "copying",
-            "ompu",
-            "**CAUT",
-            "answer",
-            "cipient",
-            "ttac",
-            "isdirected",
-            "informat",
-            "immediately",
-            "Waitin",
-            "onfiden",
-            "rrec",
-            "unexpec",
-            "ibit",
-            "ders",
-            "invoice",
-            "dressee(s)",
-            "nten",
-            "immediat",
-            "proh",
-            "word",
-            "plea",
-            "#466",
-            "sseminate",
-            "XTERNAL",
-            "essag",
-            "prohib",
-            "assword",
-            "intende",
-            "ender",
-            "ner.",
-            "asswor",
-            "onfidenti",
-            "ohibi",
-            "stem.",
-            "dress",
-            "UTIO",
-            "appreciat",
-            "ressee(",
-            "rivileg",
-            "dressee(",
-            "content",
-            "ssemina",
-            "misdire",
-            "sista",
-            "ssage",
-            "computer",
-            "mission",
-            "addressee(",
-            "ipie",
-            "**CAUTION",
-            "only",
-            "nexpe",
-            "unexpecte",
-            "e-mail",
-            "rivileged.",
-            "ission",
-            "diately",
-            "ecipient,",
-            "unex",
-            "Give",
-            "info",
-            "privileg",
-            "ressee(s",
-            "ssio",
-            "eive",
-            "Plea",
-            "nknown",
-            "nformat",
-            "nexpecte",
-            "directed",
-            "ident",
-            "manne",
-            "mail",
-            "ecting",
-            "document:",
-            "this",
-            "iated.",
-            "ibuti",
-            "expect",
-            "manner",
-            "privileged.",
-            "chments",
-            "vileged.",
-            "ohib",
-            "utio",
-            "chme",
-            "ated",
-            "named",
-            "assistance",
-            "Given",
-            "70938",
-            "Passwo",
-            "links",
-            "CAUTI",
-            "ntende",
-            "confi",
-            "issio",
-            "This",
-            "ssword",
-            "achmen",
-            "xpecte",
-            "sion",
-            "puter",
-            "smissio",
-            "mmediate",
-            "dissemi",
-            "ntent",
-            "addr",
-            "issi",
-            "istributio",
-            "lease",
-            "distributio",
-            "misdirec",
-            "tend",
-            "onfid",
-            "ontain",
-            "ddresse",
-            "AIL**",
-            "essee(s",
-            "ssion",
-            "Waiti",
-            "identi",
-            "diss",
-            "clos",
-            "-mai",
-            "nded",
-            "nate",
-            "iatel",
-            "mati",
-            "*CAU",
-            "above",
-            "ansmission",
-            "bove.",
-            "tribu",
-            "attac",
-            "ntai",
-            "minat",
-            "tran",
-            "transmiss",
-            "ssee(",
-            "ibut",
-            "smission",
-            "ceive",
-            "see(s)",
-            "pient,",
-            "sure,",
-            "mmediatel",
-            "tende",
-            "invoi",
-            "rected.",
-            "sclosure,",
-            "sswo",
-            "nexp",
-            "erro",
-            "isclos",
-            "ntain",
-            "reply",
-            "e-mai",
-            "ributi",
-            "ils**",
-            "nformin",
-            "dressee",
-            "stanc",
-            "tribut",
-            "attachm",
-            "ivileged.",
-            "conten",
-            "reciated",
-            "cted",
-            "ileged.",
-            "bited.",
-            "6645",
-            "unkno",
-            "isclosure",
-            "ror,",
-            "EMAI",
-            "nsmiss",
-            "emails*",
-            "distri",
-            "privi",
-            "stributi",
-            "prohibited",
-            "lying,",
-            "confident",
-            "swer,",
-            "fiden",
-            "transm",
-            "system",
-            "ential",
-            "address",
-            "messa",
-            "emails",
-            "9384",
-            "MAIL",
-            "ediate",
-            "reciated.",
-            "bite",
-            "rror,",
-            "distrib",
-            "stribut",
-            "ibited.",
-            "ormati",
-            "rmation",
-            "ocum",
-            "ipient,",
-            "prohibite",
-            "preciated",
-            "ution",
-            "recipien",
-            "contents",
-            "ited",
-            "appre",
-            "pying,",
-            "ails*",
-            "**CAU",
-            "ttachme",
-            "rohibite",
-            "aitin",
-            "isdirected.",
-            "sword",
-            "losur",
-            "ontents",
-            "ged.",
-            "ation",
-            "form",
-            "unexp",
-            "resse",
-            "6457",
-            "ated.",
-            "recipie",
-            "nsmissio",
-            "sdirecte",
-            "compu",
-            "expe",
-            "omput",
-            "hmen",
-            "copyin",
-            "nexpected",
-            "osure,",
-            "ected",
-            "ceiv",
-            "docu",
-            "inform",
-            "ee(s)",
-            "invoic",
-            "ddre",
-            "itin",
-            "appr",
-            "rece",
-            "0938",
-            "eciated",
-            "istribution",
-            "attachments",
-            "achment",
-            "*CAUTI",
-            "issemin",
-            "sistanc",
-            "ppreciat",
-            "ssem",
-            "denti",
-            "**CA",
-            "ails",
-            "ystem.",
-            "syst",
-            "#46645",
-            "XTERN",
-            "sdirec",
-            "prohibited.",
-            "mediately",
-            "nformation",
-            "misdirected",
-            "exle",
-            "chmen",
-            "smis",
-            "diat",
-            "know",
-            "466457",
-            "strib",
-            "Wexl",
-            "click",
-            "missi",
-            "ddres",
-            "vileg",
-            "nsmi",
-            "replyi",
-            "distributi",
-            "privil",
-            "document",
-            "misdir",
-            "nvoic",
-            "ipient",
-            "discl",
-            "onfident",
-            "iately",
-            "disclo",
-            "prohi",
-            "ntend",
-            "misdi",
-            "ystem",
-            "rans",
-            "ipien",
-            "mann",
-            "tended",
-            "misd",
-            "appreci",
-            "attachment",
-            "cipie",
-            "mpute",
-            "onfidential",
-            "ohibit",
-            "link",
-            "error",
-            "ciated",
-            "mina",
-            "nknow",
-            "dissemin",
-            "stribution",
-            "ectin",
-            "ance",
-            "irecte",
-            "ediatel",
-            "rivi",
-            "iate",
-            "hments",
-            "recipient",
-            "ransmissio",
-            "atta",
-            "rrectin",
-            "cument:",
-            "correct",
-            "direc",
-            "esse",
-            "sdirect",
-            "opyin",
-            "ista",
-            "sender",
-            "confiden",
-            "ibution",
-            "replying,",
-            "each",
-            "confide",
-            "ompute",
-            "tent",
-            "nfident",
-            "istri",
-            "compute",
-            "bove",
-            "preci",
-            "Please",
-            "oice",
-            "achey",
-            "entia",
-            "ntents",
-            "idential",
-            "ssee(s",
-            "nsmission",
-            "ent:",
-            "XTER",
-            "cipient,",
-            "immediatel",
-            "ppreciated.",
-            "ttachments",
-            "ttach",
-            "attach",
-            "ende",
-            "ls**",
-            "tance",
-            "e(s)",
-            "attachme",
-            "EXTERNA",
-            "edia",
-            "anner",
-            "sure",
-            "swer",
-            "ecte",
-            "ributio",
-            "ohibited.",
-            "ttachmen",
-            "enti",
-            "nform",
-            "contain",
-            "confidenti",
-            "aiti",
-            "tributio",
-            "isclosur",
-            "semina",
-            "docum",
-            "opyi",
-            "ppre",
-            "essee(s)",
-            "ormat",
-            "osure",
-            "tachme",
-            "smissi",
-            "formation",
-            "voice",
-            "xpec",
-            "7093",
-            "ecipie",
-            "privilege",
-            "**CAUTIO",
-            "eciated.",
-            "sclo",
-            "Passw",
-            "ontains",
-            "assi",
-            "ciat",
-            "see(s",
-            "cument",
-            "issemi",
-            "AUTION",
-            "ohibite",
-            "sdir",
-            "rase",
-            "UTION",
-            "stem",
-            "recte",
-            "recip",
-            "ransmission",
-            "nforming",
-            "transmissio",
-            "stance",
-            "answe",
-            "cipien",
-            "ibutio",
-            "tachmen",
-            "ssista",
-            "lyin",
-            "ited.",
-            "immedi",
-            "immedia",
-            "ressee",
-            "ssistan",
-            "immediate",
-            "reciat",
-            "misdirect",
-            "prec",
-            "ileg",
-            "ransm",
-            "disse",
-            "ssistance",
-            "TION",
-            "addresse",
-            "ntains",
-            "istrib",
-            "dres",
-            "tributi",
-            "nkno",
-            "sdire",
-            "ediately",
-            "closu",
-            "buti",
-            "ssag",
-            "mmediat",
-            "ERNAL",
-            "recipient,",
-            "xpected",
-            "dent",
-            "ient,",
-            "pying",
-            "contai",
-            "intend",
-            "tains",
-            "mails",
-            "CAUTION",
-            "swor",
-            "TERN",
-            "miss",
-            "ntia",
-            "recia",
-            "transmissi",
-            "inte",
-            "nner",
-            "recipi",
-            "reciate",
-            "pleas",
-            "replying",
-            "#4664",
-            "ransmis",
-            "privile",
-            "ming",
-            "cipi",
-            "nswe",
-            "ddressee(",
-            "onfi",
-            "ove.",
-            "orming",
-            "nsmis",
-            "rectin",
-            "ddress",
-            "leged",
-            "rmatio",
-            "*CAUT",
-            "recti",
-            "vileged",
-            "ddressee",
-            "bution",
-            "senders",
-            "informing",
-            "butio",
-            "EXTE",
-            "repl",
-            "ribution",
-            "hibited.",
-            "emina",
-            "nfidential",
-            "ohibited",
-            "isdirecte",
-            "709384",
-            "pect",
-            "hibited",
-            "ils*",
-            "MAIL*",
-            "distr",
-            "disclosu",
-            "receiv",
-            "tachments",
-            "prohibit",
-            "intended",
-            "sswor",
-            "messag",
-            "mmediately",
-            "identia",
-            "xler",
-            "ying,",
-            "nfidenti",
-            "ERNA",
-            "sclosure",
-            "e-ma",
-            "ribut",
-            "unknown",
-            "distribut",
-            "sdirected",
-            "confidentia",
-            "isclo",
-            "ssistanc",
-            "disclos",
-            "emai",
-            "isse",
-            "smiss",
-            "fter",
-            "addressee(s",
-            "ssist",
-            "rect",
-            "eras",
-            "ansmis",
-            "ileged",
-            "issem",
-            "sseminat",
-            "tents",
-            "ibited",
-            "see(",
-            "error,",
-            "tain",
-            "onfidentia",
-            "recting",
-            "dressee(s",
-            "ress",
-            "rohib",
-            "nvoice",
-            "pien",
-            "Peachey",
-            "xpect",
-            "ransmissi",
-            "copy",
-            "ecipien",
-            "iven",
-            "ormatio",
-            "bited",
-            "addressee",
-            "ache",
-            "dissem",
-            "ntended",
-            "essee",
-            "lege",
-            "semin",
-            "ttachm",
-            "replyin",
-            "ing,",
-            "ecia",
-            "nexpec",
-            "ibite",
-            "nvoi",
-            "ure,",
-            "your",
-            "ssee(s)",
-            "cumen",
-            "eplyi",
-            "fide",
-            "irec",
-            "ppreciate",
-            "above.",
-            "losu",
-            "uter",
-            "expec",
-            "ntial",
-            "Peache",
-            "omputer",
-            "stribu",
-            "ciated.",
-            "rmati",
-            "erase",
-            "lick",
-            "achments",
-            "assist",
-            "corre",
-            "voic",
-            "rrect",
-            "nown",
-            "istribu",
-            "eciate",
-            "inks",
-            "ansm",
-            "answer,",
-            "eache",
-            "umen",
-            "dist",
-            "open",
-            "ead,",
-            "ocument:",
-            "Afte",
-            "Wait",
-            "rmin",
-            "mess",
-            "tribution",
-            "ee(s",
-            "ecipi",
-            "IL**",
-            "formi",
-            "leged.",
-            "tion",
-            "losure,",
-            "istribut",
-            "expected",
-            "unexpected",
-            "rohibited.",
-            "hibit",
-            "diate",
-            "nfor",
-            "orrecti",
-            "isdir",
-            "**DO",
-            "minate",
-            "ecti",
-            "assistanc",
-            "ansmissi",
-            "eminat",
-            "comp",
-            "please",
-            "name",
-            "ansmi",
-            "ains",
-            "orrec",
-            "rrecting",
-            "privileged",
-            "iscl",
-            "isdirect",
-            "known",
-            "rohibi",
-            "Waiting",
-            "ecip",
-            "conf",
-            "dresse",
-            "correctin",
-            "stri",
-            "infor",
-            "answ",
-            "directed.",
-            "apprec",
-            "ease",
-            "ilege",
-            "ocume",
-            "ment",
-            "mputer",
-            "seminate",
-            "rohibit",
-            "mmedi",
-            "information",
-            "sdirected.",
-            "nforma",
-            "rrecti",
-            "nformati",
-            "ransmiss",
-            "copying,",
-            "eplying,",
-            "ribu",
-            "ivile",
-            "cume"
-          ]
-        },
-        "module": "msoffice_encryption_analyzer",
-        "observable": 10,
-        "summary": "MSOffice Encryption Analysis: password 709384",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": false,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": true,
-          "is_office_ext": true,
-          "is_ole_file": true,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "application/vnd.ms-excel",
-          "type": "Composite Document File V2 Document, Little Endian, Os: Windows, Version 10.0, Code page: 1252, Name of Creating Application: Microsoft Excel, Create Time/Date: Fri Jun  5 18:17:20 2015, Last Saved Time/Date: Mon Sep  7 15:00:28 2020, Security: 1"
-        },
-        "module": "file_type",
-        "observable": 10,
-        "summary": "File Type Analysis: Composite Document File V2 Document, Little Endian, Os: Windows, Version 10.0, Code page: 1252, Name of Creating Application: Microsoft Excel, Create Time/Date: Fri Jun  5 18:17:20 2015, Last Saved Time/Date: Mon Sep  7 15:00:28 2020, Security: 1 (application/vnd.ms-excel) (ms office document) (ole compound file)",
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 15
-          },
-          {
-            "observable": 32
-          }
-        ],
-        "class": "FileHashAnalysis",
-        "details": {
-          "md5": "af93ae2e4dc1d242f984a2325d709e86",
-          "sha1": "b0d77acbb65a534e1ab0a57d69e6e014e5d72452",
-          "sha256": "e42f4cd8ff57dc0c9756242193462dcb03b4e7fef955985a2e953a6053324055"
-        },
-        "module": "file_hash_analyzer",
-        "observable": 10,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 20,
-            "path": "info_3805.xls.officeparser/stream_1_0.dat"
-          },
-          {
-            "observable": 0,
-            "path": "info_3805.xls.officeparser/stream_2_0.dat"
-          },
-          {
-            "observable": 17,
-            "path": "info_3805.xls.officeparser/stream_3_0.dat"
-          }
-        ],
-        "class": "OfficeParserAnalysis3",
-        "details": {
-          "extracted_files": [
-            "stream_1_0.dat",
-            "stream_2_0.dat",
-            "stream_3_0.dat"
-          ]
-        },
-        "module": "officeparser3",
-        "observable": 10,
-        "summary": "OfficeParser3 Analysis: extracted 3 files",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "OLEVBA_Analysis_v1_2",
-        "details": {
-          "keyword_summary": {},
-          "macros": [],
-          "type": "OLE"
-        },
-        "module": "olevba_v1_2",
-        "observable": 10,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "URLExtractionAnalysis",
-        "details": {
-          "urls": [],
-          "urls_grouped_by_domain": {}
-        },
-        "module": "url_extraction",
-        "observable": 10,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 24,
-            "path": "info_3805.xls.xlmdeobfuscator/xlmdeobfuscator.stdout"
-          },
-          {
-            "observable": 24,
-            "path": "info_3805.xls.xlmdeobfuscator/xlmdeobfuscatorextractcells.stdout"
-          }
-        ],
-        "class": "XLMMacroDeobfuscatorAnalysis",
-        "details": {
-          "cell_count": 0
-        },
-        "module": "xlmdeobfuscator",
-        "observable": 10,
-        "summary": "XLMMacroDeobfuscator Analysis - analyzed 0 cells",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": false,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "text/xml",
-          "type": "XML 1.0 document, ASCII text, with CRLF line terminators"
-        },
-        "module": "file_type",
-        "observable": 11,
-        "summary": "File Type Analysis: XML 1.0 document, ASCII text, with CRLF line terminators (text/xml)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "URLExtractionAnalysis",
-        "details": {
-          "urls": [],
-          "urls_grouped_by_domain": {}
-        },
-        "module": "url_extraction",
-        "observable": 11,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 22,
-            "path": "info_3805.xls.decrypted.officeparser/stream_1_0.dat.extracted/[Content_Types].xml"
-          },
-          {
-            "observable": 34,
-            "path": "info_3805.xls.decrypted.officeparser/stream_1_0.dat.extracted/theme/theme/theme1.xml"
-          },
-          {
-            "observable": 33,
-            "path": "info_3805.xls.decrypted.officeparser/stream_1_0.dat.extracted/theme/theme/themeManager.xml"
-          },
-          {
-            "observable": 30,
-            "path": "info_3805.xls.decrypted.officeparser/stream_1_0.dat.extracted/theme/theme/_rels/themeManager.xml.rels"
-          },
-          {
-            "observable": 11,
-            "path": "info_3805.xls.decrypted.officeparser/stream_1_0.dat.extracted/_rels/.rels"
-          }
-        ],
-        "class": "ArchiveAnalysis",
-        "details": {
-          "extracted_files": [
-            "[Content_Types].xml",
-            "theme/theme/theme1.xml",
-            "theme/theme/themeManager.xml",
-            "theme/theme/_rels/themeManager.xml.rels",
-            "_rels/.rels"
-          ],
-          "file_count": 5
-        },
-        "module": "archive",
-        "observable": 12,
-        "summary": "Archive Analysis: extracted 5 of 5 files: ([Content_Types].xml, theme/theme/theme1.xml, theme/theme/themeManager.xml, theme/theme/_rels/themeManager.xml.rels, _rels/.rels)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": false,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": true,
-          "mime": "application/octet-stream",
-          "type": "Applesoft BASIC program data, first line number 16"
-        },
-        "module": "file_type",
-        "observable": 12,
-        "summary": "File Type Analysis: Applesoft BASIC program data, first line number 16 (application/octet-stream) (zip archive)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "ExtractedOLEAnalysis",
-        "details": {
-          "suspect_files": []
-        },
-        "module": "extracted_ole_analyzer",
-        "observable": 12,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "OLEVBA_Analysis_v1_2",
-        "details": {
-          "keyword_summary": {},
-          "macros": [],
-          "type": "OpenXML"
-        },
-        "module": "olevba_v1_2",
-        "observable": 12,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "URLExtractionAnalysis",
-        "details": {
-          "urls": [],
-          "urls_grouped_by_domain": {}
-        },
-        "module": "url_extraction",
-        "observable": 12,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": false,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "text/plain",
-          "type": "ASCII text, with CRLF, LF line terminators"
-        },
-        "module": "file_type",
-        "observable": 13,
-        "summary": "File Type Analysis: ASCII text, with CRLF, LF line terminators (text/plain)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "URLExtractionAnalysis",
-        "details": {
-          "urls": [],
-          "urls_grouped_by_domain": {}
-        },
-        "module": "url_extraction",
-        "observable": 13,
+        "observable": 16,
         "summary": null,
         "tags": []
       },
@@ -2843,7 +2993,7 @@
           "type": "data"
         },
         "module": "file_type",
-        "observable": 17,
+        "observable": 19,
         "summary": "File Type Analysis: data (application/octet-stream)",
         "tags": []
       },
@@ -2854,7 +3004,7 @@
           "suspect_files": []
         },
         "module": "extracted_ole_analyzer",
-        "observable": 17,
+        "observable": 19,
         "summary": null,
         "tags": []
       },
@@ -2866,7 +3016,7 @@
           "urls_grouped_by_domain": {}
         },
         "module": "url_extraction",
-        "observable": 17,
+        "observable": 19,
         "summary": null,
         "tags": []
       },
@@ -2886,11 +3036,11 @@
           "is_x509": false,
           "is_zip_file": false,
           "mime": "message/rfc822",
-          "type": "RFC 822 mail, ASCII text"
+          "type": "RFC 822 mail, ASCII text, with CRLF, LF line terminators"
         },
         "module": "file_type",
-        "observable": 19,
-        "summary": "File Type Analysis: RFC 822 mail, ASCII text (message/rfc822) (email)",
+        "observable": 20,
+        "summary": "File Type Analysis: RFC 822 mail, ASCII text, with CRLF, LF line terminators (message/rfc822) (email)",
         "tags": []
       },
       {
@@ -2906,52 +3056,6 @@
           "script_count": 0
         },
         "module": "html_js_extraction",
-        "observable": 19,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": false,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "application/octet-stream",
-          "type": "Applesoft BASIC program data, first line number 16"
-        },
-        "module": "file_type",
-        "observable": 20,
-        "summary": "File Type Analysis: Applesoft BASIC program data, first line number 16 (application/octet-stream)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "ExtractedOLEAnalysis",
-        "details": {
-          "suspect_files": []
-        },
-        "module": "extracted_ole_analyzer",
-        "observable": 20,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "URLExtractionAnalysis",
-        "details": {
-          "urls": [],
-          "urls_grouped_by_domain": {}
-        },
-        "module": "url_extraction",
         "observable": 20,
         "summary": null,
         "tags": []
@@ -2959,50 +3063,35 @@
       {
         "added": [
           {
-            "observable": 31
+            "observable": 24
+          },
+          {
+            "observable": 22
           }
         ],
-        "class": "EmailAddressFQDNAnalysis",
+        "class": "ParseURLAnalysis",
         "details": {
-          "domain": "tovarioseni9.fun"
+          "fragment": "",
+          "netloc": "component.pw",
+          "params": null,
+          "path": "/wp-index.php",
+          "query": "",
+          "scheme": "https"
         },
-        "module": "email_address_fqdn_analyzer",
+        "module": "parse_url",
         "observable": 21,
-        "summary": "Email Address FQDN: tovarioseni9.fun",
+        "summary": "URL Parser: scheme=https, netloc=component.pw, path=/wp-index.php",
         "tags": []
       },
       {
         "added": [],
-        "class": "FileTypeAnalysis",
+        "class": "ProtectedURLAnalysis",
         "details": {
-          "is_email_file": false,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "text/xml",
-          "type": "XML 1.0 document, ASCII text, with very long lines (483), with CRLF line terminators"
+          "extracted_url": "https://component.pw/wp-index.php",
+          "protection_type": "unprotected"
         },
-        "module": "file_type",
-        "observable": 22,
-        "summary": "File Type Analysis: XML 1.0 document, ASCII text, with very long lines (483), with CRLF line terminators (text/xml)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "URLExtractionAnalysis",
-        "details": {
-          "urls": [],
-          "urls_grouped_by_domain": {}
-        },
-        "module": "url_extraction",
-        "observable": 22,
+        "module": "protected_url_analyzer",
+        "observable": 21,
         "summary": null,
         "tags": []
       },
@@ -3025,17 +3114,17 @@
           "type": "Composite Document File V2 Document, Little Endian, Os: Windows, Version 10.0, Code page: 1252, Name of Creating Application: Microsoft Excel, Create Time/Date: Fri Jun  5 18:17:20 2015, Last Saved Time/Date: Mon Sep  7 15:00:28 2020, Security: 1"
         },
         "module": "file_type",
-        "observable": 23,
+        "observable": 25,
         "summary": "File Type Analysis: Composite Document File V2 Document, Little Endian, Os: Windows, Version 10.0, Code page: 1252, Name of Creating Application: Microsoft Excel, Create Time/Date: Fri Jun  5 18:17:20 2015, Last Saved Time/Date: Mon Sep  7 15:00:28 2020, Security: 1 (application/vnd.ms-excel) (ms office document) (ole compound file) (zip archive)",
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 7
+            "observable": 17
           },
           {
-            "observable": 28
+            "observable": 6
           }
         ],
         "class": "FileHashAnalysis",
@@ -3045,22 +3134,22 @@
           "sha256": "ce3af53d22189d65f561fa45ff655a020c9ef96c17c83e748cd773eff8ef96e8"
         },
         "module": "file_hash_analyzer",
-        "observable": 23,
+        "observable": 25,
         "summary": null,
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 12,
+            "observable": 14,
             "path": "info_3805.xls.decrypted.officeparser/stream_1_0.dat"
           },
           {
-            "observable": 0,
+            "observable": 26,
             "path": "info_3805.xls.decrypted.officeparser/stream_2_0.dat"
           },
           {
-            "observable": 17,
+            "observable": 19,
             "path": "info_3805.xls.decrypted.officeparser/stream_3_0.dat"
           }
         ],
@@ -3073,7 +3162,7 @@
           ]
         },
         "module": "officeparser3",
-        "observable": 23,
+        "observable": 25,
         "summary": "OfficeParser3 Analysis: extracted 3 files",
         "tags": []
       },
@@ -3086,24 +3175,24 @@
           "type": "OLE"
         },
         "module": "olevba_v1_2",
-        "observable": 23,
+        "observable": 25,
         "summary": null,
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 29,
+            "observable": 15,
             "path": "info_3805.xls.decrypted.xlmdeobfuscator/xlmdeobfuscator.stdout"
           },
           {
-            "observable": 27
+            "observable": 21
           },
           {
-            "observable": 2
+            "observable": 7
           },
           {
-            "observable": 35,
+            "observable": 0,
             "path": "info_3805.xls.decrypted.xlmdeobfuscator/xlmdeobfuscatorextractcells.stdout"
           }
         ],
@@ -3112,7 +3201,7 @@
           "cell_count": 383
         },
         "module": "xlmdeobfuscator",
-        "observable": 23,
+        "observable": 25,
         "summary": "XLMMacroDeobfuscator Analysis - analyzed 383 cells",
         "tags": []
       },
@@ -3131,12 +3220,23 @@
           "is_rtf_file": false,
           "is_x509": false,
           "is_zip_file": false,
-          "mime": "text/plain",
-          "type": "ASCII text"
+          "mime": "application/octet-stream",
+          "type": "data"
         },
         "module": "file_type",
-        "observable": 24,
-        "summary": "File Type Analysis: ASCII text (text/plain)",
+        "observable": 26,
+        "summary": "File Type Analysis: data (application/octet-stream)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "ExtractedOLEAnalysis",
+        "details": {
+          "suspect_files": []
+        },
+        "module": "extracted_ole_analyzer",
+        "observable": 26,
+        "summary": null,
         "tags": []
       },
       {
@@ -3147,108 +3247,63 @@
           "urls_grouped_by_domain": {}
         },
         "module": "url_extraction",
-        "observable": 24,
+        "observable": 26,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": true,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "message/rfc822",
+          "type": "RFC 822 mail, ASCII text"
+        },
+        "module": "file_type",
+        "observable": 27,
+        "summary": "File Type Analysis: RFC 822 mail, ASCII text (message/rfc822) (email)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "HTMLJavaScriptExtractionAnalysis",
+        "details": {
+          "dom_snapshot_files": [],
+          "duplicate_count": 0,
+          "extracted_files": [],
+          "extracted_uri_paths": [],
+          "extracted_urls": [],
+          "inline_handlers": [],
+          "script_count": 0
+        },
+        "module": "html_js_extraction",
+        "observable": 27,
         "summary": null,
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 9
+            "observable": 18
           }
         ],
         "class": "EmailAddressFQDNAnalysis",
         "details": {
-          "domain": "user.com"
+          "domain": "tovarioseni9.fun"
         },
         "module": "email_address_fqdn_analyzer",
-        "observable": 25,
-        "summary": "Email Address FQDN: user.com",
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 1
-          },
-          {
-            "observable": 26
-          }
-        ],
-        "class": "ParseURLAnalysis",
-        "details": {
-          "fragment": "",
-          "netloc": "component.pw",
-          "params": null,
-          "path": "/wp-index.php",
-          "query": "",
-          "scheme": "https"
-        },
-        "module": "parse_url",
-        "observable": 27,
-        "summary": "URL Parser: scheme=https, netloc=component.pw, path=/wp-index.php",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "ProtectedURLAnalysis",
-        "details": {
-          "extracted_url": "https://component.pw/wp-index.php",
-          "protection_type": "unprotected"
-        },
-        "module": "protected_url_analyzer",
-        "observable": 27,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": false,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "text/plain",
-          "type": "ASCII text"
-        },
-        "module": "file_type",
-        "observable": 29,
-        "summary": "File Type Analysis: ASCII text (text/plain)",
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 2
-          },
-          {
-            "observable": 27
-          }
-        ],
-        "class": "URLExtractionAnalysis",
-        "details": {
-          "urls": [
-            "https://component.pw/wp-index.php,$BB$54",
-            "https://component.pw/wp-index.php"
-          ],
-          "urls_grouped_by_domain": {
-            "component.pw": [
-              "https://component.pw/wp-index.php,$BB$54",
-              "https://component.pw/wp-index.php"
-            ]
-          }
-        },
-        "module": "url_extraction",
-        "observable": 29,
-        "summary": "URL Extraction Analysis (component.pw)",
+        "observable": 30,
+        "summary": "Email Address FQDN: tovarioseni9.fun",
         "tags": []
       },
       {
@@ -3270,7 +3325,7 @@
           "type": "XML 1.0 document, ASCII text, with CRLF line terminators"
         },
         "module": "file_type",
-        "observable": 30,
+        "observable": 32,
         "summary": "File Type Analysis: XML 1.0 document, ASCII text, with CRLF line terminators (text/xml)",
         "tags": []
       },
@@ -3282,8 +3337,23 @@
           "urls_grouped_by_domain": {}
         },
         "module": "url_extraction",
-        "observable": 30,
+        "observable": 32,
         "summary": null,
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 18
+          }
+        ],
+        "class": "EmailAddressFQDNAnalysis",
+        "details": {
+          "domain": "tovarioseni9.fun"
+        },
+        "module": "email_address_fqdn_analyzer",
+        "observable": 33,
+        "summary": "Email Address FQDN: tovarioseni9.fun",
         "tags": []
       },
       {
@@ -3302,81 +3372,11 @@
           "is_x509": false,
           "is_zip_file": false,
           "mime": "text/xml",
-          "type": "XML 1.0 document, ASCII text, with CRLF line terminators"
-        },
-        "module": "file_type",
-        "observable": 33,
-        "summary": "File Type Analysis: XML 1.0 document, ASCII text, with CRLF line terminators (text/xml)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "URLExtractionAnalysis",
-        "details": {
-          "urls": [],
-          "urls_grouped_by_domain": {}
-        },
-        "module": "url_extraction",
-        "observable": 33,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": false,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "text/xml",
-          "type": "XML 1.0 document, Unicode text, UTF-8 text, with very long lines (6401), with CRLF line terminators"
-        },
-        "module": "file_type",
-        "observable": 34,
-        "summary": "File Type Analysis: XML 1.0 document, Unicode text, UTF-8 text, with very long lines (6401), with CRLF line terminators (text/xml)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "URLExtractionAnalysis",
-        "details": {
-          "urls": [],
-          "urls_grouped_by_domain": {}
-        },
-        "module": "url_extraction",
-        "observable": 34,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": false,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "text/plain",
-          "type": "ASCII text, with very long lines (421)"
+          "type": "XML 1.0 document, ASCII text, with very long lines (483), with CRLF line terminators"
         },
         "module": "file_type",
         "observable": 35,
-        "summary": "File Type Analysis: ASCII text, with very long lines (421) (text/plain)",
+        "summary": "File Type Analysis: XML 1.0 document, ASCII text, with very long lines (483), with CRLF line terminators (text/xml)",
         "tags": []
       },
       {
@@ -3391,7 +3391,6 @@
         "summary": null,
         "tags": []
       }
-    ],
-    "whitelisted": false
+    ]
   }
 }

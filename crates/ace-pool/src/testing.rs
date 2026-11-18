@@ -43,6 +43,7 @@ pub fn registry() -> Registry {
         .parser::<ace_mod_values::FilePathAnalyzer>()
         .parser::<ace_mod_values::ParseUrlAnalyzer>()
         .parser::<ace_mod_values::IdnaAnalyzer>()
+        .parser::<ace_mod_values::ApexDomainAnalyzer>()
         .parser::<ace_mod_values::ProtectedUrlAnalyzer>()
         .parser::<ace_mod_values::NetworkIdentifier>()
         .parser::<ace_mod_html::HtmlDataUrlAnalyzer>()

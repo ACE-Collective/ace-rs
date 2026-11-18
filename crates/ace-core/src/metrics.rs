@@ -28,6 +28,7 @@
 //! | ace3's field | here | from |
 //! |---|---|---|
 //! | `event_type`, `"root"` | `event_type`, `"root"` | a constant |
+//! | `outcome`, `completed`, `cancelled`, `timed_out` or `failed` (since `91c3e6e4` and `24f94fda`) | `outcome`, `completed` or `cancelled` | `cancelled` when the root was cancelled by the pass's end (`analysis.roots.cancelled_at`), as ace3's is for a shutdown, a lost lock or a disposition stop. ace4 has neither of the other two: a task fails, never a pass, and no pass has a time limit as ace3's work item does |
 //! | `timestamp`, the engine's local time as `%Y-%m-%d %H:%M:%S.%f` | `timestamp`, RFC 3339 in UTC | the pass's `queue.root_completions.completed_at` |
 //! | `root_uuid` | `root_uuid` | the root's id |
 //! | `total_time_seconds`, how long the engine's executor ran on the work item | not emitted under that name: `pass_open_seconds`, how long the pass was open | `completed_at` less `analysis.roots.pass_started_at` (migration 0066). It includes what ace3's leaves out, the time tasks waited for a worker and the waits of delayed tasks, and tasks run side by side, so it is no measure of the work done and is named so that nobody compares it with ace3's. Absent for a pass that began before migration 0066 |
@@ -38,9 +39,8 @@
 //! | `observable_count`, the unique observables in the tree | `observable_count` | the root's rows of `analysis.observables`, one for each type and value |
 //! | `observable_type_counts`, type to count | `observable_type_counts` | the same rows, by type |
 //!
-//! And four ace3 has no field for, since its unit differs: `pass`, which of the root's passes ended;
-//! `cancelled`, whether the root was cancelled when it ended (ace3 emits the same event for a
-//! cancelled work item, with nothing saying so at `37a765bf`); and `task_count` with
+//! And three ace3 has no field for, since its unit differs: `pass`, which of the root's passes ended;
+//! and `task_count` with
 //! `failed_task_count`, the root's tasks at the pass's end and those that failed, without the core's
 //! own hooks task. Since decision 23 the core queues no task a module's declaration declines, so
 //! `task_count` counts the tasks that were queued to run: each ran, or was cancelled with its root
@@ -100,11 +100,12 @@
 //! And `pass`, as on the root's event.
 //!
 //! **A root that is cancelled or fails.** ace3's executor returns normally when a work item is
-//! cancelled, so the events are emitted; here a cancelled root's pass ends, at once or when its last
-//! running task has stopped, and its event has `cancelled`. ace3 emits nothing when the executor
-//! raises, which is the whole analysis timing out. ace4 has no such failure: a task fails, never a
-//! pass, so a root whose tasks failed has its event, as ace3's does when a module raised and the
-//! engine caught it. A failed run counts in its module's run time and executions, as in ace3.
+//! cancelled, so the events are emitted, with `outcome` `cancelled` since its `24f94fda`; here a
+//! cancelled root's pass ends, at once or when its last running task has stopped, and its event's
+//! `outcome` is `cancelled` too. Since `91c3e6e4` ace3 also emits the events when the executor
+//! raises, which is the whole analysis timing out (`timed_out`) or failing (`failed`). ace4 has no
+//! such failure: a task fails, never a pass, so a root whose tasks failed has its event, `completed`,
+//! as ace3's does when a module raised and the engine caught it. A failed run counts in its module's run time and executions, as in ace3.
 //!
 //! **Cost.** One statement in the transaction that ends the pass, which reads the root's row, counts
 //! its observables by type, and reads its tasks through their index by root once, grouped by module,
@@ -130,6 +131,12 @@ pub const EVENT_TYPE_ROOT: &str = "root";
 
 /// ace3's `event_type` of a module's event.
 pub const EVENT_TYPE_MODULE: &str = "module";
+
+/// ace3's `outcome` of a pass that ended with its root analyzed as far as it goes.
+pub const OUTCOME_COMPLETED: &str = "completed";
+
+/// ace3's `outcome` of a pass whose root was cancelled.
+pub const OUTCOME_CANCELLED: &str = "cancelled";
 
 /// What the root event's message starts with, before the event's JSON.
 pub const MESSAGE_PREFIX: &str = "METRICS (root): ";
@@ -158,7 +165,8 @@ pub struct RootMetrics {
     pub observable_type_counts: BTreeMap<String, i64>,
     pub task_count: i64,
     pub failed_task_count: i64,
-    pub cancelled: bool,
+    /// ace3's `outcome`: `completed`, or `cancelled` for a root cancelled by the pass's end.
+    pub outcome: &'static str,
     /// One event for each module that ran in the pass, by name. Emitted after this one, each a
     /// record of its own.
     #[serde(skip)]
@@ -276,7 +284,11 @@ pub async fn read(
             observable_type_counts,
             task_count: row.tasks,
             failed_task_count: row.failed,
-            cancelled: row.cancelled,
+            outcome: if row.cancelled {
+                OUTCOME_CANCELLED
+            } else {
+                OUTCOME_COMPLETED
+            },
             modules,
         }
     }))

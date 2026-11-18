@@ -82,8 +82,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 20:03:19+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 20:03:19+00:00",
+              "File:FileAccessDate": "2026:11:18 04:08:54+00:00",
+              "File:FileInodeChangeDate": "2026:11:18 04:08:54+00:00",
               "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "encrypted_agile_sha1.docx",
               "File:FilePermissions": 100644,
@@ -137,8 +137,7 @@
               "/01Hannes Ruescher/01"
             ]
           },
-          "error": "could not crack password",
-          "summary": "MSOffice Encryption Analysis: could not crack password",
+          "summary": "MSOffice Encryption Analysis: no associated email detected",
           "tags": {}
         },
         "observable_detection": {
@@ -185,7 +184,7 @@
         "ole": true
       }
     },
-    "file:888cd3777e0b5d8b77c94ff7ace8584ad6ecbe903244b0d713886590d7cf694c": {
+    "file:6325ae010571785c894dab17b8628d00bf05f41a5860c366f7e44901c3d0ff8c": {
       "detections": {},
       "directives": {},
       "excluded_analysis": {

@@ -4,7 +4,7 @@ PLAN.md 7.5 batch 7. `zip_encryption_analyzer`, `rar_encryption_analyzer` and `p
 
 ## The bounds
 
-- **How many candidates.** At most `list_limit`, 5,000, cut from at most `byte_limit`, 1,024 characters of the body, by 4.11's `ace_mod_msoffice::words_from_body`. A body of 1,024 characters with no whitespace fills the list.
+- **How many candidates.** At most `list_limit`, 5,000, cut from at most `byte_limit`, 1,024 characters of each body part, by `ace_mod_msoffice::words_from_parts`, 4.11's made ace3's again at its `1998ca56`. A part of 1,024 characters with no whitespace fills the list.
 - **What one costs.** The format's key derivation, which the file fixes or caps, and for some formats data:
   - zip AES: PBKDF2-SHA1, 1,000 rounds, per AES entry; the entry's data only for a candidate whose 2-byte verifier matches. Entries are tried from the last, which decides ace3's answer, so a shared password costs one entry's work.
   - ZipCrypto: no derivation; the smallest of up to 8 entries is decrypted and inflated only for a candidate past its check byte, about 1 in 256. zip2john writes that entry's data into its hash, and ace3 stops a tool past 64 MiB of output, so past about 32 MiB the result is ace3's `zip2john did not finish`, with nothing tried.
@@ -35,7 +35,7 @@ ace3's column is one run of its module on the same file and body in ace3's dev c
 | `zip_aes_200_entries.zip`, 200 AES entries | 49 KB | 112.6 (112.6-112.8), stopped at the deadline | unable to crack | 16.9 | the same |
 | `zip_zipcrypto_64mb.zip`, one 64 MB stored entry | 64 MB | 4.4 (4.4-4.4) | zip2john did not finish | 4.9 | the same |
 
-Every task ended `done` with ace3's result, and the supervisor kept running. The two 64 MB files were measured again after the port learned ace3's output limit: before it, they took 294.6 s (RAR4, stopped at the deadline) and 40.1 s (ZipCrypto), and gave `could not crack`, where ace3 says the tool didn't finish. During the remeasurement the dev stack's bucket was killed for memory, at its 1 GiB, while compacting after the 64 MB uploads; it was started again and the runs repeated.
+Every task ended `done` with ace3's result, and the supervisor kept running. These runs were made before ace3's `1998ca56`: "could not crack" and "unable to crack" were the result's error then, and are "password not available" in its summary, with no error, since. The candidates of a 1,200-letter body are 5,000 substrings either way, so the times stand. The two 64 MB files were measured again after the port learned ace3's output limit: before it, they took 294.6 s (RAR4, stopped at the deadline) and 40.1 s (ZipCrypto), and gave `could not crack`, where ace3 says the tool didn't finish. During the remeasurement the dev stack's bucket was killed for memory, at its 1 GiB, while compacting after the 64 MB uploads; it was started again and the runs repeated.
 
 What it means:
 

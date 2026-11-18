@@ -10,6 +10,17 @@
 //! vendored OpenSSL, so the module uses the library's data model and bootstrap types and makes
 //! its requests through `ace_sdk::http::HttpClient`, which verifies certificates with rustls.
 //!
+//! A subdomain is skipped when `apex_domain_analyzer` gives it an apex observable, which is looked
+//! up instead, once for all of its subdomains, as in ace3 since `7265bb53`. ace3 makes the RDAP
+//! module depend on the apex module and skips a subdomain whose apex result holds the apex
+//! observable (`e871441c`). Here the module computes that apex from the value, as the apex module
+//! does (`ace_sdk::domains::apex_domain_of`, then the fqdn check on it), and doesn't wait for it: a
+//! dependency in ace4 waits for a result (`ace_core::eligibility`), and the apex module stores none
+//! for a name that is its own apex, which RDAP still looks up. ace4 has no observable limit, so the
+//! apex result always holds its observable. The one case that differs is an fqdn the apex module
+//! doesn't run on while RDAP does (a mode or an observable modifier rule leaving it out): ace3 looks
+//! that subdomain up, and ace4 still skips it.
+//!
 //! ace3 falls back to WHOIS when RDAP can't answer. That isn't ported: the module records RDAP's
 //! error instead.
 //!
@@ -112,6 +123,15 @@ impl Lookup for RdapAnalyzer {
         {
             return Ok(Outcome::Skipped(format!("{ip} isn't globally routable")));
         }
+        // a subdomain that apex_domain_analyzer gives an apex observable is looked up there, once
+        // for all its subdomains (custom_requirement, 7265bb53 and e871441c)
+        if !observable.kind.is_subtype_of(ObservableKind::Ip)
+            && let Some(apex) = apex_of(&observable.value)
+        {
+            return Ok(Outcome::Skipped(format!(
+                "its apex domain {apex} is looked up instead"
+            )));
+        }
 
         let now = ctx.now();
         let mut analysis = RdapAnalysis {
@@ -142,6 +162,12 @@ impl Lookup for RdapAnalyzer {
         result.error = failure;
         Ok(Outcome::Done(result))
     }
+}
+
+/// The apex observable `apex_domain_analyzer` adds for `fqdn`, if any: its apex, when the fqdn
+/// check takes it as an observable.
+fn apex_of(fqdn: &str) -> Option<String> {
+    ace_sdk::domains::apex_domain_of(fqdn).filter(|apex| ace_pycompat::validators::domain(apex))
 }
 
 /// How an RDAP attempt went.

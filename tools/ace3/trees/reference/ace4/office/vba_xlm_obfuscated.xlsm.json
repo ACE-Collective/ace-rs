@@ -215,8 +215,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files/vba_xlm_obfuscated.xlsm.extracted/xl",
-              "File:FileAccessDate": "2026:11:16 14:11:32+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 14:11:32+00:00",
+              "File:FileAccessDate": "2026:11:18 04:23:47+00:00",
+              "File:FileInodeChangeDate": "2026:11:18 04:23:46+00:00",
               "File:FileModifyDate": "2026:01:01 00:00:00+00:00",
               "File:FileName": "vbaProject.bin",
               "File:FilePermissions": 100664,
@@ -305,6 +305,39 @@
         "ole": true,
         "olevba": true
       }
+    },
+    "file:171b4fed5ab218d2b5a693797437eb4d8a1eb860deb1fc20bf0d001e6c7c670c": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "vba_xlm_obfuscated.xlsm.extracted/xl/vbaProject.bin.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:170b804293599496c29d816cfe408adc5a99e767eb930b0c0cf9e7db62436abe": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
     },
     "file:1d8b995ebb2866315a4c0f72315e6a902db8b6345bba956086db3ab3778d4434": {
       "detections": {},
@@ -441,39 +474,6 @@
       },
       "tags": {}
     },
-    "file:2bda48601c9fe80e4fe4d4fd90df07fe02a592c79aaba25d07bcfd7090af4daf": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "vba_xlm_obfuscated.xlsm.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:c592e2e50f387766a4e6505e74c566be4ca69dbb2aa919d2fd3a043c35548412": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:2cc477ae1c38e71b532ddce6a73d102c4d1d6e5fa240b64acfe7f43ed5a62590": {
       "detections": {},
       "directives": {},
@@ -502,6 +502,39 @@
           "summary": "File Type Analysis: Unicode text, UTF-8 text, with very long lines (389) (text/plain)",
           "tags": {}
         },
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
+    "file:4426b35f78344959fe8bce809236eedd5aefe79b83e6e79587bb04a54ef43956": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "vba_xlm_obfuscated.xlsm.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:c592e2e50f387766a4e6505e74c566be4ca69dbb2aa919d2fd3a043c35548412": true
+      },
+      "results": {
         "observable_detection": {
           "details": {
             "for_detection": false
@@ -1166,39 +1199,6 @@
       },
       "tags": {}
     },
-    "file:bcbbb83e28a318cfa7dc05b4582179d52ae79d3ca2676abfe454aee057c8d5ad": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "vba_xlm_obfuscated.xlsm.extracted/xl/vbaProject.bin.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:170b804293599496c29d816cfe408adc5a99e767eb930b0c0cf9e7db62436abe": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
-    },
     "file:c592e2e50f387766a4e6505e74c566be4ca69dbb2aa919d2fd3a043c35548412": {
       "detections": {
         "A url was found in an Excel 4.0 macro.": [
@@ -1236,8 +1236,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 14:11:31+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 14:11:31+00:00",
+              "File:FileAccessDate": "2026:11:18 04:23:45+00:00",
+              "File:FileInodeChangeDate": "2026:11:18 04:23:45+00:00",
               "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "vba_xlm_obfuscated.xlsm",
               "File:FilePermissions": 100644,
@@ -1837,6 +1837,13 @@
       "excluded_analysis": {},
       "relationships": {},
       "results": {
+        "apex_domain_analyzer": {
+          "details": {
+            "apex_domain": "example.com"
+          },
+          "summary": "Apex Domain: example.com",
+          "tags": {}
+        },
         "fqdn_analyzer": {
           "details": {
             "aliaslist": [],
@@ -1892,160 +1899,6 @@
           "summary": "Proxy correlation: (3 results)",
           "tags": {}
         },
-        "rdap_analyzer": {
-          "details": {
-            "assignment_type": null,
-            "country": null,
-            "datetime_created": "1995-08-14 04:00:00+00:00",
-            "datetime_expiration": "2027-08-13 04:00:00+00:00",
-            "datetime_of_last_update": "2026-08-14 08:01:43+00:00",
-            "domain_name": "EXAMPLE.COM",
-            "emails": [],
-            "ip_version": null,
-            "lookup_protocol": "rdap",
-            "name_servers": [
-              "ELLIOTT.NS.CLOUDFLARE.COM",
-              "HERA.NS.CLOUDFLARE.COM"
-            ],
-            "network_cidr": null,
-            "network_name": null,
-            "not_found": null,
-            "rdap_attempt_error": null,
-            "rdap_data": {
-              "copyright_notice": "",
-              "description": [],
-              "dnssec": true,
-              "dnssec_ds_data": [
-                {
-                  "algorithm": 13,
-                  "digest": "C988EC423E3880EB8DD8A46FE06CA230EE23F35B578D64E78B29C3E1C83D245A",
-                  "digest_type": 2,
-                  "key_tag": 2371
-                }
-              ],
-              "dnssec_key_data": [],
-              "entities": {
-                "abuse": [
-                  {
-                    "name": "",
-                    "parent_handle": "376",
-                    "parent_name": "RESERVED-Internet Assigned Numbers Authority",
-                    "type": "entity"
-                  }
-                ],
-                "registrar": [
-                  {
-                    "handle": "376",
-                    "name": "RESERVED-Internet Assigned Numbers Authority",
-                    "public_ids": [
-                      {
-                        "identifier": "376",
-                        "type": "IANA Registrar ID"
-                      }
-                    ],
-                    "type": "entity"
-                  }
-                ]
-              },
-              "events": [
-                {
-                  "action": "registration",
-                  "actor": "",
-                  "date": "1995-08-14T04:00:00.000000+0000"
-                },
-                {
-                  "action": "expiration",
-                  "actor": "",
-                  "date": "2027-08-13T04:00:00.000000+0000"
-                },
-                {
-                  "action": "last changed",
-                  "actor": "",
-                  "date": "2026-08-14T08:01:43.000000+0000"
-                },
-                {
-                  "action": "last update of rdap database",
-                  "actor": "",
-                  "date": "2026-11-02T15:28:17.000000+0000"
-                }
-              ],
-              "expiration_date": "2027-08-13T04:00:00.000000+0000",
-              "handle": "2336799_DOMAIN_COM-VRSN",
-              "last_changed_date": "2026-08-14T08:01:43.000000+0000",
-              "links": [
-                {
-                  "href": "https://rdap.verisign.com/com/v1/domain/example.com",
-                  "rel": "self",
-                  "type": "application/rdap+json"
-                }
-              ],
-              "name": "EXAMPLE.COM",
-              "nameserver_ips": {
-                "ELLIOTT.NS.CLOUDFLARE.COM": [],
-                "HERA.NS.CLOUDFLARE.COM": []
-              },
-              "nameservers": [
-                "ELLIOTT.NS.CLOUDFLARE.COM",
-                "HERA.NS.CLOUDFLARE.COM"
-              ],
-              "notices": [
-                {
-                  "description": [
-                    "Service subject to Terms of Use."
-                  ],
-                  "links": [
-                    "https://www.verisign.com/domain-names/registration-data-access-protocol/terms-service/index.xhtml"
-                  ],
-                  "title": "Terms of Service",
-                  "type": ""
-                },
-                {
-                  "description": [
-                    "For more information on domain status codes, please visit https://icann.org/epp"
-                  ],
-                  "links": [
-                    "https://icann.org/epp"
-                  ],
-                  "title": "Status Codes",
-                  "type": ""
-                },
-                {
-                  "description": [
-                    "URL of the ICANN RDDS Inaccuracy Complaint Form: https://icann.org/wicf"
-                  ],
-                  "links": [
-                    "https://icann.org/wicf"
-                  ],
-                  "title": "RDDS Inaccuracy Complaint Form",
-                  "type": ""
-                }
-              ],
-              "parent_handle": "",
-              "public_ids": [],
-              "redacted": [],
-              "registrar_url": "",
-              "registration_date": "1995-08-14T04:00:00.000000+0000",
-              "remarks": [],
-              "rir": "",
-              "status": [
-                "client delete prohibited",
-                "client transfer prohibited",
-                "client update prohibited"
-              ],
-              "terms_of_service_url": "https://www.verisign.com/domain-names/registration-data-access-protocol/terms-service/index.xhtml",
-              "type": "domain",
-              "unicode_name": "",
-              "url": "https://rdap.verisign.com/com/v1/domain/example.com",
-              "whois_server": ""
-            },
-            "rdap_raw_json": "{\"objectClassName\":\"domain\",\"handle\":\"2336799_DOMAIN_COM-VRSN\",\"ldhName\":\"EXAMPLE.COM\",\"links\":[{\"value\":\"https://rdap.verisign.com/com/v1/domain/example.com\",\"rel\":\"self\",\"href\":\"https://rdap.verisign.com/com/v1/domain/example.com\",\"type\":\"application/rdap+json\"}],\"status\":[\"client delete prohibited\",\"client transfer prohibited\",\"client update prohibited\"],\"entities\":[{\"objectClassName\":\"entity\",\"handle\":\"376\",\"roles\":[\"registrar\"],\"publicIds\":[{\"type\":\"IANA Registrar ID\",\"identifier\":\"376\"}],\"vcardArray\":[\"vcard\",[[\"version\",{},\"text\",\"4.0\"],[\"fn\",{},\"text\",\"RESERVED-Internet Assigned Numbers Authority\"]]],\"entities\":[{\"objectClassName\":\"entity\",\"roles\":[\"abuse\"],\"vcardArray\":[\"vcard\",[[\"version\",{},\"text\",\"4.0\"],[\"fn\",{},\"text\",\"\"],[\"tel\",{\"type\":\"voice\"},\"uri\",\"\"],[\"email\",{},\"text\",\"\"]]]}]}],\"events\":[{\"eventAction\":\"registration\",\"eventDate\":\"1995-08-14T04:00:00Z\"},{\"eventAction\":\"expiration\",\"eventDate\":\"2027-08-13T04:00:00Z\"},{\"eventAction\":\"last changed\",\"eventDate\":\"2026-08-14T08:01:43Z\"},{\"eventAction\":\"last update of RDAP database\",\"eventDate\":\"2026-11-02T15:28:17Z\"}],\"secureDNS\":{\"delegationSigned\":true,\"dsData\":[{\"keyTag\":2371,\"algorithm\":13,\"digestType\":2,\"digest\":\"C988EC423E3880EB8DD8A46FE06CA230EE23F35B578D64E78B29C3E1C83D245A\"}]},\"nameservers\":[{\"objectClassName\":\"nameserver\",\"ldhName\":\"ELLIOTT.NS.CLOUDFLARE.COM\"},{\"objectClassName\":\"nameserver\",\"ldhName\":\"HERA.NS.CLOUDFLARE.COM\"}],\"rdapConformance\":[\"rdap_level_0\",\"icann_rdap_technical_implementation_guide_1\",\"icann_rdap_response_profile_1\"],\"notices\":[{\"title\":\"Terms of Service\",\"description\":[\"Service subject to Terms of Use.\"],\"links\":[{\"href\":\"https://www.verisign.com/domain-names/registration-data-access-protocol/terms-service/index.xhtml\",\"type\":\"text/html\",\"value\":\"https://rdap.verisign.com/com/v1/domain/example.com\",\"rel\":\"terms-of-service\"}]},{\"title\":\"Status Codes\",\"description\":[\"For more information on domain status codes, please visit https://icann.org/epp\"],\"links\":[{\"href\":\"https://icann.org/epp\",\"type\":\"text/html\",\"value\":\"https://rdap.verisign.com/com/v1/domain/example.com\",\"rel\":\"glossary\"}]},{\"title\":\"RDDS Inaccuracy Complaint Form\",\"description\":[\"URL of the ICANN RDDS Inaccuracy Complaint Form: https://icann.org/wicf\"],\"links\":[{\"href\":\"https://icann.org/wicf\",\"type\":\"text/html\",\"value\":\"https://rdap.verisign.com/com/v1/domain/example.com\",\"rel\":\"help\"}]}]}",
-            "rdap_service_url": "https://rdap.verisign.com/com/v1/domain/example.com",
-            "registrar": "RESERVED-Internet Assigned Numbers Authority",
-            "whois_data": null,
-            "whois_raw_text": null
-          },
-          "tags": {}
-        },
         "user_defined_tagging": {
           "details": {
             "tags_added": []
@@ -2064,6 +1917,13 @@
       "excluded_analysis": {},
       "relationships": {},
       "results": {
+        "apex_domain_analyzer": {
+          "details": {
+            "apex_domain": "example.com"
+          },
+          "summary": "Apex Domain: example.com",
+          "tags": {}
+        },
         "fqdn_analyzer": {
           "details": {
             "aliaslist": [],
@@ -2119,160 +1979,6 @@
           "summary": "Proxy correlation: (3 results)",
           "tags": {}
         },
-        "rdap_analyzer": {
-          "details": {
-            "assignment_type": null,
-            "country": null,
-            "datetime_created": "1995-08-14 04:00:00+00:00",
-            "datetime_expiration": "2027-08-13 04:00:00+00:00",
-            "datetime_of_last_update": "2026-08-14 08:01:43+00:00",
-            "domain_name": "EXAMPLE.COM",
-            "emails": [],
-            "ip_version": null,
-            "lookup_protocol": "rdap",
-            "name_servers": [
-              "ELLIOTT.NS.CLOUDFLARE.COM",
-              "HERA.NS.CLOUDFLARE.COM"
-            ],
-            "network_cidr": null,
-            "network_name": null,
-            "not_found": null,
-            "rdap_attempt_error": null,
-            "rdap_data": {
-              "copyright_notice": "",
-              "description": [],
-              "dnssec": true,
-              "dnssec_ds_data": [
-                {
-                  "algorithm": 13,
-                  "digest": "C988EC423E3880EB8DD8A46FE06CA230EE23F35B578D64E78B29C3E1C83D245A",
-                  "digest_type": 2,
-                  "key_tag": 2371
-                }
-              ],
-              "dnssec_key_data": [],
-              "entities": {
-                "abuse": [
-                  {
-                    "name": "",
-                    "parent_handle": "376",
-                    "parent_name": "RESERVED-Internet Assigned Numbers Authority",
-                    "type": "entity"
-                  }
-                ],
-                "registrar": [
-                  {
-                    "handle": "376",
-                    "name": "RESERVED-Internet Assigned Numbers Authority",
-                    "public_ids": [
-                      {
-                        "identifier": "376",
-                        "type": "IANA Registrar ID"
-                      }
-                    ],
-                    "type": "entity"
-                  }
-                ]
-              },
-              "events": [
-                {
-                  "action": "registration",
-                  "actor": "",
-                  "date": "1995-08-14T04:00:00.000000+0000"
-                },
-                {
-                  "action": "expiration",
-                  "actor": "",
-                  "date": "2027-08-13T04:00:00.000000+0000"
-                },
-                {
-                  "action": "last changed",
-                  "actor": "",
-                  "date": "2026-08-14T08:01:43.000000+0000"
-                },
-                {
-                  "action": "last update of rdap database",
-                  "actor": "",
-                  "date": "2026-11-02T15:28:17.000000+0000"
-                }
-              ],
-              "expiration_date": "2027-08-13T04:00:00.000000+0000",
-              "handle": "2336799_DOMAIN_COM-VRSN",
-              "last_changed_date": "2026-08-14T08:01:43.000000+0000",
-              "links": [
-                {
-                  "href": "https://rdap.verisign.com/com/v1/domain/example.com",
-                  "rel": "self",
-                  "type": "application/rdap+json"
-                }
-              ],
-              "name": "EXAMPLE.COM",
-              "nameserver_ips": {
-                "ELLIOTT.NS.CLOUDFLARE.COM": [],
-                "HERA.NS.CLOUDFLARE.COM": []
-              },
-              "nameservers": [
-                "ELLIOTT.NS.CLOUDFLARE.COM",
-                "HERA.NS.CLOUDFLARE.COM"
-              ],
-              "notices": [
-                {
-                  "description": [
-                    "Service subject to Terms of Use."
-                  ],
-                  "links": [
-                    "https://www.verisign.com/domain-names/registration-data-access-protocol/terms-service/index.xhtml"
-                  ],
-                  "title": "Terms of Service",
-                  "type": ""
-                },
-                {
-                  "description": [
-                    "For more information on domain status codes, please visit https://icann.org/epp"
-                  ],
-                  "links": [
-                    "https://icann.org/epp"
-                  ],
-                  "title": "Status Codes",
-                  "type": ""
-                },
-                {
-                  "description": [
-                    "URL of the ICANN RDDS Inaccuracy Complaint Form: https://icann.org/wicf"
-                  ],
-                  "links": [
-                    "https://icann.org/wicf"
-                  ],
-                  "title": "RDDS Inaccuracy Complaint Form",
-                  "type": ""
-                }
-              ],
-              "parent_handle": "",
-              "public_ids": [],
-              "redacted": [],
-              "registrar_url": "",
-              "registration_date": "1995-08-14T04:00:00.000000+0000",
-              "remarks": [],
-              "rir": "",
-              "status": [
-                "client delete prohibited",
-                "client transfer prohibited",
-                "client update prohibited"
-              ],
-              "terms_of_service_url": "https://www.verisign.com/domain-names/registration-data-access-protocol/terms-service/index.xhtml",
-              "type": "domain",
-              "unicode_name": "",
-              "url": "https://rdap.verisign.com/com/v1/domain/example.com",
-              "whois_server": ""
-            },
-            "rdap_raw_json": "{\"objectClassName\":\"domain\",\"handle\":\"2336799_DOMAIN_COM-VRSN\",\"ldhName\":\"EXAMPLE.COM\",\"links\":[{\"value\":\"https://rdap.verisign.com/com/v1/domain/example.com\",\"rel\":\"self\",\"href\":\"https://rdap.verisign.com/com/v1/domain/example.com\",\"type\":\"application/rdap+json\"}],\"status\":[\"client delete prohibited\",\"client transfer prohibited\",\"client update prohibited\"],\"entities\":[{\"objectClassName\":\"entity\",\"handle\":\"376\",\"roles\":[\"registrar\"],\"publicIds\":[{\"type\":\"IANA Registrar ID\",\"identifier\":\"376\"}],\"vcardArray\":[\"vcard\",[[\"version\",{},\"text\",\"4.0\"],[\"fn\",{},\"text\",\"RESERVED-Internet Assigned Numbers Authority\"]]],\"entities\":[{\"objectClassName\":\"entity\",\"roles\":[\"abuse\"],\"vcardArray\":[\"vcard\",[[\"version\",{},\"text\",\"4.0\"],[\"fn\",{},\"text\",\"\"],[\"tel\",{\"type\":\"voice\"},\"uri\",\"\"],[\"email\",{},\"text\",\"\"]]]}]}],\"events\":[{\"eventAction\":\"registration\",\"eventDate\":\"1995-08-14T04:00:00Z\"},{\"eventAction\":\"expiration\",\"eventDate\":\"2027-08-13T04:00:00Z\"},{\"eventAction\":\"last changed\",\"eventDate\":\"2026-08-14T08:01:43Z\"},{\"eventAction\":\"last update of RDAP database\",\"eventDate\":\"2026-11-02T15:28:17Z\"}],\"secureDNS\":{\"delegationSigned\":true,\"dsData\":[{\"keyTag\":2371,\"algorithm\":13,\"digestType\":2,\"digest\":\"C988EC423E3880EB8DD8A46FE06CA230EE23F35B578D64E78B29C3E1C83D245A\"}]},\"nameservers\":[{\"objectClassName\":\"nameserver\",\"ldhName\":\"ELLIOTT.NS.CLOUDFLARE.COM\"},{\"objectClassName\":\"nameserver\",\"ldhName\":\"HERA.NS.CLOUDFLARE.COM\"}],\"rdapConformance\":[\"rdap_level_0\",\"icann_rdap_technical_implementation_guide_1\",\"icann_rdap_response_profile_1\"],\"notices\":[{\"title\":\"Terms of Service\",\"description\":[\"Service subject to Terms of Use.\"],\"links\":[{\"href\":\"https://www.verisign.com/domain-names/registration-data-access-protocol/terms-service/index.xhtml\",\"type\":\"text/html\",\"value\":\"https://rdap.verisign.com/com/v1/domain/example.com\",\"rel\":\"terms-of-service\"}]},{\"title\":\"Status Codes\",\"description\":[\"For more information on domain status codes, please visit https://icann.org/epp\"],\"links\":[{\"href\":\"https://icann.org/epp\",\"type\":\"text/html\",\"value\":\"https://rdap.verisign.com/com/v1/domain/example.com\",\"rel\":\"glossary\"}]},{\"title\":\"RDDS Inaccuracy Complaint Form\",\"description\":[\"URL of the ICANN RDDS Inaccuracy Complaint Form: https://icann.org/wicf\"],\"links\":[{\"href\":\"https://icann.org/wicf\",\"type\":\"text/html\",\"value\":\"https://rdap.verisign.com/com/v1/domain/example.com\",\"rel\":\"help\"}]}]}",
-            "rdap_service_url": "https://rdap.verisign.com/com/v1/domain/example.com",
-            "registrar": "RESERVED-Internet Assigned Numbers Authority",
-            "whois_data": null,
-            "whois_raw_text": null
-          },
-          "tags": {}
-        },
         "user_defined_tagging": {
           "details": {
             "tags_added": []
@@ -2291,6 +1997,13 @@
       "excluded_analysis": {},
       "relationships": {},
       "results": {
+        "apex_domain_analyzer": {
+          "details": {
+            "apex_domain": "example.com"
+          },
+          "summary": "Apex Domain: example.com",
+          "tags": {}
+        },
         "fqdn_analyzer": {
           "details": {
             "aliaslist": [],
@@ -2344,160 +2057,6 @@
             "question": "Was this domain seen in proxy logs?"
           },
           "summary": "Proxy correlation: (3 results)",
-          "tags": {}
-        },
-        "rdap_analyzer": {
-          "details": {
-            "assignment_type": null,
-            "country": null,
-            "datetime_created": "1995-08-14 04:00:00+00:00",
-            "datetime_expiration": "2027-08-13 04:00:00+00:00",
-            "datetime_of_last_update": "2026-08-14 08:01:43+00:00",
-            "domain_name": "EXAMPLE.COM",
-            "emails": [],
-            "ip_version": null,
-            "lookup_protocol": "rdap",
-            "name_servers": [
-              "ELLIOTT.NS.CLOUDFLARE.COM",
-              "HERA.NS.CLOUDFLARE.COM"
-            ],
-            "network_cidr": null,
-            "network_name": null,
-            "not_found": null,
-            "rdap_attempt_error": null,
-            "rdap_data": {
-              "copyright_notice": "",
-              "description": [],
-              "dnssec": true,
-              "dnssec_ds_data": [
-                {
-                  "algorithm": 13,
-                  "digest": "C988EC423E3880EB8DD8A46FE06CA230EE23F35B578D64E78B29C3E1C83D245A",
-                  "digest_type": 2,
-                  "key_tag": 2371
-                }
-              ],
-              "dnssec_key_data": [],
-              "entities": {
-                "abuse": [
-                  {
-                    "name": "",
-                    "parent_handle": "376",
-                    "parent_name": "RESERVED-Internet Assigned Numbers Authority",
-                    "type": "entity"
-                  }
-                ],
-                "registrar": [
-                  {
-                    "handle": "376",
-                    "name": "RESERVED-Internet Assigned Numbers Authority",
-                    "public_ids": [
-                      {
-                        "identifier": "376",
-                        "type": "IANA Registrar ID"
-                      }
-                    ],
-                    "type": "entity"
-                  }
-                ]
-              },
-              "events": [
-                {
-                  "action": "registration",
-                  "actor": "",
-                  "date": "1995-08-14T04:00:00.000000+0000"
-                },
-                {
-                  "action": "expiration",
-                  "actor": "",
-                  "date": "2027-08-13T04:00:00.000000+0000"
-                },
-                {
-                  "action": "last changed",
-                  "actor": "",
-                  "date": "2026-08-14T08:01:43.000000+0000"
-                },
-                {
-                  "action": "last update of rdap database",
-                  "actor": "",
-                  "date": "2026-11-02T15:28:17.000000+0000"
-                }
-              ],
-              "expiration_date": "2027-08-13T04:00:00.000000+0000",
-              "handle": "2336799_DOMAIN_COM-VRSN",
-              "last_changed_date": "2026-08-14T08:01:43.000000+0000",
-              "links": [
-                {
-                  "href": "https://rdap.verisign.com/com/v1/domain/example.com",
-                  "rel": "self",
-                  "type": "application/rdap+json"
-                }
-              ],
-              "name": "EXAMPLE.COM",
-              "nameserver_ips": {
-                "ELLIOTT.NS.CLOUDFLARE.COM": [],
-                "HERA.NS.CLOUDFLARE.COM": []
-              },
-              "nameservers": [
-                "ELLIOTT.NS.CLOUDFLARE.COM",
-                "HERA.NS.CLOUDFLARE.COM"
-              ],
-              "notices": [
-                {
-                  "description": [
-                    "Service subject to Terms of Use."
-                  ],
-                  "links": [
-                    "https://www.verisign.com/domain-names/registration-data-access-protocol/terms-service/index.xhtml"
-                  ],
-                  "title": "Terms of Service",
-                  "type": ""
-                },
-                {
-                  "description": [
-                    "For more information on domain status codes, please visit https://icann.org/epp"
-                  ],
-                  "links": [
-                    "https://icann.org/epp"
-                  ],
-                  "title": "Status Codes",
-                  "type": ""
-                },
-                {
-                  "description": [
-                    "URL of the ICANN RDDS Inaccuracy Complaint Form: https://icann.org/wicf"
-                  ],
-                  "links": [
-                    "https://icann.org/wicf"
-                  ],
-                  "title": "RDDS Inaccuracy Complaint Form",
-                  "type": ""
-                }
-              ],
-              "parent_handle": "",
-              "public_ids": [],
-              "redacted": [],
-              "registrar_url": "",
-              "registration_date": "1995-08-14T04:00:00.000000+0000",
-              "remarks": [],
-              "rir": "",
-              "status": [
-                "client delete prohibited",
-                "client transfer prohibited",
-                "client update prohibited"
-              ],
-              "terms_of_service_url": "https://www.verisign.com/domain-names/registration-data-access-protocol/terms-service/index.xhtml",
-              "type": "domain",
-              "unicode_name": "",
-              "url": "https://rdap.verisign.com/com/v1/domain/example.com",
-              "whois_server": ""
-            },
-            "rdap_raw_json": "{\"objectClassName\":\"domain\",\"handle\":\"2336799_DOMAIN_COM-VRSN\",\"ldhName\":\"EXAMPLE.COM\",\"links\":[{\"value\":\"https://rdap.verisign.com/com/v1/domain/example.com\",\"rel\":\"self\",\"href\":\"https://rdap.verisign.com/com/v1/domain/example.com\",\"type\":\"application/rdap+json\"}],\"status\":[\"client delete prohibited\",\"client transfer prohibited\",\"client update prohibited\"],\"entities\":[{\"objectClassName\":\"entity\",\"handle\":\"376\",\"roles\":[\"registrar\"],\"publicIds\":[{\"type\":\"IANA Registrar ID\",\"identifier\":\"376\"}],\"vcardArray\":[\"vcard\",[[\"version\",{},\"text\",\"4.0\"],[\"fn\",{},\"text\",\"RESERVED-Internet Assigned Numbers Authority\"]]],\"entities\":[{\"objectClassName\":\"entity\",\"roles\":[\"abuse\"],\"vcardArray\":[\"vcard\",[[\"version\",{},\"text\",\"4.0\"],[\"fn\",{},\"text\",\"\"],[\"tel\",{\"type\":\"voice\"},\"uri\",\"\"],[\"email\",{},\"text\",\"\"]]]}]}],\"events\":[{\"eventAction\":\"registration\",\"eventDate\":\"1995-08-14T04:00:00Z\"},{\"eventAction\":\"expiration\",\"eventDate\":\"2027-08-13T04:00:00Z\"},{\"eventAction\":\"last changed\",\"eventDate\":\"2026-08-14T08:01:43Z\"},{\"eventAction\":\"last update of RDAP database\",\"eventDate\":\"2026-11-02T15:28:17Z\"}],\"secureDNS\":{\"delegationSigned\":true,\"dsData\":[{\"keyTag\":2371,\"algorithm\":13,\"digestType\":2,\"digest\":\"C988EC423E3880EB8DD8A46FE06CA230EE23F35B578D64E78B29C3E1C83D245A\"}]},\"nameservers\":[{\"objectClassName\":\"nameserver\",\"ldhName\":\"ELLIOTT.NS.CLOUDFLARE.COM\"},{\"objectClassName\":\"nameserver\",\"ldhName\":\"HERA.NS.CLOUDFLARE.COM\"}],\"rdapConformance\":[\"rdap_level_0\",\"icann_rdap_technical_implementation_guide_1\",\"icann_rdap_response_profile_1\"],\"notices\":[{\"title\":\"Terms of Service\",\"description\":[\"Service subject to Terms of Use.\"],\"links\":[{\"href\":\"https://www.verisign.com/domain-names/registration-data-access-protocol/terms-service/index.xhtml\",\"type\":\"text/html\",\"value\":\"https://rdap.verisign.com/com/v1/domain/example.com\",\"rel\":\"terms-of-service\"}]},{\"title\":\"Status Codes\",\"description\":[\"For more information on domain status codes, please visit https://icann.org/epp\"],\"links\":[{\"href\":\"https://icann.org/epp\",\"type\":\"text/html\",\"value\":\"https://rdap.verisign.com/com/v1/domain/example.com\",\"rel\":\"glossary\"}]},{\"title\":\"RDDS Inaccuracy Complaint Form\",\"description\":[\"URL of the ICANN RDDS Inaccuracy Complaint Form: https://icann.org/wicf\"],\"links\":[{\"href\":\"https://icann.org/wicf\",\"type\":\"text/html\",\"value\":\"https://rdap.verisign.com/com/v1/domain/example.com\",\"rel\":\"help\"}]}]}",
-            "rdap_service_url": "https://rdap.verisign.com/com/v1/domain/example.com",
-            "registrar": "RESERVED-Internet Assigned Numbers Authority",
-            "whois_data": null,
-            "whois_raw_text": null
-          },
           "tags": {}
         },
         "user_defined_tagging": {

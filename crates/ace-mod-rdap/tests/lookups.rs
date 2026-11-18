@@ -1,5 +1,6 @@
-//! What the reference dumps don't show: a domain that doesn't exist, a TLD without RDAP, an
-//! address with no public registration, and a registry that can't be reached. The recordings
+//! What the reference dumps don't show: a domain that doesn't exist, a TLD without RDAP, a
+//! subdomain left to its apex, an address with no public registration, and a registry that can't
+//! be reached. The recordings
 //! beside the dumps serve the bootstrap registries; nothing reaches the internet.
 
 use ace_mod_rdap::RdapAnalyzer;
@@ -32,7 +33,7 @@ async fn a_domain_the_registry_doesnt_know_is_an_answer_without_a_fallback() {
     let harness = harness(&replay);
     // the replay answers 404 for anything it has no recording of
     let outcome = harness
-        .run_lookup(harness.observable(ObservableKind::Fqdn, "www.no-such-domain-here.com"))
+        .run_lookup(harness.observable(ObservableKind::Fqdn, "no-such-domain-here.com"))
         .await
         .expect("runs");
     let Outcome::Done(result) = outcome else {
@@ -97,6 +98,26 @@ async fn a_tld_without_rdap_records_the_rdap_error() {
         Some(format!("RDAP Analysis: error: rdap: {attempt}").as_str())
     );
     assert_eq!(result.details.not_found, None);
+    assert_eq!(replay.requested(), ["https://data.iana.org/rdap/dns.json"]);
+}
+
+#[tokio::test]
+async fn a_subdomain_is_left_to_its_apex() {
+    let replay = replay().await;
+    let harness = harness(&replay);
+    for subdomain in ["www.example.com", "a.b.example.co.uk."] {
+        let outcome = harness
+            .run_lookup(harness.observable(ObservableKind::Fqdn, subdomain))
+            .await
+            .expect("runs");
+        assert!(matches!(outcome, Outcome::Skipped(_)), "{outcome:?}");
+    }
+    // a name with no public suffix has no apex, so it is looked up itself
+    let outcome = harness
+        .run_lookup(harness.observable(ObservableKind::Fqdn, "www.example.not-a-tld"))
+        .await
+        .expect("runs");
+    assert!(matches!(outcome, Outcome::Done(_)), "{outcome:?}");
     assert_eq!(replay.requested(), ["https://data.iana.org/rdap/dns.json"]);
 }
 

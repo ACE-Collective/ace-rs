@@ -1,6 +1,6 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "37a765bf",
+  "ace3_commit": "fe6da632",
   "also_enabled": [
     "file_type",
     "email_analyzer",
@@ -64,7 +64,7 @@
               [],
               []
             ],
-            "observable_uuid": "70c7df90-c97b-4fe7-b6ff-c7a98471fe7d",
+            "observable_uuid": "1ef3e03b-28bf-4a8e-b00a-c623885f1f2a",
             "reasons": [
               "found in the email body",
               "clickable link with text 'Open the portal'",
@@ -89,7 +89,7 @@
               [],
               []
             ],
-            "observable_uuid": "2d4a56d9-cad7-4113-8956-8dbde1848584",
+            "observable_uuid": "fb6cebc7-49c2-4cc0-8337-07dab7c72b51",
             "reasons": [
               "found in the email body",
               "clickable link with text 'Review invoice'",
@@ -113,7 +113,7 @@
               [],
               []
             ],
-            "observable_uuid": "3ab5ae28-4ad2-46a6-8080-1f3070943150",
+            "observable_uuid": "1a598f24-3198-4b94-b3f9-22c2624fdf50",
             "reasons": [
               "found in the email body",
               "clickable link with text 'Download receipt'",
@@ -134,7 +134,7 @@
               [],
               []
             ],
-            "observable_uuid": "020025f5-40c5-4cd0-8177-f77d012b19d6",
+            "observable_uuid": "3b2bf134-7335-46df-a776-2ee47fbe4cd5",
             "reasons": [
               "found in the email body",
               "not a clickable link in the body",
@@ -160,7 +160,7 @@
             [],
             []
           ],
-          "observable_uuid": "70c7df90-c97b-4fe7-b6ff-c7a98471fe7d",
+          "observable_uuid": "1ef3e03b-28bf-4a8e-b00a-c623885f1f2a",
           "reasons": [
             "found in the email body",
             "clickable link with text 'Open the portal'",
@@ -255,7 +255,7 @@
             "cc": [],
             "compauth_reason": null,
             "compauth_result": null,
-            "date": "2026-11-16 16:44:42.446810 +0000",
+            "date": "2026-11-18 06:02:40.851160 +0000",
             "dkim_result": null,
             "dmarc_result": null,
             "env_mail_from": null,
@@ -548,35 +548,11 @@
         "detections": [],
         "directives": [],
         "paths": [],
-        "tags": [],
-        "type": "url",
-        "value": "https://offers.lure-example.net/pricing"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "message_id",
-        "value": "<lure_not_a_signature@partner-example.org>"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
         "tags": [
           "domain_in_url"
         ],
         "type": "fqdn",
-        "value": "offers.lure-example.net"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_conversation",
-        "value": "sam@partner-example.org|pat@corp.example"
+        "value": "pay.lure-example.net"
       },
       {
         "detections": [],
@@ -592,23 +568,17 @@
         "paths": [],
         "tags": [],
         "type": "url",
-        "value": "https://pay.lure-example.net/review"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "url",
         "value": "https://pay.lure-example.net/receipt"
       },
       {
         "detections": [],
-        "directives": [],
+        "directives": [
+          "crawl"
+        ],
         "paths": [],
         "tags": [],
-        "type": "email_from",
-        "value": "sam@partner-example.org"
+        "type": "url",
+        "value": "https://pay.lure-example.net/portal"
       },
       {
         "detections": [],
@@ -630,58 +600,19 @@
       },
       {
         "detections": [],
-        "directives": [
-          "extract_urls",
-          "preview"
-        ],
-        "paths": [
-          {
-            "path": "email.rfc822.unknown_text_plain_000.txt",
-            "yara_meta": [
-              "type=email.attachment"
-            ]
-          }
-        ],
-        "size": 87,
-        "tags": [],
-        "type": "file",
-        "value": "311ba82e08eafecb7e560db81e871fd362ee365799b99c027f4acad4532b7ab7"
-      },
-      {
-        "detections": [],
-        "directives": [
-          "crawl"
-        ],
+        "directives": [],
         "paths": [],
         "tags": [],
         "type": "url",
-        "value": "https://pay.lure-example.net/portal"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [
-          "domain_in_url"
-        ],
-        "type": "fqdn",
-        "value": "pay.lure-example.net"
+        "value": "https://offers.lure-example.net/pricing"
       },
       {
         "detections": [],
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "email_return_path",
+        "type": "email_from",
         "value": "sam@partner-example.org"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_to",
-        "value": "pat@corp.example"
       },
       {
         "detections": [],
@@ -708,24 +639,18 @@
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "uri_path",
-        "value": "/pricing"
+        "type": "email_return_path",
+        "value": "sam@partner-example.org"
       },
       {
         "detections": [],
         "directives": [],
         "paths": [],
-        "tags": [],
-        "type": "email_subject",
-        "value": "Thank you for your payment"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "uri_path",
-        "value": "/receipt"
+        "tags": [
+          "domain_in_url"
+        ],
+        "type": "fqdn",
+        "value": "offers.lure-example.net"
       },
       {
         "detections": [],
@@ -740,8 +665,86 @@
         "directives": [],
         "paths": [],
         "tags": [],
+        "type": "uri_path",
+        "value": "/review"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "uri_path",
+        "value": "/pricing"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
         "type": "fqdn",
         "value": "partner-example.org"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [
+          {
+            "path": "email.rfc822.combined",
+            "yara_meta": [
+              "type=email",
+              "type=email.combined"
+            ]
+          }
+        ],
+        "size": 910,
+        "tags": [
+          "email"
+        ],
+        "type": "file",
+        "value": "794d74812920ea2e8ec37f30f9ea3f2408b8b8c675265d58880d5f005b784a89"
+      },
+      {
+        "detections": [],
+        "directives": [
+          "extract_urls",
+          "preview"
+        ],
+        "paths": [
+          {
+            "path": "email.rfc822.unknown_text_plain_000.txt",
+            "yara_meta": [
+              "type=email.attachment"
+            ]
+          }
+        ],
+        "size": 87,
+        "tags": [],
+        "type": "file",
+        "value": "311ba82e08eafecb7e560db81e871fd362ee365799b99c027f4acad4532b7ab7"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "uri_path",
+        "value": "/receipt"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_subject",
+        "value": "Thank you for your payment"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_conversation",
+        "value": "sam@partner-example.org|pat@corp.example"
       },
       {
         "detections": [],
@@ -765,109 +768,36 @@
       {
         "detections": [],
         "directives": [],
-        "paths": [
-          {
-            "path": "email.rfc822.combined",
-            "yara_meta": [
-              "type=email",
-              "type=email.combined"
-            ]
-          }
-        ],
-        "size": 910,
-        "tags": [
-          "email"
-        ],
-        "type": "file",
-        "value": "794d74812920ea2e8ec37f30f9ea3f2408b8b8c675265d58880d5f005b784a89"
+        "paths": [],
+        "tags": [],
+        "type": "email_to",
+        "value": "pat@corp.example"
       },
       {
         "detections": [],
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "uri_path",
-        "value": "/review"
+        "type": "message_id",
+        "value": "<lure_not_a_signature@partner-example.org>"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "url",
+        "value": "https://pay.lure-example.net/review"
       }
     ],
     "results": [
       {
         "added": [
           {
-            "observable": 2
+            "observable": 0
           },
           {
-            "observable": 15
-          }
-        ],
-        "class": "ParseURLAnalysis",
-        "details": {
-          "fragment": "",
-          "netloc": "offers.lure-example.net",
-          "params": null,
-          "path": "/pricing",
-          "query": "",
-          "scheme": "https"
-        },
-        "module": "parse_url",
-        "observable": 0,
-        "summary": "URL Parser: scheme=https, netloc=offers.lure-example.net, path=/pricing",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "ProtectedURLAnalysis",
-        "details": {
-          "extracted_url": "https://offers.lure-example.net/pricing",
-          "protection_type": "unprotected"
-        },
-        "module": "protected_url_analyzer",
-        "observable": 0,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 11
-          },
-          {
-            "observable": 22
-          }
-        ],
-        "class": "ParseURLAnalysis",
-        "details": {
-          "fragment": "",
-          "netloc": "pay.lure-example.net",
-          "params": null,
-          "path": "/review",
-          "query": "",
-          "scheme": "https"
-        },
-        "module": "parse_url",
-        "observable": 5,
-        "summary": "URL Parser: scheme=https, netloc=pay.lure-example.net, path=/review",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "ProtectedURLAnalysis",
-        "details": {
-          "extracted_url": "https://pay.lure-example.net/review",
-          "protection_type": "unprotected"
-        },
-        "module": "protected_url_analyzer",
-        "observable": 5,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 11
-          },
-          {
-            "observable": 17
+            "observable": 16
           }
         ],
         "class": "ParseURLAnalysis",
@@ -880,7 +810,7 @@
           "scheme": "https"
         },
         "module": "parse_url",
-        "observable": 6,
+        "observable": 2,
         "summary": "URL Parser: scheme=https, netloc=pay.lure-example.net, path=/receipt",
         "tags": []
       },
@@ -892,23 +822,43 @@
           "protection_type": "unprotected"
         },
         "module": "protected_url_analyzer",
-        "observable": 6,
+        "observable": 2,
         "summary": null,
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 19
+            "observable": 0
+          },
+          {
+            "observable": 10
           }
         ],
-        "class": "EmailAddressFQDNAnalysis",
+        "class": "ParseURLAnalysis",
         "details": {
-          "domain": "partner-example.org"
+          "fragment": "",
+          "netloc": "pay.lure-example.net",
+          "params": null,
+          "path": "/portal",
+          "query": "",
+          "scheme": "https"
         },
-        "module": "email_address_fqdn_analyzer",
-        "observable": 7,
-        "summary": "Email Address FQDN: partner-example.org",
+        "module": "parse_url",
+        "observable": 3,
+        "summary": "URL Parser: scheme=https, netloc=pay.lure-example.net, path=/portal",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "ProtectedURLAnalysis",
+        "details": {
+          "extracted_url": "https://pay.lure-example.net/portal",
+          "protection_type": "unprotected"
+        },
+        "module": "protected_url_analyzer",
+        "observable": 3,
+        "summary": null,
         "tags": []
       },
       {
@@ -928,7 +878,7 @@
                 [],
                 []
               ],
-              "observable_uuid": "70c7df90-c97b-4fe7-b6ff-c7a98471fe7d",
+              "observable_uuid": "1ef3e03b-28bf-4a8e-b00a-c623885f1f2a",
               "reasons": [
                 "found in the email body",
                 "clickable link with text 'Open the portal'",
@@ -953,7 +903,7 @@
                 [],
                 []
               ],
-              "observable_uuid": "2d4a56d9-cad7-4113-8956-8dbde1848584",
+              "observable_uuid": "fb6cebc7-49c2-4cc0-8337-07dab7c72b51",
               "reasons": [
                 "found in the email body",
                 "clickable link with text 'Review invoice'",
@@ -977,7 +927,7 @@
                 [],
                 []
               ],
-              "observable_uuid": "3ab5ae28-4ad2-46a6-8080-1f3070943150",
+              "observable_uuid": "1a598f24-3198-4b94-b3f9-22c2624fdf50",
               "reasons": [
                 "found in the email body",
                 "clickable link with text 'Download receipt'",
@@ -998,7 +948,7 @@
                 [],
                 []
               ],
-              "observable_uuid": "020025f5-40c5-4cd0-8177-f77d012b19d6",
+              "observable_uuid": "3b2bf134-7335-46df-a776-2ee47fbe4cd5",
               "reasons": [
                 "found in the email body",
                 "not a clickable link in the body",
@@ -1024,7 +974,7 @@
               [],
               []
             ],
-            "observable_uuid": "70c7df90-c97b-4fe7-b6ff-c7a98471fe7d",
+            "observable_uuid": "1ef3e03b-28bf-4a8e-b00a-c623885f1f2a",
             "reasons": [
               "found in the email body",
               "clickable link with text 'Open the portal'",
@@ -1041,44 +991,44 @@
           "subject": "Thank you for your payment"
         },
         "module": "lure_url_analyzer",
-        "observable": 8,
+        "observable": 4,
         "summary": "Lure URL Analysis: https://pay.lure-example.net/portal (found in the email body; clickable link with text 'Open the portal'; styled as a button; call-to-action text (open); the only linked external domain)",
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 7
+            "observable": 6
           },
           {
-            "observable": 13
+            "observable": 20
           },
           {
-            "observable": 3
+            "observable": 18
           },
           {
-            "observable": 16
+            "observable": 17
           },
           {
-            "observable": 1
+            "observable": 21
           },
           {
-            "observable": 12
+            "observable": 8
           },
           {
-            "observable": 9,
+            "observable": 15,
             "path": "email.rfc822.unknown_text_plain_000.txt"
           },
           {
-            "observable": 14,
+            "observable": 7,
             "path": "email.rfc822.unknown_text_html_000.html"
           },
           {
-            "observable": 20,
+            "observable": 19,
             "path": "email.rfc822.headers"
           },
           {
-            "observable": 21,
+            "observable": 14,
             "path": "email.rfc822.combined"
           }
         ],
@@ -1154,7 +1104,7 @@
               "cc": [],
               "compauth_reason": null,
               "compauth_result": null,
-              "date": "2026-11-16 16:44:42.446810 +0000",
+              "date": "2026-11-18 06:02:40.851160 +0000",
               "dkim_result": null,
               "dmarc_result": null,
               "env_mail_from": null,
@@ -1214,7 +1164,7 @@
           "parsing_error": null
         },
         "module": "email_analyzer",
-        "observable": 8,
+        "observable": 4,
         "summary": "Email Analysis: From Sam Field <sam@partner-example.org> To pat@corp.example Subject Thank you for your payment",
         "tags": []
       },
@@ -1237,7 +1187,7 @@
           "type": "news or mail, ASCII text"
         },
         "module": "file_type",
-        "observable": 8,
+        "observable": 4,
         "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
         "tags": []
       },
@@ -1254,7 +1204,184 @@
           "script_count": 0
         },
         "module": "html_js_extraction",
+        "observable": 4,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 9
+          },
+          {
+            "observable": 12
+          }
+        ],
+        "class": "ParseURLAnalysis",
+        "details": {
+          "fragment": "",
+          "netloc": "offers.lure-example.net",
+          "params": null,
+          "path": "/pricing",
+          "query": "",
+          "scheme": "https"
+        },
+        "module": "parse_url",
+        "observable": 5,
+        "summary": "URL Parser: scheme=https, netloc=offers.lure-example.net, path=/pricing",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "ProtectedURLAnalysis",
+        "details": {
+          "extracted_url": "https://offers.lure-example.net/pricing",
+          "protection_type": "unprotected"
+        },
+        "module": "protected_url_analyzer",
+        "observable": 5,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 13
+          }
+        ],
+        "class": "EmailAddressFQDNAnalysis",
+        "details": {
+          "domain": "partner-example.org"
+        },
+        "module": "email_address_fqdn_analyzer",
+        "observable": 6,
+        "summary": "Email Address FQDN: partner-example.org",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": false,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "text/html",
+          "type": "HTML document, ASCII text, with very long lines (490)"
+        },
+        "module": "file_type",
+        "observable": 7,
+        "summary": "File Type Analysis: HTML document, ASCII text, with very long lines (490) (text/html)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "HTMLJavaScriptExtractionAnalysis",
+        "details": {
+          "dom_snapshot_files": [],
+          "duplicate_count": 0,
+          "extracted_files": [],
+          "extracted_uri_paths": [],
+          "extracted_urls": [],
+          "inline_handlers": [],
+          "script_count": 0
+        },
+        "module": "html_js_extraction",
+        "observable": 7,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 3
+          },
+          {
+            "observable": 2
+          },
+          {
+            "observable": 22
+          }
+        ],
+        "class": "URLExtractionAnalysis",
+        "details": {
+          "urls": [
+            "https://pay.lure-example.net/portal",
+            "https://pay.lure-example.net/receipt",
+            "https://pay.lure-example.net/review"
+          ],
+          "urls_grouped_by_domain": {
+            "lure-example.net": [
+              "https://pay.lure-example.net/portal",
+              "https://pay.lure-example.net/receipt",
+              "https://pay.lure-example.net/review"
+            ]
+          }
+        },
+        "module": "url_extraction",
+        "observable": 7,
+        "summary": "URL Extraction Analysis (pay.lure-example.net)",
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 13
+          }
+        ],
+        "class": "EmailAddressFQDNAnalysis",
+        "details": {
+          "domain": "partner-example.org"
+        },
+        "module": "email_address_fqdn_analyzer",
         "observable": 8,
+        "summary": "Email Address FQDN: partner-example.org",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "FileTypeAnalysis",
+        "details": {
+          "is_email_file": true,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "message/rfc822",
+          "type": "news or mail, ASCII text, with very long lines (490)"
+        },
+        "module": "file_type",
+        "observable": 14,
+        "summary": "File Type Analysis: news or mail, ASCII text, with very long lines (490) (message/rfc822) (email)",
+        "tags": []
+      },
+      {
+        "added": [],
+        "class": "HTMLJavaScriptExtractionAnalysis",
+        "details": {
+          "dom_snapshot_files": [],
+          "duplicate_count": 0,
+          "extracted_files": [],
+          "extracted_uri_paths": [],
+          "extracted_urls": [],
+          "inline_handlers": [],
+          "script_count": 0
+        },
+        "module": "html_js_extraction",
+        "observable": 14,
         "summary": null,
         "tags": []
       },
@@ -1277,14 +1404,14 @@
           "type": "ASCII text"
         },
         "module": "file_type",
-        "observable": 9,
+        "observable": 15,
         "summary": "File Type Analysis: ASCII text (text/plain)",
         "tags": []
       },
       {
         "added": [
           {
-            "observable": 0
+            "observable": 5
           }
         ],
         "class": "URLExtractionAnalysis",
@@ -1299,145 +1426,8 @@
           }
         },
         "module": "url_extraction",
-        "observable": 9,
+        "observable": 15,
         "summary": "URL Extraction Analysis (offers.lure-example.net)",
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 11
-          },
-          {
-            "observable": 18
-          }
-        ],
-        "class": "ParseURLAnalysis",
-        "details": {
-          "fragment": "",
-          "netloc": "pay.lure-example.net",
-          "params": null,
-          "path": "/portal",
-          "query": "",
-          "scheme": "https"
-        },
-        "module": "parse_url",
-        "observable": 10,
-        "summary": "URL Parser: scheme=https, netloc=pay.lure-example.net, path=/portal",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "ProtectedURLAnalysis",
-        "details": {
-          "extracted_url": "https://pay.lure-example.net/portal",
-          "protection_type": "unprotected"
-        },
-        "module": "protected_url_analyzer",
-        "observable": 10,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 19
-          }
-        ],
-        "class": "EmailAddressFQDNAnalysis",
-        "details": {
-          "domain": "partner-example.org"
-        },
-        "module": "email_address_fqdn_analyzer",
-        "observable": 12,
-        "summary": "Email Address FQDN: partner-example.org",
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 4
-          }
-        ],
-        "class": "EmailAddressFQDNAnalysis",
-        "details": {
-          "domain": "corp.example"
-        },
-        "module": "email_address_fqdn_analyzer",
-        "observable": 13,
-        "summary": "Email Address FQDN: corp.example",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": false,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "text/html",
-          "type": "HTML document, ASCII text, with very long lines (490)"
-        },
-        "module": "file_type",
-        "observable": 14,
-        "summary": "File Type Analysis: HTML document, ASCII text, with very long lines (490) (text/html)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "HTMLJavaScriptExtractionAnalysis",
-        "details": {
-          "dom_snapshot_files": [],
-          "duplicate_count": 0,
-          "extracted_files": [],
-          "extracted_uri_paths": [],
-          "extracted_urls": [],
-          "inline_handlers": [],
-          "script_count": 0
-        },
-        "module": "html_js_extraction",
-        "observable": 14,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [
-          {
-            "observable": 10
-          },
-          {
-            "observable": 6
-          },
-          {
-            "observable": 5
-          }
-        ],
-        "class": "URLExtractionAnalysis",
-        "details": {
-          "urls": [
-            "https://pay.lure-example.net/portal",
-            "https://pay.lure-example.net/receipt",
-            "https://pay.lure-example.net/review"
-          ],
-          "urls_grouped_by_domain": {
-            "lure-example.net": [
-              "https://pay.lure-example.net/portal",
-              "https://pay.lure-example.net/receipt",
-              "https://pay.lure-example.net/review"
-            ]
-          }
-        },
-        "module": "url_extraction",
-        "observable": 14,
-        "summary": "URL Extraction Analysis (pay.lure-example.net)",
         "tags": []
       },
       {
@@ -1459,7 +1449,7 @@
           "type": "news or mail, ASCII text"
         },
         "module": "file_type",
-        "observable": 20,
+        "observable": 19,
         "summary": "File Type Analysis: news or mail, ASCII text (message/rfc822) (email)",
         "tags": []
       },
@@ -1476,51 +1466,60 @@
           "script_count": 0
         },
         "module": "html_js_extraction",
-        "observable": 20,
+        "observable": 19,
         "summary": null,
         "tags": []
       },
       {
-        "added": [],
-        "class": "FileTypeAnalysis",
+        "added": [
+          {
+            "observable": 1
+          }
+        ],
+        "class": "EmailAddressFQDNAnalysis",
         "details": {
-          "is_email_file": true,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "message/rfc822",
-          "type": "news or mail, ASCII text, with very long lines (490)"
+          "domain": "corp.example"
         },
-        "module": "file_type",
-        "observable": 21,
-        "summary": "File Type Analysis: news or mail, ASCII text, with very long lines (490) (message/rfc822) (email)",
+        "module": "email_address_fqdn_analyzer",
+        "observable": 20,
+        "summary": "Email Address FQDN: corp.example",
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 0
+          },
+          {
+            "observable": 11
+          }
+        ],
+        "class": "ParseURLAnalysis",
+        "details": {
+          "fragment": "",
+          "netloc": "pay.lure-example.net",
+          "params": null,
+          "path": "/review",
+          "query": "",
+          "scheme": "https"
+        },
+        "module": "parse_url",
+        "observable": 22,
+        "summary": "URL Parser: scheme=https, netloc=pay.lure-example.net, path=/review",
         "tags": []
       },
       {
         "added": [],
-        "class": "HTMLJavaScriptExtractionAnalysis",
+        "class": "ProtectedURLAnalysis",
         "details": {
-          "dom_snapshot_files": [],
-          "duplicate_count": 0,
-          "extracted_files": [],
-          "extracted_uri_paths": [],
-          "extracted_urls": [],
-          "inline_handlers": [],
-          "script_count": 0
+          "extracted_url": "https://pay.lure-example.net/review",
+          "protection_type": "unprotected"
         },
-        "module": "html_js_extraction",
-        "observable": 21,
+        "module": "protected_url_analyzer",
+        "observable": 22,
         "summary": null,
         "tags": []
       }
-    ],
-    "whitelisted": false
+    ]
   }
 }

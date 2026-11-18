@@ -1,6 +1,6 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "37a765bf",
+  "ace3_commit": "fe6da632",
   "also_enabled": [
     "file_type",
     "email_analyzer",
@@ -129,7 +129,7 @@
             "cc": [],
             "compauth_reason": null,
             "compauth_result": null,
-            "date": "2026-11-16 16:30:59.184544 +0000",
+            "date": "2026-11-18 05:51:19.815208 +0000",
             "dkim_result": null,
             "dmarc_result": null,
             "env_mail_from": null,
@@ -417,8 +417,8 @@
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "email_to",
-        "value": "recipient@example.com"
+        "type": "email_return_path",
+        "value": "sender@example.com"
       },
       {
         "detections": [],
@@ -441,18 +441,21 @@
       {
         "detections": [],
         "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "message_id",
-        "value": "<test-encoded-subject@example.com>"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_return_path",
-        "value": "sender@example.com"
+        "paths": [
+          {
+            "path": "email.rfc822.headers",
+            "yara_meta": [
+              "type=email",
+              "type=email.headers"
+            ]
+          }
+        ],
+        "size": 518,
+        "tags": [
+          "email"
+        ],
+        "type": "file",
+        "value": "a5f2f472e5321eab3e189418aba5185b15f38c06bb7f3a61a0a08605861f50e4"
       },
       {
         "detections": [],
@@ -460,23 +463,7 @@
         "paths": [],
         "tags": [],
         "type": "email_subject",
-        "value": "=?UTF-8?B?VGVzdCBFbmNvZGVkIFN1YmplY3Q=?="
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_from",
-        "value": "sender@example.com"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "fqdn",
-        "value": "example.com"
+        "value": "Test Encoded Subject"
       },
       {
         "detections": [],
@@ -502,16 +489,8 @@
         "directives": [],
         "paths": [],
         "tags": [],
-        "type": "email_subject",
-        "value": "Test Encoded Subject"
-      },
-      {
-        "detections": [],
-        "directives": [],
-        "paths": [],
-        "tags": [],
-        "type": "email_conversation",
-        "value": "sender@example.com|recipient@example.com"
+        "type": "email_from",
+        "value": "sender@example.com"
       },
       {
         "detections": [],
@@ -535,28 +514,49 @@
       {
         "detections": [],
         "directives": [],
-        "paths": [
-          {
-            "path": "email.rfc822.headers",
-            "yara_meta": [
-              "type=email",
-              "type=email.headers"
-            ]
-          }
-        ],
-        "size": 518,
-        "tags": [
-          "email"
-        ],
-        "type": "file",
-        "value": "a5f2f472e5321eab3e189418aba5185b15f38c06bb7f3a61a0a08605861f50e4"
+        "paths": [],
+        "tags": [],
+        "type": "message_id",
+        "value": "<test-encoded-subject@example.com>"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "fqdn",
+        "value": "example.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_conversation",
+        "value": "sender@example.com|recipient@example.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_to",
+        "value": "recipient@example.com"
+      },
+      {
+        "detections": [],
+        "directives": [],
+        "paths": [],
+        "tags": [],
+        "type": "email_subject",
+        "value": "=?UTF-8?B?VGVzdCBFbmNvZGVkIFN1YmplY3Q=?="
       }
     ],
     "results": [
       {
         "added": [
           {
-            "observable": 6
+            "observable": 8
           }
         ],
         "class": "EmailAddressFQDNAnalysis",
@@ -574,33 +574,33 @@
             "observable": 5
           },
           {
-            "observable": 0
+            "observable": 10
           },
           {
             "observable": 9
           },
           {
-            "observable": 4
+            "observable": 11
           },
           {
-            "observable": 2
+            "observable": 7
+          },
+          {
+            "observable": 0
           },
           {
             "observable": 3
           },
           {
-            "observable": 8
-          },
-          {
-            "observable": 10,
+            "observable": 6,
             "path": "email.rfc822.unknown_text_plain_000.txt"
           },
           {
-            "observable": 11,
+            "observable": 2,
             "path": "email.rfc822.headers"
           },
           {
-            "observable": 7,
+            "observable": 4,
             "path": "email.rfc822.combined"
           }
         ],
@@ -684,7 +684,7 @@
               "cc": [],
               "compauth_reason": null,
               "compauth_result": null,
-              "date": "2026-11-16 16:30:59.184544 +0000",
+              "date": "2026-11-18 05:51:19.815208 +0000",
               "dkim_result": null,
               "dmarc_result": null,
               "env_mail_from": null,
@@ -794,33 +794,43 @@
         "tags": []
       },
       {
-        "added": [
-          {
-            "observable": 6
-          }
-        ],
-        "class": "EmailAddressFQDNAnalysis",
+        "added": [],
+        "class": "FileTypeAnalysis",
         "details": {
-          "domain": "example.com"
+          "is_email_file": true,
+          "is_jar_file": false,
+          "is_lnk_file": false,
+          "is_office_document": false,
+          "is_office_ext": false,
+          "is_ole_file": false,
+          "is_pdf_file": false,
+          "is_pe_file": false,
+          "is_rtf_file": false,
+          "is_x509": false,
+          "is_zip_file": false,
+          "mime": "message/rfc822",
+          "type": "SMTP mail, ASCII text"
         },
-        "module": "email_address_fqdn_analyzer",
-        "observable": 3,
-        "summary": "Email Address FQDN: example.com",
+        "module": "file_type",
+        "observable": 2,
+        "summary": "File Type Analysis: SMTP mail, ASCII text (message/rfc822) (email)",
         "tags": []
       },
       {
-        "added": [
-          {
-            "observable": 6
-          }
-        ],
-        "class": "EmailAddressFQDNAnalysis",
+        "added": [],
+        "class": "HTMLJavaScriptExtractionAnalysis",
         "details": {
-          "domain": "example.com"
+          "dom_snapshot_files": [],
+          "duplicate_count": 0,
+          "extracted_files": [],
+          "extracted_uri_paths": [],
+          "extracted_urls": [],
+          "inline_handlers": [],
+          "script_count": 0
         },
-        "module": "email_address_fqdn_analyzer",
-        "observable": 5,
-        "summary": "Email Address FQDN: example.com",
+        "module": "html_js_extraction",
+        "observable": 2,
+        "summary": null,
         "tags": []
       },
       {
@@ -842,7 +852,7 @@
           "type": "SMTP mail, ASCII text"
         },
         "module": "file_type",
-        "observable": 7,
+        "observable": 4,
         "summary": "File Type Analysis: SMTP mail, ASCII text (message/rfc822) (email)",
         "tags": []
       },
@@ -859,8 +869,23 @@
           "script_count": 0
         },
         "module": "html_js_extraction",
-        "observable": 7,
+        "observable": 4,
         "summary": null,
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 8
+          }
+        ],
+        "class": "EmailAddressFQDNAnalysis",
+        "details": {
+          "domain": "example.com"
+        },
+        "module": "email_address_fqdn_analyzer",
+        "observable": 5,
+        "summary": "Email Address FQDN: example.com",
         "tags": []
       },
       {
@@ -882,7 +907,7 @@
           "type": "ASCII text"
         },
         "module": "file_type",
-        "observable": 10,
+        "observable": 6,
         "summary": "File Type Analysis: ASCII text (text/plain)",
         "tags": []
       },
@@ -894,51 +919,25 @@
           "urls_grouped_by_domain": {}
         },
         "module": "url_extraction",
+        "observable": 6,
+        "summary": null,
+        "tags": []
+      },
+      {
+        "added": [
+          {
+            "observable": 8
+          }
+        ],
+        "class": "EmailAddressFQDNAnalysis",
+        "details": {
+          "domain": "example.com"
+        },
+        "module": "email_address_fqdn_analyzer",
         "observable": 10,
-        "summary": null,
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "FileTypeAnalysis",
-        "details": {
-          "is_email_file": true,
-          "is_jar_file": false,
-          "is_lnk_file": false,
-          "is_office_document": false,
-          "is_office_ext": false,
-          "is_ole_file": false,
-          "is_pdf_file": false,
-          "is_pe_file": false,
-          "is_rtf_file": false,
-          "is_x509": false,
-          "is_zip_file": false,
-          "mime": "message/rfc822",
-          "type": "SMTP mail, ASCII text"
-        },
-        "module": "file_type",
-        "observable": 11,
-        "summary": "File Type Analysis: SMTP mail, ASCII text (message/rfc822) (email)",
-        "tags": []
-      },
-      {
-        "added": [],
-        "class": "HTMLJavaScriptExtractionAnalysis",
-        "details": {
-          "dom_snapshot_files": [],
-          "duplicate_count": 0,
-          "extracted_files": [],
-          "extracted_uri_paths": [],
-          "extracted_urls": [],
-          "inline_handlers": [],
-          "script_count": 0
-        },
-        "module": "html_js_extraction",
-        "observable": 11,
-        "summary": null,
+        "summary": "Email Address FQDN: example.com",
         "tags": []
       }
-    ],
-    "whitelisted": false
+    ]
   }
 }

@@ -3302,6 +3302,7 @@ fn each_module_s_view_draws_its_fixture() {
         "network_two_networks",
         "parse_url_full",
         "idna_unicode",
+        "apex_domain_subdomain",
         "email_address_fqdn_plain",
         "protected_url_safelinks",
         "protected_url_one_drive",
@@ -3436,7 +3437,7 @@ fn each_module_s_view_draws_its_fixture() {
                 &[
                     "<tr><th>is_nrd</th><td>true</td></tr>",
                     "<tr><th>datetime_created</th><td>2026-11-01 12:30:00+00:00</td></tr>",
-                    "<tr><th>age_created_in_days</th><td>15</td></tr>",
+                    "<tr><th>age_created_in_days</th><td>16</td></tr>",
                     "<tr><th>lookup_protocol</th><td>rdap</td></tr>",
                 ],
             ),
@@ -3610,6 +3611,10 @@ fn each_module_s_view_draws_its_fixture() {
             "idna_unicode" => {
                 contains_all(&html, &["<tr><th>idna</th><td>xn--mnchen-3ya.de</td></tr>"])
             }
+            "apex_domain_subdomain" => contains_all(
+                &html,
+                &["<tr><th>apex_domain</th><td>example.co.uk</td></tr>"],
+            ),
             "email_address_fqdn_plain" => {
                 contains_all(&html, &["<tr><th>domain</th><td>example.com</td></tr>"])
             }
@@ -11830,7 +11835,7 @@ fn the_monitoring_page_draws_runs_and_records_as_text() {
         observable_type_counts: std::collections::BTreeMap::new(),
         task_count: 0,
         failed_task_count: 0,
-        cancelled: false,
+        outcome: ace_core::metrics::OUTCOME_COMPLETED,
         modules: vec![module.clone()],
     };
     let (root_table, module_table) = html

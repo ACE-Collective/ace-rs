@@ -15,8 +15,8 @@ use ace_sdk::tools::{LocalRunner, ToolRunner, ToolSpec};
 use ace_sdk::wire::{LeasedTask, TaskEnd};
 use ace_sdk::writes::WireWrite;
 use ace_sdk::{
-    CarryingEmail, Component, FileStore, Lookup, Manifest, ModuleError, Outcome, Parser, Secrets,
-    SettingsError, TaskContext, load_settings, run_lookup, run_parser,
+    CarryingEmail, Component, EmailBodyPart, FileStore, Lookup, Manifest, ModuleError, Outcome,
+    Parser, Secrets, SettingsError, TaskContext, load_settings, run_lookup, run_parser,
 };
 use serde_json::Value;
 use tokio_util::sync::CancellationToken;
@@ -53,8 +53,8 @@ pub struct Run<'a> {
     pub task: &'a LeasedTask,
     /// The input file's bytes on this machine, for a file task.
     pub input: Option<&'a Path>,
-    /// The body of the email that carried the task's file, for a module that reads it.
-    pub email_body: Option<&'a Path>,
+    /// The body parts of the email that carried the task's file, for a module that reads it.
+    pub email_parts: &'a [EmailBodyPart],
     /// The directory of the tree's files the module reads, each named by its sha256.
     pub tree_files: Option<&'a Path>,
     /// Where the module's output files go.
@@ -89,10 +89,10 @@ impl Run<'_> {
         if self.task.emails_pending {
             return CarryingEmail::Pending;
         }
-        match (&self.task.carrying_email, self.email_body) {
-            (None, _) => CarryingEmail::Absent,
-            (Some(_), Some(body)) => CarryingEmail::Body(body.to_owned()),
-            (Some(_), None) => CarryingEmail::NoBody,
+        match &self.task.carrying_email {
+            None => CarryingEmail::Absent,
+            Some(_) if self.email_parts.is_empty() => CarryingEmail::NoBody,
+            Some(_) => CarryingEmail::Parts(self.email_parts.to_vec()),
         }
     }
 }
@@ -530,12 +530,15 @@ mod tests {
         let dir = tempfile::tempdir().expect("a directory");
         let store: Arc<dyn FileStore> =
             Arc::new(LocalFileStore::new(dir.path().join("o")).expect("a store"));
-        let body = dir.path().join("email_body");
-        let state = |task: &LeasedTask, email_body: Option<&Path>| {
+        let parts = [EmailBodyPart {
+            path: dir.path().join("email_body.0"),
+            html: true,
+        }];
+        let state = |task: &LeasedTask, email_parts: &[EmailBodyPart]| {
             Run {
                 task,
                 input: None,
-                email_body,
+                email_parts,
                 tree_files: None,
                 outputs: store.clone(),
                 cancel: CancellationToken::new(),
@@ -546,13 +549,10 @@ mod tests {
             }
             .carrying_email()
         };
-        let no_body = task(Some(WireEmail { body: None }), false);
-        assert_eq!(state(&task(None, true), None), CarryingEmail::Pending);
-        assert_eq!(state(&task(None, false), None), CarryingEmail::Absent);
-        assert_eq!(state(&no_body, None), CarryingEmail::NoBody);
-        assert_eq!(
-            state(&no_body, Some(&body)),
-            CarryingEmail::Body(body.clone())
-        );
+        let email = task(Some(WireEmail { parts: Vec::new() }), false);
+        assert_eq!(state(&task(None, true), &[]), CarryingEmail::Pending);
+        assert_eq!(state(&task(None, false), &[]), CarryingEmail::Absent);
+        assert_eq!(state(&email, &[]), CarryingEmail::NoBody);
+        assert_eq!(state(&email, &parts), CarryingEmail::Parts(parts.to_vec()));
     }
 }

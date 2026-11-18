@@ -417,20 +417,19 @@ pub fn analyze_headers<'a, 'm>(
         email.x_mailer = Some(x_mailer);
     }
 
-    // ace3 labels these two "Originating IP" and "Sender IP"; the module doesn't set display types
-    // until its dumps record them (tests/differences.md)
+    // ace3 labels these two "Originating IP" and "Sender IP" (its 16e85ba6)
     if let Some(ip) = headers
         .decoded("x-originating-ip")
         .and_then(|v| headers::normalize_ip_header_value(&v))
     {
-        observables.add_timed(ObservableKind::Ip, &ip, received_time);
+        observables.add_labelled(ObservableKind::Ip, &ip, received_time, "Originating IP");
         email.originating_ip = Some(ip);
     }
     if let Some(ip) = headers
         .decoded("x-sender-ip")
         .and_then(|v| headers::normalize_ip_header_value(&v))
     {
-        observables.add_timed(ObservableKind::Ip, &ip, received_time);
+        observables.add_labelled(ObservableKind::Ip, &ip, received_time, "Sender IP");
         email.x_sender_ip = Some(ip);
     }
 
@@ -506,7 +505,12 @@ pub fn analyze_headers<'a, 'm>(
     if let Some(subject) = &email.subject {
         let decoded = py::decode_str(subject);
         if !decoded.is_empty() {
-            observables.add(ObservableKind::EmailSubject, &decoded);
+            observables.add_labelled(
+                ObservableKind::EmailSubject,
+                &decoded,
+                None,
+                "Decoded Subject",
+            );
         }
         email.decoded_subject = Some(decoded);
     }
@@ -632,10 +636,30 @@ impl Observables {
         self.push(NewObservable::new(kind, value));
     }
 
-    fn add_timed(&mut self, kind: ObservableKind, value: &str, time: Option<DateTime<Utc>>) {
+    /// ace3's `add_observable_by_spec` followed by setting the `display_type` of what it returns,
+    /// which is the observable already there when the value was added before: the label goes on it.
+    fn add_labelled(
+        &mut self,
+        kind: ObservableKind,
+        value: &str,
+        time: Option<DateTime<Utc>>,
+        label: &str,
+    ) {
+        if value.is_empty() {
+            return;
+        }
+        if let Some(known) = self
+            .list
+            .iter_mut()
+            .find(|o| o.kind == kind && o.value == value)
+        {
+            known.display_type = Some(label.to_owned());
+            return;
+        }
         let mut observable = NewObservable::new(kind, value);
         observable.time = time;
-        self.push(observable);
+        observable.display_type = Some(label.to_owned());
+        self.list.push(observable);
     }
 
     /// `add_email_address_observable`: the address, and the conversation from `source` to it.

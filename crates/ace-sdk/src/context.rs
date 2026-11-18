@@ -207,10 +207,21 @@ pub enum CarryingEmail {
     /// No email carried it, or the module doesn't read one.
     #[default]
     Absent,
-    /// An email carried it, and it has no body.
+    /// An email carried it, and it has no text or HTML body part.
     NoBody,
-    /// An email carried it, and its body's bytes are here on this machine.
-    Body(PathBuf),
+    /// An email carried it, with these body parts, in the order the email module extracted them,
+    /// each's bytes here on this machine: ace3's `EmailAnalysis.body_parts`.
+    Parts(Vec<EmailBodyPart>),
+}
+
+/// A text or HTML body part of the email that carried a task's observable.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct EmailBodyPart {
+    /// Where its bytes are.
+    pub path: PathBuf,
+    /// An HTML part (ace3's `is_html_body_part`), rather than plain text.
+    pub html: bool,
 }
 
 /// What a module gets for one task: the observable, its settings, the secrets it declared, a

@@ -147,8 +147,8 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 20:05:50+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 20:05:50+00:00",
+              "File:FileAccessDate": "2026:11:18 04:10:40+00:00",
+              "File:FileInodeChangeDate": "2026:11:18 04:10:40+00:00",
               "File:FileModifyDate": "2026:11:16 02:39:38+00:00",
               "File:FileName": "encrypted_rc4.doc",
               "File:FilePermissions": 100644,
@@ -247,8 +247,7 @@
               "/01Hannes Ruescher/01"
             ]
           },
-          "error": "could not crack password",
-          "summary": "MSOffice Encryption Analysis: could not crack password",
+          "summary": "MSOffice Encryption Analysis: no associated email detected",
           "tags": {}
         },
         "observable_detection": {
@@ -294,7 +293,7 @@
         "ole": true
       }
     },
-    "file:30c723150629c62183c26400b858cd800a2d28e8001eccb7c6a1af3d432ace8b": {
+    "file:3a5b675bac2a721ab924718b2f42cfaed0c2b3ac3c2cf48bfa8dde34a309804e": {
       "detections": {},
       "directives": {},
       "excluded_analysis": {

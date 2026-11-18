@@ -1,6 +1,6 @@
 {
   "about": "One ace3 module's analysis of one observable in the cli analysis mode, written by tools/ace3/dumps/run_module.py.",
-  "ace3_commit": "37a765bf",
+  "ace3_commit": "fe6da632",
   "also_enabled": [],
   "analyses": [
     {
@@ -10,7 +10,7 @@
           {
             "action_type": "ClickAllowed",
             "network_message_id": "6f1d5c2a-0000-4000-8000-000000000001",
-            "portal_url": "https://127.0.0.1/en-US/app/search/search?q=search+index%3Dace4_clicks+sourcetype%3D%22ace4%3Aclick%22+Url%3D%28%22click.example.com%22%29+earliest+%3D+11%2F09%2F2026%3A21%3A00%3A24+latest+%3D+11%2F16%2F2026%3A22%3A00%3A24%0A%7C+table+Timestamp+AccountUpn+ActionType+Url+NetworkMessageId",
+            "portal_url": "https://127.0.0.1/en-US/app/search/search?q=search+index%3Dace4_clicks+sourcetype%3D%22ace4%3Aclick%22+Url%3D%28%22click.example.com%22%29+earliest+%3D+11%2F11%2F2026%3A05%3A15%3A42+latest+%3D+11%2F18%2F2026%3A06%3A15%3A42%0A%7C+table+Timestamp+AccountUpn+ActionType+Url+NetworkMessageId",
             "searched_value": "click.example.com",
             "source": "splunk:url_clicks",
             "timestamp": "2026-11-08T10:00:00.1234567Z",
@@ -20,7 +20,7 @@
           {
             "action_type": "ClickBlocked",
             "network_message_id": null,
-            "portal_url": "https://127.0.0.1/en-US/app/search/search?q=search+index%3Dace4_clicks+sourcetype%3D%22ace4%3Aclick%22+Url%3D%28%22click.example.com%22%29+earliest+%3D+11%2F09%2F2026%3A21%3A00%3A24+latest+%3D+11%2F16%2F2026%3A22%3A00%3A24%0A%7C+table+Timestamp+AccountUpn+ActionType+Url+NetworkMessageId",
+            "portal_url": "https://127.0.0.1/en-US/app/search/search?q=search+index%3Dace4_clicks+sourcetype%3D%22ace4%3Aclick%22+Url%3D%28%22click.example.com%22%29+earliest+%3D+11%2F11%2F2026%3A05%3A15%3A42+latest+%3D+11%2F18%2F2026%3A06%3A15%3A42%0A%7C+table+Timestamp+AccountUpn+ActionType+Url+NetworkMessageId",
             "searched_value": "click.example.com",
             "source": "splunk:url_clicks",
             "timestamp": "2026-11-08T10:02:00Z",
@@ -30,7 +30,7 @@
           {
             "action_type": null,
             "network_message_id": null,
-            "portal_url": "https://127.0.0.1/en-US/app/search/search?q=search+index%3Dace4_proxy+%28%22click.example.com%22%29+_index_earliest+%3D+11%2F15%2F2026%3A21%3A00%3A24+_index_latest+%3D+11%2F16%2F2026%3A22%3A00%3A24%0A%7C+table+_time+user+url",
+            "portal_url": "https://127.0.0.1/en-US/app/search/search?q=search+index%3Dace4_proxy+%28%22click.example.com%22%29+_index_earliest+%3D+11%2F17%2F2026%3A05%3A15%3A42+_index_latest+%3D+11%2F18%2F2026%3A06%3A15%3A42%0A%7C+table+_time+user+url",
             "searched_value": "click.example.com",
             "source": "splunk:proxy",
             "timestamp": "2026-11-08T10:05:00.000+00:00",
@@ -40,7 +40,7 @@
           {
             "action_type": null,
             "network_message_id": null,
-            "portal_url": "https://127.0.0.1/en-US/app/search/search?q=search+index%3Dace4_proxy+%28%22click.example.com%22%29+_index_earliest+%3D+11%2F15%2F2026%3A21%3A00%3A24+_index_latest+%3D+11%2F16%2F2026%3A22%3A00%3A24%0A%7C+table+_time+user+url",
+            "portal_url": "https://127.0.0.1/en-US/app/search/search?q=search+index%3Dace4_proxy+%28%22click.example.com%22%29+_index_earliest+%3D+11%2F17%2F2026%3A05%3A15%3A42+_index_latest+%3D+11%2F18%2F2026%3A06%3A15%3A42%0A%7C+table+_time+user+url",
             "searched_value": "click.example.com",
             "source": "splunk:proxy",
             "timestamp": "2026-11-08T10:06:00.000+00:00",
@@ -50,7 +50,7 @@
           {
             "action_type": null,
             "network_message_id": null,
-            "portal_url": "https://127.0.0.1/en-US/app/search/search?q=search+index%3Dace4_dns+query%3D%28%22click.example.com%22%29+earliest+%3D+11%2F16%2F2026%3A09%3A00%3A24+latest+%3D+11%2F16%2F2026%3A21%3A00%3A24",
+            "portal_url": "https://127.0.0.1/en-US/app/search/search?q=search+index%3Dace4_dns+query%3D%28%22click.example.com%22%29+earliest+%3D+11%2F17%2F2026%3A17%3A15%3A42+latest+%3D+11%2F18%2F2026%3A05%3A15%3A42",
             "searched_value": "click.example.com",
             "source": "splunk:domains_only",
             "timestamp": "2026-11-08T09:00:00.000+00:00",
@@ -67,12 +67,12 @@
         "clicker_source": "splunk",
         "dispatch_state": null,
         "end_time": null,
-        "gui_link": "https://127.0.0.1/en-US/app/search/search?q=search+index%3Dace4_dns+query%3D%28%22click.example.com%22%29+earliest+%3D+11%2F16%2F2026%3A09%3A00%3A24+latest+%3D+11%2F16%2F2026%3A21%3A00%3A24",
+        "gui_link": "https://127.0.0.1/en-US/app/search/search?q=search+index%3Dace4_dns+query%3D%28%22click.example.com%22%29+earliest+%3D+11%2F17%2F2026%3A17%3A15%3A42+latest+%3D+11%2F18%2F2026%3A05%3A15%3A42",
         "gui_link_label": "Open in Splunk",
         "matched_url_count": 1,
         "query": null,
         "query_results": null,
-        "query_start": 1794862824.936309,
+        "query_start": 1794978942.7962701,
         "query_summary": "URL Clicks",
         "question": "Did anyone click this URL or visit this domain?",
         "running_start_time": null,

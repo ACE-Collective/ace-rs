@@ -180,7 +180,7 @@
       },
       "tags": {}
     },
-    "file:06f7515b7fd4f97f493f0ad8a5ec999d713345c338e60ba6c0951d42398251c5": {
+    "file:07f6bf69c6e371273c4e07bc653332c3bf74c71f5fca1aa72e25785f1aa65a4d": {
       "detections": {},
       "directives": {},
       "excluded_analysis": {
@@ -188,7 +188,7 @@
         "file_type": true
       },
       "paths": {
-        "invoice.docx.exif/exiftool.out": {
+        "invoice_000.docx.exif/exiftool.out": {
           "type=metadata.exif": true
         }
       },
@@ -367,9 +367,9 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 19:47:22+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 19:47:22+00:00",
-              "File:FileModifyDate": "2026:11:16 19:47:22+00:00",
+              "File:FileAccessDate": "2026:11:18 03:55:16+00:00",
+              "File:FileInodeChangeDate": "2026:11:18 03:55:16+00:00",
+              "File:FileModifyDate": "2026:11:18 03:55:16+00:00",
               "File:FileName": "invoice.docx",
               "File:FilePermissions": 100664,
               "File:FileSize": 17920,
@@ -414,44 +414,50 @@
         "msoffice_encryption_analyzer": {
           "details": {
             "email": true,
-            "email_body": "The inner password is InnerPw1\n\n",
+            "email_body": "The outer email has no password\n\nThe inner password is InnerPw1",
             "encryption_info": null,
             "password": "InnerPw1",
             "word_list": [
               "VelvetSweatshop",
               "/01Hannes Ruescher/01",
-              "Inne",
-              "Inner",
-              "InnerP",
-              "InnerPw",
-              "InnerPw1",
-              "assw",
-              "asswo",
-              "asswor",
-              "assword",
-              "erPw",
-              "erPw1",
-              "inne",
-              "inner",
-              "nerP",
-              "nerPw",
-              "nerPw1",
-              "nner",
-              "nnerP",
-              "nnerPw",
-              "nnerPw1",
-              "pass",
-              "passw",
-              "passwo",
-              "passwor",
+              "outer",
+              "email",
               "password",
-              "rPw1",
+              "inner",
+              "InnerPw1",
+              "oute",
+              "uter",
+              "emai",
+              "mail",
+              "pass",
+              "assw",
               "sswo",
-              "sswor",
-              "ssword",
               "swor",
+              "word",
+              "inne",
+              "nner",
+              "Inne",
+              "nerP",
+              "erPw",
+              "rPw1",
+              "passw",
+              "asswo",
+              "sswor",
               "sword",
-              "word"
+              "Inner",
+              "nnerP",
+              "nerPw",
+              "erPw1",
+              "passwo",
+              "asswor",
+              "ssword",
+              "InnerP",
+              "nnerPw",
+              "nerPw1",
+              "passwor",
+              "assword",
+              "InnerPw",
+              "nnerPw1"
             ]
           },
           "summary": "MSOffice Encryption Analysis: password InnerPw1",
@@ -508,39 +514,6 @@
         "microsoft_office": true,
         "ole": true
       }
-    },
-    "file:311d41f4f3d22034b39bb45c928d02d3959f8eec734b474f67263a3fab904b34": {
-      "detections": {},
-      "directives": {},
-      "excluded_analysis": {
-        "file_hash_analyzer": true,
-        "file_type": true
-      },
-      "paths": {
-        "invoice.docx.decrypted.exif/exiftool.out": {
-          "type=metadata.exif": true
-        }
-      },
-      "relationships": {
-        "extracted_from file:6a65fb99c4c7ecb88273b7f1d49b00640de95cb682cb1a63df0c08764f0ef24d": true
-      },
-      "results": {
-        "observable_detection": {
-          "details": {
-            "for_detection": false
-          },
-          "summary": null,
-          "tags": {}
-        },
-        "user_defined_tagging": {
-          "details": {
-            "tags_added": []
-          },
-          "summary": null,
-          "tags": {}
-        }
-      },
-      "tags": {}
     },
     "file:3189776231de3ed47a23e59ec8b1acc4e04dab7b6774576fa626fdeb6f13cc39": {
       "detections": {},
@@ -1130,6 +1103,39 @@
         "email": true
       }
     },
+    "file:66c6a0b1437155fc61c19c6cf03d9aaf2b1f2076d338af2ce546b9121957efb2": {
+      "detections": {},
+      "directives": {},
+      "excluded_analysis": {
+        "file_hash_analyzer": true,
+        "file_type": true
+      },
+      "paths": {
+        "invoice.docx.exif/exiftool.out": {
+          "type=metadata.exif": true
+        }
+      },
+      "relationships": {
+        "extracted_from file:2ed4859b4203569d8720219e128039963af868b98f9b04ced3d2db0e49d4bfd2": true
+      },
+      "results": {
+        "observable_detection": {
+          "details": {
+            "for_detection": false
+          },
+          "summary": null,
+          "tags": {}
+        },
+        "user_defined_tagging": {
+          "details": {
+            "tags_added": []
+          },
+          "summary": null,
+          "tags": {}
+        }
+      },
+      "tags": {}
+    },
     "file:6a65fb99c4c7ecb88273b7f1d49b00640de95cb682cb1a63df0c08764f0ef24d": {
       "detections": {
         "Was able to decrypt based on contents of email.": [
@@ -1174,9 +1180,9 @@
             "exifdata": {
               "ExifTool:ExifToolVersion": 13.25,
               "File:Directory": "<root>/files",
-              "File:FileAccessDate": "2026:11:16 19:47:25+00:00",
-              "File:FileInodeChangeDate": "2026:11:16 19:47:25+00:00",
-              "File:FileModifyDate": "2026:11:16 19:47:25+00:00",
+              "File:FileAccessDate": "2026:11:18 03:55:17+00:00",
+              "File:FileInodeChangeDate": "2026:11:18 03:55:17+00:00",
+              "File:FileModifyDate": "2026:11:18 03:55:17+00:00",
               "File:FileName": "invoice.docx.decrypted",
               "File:FilePermissions": 100666,
               "File:FileSize": 12529,
@@ -1671,7 +1677,7 @@
         "email": true
       }
     },
-    "file:86fd41eec5bbea814d9a84622dda8a440d4bbcadd1cd9d19493d20ea6938af5a": {
+    "file:93f052168dbc1648a6df8d6490b4f4d180e7481a256f72b0c8aa57e48bc80aa3": {
       "detections": {},
       "directives": {},
       "excluded_analysis": {
@@ -1770,7 +1776,7 @@
       },
       "tags": {}
     },
-    "file:9a086735bf1e19d93ebd4f7f81308ff2b5144603b37a198122cfb26f17b930f2": {
+    "file:af847bf26c9eaf6034f3c0f0744aee20cd1fa5273cf4022b764cd87badffeaf9": {
       "detections": {},
       "directives": {},
       "excluded_analysis": {
@@ -1778,12 +1784,12 @@
         "file_type": true
       },
       "paths": {
-        "invoice_000.docx.exif/exiftool.out": {
+        "invoice.docx.decrypted.exif/exiftool.out": {
           "type=metadata.exif": true
         }
       },
       "relationships": {
-        "extracted_from file:2ed4859b4203569d8720219e128039963af868b98f9b04ced3d2db0e49d4bfd2": true
+        "extracted_from file:6a65fb99c4c7ecb88273b7f1d49b00640de95cb682cb1a63df0c08764f0ef24d": true
       },
       "results": {
         "observable_detection": {
