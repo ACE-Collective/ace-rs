@@ -1,6 +1,6 @@
 # 0004: A cache of module results across alerts
 
-Status: proposed on 2026-11-18. The owner decided that day that ace4 needs a version of ace3's analysis result cache; this is the design for the owner to review before any code. It replaces PLAN.md 6.7's "ace4 has no analysis cache".
+Status: decided on 2026-11-18, not yet built. The owner decided that day that ace4 needs a version of ace3's analysis result cache, and accepted this design's four choices: the cache is checked before a task is queued, so a hit makes no task; the comparison runs with the cache off, plus the two-run check; ace3's seven opt-ins and their times to live are ace4's defaults; and the time to live is a setting in the overlay, per module. It replaces PLAN.md 6.7's "ace4 has no analysis cache".
 
 ## Why
 
