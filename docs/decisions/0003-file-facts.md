@@ -1,6 +1,6 @@
 # 0003: What a file is, known when it is added
 
-Status: proposed on 2026-11-17. The approach is the owner's (one mechanism, facts on the file, decided that day); this is the design for the owner to review before any code.
+Status: decided on 2026-11-17, not yet built. The owner chose option 2 (the byte facts as each file's first, contained task) and accepted that `file_type`'s result leaves the tree. The owner kept the distinction this design draws between a file's *type* (what its bytes are, such as `text/plain`) and its *role* (what its producer made it, such as an email's text body); the two are named so from here on. Open: whether the role is `yara_meta`'s `type=` value as it is, or a field of its own that `yara_meta` is built from.
 
 ## The problem
 
