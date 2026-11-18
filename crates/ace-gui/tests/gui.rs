@@ -11804,14 +11804,25 @@ fn the_monitoring_page_draws_runs_and_records_as_text() {
     });
     assert!(html.contains("7 more aren't shown."), "{html}");
 
-    // the page is where an operator learns of the per-root metrics event: its target, its message
-    // and every field the core emits, by the name it emits it under
+    // the page is where an operator learns of the per-root metrics events: their target, their
+    // messages and every field the core emits in each, by the name it emits it under
+    let module = ace_core::metrics::ModuleMetrics {
+        event_type: ace_core::metrics::EVENT_TYPE_MODULE,
+        timestamp: chrono::Utc::now(),
+        root_uuid: uuid::Uuid::from_u128(7),
+        pass: 1,
+        module: "file_type".to_owned(),
+        analysis_time_seconds: 0.5,
+        percentage: 100.0,
+        exec_count: 1,
+    };
     let event = ace_core::metrics::RootMetrics {
         event_type: ace_core::metrics::EVENT_TYPE_ROOT,
         timestamp: chrono::Utc::now(),
         root_uuid: uuid::Uuid::from_u128(7),
         pass: 1,
-        total_time_seconds: Some(1.5),
+        total_analysis_time_seconds: 0.5,
+        pass_open_seconds: Some(1.5),
         alert_type: None,
         is_alert: false,
         queue: "default".to_owned(),
@@ -11820,26 +11831,40 @@ fn the_monitoring_page_draws_runs_and_records_as_text() {
         task_count: 0,
         failed_task_count: 0,
         cancelled: false,
+        modules: vec![module.clone()],
     };
-    let fields: serde_json::Value = serde_json::from_str(&event.to_json()).expect("JSON");
-    let fields = fields.as_object().expect("an object");
-    assert_eq!(fields.len(), 13);
-    for field in fields.keys() {
-        assert!(
-            html.contains(&format!("<tr><td><code>{field}</code></td><td>")),
-            "the page doesn't describe the event's {field}"
+    let (root_table, module_table) = html
+        .split_once(r#"<table class="keys metrics-module-fields">"#)
+        .expect("a table of the module event's fields");
+    let root_table = root_table
+        .split_once(r#"<table class="keys metrics-fields">"#)
+        .expect("a table of the root event's fields")
+        .1;
+    for (json, table, count) in [
+        (event.to_json(), root_table, 14),
+        (module.to_json(), module_table, 8),
+    ] {
+        let fields: serde_json::Value = serde_json::from_str(&json).expect("JSON");
+        let fields = fields.as_object().expect("an object");
+        assert_eq!(fields.len(), count, "{json}");
+        for field in fields.keys() {
+            assert!(
+                table.contains(&format!("<tr><td><code>{field}</code></td><td>")),
+                "the page doesn't describe the event's {field}"
+            );
+        }
+        assert_eq!(
+            table.matches("<tr><td><code>").count(),
+            fields.len(),
+            "the page describes a field the event doesn't have"
         );
     }
-    assert_eq!(
-        html.matches("<tr><td><code>").count(),
-        fields.len(),
-        "the page describes a field the event doesn't have"
-    );
     contains_all(
         &html,
         &[
             &format!("<code>{}</code>", ace_core::metrics::TARGET),
             &format!("<code>{}</code>", ace_core::metrics::MESSAGE_PREFIX),
+            &format!("<code>{}</code>", ace_core::metrics::MODULE_MESSAGE_PREFIX),
             "<code>ace_monitor</code>",
         ],
     );

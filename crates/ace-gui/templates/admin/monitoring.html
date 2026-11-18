@@ -1,7 +1,7 @@
 {#- Administration's Monitoring page (PLAN.md 7.12): the scheduled tasks, their runs, and what the
     monitoring checks last found (src/monitoring.rs). ace3 has no such page: its monitors' records and
     its cron runs' outcomes go to fluent-bit. Its last section names what is only in the log, the
-    per-root metrics event among it, with each of its fields. -#}
+    per-root metrics events among it, with each of their fields. -#}
 {% extends "base.html" %}
 {% block title %}Monitoring · Administration · ACE{% endblock %}
 {% block content %}
@@ -75,23 +75,38 @@
   {#- what an operator finds only in the log: the checks' records as lines, and the per-root metrics
       event (ace_core::metrics), which no check emits and no table keeps -#}
   <h2>In the log</h2>
-  <p class="muted">A check's records are also log lines, under the target <code>ace_monitor</code>. And when a root's analysis pass completes, ACE logs one metrics event under the target <code>ace_metrics</code>: the message <code>METRICS (root): </code> and the event as JSON on one line. Both are INFO, so <code>ACE4_LOG</code> must allow it.</p>
+  <p class="muted">A check's records are also log lines, under the target <code>ace_monitor</code>. And when a root's analysis pass completes, ACE logs one metrics event for the root under the target <code>ace_metrics</code>, the message <code>METRICS (root): </code> and the event as JSON on one line, and then one for each module that ran in the pass, the message <code>METRICS (module): </code> and its JSON. All are INFO, so <code>ACE4_LOG</code> must allow them.</p>
+  <p class="muted">A task's run is one claim of it: from when its lease was taken to when its end or its delay reached the core. That is the module's work with what surrounds it, the task process's start, its file's download and its result's upload, but not the time the task waited for a pool or a delay. A delayed task's runs add up.</p>
   <table class="keys metrics-fields">
-    <thead><tr><th>Field of the metrics event</th><th>What it is</th></tr></thead>
+    <thead><tr><th>Field of the root's event</th><th>What it is</th></tr></thead>
     <tbody>
       <tr><td><code>event_type</code></td><td><code>root</code></td></tr>
       <tr><td><code>timestamp</code></td><td>When the pass completed, in UTC.</td></tr>
       <tr><td><code>root_uuid</code></td><td>The root.</td></tr>
       <tr><td><code>pass</code></td><td>Which of the root's passes completed, from 1.</td></tr>
-      <tr><td><code>total_time_seconds</code></td><td>How long the pass was open, from the first work queued on the idle root to its last task's end. It includes the time tasks waited for a worker or for a delay to end.</td></tr>
+      <tr><td><code>total_analysis_time_seconds</code></td><td>The run times of the root's tasks in the pass, added up, the core's hooks included.</td></tr>
+      <tr><td><code>pass_open_seconds</code></td><td>How long the pass was open, from the first work queued on the idle root to its last task's end. It includes the time tasks waited for a pool or for a delay to end, and tasks run side by side, so it isn't the time analysis took.</td></tr>
       <tr><td><code>alert_type</code></td><td>The root's alert type, or null when its submitter named none.</td></tr>
       <tr><td><code>is_alert</code></td><td>Whether the root is an alert.</td></tr>
       <tr><td><code>queue</code></td><td>The root's queue.</td></tr>
       <tr><td><code>observable_count</code></td><td>The root's observables.</td></tr>
       <tr><td><code>observable_type_counts</code></td><td>The same, by observable type.</td></tr>
-      <tr><td><code>task_count</code></td><td>The root's module tasks, from every pass.</td></tr>
+      <tr><td><code>task_count</code></td><td>The root's module tasks, from every pass: the ones queued to run, which each ran or was cancelled first.</td></tr>
       <tr><td><code>failed_task_count</code></td><td>Those that failed.</td></tr>
       <tr><td><code>cancelled</code></td><td>Whether the root's analysis was cancelled.</td></tr>
+    </tbody>
+  </table>
+  <table class="keys metrics-module-fields">
+    <thead><tr><th>Field of a module's event</th><th>What it is</th></tr></thead>
+    <tbody>
+      <tr><td><code>event_type</code></td><td><code>module</code></td></tr>
+      <tr><td><code>timestamp</code></td><td>The root's event's, which joins them.</td></tr>
+      <tr><td><code>root_uuid</code></td><td>The root.</td></tr>
+      <tr><td><code>pass</code></td><td>The pass, as in the root's event.</td></tr>
+      <tr><td><code>module</code></td><td>The module.</td></tr>
+      <tr><td><code>analysis_time_seconds</code></td><td>The run times of the module's tasks in the pass, added up.</td></tr>
+      <tr><td><code>percentage</code></td><td>That as a share of the root's <code>total_analysis_time_seconds</code>.</td></tr>
+      <tr><td><code>exec_count</code></td><td>The module's runs in the pass.</td></tr>
     </tbody>
   </table>
 </section>

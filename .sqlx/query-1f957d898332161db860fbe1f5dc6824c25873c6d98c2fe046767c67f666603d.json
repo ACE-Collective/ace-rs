@@ -1,0 +1,58 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE queue.tasks\n               SET state = CASE WHEN cancel_requested THEN 'cancelled'::queue.task_state\n                                ELSE 'delayed'::queue.task_state END,\n                   run_after = now() + make_interval(secs => $3),\n                   delay_state = $4, first_delayed_at = COALESCE(first_delayed_at, now()),\n                   delays = delays + 1, attempts = 0, lease_owner = NULL,\n                   lease_expires_at = NULL, updated_at = now(),\n                   run_seconds = CASE WHEN run_pass = $5 THEN run_seconds ELSE 0 END\n                       + GREATEST(COALESCE(EXTRACT(EPOCH FROM now() - claimed_at)::float8, 0), 0),\n                   runs = CASE WHEN run_pass = $5 THEN runs ELSE 0 END + 1,\n                   run_pass = $5\n               WHERE id = $1 AND lease_owner = $2 AND state = 'running'\n               RETURNING run_after, state AS \"state: TaskState\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "run_after",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "queue.tasks",
+            "name": "run_after"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "state: TaskState",
+        "type_info": {
+          "Custom": {
+            "name": "queue.task_state",
+            "kind": {
+              "Enum": [
+                "queued",
+                "delayed",
+                "running",
+                "done",
+                "failed",
+                "cancelled"
+              ]
+            }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "queue.tasks",
+            "name": "state"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text",
+        "Float8",
+        "Jsonb",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "1f957d898332161db860fbe1f5dc6824c25873c6d98c2fe046767c67f666603d"
+}

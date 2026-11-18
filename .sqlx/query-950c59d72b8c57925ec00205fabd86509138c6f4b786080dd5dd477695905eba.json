@@ -1,16 +1,16 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id FROM analysis.roots WHERE id = $1 FOR UPDATE",
+  "query": "SELECT pass FROM analysis.roots WHERE id = $1 FOR UPDATE",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
-        "name": "id",
-        "type_info": "Uuid",
+        "name": "pass",
+        "type_info": "Int4",
         "origin": {
           "Table": {
             "table": "analysis.roots",
-            "name": "id"
+            "name": "pass"
           }
         }
       }
@@ -24,5 +24,5 @@
       false
     ]
   },
-  "hash": "c67a74be6c588fd34092149ca3fd743c9e1d28874f873fce897ddffb1c049a67"
+  "hash": "950c59d72b8c57925ec00205fabd86509138c6f4b786080dd5dd477695905eba"
 }

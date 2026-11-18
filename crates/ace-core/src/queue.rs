@@ -5,7 +5,10 @@
 //! each other's claims and no task is claimed twice. A claim takes a lease on each task: the
 //! worker is the task's owner until the lease expires. Every later
 //! change a worker makes to the task checks that it still owns it, so a worker whose lease ran
-//! out can't overwrite what the task's next owner does.
+//! out can't overwrite what the task's next owner does. The claim records when it took the lease
+//! (`claimed_at`), and the statement that ends the task or delays it adds that run, from the claim
+//! to its own transaction's start, to the task's run time in the root's pass (`run_seconds`, `runs`,
+//! `run_pass`), which the pass's metrics events read (`crate::metrics`).
 //!
 //! A worker with nothing to claim waits on `LISTEN ace4_tasks` (`Wakeups`), which a trigger
 //! notifies whenever a task becomes claimable, with a bounded wait as the fallback in case a
@@ -140,13 +143,20 @@ pub async fn enqueue(
 /// Locks the root's row until the transaction ends. Every change that queues or ends tasks
 /// takes this lock first, so completion is decided by one transaction at a time.
 pub async fn lock_root(tx: &mut Tx<'_>, root: Uuid) -> Result<(), QueueError> {
-    sqlx::query!(
-        "SELECT id FROM analysis.roots WHERE id = $1 FOR UPDATE",
+    lock_root_in_pass(tx, root).await?;
+    Ok(())
+}
+
+/// `lock_root`, which also returns the root's current pass, or None when there's no such root. One
+/// statement, `lock_root`'s, which a task's end and its delay read the pass from to record its run
+/// (`Worker::finish_in`).
+async fn lock_root_in_pass(tx: &mut Tx<'_>, root: Uuid) -> Result<Option<i32>, QueueError> {
+    Ok(sqlx::query_scalar!(
+        "SELECT pass FROM analysis.roots WHERE id = $1 FOR UPDATE",
         root
     )
     .fetch_optional(tx.conn())
-    .await?;
-    Ok(())
+    .await?)
 }
 
 /// Starts a new analysis pass if the root's last one completed, as when tasks are queued on an
@@ -513,7 +523,7 @@ impl Worker {
                UPDATE queue.tasks t
                SET state = 'running', lease_owner = $1,
                    lease_expires_at = now() + make_interval(secs => $2),
-                   attempts = t.attempts + 1, updated_at = now()
+                   attempts = t.attempts + 1, claimed_at = now(), updated_at = now()
                FROM due, analysis.observables o
                WHERE t.id = due.id AND o.id = t.observable_id
                RETURNING t.id AS "id: TaskId", t.root_id, t.module, t.attempts, t.input_hashes,
@@ -720,7 +730,8 @@ impl Worker {
         after: Duration,
         state: &serde_json::Value,
     ) -> Result<Option<(DateTime<Utc>, Uuid)>, QueueError> {
-        let root = self.lock_task_root(tx, task).await?;
+        let (root, pass) = self.lock_task_root_in_pass(tx, task).await?;
+        // the run ends here, as at a task's end (`finish_in`)
         let row = sqlx::query!(
             r#"UPDATE queue.tasks
                SET state = CASE WHEN cancel_requested THEN 'cancelled'::queue.task_state
@@ -728,13 +739,18 @@ impl Worker {
                    run_after = now() + make_interval(secs => $3),
                    delay_state = $4, first_delayed_at = COALESCE(first_delayed_at, now()),
                    delays = delays + 1, attempts = 0, lease_owner = NULL,
-                   lease_expires_at = NULL, updated_at = now()
+                   lease_expires_at = NULL, updated_at = now(),
+                   run_seconds = CASE WHEN run_pass = $5 THEN run_seconds ELSE 0 END
+                       + GREATEST(COALESCE(EXTRACT(EPOCH FROM now() - claimed_at)::float8, 0), 0),
+                   runs = CASE WHEN run_pass = $5 THEN runs ELSE 0 END + 1,
+                   run_pass = $5
                WHERE id = $1 AND lease_owner = $2 AND state = 'running'
                RETURNING run_after, state AS "state: TaskState""#,
             task as TaskId,
             self.name,
             after.as_secs_f64(),
             state,
+            pass,
         )
         .fetch_optional(tx.conn())
         .await?
@@ -749,6 +765,15 @@ impl Worker {
 
     /// The task's root, locked until the transaction ends.
     async fn lock_task_root(&self, tx: &mut Tx<'_>, task: TaskId) -> Result<Uuid, QueueError> {
+        Ok(self.lock_task_root_in_pass(tx, task).await?.0)
+    }
+
+    /// `lock_task_root`, with the root's current pass, which a run that ends now ends in.
+    async fn lock_task_root_in_pass(
+        &self,
+        tx: &mut Tx<'_>,
+        task: TaskId,
+    ) -> Result<(Uuid, Option<i32>), QueueError> {
         let root = sqlx::query_scalar!(
             "SELECT root_id FROM queue.tasks WHERE id = $1",
             task as TaskId
@@ -756,8 +781,8 @@ impl Worker {
         .fetch_optional(tx.conn())
         .await?
         .ok_or(QueueError::LeaseLost(task))?;
-        lock_root(tx, root).await?;
-        Ok(root)
+        let pass = lock_root_in_pass(tx, root).await?;
+        Ok((root, pass))
     }
 
     /// Extends the lease on a task the worker owns to a full lease from now. The answer also
@@ -888,17 +913,24 @@ impl Worker {
         state: TaskState,
         error: Option<&str>,
     ) -> Result<Uuid, QueueError> {
-        let root = self.lock_task_root(tx, task).await?;
+        let (root, pass) = self.lock_task_root_in_pass(tx, task).await?;
+        // the run that ends here is added to the task's runs in this pass (`crate::metrics`): from
+        // its claim to now(), this transaction's start, by the database's clock at both ends
         let finished = sqlx::query!(
             "UPDATE queue.tasks
              SET state = $3, error = $4, lease_owner = NULL, lease_expires_at = NULL,
-                 updated_at = now()
+                 updated_at = now(),
+                 run_seconds = CASE WHEN run_pass = $5 THEN run_seconds ELSE 0 END
+                     + GREATEST(COALESCE(EXTRACT(EPOCH FROM now() - claimed_at)::float8, 0), 0),
+                 runs = CASE WHEN run_pass = $5 THEN runs ELSE 0 END + 1,
+                 run_pass = $5
              WHERE id = $1 AND lease_owner = $2 AND state = 'running'
              RETURNING module, declined",
             task as TaskId,
             self.name,
             state as TaskState,
             error,
+            pass,
         )
         .fetch_optional(tx.conn())
         .await?;

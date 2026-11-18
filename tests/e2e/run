@@ -26,7 +26,8 @@ it is killed with SIGKILL while it holds that lease, then started again. Both ro
 results from all five modules and complete; the second only later. The same email goes in both
 times, so their trees in the normal form (PLAN.md 3.1) must be the same text, which goes to
 <work>/normal-form.json. The core's log must have one per-root metrics event (`ace_core::metrics`,
-ace3's since 972058d1) for each pass each of the two completed, the last with the root's counts.
+ace3's since 972058d1) for each pass each of the two completed, the last with the root's counts,
+and after it one module event for each module that ran in that pass, with its tasks' run times.
 
 Then search (PLAN.md 7.11): the indexer, a task of `ace serve`, has to have indexed both alerts once
 their passes completed, embedding their text with the model the ace image carries into the pgvector
@@ -1344,7 +1345,9 @@ def check_alert_list(page, root, expect):
 def check_root_metrics(roots, failures):
     """The per-root metrics event (ace3 972058d1 and 6a9cd43f, `ace_core::metrics`): the core's log, which
     is where the event is shipped from, has one `METRICS (root)` record for each pass each of these
-    roots completed and no more, and the last one's counts are the root's."""
+    roots completed and no more, and the last one's counts are the root's. Its `METRICS (module)`
+    records for that pass are one for each module with a run in it, with the module's run time and
+    runs as the tasks' rows have them, adding up to the root event's `total_analysis_time_seconds`."""
 
     def expect(ok, message):
         log(("ok    " if ok else "FAIL  ") + message)
@@ -1352,13 +1355,14 @@ def check_root_metrics(roots, failures):
             failures.append(f"the metrics event: {message}")
         return ok
 
-    prefix = "METRICS (root): "
+    prefix, module_prefix = "METRICS (root): ", "METRICS (module): "
     decoder = json.JSONDecoder()
-    events = []
+    events, module_events = [], []
     for line in compose("logs", "--no-color", "ace", capture=True).splitlines():
-        at = line.find(prefix)
-        if at >= 0:
-            events.append(decoder.raw_decode(line[at + len(prefix):])[0])
+        for mark, found in ((prefix, events), (module_prefix, module_events)):
+            at = line.find(mark)
+            if at >= 0:
+                found.append(decoder.raw_decode(line[at + len(mark):])[0])
     for root in roots:
         mine = [event for event in events if event["root_uuid"] == root]
         row = sql(
@@ -1382,9 +1386,31 @@ def check_root_metrics(roots, failures):
                and sum(last["observable_type_counts"].values()) == observables
                and last["task_count"] == tasks and last["failed_task_count"] == failed
                and last["is_alert"] == (row[4] == "t") and last["queue"] == row[5]
-               and last["cancelled"] is False and last["total_time_seconds"] > 0,
+               and last["cancelled"] is False and last["pass_open_seconds"] > 0
+               and last["total_analysis_time_seconds"] > 0,
                f"its last event has the root's counts ({observables} observables, {tasks} tasks, "
                f"{failed} failed): {json.dumps(last)}")
+        runs = {
+            module: (float(seconds), int(count))
+            for module, seconds, count in sql(
+                f"""SELECT module, sum(run_seconds), sum(runs) FROM queue.tasks
+                    WHERE root_id = '{root}' AND run_pass = {last["pass"]} AND runs > 0
+                    GROUP BY module"""
+            )
+        }
+        modules = [event for event in module_events
+                   if event["root_uuid"] == root and event["pass"] == last["pass"]]
+        logged = {event["module"]: (event["analysis_time_seconds"], event["exec_count"])
+                  for event in modules}
+        expect(len(modules) == len(logged) and logged.keys() == runs.keys()
+               and all(abs(logged[m][0] - runs[m][0]) < 1e-6 and logged[m][1] == runs[m][1]
+                       for m in runs)
+               and all(event["timestamp"] == last["timestamp"] for event in modules)
+               and abs(sum(seconds for seconds, _ in logged.values())
+                       - last["total_analysis_time_seconds"]) < 1e-6
+               and abs(sum(event["percentage"] for event in modules) - 100) < 1e-6,
+               f"its pass's module events are one for each of the {len(runs)} modules that ran, "
+               f"with their run times, adding up to the root's: {json.dumps(modules)}")
 
 
 def check_range_selection(page, expect):
