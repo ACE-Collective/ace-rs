@@ -379,7 +379,6 @@ fn phishkit_tree(dump: &Dump, observable: &ace_sdk::Observable) -> TreeView {
     TreeView {
         alert_type: None,
         analysis_mode: Some(mode),
-        whitelisted: false,
         this: 0,
         observables: vec![TreeObservable {
             kind: observable.kind,

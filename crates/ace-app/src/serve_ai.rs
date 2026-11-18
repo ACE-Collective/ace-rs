@@ -85,7 +85,10 @@ pub fn service(
         .components(&app.registry().manifests())
         .map_err(|e| format!("the overlay's modules: {e}"))?;
     let modes = app.modes_with(&components);
-    let orchestrator = Orchestrator::new(Catalog::of(components), modes);
+    let exclusions = ace_sdk::exclusions::Exclusions::from_section(&overlay.observable_exclusions)
+        .map_err(|(path, message)| format!("the overlay's {path}: {message}"))?;
+    let orchestrator =
+        Orchestrator::new(Catalog::of(components), modes).with_exclusions(exclusions);
     let dispositions = ace_service::Dispositions::configured(overlay)
         .map_err(|e| format!("the overlay's disposition sections: {e}"))?;
     let mut service = Service::new(db.clone(), orchestrator).with_dispositions(dispositions);

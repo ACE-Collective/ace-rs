@@ -279,7 +279,7 @@ pub fn collect_observables(index: &PcapIndex) -> Vec<PcapObservable> {
         }
     }
     for row in statistics.mac.unwrap_or_default() {
-        let mac = ace_mod_values::observable::normalize_mac_address(&row.address);
+        let mac = ace_sdk::layer2::normalize_mac_address(&row.address);
         if let Some(mac) = mac
             && is_interesting_mac(&row.address)
         {

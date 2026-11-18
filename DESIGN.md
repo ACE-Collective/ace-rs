@@ -182,7 +182,7 @@ Each module ships a manifest with its input types, output schema, resources, san
 - A module can run as several named instances declared in the overlay, each with its own inputs and settings, as ace3's `analysis_module_*` sections run many Splunk queries on one class.
 - A process resolves only the secrets its pool declares (#1009).
 - A removed module named in an overlay logs a warning instead of stopping startup ([#901](https://github.com/ACE-Collective/ace3/issues/901), [#916](https://github.com/ACE-Collective/ace3/issues/916)).
-- Lists analysts edit at runtime, such as whitelists and suppressions, live in the database behind the API with an audit record ([#1063](https://github.com/ACE-Collective/ace3/issues/1063)).
+- Lists analysts edit at runtime, such as the observables enabled for detection, live in the database behind the API with an audit record ([#1063](https://github.com/ACE-Collective/ace3/issues/1063)).
 - Detection content (hunts, YARA, modifier rules) stays in git with CI.
 
 ### The API and the GUI

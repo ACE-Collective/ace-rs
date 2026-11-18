@@ -14,7 +14,7 @@
 //! up instead, once for all of its subdomains, as in ace3 since `7265bb53`. ace3 makes the RDAP
 //! module depend on the apex module and skips a subdomain whose apex result holds the apex
 //! observable (`e871441c`). Here the module computes that apex from the value, as the apex module
-//! does (`ace_sdk::domains::apex_domain_of`, then the fqdn check on it), and doesn't wait for it: a
+//! does, with the same function (`ace_sdk::domains::apex_of`), and doesn't wait for it: a
 //! dependency in ace4 waits for a result (`ace_core::eligibility`), and the apex module stores none
 //! for a name that is its own apex, which RDAP still looks up. ace4 has no observable limit, so the
 //! apex result always holds its observable. The one case that differs is an fqdn the apex module
@@ -126,7 +126,9 @@ impl Lookup for RdapAnalyzer {
         // a subdomain that apex_domain_analyzer gives an apex observable is looked up there, once
         // for all its subdomains (custom_requirement, 7265bb53 and e871441c)
         if !observable.kind.is_subtype_of(ObservableKind::Ip)
-            && let Some(apex) = apex_of(&observable.value)
+            && let Some(apex) = ace_sdk::domains::apex_of(&observable.value)
+                .filter(|apex| apex.observable)
+                .map(|apex| apex.domain)
         {
             return Ok(Outcome::Skipped(format!(
                 "its apex domain {apex} is looked up instead"
@@ -162,12 +164,6 @@ impl Lookup for RdapAnalyzer {
         result.error = failure;
         Ok(Outcome::Done(result))
     }
-}
-
-/// The apex observable `apex_domain_analyzer` adds for `fqdn`, if any: its apex, when the fqdn
-/// check takes it as an observable.
-fn apex_of(fqdn: &str) -> Option<String> {
-    ace_sdk::domains::apex_domain_of(fqdn).filter(|apex| ace_pycompat::validators::domain(apex))
 }
 
 /// How an RDAP attempt went.

@@ -6,7 +6,8 @@
 //! deadline and a place to write files. Each module crate exports a `Manifest` built from its
 //! module type. Lookups make HTTP calls through `http::HttpClient`. A site's `overlay::Overlay`
 //! gives modules their settings and declares named instances of them. A module reads the
-//! analyst-edited lists it declares, such as whitelists, through `lists` (PLAN.md 5.14), and a
+//! analyst-edited lists it declares, such as the observables enabled for detection, through `lists`
+//! (PLAN.md 5.14), and a
 //! lookup reads ACE's own data through `reads` and writes it through `writes` (PLAN.md 7.2). A parser
 //! runs the programs it declares through `tools` (PLAN.md 7.3), and sends its observable through the
 //! scanner images it declares through `scanners` (7.7). `actions` holds what remediators, remediation
@@ -24,11 +25,14 @@ pub mod domains;
 pub mod email_threads;
 #[cfg(any(test, feature = "example-modules"))]
 pub mod example;
+pub mod exclusions;
 pub mod files;
 pub mod generation;
 pub mod hooks;
 pub mod http;
 pub mod ip;
+pub mod iptools;
+pub mod layer2;
 pub mod lists;
 pub mod manifest;
 pub mod module;
@@ -52,7 +56,7 @@ pub use manifest::{
 };
 pub use module::{
     BoxError, Delay, EXCLUDE_ALL, Lookup, Module, ModuleError, OtherAdditionsAllowed, Outcome,
-    Parser, Settings, WHITELISTED, run_lookup, run_parser,
+    Parser, Settings, run_lookup, run_parser,
 };
 pub use overlay::{
     ACE3_DISPOSITION_CLASSES, ActionSection, AlertRouterSection, Component, DispositionClass,

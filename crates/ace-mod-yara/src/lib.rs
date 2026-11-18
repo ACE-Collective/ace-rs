@@ -5,8 +5,10 @@
 //! `yara_meta` tags go to the `meta_tags` directive, its path to `file_name` and `full_path`, its
 //! mime type to `mime_type`. Each rule that matched becomes a `yara_rule` observable, with its
 //! uuid as a `signature_id` and each pattern as a `yara_string`. A match from a rule that may
-//! alert (no `no_alert` or `qa` modifier) is a detection on the file and sandboxes it, or the
-//! document it redirects to; `directive=` modifiers add directives and rule tags tag the file.
+//! alert (enabled, no `no_alert` or `qa` modifier, no `whitelisted` tag: `ace_yara::detection_blocker`,
+//! which SVS validation also calls) is a detection on the file and sandboxes it, or the document it
+//! redirects to; `directive=` modifiers add directives and rule tags tag the file. A `whitelisted`
+//! tag is an ordinary tag on the file (ace3 8617ba8e).
 //!
 //! A matched string named `$obsd_<id>` is an observable enabled for detection, exported to the ruleset
 //! as a rule (PLAN.md 7.16, `ace_yara::export`): the module adds that observable, tagged with the rule,
@@ -275,34 +277,28 @@ impl Parser for YaraScanner {
         let mut alertable = false;
         let mut no_alert_rules: Vec<&str> = Vec::new();
         for m in &matches {
-            let modifiers = m.meta.modifiers();
-            if modifiers.is_empty() {
+            // a rule in QA mode, with no_alert, or tagged whitelisted (known-good content) makes no
+            // detection of its own, and never stops the other rules or modules from alerting. SVS
+            // validation decides with the same function (ace3 91211a66)
+            if ace_yara::detection_blocker(&m.meta, &m.tags).is_none() {
                 alertable = true;
+            } else {
+                no_alert_rules.push(&m.rule);
+            }
+            let modifiers = m.meta.modifiers();
+            if modifiers
+                .iter()
+                .any(|x| x == ace_yara::rule_meta::MODIFIER_QA)
+            {
+                tracing::info!(rule = %m.rule, "a YARA rule matched in QA mode");
+                // a rule in QA mode adds no directives
                 continue;
             }
-            let qa = modifiers
-                .iter()
-                .any(|x| x == ace_yara::rule_meta::MODIFIER_QA);
-            let no_alert = qa
-                || modifiers
-                    .iter()
-                    .any(|x| x == ace_yara::rule_meta::MODIFIER_NO_ALERT);
-            if qa {
-                tracing::info!(rule = %m.rule, "a YARA rule matched in QA mode");
-            }
-            if no_alert {
-                no_alert_rules.push(&m.rule);
-            } else {
-                alertable = true;
-            }
-            // a rule in QA mode adds no directives
-            if !qa {
-                for modifier in &modifiers {
-                    if modifier.starts_with("directive")
-                        && let Some((_, directive)) = modifier.split_once('=')
-                    {
-                        result.analyzed.add_directive(directive);
-                    }
+            for modifier in &modifiers {
+                if modifier.starts_with("directive")
+                    && let Some((_, directive)) = modifier.split_once('=')
+                {
+                    result.analyzed.add_directive(directive);
                 }
             }
         }
@@ -455,9 +451,6 @@ impl Parser for YaraScanner {
 
             for tag in &m.tags {
                 result.analyzed.add_tag(tag);
-                if tag == "whitelisted" {
-                    result.analyzed.add_directive("whitelisted");
-                }
             }
         }
 

@@ -57,7 +57,6 @@ fn each_rule() {
         what: &'static str,
         module: &'static str,
         kind: ObservableKind,
-        tags: &'static [&'static str],
         directives: &'static [&'static str],
         exclude: &'static [&'static str],
         mode: &'static str,
@@ -68,7 +67,6 @@ fn each_rule() {
         what,
         module,
         kind,
-        tags: &[],
         directives: &[],
         exclude: &[],
         mode,
@@ -155,21 +153,11 @@ fn each_rule() {
         Case {
             directives: &["whitelisted"],
             ..case(
-                "a whitelisted directive keeps every module off, as ace3's executor skips the observable",
+                "a whitelisted directive keeps nothing off, since ace3 removed whitelisting (8617ba8e)",
                 "archive",
                 FILE,
                 "email",
-                Err(Ineligible::Whitelisted),
-            )
-        },
-        Case {
-            tags: &["whitelisted"],
-            ..case(
-                "so does a whitelisted tag",
-                "rdap_analyzer",
-                FQDN,
-                "correlation",
-                Err(Ineligible::Whitelisted),
+                Ok(()),
             )
         },
         Case {
@@ -264,7 +252,6 @@ fn each_rule() {
     let modes = modes();
     for case in cases {
         let component = catalog.component(case.module).expect("a known module");
-        let tags = strings(case.tags);
         let directives = strings(case.directives);
         let exclude = strings(case.exclude);
         let results: BTreeSet<&str> = case.results.iter().copied().collect();
@@ -275,7 +262,6 @@ fn each_rule() {
             component,
             Facts {
                 kind: case.kind,
-                tags: &tags,
                 directives: &directives,
                 exclude_modules: &exclude,
                 limit_modules: &[],
@@ -387,10 +373,11 @@ async fn a_detection_mid_analysis_queues_the_correlation_group_for_the_tree() {
     assert_eq!(detections, 1);
 }
 
-/// ace3's executor: a result that whitelists the observable it analyzed stops the root's analysis, and
-/// a detection in a root holding a whitelisted observable doesn't make it an alert.
+/// ace3 removed whitelisting (8617ba8e): a `whitelisted` tag or directive is an ordinary one. A result
+/// that adds them to the observable it analyzed stops nothing, and a detection in a root holding them
+/// makes it an alert.
 #[tokio::test]
-async fn a_whitelisting_result_stops_the_root_and_nothing_in_it_alerts() {
+async fn a_whitelisted_tag_stops_nothing_and_a_root_holding_one_alerts() {
     let test_db = TestDb::new().await;
     let db = test_db.db();
     let orchestrator = orchestrator();
@@ -403,7 +390,7 @@ async fn a_whitelisting_result_stops_the_root_and_nothing_in_it_alerts() {
         .expect("queues");
     tx.commit().await.expect("commits");
 
-    // the email module whitelists the email, as for a whitelisted sender
+    // a result tags the email whitelisted, as ace3's email module did for a whitelisted sender
     let parser = worker(
         &test_db,
         "parsers",
@@ -428,62 +415,20 @@ async fn a_whitelisting_result_stops_the_root_and_nothing_in_it_alerts() {
         .await
         .expect("lands");
     tx.commit().await.expect("commits");
-    assert_eq!(landed.queued, []);
     assert_eq!(landed.mode_changed_to, None);
     let state =
         |module: &str, state: &str| (module.to_owned(), EMAIL_SHA256.to_owned(), state.to_owned());
     assert_eq!(
         tasks_of(db, root).await,
         [
-            state("archive", "cancelled"),
+            state("archive", "queued"),
             state("email_analyzer", "done"),
-            state("yara_scanner_v3_4", "cancelled"),
+            state("yara_scanner_v3_4", "queued"),
         ],
-        "the rest of the root's analysis stopped"
+        "the rest of the root's analysis goes on"
     );
 
-    // a whitelisted observable gets no tasks, and a detection elsewhere in its root doesn't alert
-    const OTHER_SHA256: &str = "0000000000000000000000000000000000000000000000000000000000000001";
-    let (other, ids) = root_with(
-        db,
-        "email",
-        &[
-            (ObservableKind::File, EMAIL_SHA256),
-            (ObservableKind::File, OTHER_SHA256),
-        ],
-    )
-    .await;
-    file_type_says_email(db, other, ids[1]).await;
-    let mut tx = db.begin().await.expect("begins");
-    tree::add_to_observable(
-        &mut tx,
-        other,
-        ids[0],
-        &serde_json::from_value(json!({"tags": ["whitelisted"]})).expect("additions"),
-    )
-    .await
-    .expect("tags");
-    orchestrator
-        .queue_eligible(&mut tx, other, Scope::All, false)
-        .await
-        .expect("queues");
-    tx.commit().await.expect("commits");
-    let queued = |module: &str| {
-        (
-            module.to_owned(),
-            OTHER_SHA256.to_owned(),
-            "queued".to_owned(),
-        )
-    };
-    assert_eq!(
-        tasks_of(db, other).await,
-        [
-            queued("archive"),
-            queued("email_analyzer"),
-            queued("yara_scanner_v3_4")
-        ],
-        "the whitelisted file is analyzed by nothing"
-    );
+    // a detection on the tagged file makes the root an alert
     let scanner = worker(
         &test_db,
         "yara",
@@ -508,17 +453,14 @@ async fn a_whitelisting_result_stops_the_root_and_nothing_in_it_alerts() {
         .await
         .expect("lands");
     tx.commit().await.expect("commits");
-    assert_eq!(landed.mode_changed_to, None);
+    assert_eq!(landed.mode_changed_to.as_deref(), Some("correlation"));
     let alerted: Option<chrono::DateTime<chrono::Utc>> =
         sqlx::query_scalar("SELECT alerted_at FROM analysis.roots WHERE id = $1")
-            .bind(other)
+            .bind(root)
             .fetch_one(db.pool())
             .await
             .expect("reads");
-    assert_eq!(
-        alerted, None,
-        "a root holding a whitelisted observable doesn't alert"
-    );
+    assert!(alerted.is_some(), "a root holding a whitelisted tag alerts");
 }
 
 #[tokio::test]
@@ -1708,7 +1650,7 @@ async fn a_task_walks_its_roots_tree_and_a_result_changes_others_and_its_root() 
         .await
         .expect("reads");
     assert_eq!(view.alert_type.as_deref(), Some("mailbox"));
-    assert!(!view.whitelisted && !view.truncated);
+    assert!(!view.truncated);
     assert_eq!(view.this().value, email);
     assert_eq!(view.observables.len(), 5);
     assert_eq!(
@@ -2034,6 +1976,94 @@ hooks:
         .await
         .expect("reads");
     assert!(due);
+}
+
+/// ace3's global `observable_exclusions` (its executor's `_process_observable_exclusions`): an
+/// observable they name gets no task, and the observable modifier's rules don't evaluate it, while a
+/// subdomain of it is analyzed as any other. ace3's defaults hold unless the overlay drops them.
+#[tokio::test]
+async fn a_globally_excluded_observable_gets_no_task_and_no_rule() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let hooked = hooked(
+        r#"
+hooks:
+  observable_modifier:
+    rules:
+      - name: tag youtube
+        uuid: 6a1e5a54-0d7f-4a77-8c3b-37d3c4fcbc09
+        phase: pre
+        conditions: {observable_types: [fqdn], value_pattern: 'youtube\.com$'}
+        actions: {add_tags: [seen_by_a_rule]}
+"#,
+    );
+    let rdap_mode = AnalysisMode {
+        name: "hooks_rdap".to_owned(),
+        module_groups: vec![
+            "common".to_owned(),
+            "yara".to_owned(),
+            "correlation".to_owned(),
+        ],
+        enabled_modules: Vec::new(),
+        disabled_modules: Vec::new(),
+    };
+    let orchestrator = Orchestrator::new(
+        hooked.catalog().clone(),
+        hooked.modes().clone().with_mode(rdap_mode),
+    )
+    .with_hooks(hooked.hooks().clone());
+    assert!(
+        orchestrator.exclusions().excludes("fqdn", "youtube.com"),
+        "ace3's defaults"
+    );
+    let rdap_and_tags = |root| async move {
+        let rdap: Vec<String> = tasks_of(db, root)
+            .await
+            .into_iter()
+            .filter(|(module, _, _)| module == "rdap_analyzer")
+            .map(|(_, value, _)| value)
+            .collect();
+        let tagged: Vec<String> = sqlx::query_scalar(
+            "SELECT value FROM analysis.observables
+             WHERE root_id = $1 AND 'seen_by_a_rule' = ANY(tags) ORDER BY value",
+        )
+        .bind(root)
+        .fetch_all(db.pool())
+        .await
+        .expect("reads");
+        (rdap, tagged)
+    };
+    let observables = [
+        (ObservableKind::Fqdn, "youtube.com"),
+        (ObservableKind::Fqdn, "www.youtube.com"),
+    ];
+    let (root, _) = root_with(db, "hooks_rdap", &observables).await;
+    let mut tx = db.begin().await.expect("begins");
+    orchestrator.start(&mut tx, root).await.expect("starts");
+    tx.commit().await.expect("commits");
+    assert_eq!(
+        rdap_and_tags(root).await,
+        (
+            vec!["www.youtube.com".to_owned()],
+            vec!["www.youtube.com".to_owned()]
+        ),
+        "the excluded apex gets no task and no rule; its subdomain gets both"
+    );
+
+    // an overlay that drops ace3's entry analyzes it again
+    let overlay = ace_sdk::Overlay::from_yaml("observable_exclusions: {exclude_youtube: null}")
+        .expect("an overlay");
+    let exclusions = ace_sdk::exclusions::Exclusions::from_section(&overlay.observable_exclusions)
+        .expect("reads");
+    let orchestrator = orchestrator.with_exclusions(exclusions);
+    let (root, _) = root_with(db, "hooks_rdap", &observables).await;
+    let mut tx = db.begin().await.expect("begins");
+    orchestrator.start(&mut tx, root).await.expect("starts");
+    tx.commit().await.expect("commits");
+    let both = vec!["www.youtube.com".to_owned(), "youtube.com".to_owned()];
+    let (mut rdap, tagged) = rdap_and_tags(root).await;
+    rdap.sort();
+    assert_eq!((rdap, tagged), (both.clone(), both));
 }
 
 #[tokio::test]

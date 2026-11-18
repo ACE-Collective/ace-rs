@@ -434,21 +434,19 @@
 //!   an audit row, and a user has at most 200 saved filters on a screen.
 //!
 //! The analyst-edited lists (PLAN.md 5.14), under `/api/lists/v1` with the new `list:read` and `list:write`
-//! (`ace_service`'s `lists` docs). ace3 has no router for them: its brotex whitelist was a file on each node,
-//! `etc/brotex.whitelist`, which `saq/whitelist.py` reloaded when its mtime changed, and its GUI's
-//! Whitelist action, which tagged an observable's value, was removed with `whitelist:write` before this
-//! plan's commit. So nothing maps; the routes are:
+//! (`ace_service`'s `lists` docs). ace3 has no router for them: its lists are files on each node, such as
+//! `qrcode.filter`, or tables other routers edit, such as `observable_detections`. So nothing maps; the
+//! routes are:
 //!
 //! | ace3 | here |
 //! |---|---|
 //! | none | `GET /lists`, the lists this server's modules read |
-//! | reading `etc/brotex.whitelist` | `GET /lists/{list}`, a list's entries in order |
-//! | adding a `smtp_from:` or `smtp_to:` line | `POST /lists/{list}/entries`, audited |
+//! | reading a list's file | `GET /lists/{list}`, a list's entries in order |
+//! | adding a line | `POST /lists/{list}/entries`, audited |
 //! | changing a line | `PUT /lists/{list}/entries/{id}`, audited |
 //! | deleting a line | `DELETE /lists/{list}/entries/{id}`, audited |
 //!
-//! ace3's `http_host`, `http_src_ip` and `http_dest_ip` keys have no list: nothing in ace3 read them any
-//! more. A bad entry is refused with 400, where ace3 logged a line it couldn't parse and skipped it.
+//! A bad entry is refused with 400, where ace3 logged a line it couldn't parse and skipped it.
 //!
 //! ace3's `remediation` and `file_collection` routers (PLAN.md 5.6, brought by 7.9), under ace3's
 //! `remediation:read`/`write` and `file_collection:read`/`write`, and `file_collection:create`, which ace3's
@@ -1625,7 +1623,7 @@ impl Web {
         (name = "hunts", description = "The hunts the hunter loaded, their state, and validating a hunt"),
         (name = "remediation", description = "Remediations: removing what an alert found, such as an email from a mailbox, and restoring it"),
         (name = "file_collections", description = "Files fetched from hosts for alerts, and their tries"),
-        (name = "lists", description = "The analyst-edited lists, such as the email whitelists, which apply to the next task that reads them"),
+        (name = "lists", description = "The analyst-edited lists, such as the observables enabled for detection, which apply to the next task that reads them"),
         (name = "monitoring", description = "What the monitoring checks last found, and the scheduled tasks' runs"),
         (name = "search", description = "Search over alerts: exact lookups, the meaning of their text, and alerts like one"),
     )

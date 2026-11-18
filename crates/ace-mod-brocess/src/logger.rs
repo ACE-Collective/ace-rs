@@ -150,7 +150,18 @@ impl Lookup for EmailLogger {
             .dependency_result::<EmailAnalysis>()?
             .and_then(|analysis| analysis.email)
         else {
-            tracing::warn!("no email analysis for {} - not logging", ctx.observable());
+            // scan_inbound_only skips the email analysis of outbound mail on purpose
+            if ctx
+                .tree()
+                .is_some_and(|tree| tree.this().has_tag(ace_mod_email::TAG_OUTBOUND_EMAIL))
+            {
+                tracing::debug!(
+                    "outbound email {} was not analyzed - not logging",
+                    ctx.observable()
+                );
+            } else {
+                tracing::warn!("no email analysis for {} - not logging", ctx.observable());
+            }
             return Ok(Outcome::Skipped("no parsed email to log".to_owned()));
         };
         let mut urls: Vec<String> = ctx

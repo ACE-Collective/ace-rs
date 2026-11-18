@@ -17,8 +17,8 @@ use ace_sdk::{Manifest, Module, ModuleError, Outcome, Parser, TaskContext};
 use schemars::JsonSchema;
 use serde::Deserialize;
 
-use crate::iptools::IpRange;
 use crate::observable;
+use ace_sdk::iptools::IpRange;
 
 /// The module's manifest.
 pub const MANIFEST: Manifest = Manifest::parser::<NetworkIdentifier>();

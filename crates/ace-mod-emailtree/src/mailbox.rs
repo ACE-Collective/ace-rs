@@ -53,10 +53,9 @@ impl Parser for MailboxEmailAnalyzer {
         if tree.alert_type.as_deref() != Some(MAILBOX) {
             return Ok(Outcome::Skipped("not a mailbox alert".to_owned()));
         }
-        if tree.whitelisted {
-            return Ok(Outcome::Skipped("the root is whitelisted".to_owned()));
-        }
-        let email = ctx.dependency_result::<EmailAnalysis>()?;
+        let email = ctx
+            .dependency_result::<EmailAnalysis>()?
+            .filter(|email| !email.is_tag_only());
         let mut result = ResultEnvelope::new(MailboxEmailAnalysis {});
         let Some(email) = email else {
             result.root = Some(RootChanges {

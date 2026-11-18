@@ -1050,20 +1050,6 @@ pub async fn carrying_email(
     ))
 }
 
-/// Whether any of the root's observables is whitelisted: it has ace3's `whitelisted` tag or directive
-/// (`eligibility::is_whitelisted`).
-pub async fn has_whitelisted(executor: impl PgExecutor<'_>, root: Uuid) -> Result<bool, DbError> {
-    Ok(sqlx::query_scalar!(
-        r#"SELECT EXISTS (SELECT FROM analysis.observables
-                          WHERE root_id = $1
-                            AND ('whitelisted' = ANY(tags) OR 'whitelisted' = ANY(directives)))
-           AS "whitelisted!""#,
-        root,
-    )
-    .fetch_one(executor)
-    .await?)
-}
-
 /// The root's tree as a module that walks it reads it (`Module::READS_TREE`, `ace_sdk::tree`), as it
 /// is now, with `this` the task's observable. Of the files the module reads (`files`), each one's
 /// sha256 and index comes back beside it, for the caller to add a download. A root past
@@ -1095,7 +1081,6 @@ pub async fn tree_view(
         Some(row) => (row.alert_type, Some(row.analysis_mode)),
         None => (None, None),
     };
-    let whitelisted = has_whitelisted(pool, root).await?;
 
     let limit = MAX_TREE_OBSERVABLES as i64 + 1;
     let rows = sqlx::query!(
@@ -1271,7 +1256,6 @@ pub async fn tree_view(
         TreeView {
             alert_type,
             analysis_mode,
-            whitelisted,
             this: this_index,
             observables,
             results,

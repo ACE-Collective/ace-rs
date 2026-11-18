@@ -182,6 +182,13 @@ pub fn components(
         .context("loading the site overlay")
 }
 
+/// The overlay's global observable exclusions over ace3's (`ace_sdk::exclusions`), which every
+/// orchestrator that queues tasks keeps off what they name.
+pub fn exclusions(overlay: &ace_sdk::Overlay) -> anyhow::Result<ace_sdk::exclusions::Exclusions> {
+    ace_sdk::exclusions::Exclusions::from_section(&overlay.observable_exclusions)
+        .map_err(|(path, message)| anyhow::anyhow!("the overlay's {path}: {message}"))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

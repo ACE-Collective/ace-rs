@@ -483,7 +483,20 @@ fn side(
             .as_array()
             .into_iter()
             .flatten()
-            .map(|m| (text(&m["namespace"]), text(&m["rule"]), meta_of(&m["meta"])))
+            .map(|m| {
+                let tags = m["tags"]
+                    .as_array()
+                    .into_iter()
+                    .flatten()
+                    .filter_map(|t| t.as_str().map(str::to_owned))
+                    .collect();
+                (
+                    text(&m["namespace"]),
+                    text(&m["rule"]),
+                    meta_of(&m["meta"]),
+                    tags,
+                )
+            })
             .collect();
         scan.matches.insert(unit, matches);
         let errors: BTreeSet<String> = outcome["errors"]

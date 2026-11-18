@@ -67,9 +67,50 @@ pub fn apex_domain_of(fqdn: &str) -> Option<String> {
     (!apex.is_empty() && apex != normalized).then_some(apex)
 }
 
+/// A subdomain's apex, as `apex_domain_analyzer` finds it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Apex {
+    /// Its registrable domain (`apex_domain_of`), which the apex module's result records.
+    pub domain: String,
+    /// ace3's fqdn check (`validators.domain`) takes `domain`, so the apex module adds it as an
+    /// `fqdn` observable, and the RDAP module looks that up in place of the subdomain.
+    pub observable: bool,
+}
+
+/// The apex `apex_domain_analyzer` finds for `fqdn`, or None when `fqdn` is its own apex or has no
+/// public suffix. The apex module and the RDAP module both decide with this, so RDAP skips exactly the
+/// subdomains whose apex the apex module adds as an observable (ace3 `7265bb53`, `e871441c`).
+pub fn apex_of(fqdn: &str) -> Option<Apex> {
+    let domain = apex_domain_of(fqdn)?;
+    let observable = ace_pycompat::validators::domain(&domain);
+    Some(Apex { domain, observable })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn an_apex_is_an_observable_when_the_fqdn_check_takes_it() {
+        assert_eq!(
+            apex_of("Login.Example.co.uk"),
+            Some(Apex {
+                domain: "example.co.uk".to_owned(),
+                observable: true
+            })
+        );
+        // a label may not start with a hyphen, so the apex is recorded and not added
+        assert_eq!(
+            apex_of("www.-bad.com"),
+            Some(Apex {
+                domain: "-bad.com".to_owned(),
+                observable: false
+            })
+        );
+        for own in ["example.com", "localhost", "host.corp-internal", ""] {
+            assert_eq!(apex_of(own), None, "{own}");
+        }
+    }
 
     #[test]
     fn domains_reduce_to_their_registrable_domain() {

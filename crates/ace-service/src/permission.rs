@@ -319,7 +319,7 @@ pub const HUNT_READ: PermissionName = PermissionName::known("hunt", "read");
 /// Validate a hunt through the `hunt` router, and, for the hunter, record the hunts it loaded: ace3's
 /// `hunt:write`.
 pub const HUNT_WRITE: PermissionName = PermissionName::known("hunt", "write");
-/// Read the analyst-edited lists, such as the email whitelists (PLAN.md 5.14). ace3 has no such
+/// Read the analyst-edited lists, such as the observables enabled for detection (PLAN.md 5.14). ace3 has no such
 /// permission: its lists were files on the node.
 pub const LIST_READ: PermissionName = PermissionName::known("list", "read");
 /// Add, change and delete entries on the analyst-edited lists. ace3's nearest is the `whitelist:write`
@@ -511,12 +511,13 @@ pub static CATALOG: &[CatalogEntry] = &[
     },
     CatalogEntry {
         name: LIST_READ,
-        description: "Read the analyst-edited lists, such as the email whitelists, and their entries.",
+        description: "Read the analyst-edited lists, such as the observables enabled for detection, and \
+                      their entries.",
     },
     CatalogEntry {
         name: LIST_WRITE,
         description: "Add, change and delete entries on the analyst-edited lists. An entry applies to the \
-                      next task that reads its list: a whitelist entry stops the analysis of what it matches.",
+                      next task that reads its list.",
     },
     CatalogEntry {
         name: MONITORING_READ,

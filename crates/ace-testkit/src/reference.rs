@@ -210,7 +210,6 @@ impl Dump {
         TreeView {
             alert_type: view["alert_type"].as_str().map(str::to_owned),
             analysis_mode: view["analysis_mode"].as_str().map(str::to_owned),
-            whitelisted: view["whitelisted"].as_bool().unwrap_or_default(),
             this,
             observables,
             results,

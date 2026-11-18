@@ -10,7 +10,6 @@ pub mod apex;
 pub mod command_line;
 pub mod email_address;
 pub mod file_path;
-mod iptools;
 pub mod network;
 pub mod observable;
 pub mod protected;

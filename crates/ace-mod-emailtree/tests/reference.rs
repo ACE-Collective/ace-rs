@@ -272,21 +272,36 @@ fn the_mailbox_module_matches_the_reference_dumps_or_lists_each_difference() {
     }
 }
 
+/// ace3 8617ba8e: an outbound journaled email whose analysis `scan_inbound_only` skipped has no
+/// `EmailAnalysis` in ace3, so a mailbox root's description calls it unparsable. Here its result only
+/// carries the file's tag (`EmailAnalysis::is_tag_only`), and reads the same.
 #[test]
-fn a_whitelisted_mailbox_root_is_left_alone() {
+fn a_mailbox_email_with_only_its_outbound_tag_is_unparsable() {
     let dumps = Dump::all("mailbox_email_analyzer").expect("the dumps read");
     let dump = dumps
         .iter()
         .find(|d| d.short_name() == "ace4/email/lure_button.email.rfc822")
         .expect("the dump");
-    let (observable, email) = email(dump);
+    let (observable, _) = email(dump);
     let mut tree = dump.tree_view(this(dump, &observable), &["MailboxEmailAnalysis"]);
-    tree.whitelisted = true;
+    tree.alert_type = Some("mailbox".to_owned());
     let outcome = Harness::<MailboxEmailAnalyzer>::new()
         .expect("harness")
-        .dependency_result(EmailAnalysis::MODULE, email)
+        .dependency_result(
+            EmailAnalysis::MODULE,
+            json!({"parsing_error": null, "extraction_errors": [], "email": null}),
+        )
         .tree(tree)
         .run_parser(observable.with_directive("original_email"))
         .expect("runs");
-    assert!(matches!(outcome, Outcome::Skipped(_)), "{outcome:?}");
+    let Outcome::Done(result) = outcome else {
+        panic!("{outcome:?}");
+    };
+    let description = result.root.and_then(|root| root.description);
+    assert!(
+        description
+            .as_deref()
+            .is_some_and(|d| d.ends_with(" unparsable email")),
+        "{description:?}"
+    );
 }

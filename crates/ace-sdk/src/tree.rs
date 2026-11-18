@@ -51,9 +51,6 @@ pub struct TreeView {
     /// The root's analysis mode, such as `correlation`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub analysis_mode: Option<String>,
-    /// An observable in the root is whitelisted, as ace3's `RootAnalysis.whitelisted`.
-    #[serde(default)]
-    pub whitelisted: bool,
     /// The task's own observable, by its index in `observables`.
     pub this: usize,
     /// The root's observables, in the order they were added.
@@ -340,7 +337,6 @@ mod tests {
     fn tree() -> TreeView {
         TreeView {
             alert_type: None,
-            whitelisted: false,
             this: 1,
             observables: vec![
                 observable(ObservableKind::File, "email", &[]),

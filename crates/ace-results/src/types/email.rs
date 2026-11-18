@@ -29,6 +29,13 @@ impl AnalysisType for EmailAnalysis {
 }
 
 impl EmailAnalysis {
+    /// Whether the result only carries the file's tags: the email module skipped the email analysis of
+    /// an outbound journaled message under `scan_inbound_only`, where ace3 adds the tag and no analysis
+    /// (8617ba8e). A module that reads the email's analysis takes this as none, as ace3's find none.
+    pub fn is_tag_only(&self) -> bool {
+        self.parsing_error.is_none() && self.extraction_errors.is_empty() && self.email.is_none()
+    }
+
     /// Which of the files an email result added are its body parts, given their names in the order it
     /// added them, each with whether it is an HTML part: ace3's `EmailAnalysis.body_parts`, the
     /// unnamed text parts the email module extracts (`is_body_part`, `is_html_body_part`).

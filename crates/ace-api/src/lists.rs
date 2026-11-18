@@ -1,5 +1,5 @@
 //! `/api/lists/v1`: the analyst-edited lists (PLAN.md 5.14, `ace_service`'s `lists` docs), such as the
-//! email whitelists. Reading needs `list:read`, and adding, replacing and deleting entries need
+//! observables enabled for detection. Reading needs `list:read`, and adding, replacing and deleting entries need
 //! `list:write`, each write audited. An edit applies to the next task that reads its list, with no
 //! restart. A value is returned as it was sent: show it as text.
 
@@ -154,7 +154,7 @@ pub(crate) struct EntryRequest {
     kind: MatchBody,
     /// The value, up to 4096 bytes, or a pattern, up to 1024, which has to compile.
     value: String,
-    /// Compare without case; true unless false is sent, as ace3's whitelist did.
+    /// Compare without case; true unless false is sent.
     #[serde(default = "ignore_case_by_default")]
     #[schema(default = true)]
     ignore_case: bool,

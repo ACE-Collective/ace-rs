@@ -5,8 +5,7 @@ use std::sync::LazyLock;
 
 use ace_results::types::email::{EmailAnalysis, EmailDetails, LogEntry};
 use ace_results::{NewObservable, ObservableAdditions, ObservableKind, ResultEnvelope};
-use ace_sdk::lists::{InvalidEntry, List};
-use ace_sdk::{InputFile, WHITELISTED};
+use ace_sdk::InputFile;
 use chrono::{DateTime, Utc};
 use regex::Regex;
 
@@ -111,40 +110,12 @@ fn meta_block(part: &Node<'_>) -> Option<MetaBlock> {
     })
 }
 
-/// Why a message got no analysis.
-pub enum Skip {
-    /// A sender or recipient is on a whitelist, or the message is an outbound journaled one with
-    /// `scan_inbound_only` set: ace3's `_file.whitelist()`, with what the file gets.
-    Whitelisted {
-        analyzed: ObservableAdditions,
-        why: String,
-    },
-    /// A whitelist didn't compile, which the service's checks should have made impossible.
-    BadList(InvalidEntry),
-}
-
-/// The whitelists ace3's `BrotexWhitelist` read from its file: the `smtp_from` and `smtp_to` keys.
-pub struct Whitelists<'l> {
-    pub senders: &'l List,
-    pub recipients: &'l List,
-    pub now: DateTime<Utc>,
-}
-
-impl Whitelists<'_> {
-    fn check(list: &List, address: &str, now: DateTime<Utc>) -> Result<Option<i64>, Skip> {
-        list.find(None, address, now)
-            .map(|entry| entry.map(|e| e.id))
-            .map_err(Skip::BadList)
-    }
-}
-
-/// ace3's `_file.whitelist()`: the `whitelisted` tag and directive on the file, which stop its root's
-/// analysis in the core.
-fn whitelisted(mut analyzed: ObservableAdditions, why: String) -> Skip {
-    tracing::info!("{why}");
-    analyzed.add_tag(WHITELISTED);
-    analyzed.add_directive(WHITELISTED);
-    Skip::Whitelisted { analyzed, why }
+/// An outbound journaled message with `scan_inbound_only` set, whose email analysis ace3 skips: the
+/// file keeps only its `outbound_email` tag, and every other module still analyzes it (ace3
+/// 8617ba8e).
+pub struct SkippedOutbound {
+    /// What the file gets: the tag.
+    pub analyzed: ObservableAdditions,
 }
 
 /// What the header half of the analysis produced, for the part extraction to add to.
@@ -158,31 +129,17 @@ pub struct HeaderAnalysis<'a, 'm> {
     pub target_message_id: Option<String>,
 }
 
-/// Analyzes the headers of `root`, the parsed `file`. `directives` are the file's.
+/// Analyzes the headers of `root`, the parsed `file`, at `now`. `directives` are the file's.
 pub fn analyze_headers<'a, 'm>(
     root: &'a Node<'m>,
     file: &InputFile,
     directives: &[String],
     settings: &EmailAnalyzerSettings,
-    whitelists: &Whitelists<'_>,
-) -> Result<HeaderAnalysis<'a, 'm>, Skip> {
-    let now = whitelists.now;
+    now: DateTime<Utc>,
+) -> Result<HeaderAnalysis<'a, 'm>, SkippedOutbound> {
     let target = find_target(root);
     let headers = &target.node.headers;
     let mut analyzed = ObservableAdditions::default();
-
-    // ace3's START WHITELISTING: the sender, then each recipient, then the direction
-    if let Some(from) = headers.get("from") {
-        let (_, address) = py::parseaddr(&decode_rfc2822(&from));
-        if !address.is_empty()
-            && let Some(entry) = Whitelists::check(whitelists.senders, &address, now)?
-        {
-            return Err(whitelisted(
-                analyzed,
-                format!("the sender {address:?} is on the sender whitelist (entry {entry})"),
-            ));
-        }
-    }
 
     let mut env_rcpt_to: Vec<String> = Vec::new();
     let mut env_mail_from: Option<String> = None;
@@ -223,15 +180,6 @@ pub fn analyze_headers<'a, 'm>(
         .filter_map(|a| normalize_email_address(a))
         .collect();
 
-    for address in header_tos.iter().chain(&env_rcpt_to) {
-        if let Some(entry) = Whitelists::check(whitelists.recipients, address, now)? {
-            return Err(whitelisted(
-                analyzed,
-                format!("the recipient {address:?} is on the recipient whitelist (entry {entry})"),
-            ));
-        }
-    }
-
     if target.is_office365 && directives.iter().any(|d| d == DIRECTIVE_ORIGINAL_EMAIL) {
         let directionality = headers::first_present_header(
             headers,
@@ -252,10 +200,10 @@ pub fn analyze_headers<'a, 'm>(
                         analyzed.add_tag(TAG_OUTBOUND_EXCEPTION_EMAIL);
                     }
                     None => {
-                        return Err(whitelisted(
-                            analyzed,
-                            "skipping outbound office365 email".to_owned(),
-                        ));
+                        // only the email analysis is skipped: everything else still runs on the
+                        // file, and a detection on it still alerts
+                        tracing::info!("skipping outbound office365 email");
+                        return Err(SkippedOutbound { analyzed });
                     }
                 }
             }

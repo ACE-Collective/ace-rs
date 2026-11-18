@@ -11,22 +11,24 @@
 //! missed. Landing a result checks the root's completion last, so the tasks it queues keep the
 //! same pass open.
 //!
-//! Whitelisting is ace3's (PLAN.md 5.14): a whitelisted observable is eligible for nothing
-//! (`eligibility`), a result that whitelists the observable it analyzed cancels the rest of its
-//! root's analysis, as ace3's executor stops the tree, and a detection doesn't make a root holding a
-//! whitelisted observable an alert. ace3 decides whether to alert when the analysis pass ends, and ace4
-//! when a detection lands, so a root that alerted before something in it was whitelisted stays an
-//! alert here, where ace3 wouldn't have alerted.
+//! The site's global exclusions (`ace_sdk::exclusions`, ace3's `observable_exclusions`) keep every
+//! task off an observable they name: eligibility queues nothing for it, not its type step, and the
+//! observable modifier's rules don't evaluate it, as ace3's executor drops such a work item before
+//! any module, its modifier among them, sees it. The observable stays in the tree.
+//!
+//! ace3's whitelisting is gone, as ace3 removed it (8617ba8e): a `whitelisted` tag or directive is an
+//! ordinary one, which keeps nothing off and doesn't stop a root from alerting.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::{Arc, OnceLock};
 
 use ace_results::{Detection, FieldError, NewObservable, ObservableKind, Registry, ResultEnvelope};
+use ace_sdk::exclusions::Exclusions;
 use serde_json::Value;
 use uuid::Uuid;
 
 use crate::db::{DbError, Retryable, Tx};
-use crate::eligibility::{Catalog, Facts, check, is_whitelisted};
+use crate::eligibility::{Catalog, Facts, check};
 use crate::hooks::{self, Hooks};
 use crate::modes::{CORRELATION, DISPOSITIONED, Modes};
 use crate::queue::{self, QueueError, Task, TaskId, TaskState, Worker};
@@ -99,6 +101,8 @@ pub struct Orchestrator {
     /// Whether the modules' declarations keep tasks off the queue or are only audited
     /// (`crate::takes`).
     takes: TakesMode,
+    /// The observables no module analyzes (`ace_sdk::exclusions`).
+    exclusions: Arc<Exclusions>,
 }
 
 /// Why a result was refused before anything from it was written.
@@ -117,7 +121,19 @@ impl Orchestrator {
             registry: Arc::default(),
             hooks: Hooks::none(),
             takes: TakesMode::default(),
+            exclusions: Arc::new(Exclusions::ace3()),
         }
+    }
+
+    /// This orchestrator, keeping every task off the observables `exclusions` name. A new one has
+    /// ace3's defaults (`Exclusions::ace3`).
+    pub fn with_exclusions(mut self, exclusions: Exclusions) -> Self {
+        self.exclusions = Arc::new(exclusions);
+        self
+    }
+
+    pub fn exclusions(&self) -> &Exclusions {
+        &self.exclusions
     }
 
     /// This orchestrator, applying or auditing the modules' declarations (`crate::takes`).
@@ -252,7 +268,7 @@ impl Orchestrator {
             Scope::Observables(ids) => Some(ids.iter().map(|id| id.0).collect()),
         };
         let observables = sqlx::query!(
-            r#"SELECT id AS "id: ObservableId", type AS kind, tags, directives, exclude_modules,
+            r#"SELECT id AS "id: ObservableId", type AS kind, value, directives, exclude_modules,
                       limit_modules, type_result
                FROM analysis.observables
                WHERE root_id = $1 AND ($2::bigint[] IS NULL OR id = ANY($2))
@@ -335,9 +351,16 @@ impl Orchestrator {
                 .kind
                 .parse()
                 .map_err(|e| DbError::Decode(format!("observable {}: {e}", observable.id.0)))?;
+            // a globally excluded observable gets no task at all, not even its type step
+            if self
+                .exclusions
+                .excludes(&observable.kind, &observable.value)
+            {
+                eligible.push((kind, Vec::new()));
+                continue;
+            }
             let facts = Facts {
                 kind,
-                tags: &observable.tags,
                 directives: &observable.directives,
                 exclude_modules: &observable.exclude_modules,
                 limit_modules: &observable.limit_modules,
@@ -467,12 +490,18 @@ impl Orchestrator {
         // a file whose bytes were typed before needs no step (`take_kept_types`)
         self.take_kept_types(tx, root, &locked.mode, Scope::All)
             .await?;
-        let pre = hooks::pre(tx, &self.hooks, &self.modes, root, &locked.mode, &all).await?;
+        let pre = hooks::pre(
+            tx,
+            &self.hooks,
+            &self.exclusions,
+            &self.modes,
+            root,
+            &locked.mode,
+            &all,
+        )
+        .await?;
         hooks::mark_due(tx, &self.hooks, &self.modes, root, &locked.mode).await?;
-        if pre.detected
-            && self.modes.is_detectable(&locked.mode)
-            && !tree::has_whitelisted(tx.conn(), root).await?
-        {
+        if pre.detected && self.modes.is_detectable(&locked.mode) {
             sqlx::query!(
                 "UPDATE analysis.roots SET alerted_at = COALESCE(alerted_at, now()) WHERE id = $1",
                 root,
@@ -536,14 +565,20 @@ impl Orchestrator {
             .await?;
         let mut pre = hooks::Effects::default();
         if !shown.is_empty() {
-            pre = hooks::pre(tx, &self.hooks, &self.modes, root, &mode, &touched).await?;
+            pre = hooks::pre(
+                tx,
+                &self.hooks,
+                &self.exclusions,
+                &self.modes,
+                root,
+                &mode,
+                &touched,
+            )
+            .await?;
             touched.extend(pre.touched.iter().copied());
             hooks::mark_due(tx, &self.hooks, &self.modes, root, &mode).await?;
         }
-        if pre.detected
-            && self.modes.is_detectable(&mode)
-            && !tree::has_whitelisted(tx.conn(), root).await?
-        {
+        if pre.detected && self.modes.is_detectable(&mode) {
             sqlx::query!(
                 "UPDATE analysis.roots SET alerted_at = COALESCE(alerted_at, now()) WHERE id = $1",
                 root,
@@ -640,7 +675,7 @@ impl Orchestrator {
             Scope::Observables(ids) => Some(ids.iter().map(|id| id.0).collect()),
         };
         let rows = sqlx::query!(
-            r#"SELECT o.id AS "id: ObservableId", o.value, o.tags, o.directives, o.exclude_modules,
+            r#"SELECT o.id AS "id: ObservableId", o.value, o.directives, o.exclude_modules,
                       o.limit_modules, t.state AS "step?: TaskState"
                FROM analysis.observables o
                LEFT JOIN queue.tasks t ON t.root_id = o.root_id AND t.observable_id = o.id
@@ -658,9 +693,15 @@ impl Orchestrator {
         let mut shown = Vec::new();
         let mut stepless = Vec::new();
         for row in rows {
+            // an excluded file shows no type, as it gets no type step
+            if self
+                .exclusions
+                .excludes(ObservableKind::File.as_str(), &row.value)
+            {
+                continue;
+            }
             let facts = Facts {
                 kind: ObservableKind::File,
-                tags: &row.tags,
                 directives: &row.directives,
                 exclude_modules: &row.exclude_modules,
                 limit_modules: &row.limit_modules,
@@ -706,10 +747,7 @@ impl Orchestrator {
         touched: &[ObservableId],
         detected: bool,
     ) -> Result<(Vec<TaskId>, Option<String>), OrchestratorError> {
-        if detected
-            && self.modes.is_detectable(mode)
-            && !tree::has_whitelisted(tx.conn(), root).await?
-        {
+        if detected && self.modes.is_detectable(mode) {
             sqlx::query!(
                 "UPDATE analysis.roots SET alerted_at = COALESCE(alerted_at, now()) WHERE id = $1",
                 root,
@@ -893,25 +931,22 @@ impl Orchestrator {
             // type are there for the pre rules (`take_kept_types`)
             self.take_kept_types(tx, root, &mode, Scope::Observables(&touched))
                 .await?;
-            pre = hooks::pre(tx, &self.hooks, &self.modes, root, &mode, &touched).await?;
+            pre = hooks::pre(
+                tx,
+                &self.hooks,
+                &self.exclusions,
+                &self.modes,
+                root,
+                &mode,
+                &touched,
+            )
+            .await?;
             touched.extend(pre.touched.iter().copied());
             hooks::mark_due(tx, &self.hooks, &self.modes, root, &mode).await?;
         }
 
         // a result that lands after its root was cancelled is kept, and queues nothing
         if locked.cancelled {
-            queue::check_completion(tx, root).await?;
-            return Ok(Landed {
-                result: result_id,
-                queued: Vec::new(),
-                mode_changed_to: None,
-            });
-        }
-        // ace3's executor: when the observable a module analyzed turns out whitelisted, the whole tree
-        // is, so analysis stops there. What the result added stays, and the root never alerts.
-        if is_whitelisted(&result.analyzed.tags, &result.analyzed.directives) {
-            tracing::info!(%root, module = %task.module, "a result whitelisted its observable; stopping the root's analysis");
-            queue::cancel_root(tx, root).await?;
             queue::check_completion(tx, root).await?;
             return Ok(Landed {
                 result: result_id,
@@ -926,10 +961,7 @@ impl Orchestrator {
         {
             qa_task.push(id);
         }
-        if (!detections.is_empty() || pre.detected)
-            && self.modes.is_detectable(&mode)
-            && !tree::has_whitelisted(tx.conn(), root).await?
-        {
+        if (!detections.is_empty() || pre.detected) && self.modes.is_detectable(&mode) {
             sqlx::query!(
                 "UPDATE analysis.roots SET alerted_at = COALESCE(alerted_at, now()) WHERE id = $1",
                 root,

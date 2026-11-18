@@ -10,6 +10,7 @@ use serde_json::json;
 const RULES: &str = r#"
 rule plain { strings: $a = "EVIL" condition: $a }
 rule tagged : whitelisted { strings: $a = "EVIL" condition: $a }
+rule tagged_directs : whitelisted { meta: modifiers = "directive=preview" strings: $a = "EVIL" condition: $a }
 rule qa_only { meta: modifiers = "qa,directive=never" strings: $a = "EVIL" condition: $a }
 rule directs { meta: modifiers = "no_alert, directive=extract_urls" uuid = "a8f0c1d2-0000-4000-8000-000000000001" strings: $a = "EVIL" condition: $a }
 rule disabled { meta: enabled = "false" strings: $a = "EVIL" condition: $a }
@@ -39,14 +40,26 @@ fn modifiers_tags_and_disabled_rules_act_as_in_ace3() {
         .iter()
         .map(|r| r.rule.as_str())
         .collect();
-    assert_eq!(rules, ["plain", "tagged", "qa_only", "directs", "SIP_feed"]);
-    // a QA rule adds no directives; a no_alert rule still adds its own
+    assert_eq!(
+        rules,
+        [
+            "plain",
+            "tagged",
+            "tagged_directs",
+            "qa_only",
+            "directs",
+            "SIP_feed"
+        ]
+    );
+    // a QA rule adds no directives; a no_alert or whitelisted rule still adds its own (ace3
+    // 91211a66), and the whitelisted tag is an ordinary tag, with no directive of its own (8617ba8e)
     assert_eq!(
         result.analyzed.directives,
-        ["extract_urls", "sandbox", "whitelisted"]
+        ["preview", "extract_urls", "sandbox"]
     );
     assert_eq!(result.analyzed.tags, ["whitelisted"]);
-    // detections only for rules that may alert, under the built-in signature without a uuid
+    // detections only for rules that may alert, under the built-in signature without a uuid: a rule
+    // tagged whitelisted makes none, as no_alert, and doesn't keep the others from alerting
     let detected: Vec<&str> = result
         .analyzed
         .detections
@@ -57,7 +70,6 @@ fn modifiers_tags_and_disabled_rules_act_as_in_ace3() {
         detected,
         [
             "payload.bin matched yara rule plain",
-            "payload.bin matched yara rule tagged",
             "payload.bin matched yara rule SIP_feed",
         ]
     );
@@ -289,5 +301,15 @@ fn a_rule_file_past_the_guard_s_bounds_is_left_out_and_the_rest_scan() {
         .iter()
         .map(|r| r.rule.as_str())
         .collect();
-    assert_eq!(rules, ["plain", "tagged", "qa_only", "directs", "SIP_feed"]);
+    assert_eq!(
+        rules,
+        [
+            "plain",
+            "tagged",
+            "tagged_directs",
+            "qa_only",
+            "directs",
+            "SIP_feed"
+        ]
+    );
 }

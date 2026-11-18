@@ -341,7 +341,10 @@ impl Parser for LureUrlAnalyzer {
         &self,
         ctx: &TaskContext<LureSettings>,
     ) -> Result<Outcome<LureUrlAnalysis>, ModuleError> {
-        let Some(email) = ctx.dependency_result::<EmailAnalysis>()? else {
+        let Some(email) = ctx
+            .dependency_result::<EmailAnalysis>()?
+            .filter(|email| !email.is_tag_only())
+        else {
             return Ok(Outcome::Skipped(
                 "the file has no email analysis".to_owned(),
             ));

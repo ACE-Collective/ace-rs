@@ -3,8 +3,9 @@
 //!
 //! The baseline is the set of labels. Every (sample, rule uuid) pair is decided under base and under head,
 //! and only a difference (or a TP that misses on both) is listed. A **match** means the rule would make a
-//! detection: it matched, it's enabled, and its modifiers include neither `qa` nor `no_alert`, as the YARA
-//! module reads them (`ace_yara::rule_meta`). The raw match is kept beside it, so a rule that still matches
+//! detection: it matched, it's enabled, its modifiers include neither `qa` nor `no_alert`, and it isn't
+//! tagged `whitelisted`, decided by `ace_yara::detection_blocker`, which the YARA module calls too (ace3
+//! 91211a66). The raw match is kept beside it, so a rule that still matches
 //! but was switched to QA mode reads as what it is.
 //!
 //! | own label | base | head | category |
@@ -28,7 +29,7 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use ace_yara::{DetectionBlocker, Meta};
+use ace_yara::{DetectionBlocker, Meta, detection_blocker};
 use serde::{Deserialize, Serialize};
 
 use super::corpus::Corpus;
@@ -128,6 +129,9 @@ pub struct RuleInfo {
     pub meta: Meta,
 }
 
+/// One match of a replayed unit: `(namespace, rule name, meta, YARA tags)`.
+pub type SideMatch = (String, String, Meta, Vec<String>);
+
 /// What one commit's rules did over the corpus, as the diff needs it.
 #[derive(Debug, Clone, Default)]
 pub struct SideScan {
@@ -135,8 +139,8 @@ pub struct SideScan {
     pub loaded: BTreeMap<String, Vec<RuleInfo>>,
     /// The uuids of every rule in the commit's source, compiled or not.
     pub source_uuids: BTreeSet<String>,
-    /// Unit id to `(namespace, rule name, meta)` of every match.
-    pub matches: BTreeMap<u64, Vec<(String, String, Meta)>>,
+    /// Unit id to every match.
+    pub matches: BTreeMap<u64, Vec<SideMatch>>,
     /// Unit id to the namespaces whose scan of the unit failed.
     pub errors: BTreeMap<u64, BTreeSet<String>>,
 }
@@ -164,15 +168,6 @@ pub struct ResultRow {
     pub note: Option<String>,
 }
 
-/// Why a match of a rule with this meta would make no detection, or None if it would.
-pub fn detection_blocker(meta: &Meta) -> Option<&'static str> {
-    meta.detection_blocker().map(|blocker| match blocker {
-        DetectionBlocker::Disabled => "enabled = false",
-        DetectionBlocker::Qa => "in QA mode",
-        DetectionBlocker::NoAlert => "no_alert",
-    })
-}
-
 #[derive(Debug, Clone, Default)]
 struct PairState {
     raw: bool,
@@ -192,13 +187,13 @@ fn side_pairs(corpus: &Corpus, side: &SideScan) -> BTreeMap<(String, String), Pa
         let Some(sha256) = units.get(unit_id) else {
             continue;
         };
-        for (_, _, meta) in matches {
+        for (_, _, meta, tags) in matches {
             let Some(rule_uuid) = meta.uuid().filter(|u| !u.is_empty()) else {
                 continue;
             };
             let state = result.entry(((*sha256).to_owned(), rule_uuid)).or_default();
             state.raw = true;
-            match detection_blocker(meta) {
+            match detection_blocker(meta, tags).map(DetectionBlocker::reason) {
                 None => state.detects = true,
                 Some(blocker) => state.blocker = Some(blocker),
             }
@@ -541,33 +536,6 @@ mod tests {
         }
     }
 
-    fn meta(pairs: &[(&str, &str)]) -> Meta {
-        Meta::from_pairs(
-            pairs
-                .iter()
-                .map(|(k, v)| (k.to_string(), MetaValue::Str(v.to_string()))),
-        )
-    }
-
-    /// test_diff.py's `test_detection_blocker`.
-    #[test]
-    fn detection_blockers() {
-        let disabled = Meta::from_pairs([("enabled".to_owned(), MetaValue::Bool(false))]);
-        assert_eq!(detection_blocker(&disabled), Some("enabled = false"));
-        assert_eq!(
-            detection_blocker(&meta(&[("modifiers", "qa")])),
-            Some("in QA mode")
-        );
-        assert_eq!(
-            detection_blocker(&meta(&[("modifiers", "directive=sandbox, no_alert")])),
-            Some("no_alert")
-        );
-        assert_eq!(
-            detection_blocker(&meta(&[("modifiers", "directive=sandbox")])),
-            None
-        );
-    }
-
     /// A sample's (sha256, rule uuid), and its (label, source).
     type SampleSpec<'a> = ((String, &'a str), (Option<&'a str>, Option<&'a str>));
 
@@ -650,7 +618,7 @@ mod tests {
                     .iter()
                     .map(|u| {
                         let meta = metas.get(u).cloned().unwrap_or_else(|| rule_meta(u, &[]));
-                        ("ns".to_owned(), format!("rule_{u}"), meta)
+                        ("ns".to_owned(), format!("rule_{u}"), meta, Vec::new())
                     })
                     .collect(),
             );
@@ -733,6 +701,28 @@ mod tests {
         assert_eq!((row.raw_base, row.raw_head), (true, true));
         assert_eq!((row.base, row.head), (MATCH, MISS));
         assert!(row.note.as_deref().unwrap().contains("QA mode"));
+    }
+
+    /// ace3 91211a66: a rule whose head is tagged `whitelisted` makes no detection there, as the YARA
+    /// module decides, so its TP sample regresses, with the reason in the note.
+    #[test]
+    fn a_rule_tagged_whitelisted_makes_no_detection() {
+        let corpus = corpus(&[((a(), "r1"), (Some("tp"), Some(SINGLE)))]);
+        let base = side(&corpus, &[("r1", vec![])], &[(a(), &["r1"])], &[], None);
+        let mut head = side(&corpus, &[("r1", vec![])], &[(a(), &["r1"])], &[], None);
+        for matches in head.matches.values_mut() {
+            for (_, _, _, tags) in matches {
+                tags.push("whitelisted".to_owned());
+            }
+        }
+        let (rows, _) = diff(&corpus, &base, &head, &BTreeSet::new(), &BTreeSet::new());
+        let [row] = &rows[..] else {
+            panic!("one row: {rows:?}")
+        };
+        assert_eq!(row.category, Category::Regression);
+        assert_eq!((row.raw_base, row.raw_head), (true, true));
+        assert_eq!((row.base, row.head), (MATCH, MISS));
+        assert!(row.note.as_deref().unwrap().contains("tagged whitelisted"));
     }
 
     /// test_diff.py's `test_retired_not_testable_removed_and_foreign_rules`.
@@ -848,7 +838,12 @@ mod tests {
         let mut head = side(&corpus, &[("r1", vec![])], &[], &[], None);
         head.matches.insert(
             1,
-            vec![("ns".to_owned(), "rule_r1".to_owned(), rule_meta("r1", &[]))],
+            vec![(
+                "ns".to_owned(),
+                "rule_r1".to_owned(),
+                rule_meta("r1", &[]),
+                Vec::new(),
+            )],
         );
         let (rows, counts) = diff(&corpus, &base, &head, &BTreeSet::new(), &BTreeSet::new());
         assert!(rows.is_empty());

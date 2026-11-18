@@ -1,5 +1,5 @@
-//! Analyst-edited lists (PLAN.md 5.14, ace3 #1063, #1064): whitelists and the like, which live in
-//! Postgres behind the API rather than in a file a module watches.
+//! Analyst-edited lists (PLAN.md 5.14, ace3 #1063, #1064), such as the observables enabled for
+//! detection, which live in Postgres behind the API rather than in a file a module watches.
 //!
 //! A module names the lists it reads in `Module::LISTS`, each a `ListSpec`. The lists a binary knows
 //! are the ones its modules read, so a site's module brings its own. An analyst edits a list's
@@ -10,8 +10,9 @@
 //!
 //! An entry is typed: it matches a value exactly, as a substring, or by a regular expression, with or
 //! without case, and on a list whose spec says so it names an observable type too. ace3's
-//! `saq/whitelist.py` matched its `smtp_from` and `smtp_to` keys as case-blind substrings, and its site
-//! tagger's CSV has the same shape with more kinds of match (7.6 adds those it needs).
+//! files match in each of these ways (its QR code filter by regex without case, its removed brotex
+//! whitelist by case-blind substring), and its site tagger's CSV has the same shape with more kinds of
+//! match (7.6 adds those it needs).
 //!
 //! A pattern is compiled with the `regex` crate, whose matching is linear in the input, so a hostile or
 //! mistaken one can't make matching slow; what remains is its size, which is bounded twice. Each
@@ -68,7 +69,7 @@ impl ListSpec {
 pub enum MatchKind {
     /// The whole value.
     Exact,
-    /// Anywhere in the value, as ace3's whitelist's `item in value`.
+    /// Anywhere in the value, as Python's `item in value`.
     Substring,
     /// A regular expression found anywhere in the value, in the `regex` crate's syntax.
     Regex,

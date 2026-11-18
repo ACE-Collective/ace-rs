@@ -1,9 +1,10 @@
-//! Analyst-edited lists (PLAN.md 5.14, ace3 #1063, #1064): whitelists and the like, kept in Postgres
-//! behind the API with an audit row for each change, in place of ace3's file-watched settings and
-//! `saq/whitelist.py`.
+//! Analyst-edited lists (PLAN.md 5.14, ace3 #1063, #1064), kept in Postgres behind the API with an audit
+//! row for each change, in place of ace3's file-watched settings and tables.
 //!
 //! Which lists there are is the binary's: each is one its modules read (`ace_sdk::Module::LISTS`), so
-//! the open-source build has the email module's two whitelists, and a site's modules bring theirs. A
+//! the open-source build has the observables enabled for detection and the QR code filter, and a site's
+//! modules bring theirs. The email module's two whitelists, ace3's brotex whitelist, went when ace3
+//! removed whitelisting (8617ba8e, migration 0071). A
 //! list's entries are typed (`ace_sdk::lists`): an exact value, a substring or a regex, with or without
 //! case, and on a typed list an observable type. Every entry is checked here as a module will compile
 //! it, and the whole list with it, before the write commits: a pattern that doesn't compile with the
@@ -20,12 +21,8 @@
 //! audit row naming the actor, with the entry before and after; a delete's row keeps the whole entry.
 //!
 //! What differs from ace3:
-//! - ace3's `smtp_from` and `smtp_to` whitelist entries are case-blind substrings. Here an entry says how
-//!   it matches, so a substring entry with `ignore_case` is ace3's.
-//! - ace3's file skipped a line it couldn't parse with an ERROR in the log, and kept the rest. Here a bad
-//!   entry is refused when it's written, and a list a module receives always compiles.
-//! - ace3's `http_host`, `http_src_ip` and `http_dest_ip` keys had no reader left in ace3, so they have no
-//!   list here.
+//! - ace3's files skipped a line they couldn't parse with an ERROR in the log, and kept the rest. Here a
+//!   bad entry is refused when it's written, and a list a module receives always compiles.
 
 use std::collections::BTreeMap;
 

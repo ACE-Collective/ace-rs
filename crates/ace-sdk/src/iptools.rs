@@ -1,5 +1,6 @@
 //! `iptools` 0.7.0's `IpRange`, which ace3's network identifier builds from each row of its CSV and
-//! asks whether an address is in it.
+//! asks whether an address is in it, and which ace3's `ipv4` observable matches a global exclusion
+//! written as a range with (`crate::exclusions`).
 //!
 //! A range is CIDR notation, IPv4 (`10/8`, `10.1.0.0/16`) or IPv6 (`2001:db8::/32`), an address and
 //! a dotted netmask (`192.168.1.0/255.255.255.0`), or one address. iptools reads a short IPv4
@@ -20,7 +21,7 @@ const MAPPED: (u128, u128) = (0xffff_0000_0000, 0xffff_ffff_ffff);
 
 /// What `$` allows: the text, less one newline at its end.
 fn body(s: &str) -> &str {
-    crate::py::before_final_newline(s)
+    s.strip_suffix('\n').unwrap_or(s)
 }
 
 /// `int(q)` of a part a pattern has already checked: Python's `int` ignores surrounding whitespace.

@@ -133,6 +133,18 @@ fn matches_carry_offsets_and_the_filter_keeps_what_it_dropped() {
         .collect();
     assert!(kept.contains(&"tagged_attachment"), "{kept:?}");
     assert!(kept.contains(&"alpha_good"), "{kept:?}");
+    // each match carries its rule's YARA tags, which decide with its meta whether SVS counts it as a
+    // detection (ace3 91211a66)
+    let tags_of = |rule: &str| {
+        unit["matches"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|m| m["rule"] == rule)
+            .map(|m| m["tags"].clone())
+    };
+    assert_eq!(tags_of("tagged_attachment"), Some(json!(["attachment"])));
+    assert_eq!(two["tags"], json!([]));
 }
 
 #[test]

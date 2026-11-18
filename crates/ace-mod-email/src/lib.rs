@@ -10,15 +10,13 @@
 //! Python's `email` package decides much of what ace3 sees, so `py` reproduces the parts of it
 //! ace3 relies on.
 //!
-//! ace3's brotex whitelist (`saq/whitelist.py`), a file the module watched, is two analyst-edited
-//! lists here (PLAN.md 5.14), which the core sends with each task: `SENDER_WHITELIST`, ace3's
-//! `smtp_from`, matched against the `From` address, and `RECIPIENT_WHITELIST`, ace3's `smtp_to`,
-//! against each `To` address and envelope recipient. ace3's entries were case-blind substrings; an
-//! entry here says how it matches. A message one matches, or an outbound journaled one under
-//! `scan_inbound_only`, is whitelisted as in ace3: the file gets the `whitelisted` tag and directive,
-//! nothing is extracted, and the core stops the root's analysis. ace3 adds no analysis to the file;
-//! here the result that carries the tag has empty details and ace3's summary for it, "Email Analysis:
-//! (whitelisted email)", since a result is how a module adds to the file it analyzed.
+//! ace3 removed its brotex whitelist and with it the sender and recipient whitelisting (8617ba8e), so
+//! this module reads no lists. With `scan_inbound_only` set, an outbound journaled message's email
+//! analysis is skipped, and only that: the file gets its `outbound_email` tag, nothing is extracted from
+//! it, and every other module still analyzes it. ace3 adds the tag and no analysis to the file; here the
+//! tag comes in a result with no details and no summary, since a result is how a module adds to the file
+//! it analyzed, and the modules that read the email's analysis take such a result as none
+//! (`EmailAnalysis::is_tag_only`).
 
 mod analyze;
 pub mod headers;
@@ -35,34 +33,14 @@ use ace_results::types::email::EmailAnalysis;
 use ace_results::types::file_type::FileTypeAnalysis;
 use ace_results::{AnalysisType, NewFile, ObservableKind, ResultEnvelope};
 use ace_sdk::takes::{Case, Condition, Match, Takes, Text};
-use ace_sdk::{
-    FileOutputError, ListSpec, Manifest, Module, ModuleError, Outcome, Parser, TaskContext,
-};
+use ace_sdk::{FileOutputError, Manifest, Module, ModuleError, Outcome, Parser, TaskContext};
 use mail_parser::MessageParser;
 
-pub use analyze::is_local_email_domain;
+pub use analyze::{TAG_OUTBOUND_EMAIL, is_local_email_domain};
 pub use settings::{EmailAnalyzerSettings, ProviderHeaders};
 
 /// The module's manifest.
 pub const MANIFEST: Manifest = Manifest::parser::<EmailAnalyzer>();
-
-/// ace3's `smtp_from` whitelist.
-pub const SENDER_WHITELIST: ListSpec = ListSpec {
-    name: "email_sender_whitelist",
-    description: "Emails whose From address an entry matches are whitelisted: the email module adds \
-                  the whitelisted tag and directive to the file and extracts nothing, and the root's \
-                  analysis stops. ace3's smtp_from whitelist, whose entries were case-blind substrings.",
-    typed: false,
-};
-
-/// ace3's `smtp_to` whitelist.
-pub const RECIPIENT_WHITELIST: ListSpec = ListSpec {
-    name: "email_recipient_whitelist",
-    description: "Emails with a To address or envelope recipient an entry matches are whitelisted, as \
-                  with the sender whitelist. ace3's smtp_to whitelist, whose entries were case-blind \
-                  substrings.",
-    typed: false,
-};
 
 /// The email module.
 pub struct EmailAnalyzer;
@@ -71,7 +49,6 @@ impl Module for EmailAnalyzer {
     const NAME: &'static str = "email_analyzer";
     const INPUTS: &'static [ObservableKind] = &[ObservableKind::File];
     const DEPENDS_ON: &'static [&'static str] = &[FileTypeAnalysis::MODULE];
-    const LISTS: &'static [ListSpec] = &[SENDER_WHITELIST, RECIPIENT_WHITELIST];
     type Output = EmailAnalysis;
     type Settings = EmailAnalyzerSettings;
 
@@ -127,28 +104,18 @@ impl Parser for EmailAnalyzer {
             return Ok(Outcome::Skipped("the message doesn't parse".to_owned()));
         };
         let root = mime::Node::message(message.root());
-        let whitelists = analyze::Whitelists {
-            senders: ctx.list(&SENDER_WHITELIST)?,
-            recipients: ctx.list(&RECIPIENT_WHITELIST)?,
-            now: ctx.now(),
-        };
         let directives = &ctx.observable().directives;
         let analysis =
-            match analyze::analyze_headers(&root, file, directives, ctx.settings(), &whitelists) {
+            match analyze::analyze_headers(&root, file, directives, ctx.settings(), ctx.now()) {
                 Ok(analysis) => analysis,
-                Err(analyze::Skip::Whitelisted { analyzed, why }) => {
+                Err(analyze::SkippedOutbound { analyzed }) => {
                     let mut result = ResultEnvelope::new(EmailAnalysis {
                         parsing_error: None,
                         extraction_errors: Vec::new(),
                         email: None,
                     });
                     result.analyzed = analyzed;
-                    result.summary = Some(WHITELISTED_SUMMARY.to_owned());
-                    tracing::debug!("{why}");
                     return Ok(Outcome::Done(result));
-                }
-                Err(analyze::Skip::BadList(error)) => {
-                    return Err(ModuleError::other(format!("a whitelist: {error}")));
                 }
             };
         let mut result = analysis.result;
@@ -269,9 +236,6 @@ fn universal_newlines(bytes: &[u8]) -> Vec<u8> {
     }
     out
 }
-
-/// `EmailAnalysis.generate_summary` for a whitelisted email.
-pub const WHITELISTED_SUMMARY: &str = "Email Analysis: (whitelisted email)";
 
 /// `EmailAnalysis.generate_summary`.
 fn summary(details: &EmailAnalysis) -> Option<String> {

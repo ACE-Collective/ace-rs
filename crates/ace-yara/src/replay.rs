@@ -155,6 +155,9 @@ pub struct MatchEntry {
     pub namespace: String,
     pub rule: String,
     pub meta: Meta,
+    /// The rule's YARA tags, which decide with its meta whether the match is a detection
+    /// (`crate::detection_blocker`).
+    pub tags: Vec<String>,
     /// `[offset, identifier, length]` for every occurrence of every pattern.
     pub strings: Vec<(usize, String, usize)>,
 }
@@ -236,6 +239,7 @@ fn match_entry(found: &Match) -> MatchEntry {
         namespace: found.namespace.clone(),
         rule: found.rule.clone(),
         meta: found.meta.clone(),
+        tags: found.tags.clone(),
         strings: found
             .patterns
             .iter()

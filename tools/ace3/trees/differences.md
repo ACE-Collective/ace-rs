@@ -235,7 +235,6 @@ A module ace3's trees ran and ace4 doesn't have isn't listed: the command takes 
 | `ace4/x509/*` | `/observables/sha256:*` | The same file's SHA-256. | `ace4 only` |
 | `ace3/email/extra_message_id*` | `/observables/file:*/paths/*/type=*` | file_type's types on a path a file gained after file_type ran. ace4 analyzes a file once, under its first path (`tree::first_file`), and a result's `yara_meta` goes on the paths the file has then; ace3 has an observable per path and runs file_type on each. These paths are the nested messages' second names, above. |  |
 | `ace3/email/nested_rfc822_bom*` | `/observables/file:*/paths/*/type=*` | The same, for the HTML body the nested message writes again under its own name. |  |
-| `ace3/email/pdf_attachment.email.rfc822` | `/observables/fqdn:youtube.com/results/*` | `apex_domain_analyzer` adds `youtube.com`, the apex of the PDF's `www.youtube.com`, on both sides. ace3's engine then analyzes nothing on it: `youtube.com` is in its global `observable_exclusions` (`etc/saq.default.yaml`, `exclude_youtube`, with `google.com` and four users and addresses), which `AnalysisExecutor` checks before any module runs (`saq/engine/executor.py`, "ignoring globally excluded observable"). ace4 has no global exclusions, so its modules analyze it. No sample had one of those values as an observable before the apex module, so the comparison never saw it; porting the list is the owner's to schedule. | `ace4 only` |
 
 ## Effects of modules not ported
 

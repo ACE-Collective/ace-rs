@@ -5,10 +5,14 @@
 //! when an observable modifier rule limited the observable's analysis, the limit names it),
 //! none of the observable's directives keeps it off, the observable has every directive the module
 //! requires and doesn't exclude it, and every module it depends on has a result for the
-//! observable, if the root's mode runs that module and the binary has it. A whitelisted observable, one with the
-//! `whitelisted` tag or directive, is eligible for nothing, as ace3's executor skips one. The inputs come from the component (the manifest's, or an instance's
-//! narrower list), the dependencies and skip directives from the module's manifest, and the
-//! mode's modules from `Modes`.
+//! observable, if the root's mode runs that module and the binary has it. The inputs come from the
+//! component (the manifest's, or an instance's narrower list), the dependencies and skip directives
+//! from the module's manifest, and the mode's modules from `Modes`.
+//!
+//! Before any of that, an observable the site's global exclusions name (`ace_sdk::exclusions`,
+//! ace3's `observable_exclusions`) is eligible for nothing: the orchestrator asks
+//! `Exclusions::excludes` first and queues no task, not even the type step, as ace3's executor drops
+//! the work item before it picks a module (`_process_observable_exclusions`).
 //!
 //! A dependency without a result yet makes a module wait, never fail: if the dependency's task
 //! is cancelled and later runs, its result makes the module eligible then (ace3 #846).
@@ -17,7 +21,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use ace_results::ObservableKind;
 use ace_sdk::lists::ListSpec;
-use ace_sdk::{Component, Manifest, WHITELISTED};
+use ace_sdk::{Component, Manifest};
 
 /// The components the core knows, by key: each module as itself, or its named instances from
 /// the site overlay (PLAN.md 2.23).
@@ -83,25 +87,11 @@ impl Catalog {
 #[derive(Debug, Clone, Copy)]
 pub struct Facts<'a> {
     pub kind: ObservableKind,
-    pub tags: &'a [String],
     pub directives: &'a [String],
     pub exclude_modules: &'a [String],
     /// When not empty, the only modules that may analyze it, mode or not, as ace3's
     /// `limited_analysis`, which an observable modifier rule sets.
     pub limit_modules: &'a [String],
-}
-
-impl Facts<'_> {
-    /// The observable carries ace3's `whitelisted` tag or directive.
-    pub fn whitelisted(&self) -> bool {
-        is_whitelisted(self.tags, self.directives)
-    }
-}
-
-/// Whether an observable with these tags and directives is whitelisted, as ace3's
-/// `Observable.whitelisted`.
-pub fn is_whitelisted(tags: &[String], directives: &[String]) -> bool {
-    tags.iter().chain(directives).any(|t| t == WHITELISTED)
 }
 
 /// Why a module isn't eligible for an observable.
@@ -113,8 +103,6 @@ pub enum Ineligible {
     NotInMode,
     /// The observable's analysis is limited to other modules.
     NotInLimit,
-    /// The observable is whitelisted.
-    Whitelisted,
     /// A directive keeps the module off, such as `no_scan` or `exclude_all`.
     Directive(String),
     /// The observable lacks a directive the module requires, such as `original_email`.
@@ -145,9 +133,6 @@ pub fn check(
         }
     } else if !mode_modules.contains(key) {
         return Err(Ineligible::NotInMode);
-    }
-    if facts.whitelisted() {
-        return Err(Ineligible::Whitelisted);
     }
     if let Some(directive) = manifest.skipped_by(facts.directives) {
         return Err(Ineligible::Directive(directive.to_owned()));

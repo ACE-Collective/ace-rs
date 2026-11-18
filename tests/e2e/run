@@ -65,11 +65,11 @@ It also runs a GUI command (PLAN.md 5.12): signed in as that analyst, it starts 
 through the JSON API with the session, which the parser pool runs contained, and checks that the help
 completed with ace's usage and that `serve` was refused, as a command a contained process can't run.
 
-Then the analyst-edited lists (PLAN.md 5.14): signed in as that analyst, it adds the email's sender to the
-sender whitelist through the JSON API and submits the email once more, with nothing restarted. The email
-module has to whitelist it, the root's analysis has to stop with nothing extracted and no alert, and the
+Then the analyst-edited lists (PLAN.md 5.14): signed in as that analyst, it enables the email's sender for
+detection on the observable_detection list through the JSON API and submits the email once more, with
+nothing restarted. The sender has to be found enabled for detection, the root has to alert, and the
 entry's audit row has to name the analyst. It deletes the entry the same way before anything else runs,
-so the comparison below sees the empty whitelists ace3's trees were made with. Before the comparison it
+so the comparison below sees the empty lists ace3's trees were made with. Before the comparison it
 gives ace4 what make-trees gave ace3's tagging and detection modules (PLAN.md 7.6): the observables
 enabled for detection in tools/ace3/trees/detections.json, added through the detection API with a key
 holding detection:write, and the tags of tools/ace3/trees/observable_tags.json, with SQL; the site
@@ -859,25 +859,27 @@ def started_at(service):
     ).stdout.strip()
 
 
-def check_whitelist(email, failures):
+def check_list_edit(email, failures):
     """PLAN.md 5.14's Done check: an entry added through the JSON API applies to the next task with
-    nothing restarted, and its audit row names the actor. The entry is the e2e email's sender on the
-    email module's sender whitelist, ace3's smtp_from: the email is whitelisted, its analysis stops and
-    it doesn't alert. The entry is deleted again, also through the API, before anything else runs."""
+    nothing restarted, and its audit row names the actor. The entry enables the e2e email's sender for
+    detection on the observable_detection list, ace3's observable_detections: the email's sender gets a
+    detection and the root alerts. The entry is deleted again, also through the API, before anything
+    else runs. (It was the email module's sender whitelist until ace3 removed whitelisting, 8617ba8e.)"""
 
     def expect(ok, message):
         log(("ok    " if ok else "FAIL  ") + message)
         if not ok:
-            failures.append(f"whitelist: {message}")
+            failures.append(f"list edit: {message}")
 
     session = sign_in()
     if session is None:
         expect(False, "the analyst signed in")
         return
     started = {service: started_at(service) for service in ("ace", "parsers")}
-    entries = "/api/lists/v1/lists/email_sender_whitelist/entries"
+    entries = "/api/lists/v1/lists/observable_detection/entries"
     status, _, body = web_request("POST", entries, json.dumps({
-        "match": "substring", "value": "ALICE@example.com", "note": "the e2e test's sender",
+        "match": "exact", "value": "alice@example.com", "ignore_case": False,
+        "observable_type": "email_address", "note": "the e2e test's sender",
     }), session)
     if status != 201:
         expect(False, f"adding the entry answered {status}: {body}")
@@ -885,32 +887,18 @@ def check_whitelist(email, failures):
     entry = json.loads(body)["id"]
     try:
         root = submit(email)
-        log(f"submitted root {root} with its sender whitelisted")
+        log(f"submitted root {root} with its sender enabled for detection")
         seconds = wait_for(f"root {root} to complete", lambda: completed_after(root), within=120)
         log(f"root {root} completed {seconds:.2f}s after it was created")
-        for row in tasks(root):
-            log("  task " + " | ".join(row))
-        tags, directives = sql(
-            f"""SELECT array_to_string(tags, ','), array_to_string(directives, ',')
-                FROM analysis.observables WHERE root_id = '{root}' AND type = 'file'"""
-        )[0]
-        expect("whitelisted" in tags.split(",") and "whitelisted" in directives.split(","),
-               f"the email module whitelisted the email: tags {tags!r}, directives {directives!r}")
-        files, alerted, cancelled = sql(
-            f"""SELECT (SELECT count(*) FROM analysis.observables
-                        WHERE root_id = r.id AND type = 'file'),
-                       alerted_at IS NOT NULL, cancelled_at IS NOT NULL
-                FROM analysis.roots r WHERE id = '{root}'"""
-        )[0]
-        expect(files == "1", f"nothing was extracted from it: {files} file(s) in the root")
-        expect(alerted == "f" and cancelled == "t",
-               f"its analysis stopped and it didn't alert: alerted {alerted}, cancelled {cancelled}")
-        summary = sql(
-            f"""SELECT coalesce(summary, '') FROM analysis.results
-                WHERE root_id = '{root}' AND module = 'email_analyzer'"""
+        flagged = sql(
+            f"""SELECT r.details->>'for_detection' FROM analysis.results r
+                JOIN analysis.observables o ON o.id = r.observable_id
+                WHERE r.root_id = '{root}' AND r.module = 'observable_detection'
+                  AND o.type = 'email_address' AND o.value = 'alice@example.com'"""
         )
-        expect(summary == [["Email Analysis: (whitelisted email)"]],
-               f"its result is ace3's for a whitelisted email: {summary}")
+        expect(flagged == [["true"]], f"the sender was found enabled for detection: {flagged}")
+        alerted = sql(f"SELECT alerted_at IS NOT NULL FROM analysis.roots WHERE id = '{root}'")
+        expect(alerted == [["t"]], f"its detection made the root an alert: {alerted}")
         audit = sql(
             f"""SELECT actor->>'kind', actor->>'name', action FROM service.audit
                 WHERE target_kind = 'list_entry' AND target_id = '{entry}' ORDER BY id"""
@@ -921,7 +909,7 @@ def check_whitelist(email, failures):
         expect(now == started, f"nothing restarted: {started} then {now}")
     finally:
         status, _, body = web_request(
-            "DELETE", f"/api/lists/v1/lists/email_sender_whitelist/entries/{entry}", None, session)
+            "DELETE", f"{entries}/{entry}", None, session)
         expect(status == 204, f"the entry was deleted through the API ({status} {body})")
         audit = sql(
             f"""SELECT actor->>'name', action FROM service.audit
@@ -2127,7 +2115,7 @@ def main(argv):
         check_root_metrics([first, second], failures)
         check_search(first, second, failures)
         check_ai(first, failures)
-        check_whitelist(email, failures)
+        check_list_edit(email, failures)
         check_scanners(failures)
         if browser:
             try:

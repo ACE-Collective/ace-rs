@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id AS \"id: ObservableId\", type AS kind, tags, directives, exclude_modules,\n                      limit_modules, type_result\n               FROM analysis.observables\n               WHERE root_id = $1 AND ($2::bigint[] IS NULL OR id = ANY($2))\n               ORDER BY id",
+  "query": "SELECT id AS \"id: ObservableId\", type AS kind, value, directives, exclude_modules,\n                      limit_modules, type_result\n               FROM analysis.observables\n               WHERE root_id = $1 AND ($2::bigint[] IS NULL OR id = ANY($2))\n               ORDER BY id",
   "describe": {
     "columns": [
       {
@@ -27,12 +27,12 @@
       },
       {
         "ordinal": 2,
-        "name": "tags",
-        "type_info": "TextArray",
+        "name": "value",
+        "type_info": "Text",
         "origin": {
           "Table": {
             "table": "analysis.observables",
-            "name": "tags"
+            "name": "value"
           }
         }
       },
@@ -97,5 +97,5 @@
       false
     ]
   },
-  "hash": "eb28641d1c8d4cddd426192ac2807011400d4262539a6659738cad1ca485e20a"
+  "hash": "528e7e98e791e0565de1a7c3a3d3b2a4d8ed5f510cd4c64c0935626bff31c23c"
 }

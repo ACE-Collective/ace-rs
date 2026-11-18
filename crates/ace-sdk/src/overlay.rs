@@ -62,6 +62,11 @@
 //! backend has a `type` the binary has, its `limits`, the `secrets` it is given and its `settings`.
 //! `ace serve` builds and checks them when it starts; a pool doesn't read them.
 //!
+//! `observable_exclusions:` is ace3's section of that name (`crate::exclusions`): the observables no
+//! module analyzes, each a `<type>:<value>` by name, merged over ace3's defaults by name, a name set to
+//! null dropping one of ace3's. The core reads it, as `Exclusions::from_section`, where it decides
+//! what to queue; a pool doesn't.
+//!
 //! `secrets:` says where each secret comes from, by the name modules declare in
 //! `Module::SECRETS`: `env:<VARIABLE>` or `file:<path>`, as ace3's `env:` references. Nothing
 //! is read when the overlay loads; a pool reads only the ones its modules declare (PLAN.md 2.24,
@@ -124,6 +129,10 @@ pub struct Overlay {
     /// The AI investigation API (PLAN.md 7.15): ace3's `ai_api:` and `ai_query_backend_<name>:`
     /// sections. Off unless `enabled`. `ace serve` reads it; a pool doesn't.
     pub ai_api: AiApiSection,
+    /// ace3's `observable_exclusions:`, each `<type>:<value>` by name over ace3's own, null dropping one
+    /// (`crate::exclusions`): the observables no module analyzes. `from_yaml` checks every spec reads.
+    /// The core reads it; a pool doesn't.
+    pub observable_exclusions: BTreeMap<String, Option<String>>,
 }
 
 /// The AI investigation API's settings (PLAN.md 7.15, `ace_service::ai`): read-only routes an AI agent's
@@ -984,6 +993,8 @@ impl Overlay {
             parse_error(path, e.into_inner().to_string())
         })?;
         overlay.disposition_order = disposition_order;
+        crate::exclusions::Exclusions::from_section(&overlay.observable_exclusions)
+            .map_err(|(path, message)| parse_error(path, message))?;
         overlay
             .svs
             .check()
@@ -1079,6 +1090,8 @@ impl Overlay {
             yara_export: YaraExportSection::default(),
             // a pool serves no API, and reads no backend's secret
             ai_api: AiApiSection::default(),
+            // the core decides what is queued
+            observable_exclusions: BTreeMap::new(),
         }
     }
 
@@ -1352,6 +1365,30 @@ mod tests {
                 }
                 other => panic!("{yaml}: {other:?}"),
             }
+        }
+    }
+
+    /// ace3's `observable_exclusions:`: entries by name over ace3's, null dropping one, and a spec that
+    /// isn't `<type>:<value>` refused when the file loads.
+    #[test]
+    fn observable_exclusions_merge_over_ace3_s_and_refuse_a_bad_spec() {
+        let overlay = Overlay::from_yaml(
+            "observable_exclusions:\n  exclude_google: null\n  mine: \"fqdn:example.com\"\n",
+        )
+        .expect("parses");
+        let exclusions =
+            crate::exclusions::Exclusions::from_section(&overlay.observable_exclusions)
+                .expect("reads");
+        assert!(exclusions.excludes("fqdn", "example.com"));
+        assert!(exclusions.excludes("fqdn", "youtube.com"));
+        assert!(!exclusions.excludes("fqdn", "google.com"));
+        assert!(overlay.for_pool(&[]).observable_exclusions.is_empty());
+        match Overlay::from_yaml("observable_exclusions: {mine: example.com}") {
+            Err(OverlayError::Parse { path, message }) => {
+                assert_eq!(path, "observable_exclusions.mine");
+                assert!(message.contains("<type>:<value>"), "{message}");
+            }
+            other => panic!("{other:?}"),
         }
     }
 

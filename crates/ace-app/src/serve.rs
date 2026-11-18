@@ -184,9 +184,15 @@ async fn serve(app: &App) -> Result<ExitCode> {
     for component in components.iter().filter(|c| !c.takes.is_everything()) {
         tracing::info!(module = %component.key, takes = %component.takes, "the module declares what it takes");
     }
+    // the observables no module analyzes, ace3's `observable_exclusions`
+    let exclusions = crate::cli::exclusions(&overlay)?;
+    for (kind, values) in exclusions.iter() {
+        tracing::info!(r#type = kind, values = ?values, "no module analyzes these observables");
+    }
     let orchestrator = Orchestrator::new(Catalog::of(components), modes)
         .with_hooks(hooks)
-        .with_takes(takes);
+        .with_takes(takes)
+        .with_exclusions(exclusions);
     // a pool that lists a module leases its overlay instances too
     // the remediators, probes and collectors the pools host decide their actions' tries (PLAN.md 7.9)
     let actions = app

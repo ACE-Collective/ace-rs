@@ -919,7 +919,8 @@ async fn hunt(app: &App) -> Result<ExitCode> {
     let takes = ace_core::takes::TakesMode::from_env().map_err(anyhow::Error::msg)?;
     let orchestrator = Orchestrator::new(Catalog::of(components), modes)
         .with_hooks(hooks)
-        .with_takes(takes);
+        .with_takes(takes)
+        .with_exclusions(crate::cli::exclusions(&overlay)?);
     // the site's dispositions, as `ace serve` has them, for whatever the hunter reads through the service
     let dispositions = ace_service::Dispositions::configured(&overlay)
         .map_err(anyhow::Error::msg)

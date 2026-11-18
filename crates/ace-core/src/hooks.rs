@@ -111,9 +111,10 @@
 //!   rule set with many matches costs a pass over the tree each; here a run evaluates every observable
 //!   once, and runs again only when something matched.
 //! - ace3's per-rule cost log lines (`execute_post_analysis`) aren't written; each match is logged.
-//! - A cancelled root, one whitelisted or dispositioned, runs no hook. ace3's whitelisting stops its
-//!   loop before final analysis but still runs post analysis, so `configuration_defined_tagging` can add
-//!   a root detection there, which can't make that root an alert anyway.
+//! - A cancelled root, one dispositioned, runs no hook.
+//! - Neither phase's rules evaluate an observable the site's global exclusions name
+//!   (`ace_sdk::exclusions`), as ace3's executor drops its work item before the modifier, a module,
+//!   sees it, in normal and in final analysis.
 
 pub mod rules;
 
@@ -122,6 +123,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use ace_results::ObservableKind;
+use ace_sdk::exclusions::Exclusions;
 use ace_sdk::hooks::{HooksSection, Phase};
 use serde_json::{Value, json};
 use tokio_util::sync::CancellationToken;
@@ -304,6 +306,7 @@ pub(crate) async fn mark_due(
 pub(crate) async fn pre(
     tx: &mut Tx<'_>,
     hooks: &Hooks,
+    exclusions: &Exclusions,
     modes: &Modes,
     root: Uuid,
     mode: &str,
@@ -335,7 +338,7 @@ pub(crate) async fn pre(
             let Some(&node) = index.get(&id.0) else {
                 continue;
             };
-            if !seen.insert(node) || tree.nodes[node].ignored {
+            if !seen.insert(node) || skipped(exclusions, &tree.nodes[node]) {
                 continue;
             }
             match rules.evaluate(&mut tree, node, Phase::Pre, &mut budget) {
@@ -356,6 +359,11 @@ pub(crate) async fn pre(
         effects.extend(round);
     }
     Ok(effects)
+}
+
+/// Whether the rules pass over `node`: an analyst's rule ignored it, or the global exclusions name it.
+fn skipped(exclusions: &Exclusions, node: &Node) -> bool {
+    node.ignored || exclusions.excludes(node.kind.as_str(), &node.value)
 }
 
 /// Loads the root's tree as the rules read it, with the details of the modules they read.
@@ -783,7 +791,7 @@ impl Orchestrator {
             let mut budget = Budget::new(rules::STEP_BUDGET);
             let mut matches = Vec::new();
             for node in 0..tree.nodes.len() {
-                if tree.nodes[node].ignored {
+                if skipped(self.exclusions(), &tree.nodes[node]) {
                     continue;
                 }
                 matches.extend(rules.evaluate(&mut tree, node, Phase::Post, &mut budget)?);

@@ -60,7 +60,7 @@
 //! `preferences` keeps a user's GUI preferences, ace3's `user_preferences` router, for 5.7's GUI and its
 //! routes under `/api/users/v1/me/preferences`.
 //!
-//! `lists` keeps the analyst-edited lists (5.14), such as the email module's whitelists, which the lease
+//! `lists` keeps the analyst-edited lists (5.14), such as the observables enabled for detection, which the lease
 //! API adds to the tasks of the modules that read them.
 //!
 //! `maintenance` holds the bucket's scheduled maintenance (PLAN.md 6.7): GC, the orphan sweep and the

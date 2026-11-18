@@ -22642,7 +22642,7 @@
           },
           "ignore_case": {
             "type": "boolean",
-            "description": "Compare without case; true unless false is sent, as ace3's whitelist did.",
+            "description": "Compare without case; true unless false is sent.",
             "default": true
           },
           "match": {
@@ -31034,7 +31034,7 @@
     },
     {
       "name": "lists",
-      "description": "The analyst-edited lists, such as the email whitelists, which apply to the next task that reads them"
+      "description": "The analyst-edited lists, such as the observables enabled for detection, which apply to the next task that reads them"
     },
     {
       "name": "monitoring",

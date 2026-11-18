@@ -2,9 +2,9 @@
 //!
 //! A subdomain's registrable domain (eTLD+1) becomes an `fqdn` observable of its own, shown as
 //! "Apex Domain", so an analyst can pivot from `abc.example.com` to every alert with
-//! `example.com`. The reduction is `ace_sdk::domains::apex_domain_of`, the one the RDAP module
-//! queries with, on the public suffix list ace3's tldextract ships. A name that is its own apex,
-//! or has no public suffix, gets no result.
+//! `example.com`. The apex and whether it becomes an observable are `ace_sdk::domains::apex_of`,
+//! which the RDAP module decides with too, on the public suffix list ace3's tldextract ships. A name
+//! that is its own apex, or has no public suffix, gets no result.
 //!
 //! The RDAP module skips a subdomain this module gives an apex (`7265bb53`, `e871441c`). ace3
 //! makes it wait for this module's result; ace4's RDAP module computes the same apex from the value
@@ -13,11 +13,9 @@
 //! (`ace_mod_rdap`'s docs).
 
 use ace_results::types::values::ApexDomainAnalysis;
-use ace_results::{AnalysisType, ObservableKind, ResultEnvelope};
-use ace_sdk::domains::apex_domain_of;
+use ace_results::{AnalysisType, NewObservable, ObservableKind, ResultEnvelope};
+use ace_sdk::domains::apex_of;
 use ace_sdk::{Manifest, Module, ModuleError, Outcome, Parser, TaskContext};
-
-use crate::observable;
 
 pub const MANIFEST: Manifest = Manifest::parser::<ApexDomainAnalyzer>();
 
@@ -40,18 +38,19 @@ impl Module for ApexDomainAnalyzer {
 impl Parser for ApexDomainAnalyzer {
     fn analyze(&self, ctx: &TaskContext<()>) -> Result<Outcome<ApexDomainAnalysis>, ModuleError> {
         let observable = ctx.observable();
-        let Some(apex) = apex_domain_of(&observable.value) else {
+        let Some(apex) = apex_of(&observable.value) else {
             return Ok(Outcome::Skipped(
                 "its own apex, or no public suffix".to_owned(),
             ));
         };
         let mut result = ResultEnvelope::new(ApexDomainAnalysis {
-            apex_domain: Some(apex.clone()),
+            apex_domain: Some(apex.domain.clone()),
         });
-        result.summary = Some(format!("Apex Domain: {apex}"));
+        result.summary = Some(format!("Apex Domain: {}", apex.domain));
         // ace3 keeps its analysis when the fqdn check refuses the apex, which a name with a public
         // suffix passes
-        if let Some(mut o) = observable::new(ObservableKind::Fqdn, &apex) {
+        if apex.observable {
+            let mut o = NewObservable::new(ObservableKind::Fqdn, apex.domain);
             o.time = observable.time;
             o.display_type = Some(DISPLAY_TYPE.to_owned());
             result.observables.push(o);

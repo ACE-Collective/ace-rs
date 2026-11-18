@@ -9,6 +9,11 @@
 //! - `modifiers`: a comma-separated list. `qa` puts the rule in QA mode and `no_alert` keeps
 //!   it from alerting; SVS treats both as "never alerts".
 //!
+//! Whether a match makes a detection is decided once, by `detection_blocker`, which the YARA module
+//! and SVS validation both call (ace3 91211a66): a rule that is disabled, in QA mode, has `no_alert`,
+//! or carries the YARA tag `whitelisted` (known-good content, ace3 8617ba8e) makes no detection of
+//! its own, and never stops any other rule or module from making one.
+//!
 //! Meta values arrive as strings, integers, floats or booleans depending on how the author
 //! wrote them (`enabled = false` or `enabled = "false"`), so each reading follows what
 //! Python's `str()` and truthiness make of each kind.
@@ -21,6 +26,8 @@ pub const META_UUID: &str = "uuid";
 
 pub const MODIFIER_QA: &str = "qa";
 pub const MODIFIER_NO_ALERT: &str = "no_alert";
+/// The YARA tag of a rule that marks known-good content: its match makes no detection.
+pub const TAG_WHITELISTED: &str = "whitelisted";
 
 const FALSE_META_VALUES: [&str; 5] = ["false", "no", "0", "off", "disabled"];
 
@@ -57,6 +64,38 @@ pub enum DetectionBlocker {
     Qa,
     /// `modifiers` includes `no_alert`.
     NoAlert,
+    /// The rule carries the YARA tag `whitelisted`.
+    Whitelisted,
+}
+
+impl DetectionBlocker {
+    /// ace3's words for it, which SVS validation reports.
+    pub fn reason(self) -> &'static str {
+        match self {
+            DetectionBlocker::Disabled => "enabled = false",
+            DetectionBlocker::Qa => "in QA mode",
+            DetectionBlocker::NoAlert => "no_alert",
+            DetectionBlocker::Whitelisted => "tagged whitelisted",
+        }
+    }
+}
+
+/// Why a match of a rule with this meta and these YARA tags makes no detection, or `None` when it
+/// makes one: ace3's `detection_blocker(meta, tags)` (`saq/signatures/yara_meta.py`).
+pub fn detection_blocker(meta: &Meta, tags: &[String]) -> Option<DetectionBlocker> {
+    if !meta.enabled() {
+        return Some(DetectionBlocker::Disabled);
+    }
+    let modifiers = meta.modifiers();
+    if modifiers.iter().any(|m| m == MODIFIER_QA) {
+        Some(DetectionBlocker::Qa)
+    } else if modifiers.iter().any(|m| m == MODIFIER_NO_ALERT) {
+        Some(DetectionBlocker::NoAlert)
+    } else if tags.iter().any(|t| t == TAG_WHITELISTED) {
+        Some(DetectionBlocker::Whitelisted)
+    } else {
+        None
+    }
 }
 
 impl Meta {
@@ -104,22 +143,6 @@ impl Meta {
         self.get(META_UUID)
             .filter(|value| value.truthy())
             .map(|value| value.python_str().trim().to_string())
-    }
-
-    /// Why a match of this rule would make no detection, or `None` if it would make one: it
-    /// is enabled and its modifiers include neither `qa` nor `no_alert`.
-    pub fn detection_blocker(&self) -> Option<DetectionBlocker> {
-        if !self.enabled() {
-            return Some(DetectionBlocker::Disabled);
-        }
-        let modifiers = self.modifiers();
-        if modifiers.iter().any(|m| m == MODIFIER_QA) {
-            Some(DetectionBlocker::Qa)
-        } else if modifiers.iter().any(|m| m == MODIFIER_NO_ALERT) {
-            Some(DetectionBlocker::NoAlert)
-        } else {
-            None
-        }
     }
 }
 
@@ -208,25 +231,41 @@ mod tests {
         assert_eq!(meta(&[("uuid", s("  "))]).uuid(), Some(String::new()));
     }
 
+    /// test_yara_meta.py's `test_detection_blocker`, the whitelisted tag (ace3 91211a66) with it.
     #[test]
-    fn a_match_makes_a_detection_unless_disabled_qa_or_no_alert() {
-        assert_eq!(Meta::default().detection_blocker(), None);
+    fn a_match_makes_a_detection_unless_disabled_qa_no_alert_or_whitelisted() {
+        let none: &[String] = &[];
+        let whitelisted = &["benign".to_owned(), "whitelisted".to_owned()];
+        assert_eq!(detection_blocker(&Meta::default(), none), None);
         assert_eq!(
-            meta(&[("modifiers", s("directive=sandbox"))]).detection_blocker(),
+            detection_blocker(&meta(&[("modifiers", s("directive=sandbox"))]), none),
             None
         );
         assert_eq!(
-            meta(&[("enabled", s("off")), ("modifiers", s("qa"))]).detection_blocker(),
+            detection_blocker(
+                &meta(&[("enabled", s("off")), ("modifiers", s("qa"))]),
+                none
+            ),
             Some(DetectionBlocker::Disabled)
         );
         assert_eq!(
-            meta(&[("modifiers", s("no_alert, qa"))]).detection_blocker(),
+            detection_blocker(&meta(&[("modifiers", s("no_alert, qa"))]), whitelisted),
             Some(DetectionBlocker::Qa)
         );
         assert_eq!(
-            meta(&[("modifiers", s("no_alert"))]).detection_blocker(),
+            detection_blocker(&meta(&[("modifiers", s("no_alert"))]), none),
             Some(DetectionBlocker::NoAlert)
         );
+        assert_eq!(
+            detection_blocker(&meta(&[("modifiers", s("directive=sandbox"))]), whitelisted),
+            Some(DetectionBlocker::Whitelisted)
+        );
+        assert_eq!(
+            detection_blocker(&Meta::default(), &["whitelisted_later".to_owned()]),
+            None,
+            "only the tag itself"
+        );
+        assert_eq!(DetectionBlocker::Whitelisted.reason(), "tagged whitelisted");
     }
 
     #[test]

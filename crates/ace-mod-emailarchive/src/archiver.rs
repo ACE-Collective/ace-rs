@@ -79,8 +79,19 @@ impl Lookup for EmailArchiver {
             tracing::warn!("detected decrypted email {observable} as original email");
             return Ok(Outcome::Skipped("a decrypted email".to_owned()));
         }
-        let Some(analysis) = ctx.dependency_result::<EmailAnalysis>()? else {
-            tracing::warn!("unable to obtain EmailAnalysis for {observable}");
+        let Some(analysis) = ctx
+            .dependency_result::<EmailAnalysis>()?
+            .filter(|analysis| !analysis.is_tag_only())
+        else {
+            // scan_inbound_only skips the email analysis of outbound mail on purpose
+            if ctx
+                .tree()
+                .is_some_and(|tree| tree.this().has_tag(ace_mod_email::TAG_OUTBOUND_EMAIL))
+            {
+                tracing::debug!("outbound email {observable} was not analyzed - not archiving");
+            } else {
+                tracing::warn!("unable to obtain EmailAnalysis for {observable}");
+            }
             return Ok(Outcome::Skipped("no email analysis".to_owned()));
         };
         let email = analysis.email.as_ref();
