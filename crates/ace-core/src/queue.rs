@@ -544,22 +544,56 @@ impl Worker {
     /// one statement. The tasks come back oldest first. A worker asks for as many as it can start
     /// now, so none of them waits in a worker that is busy while another could run it.
     pub async fn claim_up_to(&self, most: usize) -> Result<Vec<Task>, QueueError> {
-        let most = i64::try_from(most.max(1)).unwrap_or(i64::MAX);
-        // the tasks to claim are chosen and locked in a CTE, which Postgres runs once: as a
-        // subquery of the UPDATE's WHERE it could run again for a row and lock more than `most`
+        let most = i64::try_from(most.clamp(1, 1 << 20)).unwrap_or(1);
+        // The tasks to claim are chosen and locked in CTEs, which Postgres runs once: as a
+        // subquery of the UPDATE's WHERE it could run again for a row and lock more than `most`.
+        //
+        // `oldest` reads each module's oldest due tasks from its own range of `tasks_claimable`,
+        // which is in `(module, run_after, id)` order, and stops after `most` of them, so the
+        // claim reads at most that many a module and sorts only those. It used to read and
+        // sort every due task of the pool's modules, 4,000 at the median under load, to take five
+        // (`docs/measurements/lease.md`). A pool with nothing due reads an empty range a module,
+        // whatever other pools have due, which an index in the claim's own order doesn't give: a
+        // plan over it reads every other pool's due tasks to find none.
+        //
+        // `first` locks the oldest `most` of the oldest twice `most`, skipping what another claim
+        // holds, as the claim always did; the rest are spares for a claim that races another. The
+        // oldest `most` of the pool are among them, since no module has more than `most` of those.
+        // Only when every one of them was locked, by claims of other workers of the same modules,
+        // does `rest` read all the pool's due tasks to find unlocked ones, as the claim used to
+        // each time: its conditions on `first` and `oldest` don't depend on the row, so Postgres
+        // tests them once and otherwise reads nothing there.
         let mut rows = self
             .db
             .transaction(Isolation::ReadCommitted, |tx| {
                 Box::pin(async move {
                     Ok::<_, QueueError>(
                         sqlx::query!(
-                            r#"WITH due AS MATERIALIZED (
+                            r#"WITH oldest AS MATERIALIZED (
+                   SELECT c.id FROM (SELECT DISTINCT unnest($3::text[]) AS module) m
+                   CROSS JOIN LATERAL (
+                       SELECT id, run_after FROM queue.tasks
+                       WHERE module = m.module AND state IN ('queued', 'delayed')
+                         AND run_after <= now()
+                       ORDER BY run_after, id
+                       LIMIT $4) c
+                   ORDER BY c.run_after, c.id
+                   LIMIT 2 * $4::int8),
+               first AS MATERIALIZED (
+                   SELECT t.id FROM queue.tasks t JOIN oldest ON oldest.id = t.id
+                   WHERE t.state IN ('queued', 'delayed') AND t.run_after <= now()
+                   ORDER BY t.run_after, t.id
+                   FOR UPDATE OF t SKIP LOCKED
+                   LIMIT $4),
+               rest AS MATERIALIZED (
                    SELECT id FROM queue.tasks
                    WHERE state IN ('queued', 'delayed') AND run_after <= now()
                      AND module = ANY($3)
+                     AND NOT EXISTS (SELECT FROM first) AND EXISTS (SELECT FROM oldest)
                    ORDER BY run_after, id
                    FOR UPDATE SKIP LOCKED
-                   LIMIT $4)
+                   LIMIT $4),
+               due AS (SELECT id FROM first UNION ALL SELECT id FROM rest)
                UPDATE queue.tasks t
                SET state = 'running', lease_owner = $1,
                    lease_expires_at = now() + make_interval(secs => $2),

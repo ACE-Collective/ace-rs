@@ -289,3 +289,58 @@ async fn after_commit_runs_only_once_the_transaction_has_committed() {
     tx.rollback().await.expect("rolls back");
     assert!(seen().is_empty());
 }
+
+/// A transaction runs at the level it asks for, which its `BEGIN` sets with no statement of its own
+/// (`docs/measurements/lease.md`), and a connection's default doesn't change it.
+#[tokio::test]
+async fn a_transaction_runs_at_the_level_it_asks_for() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    for (isolation, level) in [
+        (Isolation::ReadCommitted, "read committed"),
+        (Isolation::RepeatableRead, "repeatable read"),
+        (Isolation::Serializable, "serializable"),
+    ] {
+        let read = db
+            .transaction(isolation, |tx| {
+                Box::pin(async move {
+                    let set: String =
+                        sqlx::query_scalar("SELECT current_setting('transaction_isolation')")
+                            .fetch_one(tx.conn())
+                            .await?;
+                    Ok::<_, DbError>(set)
+                })
+            })
+            .await
+            .expect("the transaction runs");
+        assert_eq!(read, level, "{isolation:?}");
+    }
+    // the test database's default, which every new connection to it takes
+    sqlx::raw_sql(
+        "DO $$ BEGIN EXECUTE format('ALTER DATABASE %I SET default_transaction_isolation = serializable',
+                                    current_database()); END $$",
+    )
+    .execute(db.pool())
+    .await
+    .expect("sets the database's default");
+    let fresh = Db::connect(test_db.config()).await.expect("connects");
+    let default: String = sqlx::query_scalar("SHOW default_transaction_isolation")
+        .fetch_one(fresh.pool())
+        .await
+        .expect("reads the default");
+    assert_eq!(default, "serializable");
+    let read = fresh
+        .transaction(Isolation::ReadCommitted, |tx| {
+            Box::pin(async move {
+                let set: String =
+                    sqlx::query_scalar("SELECT current_setting('transaction_isolation')")
+                        .fetch_one(tx.conn())
+                        .await?;
+                Ok::<_, DbError>(set)
+            })
+        })
+        .await
+        .expect("the transaction runs");
+    fresh.close().await;
+    assert_eq!(read, "read committed");
+}

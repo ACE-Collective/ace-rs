@@ -108,11 +108,16 @@ pub enum Isolation {
 }
 
 impl Isolation {
-    fn statement(self) -> &'static str {
+    /// The `BEGIN` that opens a transaction at this level. The level is in the `BEGIN` itself, so
+    /// a transaction costs no round trip for it: a `SET TRANSACTION` of its own was 270,165
+    /// statements in a run of 43,074 tasks (`docs/measurements/lease.md`). READ COMMITTED is named
+    /// too, though it is Postgres's default, so a server or role whose
+    /// `default_transaction_isolation` differs doesn't change what the code was written for.
+    fn begin_statement(self) -> &'static str {
         match self {
-            Isolation::ReadCommitted => "SET TRANSACTION ISOLATION LEVEL READ COMMITTED",
-            Isolation::RepeatableRead => "SET TRANSACTION ISOLATION LEVEL REPEATABLE READ",
-            Isolation::Serializable => "SET TRANSACTION ISOLATION LEVEL SERIALIZABLE",
+            Isolation::ReadCommitted => "BEGIN ISOLATION LEVEL READ COMMITTED",
+            Isolation::RepeatableRead => "BEGIN ISOLATION LEVEL REPEATABLE READ",
+            Isolation::Serializable => "BEGIN ISOLATION LEVEL SERIALIZABLE",
         }
     }
 }
@@ -258,11 +263,15 @@ impl Db {
     {
         let mut attempt = 1;
         loop {
-            let mut tx: Tx<'a> = self.begin().await?;
-            sqlx::raw_sql(isolation.statement())
-                .execute(tx.conn())
-                .await
-                .map_err(DbError::from)?;
+            let mut tx: Tx<'a> = Tx {
+                inner: self
+                    .pool
+                    .begin_with(isolation.begin_statement())
+                    .await
+                    .map_err(DbError::from)?,
+                committed: Vec::new(),
+                outer: None,
+            };
             let error = match body(&mut tx).await {
                 Ok(value) => match tx.commit().await {
                     Ok(()) => return Ok(value),

@@ -254,3 +254,83 @@ async fn a_claim_of_several_takes_the_oldest_due_in_the_order_single_claims_woul
     }
     assert_eq!(singly, oldest_first);
 }
+
+/// The claim reads each module's oldest due tasks (`Worker::claim_up_to`): across modules it takes
+/// the oldest of the pool, a module named twice counts once, and past a task another transaction
+/// holds it takes the next, from its spares or, when every spare is held too, from all the pool's
+/// due tasks, as the claim always did.
+#[tokio::test]
+async fn a_claim_takes_the_oldest_across_modules_and_past_what_another_holds() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let hosts: Vec<String> = (0..4).map(|i| format!("host{i}.example.com")).collect();
+    let observables: Vec<(ObservableKind, &str)> = hosts
+        .iter()
+        .map(|v| (ObservableKind::Fqdn, v.as_str()))
+        .collect();
+    let (root, ids) = root_with(db, "analysis", &observables).await;
+    let mut tx = db.begin().await.expect("begins");
+    let mut tasks = Vec::new();
+    for id in &ids {
+        for module in ["one", "two", "three"] {
+            tasks.push(
+                queue::enqueue(&mut tx, root, *id, module)
+                    .await
+                    .expect("queues")
+                    .expect("new"),
+            );
+        }
+    }
+    tx.commit().await.expect("commits");
+    // twelve tasks, each due a second after the one before, the modules taking turns
+    for (n, task) in tasks.iter().enumerate() {
+        sqlx::query(
+            "UPDATE queue.tasks SET run_after = now() - make_interval(secs => $2) WHERE id = $1",
+        )
+        .bind(task.0)
+        .bind(100.0 - n as f64)
+        .execute(db.pool())
+        .await
+        .expect("sets when it's due");
+    }
+    let worker = worker(
+        &test_db,
+        "across",
+        &["one", "two", "three", "two"],
+        Duration::from_secs(60),
+    )
+    .await;
+    let ids_of = |claimed: &[queue::Task]| claimed.iter().map(|t| t.id).collect::<Vec<_>>();
+    let claimed = worker.claim_up_to(4).await.expect("claims");
+    assert_eq!(ids_of(&claimed), tasks[..4]);
+    for task in &claimed {
+        worker.release(task.id).await.expect("gives it back");
+    }
+
+    // another transaction holds the oldest two: the claim of two takes its spares
+    let mut other = db.begin().await.expect("begins");
+    let held: Vec<i64> = tasks[..2].iter().map(|t| t.0).collect();
+    sqlx::query("SELECT id FROM queue.tasks WHERE id = ANY($1) FOR UPDATE")
+        .bind(&held)
+        .fetch_all(other.conn())
+        .await
+        .expect("locks");
+    let claimed = worker.claim_up_to(2).await.expect("claims");
+    assert_eq!(ids_of(&claimed), tasks[2..4]);
+    for task in &claimed {
+        worker.release(task.id).await.expect("gives it back");
+    }
+    // it holds every spare too: the claim reads past them
+    let held: Vec<i64> = tasks[..4].iter().map(|t| t.0).collect();
+    sqlx::query("SELECT id FROM queue.tasks WHERE id = ANY($1) FOR UPDATE")
+        .bind(&held)
+        .fetch_all(other.conn())
+        .await
+        .expect("locks");
+    let claimed = worker.claim_up_to(2).await.expect("claims");
+    assert_eq!(ids_of(&claimed), tasks[4..6]);
+    other.rollback().await.expect("rolls back");
+    // and a worker whose modules have nothing due claims nothing
+    let idle = common::worker(&test_db, "idle", &["four"], Duration::from_secs(60)).await;
+    assert!(idle.claim_up_to(4).await.expect("claims").is_empty());
+}

@@ -203,13 +203,95 @@ The counts are Postgres's, from the run with pg_stat_statements, and the times a
 - **The claim** still reads every due task of the pool's modules to find the oldest, a millisecond in Postgres with 4,000 due, now once for five tasks.
 - **One request at a time.** A slot that frees while a request is in flight waits for it and for the next: the parser pool had 3.8 slots free when it asked. More requests at once weren't tried. They would start a task sooner on a free slot, at the price of a claim each, and their decisions would wait on the same roots' locks.
 
+## The path hold decided for the file, measured and dropped; the isolation level and the claim, kept
+
+The owner's go-ahead of 2026-11-18 asked for one change of four parts, measured two runs each against HEAD. Measured on 2026-11-18 on the same machine as above, with the same instruments and stack settings. HEAD is `dc1994b1`, built from a temporary worktree; "the change" is the code with all four parts. **By the owner's decision of 2026-11-18, parts 1 and 2 (the wake of held files and the hold decided once for a file) were dropped, because they saved no time or CPU, and parts 3 and 4 (the isolation level in `BEGIN` and the claim by module) were kept.** The code is HEAD's hold, decided for each task, as decision 15 describes it; the measurements below are of all four parts together. The isolation level and the claim weren't measured alone, and the table's rows for them (the claim's time in Postgres and in the core, the `SET TRANSACTION` statements) are what they change.
+
+**What the hold was.** A file's first task is held while a task nearer the root than the file is queued, delayed or running (PLAN.md decision 15), so the rule that picks its analysis path sees every path. Each held task was asked again after `waited / 2`, 0.1 s to 2 s, for 60 s at most, and each asking was a claim, the test and a transaction on the root's lock. Nothing woke a held task when the task it waited for ended.
+
+**What the four parts were.** Parts 1 and 2, as measured and dropped:
+
+1. **The hold was the file's** (`queue::Worker::hold_for_path`, migration 0074's `queue.path_holds`). The first task of the file claimed decides it: with the root locked and the file's observable row locked, it tests `tree::pending_above` again, and if something is pending above it waits `waited / 2` as before and records the hold, with the file's depth, the modules that run last, and when it is next decided. In the same transaction the file's other queued and delayed tasks wait until the file has waited 60 s. A task of the file claimed before the hold is next decided joins it, with no test of its own, and waits as long. When the deciding task comes back, the first task claimed decides again, by the same test.
+2. **A task added later** (a mode change, a fact that arrives later) is queued as any task is. If the file's hold is current when it is claimed, it joins the hold. If the deciding task decides again first, the new task is held with the others in that decision's transaction, without being claimed.
+3. **The wake.** Every end runs `check_completion`, with the root locked. It now also deletes the hold of each file with nothing left above it, by `pending_above`'s test (the depth and module list come from the hold's row), and makes that file's held tasks due at once, as `wake_held_back` does for the tasks that run last. Settling a file's path (`tree::choose_analysis_file`) wakes its held tasks too, as at the limit. A delay ends nothing that holds a file, since a delayed task is still pending. A held task the wake misses comes back when its wait ends: the deciding task within 2 s, and it then decides again or settles the path, which wakes the rest.
+4. **Why the path chosen can't change.** The wake and the per-file record change only when a file's tasks ask. A path is settled only where it was before: a task's lease when the path is already chosen, when nothing is pending above the file by the unchanged `pending_above`, or after 60 s with the warning; and the orchestrator's settle when a kept type or a kept result needs it, which is unchanged. A woken task asks `held_for_path` again before anything is settled. The test is still on observables shallower than the file, so a task as deep or deeper never holds it and two held files can't wait on each other, and the modules that run last are still left out. A hold is begun only with the root and the file's row locked and the path re-read, so it can't start just after the end or the settle that would have woken it.
+
+None of parts 1 and 2 is in the code now: `hold_for_path`, migration 0074 and its `queue.path_holds`, and the wake in `check_completion` and `tree::choose_analysis_file` are gone, and a file's held task is asked again after `waited / 2` as at HEAD.
+
+**Kept: the isolation level** is in the transaction's `BEGIN` (`BEGIN ISOLATION LEVEL READ COMMITTED`, `Db::transaction`), where it was a statement of its own. READ COMMITTED is still named rather than left to the server's default, so a server or role with another `default_transaction_isolation` doesn't change it; `tests/transactions.rs` checks each level, and READ COMMITTED on a database whose default is SERIALIZABLE. REPEATABLE READ and SERIALIZABLE are kept as their callers ask.
+**Kept: the claim** (`Worker::claim_up_to`) reads each of the pool's modules' oldest `max` due tasks from that module's range of `tasks_claimable`, which is in `(module, run_after, id)` order, keeps the oldest `2 × max` of them, and locks the oldest `max` of those it can, skipping what another claim holds. Only when another claim holds every one of them does it read all the pool's due tasks, as the claim always did; Postgres tests that condition once and otherwise reads nothing there. So it takes the same tasks in the same order as before, reads at most `max` index entries a module, and a pool with nothing due reads one empty range a module. No migration was needed for it.
+
+**An index in the claim's own order** was what *Found and left* proposed. On a table of 4,000 due parser tasks among 4,800 due (`EXPLAIN ANALYZE` in the dev Postgres), an index on `(run_after, id)` took the parser pool's claim of five from 2.7 ms to 0.08 ms. But the claim is a prepared statement, and under the generic plan Postgres uses for a prepared statement after five runs, it chose that index for every pool: a lookup pool with nothing due read all 4,300 due tasks to find none, 2.4 ms against 0.07 ms on `tasks_claimable`. The per-module read took 0.57 ms for the parser pool's claim and 0.20 ms for the idle lookup pool's, under the generic plan. One run of the 14 samples at HEAD with the ordered index added beside `tasks_claimable`: 66.6 s, the claim 6,846 times at 0.342 ms in Postgres, against HEAD's 0.534 and 0.570 ms and this change's 0.213 and 0.208 ms. So no index in the claim's order won both ways, and the change keeps `tasks_claimable` and reads it by module.
+
+### Before and after
+
+`tools/lease/measure --runs 1 --timing --statements`, twice on each side, so each run's statement counts are its own; each stack made by `tests/e2e/run --compare --keep` and used after its one whole comparison. Every run: 14 samples, none failed, no task failed or leased twice, 6,309 results, none from the cache. pg_stat_statements was loaded only in the e2e stack's Postgres, by `measure --statements` (`ALTER SYSTEM SET shared_preload_libraries`, which restarts that container), and was reset at each run's start.
+
+| | HEAD | The change |
+|---|---|---|
+| Seconds in `ace compare` | 63.5, 65.0 | 64.2, 65.2 |
+| Tasks | 15,102, 15,107 | 15,107, 15,077 |
+| Tasks a second | 238, 232 | 235, 231 |
+| A sample, seconds: median (range) | 28.50 (19.19 to 52.86), 30.37 (22.43 to 58.86) | 30.63 (22.44 to 56.15), 29.08 (22.93 to 57.87) |
+| Parser tasks leased while over 50 were due, mean | 5.41, 5.47 | 5.46, 5.62 |
+| Sandbox tasks leased then | 1.77, 1.77 | 1.73, 1.74 |
+| Lookup tasks leased then | 3.42, 3.36 | 3.71, 3.76 |
+| Tasks due then, median | 1,248, 1,144 | 1,321, 998 |
+| Roots' time: a task leased, a task due and none leased, held for a path, tasks that run last held back | 24%, 75%, 0%, 1%; 23%, 76%, 0%, 1% | 24%, 75%, 0%, 1%; 22%, 77%, 0%, 1% |
+| CPU seconds, all containers | 221.4, 225.3 | 225.0, 224.0 |
+| the core | 47.8, 48.2 | 47.7, 46.9 |
+| Postgres | 57.0, 58.0 | 59.4, 58.0 |
+| parsers | 62.2, 64.6 | 62.3, 64.4 |
+| sandbox | 43.7, 43.4 | 44.5, 43.8 |
+| lookups, bucket | 2.5, 2.5; 8.2, 8.5 | 2.6, 2.5; 8.5, 8.4 |
+| Holds for a file's path | 2,289 (second run; the first's wasn't read) | 136, 94: 133 and 94 decided, 3 and 0 joined |
+| Held tasks woken by an end; by a settle | none | 53 and 91; none in either run, of 716 settles each |
+| Claims in Postgres: calls, mean | 6,652 at 0.534 ms; 7,063 at 0.571 ms | 6,712 at 0.213 ms; 7,076 at 0.208 ms |
+| The claim, as the core sees it, a leased task: median | 1.49, 1.56 ms | 1.05, 1.04 ms |
+| `SET TRANSACTION ISOLATION LEVEL READ COMMITTED` | 37,949 (second run) | 0 |
+| Waits for a root's row lock (`lock_root`): calls, mean | 17,380 at 2.78 ms; 17,665 at 2.86 ms | 17,493 at 2.93 ms; 17,376 at 3.25 ms |
+| The orchestrator's lock of the same row: calls, mean | 6,328 at 8.90 ms; 6,333 at 9.13 ms | 6,333 at 9.26 ms; 6,303 at 9.59 ms |
+| The wake, a statement in every end: calls, mean | none | 15,093 at 0.038 ms; 15,063 at 0.036 ms |
+
+- **Holds fell from about 2,300 a run to about 115**, and the claim's time in Postgres by 62%. Each transaction makes one round trip fewer, 37,949 fewer statements a run.
+- **The run's time and CPU didn't change** beyond the spread of two runs: 63.5 and 65.0 s against 64.2 and 65.2 s, 221 and 225 CPU-seconds against 225 and 224. What the change removed was small by the time it was built. The hold was 0% of the roots' time at HEAD, and the claim 4 s of Postgres's 58 CPU-seconds. The wake adds a statement to every end, 0.6 s of Postgres time a run.
+- **The premise of this step was a run of 43,074 tasks.** The same 14 samples now make 15,100. Decision 23 queues no task a module declines, and decision 25 types a file before anything else is queued on it, so a file's first task is mostly its type step, alone, and there was rarely a file with 30 tasks to hold. Of what `lease.md` measured, 45,488 holds in a run became about 2,300 before this step and about 115 after it.
+- **What else the numbers could be measuring.** The two sides ran on different stacks, each after its own whole comparison, so their tables held the same rows. The timing events and pg_stat_statements were on in all four runs. HEAD's statement counts for its first run come from the top 30 `measure` prints, so its holds and its `SET TRANSACTION`s are from its second run only. The 14 samples are chosen to keep the pools busy, so a whole comparison's share of holds may differ.
+
+**The whole comparison**, `tests/e2e/run --compare --keep` on a new stack, once on each side:
+
+| | HEAD | The change |
+|---|---|---|
+| `ace compare`, seconds | 366.7 | 386.7 |
+| A sample: median (range), seconds | 4.30 (0.27 to 34.24) | 4.80 (0.52 to 36.22) |
+| Differences: unexplained, harness, unported, explained | 0, 324, 0, 7,800 | 0, 324, 0, 7,802 |
+
+One run of each, 20 s apart. `task-start.md` found two runs of the same code 39 s apart, so this is within the noise of one run. During HEAD's comparison the dev container compiled `ace-core` for `cargo sqlx prepare` for a few minutes, which can only have slowed HEAD. CPU wasn't read for either whole run.
+
+**The same report.** `tools/lease/same-report` on the two reports: the same 472 samples, none absent or failed, and 8,073 differences compared, the same by module, class, path and value. Only the redirections of pdftotext's text differ, in 14 samples (51 against 53), the coin toss `compare-speed.md` describes. That accounts for the two more explained differences.
+
+**The tests of what was kept.**
+
+| What | Test |
+|---|---|
+| The claim takes the oldest across modules, a module named twice once, past rows another transaction holds by its spares and, when every spare is held, by reading all of them; a pool with nothing due claims nothing | `ace-core` `tests/queue.rs`: `a_claim_takes_the_oldest_across_modules_and_past_what_another_holds` |
+| A transaction runs at the level it asks for, READ COMMITTED on a database whose default is SERIALIZABLE | `ace-core` `tests/transactions.rs`: `a_transaction_runs_at_the_level_it_asks_for` |
+| The earlier claim, hold and lease tests | unchanged, and passing |
+
+The tests of parts 1 and 2 (two in `ace-core` `tests/queue.rs`, one in `ace-pool` `tests/lease_api.rs`) went with them.
+
+### What bounds a run after the path hold step
+
+The root's row lock, which the owner wants kept in view for a later step. In each run on the change, `lock_root`'s `SELECT ... FOR UPDATE` waited 51 s and 56 s in all, and the orchestrator's lock of the same row, when a result lands, 59 s and 60 s, in runs of 64 and 65 s with 8 roots at once. Everything else Postgres ran took 21 s and 22 s. Every end, delay and hold takes that lock, and so does the transaction that lands a result, which holds it longest. So a root's tasks end one at a time, and its next tasks wait behind those ends: roots spent 75% to 77% of their time with a task due and none leased. The pools aren't full: the parser pool had 5.5 of 8 slots leased, the sandbox pool 1.7 of 8 and the lookup pool 3.7 of 16. Making a root's ends not wait on each other means not taking the root's row for each; this step doesn't try it. Parts 1 and 2 left this as it was, and dropping them leaves it so: the hold was already 0% of the roots' time.
+
 ## Found and left
 
-- **A hold for a file's path costs a claim, a decision and the root's lock, 45,000 times a run of 43,000 tasks.** The ways to lower it change how the hold is decided or when it is asked again, which this step was told to leave as it is: wake a file's held tasks when the last task nearer the root ends, as the tasks that run last are woken; or decide the hold once for a file's tasks; or take the root's lock for a hold only when its root was cancelled meanwhile, which is the one case the lock is for there.
-- **The claim's index.** `tasks_claimable` is on `(module, run_after, id)`, so the claim reads all the due tasks of the pool's modules and sorts them. An index in the claim's own order would let it stop after `max` tasks, and would cost a pool with nothing due a read of every other pool's due tasks.
-- **Every transaction sets its isolation level in a statement of its own.** `Db::transaction` sends `SET TRANSACTION ISOLATION LEVEL READ COMMITTED`, Postgres's default, as a round trip: 270,165 of them in a run of 43,074 tasks.
+- **A hold for a file's path** cost a claim, a decision and the root's lock, 45,000 times a run of 43,000 tasks when this was written. By 2026-11-18 decisions 23 and 25 had cut a run of the 14 samples to 15,100 tasks and its holds to about 2,300, 0% of the roots' time. The wake and the hold decided once for a file cut them to about 115 and saved no time or CPU, and the owner dropped them (*The path hold decided for the file, measured and dropped*). The hold is decided for each task, as before.
+- **The claim's index.** Done, and kept (*The path hold decided for the file, measured and dropped*): the claim reads each module's own range of `tasks_claimable`, and no new index was needed.
+- **Every transaction set its isolation level in a statement of its own.** Done, and kept: the level is in the `BEGIN`.
 - **Two replicas of one pool share a burst less evenly** than they did (*Order and fairness*). Not measured: the stack has one of each pool.
 - **A request asks for the slots free when it is sent.** A pool that is idle but for one long task asks for one slot fewer than it will have, and takes one more round trip to fill it.
+- **The root's row lock** is now what bounds a run and what a lease waits for most (*What bounds a run after the path hold step*): about 107 s of waits in Postgres in a run of 65 s, behind the transaction that lands a result. The owner wants it kept in view for a later step.
 
 ## For the next step
 
@@ -223,7 +305,7 @@ Built since: `task-start.md`'s *Option 2, built* has the runs that compare with 
 ## What is the owner's to decide
 
 1. Whether a pool that is frozen or killed while idle taking up to its slot count of tasks with it, where it took one, is acceptable. They come back when their leases run out, 60 s by default. The other choice is a limit on a request's size below the slot count.
-2. Whether to lower the cost of the path hold next, and which way (*Found and left*): it is now a third of what the core does at the lease, and each way changes how or when the hold is decided.
+2. Whether to lower the cost of the path hold next, and which way. Decided on 2026-11-18: the wake and the decision once for a file were built, measured and dropped, since they saved no time or CPU; the isolation level in `BEGIN` and the claim by module are kept (*The path hold decided for the file, measured and dropped*). The third way, taking the root's lock for a hold only when its root was cancelled, wasn't tried.
 3. Whether replicas of one pool sharing a burst less evenly matters for a deployment with more than one.
 
 ## Not measured
