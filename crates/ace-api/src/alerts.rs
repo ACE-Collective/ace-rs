@@ -355,6 +355,21 @@ pub(crate) struct FileTypeBody {
     is_x509: bool,
     is_lnk_file: bool,
     is_email_file: bool,
+    /// ace3's `is_pcap_file`: a pcap magic number, or a pcapng section header with its byte-order
+    /// magic.
+    is_pcap_file: bool,
+    /// OneNote's header GUID in the first 16 bytes.
+    has_onenote_header: bool,
+    /// `CAFEBABE` at the start: a Java class file.
+    is_java_class_file: bool,
+    /// `<?xml` in the first kilobyte.
+    has_xml_marker: bool,
+    /// The EPS binary header or `%!PS-Adobe-` at the start.
+    is_eps_file: bool,
+    /// `#@~^` at the start: a script encoded by Microsoft's script encoder.
+    is_encoded_script: bool,
+    /// A HAR's start in the first 4096 bytes: whitespace, `{`, `"log"` and `:`.
+    has_har_header: bool,
     /// Whether it parses as JavaScript with a keyword in it; null when the type step didn't check,
     /// which it does only where the mime type or the name says JavaScript.
     javascript: Option<bool>,
@@ -374,6 +389,13 @@ impl From<ace_results::types::file_type::TypeFacts> for FileTypeBody {
             is_x509: facts.is_x509,
             is_lnk_file: facts.is_lnk_file,
             is_email_file: facts.is_email_file,
+            is_pcap_file: facts.is_pcap_file,
+            has_onenote_header: facts.has_onenote_header,
+            is_java_class_file: facts.is_java_class_file,
+            has_xml_marker: facts.has_xml_marker,
+            is_eps_file: facts.is_eps_file,
+            is_encoded_script: facts.is_encoded_script,
+            has_har_header: facts.has_har_header,
             javascript: facts.javascript,
         }
     }

@@ -515,6 +515,64 @@ Measured on 2026-11-18 as `lease.md` measured, on one machine (Docker with 10 CP
 What else the numbers could be measuring: the stack's CPU is each container's over its life, so it includes the stack's start and the report, not the image build (BuildKit's container, left out); two runs of each, one after another, HEAD's first; ace3's stack was idle. The change's runs include the type step on files `file_type` didn't run on, and the core's work for every type step's end, which HEAD's runs don't, so the saving is net of them. The whole-set run is the sample set's mix of small files, not production's.
 
 
+## Typed where read, kept types reused, and seven more facts
+
+PLAN.md decision 25, amended on 2026-11-18. Three changes: the core types a file only where something reads its type (where ace3's `file_type` would have run, or where a module the mode runs declares on the type), so `yara` mode no longer types files; a file whose bytes were typed before, in any root, takes the kept type instead of a step of its own; and seven more facts of the type, each a module's own first-byte test, which ten modules now declare on.
+
+### What the type covers now, of the first-byte tasks
+
+From the task tables and core logs of the runs below (`tools/task-start/declines`, `--modules`), HEAD (`8deb0983`) against this change, and the audit run's marks. The modules' results are the same: 29,549 stored in every run of either.
+
+| Module | HEAD: declined by the first bytes | Change: declined in `analyze` | Audit: marked | What still decides in the module |
+|---|---:|---:|---:|---|
+| `pcap_analyzer` | 4,055 | 0 | 4,085 | |
+| `onenote_extraction` | 4,045 | 0 | 4,095 | |
+| `microsoft_script_encoding_analysis` | 4,044 | 0 | 4,094 | |
+| `har_extraction` | 4,034 | 0 | 4,084 | |
+| `binary_file_analyzer` | 4,010 | 2 | 4,058 | `\rt` that isn't `{\rt` |
+| `java_class_decompiler` | 3,953 | 0 | 4,003 | |
+| `xml_binary_analyzer` | 3,556 | 0 | 3,586 | `Word.Document` in the first KiB (509) |
+| `xml_plain_text_analyzer` | 2,173 | 0 | 3,633 | the source's `microsoft_office` tag (2) |
+| `archive` | 11 (a capture) | 0 | 459 | each format's structure (2,968) |
+| `hidden_mime` | 11 (a capture) | 0 | 246 | a MIME boundary (3,444) |
+| **These modules** | **29,892** | **2** | | |
+
+The audit's marks count every rule of a module's declaration, not only the new ones, and the audit run queues more tasks (every task as if nothing were declared). The pcap categories and `pcap_tls_decryption` declare the same test, and are queued only after `pcap_analyzer`'s result, so on a capture: none of their 11 tasks a run is declined. Over the whole run, the tasks decided by the first bytes fell from 48,760 to 18,870; what is left is libmagic's answer or some structure the type doesn't state (`autoit`, `rar_encryption_analyzer`, `tls_keylog`, `qrcode`, the archive formats).
+
+### The type step now
+
+- **Where.** In ace3's modes, every mode that runs `file_type` types what it did before. `yara` mode (YARA alone, whose module finds the mime type itself when the file has no type, as ace3's runs `file`), `dispositioned`, `event` and `suricata_ids` type nothing: their modules declare nothing on the type.
+- **Kept types.** A run of the whole set had 3,991 and 3,938 type steps, against HEAD's 4,066 in both: the difference is files whose path the core could settle when it added them, which got the kept type with no step. The rest of the reuse happens at the lease: in the audit run, of 4,047 type steps over 2,675 distinct sha256s, the parser pool ran 2,677 (its log), and the core ended the other 1,370 on the kept type when their path was settled, with no pool. A step can't be skipped while a task nearer the root is pending, since the path is then not settled and ace3's result reads the name.
+
+### Before and after
+
+Measured on 2026-11-18 as the section above measured: one machine (Docker with 10 CPUs and 31 GiB, ace3's stack idle on the same VM), release images, the e2e stack's pools. "HEAD" is `8deb0983`, built from a worktree; "change" is this change. For each, two runs, each on a new stack: `tests/e2e/run --compare --keep` with `tools/lease/cpu` sampling, then `tools/lease/measure --runs 1` over the 14 samples three times on the stack it left: twice after emptying `store.file_types` ("cold": the files are typed afresh, and reused only across the 14 samples of that run), then once more without ("warm": every file of the 14 was typed by the run before). HEAD's first run did `--runs 2` in place of the three. Every run: 472 or 14 samples, none absent or failed, 0 unexplained differences, no task failed or leased twice. CPU is every container of the stack but BuildKit's (the image build, which only HEAD's first run had in its window).
+
+| | HEAD, two runs | change, two runs |
+|---|---:|---:|
+| Tasks in a run of the whole set | 115,918; 115,918 | 85,953; 85,900 |
+| type steps among them | 4,066; 4,066 | 3,991; 3,938 |
+| `ace compare`, seconds | 440; 452 | 429; 390 |
+| a sample: median (range) | 5.30 (0.53 to 42.33); 5.30 (0.52 to 48.55) | 5.43 (0.27 to 43.52); 4.55 (0.52 to 39.51) |
+| CPU seconds, the stack's containers | 1,749; 1,783 | 1,507; 1,492 |
+| parsers | 534; 544 | 423; 424 |
+| Postgres | 461; 475 | 418; 400 |
+| sandbox | 335; 337 | 285; 290 |
+| the core | 318; 325 | 292; 290 |
+| bucket | 78; 79 | 64; 64 |
+| lookups | 12; 13 | 15; 14 |
+| The 14 samples, cold: tasks | 21,378 | 16,078 to 16,080 |
+| seconds, median (range) | 84.9 (83.5 to 88.4), five runs | 78.0 (72.5 to 86.6), four runs |
+| CPU seconds, median (range) | 316.9 (314.6 to 322.3), five runs | 280.1 (268.6 to 281.9), four runs |
+| The 14 samples, warm: tasks | 21,378 | 15,788; 15,762 |
+| seconds; CPU seconds | 88.4; 316.9 | 88.3, 87.8; 284.0, 278.6 |
+
+- **A run has 25.9% fewer tasks and 15.1% less CPU.** 30,000 tasks fewer of 115,918, nearly all of them the ten modules' first-byte tasks; the stack 1,766 to 1,500 CPU-seconds at the median of two, the parser pool 21% less, the sandbox pool 14%, Postgres 13%, the core 10%. `ace compare` took 446 s to 410 s at the median of two (8%), but its two runs on the change differ by 39 s, more than the saving between the medians of a kind, so the time is within the noise of two runs; a sample's median time didn't move beyond it either.
+- **The 14 samples**: 25% fewer tasks and 12% less CPU; the time fell 8% at the median of the cold runs, inside their 14 s spread. The warm runs, where every file's type was kept, have about 300 tasks fewer than the cold ones and no less time or CPU: here a reused type mostly saves a type step's run in the pool, which is cheap, and the step's task stays where the path couldn't be settled when the file was added, which in these samples is most files, since a file is added while tasks on its parent are still running.
+- **The same report.** `tools/lease/same-report`, pairs HEAD 1 and 2, change 1 and 2, and three across: the same samples, differences, classes, rows and values, but for pdftotext's redirection, the coin toss `compare-speed.md` describes (14 to 23 samples a pair), and the DNS module's error for `youtube.com`, which names the responder's address on that run's network; HEAD's first run and the change's second have the same address and differ only in the redirections.
+
+What else the numbers could be measuring: the stack's CPU is each container's over the run's window, start and report included, two runs of each one after another, HEAD's first; ace3's stack was idle. The emptied `store.file_types` in the cold runs leaves the first pass's roots without their rows, which nothing in those runs reads. The audit run is not among these: it queues every task.
+
 ## Not measured
 
 - A production ruleset. With the signatures' ruleset `memory.md` measured 77 ms more a task process, which only YARA tasks pay now; the saving on a real stack should be larger than here by about that much a non-YARA parser task, and it wasn't measured.

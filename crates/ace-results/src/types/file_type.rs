@@ -1,9 +1,10 @@
 //! A file's type: what its bytes are (docs/decisions/0003, PLAN.md decision 25).
 //!
 //! `TypeFacts` is what the type step, `ace-mod-files`' `file_type`, finds in a file's bytes:
-//! libmagic's description and mime type and the checks of ace3's `is_file_type.py` that read
-//! only the bytes. The core keeps them once per sha256 (`store.file_types`); they are not a
-//! result in the tree.
+//! libmagic's description and mime type, the checks of ace3's `is_file_type.py` that read only the
+//! bytes, and the first-byte tests of the modules that read the type to decide whether to act (a
+//! packet capture, OneNote's header, a Java class, `<?xml`, EPS, an encoded script, a HAR). The
+//! core keeps them once per sha256 (`store.file_types`); they are not a result in the tree.
 //!
 //! `FileTypeAnalysis` is ace3's `file_type_analysis` result (`saq/modules/file_analysis/file_type.py`),
 //! which ace4 no longer stores. It is built from a file's facts and the path it is analyzed under
@@ -80,6 +81,23 @@ pub struct TypeFacts {
     /// The file's first lines are ASCII headers with From, Subject and Message-ID, or the mime type
     /// is `message/rfc822`.
     pub is_email_file: bool,
+    /// ace3's `is_pcap_file`: a pcap magic number in the first four bytes, or a pcapng section
+    /// header with a byte-order magic at bytes 8 to 12.
+    pub is_pcap_file: bool,
+    /// The first 16 bytes are OneNote's header GUID: the part of ace3's `is_onenote_file` that reads
+    /// the bytes (the other part is a `.one` name).
+    pub has_onenote_header: bool,
+    /// ace3's `is_java_class_file`: the first four bytes are `CAFEBABE`.
+    pub is_java_class_file: bool,
+    /// `<?xml` in the first 1024 bytes, the test of ace3's two XML modules.
+    pub has_xml_marker: bool,
+    /// ace3's `BinaryFileAnalyzer._is_eps`: the file starts with the EPS binary header
+    /// `C5D0D3C6` or with `%!PS-Adobe-`.
+    pub is_eps_file: bool,
+    /// The file starts with `#@~^`, the test of ace3's `microsoft_script_encoding_analysis`.
+    pub is_encoded_script: bool,
+    /// ace3's `is_har_header` on the first 4096 bytes: optional whitespace, `{`, `"log"` and `:`.
+    pub has_har_header: bool,
     /// Whether node would parse the bytes as JavaScript and a line has a JavaScript keyword: the
     /// part of ace3's `is_javascript_file` that reads the bytes. The type step checks it only when
     /// the mime type or the name it typed the file under says JavaScript, as ace3 gates node; None
@@ -90,7 +108,7 @@ pub struct TypeFacts {
 
 impl AnalysisType for TypeFacts {
     const NAME: &'static str = "file_type_facts";
-    const VERSION: u32 = 1;
+    const VERSION: u32 = 2;
     const MODULE: &'static str = "file_type";
 }
 

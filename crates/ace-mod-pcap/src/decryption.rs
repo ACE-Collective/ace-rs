@@ -12,6 +12,7 @@ use std::time::Duration;
 
 use ace_results::types::pcap::{KeylogSource, PcapAnalysis, PcapTlsDecryptionAnalysis};
 use ace_results::{AnalysisType, ObservableKind, ResultEnvelope};
+use ace_sdk::takes::Takes;
 use ace_sdk::tree::TreeFiles;
 use ace_sdk::{Module, ModuleError, Outcome, Parser, Resources, TaskContext};
 
@@ -20,7 +21,7 @@ use crate::budget::{CaptureFile, PcapSettings, add, collect_observables, shares}
 use crate::config::{MAX_KEYLOG_SIZE, MAX_TABLE_ROWS, run_seconds};
 use crate::index::{CATEGORY_HOSTS, Target, dissect, merge_index};
 use crate::keylog::{TAG_TLS_KEYLOG, is_keylog_file, read_keylog};
-use crate::{format_counts, is_pcap_file};
+use crate::{format_counts, takes_a_capture};
 
 /// The pcap_tls_decryption module.
 pub struct PcapTlsDecryptor;
@@ -48,6 +49,10 @@ impl Module for PcapTlsDecryptor {
 
     fn init(_: &PcapSettings) -> Result<Self, ModuleError> {
         Ok(PcapTlsDecryptor)
+    }
+
+    fn takes(_: &PcapSettings) -> Takes {
+        takes_a_capture()
     }
 }
 
@@ -98,9 +103,6 @@ impl Parser for PcapTlsDecryptor {
         ctx: &TaskContext<PcapSettings>,
     ) -> Result<Outcome<PcapTlsDecryptionAnalysis>, ModuleError> {
         let file = ctx.input_file()?;
-        if !file.local_path.is_file() || !is_pcap_file(&file.local_path) {
-            return Ok(Outcome::Skipped("not a pcap or pcapng file".to_owned()));
-        }
         // pcap_analyzer produced nothing, or the dissection failed and its result says so
         let Some(PcapAnalysis {
             index: Some(plaintext),

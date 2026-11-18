@@ -34,7 +34,9 @@ fn sample(dump: &Dump) -> String {
 /// ace4's pcap_analyzer on a sample: its details, as a JSON value, and the size of each file it
 /// stored.
 fn analyzer(path: &str) -> (Option<Value>, BTreeMap<String, u64>) {
-    let harness = Harness::<PcapAnalyzer>::new().expect("harness");
+    let harness = Harness::<PcapAnalyzer>::new()
+        .expect("harness")
+        .with_typer(ace_mod_files::file_type::type_of);
     let observable = harness.sample(path).expect("the sample");
     match harness.run_parser(observable).expect("pcap_analyzer runs") {
         Outcome::Done(result) => {
@@ -68,7 +70,9 @@ fn without_analyzer_tags(mut form: Value, analyzer: &Value) -> Value {
 fn compare_analyzer() -> Vec<(String, Vec<Difference>)> {
     let mut compared = Vec::new();
     for dump in Dump::all("pcap_analyzer").expect("the dumps read") {
-        let harness = Harness::<PcapAnalyzer>::new().expect("harness");
+        let harness = Harness::<PcapAnalyzer>::new()
+            .expect("harness")
+            .with_typer(ace_mod_files::file_type::type_of);
         let observable = harness.sample(&sample(&dump)).expect("the sample");
         let outcome = harness.run_parser(observable).expect("pcap_analyzer runs");
         if dump.short_name() == "ace3/pcap/network.pcap" {
@@ -89,7 +93,8 @@ fn compare_category<M: Parser>(view: Option<(&str, &str)>) -> Vec<(String, Vec<D
         // the dumps ran the category alone after pcap_analyzer
         let mut harness =
             Harness::<M>::with_settings(serde_json::json!({"categories": [instance]}))
-                .expect("harness");
+                .expect("harness")
+                .with_typer(ace_mod_files::file_type::type_of);
         if let Some(details) = &details {
             harness = harness.dependency_result(PcapAnalysis::MODULE, details.clone());
         }
@@ -125,7 +130,8 @@ fn compare_decryption() -> Vec<(String, Vec<Difference>)> {
         // the dumps ran pcap_analyzer and the decryption alone
         let mut harness =
             Harness::<PcapTlsDecryptor>::with_settings(serde_json::json!({"categories": []}))
-                .expect("harness");
+                .expect("harness")
+                .with_typer(ace_mod_files::file_type::type_of);
         if let Some(details) = &details {
             harness = harness.dependency_result(PcapAnalysis::MODULE, details.clone());
         }
@@ -155,7 +161,9 @@ fn compare_decryption() -> Vec<(String, Vec<Difference>)> {
                 std::fs::read(ace_testkit::samples_dir().join(keylog)).expect("the key log");
             let sha256 = crate::sha256_hex(&bytes);
             // tls_keylog's tag, which the core sends the file for
-            let keylog_harness = Harness::<TlsKeylogAnalyzer>::new().expect("harness");
+            let keylog_harness = Harness::<TlsKeylogAnalyzer>::new()
+                .expect("harness")
+                .with_typer(ace_mod_files::file_type::type_of);
             let keylog_observable = keylog_harness.sample(keylog).expect("the key log sample");
             let tagged = matches!(
                 keylog_harness
@@ -208,7 +216,9 @@ fn compare_decryption() -> Vec<(String, Vec<Difference>)> {
 fn compare_keylog() -> Vec<(String, Vec<Difference>)> {
     let mut compared = Vec::new();
     for dump in Dump::all("tls_keylog").expect("the dumps read") {
-        let harness = Harness::<TlsKeylogAnalyzer>::new().expect("harness");
+        let harness = Harness::<TlsKeylogAnalyzer>::new()
+            .expect("harness")
+            .with_typer(ace_mod_files::file_type::type_of);
         let observable = harness.sample(&sample(&dump)).expect("the sample");
         let outcome = harness.run_parser(observable).expect("tls_keylog runs");
         if dump.short_name() == "ace3/pcap/sslkeylog.txt" {

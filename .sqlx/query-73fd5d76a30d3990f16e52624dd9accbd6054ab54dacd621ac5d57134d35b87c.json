@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT sha256, description, mime, is_ole_file, is_rtf_file, has_pdf_marker, is_pe_file,\n                is_zip_file, is_jar_file, is_x509, is_lnk_file, is_email_file, javascript\n         FROM store.file_types WHERE sha256 = ANY($1)",
+  "query": "SELECT sha256, description, mime, is_ole_file, is_rtf_file, has_pdf_marker, is_pe_file,\n                  is_zip_file, is_jar_file, is_x509, is_lnk_file, is_email_file,\n                  is_pcap_file AS \"is_pcap_file!\", has_onenote_header AS \"has_onenote_header!\",\n                  is_java_class_file AS \"is_java_class_file!\",\n                  has_xml_marker AS \"has_xml_marker!\", is_eps_file AS \"is_eps_file!\",\n                  is_encoded_script AS \"is_encoded_script!\",\n                  has_har_header AS \"has_har_header!\", javascript\n           FROM store.file_types\n           WHERE sha256 = ANY($1)\n             AND is_pcap_file IS NOT NULL AND has_onenote_header IS NOT NULL\n             AND is_java_class_file IS NOT NULL AND has_xml_marker IS NOT NULL\n             AND is_eps_file IS NOT NULL AND is_encoded_script IS NOT NULL\n             AND has_har_header IS NOT NULL",
   "describe": {
     "columns": [
       {
@@ -137,6 +137,83 @@
       },
       {
         "ordinal": 12,
+        "name": "is_pcap_file!",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "store.file_types",
+            "name": "is_pcap_file"
+          }
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "has_onenote_header!",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "store.file_types",
+            "name": "has_onenote_header"
+          }
+        }
+      },
+      {
+        "ordinal": 14,
+        "name": "is_java_class_file!",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "store.file_types",
+            "name": "is_java_class_file"
+          }
+        }
+      },
+      {
+        "ordinal": 15,
+        "name": "has_xml_marker!",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "store.file_types",
+            "name": "has_xml_marker"
+          }
+        }
+      },
+      {
+        "ordinal": 16,
+        "name": "is_eps_file!",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "store.file_types",
+            "name": "is_eps_file"
+          }
+        }
+      },
+      {
+        "ordinal": 17,
+        "name": "is_encoded_script!",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "store.file_types",
+            "name": "is_encoded_script"
+          }
+        }
+      },
+      {
+        "ordinal": 18,
+        "name": "has_har_header!",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "store.file_types",
+            "name": "has_har_header"
+          }
+        }
+      },
+      {
+        "ordinal": 19,
         "name": "javascript",
         "type_info": "Bool",
         "origin": {
@@ -165,8 +242,15 @@
       false,
       false,
       false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
       true
     ]
   },
-  "hash": "c7a0f6124437c03dc5ca9523e39d9fb12b42ba71a74452bc3d728a172ff7eaad"
+  "hash": "73fd5d76a30d3990f16e52624dd9accbd6054ab54dacd621ac5d57134d35b87c"
 }

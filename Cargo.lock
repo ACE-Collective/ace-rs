@@ -421,6 +421,7 @@ name = "ace-mod-html"
 version = "0.1.0"
 dependencies = [
  "ace-lxml",
+ "ace-mod-files",
  "ace-mod-oletools",
  "ace-pycompat",
  "ace-results",
@@ -529,6 +530,7 @@ dependencies = [
 name = "ace-mod-pcap"
 version = "0.1.0"
 dependencies = [
+ "ace-mod-files",
  "ace-mod-values",
  "ace-pycompat",
  "ace-results",

@@ -10,11 +10,12 @@ use ace_results::types::pcap::{
     PcapTlsAnalysis,
 };
 use ace_results::{AnalysisType, ObservableKind, ResultEnvelope};
+use ace_sdk::takes::Takes;
 use ace_sdk::{Module, ModuleError, Outcome, Parser, Resources, TaskContext};
 
 use crate::budget::{CaptureFile, PcapSettings, category_rows, shares};
 use crate::index::{CATEGORY_DNS, CATEGORY_FILES, CATEGORY_HTTP, CATEGORY_TLS};
-use crate::{format_counts, is_pcap_file};
+use crate::{format_counts, takes_a_capture};
 
 /// One of the four instances.
 pub trait Category: Send + Sync + 'static {
@@ -134,14 +135,15 @@ impl<C: Category> Module for PcapCategoryAnalyzer<C> {
     fn init(_: &PcapSettings) -> Result<Self, ModuleError> {
         Ok(PcapCategoryAnalyzer(PhantomData))
     }
+
+    fn takes(_: &PcapSettings) -> Takes {
+        takes_a_capture()
+    }
 }
 
 impl<C: Category> Parser for PcapCategoryAnalyzer<C> {
     fn analyze(&self, ctx: &TaskContext<PcapSettings>) -> Result<Outcome<C::Output>, ModuleError> {
         let file = ctx.input_file()?;
-        if !file.local_path.is_file() || !is_pcap_file(&file.local_path) {
-            return Ok(Outcome::Skipped("not a pcap or pcapng file".to_owned()));
-        }
         // pcap_analyzer produced nothing, or the dissection failed and its result says so
         let Some(PcapAnalysis {
             index: Some(index), ..

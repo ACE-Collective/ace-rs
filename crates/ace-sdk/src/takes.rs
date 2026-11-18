@@ -49,11 +49,22 @@
 //! of the file's type states it exactly: `TypeFact` names each with the function that computes it
 //! (`ace_mod_files::checks`, libmagic's description), and a check that is that function on the
 //! same bytes, or that function and the file's name as ace3's `is_pdf_file` and
-//! `is_office_document` are, is `Condition::Type`. One that needs a parse of its own (a format's
-//! structure, a magic number file_type doesn't check) stays in `analyze`. A file's role, what the
-//! module that wrote it made it, is `Condition::Role`. Part of a check can
-//! move when the part declines on its own, as the email module's "file_type calls it an email or it
-//! has `original_email`". A rule that reads which modules added the observable needs
+//! `is_office_document` are, is `Condition::Type`. Besides file_type's own checks the type holds the
+//! first-byte tests of modules that declare on them: `IsPcapFile` (ace3's `is_pcap_file`),
+//! `HasOnenoteHeader` (the bytes' half of `is_onenote_file`, whose `.one` half is
+//! `Condition::Name`), `IsJavaClassFile`, `HasXmlMarker` (`<?xml` in the first KiB),
+//! `IsEpsFile`, `IsEncodedScript` (`#@~^`) and `HasHarHeader`. Each is the module's own test, not
+//! libmagic's answer, whose rules differ at the edges (a byte-order mark before `<?xml`, pcapng's
+//! byte order). A module whose test of the first bytes is none of these adds one: a field of
+//! `TypeFacts`, its column in `store.file_types` with a migration, the test in
+//! `ace_mod_files::checks` called by the type step, and a `TypeFact`; the type step then makes it on
+//! every file it types, so it must be cheap. One that needs a parse of its own (a format's structure)
+//! stays in `analyze`. A file's role, what the module that wrote it made it, is `Condition::Role`.
+//! Part of a check can move when the part declines on its own, as the email module's "file_type
+//! calls it an email or it has `original_email`", or `binary_file_analyzer`'s RTF fact, `\rt` or
+//! `{\rt`, for its `{\rt`. The core types a file only where something reads its type, so a
+//! declaration that reads it (`Reads::file_type`) is what makes a file be typed in a mode without
+//! file_type. A rule that reads which modules added the observable needs
 //! `READS_ADDED_BY`, the mode `READS_TREE`, a dependency's result the dependency in `DEPENDS_ON`; a
 //! lookup's rules can read a file's path but not its size, type, role or `yara_meta`, which only a
 //! parser's lease carries. A pool refuses to start with a declaration that breaks these, and
@@ -198,6 +209,23 @@ pub enum TypeFact {
     /// What ace3's file_type tags `script.javascript`: the mime type or the name says JavaScript and
     /// node parses it with a keyword in it.
     IsJavascript,
+    /// ace3's `is_pcap_file`: a pcap magic number, or a pcapng section header with its byte-order
+    /// magic (`checks::is_pcap_file`).
+    IsPcapFile,
+    /// OneNote's header GUID in the first 16 bytes, the bytes' part of ace3's `is_onenote_file`
+    /// (`checks::has_onenote_header`); its other part, a `.one` name, is `Condition::Name`.
+    HasOnenoteHeader,
+    /// `CAFEBABE` at the start, ace3's `is_java_class_file` (`checks::is_java_class_file`).
+    IsJavaClassFile,
+    /// `<?xml` in the first 1024 bytes (`checks::has_xml_marker`).
+    HasXmlMarker,
+    /// The EPS binary header or `%!PS-Adobe-` at the start, ace3's `_is_eps`
+    /// (`checks::is_eps_file`).
+    IsEpsFile,
+    /// `#@~^` at the start (`checks::is_encoded_script`).
+    IsEncodedScript,
+    /// ace3's `is_har_header` on the first 4096 bytes (`checks::has_har_header`).
+    HasHarHeader,
 }
 
 impl TypeFact {
@@ -217,6 +245,13 @@ impl TypeFact {
             TypeFact::IsEmailFile => facts.is_email_file,
             TypeFact::IsOfficeDocument => facts.is_office_document(path),
             TypeFact::IsJavascript => facts.is_javascript(path),
+            TypeFact::IsPcapFile => facts.is_pcap_file,
+            TypeFact::HasOnenoteHeader => facts.has_onenote_header,
+            TypeFact::IsJavaClassFile => facts.is_java_class_file,
+            TypeFact::HasXmlMarker => facts.has_xml_marker,
+            TypeFact::IsEpsFile => facts.is_eps_file,
+            TypeFact::IsEncodedScript => facts.is_encoded_script,
+            TypeFact::HasHarHeader => facts.has_har_header,
         }
     }
 }
@@ -314,6 +349,9 @@ pub struct Reads {
     pub mode: bool,
     /// A file's size, mime type or `yara_meta`, which only a parser's lease carries.
     pub file_record: bool,
+    /// A file's type (`Condition::Type`, `Condition::Mime`): the core types a file only where
+    /// something reads its type (`ace_core::type_step`).
+    pub file_type: bool,
     /// The modules whose results it reads.
     pub results: Vec<String>,
 }
@@ -524,11 +562,11 @@ impl Condition {
             Condition::Not(inner) => inner.collect_reads(reads),
             Condition::AddedBy(_) => reads.added_by = true,
             Condition::Mode(_) => reads.mode = true,
-            Condition::Mime(_)
-            | Condition::Type(_)
-            | Condition::Role(_)
-            | Condition::YaraMeta { .. }
-            | Condition::Size { .. } => {
+            Condition::Mime(_) | Condition::Type(_) => {
+                reads.file_record = true;
+                reads.file_type = true;
+            }
+            Condition::Role(_) | Condition::YaraMeta { .. } | Condition::Size { .. } => {
                 reads.file_record = true;
             }
             Condition::HasResult(module) | Condition::Result { module, .. } => {
@@ -823,12 +861,12 @@ mod tests {
             ..facts
         };
         assert!(!is_pdf.holds(&fqdn) && is_pdf.clone().negated().holds(&fqdn));
-        assert!(
-            Takes::everything()
-                .and(is_pe, "not a PE")
-                .reads()
-                .file_record
-        );
+        let reads = Takes::everything().and(is_pe, "not a PE").reads();
+        assert!(reads.file_record && reads.file_type);
+        let reads = Takes::everything()
+            .and(Condition::not_empty(), "an empty file")
+            .reads();
+        assert!(reads.file_record && !reads.file_type);
     }
 
     #[test]
@@ -877,6 +915,7 @@ mod tests {
                 added_by: true,
                 mode: true,
                 file_record: false,
+                file_type: false,
                 results: vec!["file_type".to_owned()],
             }
         );

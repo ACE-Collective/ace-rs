@@ -20,7 +20,7 @@ use std::fs;
 use ace_results::FileRole;
 use ace_results::types::scripts::MicrosoftScriptEncodingAnalysis;
 use ace_results::{AnalysisType, ObservableKind, ResultEnvelope};
-use ace_sdk::takes::{Condition, Takes};
+use ace_sdk::takes::{Condition, Takes, TypeFact};
 use ace_sdk::{Manifest, Module, ModuleError, Outcome, Parser, Resources, TaskContext};
 
 use crate::{DIRECTIVE_SANDBOX, ends_with_lower, name_fits, name_too_long, source};
@@ -186,7 +186,13 @@ impl Module for MicrosoftScriptEncodingAnalyzer {
     }
 
     fn takes(_: &()) -> Takes {
-        Takes::everything().and(Condition::not_empty(), "an empty file")
+        Takes::everything()
+            .and(Condition::not_empty(), "an empty file")
+            // `#@~^` at the start, which the type step tests (PLAN.md decision 25)
+            .and(
+                Condition::type_fact(TypeFact::IsEncodedScript),
+                "not an encoded script",
+            )
     }
 }
 
@@ -208,9 +214,6 @@ impl Parser for MicrosoftScriptEncodingAnalyzer {
     ) -> Result<Outcome<MicrosoftScriptEncodingAnalysis>, ModuleError> {
         let file = ctx.input_file()?;
         let data = fs::read(&file.local_path)?;
-        if !data.starts_with(START) {
-            return Ok(Outcome::Skipped("not an encoded script".to_owned()));
-        }
         let mut result = ResultEnvelope::new(MicrosoftScriptEncodingAnalysis::default());
         result.analyzed.add_tag("microsoft_script_encoding");
         result.analyzed.add_directive(DIRECTIVE_SANDBOX);

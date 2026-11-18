@@ -7,13 +7,14 @@ use std::time::Duration;
 
 use ace_results::types::pcap::{EmbeddedSecrets, PcapAnalysis};
 use ace_results::{ObservableKind, ResultEnvelope};
+use ace_sdk::takes::Takes;
 use ace_sdk::{Module, ModuleError, Outcome, Parser, Resources, TaskContext};
 
 use crate::budget::{CaptureFile, add, collect_observables};
 use crate::config::{CAPINFOS_TIMEOUT, MAX_FILE_SIZE, MAX_KEYLOG_SIZE, run_seconds};
 use crate::index::{CATEGORY_HOSTS, Target, dissect, stored};
 use crate::keylog::read_embedded_secrets;
-use crate::{format_counts, is_pcap_file};
+use crate::{format_counts, takes_a_capture};
 
 /// The tag a pcapng with Decryption Secrets Blocks gets, one per kind.
 pub fn embedded_secrets_tags(secrets: &EmbeddedSecrets) -> Vec<String> {
@@ -94,15 +95,16 @@ impl Module for PcapAnalyzer {
     fn init(_: &()) -> Result<Self, ModuleError> {
         Ok(PcapAnalyzer)
     }
+
+    fn takes(_: &()) -> Takes {
+        takes_a_capture()
+    }
 }
 
 impl Parser for PcapAnalyzer {
     fn analyze(&self, ctx: &TaskContext<()>) -> Result<Outcome<PcapAnalysis>, ModuleError> {
         let file = ctx.input_file()?;
         let path = &file.local_path;
-        if !path.is_file() || !is_pcap_file(path) {
-            return Ok(Outcome::Skipped("not a pcap or pcapng file".to_owned()));
-        }
         if file.size > MAX_FILE_SIZE {
             return Ok(failed(format!(
                 "{} bytes exceeds max_file_size {MAX_FILE_SIZE}",

@@ -1105,14 +1105,26 @@ impl Api {
             }
             let file = self.task_file(&task, Choose::Settle).await;
             times.file = lap(&mut clock);
-            match file? {
-                Ok(file) => Some(file),
+            let file = match file? {
+                Ok(file) => file,
                 Err(why) => {
                     tracing::error!(task = %task.id, "{why}");
                     worker.fail(task.id, &why).await?;
                     return Ok(None);
                 }
+            };
+            // a type step whose bytes were typed before, under a path whose questions the kept
+            // type answers, ends here, with no pool (PLAN.md decision 25)
+            if task.module == crate::type_step::TYPE_STEP
+                && file
+                    .facts
+                    .as_ref()
+                    .is_some_and(|facts| crate::type_step::answers(facts, file.path.as_str()))
+            {
+                self.end_kept_type(worker, &task).await?;
+                return Ok(None);
             }
+            Some(file)
         } else {
             None
         };
@@ -1598,6 +1610,26 @@ impl Api {
         for file in files {
             bucket.remove_upload(task.id.0, &file.sha256).await?;
         }
+        Ok(())
+    }
+
+    /// Ends a file's type step whose bytes already have a type kept (`Api::leased`), as its landing
+    /// would: the task is done, and its end queues the file's other tasks in the same transaction
+    /// (`queue::TypeStepEnded`).
+    async fn end_kept_type(&self, worker: &Worker, task: &Task) -> Result<(), Failure> {
+        self.inner
+            .db
+            .transaction(Isolation::ReadCommitted, |tx| {
+                Box::pin(async move {
+                    worker
+                        .finish_in(tx, task.id, crate::queue::TaskState::Done, None)
+                        .await?;
+                    crate::queue::check_completion(tx, task.root).await?;
+                    Ok::<_, LandError>(())
+                })
+            })
+            .await?;
+        tracing::debug!(task = %task.id, "a type step ended on the type kept for its bytes");
         Ok(())
     }
 

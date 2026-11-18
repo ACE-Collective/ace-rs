@@ -1,0 +1,33 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO store.file_types AS t\n             (sha256, description, mime, is_ole_file, is_rtf_file, has_pdf_marker, is_pe_file,\n              is_zip_file, is_jar_file, is_x509, is_lnk_file, is_email_file, is_pcap_file,\n              has_onenote_header, is_java_class_file, has_xml_marker, is_eps_file,\n              is_encoded_script, has_har_header, javascript)\n         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18,\n                 $19, $20)\n         ON CONFLICT (sha256) DO UPDATE SET\n             description = EXCLUDED.description, mime = EXCLUDED.mime,\n             is_ole_file = EXCLUDED.is_ole_file, is_rtf_file = EXCLUDED.is_rtf_file,\n             has_pdf_marker = EXCLUDED.has_pdf_marker, is_pe_file = EXCLUDED.is_pe_file,\n             is_zip_file = EXCLUDED.is_zip_file, is_jar_file = EXCLUDED.is_jar_file,\n             is_x509 = EXCLUDED.is_x509, is_lnk_file = EXCLUDED.is_lnk_file,\n             is_email_file = EXCLUDED.is_email_file, is_pcap_file = EXCLUDED.is_pcap_file,\n             has_onenote_header = EXCLUDED.has_onenote_header,\n             is_java_class_file = EXCLUDED.is_java_class_file,\n             has_xml_marker = EXCLUDED.has_xml_marker, is_eps_file = EXCLUDED.is_eps_file,\n             is_encoded_script = EXCLUDED.is_encoded_script,\n             has_har_header = EXCLUDED.has_har_header,\n             javascript = COALESCE(EXCLUDED.javascript, t.javascript),\n             typed_at = now()",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text",
+        "Bool",
+        "Bool",
+        "Bool",
+        "Bool",
+        "Bool",
+        "Bool",
+        "Bool",
+        "Bool",
+        "Bool",
+        "Bool",
+        "Bool",
+        "Bool",
+        "Bool",
+        "Bool",
+        "Bool",
+        "Bool",
+        "Bool"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "707fd78898d2b5d2b149408369a65eed0d0a9beebb1d28d52f483de0be6a8218"
+}

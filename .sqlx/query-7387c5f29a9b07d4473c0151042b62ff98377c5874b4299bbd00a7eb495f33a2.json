@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT o.id AS \"id: ObservableId\", o.value, o.tags, o.directives, o.exclude_modules,\n                      o.limit_modules\n               FROM analysis.observables o\n               JOIN queue.tasks t ON t.root_id = o.root_id AND t.observable_id = o.id\n                    AND t.module = $3 AND t.state IN ('done', 'failed')\n               WHERE o.root_id = $1 AND o.type = 'file' AND NOT o.type_result\n                 AND ($2::bigint[] IS NULL OR o.id = ANY($2))\n               ORDER BY o.id",
+  "query": "SELECT o.id AS \"id: ObservableId\", o.value, o.tags, o.directives, o.exclude_modules,\n                      o.limit_modules, t.state AS \"step?: TaskState\"\n               FROM analysis.observables o\n               LEFT JOIN queue.tasks t ON t.root_id = o.root_id AND t.observable_id = o.id\n                    AND t.module = $3\n               WHERE o.root_id = $1 AND o.type = 'file' AND NOT o.type_result\n                 AND ($2::bigint[] IS NULL OR o.id = ANY($2))\n               ORDER BY o.id",
   "describe": {
     "columns": [
       {
@@ -68,6 +68,31 @@
             "name": "limit_modules"
           }
         }
+      },
+      {
+        "ordinal": 6,
+        "name": "step?: TaskState",
+        "type_info": {
+          "Custom": {
+            "name": "queue.task_state",
+            "kind": {
+              "Enum": [
+                "queued",
+                "delayed",
+                "running",
+                "done",
+                "failed",
+                "cancelled"
+              ]
+            }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "queue.tasks",
+            "name": "state"
+          }
+        }
       }
     ],
     "parameters": {
@@ -83,8 +108,9 @@
       false,
       false,
       false,
-      false
+      false,
+      true
     ]
   },
-  "hash": "bee0ff8c12f3fa8b041fb4d6a8b9ec60287e37048356af760d913264d2b8fa34"
+  "hash": "7387c5f29a9b07d4473c0151042b62ff98377c5874b4299bbd00a7eb495f33a2"
 }

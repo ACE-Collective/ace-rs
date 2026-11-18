@@ -17,7 +17,7 @@
 use ace_results::FileRole;
 use ace_results::types::office::OneNoteFileAnalysis;
 use ace_results::{AnalysisType, ObservableKind, ResultEnvelope};
-use ace_sdk::takes::{Condition, Takes};
+use ace_sdk::takes::{Case, Condition, Takes, Text, TypeFact};
 use ace_sdk::{Manifest, Module, ModuleError, Outcome, Parser, TaskContext};
 use schemars::JsonSchema;
 use serde::Deserialize;
@@ -28,9 +28,6 @@ use crate::{MAX_FILES, extracted_from, item_list};
 /// The module's manifest.
 pub const MANIFEST: Manifest = Manifest::parser::<OneNoteAnalyzer>();
 
-const ONENOTE_HEADER: [u8; 16] = [
-    0xe4, 0x52, 0x5c, 0x7b, 0x8c, 0xd8, 0xa7, 0x4d, 0xae, 0xb1, 0x53, 0x78, 0xd0, 0x29, 0x96, 0xd3,
-];
 const FILE_DATA_STORE_OBJECT: [u8; 16] = [
     0xe7, 0x16, 0xe3, 0xbd, 0x65, 0x26, 0x11, 0x45, 0xa4, 0xc4, 0x8d, 0x4d, 0x0b, 0x7a, 0x9e, 0xac,
 ];
@@ -52,11 +49,6 @@ impl Default for OneNoteSettings {
 }
 
 pub struct OneNoteAnalyzer;
-
-/// `is_onenote_file`: the name, then the header.
-pub fn is_onenote_file(name: &str, data: &[u8]) -> bool {
-    ace_pycompat::pystr::lower(name).ends_with(".one") || data.get(..16) == Some(&ONENOTE_HEADER)
-}
 
 /// The payloads of the objects found in `data`, in order, and what construct raised reading one
 /// that runs past the bytes: `str()` of its `StreamError`, which names the struct's field.
@@ -121,7 +113,17 @@ impl Module for OneNoteAnalyzer {
     }
 
     fn takes(_: &OneNoteSettings) -> Takes {
-        Takes::everything().and(Condition::not_empty(), "an empty file")
+        Takes::everything()
+            .and(Condition::not_empty(), "an empty file")
+            // `is_onenote_file`: the name, then the header, which the type step tests (PLAN.md
+            // decision 25)
+            .and(
+                Condition::Any(vec![
+                    Condition::Name(Text::ends_with(".one", Case::Lower)),
+                    Condition::type_fact(TypeFact::HasOnenoteHeader),
+                ]),
+                "not a OneNote file",
+            )
     }
 }
 
@@ -131,19 +133,12 @@ impl Parser for OneNoteAnalyzer {
         ctx: &TaskContext<OneNoteSettings>,
     ) -> Result<Outcome<OneNoteFileAnalysis>, ModuleError> {
         let file = ctx.input_file()?;
-        let mut header = Vec::new();
         let mut data = Vec::new();
         {
             use std::io::Read;
             std::fs::File::open(&file.local_path)?
-                .take(16)
-                .read_to_end(&mut header)?;
-            std::fs::File::open(&file.local_path)?
                 .take(ctx.settings().max_bytes)
                 .read_to_end(&mut data)?;
-        }
-        if !is_onenote_file(file.name(), &header) {
-            return Ok(Outcome::Skipped("not a OneNote file".to_owned()));
         }
         let (found, raised) = payloads(&data);
         if let Some(raised) = &raised {
@@ -265,12 +260,5 @@ mod tests {
                 ))
             )
         );
-    }
-
-    #[test]
-    fn a_onenote_file_is_named_or_headed() {
-        assert!(is_onenote_file("A.ONE", b""));
-        assert!(is_onenote_file("x.bin", &ONENOTE_HEADER));
-        assert!(!is_onenote_file("x.bin", &ONENOTE_HEADER[..15]));
     }
 }

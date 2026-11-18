@@ -61,6 +61,8 @@ use std::fs::File;
 use std::io::Read;
 use std::path::Path;
 
+use ace_sdk::takes::{Condition, Takes, TypeFact};
+
 pub use analyzer::PcapAnalyzer;
 pub use category::{PcapDns, PcapFiles, PcapHttp, PcapTls};
 pub use decryption::PcapTlsDecryptor;
@@ -98,37 +100,20 @@ pub mod config {
     }
 }
 
-// libpcap (both byte orders, micro- and nanosecond timestamps) and the pcapng section header block
-const PCAP_MAGIC_BYTES: [&[u8; 4]; 4] = [
-    b"\xd4\xc3\xb2\xa1",
-    b"\xa1\xb2\xc3\xd4",
-    b"\x4d\x3c\xb2\xa1",
-    b"\xa1\xb2\x3c\x4d",
-];
 /// A pcapng section header block's type.
 pub const PCAPNG_SECTION_HEADER: &[u8; 4] = b"\x0a\x0d\x0d\x0a";
 /// Its byte-order magics: little-endian, then big-endian.
 pub const PCAPNG_BYTE_ORDER_MAGICS: [&[u8; 4]; 2] = [b"\x4d\x3c\x2b\x1a", b"\x1a\x2b\x3c\x4d"];
 
-/// ace3's `is_pcap_file`: the file starts with a pcap or pcapng magic number, whatever its name.
-pub fn is_pcap_file(path: &Path) -> bool {
-    let mut header = Vec::new();
-    let Ok(file) = File::open(path) else {
-        // a file that can't be read is not a capture anyone can dissect
-        return false;
-    };
-    if file.take(12).read_to_end(&mut header).is_err() {
-        return false;
-    }
-    if header.len() >= 4 && PCAP_MAGIC_BYTES.iter().any(|m| &header[..4] == *m) {
-        return true;
-    }
-    // the pcapng block type alone is just LF CR CR LF, which text can start with
-    header.len() >= 12
-        && &header[..4] == PCAPNG_SECTION_HEADER
-        && PCAPNG_BYTE_ORDER_MAGICS
-            .iter()
-            .any(|m| &header[8..12] == *m)
+/// What every module here declares first (PLAN.md decision 25): ace3's `is_pcap_file`, the file
+/// starts with a pcap or pcapng magic number, whatever its name, which the type step tests
+/// (`ace_mod_files::checks::is_pcap_file`). ace3 also asks that the path is a file, which a leased
+/// file always is.
+pub fn takes_a_capture() -> Takes {
+    Takes::everything().and(
+        Condition::type_fact(TypeFact::IsPcapFile),
+        "not a pcap or pcapng file",
+    )
 }
 
 /// `saq.util.strings.format_item_list_for_summary`.
@@ -184,26 +169,6 @@ pub fn alert_dir(path: &str) -> &str {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn a_capture_is_known_by_its_magic() {
-        let dir = tempfile::tempdir().unwrap();
-        let file = |name: &str, bytes: &[u8]| {
-            let path = dir.path().join(name);
-            std::fs::write(&path, bytes).unwrap();
-            is_pcap_file(&path)
-        };
-        assert!(file("a", b"\xd4\xc3\xb2\xa1rest"));
-        assert!(file("b", b"\x4d\x3c\xb2\xa1"));
-        assert!(file(
-            "c",
-            b"\x0a\x0d\x0d\x0a\x1c\x00\x00\x00\x4d\x3c\x2b\x1a"
-        ));
-        // the block type alone is text's LF CR CR LF
-        assert!(!file("d", b"\x0a\x0d\x0d\x0a\x1c\x00\x00\x00text"));
-        assert!(!file("e", b"\xd4\xc3"));
-        assert!(!is_pcap_file(&dir.path().join("missing")));
-    }
 
     #[test]
     fn summaries_list_their_items_as_ace3_does() {

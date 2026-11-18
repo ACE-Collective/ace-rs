@@ -18,7 +18,7 @@ use ace_mod_oletools::pyemail::{self, Setup};
 use ace_results::types::file_type::FileTypeAnalysis;
 use ace_results::types::office::HiddenMimeAnalysis;
 use ace_results::{AnalysisType, ObservableKind, ResultEnvelope};
-use ace_sdk::takes::{Condition, Takes, Text};
+use ace_sdk::takes::{Condition, Takes, Text, TypeFact};
 use ace_sdk::{Manifest, Module, ModuleError, Outcome, Parser, TaskContext};
 use regex::bytes::Regex;
 use std::sync::LazyLock;
@@ -39,28 +39,7 @@ static RE_BOUNDARY: LazyLock<Regex> = LazyLock::new(|| {
 /// (`docs/measurements/office-containers.md`).
 const ROOT_DEPTH: usize = 22;
 
-const PCAP_MAGIC: [[u8; 4]; 4] = [
-    [0xd4, 0xc3, 0xb2, 0xa1],
-    [0xa1, 0xb2, 0xc3, 0xd4],
-    [0x4d, 0x3c, 0xb2, 0xa1],
-    [0xa1, 0xb2, 0x3c, 0x4d],
-];
-
 pub struct HiddenMimeAnalyzer;
-
-/// `is_pcap_file`: a pcap magic, or a pcapng section header with its byte-order magic.
-pub fn is_pcap(data: &[u8]) -> bool {
-    let header = &data[..data.len().min(12)];
-    if header.len() >= 4 && PCAP_MAGIC.iter().any(|m| header[..4] == m[..]) {
-        return true;
-    }
-    header.len() == 12
-        && header[..4] == [0x0a, 0x0d, 0x0d, 0x0a]
-        && matches!(
-            &header[8..12],
-            [0x4d, 0x3c, 0x2b, 0x1a] | [0x1a, 0x2b, 0x3c, 0x4d]
-        )
-}
 
 /// What `parse_mime` hands the parser: from the boundary's header to the end marker, or to the
 /// end of the file. `None` when there is no such header.
@@ -140,6 +119,11 @@ impl Module for HiddenMimeAnalyzer {
                 .negated(),
                 "an email",
             )
+            // ace3's `is_pcap_file`, from the file's type (PLAN.md decision 25)
+            .and(
+                Condition::type_fact(TypeFact::IsPcapFile).negated(),
+                "a packet capture",
+            )
     }
 }
 
@@ -147,9 +131,6 @@ impl Parser for HiddenMimeAnalyzer {
     fn analyze(&self, ctx: &TaskContext<()>) -> Result<Outcome<HiddenMimeAnalysis>, ModuleError> {
         let file = ctx.input_file()?;
         let data = std::fs::read(&file.local_path)?;
-        if is_pcap(&data) {
-            return Ok(Outcome::Skipped("a packet capture".to_owned()));
-        }
         let payloads = match parts(&data) {
             None => return Ok(Outcome::Skipped("no MIME boundary".to_owned())),
             Some(Err(error)) => return Ok(Outcome::Skipped(format!("unable to parse: {error}"))),
@@ -230,12 +211,5 @@ mod tests {
     fn recursion_errors_come_where_ace3_s_do() {
         assert_eq!(parts(&nested(971)), Some(Ok(vec![b"deep part".to_vec()])));
         assert!(matches!(parts(&nested(972)), Some(Err(_))));
-    }
-
-    #[test]
-    fn pcaps_are_known_by_their_magic() {
-        assert!(is_pcap(&[0xd4, 0xc3, 0xb2, 0xa1, 0]));
-        assert!(is_pcap(b"\x0a\x0d\x0d\x0a\0\0\0\0\x4d\x3c\x2b\x1a"));
-        assert!(!is_pcap(b"\x0a\x0d\x0d\x0a\0\0\0\0"));
     }
 }

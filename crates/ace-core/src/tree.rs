@@ -637,8 +637,8 @@ pub async fn analysis_file_state<'e>(
 
 /// Whether the root has a task that hasn't finished on an observable shallower than `depth`, of a
 /// module not in `except`: one whose result could still add a path to a file at `depth`.
-pub async fn pending_above(
-    pool: &PgPool,
+pub async fn pending_above<'e>(
+    executor: impl PgExecutor<'e>,
     root: Uuid,
     depth: i32,
     except: &[String],
@@ -656,7 +656,7 @@ pub async fn pending_above(
         depth,
         except,
     )
-    .fetch_one(pool)
+    .fetch_one(executor)
     .await?)
 }
 

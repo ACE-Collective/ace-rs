@@ -131,7 +131,8 @@ fn compare<M: Parser>(
         } else {
             Harness::<M>::with_settings(settings)
         }
-        .expect("harness");
+        .expect("harness")
+        .with_typer(ace_mod_files::file_type::type_of);
         if let Some(file_type) = dump.file_type() {
             harness = harness.dependency_result("file_type", file_type.clone());
         }

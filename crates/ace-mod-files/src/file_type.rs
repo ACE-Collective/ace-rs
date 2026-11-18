@@ -4,8 +4,8 @@
 //! the file's type, once per sha256 (`TypeFacts`), not as a result in the tree.
 //!
 //! It finds libmagic's description and mime type of the file, as `file -b -L` and
-//! `file -b --mime-type -L` print them, and the checks of `is_file_type.py` that read only the
-//! bytes. ace3's result, its tags and its `yara_meta` types are built from those facts and the
+//! `file -b --mime-type -L` print them, the checks of `is_file_type.py` that read only the
+//! bytes, and the first-byte tests of the modules that declare on them (`checks`). ace3's result, its tags and its `yara_meta` types are built from those facts and the
 //! file's path (`FileTypeAnalysis::from_facts`, `TypeFacts::view`), since two of its checks read
 //! the name too.
 //!
@@ -87,6 +87,13 @@ pub fn facts_of(path: &str, data: &[u8], description: String, mime: String) -> T
         is_x509: crate::x509::is_x509(data),
         is_lnk_file: checks::is_lnk_file(data),
         is_email_file: checks::is_email_file(data) || mime == "message/rfc822",
+        is_pcap_file: checks::is_pcap_file(data),
+        has_onenote_header: checks::has_onenote_header(data),
+        is_java_class_file: checks::is_java_class_file(data),
+        has_xml_marker: checks::has_xml_marker(data),
+        is_eps_file: checks::is_eps_file(data),
+        is_encoded_script: checks::is_encoded_script(data),
+        has_har_header: checks::has_har_header(data),
         javascript,
         description,
         mime,

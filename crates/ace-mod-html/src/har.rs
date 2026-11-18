@@ -16,7 +16,6 @@
 //!   infinity is null, since JSON here has no such numbers.
 
 use std::collections::{HashMap, HashSet};
-use std::sync::LazyLock;
 
 use ace_lxml::soup::Tree;
 use ace_pycompat::json::{JsonStr, Value};
@@ -27,9 +26,8 @@ use ace_results::{
     AnalysisType, NewFile, NewObservable, ObservableKind, ObservableRef, Relationship,
     RelationshipKind, ResultEnvelope,
 };
-use ace_sdk::takes::{Condition, Takes};
+use ace_sdk::takes::{Condition, Takes, TypeFact};
 use ace_sdk::{Manifest, Module, ModuleError, Outcome, Parser, TaskContext};
-use regex::bytes::Regex;
 use schemars::JsonSchema;
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
@@ -40,10 +38,6 @@ use crate::py::{encode_replace, py_str, truncate_chars};
 /// The module's manifest.
 pub const MANIFEST: Manifest = Manifest::parser::<HarExtractor>();
 
-/// `RE_HAR_HEADER`.
-static RE_HAR_HEADER: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r#"(?-u)^\s*\{\s*"log"\s*:"#).expect("the pattern compiles"));
-const HAR_HEADER_PEEK_BYTES: u64 = 4096;
 const MAX_FILE_NAME_LENGTH: usize = 100;
 
 /// `DOCUMENT_EXTENSIONS` and `SCRIPT_EXTENSIONS`.
@@ -99,7 +93,14 @@ impl Module for HarExtractor {
     }
 
     fn takes(_: &HarSettings) -> Takes {
-        Takes::everything().and(Condition::not_empty(), "an empty file")
+        Takes::everything()
+            .and(Condition::not_empty(), "an empty file")
+            // `is_har_header` on the first 4096 bytes, which the type step tests (PLAN.md
+            // decision 25)
+            .and(
+                Condition::type_fact(TypeFact::HasHarHeader),
+                "not an HTTP archive",
+            )
     }
 }
 
@@ -472,17 +473,6 @@ fn summary(analysis: &HarAnalysis, error: Option<&str>) -> String {
 impl Parser for HarExtractor {
     fn analyze(&self, ctx: &TaskContext<HarSettings>) -> Result<Outcome<HarAnalysis>, ModuleError> {
         let file = ctx.input_file()?;
-        let mut head = Vec::new();
-        std::io::Read::read_to_end(
-            &mut std::io::Read::take(
-                std::fs::File::open(&file.local_path)?,
-                HAR_HEADER_PEEK_BYTES,
-            ),
-            &mut head,
-        )?;
-        if !RE_HAR_HEADER.is_match(&head) {
-            return Ok(Outcome::Skipped("not an HTTP archive".to_owned()));
-        }
         let settings = ctx.settings();
         let mut analysis = HarAnalysis::default();
         // `error` is why nothing was extracted: ace3's `Analysis.error`
@@ -655,12 +645,5 @@ mod tests {
             5
         ));
         assert!(!larger_than(Some(&Value::Int("-1".to_owned())), 0));
-    }
-
-    #[test]
-    fn the_header_is_found_by_content() {
-        assert!(RE_HAR_HEADER.is_match(b" \n{ \"log\" :{"));
-        assert!(!RE_HAR_HEADER.is_match(b"{\"data\": 1}"));
-        assert!(!RE_HAR_HEADER.is_match(b"x{\"log\":"));
     }
 }

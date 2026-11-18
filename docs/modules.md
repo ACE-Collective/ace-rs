@@ -18,12 +18,13 @@ Versions are those of ace3's image: Python packages from `installer/requirements
 
 ## What a module takes
 
-PLAN.md decisions 23 and 25. A module that declares what it takes (`Module::takes`, `ace_sdk::takes`) has its first checks as rules over facts the core holds, and the core queues no task they decline; the pool checks them again before the module runs, and the module's own code no longer does. Since decision 25 the facts include the file's type, what the type step found in its bytes (libmagic's description and mime type and file_type's checks, `TypeFacts`), and its role: a rule such as "the file's type says PDF" is the module's own check of the bytes, moved. A rule on a file's type holds when that type is unknown, because the type step failed, so a failure never keeps a module off a file. A check that needs a real parse of the bytes, the whole root or an observable's value stays in the module. The rules, each the module's own check moved:
+PLAN.md decisions 23 and 25. A module that declares what it takes (`Module::takes`, `ace_sdk::takes`) has its first checks as rules over facts the core holds, and the core queues no task they decline; the pool checks them again before the module runs, and the module's own code no longer does. Since decision 25 the facts include the file's type, what the type step found in its bytes (libmagic's description and mime type, file_type's checks, and the first-byte tests of the modules below that declare on them: a packet capture, OneNote's header, a Java class, `<?xml`, EPS, an encoded script and a HAR; `TypeFacts`), and its role: a rule such as "the file's type says PDF" is the module's own check of the bytes, moved. A rule on a file's type holds when that type is unknown, because the type step failed, so a failure never keeps a module off a file. A check that needs a real parse of the bytes, the whole root or an observable's value stays in the module. The rules, each the module's own check moved:
 
 | Module | Rules, in order |
 |---|---|
-| `active_mime`, `binary_file_analyzer`, `dhash`, `har_extraction`, `html_data_url_extraction`, `java_class_decompiler`, `microsoft_script_encoding_analysis`, `onenote_extraction`, `qrcode` | not an empty file |
-| `archive` | the path doesn't contain `email.rfc822`; the type's mime type, lowered, doesn't start with an `excluded_mime_types` entry, lowered; the type isn't an OLE file (whether it is a packet capture reads the bytes and stays, before these) |
+| `active_mime`, `dhash`, `html_data_url_extraction`, `qrcode` | not an empty file |
+| `archive` | the path doesn't contain `email.rfc822`; the type isn't a packet capture (ace3's `is_pcap_file`); the type's mime type, lowered, doesn't start with an `excluded_mime_types` entry, lowered; the type isn't an OLE file |
+| `binary_file_analyzer` | not empty; the type is an RTF file, or EPS (`C5D0D3C6` or `%!PS-Adobe-` at the start) with `.doc` in the path (the module keeps its stricter `{\rt`, which the type's RTF fact, `\rt` or `{\rt`, contains) |
 | `de4dot`, `ilspy` | the type is a PE file whose description, lowered, has `.net assembly` |
 | `cve_2021_30657_analyzer` | the path ends in `.img`, lowered; `dmg_analyzer` added it and it redirects |
 | `dmg_analyzer` | the name ends in `.dmg`, lowered |
@@ -34,15 +35,20 @@ PLAN.md decisions 23 and 25. A module that declares what it takes (`Module::take
 | `extracted_ole_analyzer` | file_type has a result; `officeparser3` added it |
 | `extracted_rtf_analyzer` | `rtfole` added it; file_type has a result |
 | `file_hash_analyzer` | not empty; file_type has a result; no `ignore_pattern` matches the path on ace3's node, and no `ignore_mime_type` file_type's mime type |
-| `hidden_mime` | not empty; no `original_email` and not named `email.rfc822`; file_type doesn't call it `message/rfc822` or an email |
+| `har_extraction` | not empty; the type has ace3's HAR header (`^\s*\{\s*"log"\s*:` in the first 4096 bytes) |
+| `hidden_mime` | not empty; no `original_email` and not named `email.rfc822`; file_type doesn't call it `message/rfc822` or an email; the type isn't a packet capture |
 | `html_js_extraction` | not empty; named as HTML or MHTML (lowered), or else not tagged `type=script.javascript` and file_type's mime type is an HTML one |
+| `java_class_decompiler` | not empty; the type is a Java class file (`CAFEBABE` at the start) |
 | `javascript_deobfuscation` | tagged `type=script.javascript` or named `.js` (whether file_type gave the tag reads the bytes, and stays) |
 | `lnk_parser` | the type is a Windows shortcut |
 | `mhtml` | the name ends in `.mhtml` or `.mht`, lowered |
+| `microsoft_script_encoding_analysis` | not empty; the type starts with `#@~^` |
 | `nowhitespace_analyzer` | the path doesn't end in `.nowhitespace`; not empty; the type is an RTF file |
 | `office_xml_rel` | named `document.xml.rels` |
+| `onenote_extraction` | not empty; the name ends in `.one`, lowered, or the type has OneNote's header GUID in its first 16 bytes |
 | `officeparser3` | file_type has a result; the type is an OLE file; neither a path ending in `.msi`, lowered, nor file_type's description, lowered, with `windows installer` |
 | `olevba_v1_2` | the type isn't an RTF file; the path doesn't end in `.msi`, lowered; an Office extension, or the type is an OLE or a zip file; at most 4 MB; the type's mime type has no `html` and isn't `text/plain` |
+| `pcap_analyzer`, `pcap_dns`, `pcap_files`, `pcap_http`, `pcap_tls`, `pcap_tls_decryption` | the type is a packet capture: ace3's `is_pcap_file`, a pcap magic number or a pcapng section header with its byte-order magic |
 | `pcodedmp` | an Office extension, or file_type's description, lowered, names an Office format |
 | `pdf_analyzer` | the path doesn't end in `.pdfparser` or `.ocr`; the type has `%PDF-` in the first kilobyte |
 | `pdf_encryption_analyzer`, `pdf_link_text`, `pdftotext` | the type is ace3's `is_pdf_file`: `%PDF-` in the first kilobyte, and the path doesn't end in `.pdfparser` |
@@ -52,7 +58,8 @@ PLAN.md decisions 23 and 25. A module that declares what it takes (`Module::take
 | `upx` | the type is a PE file |
 | `vbscript_analyzer` | not empty; the path ends in `.vbs`, ASCII letters in either case |
 | `x509_analyzer` | file_type has a result that calls it a certificate |
-| `xml_plain_text_analyzer` | the name doesn't end in `.noxml`; at most `maximum_size` bytes; extracted from something (the source's `microsoft_office` tag stays) |
+| `xml_binary_analyzer` | the type has `<?xml` in its first kilobyte (`Word.Document` there stays in the module) |
+| `xml_plain_text_analyzer` | the name doesn't end in `.noxml`; at most `maximum_size` bytes; the type has `<?xml` in its first kilobyte; extracted from something (the source's `microsoft_office` tag stays) |
 
 ## Counts
 
@@ -414,7 +421,7 @@ In the config's order. ace4 is the crate a ported module is in.
 ### har_extraction
 
 - **Section**: `analysis_module_har_extraction`, class `HARExtractor` in `saq/modules/file_analysis/har.py`, enabled by default.
-- **ace4**: ported in `ace-mod-html`. It parses with `ace-pycompat`'s `json.loads` and `urllib.parse`. The DOM snapshots are in the result's `dom_snapshots`, each with the scripts whose `.dom.json` it is, since ace4 keeps no file outside the tree. Where Python raises out of ace3's module, such as `urlsplit` on a broken IPv6 host, the result is what ace3's analysis held at that point.
+- **ace4**: ported in `ace-mod-html`. It parses with `ace-pycompat`'s `json.loads` and `urllib.parse`. The DOM snapshots are in the result's `dom_snapshots`, each with the scripts whose `.dom.json` it is, since ace4 keeps no file outside the tree. Where Python raises out of ace3's module, such as `urlsplit` on a broken IPv6 host, the result is what ace3's analysis held at that point. Its header test is its declaration, from the file's type (*What a module takes*).
 - **Pool**: parser. JSON and HTML parsing of an attacker's file.
 - **Step**: done.
 - **Does**: Detects an HTTP archive (.har JSON with a leading "log" key) by content, extracts the HTML/SVG page and JavaScript response bodies as file observables linked to the URL they were downloaded from, and writes a DOM-snapshot sidecar beside each script a page loads.
@@ -435,7 +442,7 @@ In the config's order. ace4 is the crate a ported module is in.
 ### pcap_analyzer
 
 - **Section**: `analysis_module_pcap_analyzer`, class `PcapAnalyzer` in `saq/modules/file_analysis/pcap.py`, enabled by default.
-- **ace4**: ported in `ace-mod-pcap`. Its `analyzer` module: capinfos and the two tshark runs in the sandbox runner, the index built as ace3 builds it, the hosts added, and the objects and certificates it carves stored for the root (`ResultEnvelope::stored`), for pcap_files and pcap_tls to add, as ace3 writes them beside the capture. tshark reads the task's copy of the capture where it is, rather than a copy in its working directory, which ace3 makes so tshark can't write the evidence: Landlock lets it read the task's files only. Its JSON is parsed by serde_json, and by `ace-pycompat`'s `json.loads` when that refuses it, for Python's error. A node that can't run the tools fails the task, as every sandbox module's does, where ace3 records `PcapNodeError` on the analysis. Observables aren't volatile, which ace4 doesn't have. Its 10 dumps match.
+- **ace4**: ported in `ace-mod-pcap`. Its `analyzer` module: capinfos and the two tshark runs in the sandbox runner, the index built as ace3 builds it, the hosts added, and the objects and certificates it carves stored for the root (`ResultEnvelope::stored`), for pcap_files and pcap_tls to add, as ace3 writes them beside the capture. tshark reads the task's copy of the capture where it is, rather than a copy in its working directory, which ace3 makes so tshark can't write the evidence: Landlock lets it read the task's files only. Its JSON is parsed by serde_json, and by `ace-pycompat`'s `json.loads` when that refuses it, for Python's error. A node that can't run the tools fails the task, as every sandbox module's does, where ace3 records `PcapNodeError` on the analysis. Observables aren't volatile, which ace4 doesn't have. Its 10 dumps match. Its `is_pcap_file` test is its declaration, from the file's type, as is each pcap module's (*What a module takes*).
 - **Pool**: sandbox. Runs tshark and capinfos, which stay in ACE's sandbox runner. tshark starts threads and no process, so it runs there without children (*External tools*).
 - **Step**: done.
 - **Does**: Dissects a pcap/pcapng file (detected by magic, not extension) with sandboxed capinfos and two tshark runs, stores the capture index (capture metadata, endpoints, flows, DNS/TLS/HTTP/hostnames, carved objects, certificates, embedded pcapng decryption secrets) and adds the host observables (IP, MAC, hostname).
@@ -541,7 +548,7 @@ In the config's order. ace4 is the crate a ported module is in.
 ### pcap_tls_decryption
 
 - **Section**: `analysis_module_pcap_tls_decryption`, class `PcapTlsDecryptor` in `saq/modules/file_analysis/pcap.py`, enabled by default.
-- **ace4**: ported in `ace-mod-pcap`. Its `decryption` module runs last (`Module::RUNS_LAST`), as ace3's final analysis, and reads the files tls_keylog tagged `tls_keylog` (`TreeFiles::tagged`), which ace3 finds by the same sniff of every file in the alert, so the pool downloads only those. Their key lines go to a file in the task's scratch directory, which tshark reads in the runner and which is removed after; no log line or result holds one. Its 9 dumps match.
+- **ace4**: ported in `ace-mod-pcap`. Its `decryption` module runs last (`Module::RUNS_LAST`), as ace3's final analysis, and reads the files tls_keylog tagged `tls_keylog` (`TreeFiles::tagged`), which ace3 finds by the same sniff of every file in the alert, so the pool downloads only those. Their key lines go to a file in the task's scratch directory, which tshark reads in the runner and which is removed after; no log line or result holds one. Its 9 dumps match. Its `is_pcap_file` test is its declaration, from the file's type (*What a module takes*).
 - **Pool**: sandbox. Runs tshark with key logs, in the sandbox runner.
 - **Step**: done.
 - **Does**: In final analysis, finds every TLS key log (SSLKEYLOGFILE format, by content) among the alert's file observables and re-runs tshark on a pcap with those keys, adding the DNS/TLS/HTTP/file observables the decrypted traffic shows beyond the plaintext index.
@@ -606,7 +613,7 @@ In the config's order. ace4 is the crate a ported module is in.
 ### onenote_extraction
 
 - **Section**: `analysis_module_onenote_extraction`, class `OneNoteFileAnalyzer` in `saq/modules/file_analysis/one_note.py`, enabled by default.
-- **ace4**: ported in `ace-mod-office`. The FileDataStoreObject is read as construct reads it, and an object that runs past the bytes read ends the search there with what was found before, as the exception does in ace3. It writes at most 499 files, as ace3's root holds 500 with the file itself (`docs/measurements/office-containers.md`).
+- **ace4**: ported in `ace-mod-office`. The FileDataStoreObject is read as construct reads it, and an object that runs past the bytes read ends the search there with what was found before, as the exception does in ace3. It writes at most 499 files, as ace3's root holds 500 with the file itself (`docs/measurements/office-containers.md`). Its test, a `.one` name or OneNote's header GUID, is its declaration: the name over the path, the header from the file's type (*What a module takes*).
 - **Pool**: parser. Binary parsing of an attacker's file.
 - **Step**: done.
 - **Does**: For a OneNote file (.one extension or the OneNote header GUID), finds every FileDataStoreObject by its GUID and writes each embedded file payload out as a file observable.
@@ -1195,7 +1202,7 @@ In the config's order. ace4 is the crate a ported module is in.
 ### archive
 
 - **Section**: `analysis_module_archive`, class `ArchiveAnalyzer` in `saq/modules/file_analysis/archive.py`, enabled by default.
-- **ace4**: ported in `ace-mod-archive`. It waits for file_type, as ace3's config has it, since 7.5 batch 5, whose `xml_plain_text_analyzer` reads the tags file_type puts on the archive.
+- **ace4**: ported in `ace-mod-archive`. It waits for file_type, as ace3's config has it, since 7.5 batch 5, whose `xml_plain_text_analyzer` reads the tags file_type puts on the archive. Its packet capture test is its declaration, from the file's type (*What a module takes*).
 - **Pool**: sandbox. zip, sevenz-rust2 and unrar in the task's process (1.29); ACE archives through unace in the sandbox runner, on a copy staged in the tool's working directory as ace3 stages it (7.5 batch 10).
 - **Step**: done.
 - **Does**: Lists and extracts archive files (rar, jar, xlsx-style zip, ACE, MSI, and anything else 7z opens, password 'infected') into {file}.extracted/ and adds each member as a file observable, flagging single-file archives holding executables, scripts, lnk, jnlp or OneNote files.
@@ -1217,7 +1224,7 @@ In the config's order. ace4 is the crate a ported module is in.
 ### java_class_decompiler
 
 - **Section**: `analysis_module_java_class_decompiler`, class `JavaClassDecompilerAnalysisModule` in `saq/modules/file_analysis/java.py`, enabled by default.
-- **ace4**: ported in `ace-mod-sandbox`. CFR 0.151 on OpenJDK 21.0.13 in the sandbox runner, as the image's `cfr` tool: `java` with ace3's JVM options and CFR's jar as fixed arguments (`ToolSpec::args`), reading the JDK's directory and `/etc/java-21-openjdk`, where its configuration links, as ace3's `jvm_conf_dirs` makes readable. A JVM that can't start (`JVM_STARTUP_ERRORS`) fails the task as the node's fault, where ace3 logs it and records an empty analysis. A run the runner stops, a run that exits non-zero and a file CFR can't decompile mark the result failed, as java.py raises `AnalysisError` for each: `cfr did not finish` and here why the runner stopped it, `cfr exited with status <n>: <its last line>`, and `cfr could not decompile the class file`.
+- **ace4**: ported in `ace-mod-sandbox`. CFR 0.151 on OpenJDK 21.0.13 in the sandbox runner, as the image's `cfr` tool: `java` with ace3's JVM options and CFR's jar as fixed arguments (`ToolSpec::args`), reading the JDK's directory and `/etc/java-21-openjdk`, where its configuration links, as ace3's `jvm_conf_dirs` makes readable. A JVM that can't start (`JVM_STARTUP_ERRORS`) fails the task as the node's fault, where ace3 logs it and records an empty analysis. A run the runner stops, a run that exits non-zero and a file CFR can't decompile mark the result failed, as java.py raises `AnalysisError` for each: `cfr did not finish` and here why the runner stopped it, `cfr exited with status <n>: <its last line>`, and `cfr could not decompile the class file`. Its `CAFEBABE` test is its declaration, from the file's type (*What a module takes*).
 - **Pool**: sandbox. Runs CFR on a JVM in the sandbox runner; no Rust decompiler. The JVM is in the image by decision 18 (*External tools*).
 - **Step**: done (7.5 batch 11).
 - **Does**: Decompiles a Java .class file (CAFEBABE magic) with CFR and adds the Java source as a file observable.
@@ -1390,7 +1397,7 @@ In the config's order. ace4 is the crate a ported module is in.
 ### xml_binary_analyzer
 
 - **Section**: `analysis_module_xml_binary_analyzer`, class `XMLBinaryDataAnalyzer` in `saq/modules/file_analysis/xml.py`, enabled by default.
-- **ace4**: ported in `ace-mod-office`. Part names are cleaned and numbered as ace3's `create_output_file` does, a task seeing only its own input and outputs. It writes at most 499 files, as ace3's root holds 500 with the file itself.
+- **ace4**: ported in `ace-mod-office`. Part names are cleaned and numbered as ace3's `create_output_file` does, a task seeing only its own input and outputs. It writes at most 499 files, as ace3's root holds 500 with the file itself. Its `<?xml` test is its declaration, from the file's type; the `Word.Document` test stays in the module (*What a module takes*).
 - **Pool**: parser. XML and base64 of an attacker's file.
 - **Step**: done.
 - **Does**: For an XML file whose first 1KB has '<?xml' and 'Word.Document' (Word 2003 flat XML package), base64-decodes every pkg:part's pkg:binaryData into its own file.
@@ -1411,7 +1418,7 @@ In the config's order. ace4 is the crate a ported module is in.
 ### xml_plain_text_analyzer
 
 - **Section**: `analysis_module_xml_plain_text_analyzer`, class `XMLPlainTextAnalyzer` in `saq/modules/file_analysis/xml.py`, enabled by default.
-- **ace4**: ported in `ace-mod-office`. It reads the tags of the file it was extracted from on the lease (`Module::READS_RELATED_TAGS`). The archive module, which extracts Office parts, waits for file_type as ace3's config has it, so file_type has tagged that file by then, as in ace3, which runs this a pass later.
+- **ace4**: ported in `ace-mod-office`. It reads the tags of the file it was extracted from on the lease (`Module::READS_RELATED_TAGS`). The archive module, which extracts Office parts, waits for file_type as ace3's config has it, so file_type has tagged that file by then, as in ace3, which runs this a pass later. Its `<?xml` test is its declaration, from the file's type (*What a module takes*).
 - **Pool**: parser. XML text extraction.
 - **Step**: done.
 - **Does**: For an XML file (<=131072 bytes) extracted from a document tagged microsoft_office, writes the text content and any attribute whose name contains 'instr' (e.g. field instructions) to a .noxml file.
@@ -1673,7 +1680,7 @@ In the config's order. ace4 is the crate a ported module is in.
 ### hidden_mime
 
 - **Section**: `analysis_module_hidden_mime`, class `HiddenMIMEAnalyzer` in `saq/modules/file_analysis/mime.py`, enabled by default.
-- **ace4**: ported in `ace-mod-office`. It parses with `ace-mod-oletools`' port of Python's feed parser, raising `RecursionError` past 971 nested multiparts, as ace3 does. It writes at most 499 files.
+- **ace4**: ported in `ace-mod-office`. It parses with `ace-mod-oletools`' port of Python's feed parser, raising `RecursionError` past 971 nested multiparts, as ace3 does. It writes at most 499 files. Its packet capture test is its declaration, from the file's type (*What a module takes*).
 - **Pool**: parser. MIME parsing of an attacker's file.
 - **Step**: done.
 - **Does**: Searches a non-email, non-pcap file for a 'content-type: ... boundary=' header and parses the MIME body from there with the stdlib email parser, writing each decoded part.
@@ -1824,7 +1831,7 @@ In the config's order. ace4 is the crate a ported module is in.
 ### binary_file_analyzer
 
 - **Section**: `analysis_module_binary_file_analyzer`, class `BinaryFileAnalyzer` in `saq/modules/file_analysis/binary.py`, enabled by default.
-- **ace4**: ported in `ace-mod-files`. `.doc` is looked for in the alert path, where ace3 looks in its node path.
+- **ace4**: ported in `ace-mod-files`. `.doc` is looked for in the alert path, where ace3 looks in its node path. Its RTF or EPS test is its declaration, from the file's type, with the stricter `{\rt` left in the module (*What a module takes*).
 - **Pool**: parser. Reads bytes.
 - **Step**: done.
 - **Does**: For RTF files (and EPS files with '.doc' in the path), flags the file for sandboxing if it contains a null byte anywhere but the last byte.
@@ -1845,7 +1852,7 @@ In the config's order. ace4 is the crate a ported module is in.
 ### microsoft_script_encoding_analysis
 
 - **Section**: `analysis_module_microsoft_script_encoding_analysis`, class `MicrosoftScriptEncodingAnalyzer` in `saq/modules/file_analysis/mse.py`, enabled by default.
-- **ace4**: ported in `ace-mod-scripts`. The Perl decoder is `mse::decode`, which matches `bin/jscript.decode.pl` byte for byte, dying where it dies with its message, on every fixture and sample and on 50,000 generated inputs, run in ace3's container against the Perl (`tools/samples/compare-mse-decoder`, `docs/measurements/scripts.md`). It runs in the task, linear in the file, where the Perl holds about 90 bytes per byte of the file and was killed for memory on 90 MB files, leaving part of its output for ace3 to add. The `.decrypted.stderr` file ace3 writes and never adds isn't written. `crates/ace-mod-scripts/tests/differences.md` has the rest.
+- **ace4**: ported in `ace-mod-scripts`. The Perl decoder is `mse::decode`, which matches `bin/jscript.decode.pl` byte for byte, dying where it dies with its message, on every fixture and sample and on 50,000 generated inputs, run in ace3's container against the Perl (`tools/samples/compare-mse-decoder`, `docs/measurements/scripts.md`). It runs in the task, linear in the file, where the Perl holds about 90 bytes per byte of the file and was killed for memory on 90 MB files, leaving part of its output for ace3 to add. The `.decrypted.stderr` file ace3 writes and never adds isn't written. `crates/ace-mod-scripts/tests/differences.md` has the rest. Its `#@~^` test is its declaration, from the file's type (*What a module takes*).
 - **Pool**: parser. Runs a vendored 80-line Perl decoder, unsandboxed today; the table-driven decoding ports to Rust.
 - **Step**: done.
 - **Does**: For a file starting #@~^ (VBScript/JScript.Encode), tags it and decodes it with bin/jscript.decode.pl.

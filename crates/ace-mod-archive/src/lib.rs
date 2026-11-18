@@ -91,13 +91,18 @@ impl Module for ArchiveAnalyzer {
 
     fn takes(settings: &ArchiveSettings) -> Takes {
         // an email's archive members are the email module's business (ace3, 10/19/2021)
-        let mut takes = Takes::everything().and(
-            Condition::Path(Text::contains("email.rfc822")).negated(),
-            "a file of an email",
-        );
+        let mut takes = Takes::everything()
+            .and(
+                Condition::Path(Text::contains("email.rfc822")).negated(),
+                "a file of an email",
+            )
+            // a capture is never an archive: the pcap modules dissect it (ace3's `is_pcap_file`)
+            .and(
+                Condition::type_fact(TypeFact::IsPcapFile).negated(),
+                "a packet capture",
+            );
         // the mime types it leaves alone and OLE documents, which ace3 leaves to the Office
-        // modules, from the file's type (PLAN.md decision 25); a packet capture is still told by
-        // its bytes, in `analyze`, which says so first where both hold
+        // modules, from the file's type (PLAN.md decision 25)
         for excluded in settings
             .excluded_mime_types
             .iter()
@@ -276,22 +281,6 @@ fn is_office_file(file: &InputFile) -> bool {
         || mime == "application/msword"
 }
 
-const PCAP_MAGIC: &[&[u8]] = &[
-    b"\xd4\xc3\xb2\xa1",
-    b"\xa1\xb2\xc3\xd4",
-    b"\x4d\x3c\xb2\xa1",
-    b"\xa1\xb2\x3c\x4d",
-];
-
-fn is_pcap(head: &[u8]) -> bool {
-    PCAP_MAGIC.iter().any(|m| head.starts_with(m))
-        || (head.starts_with(b"\x0a\x0d\x0d\x0a")
-            && matches!(
-                head.get(8..12),
-                Some(b"\x4d\x3c\x2b\x1a") | Some(b"\x1a\x2b\x3c\x4d")
-            ))
-}
-
 impl Parser for ArchiveAnalyzer {
     fn analyze(
         &self,
@@ -303,9 +292,6 @@ impl Parser for ArchiveAnalyzer {
         File::open(&file.local_path)?
             .take(16)
             .read_to_end(&mut head)?;
-        if is_pcap(&head) {
-            return Ok(Outcome::Skipped("a packet capture".to_owned()));
-        }
         let has_manifest = || {
             formats::list(Format::Zip, &file.local_path, &settings.password)
                 .map(|entries| entries.iter().any(|e| e.name == "META-INF/MANIFEST.MF"))

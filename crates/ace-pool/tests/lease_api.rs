@@ -6049,3 +6049,75 @@ async fn a_request_that_outlasts_its_leases_answers_only_with_tasks_it_holds() {
     .expect("counts");
     assert_eq!(owned, 3);
 }
+
+/// `file_type`'s stand-in: the core ends it itself where the bytes have a kept type.
+struct TypeStep;
+
+impl ace_sdk::Module for TypeStep {
+    const NAME: &'static str = "file_type";
+    const INPUTS: &'static [ace_results::ObservableKind] = &[ace_results::ObservableKind::File];
+    type Output = ace_results::types::file_type::TypeFacts;
+    type Settings = ();
+    fn init(_: &()) -> Result<Self, ace_sdk::ModuleError> {
+        Ok(TypeStep)
+    }
+}
+
+impl ace_sdk::Parser for TypeStep {
+    fn analyze(
+        &self,
+        _: &ace_sdk::TaskContext<()>,
+    ) -> Result<ace_sdk::Outcome<ace_results::types::file_type::TypeFacts>, ace_sdk::ModuleError>
+    {
+        Ok(ace_sdk::Outcome::Skipped("a stub".to_owned()))
+    }
+}
+
+/// PLAN.md decision 25: a file's type step whose bytes were typed meanwhile, in another root, is
+/// leased as any file's first task is, its path settled, and then ended by the core on the kept
+/// type: no pool is handed it. Kept from a name that didn't ask about JavaScript, the type doesn't
+/// answer a `.js` path, and that step is handed to the pool to run.
+#[tokio::test]
+async fn a_type_step_on_bytes_typed_meanwhile_ends_in_the_core() {
+    let core = Core::start(
+        vec![ace_sdk::Manifest::parser::<TypeStep>()],
+        &["file_type"],
+        Duration::from_secs(30),
+    )
+    .await;
+    let client =
+        ace_pool::client::LeaseClient::new(&core.url, common::TOKEN, "w1").expect("a client");
+    let (root, sha256) = common::root_with_bytes(&core, "analysis", b"some text", "a.txt").await;
+    assert_eq!(common::task_of(&core, root, "file_type").await.0, "queued");
+    let facts = ace_results::types::file_type::TypeFacts {
+        description: "ASCII text, with no line terminators".to_owned(),
+        mime: "text/plain".to_owned(),
+        ..Default::default()
+    };
+    let mut tx = core.test_db.db().begin().await.expect("begins");
+    ace_core::type_step::store_facts(&mut tx, &sha256.to_hex(), &facts)
+        .await
+        .expect("keeps");
+    tx.commit().await.expect("commits");
+    let leased = client
+        .lease(&["file_type".to_owned()], Duration::ZERO)
+        .await
+        .expect("leases");
+    assert!(leased.is_none(), "{leased:?}");
+    assert_eq!(common::task_of(&core, root, "file_type").await.0, "done");
+    let shown: bool = sqlx::query_scalar(
+        "SELECT type_result FROM analysis.observables WHERE root_id = $1 AND type = 'file'",
+    )
+    .bind(root)
+    .fetch_one(core.test_db.db().pool())
+    .await
+    .expect("reads");
+    assert!(
+        shown,
+        "ace3's file_type result shows, as after a step the pool ran"
+    );
+
+    let (root, _) = common::root_with_bytes(&core, "analysis", b"some text", "b.js").await;
+    let task = lease_one(&client, "file_type").await;
+    assert_eq!(task.root, root);
+}

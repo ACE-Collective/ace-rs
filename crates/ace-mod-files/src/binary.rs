@@ -10,7 +10,7 @@ use std::io::Read;
 
 use ace_results::types::binary::BinaryFileAnalysis;
 use ace_results::{AnalysisType, ObservableKind, ResultEnvelope};
-use ace_sdk::takes::{Condition, Takes};
+use ace_sdk::takes::{Condition, Takes, Text, TypeFact};
 use ace_sdk::{Manifest, Module, ModuleError, Outcome, Parser, TaskContext};
 
 /// The module's manifest.
@@ -31,15 +31,29 @@ impl Module for BinaryFileAnalyzer {
     }
 
     fn takes(_: &()) -> Takes {
-        Takes::everything().and(Condition::not_empty(), "an empty file")
+        // `is_supported_file` needs `{\rt` or an EPS header with `.doc` in the path. The type's
+        // RTF fact is `\rt` or `{\rt`, so a file it doesn't call RTF and that isn't EPS in a
+        // `.doc` path is declined exactly; `analyze` keeps the stricter `{\rt` (PLAN.md decision
+        // 25).
+        Takes::everything()
+            .and(Condition::not_empty(), "an empty file")
+            .and(
+                Condition::Any(vec![
+                    Condition::type_fact(TypeFact::IsRtfFile),
+                    Condition::All(vec![
+                        Condition::type_fact(TypeFact::IsEpsFile),
+                        Condition::Path(Text::contains(".doc")),
+                    ]),
+                ]),
+                "not an RTF or EPS file",
+            )
     }
 }
 
-/// `is_supported_file`: `{\rt` (stricter than file_type's check), or an EPS header in a file
-/// whose path holds `.doc`.
+/// `is_supported_file`: `{\rt` (stricter than file_type's check), or an EPS header
+/// (`checks::is_eps_file`) in a file whose path holds `.doc`.
 pub fn is_supported(path: &str, head: &[u8]) -> bool {
-    let eps = head.starts_with(b"\xc5\xd0\xd3\xc6") || head.starts_with(b"%!PS-Adobe-");
-    head.starts_with(b"{\\rt") || (eps && path.contains(".doc"))
+    head.starts_with(b"{\\rt") || (crate::checks::is_eps_file(head) && path.contains(".doc"))
 }
 
 /// A NUL anywhere but the file's last byte.

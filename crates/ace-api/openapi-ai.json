@@ -1653,28 +1653,63 @@
           "is_jar_file",
           "is_x509",
           "is_lnk_file",
-          "is_email_file"
+          "is_email_file",
+          "is_pcap_file",
+          "has_onenote_header",
+          "is_java_class_file",
+          "has_xml_marker",
+          "is_eps_file",
+          "is_encoded_script",
+          "has_har_header"
         ],
         "properties": {
           "description": {
             "type": "string",
             "description": "libmagic's description, as `file -b -L` prints it."
           },
+          "has_har_header": {
+            "type": "boolean",
+            "description": "A HAR's start in the first 4096 bytes: whitespace, `{`, `\"log\"` and `:`."
+          },
+          "has_onenote_header": {
+            "type": "boolean",
+            "description": "OneNote's header GUID in the first 16 bytes."
+          },
           "has_pdf_marker": {
             "type": "boolean",
             "description": "`%PDF-` in the first kilobyte. ace3's `is_pdf_file` is this unless the name ends in\n`.pdfparser`."
           },
+          "has_xml_marker": {
+            "type": "boolean",
+            "description": "`<?xml` in the first kilobyte."
+          },
           "is_email_file": {
             "type": "boolean"
           },
+          "is_encoded_script": {
+            "type": "boolean",
+            "description": "`#@~^` at the start: a script encoded by Microsoft's script encoder."
+          },
+          "is_eps_file": {
+            "type": "boolean",
+            "description": "The EPS binary header or `%!PS-Adobe-` at the start."
+          },
           "is_jar_file": {
             "type": "boolean"
+          },
+          "is_java_class_file": {
+            "type": "boolean",
+            "description": "`CAFEBABE` at the start: a Java class file."
           },
           "is_lnk_file": {
             "type": "boolean"
           },
           "is_ole_file": {
             "type": "boolean"
+          },
+          "is_pcap_file": {
+            "type": "boolean",
+            "description": "ace3's `is_pcap_file`: a pcap magic number, or a pcapng section header with its byte-order\nmagic."
           },
           "is_pe_file": {
             "type": "boolean"

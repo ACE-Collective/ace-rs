@@ -13,13 +13,13 @@ use ace_pycompat::pystr::{lstrip, splitlines_keepends, strip};
 use ace_results::FileRole;
 use ace_results::types::executables::JavaClassDecompilerAnalysis;
 use ace_results::{ObservableKind, ResultEnvelope};
-use ace_sdk::takes::{Condition, Takes};
+use ace_sdk::takes::{Condition, Takes, TypeFact};
 use ace_sdk::tools::ToolRun;
 use ace_sdk::{Module, ModuleError, Outcome, Parser, Resources, TaskContext};
 use schemars::JsonSchema;
 use serde::Deserialize;
 
-use crate::{head, name_fits, stopped_reason, tool_failure_reason};
+use crate::{name_fits, stopped_reason, tool_failure_reason};
 
 /// ace3's section of the module.
 #[derive(Debug, Clone, PartialEq, Deserialize, JsonSchema)]
@@ -58,7 +58,13 @@ impl Module for JavaClassDecompiler {
     }
 
     fn takes(_: &JavaClassDecompilerSettings) -> Takes {
-        Takes::everything().and(Condition::not_empty(), "an empty file")
+        Takes::everything()
+            .and(Condition::not_empty(), "an empty file")
+            // `is_java_class_file`, which the type step tests (PLAN.md decision 25)
+            .and(
+                Condition::type_fact(TypeFact::IsJavaClassFile),
+                "not a Java class file",
+            )
     }
 }
 
@@ -92,9 +98,6 @@ impl Parser for JavaClassDecompiler {
         ctx: &TaskContext<JavaClassDecompilerSettings>,
     ) -> Result<Outcome<JavaClassDecompilerAnalysis>, ModuleError> {
         let file = ctx.input_file()?;
-        if head(&file.local_path, 4)? != b"\xca\xfe\xba\xbe" {
-            return Ok(Outcome::Skipped("not a Java class file".to_owned()));
-        }
         let mut result = ResultEnvelope::new(JavaClassDecompilerAnalysis::default());
         let local = file.local_path.display().to_string();
         let run = ToolRun::new("cfr", [local.as_str()])

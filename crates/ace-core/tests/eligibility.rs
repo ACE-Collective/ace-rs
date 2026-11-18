@@ -2832,22 +2832,62 @@ mod typed {
     }
 }
 
-/// A mode that runs the type step and its readers, and one that runs the readers alone.
+/// A mode that runs the type step and its readers, one that runs the readers alone, and one that
+/// runs only modules that read nothing of the type.
 fn typed_orchestrator() -> Orchestrator {
-    let mode = |name: &str, step: bool| AnalysisMode {
+    let mode = |name: &str, keep: &dyn Fn(&str) -> bool| AnalysisMode {
         name: name.to_owned(),
         module_groups: Vec::new(),
         enabled_modules: typed::manifests()
             .iter()
             .map(|m| m.name.to_owned())
-            .filter(|m| step || m != "file_type")
+            .filter(|m| keep(m))
             .collect(),
         disabled_modules: Vec::new(),
     };
     let modes = Modes::ace3()
-        .with_mode(mode("typed", true))
-        .with_mode(mode("untyped", false));
+        .with_mode(mode("typed", &|_| true))
+        .with_mode(mode("untyped", &|m| m != "file_type"))
+        .with_mode(mode("plain", &|m| {
+            m == "test_wants_dmg" || m == "test_wants_all"
+        }));
     Orchestrator::new(Catalog::new(typed::manifests()), modes)
+}
+
+/// The type a PDF's bytes have.
+fn pdf_facts() -> ace_results::types::file_type::TypeFacts {
+    ace_results::types::file_type::TypeFacts {
+        description: "PDF document, version 1.4".to_owned(),
+        mime: "application/pdf".to_owned(),
+        has_pdf_marker: true,
+        ..Default::default()
+    }
+}
+
+/// Keeps `facts` for `sha256`, as a type step in another root would have.
+async fn keep_type(
+    test_db: &TestDb,
+    sha256: &str,
+    facts: &ace_results::types::file_type::TypeFacts,
+) {
+    let mut tx = test_db.db().begin().await.expect("begins");
+    ace_core::type_step::store_facts(&mut tx, sha256, facts)
+        .await
+        .expect("keeps the facts");
+    tx.commit().await.expect("commits");
+}
+
+/// The file's tags and its `yara_meta`, in a root with one file.
+async fn tags_and_types(test_db: &TestDb, root: uuid::Uuid) -> (Vec<String>, Vec<String>) {
+    sqlx::query_as(
+        "SELECT o.tags, f.yara_meta FROM analysis.observables o
+         JOIN analysis.files f ON f.root_id = o.root_id AND f.observable_id = o.id
+         WHERE o.root_id = $1 AND o.type = 'file'",
+    )
+    .bind(root)
+    .fetch_one(test_db.db().pool())
+    .await
+    .expect("reads")
 }
 
 /// A root in `mode` with one file at `path`, started: what the core queued.
@@ -3006,9 +3046,10 @@ async fn a_failed_type_step_keeps_no_module_off_the_file() {
     );
 }
 
-/// PLAN.md decision 25: where the mode doesn't run file_type, the file is still typed first, but
-/// shows no file_type result, as ace3's YARA-only mode has none, and the module that depends on it
-/// isn't held back; a mode that runs file_type, set later, gives the file its result.
+/// PLAN.md decision 25: where the mode doesn't run file_type but a module it runs declares on the
+/// type, the file is still typed first, but shows no file_type result, as ace3's YARA-only mode has
+/// none, and the module that depends on it isn't held back; a mode that runs file_type, set later,
+/// gives the file its result.
 #[tokio::test]
 async fn a_file_is_typed_in_a_mode_without_file_type_and_shows_its_result_once_one_has_it() {
     let test_db = TestDb::new().await;
@@ -3060,4 +3101,219 @@ async fn a_file_is_typed_in_a_mode_without_file_type_and_shows_its_result_once_o
     assert_eq!(file["results"]["file_type"]["details"]["is_pdf_file"], true);
     assert_eq!(file["tags"], json!({"pdf": true}));
     assert!(modules(&tasks_of(db, root).await).contains(&"test_reads_file_type"));
+}
+
+/// PLAN.md decision 25: a file is typed only where something reads its type. In a mode whose
+/// modules declare nothing on the type and that doesn't run file_type, as ace3's YARA-only mode,
+/// the file has no type step and its tasks are queued at once; a mode that reads the type, set
+/// later, types it then, and holds back only what is new.
+#[tokio::test]
+async fn a_file_is_typed_only_where_something_reads_its_type() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let orchestrator = typed_orchestrator();
+    let (root, _) = typed_root(&test_db, &orchestrator, "plain", &"c2".repeat(32), "a.dmg").await;
+    assert_eq!(
+        modules(&tasks_of(db, root).await),
+        ["test_wants_all", "test_wants_dmg"]
+    );
+    let mut tx = db.begin().await.expect("begins");
+    orchestrator
+        .set_mode(&mut tx, root, "typed")
+        .await
+        .expect("changes the mode");
+    tx.commit().await.expect("commits");
+    assert_eq!(
+        modules(&tasks_of(db, root).await),
+        ["file_type", "test_wants_all", "test_wants_dmg"]
+    );
+}
+
+/// PLAN.md decision 25: a file whose bytes were typed in another root needs no type step. The core
+/// reads the type kept for its sha256 when the file is added, settles its path, gives it ace3's
+/// file_type result where that module would run, and queues the rest at once.
+#[tokio::test]
+async fn a_file_whose_bytes_were_typed_before_needs_no_type_step() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let orchestrator = typed_orchestrator();
+    let sha256 = "d1".repeat(32);
+    keep_type(&test_db, &sha256, &pdf_facts()).await;
+
+    let (root, _) = typed_root(&test_db, &orchestrator, "typed", &sha256, "doc.pdf").await;
+    assert_eq!(
+        modules(&tasks_of(db, root).await),
+        ["test_reads_file_type", "test_wants_all", "test_wants_pdf"]
+    );
+    let (tags, types) = tags_and_types(&test_db, root).await;
+    assert_eq!(
+        (tags, types),
+        (vec!["pdf".to_owned()], vec!["type=document.pdf".to_owned()])
+    );
+    let form = ace_core::normal::normal_form(db.pool(), root)
+        .await
+        .expect("reads")
+        .expect("a root");
+    let shown = &form["observables"][format!("file:{sha256}")]["results"]["file_type"];
+    assert_eq!(shown["details"]["is_pdf_file"], true);
+    let settled: bool =
+        sqlx::query_scalar("SELECT analyzed FROM analysis.files WHERE root_id = $1")
+            .bind(root)
+            .fetch_one(db.pool())
+            .await
+            .expect("reads");
+    assert!(
+        settled,
+        "the path the type was read under is the analyzed one"
+    );
+
+    // a name the kept type reads differently: is_pdf_file and ace3's result follow the name
+    let (root, _) = typed_root(&test_db, &orchestrator, "typed", &sha256, "doc.pdfparser").await;
+    assert_eq!(modules(&tasks_of(db, root).await), ["test_wants_all"]);
+    let (tags, types) = tags_and_types(&test_db, root).await;
+    assert!(tags.is_empty() && types.is_empty(), "{tags:?} {types:?}");
+
+    // where file_type doesn't run there is no result to show
+    let (root, _) = typed_root(&test_db, &orchestrator, "untyped", &sha256, "doc.pdf").await;
+    assert_eq!(
+        modules(&tasks_of(db, root).await),
+        ["test_wants_all", "test_wants_pdf"]
+    );
+    let (tags, _) = tags_and_types(&test_db, root).await;
+    assert!(tags.is_empty());
+}
+
+/// PLAN.md decision 25: the JavaScript check is the one fact that isn't the bytes' alone. The type
+/// step makes it only where the mime type or the name says JavaScript, so a type kept from a `.txt`
+/// name lacks it, and the same bytes named `.js` get a type step that makes it. Kept with it, the
+/// type serves every name, and each name gets what its own name gives: node refuses `.JS`.
+#[tokio::test]
+async fn a_kept_type_serves_a_javascript_name_only_once_it_has_the_javascript_check() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let orchestrator = typed_orchestrator();
+    let sha256 = "e1".repeat(32);
+    let mut facts = ace_results::types::file_type::TypeFacts {
+        description: "ASCII text".to_owned(),
+        mime: "text/plain".to_owned(),
+        javascript: None,
+        ..Default::default()
+    };
+    keep_type(&test_db, &sha256, &facts).await;
+
+    let (root, _) = typed_root(&test_db, &orchestrator, "typed", &sha256, "x.txt").await;
+    assert!(!modules(&tasks_of(db, root).await).contains(&"file_type"));
+    let (root, _) = typed_root(&test_db, &orchestrator, "typed", &sha256, "y.js").await;
+    assert_eq!(modules(&tasks_of(db, root).await), ["file_type"]);
+
+    // the step under the .js name makes the check, and the file's tasks follow
+    let typer = type_worker(&test_db, &orchestrator).await;
+    let task = typer.claim().await.expect("claims").expect("the type step");
+    facts.javascript = Some(true);
+    let mut tx = db.begin().await.expect("begins");
+    ace_core::type_step::store_facts(&mut tx, &sha256, &facts)
+        .await
+        .expect("keeps the facts");
+    typer
+        .finish_in(&mut tx, task.id, ace_core::queue::TaskState::Done, None)
+        .await
+        .expect("ends");
+    tx.commit().await.expect("commits");
+    assert!(modules(&tasks_of(db, root).await).contains(&"test_wants_all"));
+    let (_, types) = tags_and_types(&test_db, root).await;
+    assert_eq!(types, ["type=script.javascript"]);
+
+    // now kept with the check, it serves another .js name, and a name node refuses
+    let (root, _) = typed_root(&test_db, &orchestrator, "typed", &sha256, "z.js").await;
+    assert!(!modules(&tasks_of(db, root).await).contains(&"file_type"));
+    let (_, types) = tags_and_types(&test_db, root).await;
+    assert_eq!(types, ["type=script.javascript"]);
+    let (root, _) = typed_root(&test_db, &orchestrator, "typed", &sha256, "w.JS").await;
+    assert!(!modules(&tasks_of(db, root).await).contains(&"file_type"));
+    let (_, types) = tags_and_types(&test_db, root).await;
+    assert!(types.is_empty(), "{types:?}");
+}
+
+/// PLAN.md decision 25: a type step that fails keeps no type, so the same bytes in the next root
+/// are typed again.
+#[tokio::test]
+async fn a_failed_type_step_keeps_nothing_and_the_next_root_types_the_bytes_again() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let orchestrator = typed_orchestrator();
+    let sha256 = "f1".repeat(32);
+    let (_, _) = typed_root(&test_db, &orchestrator, "typed", &sha256, "x.bin").await;
+    let typer = type_worker(&test_db, &orchestrator).await;
+    let task = typer.claim().await.expect("claims").expect("the type step");
+    typer
+        .fail(task.id, "libmagic crashed")
+        .await
+        .expect("fails");
+    let kept: i64 = sqlx::query_scalar("SELECT count(*) FROM store.file_types WHERE sha256 = $1")
+        .bind(&sha256)
+        .fetch_one(db.pool())
+        .await
+        .expect("counts");
+    assert_eq!(kept, 0);
+    let (root, _) = typed_root(&test_db, &orchestrator, "typed", &sha256, "x.bin").await;
+    assert_eq!(modules(&tasks_of(db, root).await), ["file_type"]);
+}
+
+/// PLAN.md decisions 15 and 25: the kept type is read under the path the file will be analyzed
+/// under, which is settled only once nothing nearer the root could still add a path. While a task
+/// nearer the root is pending the file gets a type step, whose lease waits for the path as any
+/// file's first task does; and a type kept before migration 0070, without the newer facts, is no
+/// type at all.
+#[tokio::test]
+async fn a_kept_type_waits_for_the_file_s_path_to_be_settled() {
+    let test_db = TestDb::new().await;
+    let db = test_db.db();
+    let orchestrator = typed_orchestrator();
+    let sha256 = "a2".repeat(32);
+    keep_type(&test_db, &sha256, &pdf_facts()).await;
+    let (root, ids) = root_with(db, "typed", &[(ObservableKind::Fqdn, "example.com")]).await;
+    let mut tx = db.begin().await.expect("begins");
+    ace_core::queue::enqueue(&mut tx, root, ids[0], "test_wants_all")
+        .await
+        .expect("queues");
+    let file = tree::upsert_observable_at(
+        &mut tx,
+        root,
+        &ace_results::NewObservable::new(ObservableKind::File, &sha256),
+        1,
+    )
+    .await
+    .expect("adds")
+    .id;
+    tree::add_file(&mut tx, root, file, "a/doc.pdf", &[])
+        .await
+        .expect("adds");
+    orchestrator.start(&mut tx, root).await.expect("starts");
+    tx.commit().await.expect("commits");
+    let on_file: Vec<String> = sqlx::query_scalar(
+        "SELECT module FROM queue.tasks WHERE root_id = $1 AND observable_id = $2 ORDER BY module",
+    )
+    .bind(root)
+    .bind(file.0)
+    .fetch_all(db.pool())
+    .await
+    .expect("reads");
+    assert_eq!(on_file, ["file_type"]);
+
+    // a row from before migration 0070 is no type
+    let sha256 = "a3".repeat(32);
+    keep_type(&test_db, &sha256, &pdf_facts()).await;
+    sqlx::query("UPDATE store.file_types SET has_har_header = NULL WHERE sha256 = $1")
+        .bind(&sha256)
+        .execute(db.pool())
+        .await
+        .expect("updates");
+    assert!(
+        ace_core::type_step::facts_for(db.pool(), &sha256)
+            .await
+            .expect("reads")
+            .is_none()
+    );
+    let (root, _) = typed_root(&test_db, &orchestrator, "typed", &sha256, "doc.pdf").await;
+    assert_eq!(modules(&tasks_of(db, root).await), ["file_type"]);
 }

@@ -298,8 +298,33 @@ impl Orchestrator {
         }
 
         let none = BTreeSet::new();
-        // a file's type step, queued first and alone (`crate::type_step`)
+        // a file's type step, queued first and alone where something reads the type
+        // (`crate::type_step`)
         let type_step = self.catalog.component(TYPE_STEP);
+        let reads_type: BTreeSet<&str> = self
+            .catalog
+            .iter()
+            .filter(|component| component.takes.reads().file_type)
+            .map(|component| component.key.as_str())
+            .collect();
+        // the files with no type step but a type kept for their bytes that their settled path
+        // can use, which need no step of their own
+        let untyped: Vec<ObservableId> = observables
+            .iter()
+            .filter(|o| o.kind == "file")
+            .filter(|o| {
+                matches!(
+                    tasks.get(&(o.id, TYPE_STEP.to_owned())),
+                    None | Some((_, TaskState::Cancelled, _))
+                )
+            })
+            .map(|o| o.id)
+            .collect();
+        let kept = if type_step.is_some() && !untyped.is_empty() {
+            type_step::kept(tx.conn(), root, &untyped).await?
+        } else {
+            BTreeMap::new()
+        };
         let mut queued = Vec::new();
         // each observable's eligible components first, then the facts their declarations read,
         // read once for every observable that has a declaring component (`crate::takes`)
@@ -336,23 +361,33 @@ impl Orchestrator {
             if kind == ObservableKind::File
                 && let Some(step) = type_step
             {
-                // typed when anything the mode runs, file_type among them, would look at it
-                let wanted =
-                    !components.is_empty() || check(step, facts, &mode_modules, &done).is_ok();
+                // typed where ace3's file_type would run, so its result shows where ace3's does,
+                // or where a module the mode runs on the file declares on the type
+                let shows = check(step, facts, &mode_modules, &done).is_ok();
+                let wanted = shows
+                    || components
+                        .iter()
+                        .any(|c| reads_type.contains(c.key.as_str()));
+                // a type kept from other bytes' step serves once ace3's result shows, if it must
+                let reused =
+                    kept.contains_key(&observable.id) && (observable.type_result || !shows);
                 let step_task = tasks.get(&(observable.id, TYPE_STEP.to_owned()));
                 let ended = match step_task {
                     Some((_, TaskState::Done | TaskState::Failed, _)) => true,
-                    None if wanted => {
+                    // a step queued or running is waited for
+                    Some((_, state, _)) if *state != TaskState::Cancelled => false,
+                    // nothing reads the type, or the kept one serves: the rest is queued at once
+                    _ if !wanted || reused => true,
+                    None => {
                         queued.extend(queue::enqueue(tx, root, observable.id, TYPE_STEP).await?);
                         false
                     }
-                    Some((id, TaskState::Cancelled, _)) if wanted && requeue_cancelled => {
-                        if queue::requeue_cancelled(tx, *id).await? {
+                    Some((id, _, _)) => {
+                        if requeue_cancelled && queue::requeue_cancelled(tx, *id).await? {
                             queued.push(*id);
                         }
                         false
                     }
-                    _ => false,
                 };
                 // nothing else on the file until its type step has ended
                 if !ended {
@@ -429,6 +464,9 @@ impl Orchestrator {
         )
         .fetch_all(tx.conn())
         .await?;
+        // a file whose bytes were typed before needs no step (`take_kept_types`)
+        self.take_kept_types(tx, root, &locked.mode, Scope::All)
+            .await?;
         let pre = hooks::pre(tx, &self.hooks, &self.modes, root, &locked.mode, &all).await?;
         hooks::mark_due(tx, &self.hooks, &self.modes, root, &locked.mode).await?;
         if pre.detected
@@ -472,7 +510,7 @@ impl Orchestrator {
         .await?;
         hooks::mark_due(tx, &self.hooks, &self.modes, root, mode).await?;
         // a mode that runs file_type gives typed files ace3's result where an earlier mode didn't
-        self.show_types(tx, root, mode, Scope::All).await?;
+        self.take_kept_types(tx, root, mode, Scope::All).await?;
         self.queue_eligible_locked(tx, root, mode, Scope::All, true)
             .await
     }
@@ -522,9 +560,68 @@ impl Orchestrator {
         Ok(queued)
     }
 
+    /// Lets the type kept for a file's bytes serve each file in `scope` that has no type step
+    /// (PLAN.md decision 25): its analysis path is settled now, by the rule a file's first lease
+    /// applies (`Api::held_for_path`), where nothing nearer the root could still add a path, so
+    /// that the path the kept type is read under is the one the file's tasks will read. Then each
+    /// shows ace3's file_type result where that module would run (`show_types`). A file whose path
+    /// can't be settled yet is typed by a step of its own, as a new file is; its lease, held until
+    /// the path is settled, ends it without the pool where the kept type answers the path
+    /// (`Api::leased`). Returns the files that now show ace3's result.
+    async fn take_kept_types(
+        &self,
+        tx: &mut Tx<'_>,
+        root: Uuid,
+        mode: &str,
+        scope: Scope<'_>,
+    ) -> Result<Vec<ObservableId>, OrchestratorError> {
+        if self.catalog.component(TYPE_STEP).is_none() {
+            return Ok(Vec::new());
+        }
+        let only: Option<Vec<i64>> = match scope {
+            Scope::All => None,
+            Scope::Observables(ids) => Some(ids.iter().map(|id| id.0).collect()),
+        };
+        let unsettled = sqlx::query!(
+            r#"SELECT o.id AS "id: ObservableId", o.depth
+               FROM analysis.observables o
+               WHERE o.root_id = $1 AND o.type = 'file' AND NOT o.type_result
+                 AND ($2::bigint[] IS NULL OR o.id = ANY($2))
+                 AND NOT EXISTS (SELECT FROM queue.tasks t
+                                 WHERE t.root_id = o.root_id AND t.observable_id = o.id
+                                   AND t.module = $3 AND t.state <> 'cancelled')
+                 AND NOT EXISTS (SELECT FROM analysis.files f
+                                 WHERE f.root_id = o.root_id AND f.observable_id = o.id
+                                   AND f.analyzed)
+                 AND EXISTS (SELECT FROM store.file_types k
+                             WHERE k.sha256 = o.value AND k.has_har_header IS NOT NULL)
+               ORDER BY o.id"#,
+            root,
+            only.as_deref(),
+            TYPE_STEP,
+        )
+        .fetch_all(tx.conn())
+        .await?;
+        if !unsettled.is_empty() {
+            let last: Vec<String> = self
+                .catalog
+                .iter()
+                .filter(|c| c.manifest.runs_last)
+                .map(|c| c.key.clone())
+                .collect();
+            for row in unsettled {
+                if !tree::pending_above(tx.conn(), root, row.depth, &last).await? {
+                    tree::choose_analysis_file(tx, root, row.id).await?;
+                }
+            }
+        }
+        self.show_types(tx, root, mode, scope).await
+    }
+
     /// Gives each typed file in `scope` that doesn't show it yet ace3's file_type result, where
     /// that module would run on it in `mode` by the core's rules (`type_step::show`), and returns
-    /// those files.
+    /// those files. A file is typed when its type step has ended in this root with a type kept, or
+    /// when it has no step and a kept type serves its settled path (`type_step::kept`).
     async fn show_types(
         &self,
         tx: &mut Tx<'_>,
@@ -544,10 +641,10 @@ impl Orchestrator {
         };
         let rows = sqlx::query!(
             r#"SELECT o.id AS "id: ObservableId", o.value, o.tags, o.directives, o.exclude_modules,
-                      o.limit_modules
+                      o.limit_modules, t.state AS "step?: TaskState"
                FROM analysis.observables o
-               JOIN queue.tasks t ON t.root_id = o.root_id AND t.observable_id = o.id
-                    AND t.module = $3 AND t.state IN ('done', 'failed')
+               LEFT JOIN queue.tasks t ON t.root_id = o.root_id AND t.observable_id = o.id
+                    AND t.module = $3
                WHERE o.root_id = $1 AND o.type = 'file' AND NOT o.type_result
                  AND ($2::bigint[] IS NULL OR o.id = ANY($2))
                ORDER BY o.id"#,
@@ -559,6 +656,7 @@ impl Orchestrator {
         .await?;
         let none = BTreeSet::new();
         let mut shown = Vec::new();
+        let mut stepless = Vec::new();
         for row in rows {
             let facts = Facts {
                 kind: ObservableKind::File,
@@ -570,6 +668,15 @@ impl Orchestrator {
             if check(component, facts, &mode_modules, &none).is_err() {
                 continue;
             }
+            match row.step {
+                Some(TaskState::Done | TaskState::Failed) => {}
+                None | Some(TaskState::Cancelled) => {
+                    stepless.push(row.id);
+                    continue;
+                }
+                // its own step is still to end
+                Some(_) => continue,
+            }
             let Some(type_facts) = type_step::facts_for(tx.conn(), &row.value).await? else {
                 continue;
             };
@@ -578,6 +685,12 @@ impl Orchestrator {
             };
             type_step::show(tx, root, row.id, &file.path, &type_facts).await?;
             shown.push(row.id);
+        }
+        if !stepless.is_empty() {
+            for (id, typed) in type_step::kept(tx.conn(), root, &stepless).await? {
+                type_step::show(tx, root, id, &typed.path, &typed.facts).await?;
+                shown.push(id);
+            }
         }
         Ok(shown)
     }
@@ -776,6 +889,10 @@ impl Orchestrator {
         // the observable modifier's pre rules, before anything is queued for what the result touched
         let mut pre = hooks::Effects::default();
         if !locked.cancelled {
+            // a file it added whose bytes were typed before needs no step, and its tags from that
+            // type are there for the pre rules (`take_kept_types`)
+            self.take_kept_types(tx, root, &mode, Scope::Observables(&touched))
+                .await?;
             pre = hooks::pre(tx, &self.hooks, &self.modes, root, &mode, &touched).await?;
             touched.extend(pre.touched.iter().copied());
             hooks::mark_due(tx, &self.hooks, &self.modes, root, &mode).await?;

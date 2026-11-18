@@ -5,7 +5,7 @@
 //!   and whose `TargetMode` is `External`, as a URL with `force_download`, and a detection on the
 //!   file. What was found before a parse error is kept.
 //! - `xml_binary_analyzer`, `XMLBinaryDataAnalyzer` (`xml.py`): a Word 2003 XML package, `<?xml`
-//!   and `Word.Document` in its first KiB, has each named part's `binaryData` base64-decoded into
+//!   (the type's `has_xml_marker`) and `Word.Document` in its first KiB, has each named part's `binaryData` base64-decoded into
 //!   `<file>.xml/<part name>`, the name cleaned and numbered as ace3's `create_output_file` does. A
 //!   parse error keeps none of them.
 //! - `xml_plain_text_analyzer`, `XMLPlainTextAnalyzer` (`xml.py`): an XML file of at most
@@ -40,7 +40,7 @@ use ace_results::types::office::{
 use ace_results::{
     AnalysisType, Detection, NewObservable, ObservableKind, RelationshipKind, ResultEnvelope,
 };
-use ace_sdk::takes::{Case, Condition, Takes, Text};
+use ace_sdk::takes::{Case, Condition, Takes, Text, TypeFact};
 use ace_sdk::{Manifest, Module, ModuleError, Outcome, Parser, TaskContext};
 use schemars::JsonSchema;
 use serde::Deserialize;
@@ -261,6 +261,14 @@ impl Module for XmlBinaryAnalyzer {
     fn init(_: &()) -> Result<Self, ModuleError> {
         Ok(XmlBinaryAnalyzer)
     }
+
+    fn takes(_: &()) -> Takes {
+        // `<?xml` in the first KiB, which the type step tests (PLAN.md decision 25)
+        Takes::everything().and(
+            Condition::type_fact(TypeFact::HasXmlMarker),
+            "not an XML document",
+        )
+    }
 }
 
 impl Parser for XmlBinaryAnalyzer {
@@ -270,9 +278,6 @@ impl Parser for XmlBinaryAnalyzer {
     ) -> Result<Outcome<XmlBinaryDataAnalysis>, ModuleError> {
         let file = ctx.input_file()?;
         let data = std::fs::read(&file.local_path)?;
-        if !contains(head(&data), b"<?xml") {
-            return Ok(Outcome::Skipped("not an XML document".to_owned()));
-        }
         if !contains(head(&data), b"Word.Document") {
             return Ok(Outcome::Skipped("not a Word.Document".to_owned()));
         }
@@ -378,6 +383,10 @@ impl Module for XmlPlainTextAnalyzer {
             )
             .and(Condition::at_most(settings.maximum_size), "too large")
             .and(
+                Condition::type_fact(TypeFact::HasXmlMarker),
+                "not an XML document",
+            )
+            .and(
                 Condition::Relationship(RelationshipKind::ExtractedFrom),
                 "not extracted from anything",
             )
@@ -391,9 +400,6 @@ impl Parser for XmlPlainTextAnalyzer {
     ) -> Result<Outcome<XmlPlainTextAnalysis>, ModuleError> {
         let file = ctx.input_file()?;
         let data = std::fs::read(&file.local_path)?;
-        if !contains(head(&data), b"<?xml") {
-            return Ok(Outcome::Skipped("not an XML document".to_owned()));
-        }
         // `takes` declined a file without one
         let Some(source) = ctx
             .observable()
